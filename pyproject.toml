@@ -1,7 +1,7 @@
 [project]
 # https://packaging.python.org/en/latest/specifications/declaring-project-metadata/
-name = "cm-service"
-description = "Campaign management FastAPI service"
+name = "lsst-cm-service"
+description = "Rubin Observatory campaign management FastAPI service"
 license = { file = "LICENSE" }
 readme = "README.md"
 keywords = ["rubin", "lsst"]
@@ -11,19 +11,19 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.10",
     "Intended Audience :: Developers",
     "Natural Language :: English",
     "Operating System :: POSIX",
     "Typing :: Typed",
 ]
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 # Use requirements/main.in for runtime dependencies instead.
 dependencies = []
 dynamic = ["version"]
 
 [project.scripts]
-cm-service = "cmservice.cli:main"
+cm-service = "lsst.cmservice.cli.commands:main"
 
 [project.urls]
 Homepage = "https://cm-service.lsst.io"
@@ -38,10 +38,10 @@ build-backend = "setuptools.build_meta"
 [tool.coverage.run]
 parallel = true
 branch = true
-source = ["cmservice"]
+source = ["lsst.cmservice"]
 
 [tool.coverage.paths]
-source = ["src", ".tox/*/site-packages"]
+source = ["src"]
 
 [tool.coverage.report]
 show_missing = true
@@ -58,18 +58,13 @@ exclude_lines = [
 ]
 
 [tool.black]
-line-length = 79
-target-version = ["py311"]
+line-length = 110
+target-version = ["py310"]
 exclude = '''
 /(
-    \.eggs
-  | \.git
+    \.git
   | \.mypy_cache
-  | \.tox
   | \.venv
-  | _build
-  | build
-  | dist
 )/
 '''
 # Use single-quoted strings so TOML treats the string like a Python r-string
@@ -77,9 +72,8 @@ exclude = '''
 
 [tool.isort]
 profile = "black"
-line_length = 79
-known_first_party = ["cmservice", "tests"]
-skip = ["docs/conf.py"]
+line_length = 110
+known_first_party = ["lsst", "tests"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
@@ -104,4 +98,41 @@ strict_equality = true
 warn_redundant_casts = true
 warn_unreachable = true
 warn_unused_ignores = true
-# plugins =
+plugins = ["sqlalchemy.ext.mypy.plugin"]
+
+[tool.pydocstyle]
+convention = "numpy"
+add_select = [
+    "D212" # Multi-line docstring summary should start at the first line
+]
+add-ignore = [
+    "D105", # Missing docstring in magic method
+    "D102", # Missing docstring in public method (needed for docstring inheritance)
+    "D100", # Missing docstring in public module
+    # Below are required to allow multi-line summaries.
+    "D200", # One-line docstring should fit on one line with quotes
+    "D205", # 1 blank line required between summary line and description
+    "D400", # First line should end with a period
+    # Properties shouldn't be written in imperative mode. This will be fixed
+    # post 6.1.1, see https://github.com/PyCQA/pydocstyle/pull/546
+    "D401",
+]
+
+[tool.pylint]
+disable = [
+    "abstract-method",
+    "invalid-name",
+    "too-many-statements",
+    "missing-module-docstring",
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "too-few-public-methods",
+    "duplicate-code"
+]
+max-line-length = 110
+max-locals = 50
+max-branches = 25
+max-public-methods = 50
+
+[tool.pylint.'MESSAGES CONTROL']
+extension-pkg-whitelist = "pydantic"

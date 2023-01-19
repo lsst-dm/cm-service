@@ -11,4 +11,8 @@ starlette
 uvicorn[standard]
 
 # Other dependencies.
-safir>=3.4.0
+asyncpg
+click
+safir[db,arq]
+sqlalchemy[asyncio]
+structlog

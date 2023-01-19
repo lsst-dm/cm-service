@@ -12,6 +12,10 @@ coverage[toml]
 httpx
 mypy
 pre-commit
+pylint
 pytest
 pytest-asyncio
 pytest-cov
+pytest-timeout
+sqlalchemy[mypy]
+types-pyyaml
