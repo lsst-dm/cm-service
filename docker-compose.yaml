@@ -22,7 +22,9 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: psql postgresql://cm-service:INSECURE-PASSWORD@127.0.0.1/cm-service --quiet --no-align --tuples-only -1 --command="SELECT 1"
+      test: >-
+        psql postgresql://cm-service:INSECURE-PASSWORD@127.0.0.1/cm-service
+        --quiet --no-align --tuples-only -1 --command="SELECT 1"
       interval: 1s
       timeout: 1s
       retries: 30
