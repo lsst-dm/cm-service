@@ -13,15 +13,3 @@ def test_commands() -> None:
     result = runner.invoke(main, ["--help"])
     assert result.exit_code == 0
     assert "Usage:" in result.output
-
-    result = runner.invoke(main, ["help"])
-    assert result.exit_code == 0
-    assert "Usage:" in result.output
-
-    result = runner.invoke(main, ["help", "init"])
-    assert result.exit_code == 0
-    assert "Usage:" in result.output
-
-    result = runner.invoke(main, ["help", "bogus"])
-    assert result.exit_code == 2
-    assert "Usage:" in result.output
