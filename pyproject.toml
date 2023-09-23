@@ -98,7 +98,7 @@ strict_equality = true
 warn_redundant_casts = true
 warn_unreachable = true
 warn_unused_ignores = true
-plugins = ["sqlalchemy.ext.mypy.plugin"]
+plugins = ["sqlalchemy.ext.mypy.plugin", "pydantic.mypy"]
 
 [tool.pydocstyle]
 convention = "numpy"

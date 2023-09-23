@@ -3,7 +3,6 @@ import structlog
 import uvicorn
 from safir.asyncio import run_with_asyncio
 from safir.database import create_database_engine, initialize_database
-from sqlalchemy.schema import CreateSchema
 
 from ..config import config
 from ..db import Base
@@ -39,10 +38,6 @@ async def init(reset: bool) -> None:  # pragma: no cover
     """Initialize the service database."""
     logger = structlog.get_logger(config.logger_name)
     engine = create_database_engine(config.database_url, config.database_password)
-    # Remove this clause if Safir PR #140 is merged
-    if Base.metadata.schema is not None:
-        async with engine.begin() as conn:
-            await conn.execute(CreateSchema(Base.metadata.schema, True))
     await initialize_database(engine, logger, schema=Base.metadata, reset=reset)
     await engine.dispose()
 

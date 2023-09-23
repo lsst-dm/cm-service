@@ -59,7 +59,7 @@ class Configuration(BaseSettings):
     )
 
     arq_queue_url: RedisDsn = Field(
-        "redis://localhost:6379/1",
+        RedisDsn("redis://localhost:6379/1", scheme="redis"),
         env="CM_ARQ_QUEUE_URL",
     )
 

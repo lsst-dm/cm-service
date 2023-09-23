@@ -13,6 +13,8 @@ uvicorn[standard]
 # Other dependencies.
 asyncpg
 click
+pydantic<2
 safir[db,arq]
 sqlalchemy[asyncio]
 structlog
+tabulate

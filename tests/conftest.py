@@ -9,7 +9,6 @@ from fastapi import FastAPI
 from httpx import AsyncClient
 from safir.database import create_database_engine, initialize_database
 from sqlalchemy.ext.asyncio import AsyncEngine
-from sqlalchemy.schema import CreateSchema
 
 from lsst.cmservice import main
 from lsst.cmservice.config import config
@@ -29,10 +28,6 @@ async def engine() -> AsyncIterator[AsyncEngine]:
     """Return a SQLAlchemy AsyncEngine configured to talk to the app db."""
     logger = structlog.get_logger(config.logger_name)
     engine = create_database_engine(config.database_url, config.database_password)
-    # Remove this clause if Safir PR #140 is merged
-    if Base.metadata.schema is not None:
-        async with engine.begin() as conn:
-            await conn.execute(CreateSchema(Base.metadata.schema, True))
     await initialize_database(engine, logger, schema=Base.metadata, reset=True)
     yield engine
     await engine.dispose()

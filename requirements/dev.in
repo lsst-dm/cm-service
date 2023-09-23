@@ -19,3 +19,4 @@ pytest-cov
 pytest-timeout
 sqlalchemy[mypy]
 types-pyyaml
+types-tabulate
