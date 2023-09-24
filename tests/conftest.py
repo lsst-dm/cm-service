@@ -47,5 +47,5 @@ async def app(engine: AsyncEngine) -> AsyncIterator[FastAPI]:
 @pytest_asyncio.fixture(scope="session")
 async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
     """Return an ``httpx.AsyncClient`` configured to talk to the test app."""
-    async with AsyncClient(app=app, base_url="https://example.com/") as client:
+    async with AsyncClient(app=app, base_url="https:") as client:
         yield client

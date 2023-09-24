@@ -1,5 +1,3 @@
-from urllib.parse import urlparse
-
 from arq.connections import RedisSettings
 from pydantic import BaseSettings, Field, RedisDsn
 from safir.arq import ArqMode
@@ -58,24 +56,29 @@ class Configuration(BaseSettings):
         env="CM_LOG_LEVEL",
     )
 
-    arq_queue_url: RedisDsn = Field(
-        RedisDsn("redis://localhost:6379/1", scheme="redis"),
-        env="CM_ARQ_QUEUE_URL",
-    )
-
     arq_mode: ArqMode = Field(
         ArqMode.production,
-        env="CM_ARQ_MODE",
+    )
+
+    arq_redis_url: RedisDsn = Field(
+        RedisDsn("redis://localhost:6379/1", scheme="redis"),
+        title="The URL for the cm-service arq redis database",
+        env="CM_ARQ_REDIS_URL",
+    )
+
+    arq_redis_password: str | None = Field(
+        title="The password for the cm-service arq redis database",
+        env="CM_ARQ_REDIS_PASSWORD",
     )
 
     @property
     def arq_redis_settings(self) -> RedisSettings:
         """Create a Redis settings instance for arq."""
-        url_parts = urlparse(self.arq_queue_url)
         redis_settings = RedisSettings(
-            host=url_parts.hostname or "localhost",
-            port=url_parts.port or 6379,
-            database=int(url_parts.path.lstrip("/")) if url_parts.path else 0,
+            host=self.arq_redis_url.host or "localhost",
+            port=int(self.arq_redis_url.port or 6379),
+            password=self.arq_redis_password,
+            database=int(self.arq_redis_url.path.lstrip("/")) if self.arq_redis_url.path else 0,
         )
         return redis_settings
 

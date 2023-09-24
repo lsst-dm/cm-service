@@ -21,24 +21,30 @@ init:
 .PHONY: update
 update: update-deps init
 
-.PHONE: test
-test: export CM_DATABASE_URL = postgresql://cm-service@127.0.0.1/cm-service
-test: export CM_DATABASE_PASSWORD = INSECURE-PASSWORD
-test: export CM_DATABASE_SCHEMA = cm_service_test
-test: export CM_REDIS_HOST = 127.0.0.1
+.PHONY: test
 test:
-	docker compose up --wait --quiet-pull
-	pytest -vv --cov
+	docker compose up --wait --quiet-pull && \
+	CM_DATABASE_PORT=$$(docker compose port postgresql 5432 | cut -d: -f2) && \
+	CM_ARQ_REDIS_PORT=$$(docker compose port redis 6379 | cut -d: -f2) && \
+	export CM_DATABASE_URL=postgresql://cm-service@localhost:$${CM_DATABASE_PORT}/cm-service && \
+	export CM_DATABASE_PASSWORD=INSECURE-PASSWORD && \
+	export CM_DATABASE_SCHEMA=cm_service_test && \
+	export CM_ARQ_REDIS_URL=redis://localhost:$${CM_ARQ_REDIS_PORT}/1 && \
+	export CM_ARQ_REDIS_PASSWORD=INSECURE-PASSWORD && \
+	pytest -vvv --cov=lsst.cmservice --cov-branch
 
 .PHONY: run
-run: export CM_DATABASE_URL = postgresql://cm-service@127.0.0.1/cm-service
-run: export CM_DATABASE_PASSWORD = INSECURE-PASSWORD
-run: export CM_DATABASE_ECHO = true
-run: export CM_REDIS_HOST = 127.0.0.1
 run:
-	docker compose up --wait
-	cm-service init
-	cm-service run
+	docker compose up --wait && \
+	CM_DATABASE_PORT=$$(docker compose port postgresql 5432 | cut -d: -f2) && \
+	CM_ARQ_REDIS_PORT=$$(docker compose port redis 6379 | cut -d: -f2) && \
+	export CM_DATABASE_URL=postgresql://cm-service@localhost:$${CM_DATABASE_PORT}/cm-service && \
+	export CM_DATABASE_PASSWORD=INSECURE-PASSWORD && \
+	export CM_DATABASE_ECHO=true && \
+	export CM_ARQ_REDIS_URL=redis://localhost:$${CM_ARQ_REDIS_PORT}/1 && \
+	export CM_ARQ_REDIS_PASSWORD=INSECURE-PASSWORD && \
+	cm-service init && \
+	cm-service run --port=0
 
 .PHONY: lint
 lint:

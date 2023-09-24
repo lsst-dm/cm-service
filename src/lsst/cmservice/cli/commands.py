@@ -46,4 +46,4 @@ async def init(reset: bool) -> None:  # pragma: no cover
 @click.option("--port", default=8080, type=int, help="Port to run the application on.")
 def run(port: int) -> None:  # pragma: no cover
     """Run the service application (for testing only)."""
-    uvicorn.run("lsst.cmservice.main:app", port=port, reload=True, reload_dirs=["src"])
+    uvicorn.run("lsst.cmservice.main:app", host="0.0.0.0", port=port, reload=True, reload_dirs=["src"])
