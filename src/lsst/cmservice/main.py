@@ -38,9 +38,9 @@ from .routers import (
     task_sets,
     wms_task_reports,
 )
+from .web_app import web_app
 
 __all__ = ["app", "config"]
-
 
 configure_logging(profile=config.profile, log_level=config.log_level, name=config.logger_name)
 configure_uvicorn_logging(config.log_level)
@@ -168,9 +168,9 @@ app = FastAPI(
     docs_url=f"{config.prefix}/docs",
     redoc_url=f"{config.prefix}/redoc",
 )
-"""The main FastAPI application for cm-service."""
 
 app.add_middleware(XForwardedMiddleware)
+
 
 app.include_router(index.router)
 app.include_router(loaders.router, prefix=config.prefix)
@@ -203,3 +203,6 @@ app.include_router(row.router, prefix=config.prefix)
 app.include_router(script_dependencies.router, prefix=config.prefix)
 app.include_router(step_dependencies.router, prefix=config.prefix)
 app.include_router(queues.router, prefix=config.prefix)
+
+# Start the frontend web application.
+app.mount("/web_app", web_app)
