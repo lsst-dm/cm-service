@@ -1,0 +1,85 @@
+# This is an example of the campaign level template specification file for dc2-test-med type campaigns
+
+# Import the Step templates for DC2
+- import: "${CM_CONFIGS}/config_dc2_steps.yaml"
+# Now build the Campaign Template for DC2 test med
+- SpecBlock:
+      name: d2c_campaign
+      # Define collections associated with the campaign
+      collections:
+          root: 'cm/dc2_test_med'
+      # Define the steps, their connections and override parameters as needed
+      child_config:
+          step1:
+              spec_block: dc2_step1
+              child_config:
+                  base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+                  split_min_groups: 3
+          step2:
+              spec_block: dc2_step2
+              prerequisites: ['step1']
+              child_config:
+                  base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+          step3:
+              spec_block: dc2_step3
+              prerequisites: ['step2']
+              child_config:
+                  base_query: "instrument='LSSTCam-imSim' and skymap='DC2'"
+                  split_vals:
+                      - 3828
+                      - 3829
+          step4:
+              spec_block: dc2_step4
+              prerequisites: ['step3']
+              child_config:
+                  base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+                  split_min_groups: 4
+          step5:
+              spec_block: dc2_step5
+              prerequisites: ['step4']
+              child_config:
+                  base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+                  split_vals:
+                      - 3828
+                      - 3829
+          step6:
+              spec_block: dc2_step6
+              prerequisites: ['step4']
+              child_config:
+                  base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+                  split_min_groups: 4
+          step7:
+              spec_block: dc2_step7
+              prerequisites: ['step3']
+              child_config:
+                  base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+          step8:
+              spec_block: dc2_step8
+              prerequisites: ['step3']
+              child_config:
+                  base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+          faro_visit:
+              spec_block: dc2_faro_visit
+              prerequisites: ['step6']
+              child_config:
+                  base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+          faro_matched:
+              spec_block: dc2_faro_matched
+              prerequisites: ['step6']
+              child_config:
+                  base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+          faro_tract:
+              spec_block: dc2_faro_tract
+              prerequisites: ['step3']
+              child_config:
+                  base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+          plots:
+              spec_block: dc2_plots
+              prerequisites: ['step3']
+              child_config:
+                  base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+      # Campaign level paramters
+      data:
+          butler_repo: '/repo/dc2'
+          data_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+          lsst_version: "${WEEKLY}"

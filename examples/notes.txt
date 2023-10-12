@@ -1,0 +1,29 @@
+
+# Required CM setup for now
+export CM_SERVICE_DIR=<top level cm-service dir, used for eups setup -j -r $ CM_SERVICE_DIR>
+export CM_CONFIGS=<top level dir with specification files>
+
+
+# Initial setup of the campaign template.  This only happen once per campaign type
+
+# Create a production as a namespace
+cm-service add production --name dc2_test_med
+
+# Load the related specification.
+cm-service load specification --yaml_file examples/config_dc2_test_med.yaml --production_name dc2_test_med --spec_name v0 --set-as-default
+
+# If you want a new version of the campaign (say because you added a step, you can create a new specification)
+cm-service load specification --yaml_file examples/config_dc2_test_med.yaml --production_name dc2_test_med --spec_name v1 --set-as-default
+
+
+# Creating an launching campagin, happens many times
+
+
+# Create a specific instance of a campaign
+cm-service add campaign --parent_name dc2_test_med --name w_2023_38 --override_data "lsst_weekly=w_2023_38"   # use the default specification for this production, in this case v1
+
+cm-service add campaign --parent_name dc2_test_med --name w_2023_37 --spec_name v0 --override_data "lsst_weekly=w_2023_37"  # use a non-default specification for this production
+
+
+# Put a campaign in the processing queue
+cm-service queue add --fullname dc2_test_med/w_2023_38

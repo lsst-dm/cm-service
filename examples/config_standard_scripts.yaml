@@ -1,0 +1,66 @@
+# create an empty CHAINED collection
+- SpecBlock:
+      name: chain_create_script
+      handler: lsst.cmservice.handlers.scripts.ChainCreateScriptHandler
+# prepend to a CHAINED collection
+- SpecBlock:
+      name: chain_prepend_script
+      handler: lsst.cmservice.handlers.scripts.ChainPrependScriptHandler
+# collect Job RUN collections into a CHAINED collection
+- SpecBlock:
+      name: chain_collect_jobs_script
+      handler: lsst.cmservice.handlers.scripts.ChainCollectScriptHandler
+      data:
+          collect: jobs
+# collect Step CHAINED collections into a CHAINED collections
+- SpecBlock:
+      name: chain_collect_steps_script
+      handler: lsst.cmservice.handlers.scripts.ChainCollectScriptHandler
+      data:
+          collect: steps
+# make a TAGGED collection with a query
+- SpecBlock:
+      name: tag_inputs_script
+      handler: lsst.cmservice.handlers.scripts.TagInputsScriptHandler
+# make an empty TAGGED collection
+- SpecBlock:
+      name: tag_create_script
+      handler: lsst.cmservice.handlers.scripts.TagCreateScriptHandler
+# add datasets to an existing TAGGED collection
+- SpecBlock:
+      name: tag_associate_script
+      handler: lsst.cmservice.handlers.scripts.TagAssociateScriptHandler
+# Prepare a step by making an input collection
+- SpecBlock:
+      name: prepare_step_script
+      handler: lsst.cmservice.handlers.scripts.PrepareStepScriptHandler
+      collections:
+          global_inputs: "{campaign_input}"
+# Run a validation script (probably a query into sasquatch)
+- SpecBlock:
+      name: validate_script
+      handler: lsst.cmservice.handlers.scripts.ValidateScriptHandler
+# Run a bps submit script
+- SpecBlock:
+      name: bps_submit_script
+      handler: lsst.cmservice.handlers.jobs.BpsSubmitScriptHandler
+# Run a bps report script
+- SpecBlock:
+      name: bps_report_script
+      handler: lsst.cmservice.handlers.jobs.BpsReportScriptHandler
+# Run a manifest checker report script
+- SpecBlock:
+      name: manifest_report_script
+      handler: lsst.cmservice.handlers.jobs.ManifestReportScriptHandler
+# Create and run Jobs associated to a Group
+- SpecBlock:
+      name: run_jobs
+      handler: lsst.cmservice.handlers.elements.RunJobsScriptHandler
+# Create and run Group associated to a Step
+- SpecBlock:
+      name: run_groups
+      handler: lsst.cmservice.handlers.elements.RunGroupsScriptHandler
+# Create and run Steps associated to a Campaign
+- SpecBlock:
+      name: run_steps
+      handler: lsst.cmservice.handlers.elements.RunStepsScriptHandler
