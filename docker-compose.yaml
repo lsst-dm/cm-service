@@ -2,25 +2,24 @@
 # This is used by make run, which starts cm-service in the foreground.
 
 version: "3"
+name: "${USER}-cm-service"
 services:
   redis:
     image: "redis:latest"
     hostname: "redis"
-    container_name: "redis"
-    command:
-      - "redis-server"
+    command: >-
+      redis-server --requirepass INSECURE-PASSWORD
     ports:
-      - "6379:6379"
+      - "6379"
   postgresql:
     image: "postgres:latest"
     hostname: "postgresql"
-    container_name: "postgresql"
     environment:
       POSTGRES_PASSWORD: "INSECURE-PASSWORD"
       POSTGRES_USER: "cm-service"
       POSTGRES_DB: "cm-service"
     ports:
-      - "5432:5432"
+      - "5432"
     healthcheck:
       test: >-
         psql postgresql://cm-service:INSECURE-PASSWORD@127.0.0.1/cm-service
