@@ -1,4 +1,4 @@
-from typing import Sequence
+from collections.abc import Sequence
 
 from fastapi import APIRouter, Depends, HTTPException
 from safir.dependencies.db_session import db_session_dependency

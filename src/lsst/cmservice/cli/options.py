@@ -1,6 +1,7 @@
+from collections.abc import Callable
 from enum import Enum, auto
 from functools import partial
-from typing import Any, Callable, Type
+from typing import Any
 
 import click
 from click.decorators import FC
@@ -17,7 +18,7 @@ __all__ = [
 class EnumChoice(click.Choice):
     """A version of click.Choice specialized for enum types."""
 
-    def __init__(self, enum: Type[Enum], case_sensitive: bool = True) -> None:
+    def __init__(self, enum: type[Enum], case_sensitive: bool = True) -> None:
         self._enum = enum
         super().__init__(list(enum.__members__.keys()), case_sensitive=case_sensitive)
 
@@ -28,7 +29,8 @@ class EnumChoice(click.Choice):
 
 class PartialOption:
     """Wraps click.option decorator with partial arguments for convenient
-    reuse."""
+    reuse.
+    """
 
     def __init__(self, *param_decls: str, **attrs: Any) -> None:
         self._partial = partial(click.option, *param_decls, cls=partial(click.Option), **attrs)

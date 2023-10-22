@@ -1,6 +1,6 @@
 from asyncio import AbstractEventLoop, get_event_loop_policy
+from collections.abc import AsyncIterator, Iterator
 from pathlib import Path
-from typing import AsyncIterator, Iterator
 
 import pytest
 import pytest_asyncio

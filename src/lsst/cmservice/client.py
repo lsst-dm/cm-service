@@ -7,7 +7,7 @@ __all__ = ["CMClient"]
 
 
 class CMClient:
-    """Interface for accessing remote cm-service"""
+    """Interface for accessing remote cm-service."""
 
     def __init__(self, url: str) -> None:
         self._client = httpx.Client(base_url=url)

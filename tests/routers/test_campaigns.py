@@ -6,10 +6,9 @@ from httpx import AsyncClient
 from lsst.cmservice.config import config
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_campaigns_api(client: AsyncClient) -> None:
-    """Test `/campaigns` API endpoint"""
-
+    """Test `/campaigns` API endpoint."""
     # Create a couple fresh productions
     pnames = []
     pids = []
@@ -27,7 +26,8 @@ async def test_campaigns_api(client: AsyncClient) -> None:
         cnames.append(str(uuid1()))
         for j in range(len(pids)):
             response = await client.post(
-                f"{config.prefix}/campaigns", json={"production": pids[j], "name": cnames[i]}
+                f"{config.prefix}/campaigns",
+                json={"production": pids[j], "name": cnames[i]},
             )
             assert response.status_code == 201
             data = response.json()
@@ -38,7 +38,8 @@ async def test_campaigns_api(client: AsyncClient) -> None:
     # Create an additional campaign and delete it to get a "dead" id
     cname_dead = str(uuid1())
     response = await client.post(
-        f"{config.prefix}/campaigns", json={"production": pids[0], "name": cname_dead}
+        f"{config.prefix}/campaigns",
+        json={"production": pids[0], "name": cname_dead},
     )
     cid_dead = int(response.json()["id"])
     cids_deleted = {cid_dead}
@@ -96,13 +97,15 @@ async def test_campaigns_api(client: AsyncClient) -> None:
 
     # Try to create a name conflict
     response = await client.post(
-        f"{config.prefix}/campaigns", json={"production": pids[0], "name": cnames[0]}
+        f"{config.prefix}/campaigns",
+        json={"production": pids[0], "name": cnames[0]},
     )
     assert response.status_code == 422
 
     # Try to update to a name conflict
     response = await client.put(
-        f"{config.prefix}/campaigns/{cids[0]}", json={"id": cids[0], "production": pids[0], "name": cnames[1]}
+        f"{config.prefix}/campaigns/{cids[0]}",
+        json={"id": cids[0], "production": pids[0], "name": cnames[1]},
     )
     assert response.status_code == 422
 

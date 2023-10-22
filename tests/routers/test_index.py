@@ -2,9 +2,9 @@ import pytest
 from httpx import AsyncClient
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_index(client: AsyncClient) -> None:
-    """Test ``GET /``"""
+    """Test ``GET /``."""
     response = await client.get("/")
     assert response.status_code == 200
     data = response.json()

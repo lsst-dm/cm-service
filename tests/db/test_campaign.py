@@ -8,10 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from lsst.cmservice import db
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_campaign_db(engine: AsyncEngine) -> None:
-    """Test `campaign` db table"""
-
+    """Test `campaign` db table."""
     # Insert some productions and some linked campaigns
     async with engine.begin() as conn:
         pnames = [str(uuid1()) for n in range(2)]
@@ -27,10 +26,12 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
         )
         cnames = [str(uuid1()) for n in range(5)]
         await conn.execute(
-            insert(db.Campaign), [{"production": pids[0], "name": cnames[n]} for n in range(5)]
+            insert(db.Campaign),
+            [{"production": pids[0], "name": cnames[n]} for n in range(5)],
         )
         await conn.execute(
-            insert(db.Campaign), [{"production": pids[1], "name": cnames[n]} for n in range(5)]
+            insert(db.Campaign),
+            [{"production": pids[1], "name": cnames[n]} for n in range(5)],
         )
 
     # Verify campaign UNIQUE name constraint
@@ -43,6 +44,6 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
         await conn.execute(delete(db.Production).where(db.Production.id == pids[0]))
         assert (
             await conn.execute(
-                select(func.count()).select_from(db.Campaign).where(db.Campaign.production == pids[0])
+                select(func.count()).select_from(db.Campaign).where(db.Campaign.production == pids[0]),
             )
         ).scalar_one() == 0

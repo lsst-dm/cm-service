@@ -6,10 +6,9 @@ from httpx import AsyncClient
 from lsst.cmservice.config import config
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_groups_api(client: AsyncClient) -> None:
-    """Test `/groups` API endpoint"""
-
+    """Test `/groups` API endpoint."""
     # Create a fresh production
     pname = str(uuid1())
     response = await client.post(f"{config.prefix}/productions", json={"name": pname})
@@ -107,7 +106,8 @@ async def test_groups_api(client: AsyncClient) -> None:
 
     # Try to update to a name conflict
     response = await client.put(
-        f"{config.prefix}/groups/{gids[0]}", json={"id": gids[0], "step": sids[0], "name": gnames[1]}
+        f"{config.prefix}/groups/{gids[0]}",
+        json={"id": gids[0], "step": sids[0], "name": gnames[1]},
     )
     assert response.status_code == 422
 

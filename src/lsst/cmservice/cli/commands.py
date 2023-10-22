@@ -1,6 +1,7 @@
 import json
+from collections.abc import Generator, Iterable
 from dataclasses import dataclass
-from typing import Generator, Iterable, TypeVar
+from typing import TypeVar
 
 import click
 import structlog
@@ -86,7 +87,8 @@ def delete() -> None:
 def _lookahead(iterable: Iterable[T]) -> Generator[tuple[T, bool], None, None]:
     """A generator which returns all elements of the provided iteratable as
     tuples with an additional `bool`; the `bool` will be `True` on the last
-    element and `False` otherwise."""
+    element and `False` otherwise.
+    """
     it = iter(iterable)
     try:
         last = next(it)
