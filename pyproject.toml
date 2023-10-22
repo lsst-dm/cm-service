@@ -17,7 +17,7 @@ classifiers = [
     "Operating System :: POSIX",
     "Typing :: Typed",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 # Use requirements/main.in for runtime dependencies instead.
 dependencies = []
 dynamic = ["version"]
@@ -74,6 +74,37 @@ exclude = '''
 profile = "black"
 line_length = 110
 known_first_party = ["lsst", "tests"]
+
+[tool.ruff]
+exclude = [
+    "__init__.py",
+]
+ignore = [
+    "N802",
+    "N803",
+    "N806",
+    "N812",
+    "N813",
+    "N815",
+    "N816",
+]
+line-length = 110
+select = [
+    "E",  # pycodestyle
+    "F",  # pyflakes
+    "N",  # pep8-naming
+    "W",  # pycodestyle
+]
+target-version = "py311"
+extend-select = [
+    "RUF100", # Warn about unused noqa
+]
+
+[tool.ruff.pycodestyle]
+max-doc-length = 79
+
+[tool.ruff.pydocstyle]
+convention = "numpy"
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
