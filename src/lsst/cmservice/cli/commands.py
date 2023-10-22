@@ -85,8 +85,10 @@ def delete() -> None:
 
 
 def _lookahead(iterable: Iterable[T]) -> Generator[tuple[T, bool], None, None]:
-    """A generator which returns all elements of the provided iteratable as
-    tuples with an additional `bool`; the `bool` will be `True` on the last
+    """Elaborate iterable with end indication.
+
+    Returns a generator which returns all elements of the provided iteratable
+    as tuples with an additional `bool`; the `bool` will be `True` on the last
     element and `False` otherwise.
     """
     it = iter(iterable)
@@ -160,7 +162,7 @@ def tree(client: CMClient, path: str | None) -> None:
 @main.command()
 @click.option("--reset", is_flag=True, help="Delete all existing database data.")
 @run_with_asyncio
-async def init(reset: bool) -> None:  # pragma: no cover
+async def init(*, reset: bool) -> None:  # pragma: no cover
     """Initialize the service database."""
     logger = structlog.get_logger(config.logger_name)
     engine = create_database_engine(config.database_url, config.database_password)

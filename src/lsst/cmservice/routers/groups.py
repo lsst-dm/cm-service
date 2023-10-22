@@ -65,9 +65,10 @@ async def post_group(
             group = db.Group(**group_create.dict())
             session.add(group)
         await session.refresh(group)
-        return group
     except IntegrityError as e:
         raise HTTPException(422, detail=str(e)) from e
+    else:
+        return group
 
 
 @router.delete(
@@ -105,6 +106,7 @@ async def update_production(
             for var, value in vars(group_update).items():
                 setattr(group, var, value)
         await session.refresh(group)
-        return group
     except IntegrityError as e:
         raise HTTPException(422, detail=str(e)) from e
+    else:
+        return group

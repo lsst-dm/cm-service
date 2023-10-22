@@ -60,9 +60,10 @@ async def post_production(
             production = db.Production(**production_create.dict())
             session.add(production)
         await session.refresh(production)
-        return production
     except IntegrityError as e:
         raise HTTPException(422, detail=str(e)) from e
+    else:
+        return production
 
 
 @router.delete(
@@ -100,6 +101,7 @@ async def update_production(
             for var, value in vars(production_update).items():
                 setattr(production, var, value)
         await session.refresh(production)
-        return production
     except IntegrityError as e:
         raise HTTPException(422, detail=str(e)) from e
+    else:
+        return production

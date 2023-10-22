@@ -9,10 +9,10 @@ __all__ = ["CMClient"]
 class CMClient:
     """Interface for accessing remote cm-service."""
 
-    def __init__(self, url: str) -> None:
+    def __init__(self: "CMClient", url: str) -> None:
         self._client = httpx.Client(base_url=url)
 
-    def get_productions(self) -> list[models.Production]:
+    def get_productions(self: "CMClient") -> list[models.Production]:
         skip = 0
         productions = []
         query = "productions?"
@@ -21,7 +21,7 @@ class CMClient:
             skip += len(results)
         return productions
 
-    def get_campaigns(self, production: int | None = None) -> list[models.Campaign]:
+    def get_campaigns(self: "CMClient", production: int | None = None) -> list[models.Campaign]:
         skip = 0
         campaigns = []
         query = f"campaigns?{f'production={production}&' if production else ''}"
@@ -30,7 +30,7 @@ class CMClient:
             skip += len(results)
         return campaigns
 
-    def get_steps(self, campaign: int | None = None) -> list[models.Step]:
+    def get_steps(self: "CMClient", campaign: int | None = None) -> list[models.Step]:
         skip = 0
         steps = []
         query = f"steps?{f'campaign={campaign}&' if campaign else ''}"
@@ -39,7 +39,7 @@ class CMClient:
             skip += len(results)
         return steps
 
-    def get_groups(self, step: int | None = None) -> list[models.Group]:
+    def get_groups(self: "CMClient", step: int | None = None) -> list[models.Group]:
         skip = 0
         groups = []
         query = f"groups?{f'step={step}&' if step else ''}"
