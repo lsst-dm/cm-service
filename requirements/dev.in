@@ -17,6 +17,7 @@ pytest
 pytest-asyncio
 pytest-cov
 pytest-timeout
+ruff
 sqlalchemy[mypy]
 types-pyyaml
 types-tabulate
