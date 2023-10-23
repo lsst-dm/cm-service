@@ -6,10 +6,9 @@ from httpx import AsyncClient
 from lsst.cmservice.config import config
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_productions_api(client: AsyncClient) -> None:
-    """Test `/productions` API endpoint"""
-
+    """Test `/productions` API endpoint."""
     # Create a bunch of fresh productions
     pnames = []
     pids = []
@@ -55,13 +54,15 @@ async def test_productions_api(client: AsyncClient) -> None:
 
     # Try update with mismatched IDs
     response = await client.put(
-        f"{config.prefix}/productions/{pid_dead}", json={"id": pids[0], "name": pname_dead}
+        f"{config.prefix}/productions/{pid_dead}",
+        json={"id": pids[0], "name": pname_dead},
     )
     assert response.status_code == 400
 
     # Try update of something not there
     response = await client.put(
-        f"{config.prefix}/productions/{pid_dead}", json={"id": pid_dead, "name": pname_dead}
+        f"{config.prefix}/productions/{pid_dead}",
+        json={"id": pid_dead, "name": pname_dead},
     )
     assert response.status_code == 404
 
@@ -71,14 +72,16 @@ async def test_productions_api(client: AsyncClient) -> None:
 
     # Try to update to a name conflict
     response = await client.put(
-        f"{config.prefix}/productions/{pids[0]}", json={"id": pids[0], "name": pnames[1]}
+        f"{config.prefix}/productions/{pids[0]}",
+        json={"id": pids[0], "name": pnames[1]},
     )
     assert response.status_code == 422
 
     # Try a valid update and verify results
     pname_updated = str(uuid1())
     response = await client.put(
-        f"{config.prefix}/productions/{pids[0]}", json={"id": pids[0], "name": pname_updated}
+        f"{config.prefix}/productions/{pids[0]}",
+        json={"id": pids[0], "name": pname_updated},
     )
     assert response.status_code == 200
     data = response.json()

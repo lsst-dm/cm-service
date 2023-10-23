@@ -6,10 +6,9 @@ from httpx import AsyncClient
 from lsst.cmservice.config import config
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_steps_api(client: AsyncClient) -> None:
-    """Test `/steps` API endpoint"""
-
+    """Test `/steps` API endpoint."""
     # Create a fresh production
     pname = str(uuid1())
     response = await client.post(f"{config.prefix}/productions", json={"name": pname})
@@ -22,7 +21,8 @@ async def test_steps_api(client: AsyncClient) -> None:
     for n in range(2):
         cnames.append(str(uuid1()))
         response = await client.post(
-            f"{config.prefix}/campaigns", json={"production": pid, "name": cnames[n]}
+            f"{config.prefix}/campaigns",
+            json={"production": pid, "name": cnames[n]},
         )
         assert response.status_code == 201
         cids.append(response.json()["id"])
@@ -35,7 +35,8 @@ async def test_steps_api(client: AsyncClient) -> None:
         snames.append(str(uuid1()))
         for j in range(len(cids)):
             response = await client.post(
-                f"{config.prefix}/steps", json={"campaign": cids[j], "name": snames[i]}
+                f"{config.prefix}/steps",
+                json={"campaign": cids[j], "name": snames[i]},
             )
             assert response.status_code == 201
             data = response.json()
@@ -106,7 +107,8 @@ async def test_steps_api(client: AsyncClient) -> None:
 
     # Try to update to a name conflict
     response = await client.put(
-        f"{config.prefix}/steps/{sids[0]}", json={"id": sids[0], "campaign": cids[0], "name": snames[1]}
+        f"{config.prefix}/steps/{sids[0]}",
+        json={"id": sids[0], "campaign": cids[0], "name": snames[1]},
     )
     assert response.status_code == 422
 

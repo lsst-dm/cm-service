@@ -1,6 +1,7 @@
+from collections.abc import Callable
 from enum import Enum, auto
 from functools import partial
-from typing import Any, Callable, Type
+from typing import Any
 
 import click
 from click.decorators import FC
@@ -17,23 +18,27 @@ __all__ = [
 class EnumChoice(click.Choice):
     """A version of click.Choice specialized for enum types."""
 
-    def __init__(self, enum: Type[Enum], case_sensitive: bool = True) -> None:
+    def __init__(self: "EnumChoice", enum: type[Enum], *, case_sensitive: bool = True) -> None:
         self._enum = enum
         super().__init__(list(enum.__members__.keys()), case_sensitive=case_sensitive)
 
-    def convert(self, value: Any, param: click.Parameter | None, ctx: click.Context | None) -> Enum:
+    def convert(
+        self: "EnumChoice",
+        value: Any,
+        param: click.Parameter | None,
+        ctx: click.Context | None,
+    ) -> Enum:
         converted_str = super().convert(value, param, ctx)
         return self._enum.__members__[converted_str]
 
 
 class PartialOption:
-    """Wraps click.option decorator with partial arguments for convenient
-    reuse."""
+    """Wrap partially specified click.option decorator for convenient reuse."""
 
-    def __init__(self, *param_decls: str, **attrs: Any) -> None:
+    def __init__(self: "PartialOption", *param_decls: str, **attrs: Any) -> None:
         self._partial = partial(click.option, *param_decls, cls=partial(click.Option), **attrs)
 
-    def __call__(self, *param_decls: str, **attrs: Any) -> Callable[[FC], FC]:
+    def __call__(self: "PartialOption", *param_decls: str, **attrs: Any) -> Callable[[FC], FC]:
         return self._partial(*param_decls, **attrs)
 
 

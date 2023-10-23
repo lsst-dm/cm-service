@@ -8,10 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from lsst.cmservice import db
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_production_db(engine: AsyncEngine) -> None:
-    """Test `production` db table"""
-
+    """Test `production` db table."""
     # Check production name UNIQUE constraint
     pname = str(uuid1())
     async with engine.begin() as conn:

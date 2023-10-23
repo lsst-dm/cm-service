@@ -1,4 +1,4 @@
-from typing import Sequence
+from collections.abc import Sequence
 
 from fastapi import APIRouter, Depends, HTTPException
 from safir.dependencies.db_session import db_session_dependency
@@ -65,9 +65,10 @@ async def post_step(
             step = db.Step(**step_create.dict())
             session.add(step)
         await session.refresh(step)
-        return step
     except IntegrityError as e:
         raise HTTPException(422, detail=str(e)) from e
+    else:
+        return step
 
 
 @router.delete(
@@ -105,6 +106,7 @@ async def update_production(
             for var, value in vars(step_update).items():
                 setattr(step, var, value)
         await session.refresh(step)
-        return step
     except IntegrityError as e:
         raise HTTPException(422, detail=str(e)) from e
+    else:
+        return step

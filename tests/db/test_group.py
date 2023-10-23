@@ -8,10 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from lsst.cmservice import db
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_group_db(engine: AsyncEngine) -> None:
-    """Test `group` db table"""
-
+    """Test `group` db table."""
     # Insert a production, a campaign, some steps, and some linked groups
     async with engine.begin() as conn:
         pname = str(uuid1())
@@ -21,7 +20,8 @@ async def test_group_db(engine: AsyncEngine) -> None:
         cname = str(uuid1())
         cid = (
             await conn.execute(
-                insert(db.Campaign).returning(db.Campaign.id), {"production": pid, "name": cname}
+                insert(db.Campaign).returning(db.Campaign.id),
+                {"production": pid, "name": cname},
             )
         ).scalar_one()
         snames = [str(uuid1()) for n in range(2)]

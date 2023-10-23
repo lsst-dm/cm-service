@@ -1,4 +1,4 @@
-from typing import Sequence
+from collections.abc import Sequence
 
 from fastapi import APIRouter, Depends, HTTPException
 from safir.dependencies.db_session import db_session_dependency
@@ -65,9 +65,10 @@ async def post_campaign(
             campaign = db.Campaign(**campaign_create.dict())
             session.add(campaign)
         await session.refresh(campaign)
-        return campaign
     except IntegrityError as e:
         raise HTTPException(422, detail=str(e)) from e
+    else:
+        return campaign
 
 
 @router.delete(
@@ -105,6 +106,7 @@ async def update_production(
             for var, value in vars(campaign_update).items():
                 setattr(campaign, var, value)
         await session.refresh(campaign)
-        return campaign
     except IntegrityError as e:
         raise HTTPException(422, detail=str(e)) from e
+    else:
+        return campaign

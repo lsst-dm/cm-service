@@ -10,13 +10,13 @@ class Configuration(BaseSettings):
     """Configuration for cm-service."""
 
     prefix: str = Field(
-        "/cm-service/v1",
+        default="/cm-service/v1",
         title="The URL prefix for the cm-service API",
         env="CM_URL_PREFIX",
     )
 
     database_url: str = Field(
-        "",
+        default="",
         title="The URL for the cm-service database",
         env="CM_DATABASE_URL",
     )
@@ -27,31 +27,31 @@ class Configuration(BaseSettings):
     )
 
     database_schema: str | None = Field(
-        None,
+        default=None,
         title="Schema to use for cm-service database",
         env="CM_DATABASE_SCHEMA",
     )
 
     database_echo: bool | str = Field(
-        False,
+        default=False,
         title="SQLAlchemy engine echo setting for the cm-service database",
         env="CM_DATABASE_ECHO",
     )
 
     profile: Profile = Field(
-        Profile.development,
+        default=Profile.development,
         title="Application logging profile",
         env="CM_LOG_PROFILE",
     )
 
     logger_name: str = Field(
-        "cmservice",
+        default="cmservice",
         title="The root name of the application's logger",
         env="CM_LOGGER",
     )
 
     log_level: LogLevel = Field(
-        LogLevel.INFO,
+        default=LogLevel.INFO,
         title="Log level of the application's logger",
         env="CM_LOG_LEVEL",
     )
@@ -61,7 +61,7 @@ class Configuration(BaseSettings):
     )
 
     arq_redis_url: RedisDsn = Field(
-        RedisDsn("redis://localhost:6379/1", scheme="redis"),
+        defuault=RedisDsn("redis://localhost:6379/1", scheme="redis"),
         title="The URL for the cm-service arq redis database",
         env="CM_ARQ_REDIS_URL",
     )
@@ -72,16 +72,15 @@ class Configuration(BaseSettings):
     )
 
     @property
-    def arq_redis_settings(self) -> RedisSettings:
+    def arq_redis_settings(self: "Configuration") -> RedisSettings:
         """Create a Redis settings instance for arq."""
-        redis_settings = RedisSettings(
+        return RedisSettings(
             host=self.arq_redis_url.host or "localhost",
             port=int(self.arq_redis_url.port or 6379),
             password=self.arq_redis_password,
             database=int(self.arq_redis_url.path.lstrip("/")) if self.arq_redis_url.path else 0,
         )
-        return redis_settings
 
 
-config = Configuration()  # pyright: ignore
+config = Configuration()
 """Configuration for cm-service."""

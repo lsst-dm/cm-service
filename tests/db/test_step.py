@@ -8,10 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from lsst.cmservice import db
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_step_db(engine: AsyncEngine) -> None:
-    """Test `step` db table"""
-
+    """Test `step` db table."""
     # Insert a production, some campaigns, and some linked steps
     async with engine.begin() as conn:
         pname = str(uuid1())
