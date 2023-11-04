@@ -1,17 +1,9 @@
-from pydantic import BaseModel
+from .element import ElementCreateMixin, ElementMixin
 
 
-class GroupBase(BaseModel):
-    step: int
-    name: str
-
-
-class GroupCreate(GroupBase):
+class GroupCreate(ElementCreateMixin):
     pass
 
 
-class Group(GroupBase):
-    id: int
-
-    class Config:
-        orm_mode = True
+class Group(ElementMixin):
+    pass

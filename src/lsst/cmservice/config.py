@@ -61,7 +61,7 @@ class Configuration(BaseSettings):
     )
 
     arq_redis_url: RedisDsn = Field(
-        defuault=RedisDsn("redis://localhost:6379/1", scheme="redis"),
+        default=RedisDsn("redis://localhost:6379/1", scheme="redis"),
         title="The URL for the cm-service arq redis database",
         env="CM_ARQ_REDIS_URL",
     )

@@ -1,45 +1,57 @@
 from uuid import uuid1
 
 import pytest
-from sqlalchemy import delete, func, insert, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.ext.asyncio import async_scoped_session
 
 from lsst.cmservice import db
 
 
 @pytest.mark.asyncio()
-async def test_step_db(engine: AsyncEngine) -> None:
-    """Test `step` db table."""
-    # Insert a production, some campaigns, and some linked steps
-    async with engine.begin() as conn:
-        pname = str(uuid1())
-        pid = (
-            await conn.execute(insert(db.Production).returning(db.Production.id), {"name": pname})
-        ).scalar_one()
-        cnames = [str(uuid1()) for n in range(2)]
-        cids = (
-            (
-                await conn.execute(
-                    insert(db.Campaign).returning(db.Campaign.id),
-                    [{"production": pid, "name": cnames[n]} for n in range(2)],
-                )
-            )
-            .scalars()
-            .all()
+async def test_step_db(session: async_scoped_session) -> None:
+    pname = str(uuid1())
+    prod = await db.Production.create_row(session, name=pname)
+    cnames = [str(uuid1()) for n in range(2)]
+    camps = [
+        await db.Campaign.create_row(session, name=cname_, spec_block_name="base#campaign", parent_name=pname)
+        for cname_ in cnames
+    ]
+    assert len(camps) == 2
+
+    snames = [str(uuid1()) for n in range(5)]
+
+    steps0 = [
+        await db.Step.create_row(
+            session, name=sname_, spec_block_name="base#basic_step", parent_name=camps[0].fullname
         )
-        snames = [str(uuid1()) for n in range(5)]
-        await conn.execute(insert(db.Step), [{"campaign": cids[0], "name": snames[n]} for n in range(5)])
-        await conn.execute(insert(db.Step), [{"campaign": cids[1], "name": snames[n]} for n in range(5)])
+        for sname_ in snames
+    ]
+    assert len(steps0) == 5
 
-    # Verify step UNIQUE name sconstraint
-    async with engine.begin() as conn:
-        with pytest.raises(IntegrityError):
-            await conn.execute(insert(db.Step), {"campaign": cids[0], "name": snames[0]})
+    steps1 = [
+        await db.Step.create_row(
+            session, name=sname_, spec_block_name="base#basic_step", parent_name=camps[1].fullname
+        )
+        for sname_ in snames
+    ]
+    assert len(steps1) == 5
 
-    # Verify step FK delete cascade
-    async with engine.begin() as conn:
-        await conn.execute(delete(db.Campaign).where(db.Campaign.id == cids[0]))
-        assert (
-            await conn.execute(select(func.count()).select_from(db.Step).where(db.Step.campaign == cids[0]))
-        ).scalar_one() == 0
+    with pytest.raises(IntegrityError):
+        await db.Step.create_row(
+            session, name=snames[0], parent_name=camps[0].fullname, spec_block_name="base#basic_step"
+        )
+
+    await db.Campaign.delete_row(session, camps[0].id)
+    check_gone = await db.Step.get_rows(session, parent_id=camps[0].id, parent_class=db.Campaign)
+    assert len(check_gone) == 0
+
+    check_here = await db.Step.get_rows(session, parent_id=camps[1].id, parent_class=db.Campaign)
+    assert len(check_here) == 8
+
+    await db.Step.delete_row(session, steps1[0].id)
+
+    check_here = await db.Step.get_rows(session, parent_id=camps[1].id, parent_class=db.Campaign)
+    assert len(check_here) == 7
+
+    # Finish clean up
+    await db.Production.delete_row(session, prod.id)

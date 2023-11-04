@@ -1,0 +1,14 @@
+text: "#!/usr/bin/env -S -i CM_PROD_DIR=\"${CM_PROD_DIR}\" HOME=\"${HOME}\" bash\n
+
+# The shebang lines above are needed b/c setup lsst_distrib in putting\n
+# the lsst python _after_ the virtual env python in the PATH, which\n
+# is causing errors\n
+
+# setup LSST env.\n
+export WEEKLY='{lsst_version}'\n
+source /cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib/${WEEKLY}/loadLSST.bash\n
+setup lsst_distrib\n
+
+# setup cm service.\n
+setup -j -r ${CM_SERVICE_DIR}\n
+"

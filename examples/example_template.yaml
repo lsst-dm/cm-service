@@ -1,0 +1,9 @@
+includeConfigs:
+- ${CTRL_BPS_PANDA_DIR}/config/bps_usdf.yaml
+- ${CM_PROD_DIR}/src/lsst/cm/prod/configs/HSC/test/requestMemory.yaml
+
+executionButler:
+  requestMemory: 64000
+  queue: "SLAC_Rubin_Merge"
+
+numberOfRetries: 3

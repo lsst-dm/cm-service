@@ -1,0 +1,229 @@
+- ScriptTemplate:
+      name: bps_panda_script_template
+      file_path: ${CM_CONFIGS}/example_bps_panda_template.yaml
+- ScriptTemplate:
+      name: bps_yaml_template
+      file_path: ${CM_CONFIGS}/example_template.yaml
+- ScriptTemplate:
+      name: manifest_script_template
+      file_path: ${CM_CONFIGS}/example_manifest_template.yaml
+- SpecBlock:
+      name: chain_create_script
+      handler: lsst.cmservice.handlers.scripts.ChainCreateScriptHandler
+- SpecBlock:
+      name: chain_prepend_script
+      handler: lsst.cmservice.handlers.scripts.ChainPrependScriptHandler
+- SpecBlock:
+      name: chain_collect_jobs_script
+      handler: lsst.cmservice.handlers.scripts.ChainCollectScriptHandler
+      data:
+          collect: jobs
+- SpecBlock:
+      name: chain_collect_steps_script
+      handler: lsst.cmservice.handlers.scripts.ChainCollectScriptHandler
+      data:
+          collect: steps
+- SpecBlock:
+      name: tag_inputs_script
+      handler: lsst.cmservice.handlers.scripts.TagInputsScriptHandler
+- SpecBlock:
+      name: tag_create_script
+- SpecBlock:
+      name: tag_associate_script
+      handler: lsst.cmservice.handlers.scripts.TagAssociateScriptHandler
+- SpecBlock:
+      name: prepare_step_script
+      handler: lsst.cmservice.handlers.scripts.PrepareStepScriptHandler
+      collections:
+          global_inputs: "{campaign_input}"
+- SpecBlock:
+      name: validate_script
+      handler: lsst.cmservice.handlers.scripts.ValidateScriptHandler
+- SpecBlock:
+      name: panda_script
+      handler: lsst.cmservice.handlers.jobs.PandaScriptHandler
+- SpecBlock:
+      name: panda_report_script
+      handler: lsst.cmservice.handlers.jobs.PandaReportHandler
+- SpecBlock:
+      name: manifest_report_script
+      handler: lsst.cmservice.handlers.jobs.ManifestReportScriptHandler
+- SpecBlock:
+      name: run_jobs
+      handler: lsst.cmservice.handlers.elements.RunJobsScriptHandler
+- SpecBlock:
+      name: run_groups
+      handler: lsst.cmservice.handlers.elements.RunGroupsScriptHandler
+- SpecBlock:
+      name: run_steps
+      handler: lsst.cmservice.handlers.elements.RunStepsScriptHandler
+- SpecBlock:
+      name: job
+      handler: lsst.cmservice.handlers.job_handler.JobHandler
+      collections:
+          job_run: "{root}/{campaign}/{step}/{group}/{job}"
+      scripts:
+          - Script:
+                name: bps
+                spec_block: panda_script
+                collections:
+                    run: "{job_run}"
+                    inputs: ["{step_input}", "{campaign_input}", "{campaign_ancillary}"]
+          - Script:
+                name: bps_report
+                spec_block: panda_report_script
+                prerequisites: ['bps']
+                collections:
+                    run: "{job_run}"
+                    inputs: ["{step_input}", "{campaign_input}", "{campaign_ancillary}"]
+          - Script:
+                name: manifest_report
+                spec_block: manifest_report_script
+                prerequisites: ['bps_report']
+                collections:
+                    run: "{job_run}"
+                data:
+                    rescue: false
+- SpecBlock:
+      name: group
+      handler: lsst.cmservice.handlers.element_handler.ElementHandler
+      collections:
+      group_output: "{root}/{campaign}/{step}/{group}"
+      group_validation: "{root}/{campaign}/{step}/{group}/validate"
+      scripts:
+          - Script:
+                name: run
+                spec_block: run_jobs
+      child_config:
+          spec_block: job
+- SpecBlock:
+      name: step
+      handler: lsst.cmservice.handlers.element_handler.ElementHandler
+      collections:
+          step_input: "{root}/{campaign}/{step}/input"
+          step_output: "{root}/{campaign}/{step}_ouput"
+          step_public_output: "{root}/{campaign}/{step}"
+          step_validation: "{root}/{campaign}/{step}/validate"
+      scripts:
+          - Script:
+                name: prepare
+                spec_block: prepare_step_script
+                collections:
+                    output: "{step_input}"
+                    inputs: ["{campaign_input}", "{campaign_ancillary}"]
+          - Script:
+                name: run
+                prerequisites: ['prepare']
+                spec_block: run_groups
+          - Script:
+                name: collect_groups
+                prerequisites: ['run']
+                spec_block: chain_collect_jobs_script
+                collections:
+                    inputs: []
+                    output: "{step_output}"
+          - Script:
+                name: make_step_public_output
+                prerequisites: ['collect_groups']
+                spec_block: chain_create_script
+                collections:
+                    inputs: ["{step_output}", "{campaign_input}", "{campaign_ancillary}"]
+                    output: "{step_public_output}"
+- SpecBlock:
+      name: micro_isr
+      includes: ["step"]
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#isr"
+      child_config:
+          spec_block: group
+          base_query: "instrument = 'HSC'"
+          split_method: split_by_query
+          split_dataset: raw
+          split_field: exposure
+          split_min_groups: 2
+- SpecBlock:
+      name: micro_characterizeImage
+      includes: ["step"]
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#characterizeImage"
+      child_config:
+          spec_block: group
+          base_query: "instrument = 'HSC'"
+          split_method: split_by_query
+          split_dataset: raw
+          split_field: exposure
+          split_min_groups: 2
+- SpecBlock:
+      name: micro_calibration
+      includes: ["step"]
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#calibration"
+      child_config:
+          spec_block: group
+          base_query: "instrument = 'HSC'"
+          split_method: split_by_query
+          split_dataset: raw
+          split_field: exposure
+          split_min_groups: 2
+- SpecBlock:
+      name: campaign
+      handler: lsst.cmservice.handlers.element_handler.ElementHandler
+      collections:
+          root: 'cm/hsc_rc2_micro'
+          campaign_source: HSC/raw/RC2
+          campaign_input: "{root}/{campaign}/input"
+          campaign_output: "{root}/{campaign}"
+          campaign_ancillary: "{root}/{campaign}/ancillary"
+          campaign_validation: "{root}/{campaign}/validate"
+      scripts:
+          - Script:
+                name: tag_inputs
+                spec_block: tag_inputs_script
+                collections:
+                    input: "{campaign_source}"
+                    output: "{campaign_input}"
+          - Script:
+                name: ancillary
+                spec_block: chain_create_script
+                collections:
+                    inputs:
+                        - HSC/calib
+                        - HSC/masks
+                        - HSC/fgcmcal/lut/RC2
+                        - refcats
+                        - skymaps
+                    output: "{campaign_ancillary}"
+          - Script:
+                name: run
+                spec_block: run_steps
+                prerequisites: ['tag_inputs', 'ancillary']
+          - Script:
+                name: collect_steps
+                prerequisites: ['run']
+                spec_block: chain_collect_steps_script
+                collections:
+                    inputs: []
+                    output: "{campaign_output}"
+      child_config:
+          isr:
+              spec_block: micro_isr
+              child_config:
+                  base_query: "instrument = 'HSC'"
+          characterizeImage:
+              spec_block: micro_characterizeImage
+              prerequisites: ['isr']
+              child_config:
+                  base_query: "instrument = 'HSC'"
+          calibration:
+              spec_block: micro_calibration
+              prerequisites: ['characterizeImage']
+              child_config:
+                  base_query: "instrument = 'HSC'"
+      data:
+          butler_repo: '/repo/main'
+          prod_area: 'output/archive'
+          data_query: "instrument = 'HSC' AND exposure in (30504, 30502) AND detector in (45, 46, 47, 48)"
+          lsst_version: "${WEEKLY}"
+          bps_script_template: bps_panda_script_template
+          bps_yaml_template: bps_yaml_template
+          manifest_script_template: manifest_script_template
