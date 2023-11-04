@@ -1,17 +1,9 @@
-from pydantic import BaseModel
+from .element import ElementCreateMixin, ElementMixin
 
 
-class StepBase(BaseModel):
-    campaign: int
-    name: str
-
-
-class StepCreate(StepBase):
+class StepCreate(ElementCreateMixin):
     pass
 
 
-class Step(StepBase):
-    id: int
-
-    class Config:
-        orm_mode = True
+class Step(ElementMixin):
+    pass

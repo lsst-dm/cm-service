@@ -1,17 +1,10 @@
-from pydantic import BaseModel
+from .element import ElementCreateMixin, ElementMixin
 
 
-class CampaignBase(BaseModel):
-    production: int
-    name: str
-
-
-class CampaignCreate(CampaignBase):
+class CampaignCreate(ElementCreateMixin):
     pass
 
 
-class Campaign(CampaignBase):
-    id: int
-
+class Campaign(ElementMixin):
     class Config:
         orm_mode = True

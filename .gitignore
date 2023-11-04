@@ -8,6 +8,10 @@ __pycache__/
 
 # Unit test / coverage reports
 .coverage
+htmlcov/
+
+# Backup filies
+*~
 
 # Environments
 .env
@@ -20,6 +24,13 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# ruff
+.ruff_cache/
+
+#pytest
+.pytest_cache/
+output/
 
 # macOS
 .DS_Store/

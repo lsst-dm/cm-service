@@ -31,7 +31,7 @@ test:
 	export CM_DATABASE_SCHEMA=cm_service_test && \
 	export CM_ARQ_REDIS_URL=redis://localhost:$${CM_ARQ_REDIS_PORT}/1 && \
 	export CM_ARQ_REDIS_PASSWORD=INSECURE-PASSWORD && \
-	pytest -vvv --cov=lsst.cmservice --cov-branch
+	pytest -vvv --cov=lsst.cmservice --cov-branch --cov-report=term --cov-report=html
 
 .PHONY: run
 run:
@@ -44,7 +44,7 @@ run:
 	export CM_ARQ_REDIS_URL=redis://localhost:$${CM_ARQ_REDIS_PORT}/1 && \
 	export CM_ARQ_REDIS_PASSWORD=INSECURE-PASSWORD && \
 	cm-service init && \
-	cm-service run --port=0
+	cm-service run
 
 .PHONY: lint
 lint:

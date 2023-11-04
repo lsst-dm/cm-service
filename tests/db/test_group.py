@@ -1,52 +1,66 @@
 from uuid import uuid1
 
 import pytest
-from sqlalchemy import delete, func, insert, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.ext.asyncio import async_scoped_session
 
 from lsst.cmservice import db
 
 
 @pytest.mark.asyncio()
-async def test_group_db(engine: AsyncEngine) -> None:
-    """Test `group` db table."""
-    # Insert a production, a campaign, some steps, and some linked groups
-    async with engine.begin() as conn:
-        pname = str(uuid1())
-        pid = (
-            await conn.execute(insert(db.Production).returning(db.Production.id), {"name": pname})
-        ).scalar_one()
-        cname = str(uuid1())
-        cid = (
-            await conn.execute(
-                insert(db.Campaign).returning(db.Campaign.id),
-                {"production": pid, "name": cname},
-            )
-        ).scalar_one()
-        snames = [str(uuid1()) for n in range(2)]
-        sids = (
-            (
-                await conn.execute(
-                    insert(db.Step).returning(db.Step.id),
-                    [{"campaign": cid, "name": snames[n]} for n in range(2)],
-                )
-            )
-            .scalars()
-            .all()
+async def test_group_db(session: async_scoped_session) -> None:
+    pname = str(uuid1())
+    prod = await db.Production.create_row(session, name=pname)
+    cname = str(uuid1())
+    camp = await db.Campaign.create_row(
+        session,
+        name=cname,
+        spec_block_name="base#campaign",
+        parent_name=pname,
+    )
+    snames = [str(uuid1()) for n in range(2)]
+
+    steps = [
+        await db.Step.create_row(
+            session,
+            name=sname_,
+            spec_block_name="base#basic_step",
+            parent_name=camp.fullname,
         )
-        gnames = [str(uuid1()) for n in range(5)]
-        await conn.execute(insert(db.Group), [{"step": sids[0], "name": gnames[n]} for n in range(5)])
-        await conn.execute(insert(db.Group), [{"step": sids[1], "name": gnames[n]} for n in range(5)])
+        for sname_ in snames
+    ]
 
-    # Verify group UNIUQE name constraint
-    async with engine.begin() as conn:
-        with pytest.raises(IntegrityError):
-            await conn.execute(insert(db.Group), {"step": sids[0], "name": gnames[0]})
+    gnames = [str(uuid1()) for n in range(5)]
 
-    # Verify group FK delete cascade
-    async with engine.begin() as conn:
-        await conn.execute(delete(db.Step).where(db.Step.id == sids[0]))
-        assert (
-            await conn.execute(select(func.count()).select_from(db.Group).where(db.Group.step == sids[0]))
-        ).scalar_one() == 0
+    groups0 = [
+        await db.Group.create_row(
+            session,
+            name=gname_,
+            spec_block_name="base#group",
+            parent_name=steps[0].fullname,
+        )
+        for gname_ in gnames
+    ]
+    assert len(groups0) == 5
+
+    groups1 = [
+        await db.Group.create_row(
+            session,
+            name=gname_,
+            spec_block_name="base#group",
+            parent_name=steps[1].fullname,
+        )
+        for gname_ in gnames
+    ]
+    assert len(groups1) == 5
+
+    with pytest.raises(IntegrityError):
+        await db.Group.create_row(
+            session,
+            name=gnames[0],
+            parent_name=steps[0].fullname,
+            spec_block_name="base#group",
+        )
+
+    # Finish clean up
+    await db.Production.delete_row(session, prod.id)

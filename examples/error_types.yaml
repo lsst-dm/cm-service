@@ -1,0 +1,8 @@
+- PipetaskErrorType:
+      source: manifest
+      flavor: configuration
+      action: review
+      task_name: skyObjectMean
+      diagnostic_message: 'Execution of task ''skyObjectMean'' on quantum.*failed. Exception ValueError: Failure
+          from formatter ''lsst.daf.butler.formatters.parquet.ParquetFormatter'' for dataset.*:
+          Column d_pixelFlags_edge specified in parameters not available in parquet file.'
