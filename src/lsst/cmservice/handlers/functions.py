@@ -55,7 +55,7 @@ async def load_spec_block(
             block_data[include_key] = include_val
 
     handler = block_data.pop("handler", None)
-    new_spec_block = await SpecBlock.create_row(
+    return await SpecBlock.create_row(
         session,
         spec_name=specification.name,
         name=key,
@@ -65,7 +65,6 @@ async def load_spec_block(
         child_config=block_data.get("child_config"),
         scripts=block_data.get("scripts"),
     )
-    return new_spec_block
 
 
 async def load_script_template(
@@ -81,14 +80,13 @@ async def load_script_template(
     if script_template:
         print(f"ScriptTemplate {key} already defined, skipping it")
         return None
-    new_script_template = await ScriptTemplate.load(
+    return await ScriptTemplate.load(
         session,
         spec_name=specification.name,
         spec_id=specification.id,
         name=key,
         file_path=config_values["file_path"],
     )
-    return new_script_template
 
 
 async def load_specification(
@@ -96,7 +94,7 @@ async def load_specification(
     spec_name: str,
     yaml_file: str,
 ) -> Specification:
-    with open(yaml_file, "rt", encoding="utf-8") as fin:
+    with open(yaml_file, encoding="utf-8") as fin:
         spec_data = yaml.safe_load(fin)
 
     loaded_specs: dict = {}
@@ -133,12 +131,11 @@ async def add_step_prerequisite(
     script_id: int,
     prereq_id: int,
 ) -> StepDependency:
-    new_depend = await StepDependency.create_row(
+    return await StepDependency.create_row(
         session,
         prereq_id=prereq_id,
         depend_id=script_id,
     )
-    return new_depend
 
 
 async def add_steps(
@@ -157,7 +154,7 @@ async def add_steps(
         spec_block_name = child_config_.pop("spec_block")
         if spec_block_name is None:
             raise AttributeError(
-                f"child_config_ {child_name_} of {campaign.fullname} does contain 'spec_block'"
+                f"child_config_ {child_name_} of {campaign.fullname} does contain 'spec_block'",
             )
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
         spec_block = await specification.get_block(session, spec_block_name)
@@ -172,8 +169,7 @@ async def add_steps(
         step_ids_dict[child_name_] = new_step.id
         full_child_config: dict = await new_step.get_child_config(session)
         prereqs_names = full_child_config.pop("prerequisites", [])
-        for prereq_ in prereqs_names:
-            prereq_pairs.append((child_name_, prereq_))
+        prereq_pairs = [(child_name_, prereq_) for prereq_ in prereqs_names]
 
     for depend_name, prereq_name in prereq_pairs:
         prereq_id = step_ids_dict[prereq_name]
@@ -233,7 +229,7 @@ async def load_manifest_report(
     job_name: str,
     yaml_file: str,
 ) -> Job:
-    with open(yaml_file, "rt", encoding="utf-8") as fin:
+    with open(yaml_file, encoding="utf-8") as fin:
         manifest_data = yaml.safe_load(fin)
 
     job = await Job.get_row_by_fullname(session, job_name)
@@ -319,7 +315,7 @@ async def load_error_types(
     session: async_scoped_session,
     yaml_file: str,
 ) -> list[PipetaskErrorType]:
-    with open(yaml_file, "rt", encoding="utf-8") as fin:
+    with open(yaml_file, encoding="utf-8") as fin:
         error_types = yaml.safe_load(fin)
 
     ret_list: list[PipetaskErrorType] = []

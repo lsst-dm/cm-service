@@ -21,12 +21,11 @@ async def update_status(
     query: models.UpdateStatusQuery,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.NodeMixin:
-    result = await interface.update_status(
+    return await interface.update_status(
         session,
         query.fullname,
         query.status,
     )
-    return result
 
 
 @router.post(
@@ -39,12 +38,11 @@ async def update_collections(
     query: models.UpdateNodeQuery,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.NodeMixin:
-    result = await interface.update_collections(
+    return await interface.update_collections(
         session,
         query.fullname,
         **query.update_dict,
     )
-    return result
 
 
 @router.post(
@@ -57,12 +55,11 @@ async def update_child_config(
     query: models.UpdateNodeQuery,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.NodeMixin:
-    result = await interface.update_child_config(
+    return await interface.update_child_config(
         session,
         query.fullname,
         **query.update_dict,
     )
-    return result
 
 
 @router.post(
@@ -75,12 +72,11 @@ async def update_data_dict(
     query: models.UpdateNodeQuery,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.NodeMixin:
-    result = await interface.update_data_dict(
+    return await interface.update_data_dict(
         session,
         query.fullname,
         **query.update_dict,
     )
-    return result
 
 
 @router.post(
@@ -93,9 +89,8 @@ async def update_spec_aliases(
     query: models.UpdateNodeQuery,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.NodeMixin:
-    result = await interface.update_spec_aliases(
+    return await interface.update_spec_aliases(
         session,
         query.fullname,
         **query.update_dict,
     )
-    return result

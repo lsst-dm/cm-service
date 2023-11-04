@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
@@ -27,4 +27,4 @@ class TaskSet(Base, RowMixin):
     n_failed_upstream: Mapped[int] = mapped_column(default=0)
 
     job_: Mapped["Job"] = relationship("Job", viewonly=True)
-    products_: Mapped[List["ProductSet"]] = relationship("ProductSet", viewonly=True)
+    products_: Mapped[list["ProductSet"]] = relationship("ProductSet", viewonly=True)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 import yaml
 from sqlalchemy import JSON
@@ -28,9 +28,9 @@ class ScriptTemplate(Base, RowMixin):
     spec_id: Mapped[int] = mapped_column(ForeignKey("specification.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(index=True)
     fullname: Mapped[str] = mapped_column(unique=True)
-    data: Mapped[Optional[dict | list]] = mapped_column(type_=JSON)
+    data: Mapped[dict | list | None] = mapped_column(type_=JSON)
 
-    spec_: Mapped["Specification"] = relationship("Specification", viewonly=True)
+    spec_: Mapped[Specification] = relationship("Specification", viewonly=True)
 
     def __repr__(self) -> str:
         return f"ScriptTemplate {self.id}: {self.fullname} {self.data}"
@@ -45,13 +45,12 @@ class ScriptTemplate(Base, RowMixin):
         spec_name = kwargs["spec_name"]
         name = kwargs["name"]
 
-        ret_dict = {
+        return {
             "spec_id": spec_id,
             "name": name,
             "fullname": f"{spec_name}#{name}",
             "data": kwargs.get("data", None),
         }
-        return ret_dict
 
     @classmethod
     async def load(  # pylint: disable=too-many-arguments
@@ -84,8 +83,7 @@ class ScriptTemplate(Base, RowMixin):
             Newly created `ScriptTemplate`
         """
         full_file_path = os.path.abspath(os.path.expandvars(file_path))
-        with open(full_file_path, "r", encoding="utf-8") as fin:
+        with open(full_file_path, encoding="utf-8") as fin:
             data = yaml.safe_load(fin)
 
-        new_row = await cls.create_row(session, name=name, spec_id=spec_id, spec_name=spec_name, data=data)
-        return new_row
+        return await cls.create_row(session, name=name, spec_id=spec_id, spec_name=spec_name, data=data)

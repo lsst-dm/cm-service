@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import Any
 
 import numpy as np
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -21,7 +22,7 @@ from .script_handler import FunctionHandler
 def parse_bps_stdout(url: str) -> dict[str, str]:
     """Parse the std from a bps submit job"""
     out_dict = {}
-    with open(url, "r", encoding="utf8") as fin:
+    with open(url, encoding="utf8") as fin:
         line = fin.readline()
         while line:
             tokens = line.split(":")
@@ -53,10 +54,7 @@ class RunElementScriptHandler(FunctionHandler):
             child_status = await child_.process(session, **kwargs)
             min_val = min(min_val, child_status.value)
 
-        if min_val >= StatusEnum.accepted.value:
-            status = StatusEnum.accepted
-        else:
-            status = StatusEnum.running
+        status = StatusEnum.accepted if min_val >= StatusEnum.accepted.value else StatusEnum.running
 
         await script.update_values(session, status=status)
         return status
@@ -73,10 +71,7 @@ class RunElementScriptHandler(FunctionHandler):
             child_status = await child_.process(session, **kwargs)
             min_val = min(min_val, child_status.value)
 
-        if min_val >= StatusEnum.accepted.value:
-            status = StatusEnum.accepted
-        else:
-            status = StatusEnum.running
+        status = StatusEnum.accepted if min_val >= StatusEnum.accepted.value else StatusEnum.running
 
         await script.update_values(session, status=status)
         return status

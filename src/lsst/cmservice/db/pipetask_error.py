@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from sqlalchemy import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -26,7 +26,7 @@ class PipetaskError(Base, RowMixin):
     task_id: Mapped[int] = mapped_column(ForeignKey("task_set.id", ondelete="CASCADE"), index=True)
     quanta: Mapped[str] = mapped_column()
     diagnostic_message: Mapped[str] = mapped_column()
-    data_id: Mapped[Optional[dict | list]] = mapped_column(type_=JSON)
+    data_id: Mapped[dict | list | None] = mapped_column(type_=JSON)
 
     job_: Mapped["Job"] = relationship(
         "Job",

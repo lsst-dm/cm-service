@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, List, Optional, Sequence
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON, and_, select
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -50,20 +51,20 @@ class Script(Base, NodeMixin):
     method: Mapped[ScriptMethod] = mapped_column(default=ScriptMethod.default)
     superseded: Mapped[bool] = mapped_column(default=False)  # Has this been supersede
     handler: Mapped[str | None] = mapped_column()
-    data: Mapped[Optional[dict | list]] = mapped_column(type_=JSON)
-    child_config: Mapped[Optional[dict | list]] = mapped_column(type_=JSON)
-    collections: Mapped[Optional[dict | list]] = mapped_column(type_=JSON)
+    data: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
     script_url: Mapped[str | None] = mapped_column()
     stamp_url: Mapped[str | None] = mapped_column()
     log_url: Mapped[str | None] = mapped_column()
 
-    spec_block_: Mapped["SpecBlock"] = relationship("SpecBlock", viewonly=True)
-    c_: Mapped["Campaign"] = relationship("Campaign", viewonly=True)
-    s_: Mapped["Step"] = relationship("Step", viewonly=True)
-    g_: Mapped["Group"] = relationship("Group", viewonly=True)
-    j_: Mapped["Job"] = relationship("Job", viewonly=True)
-    errors_: Mapped[List["ScriptError"]] = relationship("ScriptError", viewonly=True)
-    prereqs_: Mapped[List["ScriptDependency"]] = relationship(
+    spec_block_: Mapped[SpecBlock] = relationship("SpecBlock", viewonly=True)
+    c_: Mapped[Campaign] = relationship("Campaign", viewonly=True)
+    s_: Mapped[Step] = relationship("Step", viewonly=True)
+    g_: Mapped[Group] = relationship("Group", viewonly=True)
+    j_: Mapped[Job] = relationship("Job", viewonly=True)
+    errors_: Mapped[list[ScriptError]] = relationship("ScriptError", viewonly=True)
+    prereqs_: Mapped[list[ScriptDependency]] = relationship(
         "ScriptDependency",
         foreign_keys="ScriptDependency.depend_id",
         viewonly=True,
@@ -144,7 +145,7 @@ class Script(Base, NodeMixin):
                 Script.parent_level == self.parent_level,
                 Script.name == self.name,
                 Script.id != self.id,
-            )
+            ),
         )
         async with session.begin_nested():
             rows = await session.scalars(q)

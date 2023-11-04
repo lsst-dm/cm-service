@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import os
 import types
 from typing import Any
@@ -51,7 +52,7 @@ WMS_TO_TASK_STATUS_MAP = {
 def parse_bps_stdout(url: str) -> dict[str, str]:
     """Parse the std from a bps submit job"""
     out_dict = {}
-    with open(url, "r", encoding="utf8") as fin:
+    with open(url, encoding="utf8") as fin:
         line = fin.readline()
         while line:
             tokens = line.split(":")
@@ -115,7 +116,7 @@ class BpsScriptHandler(ScriptHandler):
 
         data_query = data_dict.get("data_query", None)
         workflow_config["submitPath"] = os.path.abspath(
-            os.path.expandvars(f"{prod_area}/{parent.fullname}/submit")
+            os.path.expandvars(f"{prod_area}/{parent.fullname}/submit"),
         )
 
         workflow_config["LSST_VERSION"] = os.path.expandvars(data_dict["lsst_version"])
@@ -135,12 +136,10 @@ class BpsScriptHandler(ScriptHandler):
             payload["dataQuery"] = data_query
 
         workflow_config["payload"] = payload
-        try:
+        with contextlib.suppress(OSError):
             os.makedirs(os.path.dirname(script_url))
-        except OSError:
-            pass
 
-        with open(config_url, "wt", encoding="utf-8") as fout:
+        with open(config_url, "w", encoding="utf-8") as fout:
             yaml.dump(workflow_config, fout)
         return StatusEnum.prepared
 
@@ -214,8 +213,7 @@ class BpsReportHandler(FunctionHandler):
             Report for requested job
         """
         wms_svc = self._get_wms_svc()
-        wms_run_report = wms_svc.report(wms_workflow_id=wms_workflow_id)[0][0]
-        return wms_run_report
+        return wms_svc.report(wms_workflow_id=wms_workflow_id)[0][0]
 
     async def _load_wms_reports(
         self,

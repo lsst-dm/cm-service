@@ -13,7 +13,10 @@ async def test_group_db(session: async_scoped_session) -> None:
     prod = await db.Production.create_row(session, name=pname)
     cname = str(uuid1())
     camp = await db.Campaign.create_row(
-        session, name=cname, spec_block_name="base#campaign", parent_name=pname
+        session,
+        name=cname,
+        spec_block_name="base#campaign",
+        parent_name=pname,
     )
     snames = [str(uuid1()) for n in range(2)]
 
@@ -31,7 +34,10 @@ async def test_group_db(session: async_scoped_session) -> None:
 
     groups0 = [
         await db.Group.create_row(
-            session, name=gname_, spec_block_name="base#group", parent_name=steps[0].fullname
+            session,
+            name=gname_,
+            spec_block_name="base#group",
+            parent_name=steps[0].fullname,
         )
         for gname_ in gnames
     ]
@@ -39,7 +45,10 @@ async def test_group_db(session: async_scoped_session) -> None:
 
     groups1 = [
         await db.Group.create_row(
-            session, name=gname_, spec_block_name="base#group", parent_name=steps[1].fullname
+            session,
+            name=gname_,
+            spec_block_name="base#group",
+            parent_name=steps[1].fullname,
         )
         for gname_ in gnames
     ]
@@ -47,7 +56,10 @@ async def test_group_db(session: async_scoped_session) -> None:
 
     with pytest.raises(IntegrityError):
         await db.Group.create_row(
-            session, name=gnames[0], parent_name=steps[0].fullname, spec_block_name="base#group"
+            session,
+            name=gnames[0],
+            parent_name=steps[0].fullname,
+            spec_block_name="base#group",
         )
 
     # Finish clean up

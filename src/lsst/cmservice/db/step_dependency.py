@@ -29,8 +29,8 @@ class StepDependency(Base, RowMixin):
     prereq_id: Mapped[int] = mapped_column(ForeignKey("step.id", ondelete="CASCADE"), index=True)
     depend_id: Mapped[int] = mapped_column(ForeignKey("step.id", ondelete="CASCADE"), index=True)
 
-    prereq_: Mapped["Step"] = relationship("Step", viewonly=True, foreign_keys=[prereq_id])
-    depend_: Mapped["Step"] = relationship("Step", viewonly=True, foreign_keys=[depend_id])
+    prereq_: Mapped[Step] = relationship("Step", viewonly=True, foreign_keys=[prereq_id])
+    depend_: Mapped[Step] = relationship("Step", viewonly=True, foreign_keys=[depend_id])
 
     @hybrid_property
     def prereq_db_id(self) -> DbId:

@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import APIRouter, Depends
 from safir.dependencies.db_session import db_session_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -27,8 +25,7 @@ async def process_script(
     params = query.dict()
     if params.get("fake_status"):
         params["fake_status"] = StatusEnum(params["fake_status"])
-    result = await interface.process_script(session, **params)
-    return result
+    return await interface.process_script(session, **params)
 
 
 @router.post(
@@ -44,8 +41,7 @@ async def process_job(
     params = query.dict()
     if params.get("fake_status"):
         params["fake_status"] = StatusEnum(params["fake_status"])
-    result = await interface.process_job(session, **params)
-    return result
+    return await interface.process_job(session, **params)
 
 
 @router.post(
@@ -61,8 +57,7 @@ async def process_element(
     params = query.dict()
     if params.get("fake_status"):
         params["fake_status"] = StatusEnum(params["fake_status"])
-    result = await interface.process_element(session, **params)
-    return result
+    return await interface.process_element(session, **params)
 
 
 @router.post(
@@ -78,8 +73,7 @@ async def process(
     params = query.dict()
     if params.get("fake_status"):
         params["fake_status"] = StatusEnum(params["fake_status"])
-    result = await interface.process(session, **params)
-    return result
+    return await interface.process(session, **params)
 
 
 @router.post(
@@ -93,8 +87,7 @@ async def retry_script(
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Script:
     params = query.dict()
-    result = await interface.retry_script(session, **params)
-    return result
+    return await interface.retry_script(session, **params)
 
 
 @router.post(
@@ -108,8 +101,7 @@ async def rescue_job(
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Job:
     params = query.dict()
-    result = await interface.rescue_job(session, **params)
-    return result
+    return await interface.rescue_job(session, **params)
 
 
 @router.post(
@@ -121,10 +113,9 @@ async def rescue_job(
 async def mark_job_rescued(
     query: models.NodeQuery,
     session: async_scoped_session = Depends(db_session_dependency),
-) -> List[db.Job]:
+) -> list[db.Job]:
     params = query.dict()
-    result = await interface.mark_job_rescued(session, **params)
-    return result
+    return await interface.mark_job_rescued(session, **params)
 
 
 @router.post(
@@ -136,7 +127,6 @@ async def mark_job_rescued(
 async def rematch_pipetask_errors(
     query: models.RematchQuery,
     session: async_scoped_session = Depends(db_session_dependency),
-) -> List[db.PipetaskError]:
+) -> list[db.PipetaskError]:
     params = query.dict()
-    result = await interface.match_pipetask_errors(session, **params)
-    return result
+    return await interface.match_pipetask_errors(session, **params)

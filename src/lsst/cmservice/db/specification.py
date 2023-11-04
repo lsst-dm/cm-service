@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import Any
 
 from sqlalchemy import JSON
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -11,9 +11,6 @@ from sqlalchemy.schema import ForeignKey
 from .base import Base
 from .row import RowMixin
 from .script_template import ScriptTemplate
-
-if TYPE_CHECKING:
-    pass
 
 
 class SpecBlock(Base, RowMixin):
@@ -30,13 +27,13 @@ class SpecBlock(Base, RowMixin):
     name: Mapped[str] = mapped_column(index=True)
     fullname: Mapped[str] = mapped_column(unique=True)
     handler: Mapped[str | None] = mapped_column()
-    data: Mapped[Optional[dict | list]] = mapped_column(type_=JSON)
-    collections: Mapped[Optional[dict | list]] = mapped_column(type_=JSON)
-    child_config: Mapped[Optional[dict | list]] = mapped_column(type_=JSON)
-    scripts: Mapped[Optional[dict | list]] = mapped_column(type_=JSON)
-    spec_aliases: Mapped[Optional[dict | list]] = mapped_column(type_=JSON)
+    data: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    scripts: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    spec_aliases: Mapped[dict | list | None] = mapped_column(type_=JSON)
 
-    spec_: Mapped["Specification"] = relationship("Specification", viewonly=True)
+    spec_: Mapped[Specification] = relationship("Specification", viewonly=True)
 
     def __repr__(self) -> str:
         return f"SpecBlock {self.id}: {self.fullname} {self.data}"
@@ -51,7 +48,7 @@ class SpecBlock(Base, RowMixin):
         spec = await Specification.get_row_by_fullname(session, spec_name)
         handler = kwargs["handler"]
         name = kwargs["name"]
-        ret_dict = {
+        return {
             "spec_id": spec.id,
             "name": name,
             "handler": handler,
@@ -62,7 +59,6 @@ class SpecBlock(Base, RowMixin):
             "scripts": kwargs.get("scripts", {}),
             "spec_aliases": kwargs.get("spec_aliases", {}),
         }
-        return ret_dict
 
 
 class Specification(Base, RowMixin):
@@ -71,8 +67,8 @@ class Specification(Base, RowMixin):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(index=True)
 
-    blocks_: Mapped[List["SpecBlock"]] = relationship("SpecBlock", viewonly=True)
-    script_templates_: Mapped[List["ScriptTemplate"]] = relationship("ScriptTemplate", viewonly=True)
+    blocks_: Mapped[list[SpecBlock]] = relationship("SpecBlock", viewonly=True)
+    script_templates_: Mapped[list[ScriptTemplate]] = relationship("ScriptTemplate", viewonly=True)
 
     @hybrid_property
     def fullname(self) -> str:

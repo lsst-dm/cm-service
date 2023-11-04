@@ -1,5 +1,6 @@
 import json
-from typing import Any, Sequence, TypeVar
+from collections.abc import Sequence
+from typing import Any, TypeVar
 
 import click
 import structlog

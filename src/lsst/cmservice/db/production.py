@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Iterable, List
+from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -21,7 +22,7 @@ class Production(Base, RowMixin):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(index=True, unique=True)
 
-    c_: Mapped[List["Campaign"]] = relationship("Campaign", viewonly=True)
+    c_: Mapped[list["Campaign"]] = relationship("Campaign", viewonly=True)
 
     @hybrid_property
     def db_id(self) -> DbId:

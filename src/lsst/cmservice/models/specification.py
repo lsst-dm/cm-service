@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pydantic import BaseModel
 
 
@@ -7,11 +5,11 @@ class SpecBlockBase(BaseModel):
     spec_id: int
     name: str
     handler: str | None = None
-    data: Optional[dict | list]
-    collections: Optional[dict | list]
-    child_config: Optional[dict | list]
-    spec_aliases: Optional[dict | list]
-    scripts: Optional[dict | list]
+    data: dict | list | None
+    collections: dict | list | None
+    child_config: dict | list | None
+    spec_aliases: dict | list | None
+    scripts: dict | list | None
 
 
 class SpecBlockCreate(SpecBlockBase):

@@ -1,5 +1,5 @@
 # pylint: disable=too-many-lines
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import Any
 
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -9,11 +9,7 @@ from .. import db
 from ..common.enums import LevelEnum, NodeTypeEnum, StatusEnum, TableEnum
 from . import functions
 
-if TYPE_CHECKING:
-    pass
-
-
-TABLE_DICT: Dict[TableEnum, type[db.RowMixin]] = {
+TABLE_DICT: dict[TableEnum, type[db.RowMixin]] = {
     TableEnum.production: db.Production,
     TableEnum.campaign: db.Campaign,
     TableEnum.step: db.Step,
@@ -32,7 +28,7 @@ TABLE_DICT: Dict[TableEnum, type[db.RowMixin]] = {
 }
 
 
-LEVEL_DICT: Dict[LevelEnum, type[db.NodeMixin]] = {
+LEVEL_DICT: dict[LevelEnum, type[db.NodeMixin]] = {
     LevelEnum.campaign: db.Campaign,
     LevelEnum.step: db.Step,
     LevelEnum.group: db.Group,
@@ -56,8 +52,7 @@ def get_table(
     table_class : type[db.RowMixin]
         The class that defines the table
     """
-    table_class = TABLE_DICT[table_enum]
-    return table_class
+    return TABLE_DICT[table_enum]
 
 
 async def get_row_by_table_and_id(
@@ -659,9 +654,10 @@ async def get_scripts(
     session: async_scoped_session,
     fullname: str,
     script_name: str,
+    *,
     remaining_only: bool = False,
     skip_superseded: bool = True,
-) -> List[db.Script]:
+) -> list[db.Script]:
     """Get the scripts associated to an `Element`
 
     Parameters
@@ -693,15 +689,21 @@ async def get_scripts(
     HTTPException : Code 404, Could not find Element
     """
     element = await get_element_by_fullname(session, fullname)
-    return await element.get_scripts(session, script_name, remaining_only, skip_superseded)
+    return await element.get_scripts(
+        session,
+        script_name,
+        remaining_only=remaining_only,
+        skip_superseded=skip_superseded,
+    )
 
 
 async def get_jobs(
     session: async_scoped_session,
     fullname: str,
+    *,
     remaining_only: bool = False,
     skip_superseded: bool = True,
-) -> List[db.Job]:
+) -> list[db.Job]:
     """Get the jobs associated to an `Element`
 
     Parameters
@@ -730,7 +732,7 @@ async def get_jobs(
     HTTPException : Code 404, Could not find Element
     """
     element = await get_element_by_fullname(session, fullname)
-    return await element.get_jobs(session, remaining_only, skip_superseded)
+    return await element.get_jobs(session, remaining_only=remaining_only, skip_superseded=skip_superseded)
 
 
 async def process_script(
@@ -956,7 +958,7 @@ async def rescue_job(
 async def mark_job_rescued(
     session: async_scoped_session,
     fullname: str,
-) -> List[db.Job]:
+) -> list[db.Job]:
     """Mark a `Job` as rescued
 
     Notes
@@ -995,7 +997,7 @@ async def mark_job_rescued(
 async def get_task_sets_for_job(
     session: async_scoped_session,
     fullname: str,
-) -> List[db.TaskSet]:
+) -> list[db.TaskSet]:
     """Get `TaskSet`s associated to a `Job`
 
     Parameters
@@ -1020,7 +1022,7 @@ async def get_task_sets_for_job(
 async def get_wms_reports_for_job(
     session: async_scoped_session,
     fullname: str,
-) -> List[db.WmsTaskReport]:
+) -> list[db.WmsTaskReport]:
     """Get `WmsTaskReport`s associated to a `Job`
 
     Parameters
@@ -1045,7 +1047,7 @@ async def get_wms_reports_for_job(
 async def get_product_sets_for_job(
     session: async_scoped_session,
     fullname: str,
-) -> List[db.ProductSet]:
+) -> list[db.ProductSet]:
     """Get `ProductSet`s associated to a `Job`
 
     Parameters
@@ -1070,7 +1072,7 @@ async def get_product_sets_for_job(
 async def get_errors_for_job(
     session: async_scoped_session,
     fullname: str,
-) -> List[db.PipetaskError]:
+) -> list[db.PipetaskError]:
     """Get `PipetaskError`s associated to a `Job`
 
     Parameters
@@ -1279,7 +1281,7 @@ async def load_and_create_campaign(  # pylint: disable=too-many-arguments
 async def load_error_types(
     session: async_scoped_session,
     yaml_file: str,
-) -> List[db.PipetaskErrorType]:
+) -> list[db.PipetaskErrorType]:
     """Load a set of `PipetaskErrorType`s from a yaml file
 
     Parameters
@@ -1330,8 +1332,9 @@ async def load_manifest_report(
 
 async def match_pipetask_errors(  # pylint: disable=unused-argument
     session: async_scoped_session,
+    *,
     rematch: bool = False,
-) -> List[db.PipetaskError]:
+) -> list[db.PipetaskError]:
     """Match PipetaskErrors to PipetaskErrorTypes
 
     Parameters

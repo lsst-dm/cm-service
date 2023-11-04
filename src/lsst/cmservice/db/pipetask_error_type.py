@@ -1,5 +1,5 @@
 import re
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -23,7 +23,7 @@ class PipetaskErrorType(Base, RowMixin):
     task_name: Mapped[str] = mapped_column()
     diagnostic_message: Mapped[str] = mapped_column(unique=True)
 
-    errors_: Mapped[List["PipetaskError"]] = relationship("PipetaskError", viewonly=True)
+    errors_: Mapped[list["PipetaskError"]] = relationship("PipetaskError", viewonly=True)
 
     def __repr__(self) -> str:
         s = f"Id={self.id}\n"

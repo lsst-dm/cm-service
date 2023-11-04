@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Iterable, List, Optional
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -45,28 +46,28 @@ class Step(Base, ElementMixin):
     status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting)  # Status flag
     superseded: Mapped[bool] = mapped_column(default=False)  # Has this been supersede
     handler: Mapped[str | None] = mapped_column()
-    data: Mapped[Optional[dict | list]] = mapped_column(type_=JSON)
-    child_config: Mapped[Optional[dict | list]] = mapped_column(type_=JSON)
-    collections: Mapped[Optional[dict | list]] = mapped_column(type_=JSON)
-    spec_aliases: Mapped[Optional[dict | list]] = mapped_column(type_=JSON)
+    data: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    spec_aliases: Mapped[dict | list | None] = mapped_column(type_=JSON)
 
-    spec_block_: Mapped["SpecBlock"] = relationship("SpecBlock", viewonly=True)
-    parent_: Mapped["Campaign"] = relationship("Campaign", back_populates="s_")
-    p_: Mapped["Production"] = relationship(
+    spec_block_: Mapped[SpecBlock] = relationship("SpecBlock", viewonly=True)
+    parent_: Mapped[Campaign] = relationship("Campaign", back_populates="s_")
+    p_: Mapped[Production] = relationship(
         "Production",
         primaryjoin="Step.parent_id==Campaign.id",
         secondary="join(Campaign, Production)",
         secondaryjoin="Campaign.parent_id==Production.id",
         viewonly=True,
     )
-    g_: Mapped[List["Group"]] = relationship("Group", viewonly=True)
-    scripts_: Mapped[List["Script"]] = relationship("Script", viewonly=True)
-    prereqs_: Mapped[List["StepDependency"]] = relationship(
+    g_: Mapped[list[Group]] = relationship("Group", viewonly=True)
+    scripts_: Mapped[list[Script]] = relationship("Script", viewonly=True)
+    prereqs_: Mapped[list[StepDependency]] = relationship(
         "StepDependency",
         foreign_keys="StepDependency.depend_id",
         viewonly=True,
     )
-    jobs_: Mapped[List["Job"]] = relationship(
+    jobs_: Mapped[list[Job]] = relationship(
         "Job",
         primaryjoin="Group.parent_id==Step.id",
         secondary="join(Group, Job)",

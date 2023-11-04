@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.ext.asyncio import async_scoped_session
 
@@ -31,9 +31,10 @@ class ElementMixin(NodeMixin):
         self,
         session: async_scoped_session,
         script_name: str | None = None,
+        *,
         remaining_only: bool = False,
         skip_superseded: bool = True,
-    ) -> List["Script"]:
+    ) -> list[Script]:
         """Return the `Script`s associated to an element
 
         Parameters
@@ -71,9 +72,10 @@ class ElementMixin(NodeMixin):
     async def get_jobs(
         self,
         session: async_scoped_session,
+        *,
         remaining_only: bool = False,
         skip_superseded: bool = True,
-    ) -> List["Job"]:
+    ) -> list[Job]:
         """Return the `Job`s associated to an element
 
         Parameters
@@ -128,12 +130,12 @@ class ElementMixin(NodeMixin):
         scripts = await self.get_scripts(session, script_name)
         if len(scripts) != 1:
             raise ValueError(
-                f"Expected one active script matching {script_name} for {self.fullname}, got {len(scripts)}"
+                f"Expected one active script matching {script_name} for {self.fullname}, got {len(scripts)}",
             )
         the_script = scripts[0]
         if the_script.status.value > StatusEnum.rejected.value:
             raise ValueError(
-                f"Can only retry failed/rejected scripts, {the_script.fullname} is {the_script.status.value}"
+                f"Can only retry failed/rejected scripts, {the_script.fullname} is {the_script.status.value}",
             )
         new_script = await the_script.copy_script(session)
         await the_script.update_values(session, superseded=True)
@@ -175,7 +177,7 @@ class ElementMixin(NodeMixin):
     async def mark_job_rescued(
         self,
         session: async_scoped_session,
-    ) -> List["Job"]:
+    ) -> list[Job]:
         """Mark jobs as `rescued` once one of their siblings is `accepted`
 
         Parameters

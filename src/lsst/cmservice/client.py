@@ -165,6 +165,7 @@ class CMClient:
         self,
         fullname: str,
         script_name: str,
+        *,
         remaining_only: bool = False,
         skip_superseded: bool = True,
     ) -> list[models.Script]:
@@ -184,6 +185,7 @@ class CMClient:
     def get_jobs(
         self,
         fullname: str,
+        *,
         remaining_only: bool = False,
         skip_superseded: bool = True,
     ) -> list[models.Job]:

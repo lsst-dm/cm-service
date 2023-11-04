@@ -124,11 +124,10 @@ class NodeMixin(RowMixin):
         else:
             spec_block = await self.get_spec_block(session)
             handler_class = spec_block.handler
-        handler = Handler.get_handler(
+        return Handler.get_handler(
             self.spec_block_id,
             handler_class,
         )
-        return handler
 
     def _split_fullname(self, fullname: str) -> dict:
         """Split a fullname into named fields
@@ -203,7 +202,7 @@ class NodeMixin(RowMixin):
                         resolved_collections[name_].append(f1.format(**name_dict))
                     except KeyError as msg:
                         raise KeyError(
-                            f"Failed to resolve collection {name_} {f1} using: {str(name_dict)}",
+                            f"Failed to resolve collection {name_} {f1} using: {name_dict!s}",
                         ) from msg
             else:
                 try:
@@ -214,7 +213,7 @@ class NodeMixin(RowMixin):
                     resolved_collections[name_] = f1.format(**name_dict)
                 except KeyError as msg:
                     raise KeyError(
-                        f"Failed to resolve collection {name_}, {f1} using: {str(name_dict)}",
+                        f"Failed to resolve collection {name_}, {f1} using: {name_dict!s}",
                     ) from msg
         return resolved_collections
 
@@ -357,7 +356,7 @@ class NodeMixin(RowMixin):
         ret_dict = {}
         async with session.begin_nested():
             if self.level == LevelEnum.script:
-                raise NotImplementedError()
+                raise NotImplementedError
             if self.level.value > LevelEnum.campaign.value:
                 await session.refresh(self, attribute_names=["parent_"])
                 parent_data = await self.parent_.get_spec_aliases(session)
@@ -632,7 +631,7 @@ class NodeMixin(RowMixin):
         node: NodeMixin
             Node being cleaned
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     async def process(
         self,
@@ -655,8 +654,7 @@ class NodeMixin(RowMixin):
             The status of the processing
         """
         handler = await self.get_handler(session)
-        status = await handler.process(session, self, **kwargs)
-        return status
+        return await handler.process(session, self, **kwargs)
 
     async def run_check(
         self,
@@ -679,5 +677,4 @@ class NodeMixin(RowMixin):
             The status of the processing
         """
         handler = await self.get_handler(session)
-        status = await handler.run_check(session, self, **kwargs)
-        return status
+        return await handler.run_check(session, self, **kwargs)

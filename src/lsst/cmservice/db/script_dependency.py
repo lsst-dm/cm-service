@@ -27,8 +27,8 @@ class ScriptDependency(Base, RowMixin):
     prereq_id: Mapped[int] = mapped_column(ForeignKey("script.id", ondelete="CASCADE"), index=True)
     depend_id: Mapped[int] = mapped_column(ForeignKey("script.id", ondelete="CASCADE"), index=True)
 
-    prereq_: Mapped["Script"] = relationship("Script", viewonly=True, foreign_keys=[prereq_id])
-    depend_: Mapped["Script"] = relationship("Script", back_populates="prereqs_", foreign_keys=[depend_id])
+    prereq_: Mapped[Script] = relationship("Script", viewonly=True, foreign_keys=[prereq_id])
+    depend_: Mapped[Script] = relationship("Script", back_populates="prereqs_", foreign_keys=[depend_id])
 
     def __repr__(self) -> str:
         return f"ScriptDependency {self.prereq_id}: {self.depend_id}"

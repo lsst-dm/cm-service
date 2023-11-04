@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import APIRouter, Depends
 from safir.dependencies.db_session import db_session_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -22,11 +20,10 @@ async def get_element(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.ElementMixin:
-    result = await interface.get_element_by_fullname(
+    return await interface.get_element_by_fullname(
         session,
         fullname,
     )
-    return result
 
 
 @router.get(
@@ -38,11 +35,10 @@ async def get_script(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Script:
-    result = await db.Script.get_row_by_fullname(
+    return await db.Script.get_row_by_fullname(
         session,
         fullname,
     )
-    return result
 
 
 @router.get(
@@ -54,11 +50,10 @@ async def get_job(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Job:
-    result = await db.Job.get_row_by_fullname(
+    return await db.Job.get_row_by_fullname(
         session,
         fullname,
     )
-    return result
 
 
 @router.get(
@@ -70,11 +65,10 @@ async def get_spec_block(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.SpecBlock:
-    result = await interface.get_spec_block(
+    return await interface.get_spec_block(
         session,
         fullname,
     )
-    return result
 
 
 @router.get(
@@ -86,11 +80,10 @@ async def get_specification(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Specification:
-    result = await interface.get_specification(
+    return await interface.get_specification(
         session,
         fullname,
     )
-    return result
 
 
 @router.get(
@@ -102,11 +95,10 @@ async def get_resolved_collections(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> dict:
-    result = await interface.get_resolved_collections(
+    return await interface.get_resolved_collections(
         session,
         fullname,
     )
-    return result
 
 
 @router.get(
@@ -118,11 +110,10 @@ async def get_collections(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> dict:
-    result = await interface.get_collections(
+    return await interface.get_collections(
         session,
         fullname,
     )
-    return result
 
 
 @router.get(
@@ -134,11 +125,10 @@ async def get_child_config(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> dict:
-    result = await interface.get_child_config(
+    return await interface.get_child_config(
         session,
         fullname,
     )
-    return result
 
 
 @router.get(
@@ -150,11 +140,10 @@ async def get_data_dict(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> dict:
-    result = await interface.get_data_dict(
+    return await interface.get_data_dict(
         session,
         fullname,
     )
-    return result
 
 
 @router.get(
@@ -166,11 +155,10 @@ async def get_spec_aliases(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> dict:
-    result = await interface.get_spec_aliases(
+    return await interface.get_spec_aliases(
         session,
         fullname,
     )
-    return result
 
 
 @router.get(
@@ -182,11 +170,10 @@ async def get_prerequisites(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> bool:
-    result = await interface.check_prerequisites(
+    return await interface.check_prerequisites(
         session,
         fullname=fullname,
     )
-    return result
 
 
 @router.get(
@@ -197,18 +184,18 @@ async def get_prerequisites(
 async def get_scripts(
     fullname: str,
     script_name: str,
+    *,
     remaining_only: bool = False,
     skip_superseded: bool = True,
     session: async_scoped_session = Depends(db_session_dependency),
-) -> List[db.Script]:
-    result = await interface.get_scripts(
+) -> list[db.Script]:
+    return await interface.get_scripts(
         session,
         fullname=fullname,
         script_name=script_name,
         remaining_only=remaining_only,
         skip_superseded=skip_superseded,
     )
-    return result
 
 
 @router.get(
@@ -218,17 +205,17 @@ async def get_scripts(
 )
 async def get_jobs(
     fullname: str,
+    *,
     remaining_only: bool = False,
     skip_superseded: bool = True,
     session: async_scoped_session = Depends(db_session_dependency),
-) -> List[db.Job]:
-    result = await interface.get_jobs(
+) -> list[db.Job]:
+    return await interface.get_jobs(
         session,
         fullname=fullname,
         remaining_only=remaining_only,
         skip_superseded=skip_superseded,
     )
-    return result
 
 
 @router.get(
@@ -239,12 +226,11 @@ async def get_jobs(
 async def get_job_task_sets(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
-) -> List[db.TaskSet]:
-    result = await interface.get_task_sets_for_job(
+) -> list[db.TaskSet]:
+    return await interface.get_task_sets_for_job(
         session,
         fullname=fullname,
     )
-    return result
 
 
 @router.get(
@@ -255,12 +241,11 @@ async def get_job_task_sets(
 async def get_job_wms_reports(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
-) -> List[db.WmsTaskReport]:
-    result = await interface.get_wms_reports_for_job(
+) -> list[db.WmsTaskReport]:
+    return await interface.get_wms_reports_for_job(
         session,
         fullname=fullname,
     )
-    return result
 
 
 @router.get(
@@ -271,12 +256,11 @@ async def get_job_wms_reports(
 async def get_job_product_sets(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
-) -> List[db.ProductSet]:
-    result = await interface.get_product_sets_for_job(
+) -> list[db.ProductSet]:
+    return await interface.get_product_sets_for_job(
         session,
         fullname=fullname,
     )
-    return result
 
 
 @router.get(
@@ -287,9 +271,8 @@ async def get_job_product_sets(
 async def get_job_errors(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
-) -> List[db.PipetaskError]:
-    result = await interface.get_errors_for_job(
+) -> list[db.PipetaskError]:
+    return await interface.get_errors_for_job(
         session,
         fullname=fullname,
     )
-    return result

@@ -82,7 +82,7 @@ class DictParamType(click.ParamType):
             keyvalue_pairs = value.rstrip(";").split(";")
             result_dict = {}
             for pair in keyvalue_pairs:
-                key, values = [item.strip() for item in pair.split("=")]
+                key, values = (item.strip() for item in pair.split("="))
                 converted_values = []
                 for value_ in values.split(","):
                     value_ = value_.strip()

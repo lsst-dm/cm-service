@@ -31,7 +31,7 @@ async def get_rows(
     limit: int = 100,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> Sequence[db_class]:
-    result = await db_class.get_rows(
+    return await db_class.get_rows(
         session,
         parent_id=parent_id,
         skip=skip,
@@ -39,7 +39,6 @@ async def get_rows(
         parent_name=parent_name,
         parent_class=db.Campaign,
     )
-    return result
 
 
 @router.get(
@@ -51,5 +50,4 @@ async def get_row(
     row_id: int,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db_class:
-    result = await db_class.get_row(session, row_id)
-    return result
+    return await db_class.get_row(session, row_id)

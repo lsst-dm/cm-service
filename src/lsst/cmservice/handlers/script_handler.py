@@ -80,10 +80,8 @@ class BaseScriptHandler(Handler):
         # Need this so mypy doesn't think we are passing in Element
         if TYPE_CHECKING:
             assert isinstance(node, Script)
-        status = node.status
         parent = await node.get_parent(session)
-        status = await self.check(session, node, parent, **kwargs)
-        return status
+        return await self.check(session, node, parent, **kwargs)
 
     async def prepare(
         self,

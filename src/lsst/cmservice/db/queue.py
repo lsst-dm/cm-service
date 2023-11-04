@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Optional
+from typing import Any
 
 import pause
 from sqlalchemy import JSON, DateTime
@@ -20,9 +20,6 @@ from .job import Job
 from .node import NodeMixin
 from .step import Step
 
-if TYPE_CHECKING:
-    pass
-
 
 class Queue(Base, NodeMixin):
     """Database table to implement processing queue"""
@@ -34,7 +31,7 @@ class Queue(Base, NodeMixin):
     time_updated: Mapped[datetime] = mapped_column(type_=DateTime)
     time_finished: Mapped[datetime | None] = mapped_column(type_=DateTime, default=None)
     interval: Mapped[float] = mapped_column(default=300.0)
-    options: Mapped[Optional[dict | list]] = mapped_column(type_=JSON)
+    options: Mapped[dict | list | None] = mapped_column(type_=JSON)
 
     element_level: Mapped[LevelEnum] = mapped_column()
     element_id: Mapped[int] = mapped_column()
@@ -43,10 +40,10 @@ class Queue(Base, NodeMixin):
     g_id: Mapped[int | None] = mapped_column(ForeignKey("group.id", ondelete="CASCADE"), index=True)
     j_id: Mapped[int | None] = mapped_column(ForeignKey("job.id", ondelete="CASCADE"), index=True)
 
-    c_: Mapped["Campaign"] = relationship("Campaign", viewonly=True)
-    s_: Mapped["Step"] = relationship("Step", viewonly=True)
-    g_: Mapped["Group"] = relationship("Group", viewonly=True)
-    j_: Mapped["Job"] = relationship("Job", viewonly=True)
+    c_: Mapped[Campaign] = relationship("Campaign", viewonly=True)
+    s_: Mapped[Step] = relationship("Step", viewonly=True)
+    g_: Mapped[Group] = relationship("Group", viewonly=True)
+    j_: Mapped[Job] = relationship("Job", viewonly=True)
 
     @hybrid_property
     def element_db_id(self) -> DbId:

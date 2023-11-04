@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from sqlalchemy.ext.asyncio import async_scoped_session
 
@@ -11,9 +11,6 @@ from ..common.bash import write_bash_script
 from ..common.enums import StatusEnum
 from ..db.step import Step
 from .script_handler import ScriptHandler
-
-if TYPE_CHECKING:
-    pass
 
 
 class ChainCreateScriptHandler(ScriptHandler):

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -47,29 +47,29 @@ class Job(Base, ElementMixin):
     status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting)
     superseded: Mapped[bool] = mapped_column(default=False)
     handler: Mapped[str | None] = mapped_column()
-    data: Mapped[Optional[dict | list]] = mapped_column(type_=JSON)
-    child_config: Mapped[Optional[dict | list]] = mapped_column(type_=JSON)
-    collections: Mapped[Optional[dict | list]] = mapped_column(type_=JSON)
-    spec_aliases: Mapped[Optional[dict | list]] = mapped_column(type_=JSON)
-    wms_job_id: Mapped[Optional[int]] = mapped_column()
-    stamp_url: Mapped[Optional[str]] = mapped_column()
+    data: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    spec_aliases: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    wms_job_id: Mapped[int | None] = mapped_column()
+    stamp_url: Mapped[str | None] = mapped_column()
 
-    spec_block_: Mapped["SpecBlock"] = relationship("SpecBlock", viewonly=True)
-    s_: Mapped["Step"] = relationship(
+    spec_block_: Mapped[SpecBlock] = relationship("SpecBlock", viewonly=True)
+    s_: Mapped[Step] = relationship(
         "Step",
         primaryjoin="Job.parent_id==Group.id",
         secondary="join(Group, Step)",
         secondaryjoin="Group.parent_id==Step.id",
         viewonly=True,
     )
-    c_: Mapped["Campaign"] = relationship(
+    c_: Mapped[Campaign] = relationship(
         "Campaign",
         primaryjoin="Job.parent_id==Group.id",
         secondary="join(Group, Step).join(Campaign)",
         secondaryjoin="and_(Group.parent_id==Step.id, Step.parent_id==Campaign.id) ",
         viewonly=True,
     )
-    p_: Mapped["Production"] = relationship(
+    p_: Mapped[Production] = relationship(
         "Production",
         primaryjoin="Job.parent_id==Group.id",
         secondary="join(Group, Step).join(Campaign).join(Production)",
@@ -80,18 +80,18 @@ class Job(Base, ElementMixin):
         ") ",
         viewonly=True,
     )
-    parent_: Mapped["Group"] = relationship("Group", viewonly=True)
-    scripts_: Mapped[List["Script"]] = relationship("Script", viewonly=True)
-    tasks_: Mapped[List["TaskSet"]] = relationship("TaskSet", viewonly=True)
-    products_: Mapped[List["ProductSet"]] = relationship("ProductSet", viewonly=True)
-    errors_: Mapped[List["PipetaskError"]] = relationship(
+    parent_: Mapped[Group] = relationship("Group", viewonly=True)
+    scripts_: Mapped[list[Script]] = relationship("Script", viewonly=True)
+    tasks_: Mapped[list[TaskSet]] = relationship("TaskSet", viewonly=True)
+    products_: Mapped[list[ProductSet]] = relationship("ProductSet", viewonly=True)
+    errors_: Mapped[list[PipetaskError]] = relationship(
         "PipetaskError",
         primaryjoin="Job.id==TaskSet.job_id",
         secondary="join(TaskSet, PipetaskError)",
         secondaryjoin="PipetaskError.task_id==TaskSet.id",
         viewonly=True,
     )
-    wms_reports_: Mapped[List["WmsTaskReport"]] = relationship("WmsTaskReport", viewonly=True)
+    wms_reports_: Mapped[list[WmsTaskReport]] = relationship("WmsTaskReport", viewonly=True)
 
     @hybrid_property
     def db_id(self) -> DbId:
@@ -114,7 +114,7 @@ class Job(Base, ElementMixin):
         spec_block = await SpecBlock.get_row_by_fullname(session, spec_block_name)
         parent = await Group.get_row_by_fullname(session, parent_name)
 
-        ret_dict = {
+        return {
             "spec_block_id": spec_block.id,
             "parent_id": parent.id,
             "name": name,
@@ -125,8 +125,6 @@ class Job(Base, ElementMixin):
             "collections": kwargs.get("collections", {}),
             "spec_aliases": kwargs.get("spec_aliases", {}),
         }
-
-        return ret_dict
 
     async def copy_job(
         self,
@@ -148,4 +146,4 @@ class Job(Base, ElementMixin):
         new_job: Job
             Newly created Job
         """
-        raise NotImplementedError()
+        raise NotImplementedError

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import types
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from sqlalchemy.ext.asyncio import async_scoped_session
 
@@ -24,7 +24,7 @@ class Handler:
     where particular database actions are taken.
     """
 
-    handler_cache: dict[int, Handler] = {}
+    handler_cache: ClassVar[dict[int, Handler]] = {}
 
     plugin_dir: str | None = None
     config_dir: str | None = None
@@ -65,7 +65,7 @@ class Handler:
             with add_sys_path(Handler.plugin_dir):
                 handler_class = doImport(class_name)
             if isinstance(handler_class, types.ModuleType):
-                raise TypeError()
+                raise TypeError
             cached_handler = handler_class(spec_block_id, **kwargs)
             Handler.handler_cache[spec_block_id] = cached_handler
         return cached_handler

@@ -1,5 +1,6 @@
 """Utility functions for working with bash scripts"""
 
+import contextlib
 import os
 import subprocess
 from typing import Any
@@ -43,10 +44,9 @@ async def check_stamp_file(
     """
     if not os.path.exists(stamp_file):
         return None
-    with open(stamp_file, "rt", encoding="utf-8") as fin:
+    with open(stamp_file, encoding="utf-8") as fin:
         fields = yaml.safe_load(fin)
-        status = StatusEnum[fields["status"]]
-        return status
+        return StatusEnum[fields["status"]]
 
 
 async def write_bash_script(
@@ -97,12 +97,10 @@ async def write_bash_script(
     rollback_prefix = kwargs.get("rollback", "")
 
     script_url = f"{rollback_prefix}{script_url}"
-    try:
+    with contextlib.suppress(OSError):
         os.makedirs(os.path.dirname(script_url))
-    except OSError:
-        pass
 
-    with open(script_url, "wt", encoding="utf-8") as fout:
+    with open(script_url, "w", encoding="utf-8") as fout:
         if prepend:
             fout.write(f"{prepend}\n")
         if fake:

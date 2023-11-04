@@ -1,12 +1,10 @@
-from typing import Optional
-
 from pydantic import BaseModel
 
 
 class ScriptTemplateBase(BaseModel):
     spec_id: int
     name: str
-    data: Optional[dict | list]
+    data: dict | list | None
 
 
 class ScriptTemplateCreate(ScriptTemplateBase):

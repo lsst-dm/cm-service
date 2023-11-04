@@ -21,8 +21,7 @@ async def add_groups(
     query: models.AddGroups,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Step:
-    result = await interface.add_groups(session, **query.dict())
-    return result
+    return await interface.add_groups(session, **query.dict())
 
 
 @router.post(
@@ -35,8 +34,7 @@ async def add_steps(
     query: models.AddGroups,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Campaign:
-    result = await interface.add_steps(session, **query.dict())
-    return result
+    return await interface.add_steps(session, **query.dict())
 
 
 @router.post(
@@ -49,5 +47,4 @@ async def add_campaign(
     query: models.CampaignCreate,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Campaign:
-    result = await interface.create_campaign(session, **query.dict())
-    return result
+    return await interface.create_campaign(session, **query.dict())

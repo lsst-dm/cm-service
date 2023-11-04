@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Any, Iterable, List, Optional
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -41,10 +42,10 @@ class Group(Base, ElementMixin):
     status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting)  # Status flag
     superseded: Mapped[bool] = mapped_column(default=False)  # Has this been supersede
     handler: Mapped[str | None] = mapped_column()
-    data: Mapped[Optional[dict | list]] = mapped_column(type_=JSON)
-    child_config: Mapped[Optional[dict | list]] = mapped_column(type_=JSON)
-    collections: Mapped[Optional[dict | list]] = mapped_column(type_=JSON)
-    spec_aliases: Mapped[Optional[dict | list]] = mapped_column(type_=JSON)
+    data: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    spec_aliases: Mapped[dict | list | None] = mapped_column(type_=JSON)
 
     spec_block_: Mapped["SpecBlock"] = relationship("SpecBlock", viewonly=True)
     c_: Mapped["Campaign"] = relationship(
@@ -63,8 +64,8 @@ class Group(Base, ElementMixin):
     )
 
     parent_: Mapped["Step"] = relationship("Step", viewonly=True)
-    scripts_: Mapped[List["Script"]] = relationship("Script", viewonly=True)
-    jobs_: Mapped[List["Job"]] = relationship("Job", viewonly=True)
+    scripts_: Mapped[list["Script"]] = relationship("Script", viewonly=True)
+    jobs_: Mapped[list["Job"]] = relationship("Job", viewonly=True)
 
     @hybrid_property
     def db_id(self) -> DbId:

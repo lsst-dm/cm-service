@@ -1,4 +1,4 @@
-from typing import Sequence
+from collections.abc import Sequence
 
 from fastapi import APIRouter, Depends
 from safir.dependencies.db_session import db_session_dependency
@@ -29,8 +29,7 @@ async def get_rows(
     limit: int = 100,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> Sequence[db_class]:
-    result = await db_class.get_rows(session, skip=skip, limit=limit)
-    return result
+    return await db_class.get_rows(session, skip=skip, limit=limit)
 
 
 @router.get(
@@ -42,5 +41,4 @@ async def get_row(
     row_id: int,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db_class:
-    result = await db_class.get_row(session, row_id)
-    return result
+    return await db_class.get_row(session, row_id)

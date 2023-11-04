@@ -102,12 +102,10 @@ class ElementHandler(Handler):
         node: NodeMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        status = node.status
         # Need this so mypy doesn't think we are passing in Script
         if TYPE_CHECKING:
             assert isinstance(node, ElementMixin)
-        status = await self.check(session, node, **kwargs)
-        return status
+        return await self.check(session, node, **kwargs)
 
     async def prepare(
         self,
@@ -169,8 +167,7 @@ class ElementHandler(Handler):
             )
             await session.refresh(new_script)
             script_ids_dict[script_name] = new_script.id
-            for prereq_ in script_vals.get("prerequisites", []):
-                prereq_pairs.append((script_name, prereq_))
+            prereq_pairs = [(script_name, prereq_) for prereq_ in script_vals.get("prerequisites", [])]
 
         for depend_name, prereq_name in prereq_pairs:
             prereq_id = script_ids_dict[prereq_name]

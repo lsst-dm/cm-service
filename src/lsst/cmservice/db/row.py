@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Sequence, TypeVar
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -160,9 +161,8 @@ class RowMixin:
         async with session.begin_nested():
             row = await session.get(cls, row_id)
             if row is not None:
-                if hasattr(row, "status"):
-                    if row.status not in DELETEABLE_STATES:
-                        raise ValueError(f"Can not delete a row because it is in use {row} {row.status}")
+                if hasattr(row, "status") and row.status not in DELETEABLE_STATES:
+                    raise ValueError(f"Can not delete a row because it is in use {row} {row.status}")
                 await session.delete(row)
 
     @classmethod

@@ -58,8 +58,7 @@ async def submit_slurm_job(
         ) as sbatch:
             assert sbatch.stdout
             line = sbatch.stdout.read().decode().strip()
-            job_id = line.split("|")[0]
-        return job_id
+            return line.split("|")[0]
     except TypeError as msg:
         raise TypeError(f"Bad slurm submit from {script_url}") from msg
 
@@ -85,12 +84,9 @@ async def check_slurm_job(
         assert sacct.stdout
         lines = sacct.stdout.read().decode().split("\n")
         if len(lines) < 2:
-            status = slurm_status_map["PENDING"]
-            return status
+            return slurm_status_map["PENDING"]
         tokens = lines[1].split("|")
         if len(tokens) < 2:
-            status = slurm_status_map["PENDING"]
-            return status
+            return slurm_status_map["PENDING"]
         slurm_status = tokens[1]
-        status = slurm_status_map[slurm_status]
-        return status
+        return slurm_status_map[slurm_status]

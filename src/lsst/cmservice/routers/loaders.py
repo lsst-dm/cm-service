@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import APIRouter, Depends
 from safir.dependencies.db_session import db_session_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -52,9 +50,8 @@ async def load_and_create_campaign(
 async def load_error_types(
     query: models.YamlFileQuery,
     session: async_scoped_session = Depends(db_session_dependency),
-) -> List[db.PipetaskErrorType]:
-    result = await interface.load_error_types(session, **query.dict())
-    return result
+) -> list[db.PipetaskErrorType]:
+    return await interface.load_error_types(session, **query.dict())
 
 
 @router.post(
@@ -67,5 +64,4 @@ async def load_manifest_report(
     query: models.LoadManifestReport,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Job:
-    result = await interface.load_manifest_report(session, **query.dict())
-    return result
+    return await interface.load_manifest_report(session, **query.dict())
