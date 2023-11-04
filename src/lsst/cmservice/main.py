@@ -1,3 +1,5 @@
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from importlib.metadata import metadata, version
 
 from fastapi import FastAPI
@@ -90,11 +92,33 @@ tags_metadata = [
         "description": "Operations with `jobs`. A `job` runs a single `workflow`: keeps a count"
         "of the results data products and keeps track of associated errors.",
     },
-    {"name": "PipetaskErrorTypes", "description": "Operations with `pipetask_error_types`."},
+    {
+        "name": "PipetaskErrorTypes",
+        "description": "Operations with `pipetask_error_types`.",
+    },
 ]
 
 
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncGenerator:
+    """Hook FastAPI init/cleanups."""
+
+    # Dependency inits before app starts running
+    await db_session_dependency.initialize(config.database_url, config.database_password)
+    assert db_session_dependency._engine is not None  # pylint: disable=protected-access
+    db_session_dependency._engine.echo = config.database_echo  # pylint: disable=protected-access
+    await arq_dependency.initialize(mode=config.arq_mode, redis_settings=config.arq_redis_settings)
+
+    # App runs here...
+    yield
+
+    # Dependency cleanups after app is finished
+    await db_session_dependency.aclose()
+    await http_client_dependency.aclose()
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title="cm-service",
     description=metadata("lsst-cm-service")["Summary"],
     version=version("lsst-cm-service"),
@@ -122,17 +146,3 @@ app.include_router(script_templates.router, prefix=config.prefix)
 app.include_router(jobs.router, prefix=config.prefix)
 app.include_router(pipetask_error_types.router, prefix=config.prefix)
 app.include_router(spec_blocks.router, prefix=config.prefix)
-
-
-@app.on_event("startup")
-async def startup_event() -> None:
-    await db_session_dependency.initialize(config.database_url, config.database_password)
-    assert db_session_dependency._engine is not None  # pylint:  disable=protected-access
-    db_session_dependency._engine.echo = config.database_echo  # pylint: disable=protected-access
-    await arq_dependency.initialize(mode=config.arq_mode, redis_settings=config.arq_redis_settings)
-
-
-@app.on_event("shutdown")
-async def shutdown_event() -> None:  # pragma: no cover
-    await db_session_dependency.aclose()
-    await http_client_dependency.aclose()
