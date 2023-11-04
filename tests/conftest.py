@@ -18,16 +18,16 @@ from lsst.cmservice.config import config
 from lsst.cmservice.handlers import interface
 
 
-@pytest.fixture(scope="session")
-def event_loop() -> Iterator[AbstractEventLoop]:
+@pytest.fixture(scope="session", name="event_loop")
+def event_loop_fixture() -> Iterator[AbstractEventLoop]:
     policy = get_event_loop_policy()
     loop = policy.new_event_loop()
     yield loop
     loop.close()
 
 
-@pytest_asyncio.fixture(scope="session")
-async def engine() -> AsyncIterator[AsyncEngine]:
+@pytest_asyncio.fixture(scope="session", name="engine")
+async def engine_fixture() -> AsyncIterator[AsyncEngine]:
     """Return a SQLAlchemy AsyncEngine configured to talk to the app db."""
     os.environ["CM_CONFIGS"] = "examples"
     logger = structlog.get_logger(config.logger_name)
@@ -37,8 +37,8 @@ async def engine() -> AsyncIterator[AsyncEngine]:
     await the_engine.dispose()
 
 
-@pytest_asyncio.fixture(scope="session")
-async def session(engine: AsyncEngine) -> AsyncGenerator:  # pylint: disable=redefined-outer-name
+@pytest_asyncio.fixture(scope="session", name="session")
+async def session_fixture(engine: AsyncEngine) -> AsyncGenerator:
     """Return a SQLAlchemy AsyncEngine configured to talk to the app db."""
     logger = structlog.get_logger(config.logger_name)
     async with engine.begin():
@@ -52,10 +52,8 @@ async def session(engine: AsyncEngine) -> AsyncGenerator:  # pylint: disable=red
         await the_session.close()
 
 
-@pytest_asyncio.fixture(scope="session")
-async def app(  # pylint: disable=redefined-outer-name,unused-argument
-    engine: AsyncEngine,
-) -> AsyncIterator[FastAPI]:
+@pytest_asyncio.fixture(scope="session", name="app")
+async def app_fixture() -> AsyncIterator[FastAPI]:
     """Return a configured test application.
 
     Wraps the application in a lifespan manager so that startup and shutdown
@@ -65,8 +63,8 @@ async def app(  # pylint: disable=redefined-outer-name,unused-argument
         yield main.app
 
 
-@pytest_asyncio.fixture(scope="session")
-async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:  # pylint: disable=redefined-outer-name
+@pytest_asyncio.fixture(scope="session", name="client")
+async def client_fixture(app: FastAPI) -> AsyncIterator[AsyncClient]:
     """Return an ``httpx.AsyncClient`` configured to talk to the test app."""
     async with AsyncClient(app=app, base_url="https:") as the_client:
         yield the_client
