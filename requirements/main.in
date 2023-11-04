@@ -17,4 +17,10 @@ pydantic<2
 safir[db,arq]
 sqlalchemy[asyncio]
 structlog
+pause
+numpy
 tabulate
+lsst-daf-butler
+lsst-pipe-base
+lsst-ctrl-bps
+lsst-ctrl-bps-panda
