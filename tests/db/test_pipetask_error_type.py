@@ -1,5 +1,5 @@
 import pytest
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from lsst.cmservice import db
@@ -100,6 +100,38 @@ async def test_error_type_db(session: async_scoped_session) -> None:
             task_name=error["task_name"],
             diagnostic_message=error["diagnostic_message"],
         )
+
+    # Make sure we can make a row with the same task and a different message
+    try:
+        await db.PipetaskErrorType.create_row(
+            session,
+            source=error["source"],
+            flavor=error["flavor"],
+            action=error["action"],
+            task_name=error["task_name"],
+            diagnostic_message="new message",
+        )
+    except DBAPIError as e:
+        raise Exception(
+            """Failed UNIQUE constraint: could not assign multiple
+                                       errors to the same task name.""",
+        ) from e
+
+    # Make sure we can make a row with a different task and the same message
+    try:
+        await db.PipetaskErrorType.create_row(
+            session,
+            source=error["source"],
+            flavor=error["flavor"],
+            action=error["action"],
+            task_name="different_task",
+            diagnostic_message=error["diagnostic_message"],
+        )
+    except DBAPIError as e:
+        raise Exception(
+            """Failed UNIQUE constraint: could not assign the same
+                                  error messages to different tasks.""",
+        ) from e
 
     # Make sure we can read the same values out of the PipetaskErrorType
     # database that we just put in it and that the dbid is right
