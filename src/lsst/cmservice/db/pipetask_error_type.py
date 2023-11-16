@@ -1,6 +1,7 @@
 import re
 from typing import TYPE_CHECKING
 
+from sqlalchemy import UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..common.enums import ErrorAction, ErrorFlavor, ErrorSource
@@ -21,7 +22,8 @@ class PipetaskErrorType(Base, RowMixin):
     flavor: Mapped[ErrorFlavor] = mapped_column()
     action: Mapped[ErrorAction] = mapped_column()
     task_name: Mapped[str] = mapped_column()
-    diagnostic_message: Mapped[str] = mapped_column(unique=True)
+    diagnostic_message: Mapped[str] = mapped_column()
+    UniqueConstraint(task_name, diagnostic_message)
 
     errors_: Mapped[list["PipetaskError"]] = relationship("PipetaskError", viewonly=True)
 

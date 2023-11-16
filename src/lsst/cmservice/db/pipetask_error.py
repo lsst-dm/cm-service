@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON
+from sqlalchemy import JSON, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
@@ -27,6 +27,7 @@ class PipetaskError(Base, RowMixin):
     quanta: Mapped[str] = mapped_column()
     diagnostic_message: Mapped[str] = mapped_column()
     data_id: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    UniqueConstraint(task_id, diagnostic_message)
 
     job_: Mapped["Job"] = relationship(
         "Job",
