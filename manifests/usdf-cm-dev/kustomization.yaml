@@ -1,0 +1,16 @@
+secretGenerator:
+- name: cm-pg-app
+  namespace: cm-service
+  type: kubernetes.io/basic-auth
+  files:
+  - .secrets/pg/username
+  - .secrets/pg/password
+- name: cm-redis-app
+  namespace: cm-service
+  type: kubernetes.io/basic-auth
+  files:
+  - .secrets/redis/password
+generatorOptions:
+  disableNameSuffixHash: true
+resources:
+- ../base
