@@ -165,7 +165,7 @@ class ProductStatusEnum(enum.Enum):
     missing = 4
 
 
-class ErrorSource(enum.Enum):
+class ErrorSourceEnum(enum.Enum):
     """Who first reported the error"""
 
     cmservice = 0

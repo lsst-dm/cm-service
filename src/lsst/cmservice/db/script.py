@@ -9,12 +9,12 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
-from ..common.enums import LevelEnum, NodeTypeEnum, ScriptMethod, StatusEnum
+from ..common.enums import LevelEnum, NodeTypeEnum, ScriptMethodEnum, StatusEnum
 from .base import Base
 from .campaign import Campaign
 from .dbid import DbId
 from .element import ElementMixin
-from .enums import SqlLevelEnum, SqlScriptMethod, SqlStatusEnum
+from .enums import SqlLevelEnum, SqlScriptMethodEnum, SqlStatusEnum
 from .group import Group
 from .job import Job
 from .node import NodeMixin
@@ -49,8 +49,11 @@ class Script(Base, NodeMixin):
     attempt: Mapped[int] = mapped_column(default=0)
     fullname: Mapped[str] = mapped_column(unique=True)
     status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting, type_=SqlStatusEnum)  # Status flag
-    method: Mapped[ScriptMethod] = mapped_column(default=ScriptMethod.default, type_=SqlScriptMethod)
-    superseded: Mapped[bool] = mapped_column(default=False)  # Has this been supersede
+    method: Mapped[ScriptMethodEnum] = mapped_column(
+        default=ScriptMethodEnum.default,
+        type_=SqlScriptMethodEnum,
+    )
+    superseded: Mapped[bool] = mapped_column(default=False)  # Has this been superseded
     handler: Mapped[str | None] = mapped_column()
     data: Mapped[dict | list | None] = mapped_column(type_=JSON)
     child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
@@ -171,7 +174,7 @@ class Script(Base, NodeMixin):
             "name": name,
             "attempt": attempt,
             "fullname": f"{parent_name}/{name}_{attempt:03}",
-            "method": ScriptMethod[kwargs.get("method", "default")],
+            "method": ScriptMethodEnum[kwargs.get("method", "default")],
             "handler": kwargs.get("handler"),
             "data": kwargs.get("data", {}),
             "child_config": kwargs.get("child_config", {}),

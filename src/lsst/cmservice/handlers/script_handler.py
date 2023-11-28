@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from ..common.bash import check_stamp_file, run_bash_job
-from ..common.enums import ScriptMethod, StatusEnum
+from ..common.enums import ScriptMethodEnum, StatusEnum
 from ..common.slurm import check_slurm_job, submit_slurm_job
 from ..db.element import ElementMixin
 from ..db.handler import Handler
@@ -212,7 +212,7 @@ class BaseScriptHandler(Handler):
 
 
 class ScriptHandler(BaseScriptHandler):
-    default_method = ScriptMethod.slurm
+    default_method = ScriptMethodEnum.slurm
 
     @staticmethod
     async def _check_stamp_file(  # pylint: disable=unused-argument
@@ -292,15 +292,15 @@ class ScriptHandler(BaseScriptHandler):
         **kwargs: Any,
     ) -> StatusEnum:
         script_method = script.method
-        if script_method == ScriptMethod.default:
+        if script_method == ScriptMethodEnum.default:
             script_method = self.default_method
 
         status = script.status
-        if script_method == ScriptMethod.no_script:  # pragma: no cover
-            raise ValueError("ScriptMethod.no_script can not be set for ScriptHandler")
-        if script_method == ScriptMethod.bash:
+        if script_method == ScriptMethodEnum.no_script:  # pragma: no cover
+            raise ValueError("ScriptMethodEnum.no_script can not be set for ScriptHandler")
+        if script_method == ScriptMethodEnum.bash:
             status = await self._write_script(session, script, parent, **kwargs)
-        elif script_method == ScriptMethod.slurm:  # pragma: no cover
+        elif script_method == ScriptMethodEnum.slurm:  # pragma: no cover
             status = await self._write_script(session, script, parent, **kwargs)
         if status != script.status:
             await script.update_values(session, status=status)
@@ -315,22 +315,22 @@ class ScriptHandler(BaseScriptHandler):
         **kwargs: Any,
     ) -> StatusEnum:
         script_method = script.method
-        if script_method == ScriptMethod.default:
+        if script_method == ScriptMethodEnum.default:
             script_method = self.default_method
 
         fake_status = kwargs.get("fake_status", None)
-        if script_method == ScriptMethod.no_script:  # pragma: no cover
-            raise ValueError("ScriptMethod.no_script can not be set for ScriptHandler")
+        if script_method == ScriptMethodEnum.no_script:  # pragma: no cover
+            raise ValueError("ScriptMethodEnum.no_script can not be set for ScriptHandler")
         if fake_status is not None:
             status = fake_status
-        elif script_method == ScriptMethod.bash:
+        elif script_method == ScriptMethodEnum.bash:
             if not script.script_url:
                 raise ValueError(f"script_url is not set for {script}")
             if not script.log_url:
                 raise ValueError(f"log_url is not set for {script}")
             await run_bash_job(script.script_url, script.log_url)
             status = StatusEnum.running
-        elif script_method == ScriptMethod.slurm:  # pragma: no cover
+        elif script_method == ScriptMethodEnum.slurm:  # pragma: no cover
             if not script.script_url:
                 raise ValueError(f"script_url is not set for {script}")
             if not script.log_url:
@@ -351,19 +351,19 @@ class ScriptHandler(BaseScriptHandler):
         **kwargs: Any,
     ) -> StatusEnum:
         script_method = script.method
-        if script_method == ScriptMethod.default:
+        if script_method == ScriptMethodEnum.default:
             script_method = self.default_method
 
         fake_status = kwargs.get("fake_status")
         if fake_status is not None:
             status = fake_status
-        elif script_method == ScriptMethod.no_script:  # pragma: no cover
-            raise ValueError("ScriptMethod.no_script can not be set for ScriptHandler")
-        elif script_method == ScriptMethod.bash:
+        elif script_method == ScriptMethodEnum.no_script:  # pragma: no cover
+            raise ValueError("ScriptMethodEnum.no_script can not be set for ScriptHandler")
+        elif script_method == ScriptMethodEnum.bash:
             if not script.stamp_url:
                 raise ValueError(f"stamp_url is not set for {script}")
             status = await self._check_stamp_file(session, script.stamp_url, script, parent)
-        elif script_method == ScriptMethod.slurm:  # pragma: no cover
+        elif script_method == ScriptMethodEnum.slurm:  # pragma: no cover
             if not script.stamp_url:
                 raise ValueError(f"stamp_url is not set for {script}")
             status = await self._check_slurm_job(session, script.stamp_url, script, parent)
@@ -412,7 +412,7 @@ class ScriptHandler(BaseScriptHandler):
 
 
 class FunctionHandler(BaseScriptHandler):
-    default_method = ScriptMethod.no_script
+    default_method = ScriptMethodEnum.no_script
 
     async def prepare(
         self,
@@ -422,10 +422,10 @@ class FunctionHandler(BaseScriptHandler):
         **kwargs: Any,
     ) -> StatusEnum:
         script_method = script.method
-        if script_method is ScriptMethod.default:
+        if script_method is ScriptMethodEnum.default:
             script_method = self.default_method
-        if script_method != ScriptMethod.no_script:
-            raise ValueError(f"ScriptMethod.no_script must be set for {type(self)}")
+        if script_method != ScriptMethodEnum.no_script:
+            raise ValueError(f"ScriptMethodEnum.no_script must be set for {type(self)}")
         status = await self._do_prepare(session, script, parent, **kwargs)
         if status != script.status:
             await script.update_values(session, status=status)
@@ -440,11 +440,11 @@ class FunctionHandler(BaseScriptHandler):
         **kwargs: Any,
     ) -> StatusEnum:
         script_method = script.method
-        if script_method == ScriptMethod.default:
+        if script_method == ScriptMethodEnum.default:
             script_method = self.default_method
 
-        if script_method != ScriptMethod.no_script:
-            raise ValueError(f"ScriptMethod.no_script must be set for {type(self)}")
+        if script_method != ScriptMethodEnum.no_script:
+            raise ValueError(f"ScriptMethodEnum.no_script must be set for {type(self)}")
         status = await self._do_run(session, script, parent, **kwargs)
         if status != script.status:
             await script.update_values(session, status=status)
@@ -459,11 +459,11 @@ class FunctionHandler(BaseScriptHandler):
         **kwargs: Any,
     ) -> StatusEnum:
         script_method = script.method
-        if script_method == ScriptMethod.default:
+        if script_method == ScriptMethodEnum.default:
             script_method = self.default_method
 
-        if script_method != ScriptMethod.no_script:
-            raise ValueError(f"ScriptMethod.no_script must be set for {type(self)}")
+        if script_method != ScriptMethodEnum.no_script:
+            raise ValueError(f"ScriptMethodEnum.no_script must be set for {type(self)}")
         status = await self._do_check(session, script, parent, **kwargs)
         if status != script.status:
             await script.update_values(session, status=status)

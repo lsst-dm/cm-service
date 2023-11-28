@@ -3,9 +3,9 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ..common.enums import ErrorAction, ErrorFlavor, ErrorSource
+from ..common.enums import ErrorActionEnum, ErrorFlavorEnum, ErrorSourceEnum
 from .base import Base
-from .enums import SqlErrorAction, SqlErrorFlavor, SqlErrorSource
+from .enums import SqlErrorActionEnum, SqlErrorFlavorEnum, SqlErrorSourceEnum
 from .row import RowMixin
 
 if TYPE_CHECKING:
@@ -18,9 +18,9 @@ class PipetaskErrorType(Base, RowMixin):
     __tablename__ = "error_type"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    source: Mapped[ErrorSource] = mapped_column(type_=SqlErrorSource)
-    flavor: Mapped[ErrorFlavor] = mapped_column(type_=SqlErrorFlavor)
-    action: Mapped[ErrorAction] = mapped_column(type_=SqlErrorAction)
+    source: Mapped[ErrorSourceEnum] = mapped_column(type_=SqlErrorSourceEnum)
+    flavor: Mapped[ErrorFlavorEnum] = mapped_column(type_=SqlErrorFlavorEnum)
+    action: Mapped[ErrorActionEnum] = mapped_column(type_=SqlErrorActionEnum)
     task_name: Mapped[str] = mapped_column()
     diagnostic_message: Mapped[str] = mapped_column(unique=True)
 

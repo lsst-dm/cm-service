@@ -1,12 +1,12 @@
 from pydantic import BaseModel
 
-from ..common.enums import LevelEnum, ScriptMethod, StatusEnum
+from ..common.enums import LevelEnum, ScriptMethodEnum, StatusEnum
 
 
 class ScriptBase(BaseModel):
     name: str
     attempt: int = 0
-    method: ScriptMethod = ScriptMethod.slurm
+    method: ScriptMethodEnum = ScriptMethodEnum.slurm
     parent_level: LevelEnum
     handler: str | None = None
     data: dict | None = None

@@ -1,12 +1,12 @@
 from pydantic import BaseModel
 
-from ..common.enums import ErrorAction, ErrorFlavor, ErrorSource
+from ..common.enums import ErrorActionEnum, ErrorFlavorEnum, ErrorSourceEnum
 
 
 class PipetaskErrorTypeBase(BaseModel):
-    source: ErrorSource
-    flavor: ErrorFlavor
-    action: ErrorAction
+    source: ErrorSourceEnum
+    flavor: ErrorFlavorEnum
+    action: ErrorActionEnum
     task_name: str
     diagnostic_message: str
 
