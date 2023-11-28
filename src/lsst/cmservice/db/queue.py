@@ -15,6 +15,7 @@ from .base import Base
 from .campaign import Campaign
 from .dbid import DbId
 from .element import ElementMixin
+from .enums import SqlLevelEnum
 from .group import Group
 from .job import Job
 from .node import NodeMixin
@@ -33,7 +34,7 @@ class Queue(Base, NodeMixin):
     interval: Mapped[float] = mapped_column(default=300.0)
     options: Mapped[dict | list | None] = mapped_column(type_=JSON)
 
-    element_level: Mapped[LevelEnum] = mapped_column()
+    element_level: Mapped[LevelEnum] = mapped_column(type_=SqlLevelEnum)
     element_id: Mapped[int] = mapped_column()
     c_id: Mapped[int | None] = mapped_column(ForeignKey("campaign.id", ondelete="CASCADE"), index=True)
     s_id: Mapped[int | None] = mapped_column(ForeignKey("step.id", ondelete="CASCADE"), index=True)

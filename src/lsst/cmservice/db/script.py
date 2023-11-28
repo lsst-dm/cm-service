@@ -14,6 +14,7 @@ from .base import Base
 from .campaign import Campaign
 from .dbid import DbId
 from .element import ElementMixin
+from .enums import SqlLevelEnum, SqlScriptMethod, SqlStatusEnum
 from .group import Group
 from .job import Job
 from .node import NodeMixin
@@ -38,7 +39,7 @@ class Script(Base, NodeMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     spec_block_id: Mapped[int] = mapped_column(ForeignKey("spec_block.id", ondelete="CASCADE"), index=True)
-    parent_level: Mapped[LevelEnum] = mapped_column()
+    parent_level: Mapped[LevelEnum] = mapped_column(type_=SqlLevelEnum)
     parent_id: Mapped[int] = mapped_column()
     c_id: Mapped[int | None] = mapped_column(ForeignKey("campaign.id", ondelete="CASCADE"), index=True)
     s_id: Mapped[int | None] = mapped_column(ForeignKey("step.id", ondelete="CASCADE"), index=True)
@@ -47,8 +48,8 @@ class Script(Base, NodeMixin):
     name: Mapped[str] = mapped_column(index=True)
     attempt: Mapped[int] = mapped_column(default=0)
     fullname: Mapped[str] = mapped_column(unique=True)
-    status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting)  # Status flag
-    method: Mapped[ScriptMethod] = mapped_column(default=ScriptMethod.default)
+    status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting, type_=SqlStatusEnum)  # Status flag
+    method: Mapped[ScriptMethod] = mapped_column(default=ScriptMethod.default, type_=SqlScriptMethod)
     superseded: Mapped[bool] = mapped_column(default=False)  # Has this been supersede
     handler: Mapped[str | None] = mapped_column()
     data: Mapped[dict | list | None] = mapped_column(type_=JSON)

@@ -12,6 +12,7 @@ from ..common.enums import LevelEnum, StatusEnum
 from .base import Base
 from .dbid import DbId
 from .element import ElementMixin
+from .enums import SqlStatusEnum
 from .group import Group
 from .specification import SpecBlock
 from .step import Step
@@ -44,7 +45,7 @@ class Job(Base, ElementMixin):
     parent_id: Mapped[int] = mapped_column(ForeignKey("group.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(index=True)
     fullname: Mapped[str] = mapped_column(unique=True)
-    status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting)
+    status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting, type_=SqlStatusEnum)
     superseded: Mapped[bool] = mapped_column(default=False)
     handler: Mapped[str | None] = mapped_column()
     data: Mapped[dict | list | None] = mapped_column(type_=JSON)

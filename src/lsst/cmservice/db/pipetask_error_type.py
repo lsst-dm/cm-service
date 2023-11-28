@@ -5,6 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..common.enums import ErrorAction, ErrorFlavor, ErrorSource
 from .base import Base
+from .enums import SqlErrorAction, SqlErrorFlavor, SqlErrorSource
 from .row import RowMixin
 
 if TYPE_CHECKING:
@@ -17,9 +18,9 @@ class PipetaskErrorType(Base, RowMixin):
     __tablename__ = "error_type"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    source: Mapped[ErrorSource] = mapped_column()
-    flavor: Mapped[ErrorFlavor] = mapped_column()
-    action: Mapped[ErrorAction] = mapped_column()
+    source: Mapped[ErrorSource] = mapped_column(type_=SqlErrorSource)
+    flavor: Mapped[ErrorFlavor] = mapped_column(type_=SqlErrorFlavor)
+    action: Mapped[ErrorAction] = mapped_column(type_=SqlErrorAction)
     task_name: Mapped[str] = mapped_column()
     diagnostic_message: Mapped[str] = mapped_column(unique=True)
 
