@@ -174,7 +174,7 @@ class ErrorSourceEnum(enum.Enum):
     manifest = 2
 
 
-class ErrorFlavor(enum.Enum):
+class ErrorFlavorEnum(enum.Enum):
     """What sort of error are we talking about"""
 
     infrastructure = 0
@@ -182,7 +182,7 @@ class ErrorFlavor(enum.Enum):
     pipelines = 2
 
 
-class ErrorAction(enum.Enum):
+class ErrorActionEnum(enum.Enum):
     """What should we do about it?"""
 
     fail = -4
@@ -193,7 +193,7 @@ class ErrorAction(enum.Enum):
     accept = 5
 
 
-class ScriptMethod(enum.Enum):
+class ScriptMethodEnum(enum.Enum):
     """Defines how to run a script
 
     default = -1
@@ -217,7 +217,7 @@ class ScriptMethod(enum.Enum):
     slurm = 2
 
 
-class WmsMethod(enum.Enum):
+class WmsMethodEnum(enum.Enum):
     """Defines which workflow manager to use
 
     default = -1
