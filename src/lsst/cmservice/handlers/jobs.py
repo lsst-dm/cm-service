@@ -15,7 +15,7 @@ from lsst.cmservice.db.script import Script
 from lsst.ctrl.bps import BaseWmsService, WmsRunReport, WmsStates
 from lsst.utils import doImport
 
-from ..common.enums import StatusEnum, TaskStatusEnum, WmsMethod
+from ..common.enums import StatusEnum, TaskStatusEnum, WmsMethodEnum
 from .functions import load_wms_reports
 from .script_handler import FunctionHandler, ScriptHandler
 
@@ -280,7 +280,7 @@ class BpsReportHandler(FunctionHandler):
 class PandaScriptHandler(BpsScriptHandler):
     """Class to handle running Bps for panda jobs"""
 
-    wms_method = WmsMethod.panda
+    wms_method = WmsMethodEnum.panda
 
 
 class PandaReportHandler(BpsReportHandler):
