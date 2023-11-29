@@ -37,3 +37,6 @@ output/
 
 # vscode
 /.vscode/
+
+# temporary secrets files (do not commit these to git!)
+.secrets/
