@@ -1,0 +1,62 @@
+pipetask:
+  makeWarp:
+    requestMemory: 8192
+  assembleCoadd:
+    requestMemory: 24576
+  measure:
+    requestMemory: 16384
+  mergeMeasurements:
+    requestMemory: 16384
+  forcedPhotCoadd:
+    requestMemory: 4096
+  writeObjectTable:
+    requestMemory: 16384
+  matchCatalogsPatch:
+    requestMemory: 4096
+  modelPhotRepGal4:
+    requestMemory: 4096
+  imageDifference:
+    requestMemory: 4096
+  matchCatalogsPatchMultiBand:
+    requestMemory: 120000
+  matchCatalogsTract:
+    requestMemory: 120000
+  wPerp:
+    requestMemory: 120000
+  TE1:
+    requestMemory: 46000
+  TE2:
+    requestMemory: 46000
+  # from Brock
+  fgcmBuildStarsTable:
+    requestMemory: 8192
+  fgcmFitCycle:
+    requestMemory: 24576
+  fgcmOutputProducts:
+    requestMemory: 8192
+  jointcal:
+    requestMemory: 21000
+  skyCorr:
+    requestMemory: 15500
+  deblend:
+    requestMemory: 15500
+  # new at USDF
+  templateGen:
+    requestMemory: 5000
+  healSparsePropertyMaps:
+    requestMemory: 30000
+  consolidateObjectTable:
+    requestMemory: 30000
+  getTemplate:
+    requestMemory: 5000
+  consolidateFullDiaObjectTable:
+    requestMemory: 10000
+  consolidateForcedSourceOnDiaObjectTable:
+    requestMemory: 350000
+    queue: "SLAC_Rubin_Merge"
+  transformForcedSourceOnDiaObjectTable:
+    requestMemory: 10000
+  consolidateAssocDiaSourceTable:
+    requestMemory: 5000
+  consolidateForcedSourceTable:
+    requestMemory: 200000

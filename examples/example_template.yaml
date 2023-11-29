@@ -1,6 +1,6 @@
 includeConfigs:
 - ${CTRL_BPS_PANDA_DIR}/config/bps_usdf.yaml
-- ${CM_PROD_DIR}/src/lsst/cm/prod/configs/HSC/test/requestMemory.yaml
+- ${CM_CONFIGS}/requestMemory.yaml
 
 executionButler:
   requestMemory: 64000

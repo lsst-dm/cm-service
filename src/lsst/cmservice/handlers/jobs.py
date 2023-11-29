@@ -28,7 +28,7 @@ WMS_TO_JOB_STATUS_MAP = {
     WmsStates.RUNNING: StatusEnum.running,
     WmsStates.DELETED: StatusEnum.failed,
     WmsStates.HELD: StatusEnum.running,
-    WmsStates.SUCCEEDED: StatusEnum.reviewable,
+    WmsStates.SUCCEEDED: StatusEnum.accepted,
     WmsStates.FAILED: StatusEnum.failed,
     WmsStates.PRUNED: StatusEnum.failed,
 }
@@ -102,9 +102,16 @@ class BpsScriptHandler(ScriptHandler):
             data_dict["bps_yaml_template"],
         )
 
+        submit_path = os.path.abspath(os.path.expandvars(f"{prod_area}/{parent.fullname}/submit"))
+        try:
+            os.rmdir(submit_path)
+        except Exception:
+            pass
+
         command = f"bps --log-file {json_url} --no-log-tty submit {os.path.abspath(config_url)} > {log_url}"
 
         prepend = bps_script_template.data["text"].replace("{lsst_version}", lsst_version)
+
         await write_bash_script(script_url, command, prepend=prepend)
 
         workflow_config = bps_yaml_template.data.copy()
@@ -115,16 +122,14 @@ class BpsScriptHandler(ScriptHandler):
             workflow_config["campaign"] = parent.c_.name
 
         data_query = data_dict.get("data_query", None)
-        workflow_config["submitPath"] = os.path.abspath(
-            os.path.expandvars(f"{prod_area}/{parent.fullname}/submit"),
-        )
+        workflow_config["submitPath"] = submit_path
 
         workflow_config["LSST_VERSION"] = os.path.expandvars(data_dict["lsst_version"])
         if "custom_lsst_setup" in data_dict:
             workflow_config["custom_lsst_setup"] = data_dict["lsst_custom_setup"]
         workflow_config["pipelineYaml"] = os.path.expandvars(data_dict["pipeline_yaml"])
 
-        inCollection = ".".join(input_colls)
+        inCollection = ",".join(input_colls)
 
         payload = {
             "payloadName": parent.c_.name,
@@ -154,7 +159,7 @@ class BpsScriptHandler(ScriptHandler):
         if slurm_status == StatusEnum.accepted:
             await script.update_values(session, status=StatusEnum.accepted)
             bps_dict = parse_bps_stdout(script.log_url)
-            panda_url = bps_dict["Run Id"]
+            panda_url = bps_dict["Run Id"].strip()
             await parent.update_values(session, wms_job_id=panda_url)
         return slurm_status
 
@@ -241,7 +246,7 @@ class BpsReportHandler(FunctionHandler):
         wms_svc = self._get_wms_svc()
         wms_run_report = wms_svc.report(wms_workflow_id=wms_workflow_id)[0][0]
         status = WMS_TO_JOB_STATUS_MAP[wms_run_report.state]
-        _job = await load_wms_reports(session, job.id, wms_run_report)
+        _job = await load_wms_reports(session, job, wms_run_report)
         return status
 
     async def _do_prepare(
@@ -265,7 +270,7 @@ class BpsReportHandler(FunctionHandler):
         **kwargs: Any,
     ) -> StatusEnum:
         fake_status = kwargs.get("fake_status", None)
-        if fake_status is not None:
+        if fake_status:
             status = fake_status
         else:
             status = await self._load_wms_reports(session, parent, script.stamp_url)
@@ -300,13 +305,17 @@ class ManifestReportScriptHandler(ScriptHandler):
         **kwargs: Any,
     ) -> StatusEnum:
         specification = await script.get_specification(session)
+        resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
         prod_area = os.path.expandvars(data_dict["prod_area"])
         script_url = await self._set_script_files(session, script, prod_area)
         butler_repo = data_dict["butler_repo"]
         lsst_version = data_dict["lsst_version"]
-        graph_url = os.path.expandvars(f"{prod_area}/{script.fullname}/submit/qg.out")
-        report_url = os.path.expandvars(f"{prod_area}/{script.fullname}/submit/manifest_report.yaml")
+        job_run_coll = resolved_cols["job_run"]
+        qgraph_file = f"{job_run_coll}.qgraph".replace("/", "_")
+
+        graph_url = os.path.expandvars(f"{prod_area}/{parent.fullname}/submit/{qgraph_file}")
+        report_url = os.path.expandvars(f"{prod_area}/{parent.fullname}/submit/manifest_report.yaml")
 
         manifest_script_template = await specification.get_script_template(
             session,

@@ -539,7 +539,9 @@ class NodeMixin(RowMixin):
                 await session.refresh(self, attribute_names=["prereqs_"])
             except Exception:  # pylint: disable=broad-exception-caught
                 return True
+            print(f"N prereq {len(self.prereqs_)}")
             for prereq_ in self.prereqs_:
+                print(prereq_)
                 is_done = await prereq_.is_done(session)
                 if not is_done:
                     return False

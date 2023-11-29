@@ -52,7 +52,7 @@ class Job(Base, ElementMixin):
     child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
     collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
     spec_aliases: Mapped[dict | list | None] = mapped_column(type_=JSON)
-    wms_job_id: Mapped[int | None] = mapped_column()
+    wms_job_id: Mapped[str | None] = mapped_column()
     stamp_url: Mapped[str | None] = mapped_column()
 
     spec_block_: Mapped[SpecBlock] = relationship("SpecBlock", viewonly=True)

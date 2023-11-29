@@ -41,7 +41,7 @@ class ChainCreateScriptHandler(ScriptHandler):
         command = f"butler collection-chain {butler_repo} {output_coll}"
         for input_coll in input_colls:
             command += f" {input_coll}"
-        await write_bash_script(script_url, command, **data_dict)
+        await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -72,7 +72,7 @@ class ChainPrependScriptHandler(ScriptHandler):
         script_url = await self._set_script_files(session, script, data_dict["prod_area"])
         butler_repo = data_dict["butler_repo"]
         command = f"butler collection-chain {butler_repo} {output_coll} --mode prepend {input_coll}"
-        await write_bash_script(script_url, command, **data_dict)
+        await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -121,7 +121,7 @@ class ChainCollectScriptHandler(ScriptHandler):
             command += f" {collect_coll_}"
         for input_coll_ in input_colls:
             command += f" {input_coll_}"
-        await write_bash_script(script_url, command, **data_dict)
+        await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -153,10 +153,10 @@ class TagInputsScriptHandler(ScriptHandler):
         butler_repo = data_dict["butler_repo"]
         data_query = data_dict.get("data_query")
         command = f"butler associate {butler_repo} {output_coll}"
-        command += f" --collection {input_coll}"
+        command += f" --collections {input_coll}"
         if data_query:
             command += f' --where "{data_query}"'
-        await write_bash_script(script_url, command, **data_dict)
+        await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -182,7 +182,7 @@ class TagCreateScriptHandler(ScriptHandler):
         script_url = await self._set_script_files(session, script, data_dict["prod_area"])
         butler_repo = data_dict["butler_repo"]
         command = f"butler associate {butler_repo} {output_coll}"
-        await write_bash_script(script_url, command, **data_dict)
+        await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -212,7 +212,7 @@ class TagAssociateScriptHandler(ScriptHandler):
         butler_repo = data_dict["butler_repo"]
         command = f"butler associate {butler_repo} {output_coll}"
         command += f" --collections {input_coll}"
-        await write_bash_script(script_url, command, **data_dict)
+        await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -261,14 +261,14 @@ class PrepareStepScriptHandler(ScriptHandler):
         data_dict = await script.data_dict(session)
         script_url = await self._set_script_files(session, script, data_dict["prod_area"])
         butler_repo = data_dict["butler_repo"]
-        command = f"butler collection-chain {butler_repo} {output_coll} --collections"
+        command = f"butler collection-chain {butler_repo} {output_coll}"
         if prereq_colls:
             for prereq_coll_ in prereq_colls:
                 command += f" {prereq_coll_}"
         else:
             for input_coll_ in input_colls:
                 command += f" {input_coll_}"
-        await write_bash_script(script_url, command, **data_dict)
+        await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -296,6 +296,6 @@ class ValidateScriptHandler(ScriptHandler):
         script_url = await self._set_script_files(session, script, data_dict["prod_area"])
         butler_repo = data_dict["butler_repo"]
         command = f"pipetask FIXME {butler_repo} {input_coll} {output_coll}"
-        await write_bash_script(script_url, command, **data_dict)
+        await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared

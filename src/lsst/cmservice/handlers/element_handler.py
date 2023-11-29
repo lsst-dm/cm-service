@@ -167,7 +167,7 @@ class ElementHandler(Handler):
             )
             await session.refresh(new_script)
             script_ids_dict[script_name] = new_script.id
-            prereq_pairs = [(script_name, prereq_) for prereq_ in script_vals.get("prerequisites", [])]
+            prereq_pairs += [(script_name, prereq_) for prereq_ in script_vals.get("prerequisites", [])]
 
         for depend_name, prereq_name in prereq_pairs:
             prereq_id = script_ids_dict[prereq_name]
@@ -262,7 +262,7 @@ class ElementHandler(Handler):
             If present, set the Status of the scripts to this value
         """
         scripts = await element.get_scripts(session, remaining_only=not kwargs.get("force_check", False))
-        fake_status = kwargs.get("fake_status")
+        fake_status = kwargs.get("fake_status", None)
         for script_ in scripts:
             if fake_status and script_.status.value >= StatusEnum.prepared.value:
                 await script_.update_values(session, status=fake_status)

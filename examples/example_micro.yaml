@@ -35,7 +35,7 @@
       name: prepare_step_script
       handler: lsst.cmservice.handlers.scripts.PrepareStepScriptHandler
       collections:
-          global_inputs: "{campaign_input}"
+          global_inputs: ["{campaign_input}", "{campaign_ancillary}"]
 - SpecBlock:
       name: validate_script
       handler: lsst.cmservice.handlers.scripts.ValidateScriptHandler
@@ -68,22 +68,19 @@
                 spec_block: panda_script
                 collections:
                     run: "{job_run}"
-                    inputs: ["{step_input}", "{campaign_input}", "{campaign_ancillary}"]
+                    inputs: ["{step_input}"]
           - Script:
                 name: bps_report
                 spec_block: panda_report_script
                 prerequisites: ['bps']
                 collections:
                     run: "{job_run}"
-                    inputs: ["{step_input}", "{campaign_input}", "{campaign_ancillary}"]
           - Script:
                 name: manifest_report
                 spec_block: manifest_report_script
                 prerequisites: ['bps_report']
                 collections:
                     run: "{job_run}"
-                data:
-                    rescue: false
 - SpecBlock:
       name: group
       handler: lsst.cmservice.handlers.element_handler.ElementHandler
@@ -110,7 +107,7 @@
                 spec_block: prepare_step_script
                 collections:
                     output: "{step_input}"
-                    inputs: ["{campaign_input}", "{campaign_ancillary}"]
+                    inputs: []
           - Script:
                 name: run
                 prerequisites: ['prepare']
@@ -169,7 +166,7 @@
       name: campaign
       handler: lsst.cmservice.handlers.element_handler.ElementHandler
       collections:
-          root: 'cm/hsc_rc2_micro'
+          root: 'u/echarles/cm/hsc_rc2_micro'
           campaign_source: HSC/raw/RC2
           campaign_input: "{root}/{campaign}/input"
           campaign_output: "{root}/{campaign}"
@@ -223,7 +220,7 @@
           butler_repo: '/repo/main'
           prod_area: 'output/archive'
           data_query: "instrument = 'HSC' AND exposure in (30504, 30502) AND detector in (45, 46, 47, 48)"
-          lsst_version: "${WEEKLY}"
+          lsst_version: w_2023_46
           bps_script_template: bps_panda_script_template
           bps_yaml_template: bps_yaml_template
           manifest_script_template: manifest_script_template

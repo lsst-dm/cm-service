@@ -278,10 +278,12 @@ class ScriptHandler(BaseScriptHandler):
             The status of the processing
         """
         status = await check_slurm_job(slurm_id)
+        print(f"Getting status for {script.fullname} {status}")
         if status is None:
             status = StatusEnum.running
         if status != script.status:
             await script.update_values(session, status=status)
+            await session.commit()
         return status
 
     async def prepare(
@@ -321,7 +323,8 @@ class ScriptHandler(BaseScriptHandler):
         fake_status = kwargs.get("fake_status", None)
         if script_method == ScriptMethodEnum.no_script:  # pragma: no cover
             raise ValueError("ScriptMethodEnum.no_script can not be set for ScriptHandler")
-        if fake_status is not None:
+        orig_status = script.status
+        if fake_status:
             status = fake_status
         elif script_method == ScriptMethodEnum.bash:
             if not script.script_url:
@@ -337,8 +340,12 @@ class ScriptHandler(BaseScriptHandler):
                 raise ValueError(f"log_url is not set for {script}")
             job_id = await submit_slurm_job(script.script_url, script.log_url)
             status = StatusEnum.running
+            print(f"Setting {job_id} {script.fullname}")
             await script.update_values(session, stamp_url=job_id, status=status)
-        if status != script.status:
+            await session.commit()
+        else:
+            raise ValueError(f"Method {script_method} not valid for {script}")
+        if status != orig_status:
             await script.update_values(session, status=status)
             await session.commit()
         return status
@@ -355,7 +362,7 @@ class ScriptHandler(BaseScriptHandler):
             script_method = self.default_method
 
         fake_status = kwargs.get("fake_status")
-        if fake_status is not None:
+        if fake_status:
             status = fake_status
         elif script_method == ScriptMethodEnum.no_script:  # pragma: no cover
             raise ValueError("ScriptMethodEnum.no_script can not be set for ScriptHandler")
