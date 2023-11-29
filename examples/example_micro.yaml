@@ -151,10 +151,10 @@
           split_field: exposure
           split_min_groups: 2
 - SpecBlock:
-      name: micro_calibration
+      name: micro_calibrate
       includes: ["step"]
       data:
-          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#calibration"
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#calibrate"
       child_config:
           spec_block: group
           base_query: "instrument = 'HSC'"
@@ -211,8 +211,8 @@
               prerequisites: ['isr']
               child_config:
                   base_query: "instrument = 'HSC'"
-          calibration:
-              spec_block: micro_calibration
+          calibrate:
+              spec_block: micro_calibrate
               prerequisites: ['characterizeImage']
               child_config:
                   base_query: "instrument = 'HSC'"
