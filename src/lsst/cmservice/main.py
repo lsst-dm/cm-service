@@ -19,13 +19,23 @@ from .routers import (
     jobs,
     loaders,
     pipetask_error_types,
+    pipetask_errors,
+    product_sets,
     productions,
     queries,
+    queues,
+    row,
+    script_dependencies,
+    script_errors,
     script_templates,
     scripts,
     spec_blocks,
+    specifications,
+    step_dependencies,
     steps,
+    task_sets,
     updates,
+    wms_task_reports,
 )
 
 __all__ = ["app", "config"]
@@ -94,7 +104,35 @@ tags_metadata = [
     },
     {
         "name": "PipetaskErrorTypes",
-        "description": "Operations with `pipetask_error_types`.",
+        "description": "Operations with `pipetask_error_type` table.",
+    },
+    {
+        "name": "PipetaskErrors",
+        "description": "Operations with `pipetask_error` table.",
+    },
+    {
+        "name": "ProductSets",
+        "description": "Operations with `product_set` table.",
+    },
+    {
+        "name": "TaskSets",
+        "description": "Operations with `task_set` table.",
+    },
+    {
+        "name": "ScriptDependencies",
+        "description": "Operations with `script_dependency` table.",
+    },
+    {
+        "name": "StepDependencies",
+        "description": "Operations with `script_dependency` table.",
+    },
+    {
+        "name": "WmsTaskReport",
+        "description": "Operations with `wms_task_report` table.",
+    },
+    {
+        "name": "Rows",
+        "description": "Generic row-based operations",
     },
 ]
 
@@ -137,12 +175,27 @@ app.include_router(queries.router, prefix=config.prefix)
 app.include_router(actions.router, prefix=config.prefix)
 app.include_router(adders.router, prefix=config.prefix)
 app.include_router(updates.router, prefix=config.prefix)
+
 app.include_router(productions.router, prefix=config.prefix)
 app.include_router(campaigns.router, prefix=config.prefix)
 app.include_router(steps.router, prefix=config.prefix)
 app.include_router(groups.router, prefix=config.prefix)
-app.include_router(scripts.router, prefix=config.prefix)
-app.include_router(script_templates.router, prefix=config.prefix)
 app.include_router(jobs.router, prefix=config.prefix)
-app.include_router(pipetask_error_types.router, prefix=config.prefix)
+app.include_router(scripts.router, prefix=config.prefix)
+
+app.include_router(specifications.router, prefix=config.prefix)
 app.include_router(spec_blocks.router, prefix=config.prefix)
+app.include_router(script_templates.router, prefix=config.prefix)
+
+app.include_router(pipetask_error_types.router, prefix=config.prefix)
+app.include_router(pipetask_errors.router, prefix=config.prefix)
+app.include_router(script_errors.router, prefix=config.prefix)
+
+app.include_router(task_sets.router, prefix=config.prefix)
+app.include_router(product_sets.router, prefix=config.prefix)
+app.include_router(wms_task_reports.router, prefix=config.prefix)
+app.include_router(row.router, prefix=config.prefix)
+
+app.include_router(script_dependencies.router, prefix=config.prefix)
+app.include_router(step_dependencies.router, prefix=config.prefix)
+app.include_router(queues.router, prefix=config.prefix)

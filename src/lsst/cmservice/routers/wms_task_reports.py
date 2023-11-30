@@ -6,12 +6,11 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 
 from .. import db, models
 
-response_model_class = models.Job
-create_model_class = models.JobCreate
-db_class = db.Job
-class_string = "job"
-tag_string = "Jobs"
-
+response_model_class = models.WmsTaskReport
+create_model_class = models.WmsTaskReportCreate
+db_class = db.WmsTaskReport
+class_string = "wms_task_report"
+tag_string = "WmsTaskReports"
 
 router = APIRouter(
     prefix=f"/{class_string}s",
@@ -81,6 +80,4 @@ async def update_row(
     row_update: response_model_class,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db_class:
-    result = await db_class.update_row(session, row_id, **row_update.dict())
-    await session.commit()
-    return result
+    return await db_class.update_row(session, row_id, **row_update.dict())
