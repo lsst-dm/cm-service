@@ -10,7 +10,7 @@ response_model_class = models.PipetaskError
 create_model_class = models.PipetaskErrorCreate
 db_class = db.PipetaskError
 class_string = "pipetask_error"
-tag_string = "PipetaskErrors"
+tag_string = "Pipetask Errors"
 
 router = APIRouter(
     prefix=f"/{class_string}s",

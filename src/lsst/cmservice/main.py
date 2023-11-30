@@ -103,31 +103,31 @@ tags_metadata = [
         "of the results data products and keeps track of associated errors.",
     },
     {
-        "name": "PipetaskErrorTypes",
+        "name": "Pipetask Error Types",
         "description": "Operations with `pipetask_error_type` table.",
     },
     {
-        "name": "PipetaskErrors",
+        "name": "Pipetask Errors",
         "description": "Operations with `pipetask_error` table.",
     },
     {
-        "name": "ProductSets",
+        "name": "Product Sets",
         "description": "Operations with `product_set` table.",
     },
     {
-        "name": "TaskSets",
+        "name": "Task Sets",
         "description": "Operations with `task_set` table.",
     },
     {
-        "name": "ScriptDependencies",
+        "name": "Script Dependencies",
         "description": "Operations with `script_dependency` table.",
     },
     {
-        "name": "StepDependencies",
-        "description": "Operations with `script_dependency` table.",
+        "name": "Step Dependencies",
+        "description": "Operations with `step_dependency` table.",
     },
     {
-        "name": "WmsTaskReport",
+        "name": "Wms Task Reports",
         "description": "Operations with `wms_task_report` table.",
     },
     {

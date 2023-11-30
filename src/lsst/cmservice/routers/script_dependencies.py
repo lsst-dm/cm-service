@@ -10,7 +10,7 @@ response_model_class = models.Dependency
 create_model_class = models.DependencyCreate
 db_class = db.ScriptDependency
 class_string = "script_dependency"
-tag_string = "ScriptDependencies"
+tag_string = "Script Dependencies"
 
 
 router = APIRouter(

@@ -10,7 +10,7 @@ response_model_class = models.TaskSet
 create_model_class = models.TaskSetCreate
 db_class = db.TaskSet
 class_string = "task_set"
-tag_string = "TaskSets"
+tag_string = "Task Sets"
 
 router = APIRouter(
     prefix=f"/{class_string}s",

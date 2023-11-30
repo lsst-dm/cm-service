@@ -10,7 +10,7 @@ response_model_class = models.WmsTaskReport
 create_model_class = models.WmsTaskReportCreate
 db_class = db.WmsTaskReport
 class_string = "wms_task_report"
-tag_string = "WmsTaskReports"
+tag_string = "Wms Task Reports"
 
 router = APIRouter(
     prefix=f"/{class_string}s",
