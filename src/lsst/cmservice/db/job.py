@@ -94,6 +94,17 @@ class Job(Base, ElementMixin):
     )
     wms_reports_: Mapped[list[WmsTaskReport]] = relationship("WmsTaskReport", viewonly=True)
 
+    col_names_for_table = [
+        "id",
+        "fullname",
+        "spec_block_id",
+        "handler",
+        "wms_job_id",
+        "stamp_url",
+        "status",
+        "superseded",
+    ]
+
     @hybrid_property
     def db_id(self) -> DbId:
         """Returns DbId"""

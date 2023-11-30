@@ -35,6 +35,8 @@ class SpecBlock(Base, RowMixin):
 
     spec_: Mapped[Specification] = relationship("Specification", viewonly=True)
 
+    col_names_for_table = ["id", "fullname", "handler"]
+
     def __repr__(self) -> str:
         return f"SpecBlock {self.id}: {self.fullname} {self.data}"
 
@@ -69,6 +71,8 @@ class Specification(Base, RowMixin):
 
     blocks_: Mapped[list[SpecBlock]] = relationship("SpecBlock", viewonly=True)
     script_templates_: Mapped[list[ScriptTemplate]] = relationship("ScriptTemplate", viewonly=True)
+
+    col_names_for_table = ["id", "name"]
 
     @hybrid_property
     def fullname(self) -> str:

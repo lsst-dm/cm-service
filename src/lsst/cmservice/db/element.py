@@ -22,6 +22,8 @@ class ElementMixin(NodeMixin):
     jobs_: Any
     level: Any
 
+    col_names_for_table = ["id", "fullname", "spec_block_id", "handler", "status", "superseded"]
+
     @property
     def node_type(self) -> NodeTypeEnum:
         """There are `Element` nodes"""

@@ -177,11 +177,11 @@ async def get_prerequisites(
 
 
 @router.get(
-    "/scripts",
+    "/element_scripts",
     response_model=list[models.Script],
     summary="Get the scripts associated to an Element",
 )
-async def get_scripts(
+async def get_element_scripts(
     fullname: str,
     script_name: str,
     *,
@@ -199,11 +199,11 @@ async def get_scripts(
 
 
 @router.get(
-    "/jobs",
+    "/element_jobs",
     response_model=list[models.Job],
     summary="Get the jobs associated to an Element",
 )
-async def get_jobs(
+async def get_element_jobs(
     fullname: str,
     *,
     remaining_only: bool = False,

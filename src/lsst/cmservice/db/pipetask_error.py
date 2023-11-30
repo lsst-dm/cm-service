@@ -37,3 +37,5 @@ class PipetaskError(Base, RowMixin):
     )
     task_: Mapped["TaskSet"] = relationship("TaskSet", viewonly=True)
     error_type_: Mapped["PipetaskErrorType"] = relationship("PipetaskErrorType", viewonly=True)
+
+    col_names_for_table = ["id", "error_type_id", "task_id", "quanta", "data_id"]

@@ -76,6 +76,8 @@ class Step(Base, ElementMixin):
         viewonly=True,
     )
 
+    col_names_for_table = ["id", "fullname", "spec_block_id", "handler", "status", "superseded"]
+
     @hybrid_property
     def db_id(self) -> DbId:
         """Returns DbId"""

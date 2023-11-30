@@ -33,3 +33,19 @@ class WmsTaskReport(Base, RowMixin):
     n_pruned: Mapped[int] = mapped_column(default=0)
 
     job_: Mapped["Job"] = relationship("Job", viewonly=True)
+
+    col_names_for_table = [
+        "id",
+        "fullname",
+        "n_unknown",
+        "n_misfit",
+        "n_unready",
+        "n_ready",
+        "n_pending",
+        "n_running",
+        "n_deleted",
+        "n_held",
+        "n_succeeded",
+        "n_failed",
+        "n_pruned",
+    ]
