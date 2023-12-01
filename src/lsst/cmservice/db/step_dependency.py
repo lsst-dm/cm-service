@@ -32,6 +32,8 @@ class StepDependency(Base, RowMixin):
     prereq_: Mapped[Step] = relationship("Step", viewonly=True, foreign_keys=[prereq_id])
     depend_: Mapped[Step] = relationship("Step", viewonly=True, foreign_keys=[depend_id])
 
+    col_names_for_table = ["id", "prereq_id", "depend_id"]
+
     @hybrid_property
     def prereq_db_id(self) -> DbId:
         return DbId(LevelEnum.step, self.prereq_id)

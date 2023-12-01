@@ -164,6 +164,7 @@ class RowMixin:
                 if hasattr(row, "status") and row.status not in DELETEABLE_STATES:
                     raise ValueError(f"Can not delete a row because it is in use {row} {row.status}")
                 await session.delete(row)
+                await session.commit()
 
     @classmethod
     async def update_row(

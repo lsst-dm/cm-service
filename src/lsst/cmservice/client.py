@@ -554,3 +554,160 @@ class CMClient:
             scripts.extend(parse_obj_as(list[models.Script], results))
             params["skip"] += len(results)
         return scripts
+
+    def get_specifications(self) -> list[models.Specification]:
+        specifications = []
+        params = {"skip": 0}
+        query = "specifications"
+        while (results := self._client.get(f"{query}", params=params).json()) != []:
+            specifications.extend(parse_obj_as(list[models.Specification], results))
+            params["skip"] += len(results)
+        return specifications
+
+    def get_spec_blocks(self) -> list[models.SpecBlock]:
+        spec_blocks = []
+        params = {"skip": 0}
+        query = "spec_blocks"
+        while (results := self._client.get(f"{query}", params=params).json()) != []:
+            spec_blocks.extend(parse_obj_as(list[models.SpecBlock], results))
+            params["skip"] += len(results)
+        return spec_blocks
+
+    def get_script_templates(self) -> list[models.ScriptTemplate]:
+        script_templates = []
+        params = {"skip": 0}
+        query = "script_templates"
+        while (results := self._client.get(f"{query}", params=params).json()) != []:
+            script_templates.extend(parse_obj_as(list[models.ScriptTemplate], results))
+            params["skip"] += len(results)
+        return script_templates
+
+    def get_pipetask_error_types(self) -> list[models.PipetaskErrorType]:
+        pipetask_error_types = []
+        params = {"skip": 0}
+        query = "pipetask_error_types"
+        while (results := self._client.get(f"{query}", params=params).json()) != []:
+            pipetask_error_types.extend(parse_obj_as(list[models.PipetaskErrorType], results))
+            params["skip"] += len(results)
+        return pipetask_error_types
+
+    def get_pipetask_errors(self) -> list[models.PipetaskError]:
+        pipetask_errors = []
+        params = {"skip": 0}
+        query = "pipetask_errors"
+        while (results := self._client.get(f"{query}", params=params).json()) != []:
+            pipetask_errors.extend(parse_obj_as(list[models.PipetaskError], results))
+            params["skip"] += len(results)
+        return pipetask_errors
+
+    def get_script_errors(self) -> list[models.ScriptError]:
+        script_errors = []
+        params = {"skip": 0}
+        query = "script_errors"
+        while (results := self._client.get(f"{query}", params=params).json()) != []:
+            script_errors.extend(parse_obj_as(list[models.ScriptError], results))
+            params["skip"] += len(results)
+        return script_errors
+
+    def get_task_sets(self) -> list[models.TaskSet]:
+        task_sets = []
+        params = {"skip": 0}
+        query = "task_sets"
+        while (results := self._client.get(f"{query}", params=params).json()) != []:
+            task_sets.extend(parse_obj_as(list[models.TaskSet], results))
+            params["skip"] += len(results)
+        return task_sets
+
+    def get_product_sets(self) -> list[models.ProductSet]:
+        product_sets = []
+        params = {"skip": 0}
+        query = "product_sets"
+        while (results := self._client.get(f"{query}", params=params).json()) != []:
+            product_sets.extend(parse_obj_as(list[models.ProductSet], results))
+            params["skip"] += len(results)
+        return product_sets
+
+    def get_wms_task_reports(self) -> list[models.WmsTaskReport]:
+        wms_task_reports = []
+        params = {"skip": 0}
+        query = "wms_task_reports"
+        while (results := self._client.get(f"{query}", params=params).json()) != []:
+            wms_task_reports.extend(parse_obj_as(list[models.WmsTaskReport], results))
+            params["skip"] += len(results)
+        return wms_task_reports
+
+    def get_script_dependencies(self) -> list[models.Dependency]:
+        script_dependencies = []
+        params = {"skip": 0}
+        query = "script_dependencies"
+        while (results := self._client.get(f"{query}", params=params).json()) != []:
+            script_dependencies.extend(parse_obj_as(list[models.Dependency], results))
+            params["skip"] += len(results)
+        return script_dependencies
+
+    def get_step_dependencies(self) -> list[models.Dependency]:
+        step_dependencies = []
+        params = {"skip": 0}
+        query = "step_dependencies"
+        while (results := self._client.get(f"{query}", params=params).json()) != []:
+            step_dependencies.extend(parse_obj_as(list[models.Dependency], results))
+            params["skip"] += len(results)
+        return step_dependencies
+
+    def production_create(self, **kwargs: Any) -> models.Production:
+        query = "productions"
+        params = models.ProductionCreate(**kwargs)
+        results = self._client.post(f"{query}", content=params.json()).json()
+        try:
+            return parse_obj_as(models.Production, results)
+        except ValidationError as msg:
+            raise ValueError(f"Bad response: {results}") from msg
+
+    def production_update(
+        self,
+        row_id: int,
+        **kwargs: Any,
+    ) -> models.Production:
+        query = f"productions/{row_id}"
+        params = models.Production(id=row_id, **kwargs)
+        results = self._client.put(f"{query}", content=params.json()).json()
+        try:
+            return parse_obj_as(models.Production, results)
+        except ValidationError as msg:
+            raise ValueError(f"Bad response: {results}") from msg
+
+    def production_delete(
+        self,
+        row_id: int,
+    ) -> None:
+        query = f"productions/{row_id}"
+        self._client.delete(f"{query}")
+
+    def campaign_create(self, **kwargs: Any) -> models.Campaign:
+        query = "campaigns"
+        params = models.CampaignCreate(**kwargs)
+        results = self._client.post(f"{query}", content=params.json()).json()
+        try:
+            return parse_obj_as(models.Campaign, results)
+        except ValidationError as msg:
+            raise ValueError(f"Bad response: {results}") from msg
+
+    def campaign_update(
+        self,
+        row_id: int,
+        **kwargs: Any,
+    ) -> models.Campaign:
+        query = f"campaigns/{row_id}"
+        params = models.Campaign(id=row_id, **kwargs)
+        results = self._client.put(f"{query}", content=params.json()).json()
+        try:
+            return parse_obj_as(models.Campaign, results)
+        except ValidationError as msg:
+            raise ValueError(f"Bad response: {results}") from msg
+
+    def campaign_delete(
+        self,
+        row_id: int,
+    ) -> None:
+        query = f"campaigns/{row_id}"
+        self._client.delete(f"{query}")

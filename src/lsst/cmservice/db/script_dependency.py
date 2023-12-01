@@ -30,6 +30,8 @@ class ScriptDependency(Base, RowMixin):
     prereq_: Mapped[Script] = relationship("Script", viewonly=True, foreign_keys=[prereq_id])
     depend_: Mapped[Script] = relationship("Script", back_populates="prereqs_", foreign_keys=[depend_id])
 
+    col_names_for_table = ["id", "prereq_id", "depend_id"]
+
     def __repr__(self) -> str:
         return f"ScriptDependency {self.prereq_id}: {self.depend_id}"
 
