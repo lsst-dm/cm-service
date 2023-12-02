@@ -741,7 +741,7 @@ async def process_script(
     session: async_scoped_session,
     fullname: str,
     fake_status: StatusEnum | None = None,
-) -> StatusEnum:
+) -> tuple[bool, StatusEnum]:
     """Process a Script
 
     Parameters
@@ -757,6 +757,8 @@ async def process_script(
 
     Returns
     -------
+    changed : bool
+        True if anything changed
     status : StatusEnum
         Processing status
 
@@ -765,16 +767,16 @@ async def process_script(
     HTTPException : Code 404, Could not find Script
     """
     script = await db.Script.get_row_by_fullname(session, fullname)
-    result = await script.process(session, fake_status=fake_status)
+    changed, result = await script.process(session, fake_status=fake_status)
     await session.commit()
-    return result
+    return changed, result
 
 
 async def process_job(
     session: async_scoped_session,
     fullname: str,
     fake_status: StatusEnum | None = None,
-) -> StatusEnum:
+) -> tuple[bool, StatusEnum]:
     """Process a Job
 
     Parameters
@@ -790,6 +792,8 @@ async def process_job(
 
     Returns
     -------
+    changed : bool
+        True if anything changed
     status : StatusEnum
        Processing status
 
@@ -798,16 +802,16 @@ async def process_job(
     HTTPException : Code 404, Could not find Job
     """
     job = await db.Job.get_row_by_fullname(session, fullname)
-    result = await job.process(session, fake_status=fake_status)
+    changed, result = await job.process(session, fake_status=fake_status)
     await session.commit()
-    return result
+    return changed, result
 
 
 async def process_element(
     session: async_scoped_session,
     fullname: str,
     fake_status: StatusEnum | None = None,
-) -> StatusEnum:
+) -> tuple[bool, StatusEnum]:
     """Process an `Element`
 
     Parameters
@@ -823,6 +827,8 @@ async def process_element(
 
     Returns
     -------
+    changed : bool
+        True if anything changed
     status : StatusEnum
         Processing status
 
@@ -840,7 +846,7 @@ async def process(
     session: async_scoped_session,
     fullname: str,
     fake_status: StatusEnum | None = None,
-) -> StatusEnum:
+) -> tuple[bool, StatusEnum]:
     """Process a `Node`
 
     Parameters
@@ -856,6 +862,8 @@ async def process(
 
     Returns
     -------
+    changed : bool
+        True if anything changed
     status : StatusEnum
         Processing status
 

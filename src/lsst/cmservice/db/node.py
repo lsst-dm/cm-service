@@ -639,7 +639,7 @@ class NodeMixin(RowMixin):
         self,
         session: async_scoped_session,
         **kwargs: Any,
-    ) -> StatusEnum:
+    ) -> tuple[bool, StatusEnum]:
         """Process this `Node` as much as possible
 
         This will create a `Handler` and
@@ -652,8 +652,10 @@ class NodeMixin(RowMixin):
 
         Returns
         -------
+        changed : bool
+            True if anything has changed
         status : StatusEnum
-            The status of the processing
+            Status of the processing
         """
         handler = await self.get_handler(session)
         return await handler.process(session, self, **kwargs)
@@ -662,7 +664,7 @@ class NodeMixin(RowMixin):
         self,
         session: async_scoped_session,
         **kwargs: Any,
-    ) -> StatusEnum:
+    ) -> tuple[bool, StatusEnum]:
         """Check on this Nodes's status
 
         This will create a `Handler` and
@@ -675,8 +677,10 @@ class NodeMixin(RowMixin):
 
         Returns
         -------
+        changed : bool
+            True if anything has changed
         status : StatusEnum
-            The status of the processing
+            Status of the processing
         """
         handler = await self.get_handler(session)
         return await handler.run_check(session, self, **kwargs)

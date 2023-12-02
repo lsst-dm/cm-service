@@ -51,7 +51,7 @@ class RunElementScriptHandler(FunctionHandler):
     ) -> StatusEnum:
         min_val = StatusEnum.accepted.value
         for child_ in await parent.children(session):
-            child_status = await child_.process(session, **kwargs)
+            _child_changed, child_status = await child_.process(session, **kwargs)
             min_val = min(min_val, child_status.value)
 
         status = StatusEnum.accepted if min_val >= StatusEnum.accepted.value else StatusEnum.running
@@ -68,7 +68,7 @@ class RunElementScriptHandler(FunctionHandler):
     ) -> StatusEnum:
         min_val = StatusEnum.accepted.value
         for child_ in await parent.children(session):
-            child_status = await child_.process(session, **kwargs)
+            _child_changed, child_status = await child_.process(session, **kwargs)
             min_val = min(min_val, child_status.value)
 
         status = StatusEnum.accepted if min_val >= StatusEnum.accepted.value else StatusEnum.running

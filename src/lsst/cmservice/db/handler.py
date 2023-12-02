@@ -84,7 +84,7 @@ class Handler:
         session: async_scoped_session,
         node: NodeMixin,
         **kwargs: Any,
-    ) -> StatusEnum:
+    ) -> tuple[bool, StatusEnum]:
         """Process a `Node` as much as possible
 
         Parameters
@@ -100,8 +100,10 @@ class Handler:
 
         Returns
         -------
+        changed : bool
+            True if anything has changed
         status : StatusEnum
-            The status of the processing
+            Status of the processing
         """
         raise NotImplementedError(f"{type(self)}.process")
 
@@ -110,7 +112,7 @@ class Handler:
         session: async_scoped_session,
         node: NodeMixin,
         **kwargs: Any,
-    ) -> StatusEnum:
+    ) -> tuple[bool, StatusEnum]:
         """Check on a Nodes's status
 
         Parameters
@@ -126,7 +128,9 @@ class Handler:
 
         Returns
         -------
+        changed : bool
+            True if anything has changed
         status : StatusEnum
-            The status of the processing
+            Status of the processing
         """
         raise NotImplementedError(f"{type(self)}.run_check")

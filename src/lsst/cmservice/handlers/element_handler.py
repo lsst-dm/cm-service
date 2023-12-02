@@ -55,7 +55,7 @@ class ElementHandler(Handler):
         session: async_scoped_session,
         node: NodeMixin,
         **kwargs: Any,
-    ) -> StatusEnum:
+    ) -> tuple[bool, StatusEnum]:
         """Process a `Element` as much as possible
 
         Parameters
@@ -71,10 +71,15 @@ class ElementHandler(Handler):
 
         Returns
         -------
+        changed : bool
+            True if anything has changed
         status : StatusEnum
-            The status of the processing
+            Status of the processing
         """
         status = node.status
+        orig_status = node.status
+        changed = False
+        has_changed = False
         # Need this so mypy doesn't think we are passing in Script
         if TYPE_CHECKING:
             assert isinstance(node, ElementMixin)
@@ -82,26 +87,38 @@ class ElementHandler(Handler):
             is_ready = await node.check_prerequisites(session)
             if is_ready:
                 status = StatusEnum.ready
+                changed = True
         if status == StatusEnum.ready:
-            status = await self.prepare(session, node)
+            (had_changed, status) = await self.prepare(session, node)
+            if has_changed:
+                changed = True
         if status == StatusEnum.prepared:
-            status = await self.continue_processing(session, node, **kwargs)
+            (has_changed, status) = await self.continue_processing(session, node, **kwargs)
+            if has_changed:
+                changed = True
         if status == StatusEnum.running:
-            status = await self.check(session, node, **kwargs)
+            (has_changed, status) = await self.check(session, node, **kwargs)
+            if has_changed:
+                changed = True
             if status == StatusEnum.running:
-                status = await self.continue_processing(session, node, **kwargs)
+                (has_changed, status) = await self.continue_processing(session, node, **kwargs)
+                if has_changed:
+                    changed = True
         if status == StatusEnum.reviewable:
-            status = await self.review(session, node, *kwargs)
-        if status != node.status:
+            (has_chagned, status) = await self.review(session, node, *kwargs)
+            if has_changed:
+                changed = True
+        if status != orig_status:
+            changed = True
             await node.update_values(session, status=status)
-        return status
+        return (changed, status)
 
     async def run_check(
         self,
         session: async_scoped_session,
         node: NodeMixin,
         **kwargs: Any,
-    ) -> StatusEnum:
+    ) -> tuple[bool, StatusEnum]:
         # Need this so mypy doesn't think we are passing in Script
         if TYPE_CHECKING:
             assert isinstance(node, ElementMixin)
@@ -111,7 +128,7 @@ class ElementHandler(Handler):
         self,
         session: async_scoped_session,
         element: ElementMixin,
-    ) -> StatusEnum:
+    ) -> tuple[bool, StatusEnum]:
         """Prepare `Element` for processing
 
         This means creating database entries for scripts and
@@ -127,8 +144,10 @@ class ElementHandler(Handler):
 
         Returns
         -------
+        changed : bool
+            True if anything has changed
         status : StatusEnum
-            The status of the processing
+            Status of the processing
         """
         async with session.begin_nested():
             await session.refresh(element, attribute_names=["spec_block_"])
@@ -177,14 +196,14 @@ class ElementHandler(Handler):
 
         await element.update_values(session, status=StatusEnum.prepared)
         await session.commit()
-        return StatusEnum.prepared
+        return (True, StatusEnum.prepared)
 
     async def continue_processing(
         self,
         session: async_scoped_session,
         element: ElementMixin,
         **kwargs: Any,
-    ) -> StatusEnum:
+    ) -> tuple[bool, StatusEnum]:
         """Continue `Element` processing
 
         This means processing the scripts associated to this element
@@ -199,23 +218,28 @@ class ElementHandler(Handler):
 
         Returns
         -------
+        chagned : bool
+            True if anything has changed
         status : StatusEnum
-            The status of the processing
+            Status of the processing
         """
         scripts = await element.get_scripts(session, remaining_only=True)
+        changed = False
         if scripts:
             for script_ in scripts:
-                await script_.process(session, **kwargs)
+                (script_changed, _script_status) = await script_.process(session, **kwargs)
+                if script_changed:
+                    changed = True
         await element.update_values(session, status=StatusEnum.running)
         await session.commit()
-        return StatusEnum.running
+        return (changed, StatusEnum.running)
 
     async def review(  # pylint: disable=unused-argument
         self,
         session: async_scoped_session,
         element: ElementMixin,
         **kwargs: Any,
-    ) -> StatusEnum:
+    ) -> tuple[bool, StatusEnum]:
         """Review a `Element` processing
 
         By default this does nothing, but
@@ -232,17 +256,19 @@ class ElementHandler(Handler):
 
         Returns
         -------
+        chagned : bool
+            True if anything has changed
         status : StatusEnum
-            The status of the processing
+            Status of the processing
         """
-        return element.status
+        return (False, element.status)
 
     async def _run_script_checks(
         self,
         session: async_scoped_session,
         element: ElementMixin,
         **kwargs: Any,
-    ) -> None:
+    ) -> bool:
         """Explicitly check on Scripts associated to this Element
 
         Parameters
@@ -260,20 +286,30 @@ class ElementHandler(Handler):
 
         fake_status = StatusEnum | None
             If present, set the Status of the scripts to this value
+
+        Returns
+        -------
+        changed : bool
+            True if anything has changed
         """
         scripts = await element.get_scripts(session, remaining_only=not kwargs.get("force_check", False))
         fake_status = kwargs.get("fake_status", None)
+        changed = False
         for script_ in scripts:
             if fake_status and script_.status.value >= StatusEnum.prepared.value:
                 await script_.update_values(session, status=fake_status)
-            await script_.run_check(session)
+                changed = True
+            script_changed, _script_status = await script_.run_check(session)
+            if script_changed:
+                changed = True
+        return changed
 
     async def _run_job_checks(
         self,
         session: async_scoped_session,
         element: ElementMixin,
         **kwargs: Any,
-    ) -> None:
+    ) -> bool:
         """Explicitly check on Jobs associated to this Element
 
         Parameters
@@ -291,21 +327,31 @@ class ElementHandler(Handler):
 
         fake_status = StatusEnum | None
             If present, set the Status of the scripts to this value
+
+        Returns
+        -------
+        changed : bool
+            True if anything has changed
         """
         jobs = await element.get_jobs(session, remaining_only=not kwargs.get("force_check", False))
         fake_status = kwargs.get("fake_status")
+        changed = False
         for job_ in jobs:
             if fake_status and job_.status.value >= StatusEnum.prepared.value:
                 await job_.update_values(session, status=fake_status)
+                changed = True
             else:
-                await job_.run_check(session)
+                (job_changed, job_status) = await job_.run_check(session)
+                if job_changed:
+                    changed = True
+        return changed
 
     async def check(
         self,
         session: async_scoped_session,
         element: ElementMixin,
         **kwargs: Any,
-    ) -> StatusEnum:
+    ) -> tuple[bool, StatusEnum]:
         """Check the status of this Element based on the
         status of the associated scripts and jobs
 
@@ -327,10 +373,20 @@ class ElementHandler(Handler):
 
         fake_status = StatusEnum | None
             If present, set the Status of the scripts to this value
+
+        Returns
+        -------
+        changed : bool
+            True if anything has changed
+        status : StatusEnum
+            Status of the processing
         """
+        changed = False
         if kwargs.get("do_checks", False):
-            await self._run_script_checks(session, element, **kwargs)
-            await self._run_job_checks(session, element, **kwargs)
+            scripts_changed = await self._run_script_checks(session, element, **kwargs)
+            jobs_changed = await self._run_job_checks(session, element, **kwargs)
+            if scripts_changed or jobs_changed:
+                changed = True
 
         scripts = await element.get_scripts(session, remaining_only=True)
         for script_ in scripts:
@@ -338,9 +394,9 @@ class ElementHandler(Handler):
                 status = StatusEnum.running  # FIXME
                 await element.update_values(session, status=status)
                 await session.commit()
-                return status
+                return (changed, status)
 
         status = StatusEnum.accepted
         await element.update_values(session, status=status)
         await session.commit()
-        return status
+        return (True, status)
