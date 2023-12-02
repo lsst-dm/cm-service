@@ -68,7 +68,7 @@
                 spec_block: panda_script
                 collections:
                     run: "{job_run}"
-                    inputs: ["{step_input}"]
+                    inputs: ["{step_input}", "{campaign_input}", "{campaign_ancillary}"]
           - Script:
                 name: bps_report
                 spec_block: panda_report_script
