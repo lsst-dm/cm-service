@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import datetime, timedelta
 from typing import Any, TypeAlias
 
 import httpx
+import pause
 from pydantic import BaseModel, ValidationError, parse_obj_as
 
 from . import models
@@ -131,6 +133,24 @@ def get_rows_function(
         return the_list
 
     return get_rows
+
+
+def get_row_function(
+    response_model_class: TypeAlias = BaseModel,
+    query: str = "",
+) -> Callable:
+    def row_get(
+        obj: CMClient,
+        row_id: int,
+    ) -> response_model_class:
+        full_query = f"{query}/{row_id}"
+        results = obj._client.get(f"{full_query}").json()
+        try:
+            return parse_obj_as(response_model_class, results)
+        except ValidationError as msg:
+            raise ValueError(f"Bad response: {results}") from msg
+
+    return row_get
 
 
 def create_row_function(
@@ -317,9 +337,54 @@ class CMClient:
 
     get_wms_task_reports = get_rows_no_parent_function(models.WmsTaskReport, "wms_task_reports")
 
+    get_queues = get_rows_no_parent_function(models.Queue, "queues")
+
     get_script_dependencies = get_rows_no_parent_function(models.Dependency, "script_dependencies")
 
     get_step_dependencies = get_rows_no_parent_function(models.Dependency, "step_dependencies")
+
+    queue_create = create_row_function(models.Queue, models.QueueCreate, "queues")
+
+    queue_update = update_row_function(models.Queue, "queues")
+
+    queue_delete = delete_row_function("queues")
+
+    queue_get = get_row_function(models.Queue, "queues")
+
+    def queue_process(
+        self,
+        row_id: int,
+    ) -> bool:
+        results = self._client.get(f"queues/process/{row_id}").json()
+        try:
+            return parse_obj_as(bool, results)
+        except ValidationError as msg:
+            raise ValueError(f"Bad response: {results}") from msg
+
+    def queue_pause_until_next_check(
+        self,
+        id: int,
+    ) -> None:
+        queue = self.queue_get(id)
+        delta_t = timedelta(seconds=queue.interval)
+        next_check = queue.time_updated + delta_t
+        now = datetime.now()
+        print(now, next_check)
+        if now < next_check:
+            print("pausing")
+            pause.until(next_check)
+
+    def queue_daemon(
+        self,
+        id: int,
+    ) -> None:
+        can_continue = True
+        while can_continue:
+            self.queue_pause_until_next_check(id)
+            try:
+                can_continue = self.queue_process(id)
+            except Exception:
+                can_continue = True
 
     production_create = create_row_function(models.Production, models.ProductionCreate, "productions")
 

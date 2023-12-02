@@ -1385,3 +1385,10 @@ async def create_error_type(
     result = await db.PipetaskErrorType.create_row(session, **kwargs)
     await session.commit()
     return result
+
+
+def process_element_loop(
+    session,
+    queue,
+) -> None:
+    queue.process_element_loop(session)
