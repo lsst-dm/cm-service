@@ -117,7 +117,6 @@ class Queue(Base, NodeMixin):
         else:
             raise ValueError(f"Bad level for queue: {element_level}")
 
-        element: ElementMixin | None = None
         ret_dict["element_id"] = element.id
         return ret_dict
 

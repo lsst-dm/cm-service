@@ -75,7 +75,7 @@ class LevelEnum(enum.Enum):
         if fullname.find("script:") == 0:
             return LevelEnum.script
         n_slash = fullname.count("/")
-        return LevelEnum[n_slash]
+        return LevelEnum(n_slash)
 
 
 class StatusEnum(enum.Enum):
