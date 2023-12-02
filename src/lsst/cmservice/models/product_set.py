@@ -14,6 +14,7 @@ class ProductSetCreate(ProductSetBase):
 
 class ProductSet(ProductSetBase):
     id: int
+    fullname: str
 
     n_done: int = 0
     n_failed: int = 0
