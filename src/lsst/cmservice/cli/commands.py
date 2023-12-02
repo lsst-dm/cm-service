@@ -793,15 +793,26 @@ def load_specification(
     _output_pydantic_object(result, output, db.Specification.col_names_for_table)
 
 
-@load.command()
+@load.command(name="campaign")
 @options.cmclient()
 @options.output()
+@options.yaml_file()
+@options.name()
+@options.parent_name()
+@options.spec_name()
+@options.spec_block_name()
+@options.handler()
+@options.data()
+@options.child_config()
+@options.collections()
+@options.spec_aliases()
 def load_campaign(
     client: CMClient,
     output: options.OutputEnum | None,
+    **kwargs: Any,
 ) -> None:
     """Load a Specification from a yaml file and make a Campaign"""
-    result = client.load_campaign()
+    result = client.load_campaign(**kwargs)
     _output_pydantic_object(result, output, db.Campaign.col_names_for_table)
 
 
