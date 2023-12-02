@@ -91,9 +91,8 @@ class Queue(Base, NodeMixin):
         session: async_scoped_session,
         **kwargs: Any,
     ) -> dict:
-        element_name = kwargs["element_name"]
-        element_level = kwargs["element_level"]
-
+        fullname = kwargs["fullname"]
+        element_level = LevelEnum.get_level_from_fullname(fullname)
         now = datetime.now()
         ret_dict = {
             "element_level": element_level,
@@ -101,21 +100,24 @@ class Queue(Base, NodeMixin):
             "time_updated": now,
             "options": kwargs.get("options", {}),
         }
+
         element: ElementMixin | None = None
         if element_level == LevelEnum.campaign:
-            element = await Campaign.get_row_by_fullname(session, element_name)
+            element = await Campaign.get_row_by_fullname(session, fullname)
             ret_dict["c_id"] = element.id
         elif element_level == LevelEnum.step:
-            element = await Step.get_row_by_fullname(session, element_name)
+            element = await Step.get_row_by_fullname(session, fullname)
             ret_dict["s_id"] = element.id
         elif element_level == LevelEnum.group:
-            element = await Group.get_row_by_fullname(session, element_name)
+            element = await Group.get_row_by_fullname(session, fullname)
             ret_dict["g_id"] = element.id
         elif element_level == LevelEnum.job:
-            element = await Job.get_row_by_fullname(session, element_name)
+            element = await Job.get_row_by_fullname(session, fullname)
             ret_dict["j_id"] = element.id
         else:
-            raise ValueError(f"Bad level for script: {element_level}")
+            raise ValueError(f"Bad level for queue: {element_level}")
+
+        element: ElementMixin | None = None
         ret_dict["element_id"] = element.id
         return ret_dict
 
