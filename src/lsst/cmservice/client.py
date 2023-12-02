@@ -86,7 +86,7 @@ def get_general_post_function(
         results = obj._client.post(f"{query}", content=params.json()).json()
         try:
             if results_key is None:
-                return parse_obj_as(response_model_class, results["status"])
+                return parse_obj_as(response_model_class, results)
             else:
                 return parse_obj_as(response_model_class, results[results_key])
         except ValidationError as msg:
@@ -293,11 +293,11 @@ class CMClient:
 
     get_steps = get_rows_function(models.Step, "steps")
 
-    get_groups = get_rows_function(models.Group, "group")
+    get_groups = get_rows_function(models.Group, "groups")
 
-    get_jobs = get_rows_function(models.Job, "job")
+    get_jobs = get_rows_function(models.Job, "jobs")
 
-    get_scripts = get_rows_function(models.Job, "job")
+    get_scripts = get_rows_function(models.Script, "scripts")
 
     get_specifications = get_rows_no_parent_function(models.Specification, "specifications")
 
@@ -347,7 +347,7 @@ class CMClient:
             remaining_only=remaining_only,
             skip_superseded=skip_superseded,
         )
-        query = "get/scripts"
+        query = "get/element_scripts"
         results = self._client.get(f"{query}", params=params.dict()).json()
         try:
             return parse_obj_as(list[models.Script], results)
