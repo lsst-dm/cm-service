@@ -70,6 +70,13 @@ class LevelEnum(enum.Enum):
     job = 4
     script = 5
 
+    @staticmethod
+    def get_level_from_fullname(fullname: str) -> LevelEnum:
+        if fullname.find("script:") == 0:
+            return LevelEnum.script
+        n_slash = fullname.count("/")
+        return LevelEnum[n_slash]
+
 
 class StatusEnum(enum.Enum):
     """Keeps track of the status of a particular script or entry
