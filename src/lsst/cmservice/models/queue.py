@@ -9,12 +9,14 @@ class QueueBase(BaseModel):
 
 
 class QueueCreate(QueueBase):
-    element_name: str
-    element_level: int
+    fullname: str
 
 
 class Queue(QueueBase):
     id: int
+
+    element_level: int
+    element_id: int
 
     time_created: datetime
     time_updated: datetime
