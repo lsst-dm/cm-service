@@ -190,6 +190,8 @@ async def get_element_by_fullname(
         element = await db.Step.get_row_by_fullname(session, fullname)
     elif n_slash == 3:
         element = await db.Group.get_row_by_fullname(session, fullname)
+    elif n_slash == 4:
+        element = await db.Job.get_row_by_fullname(session, fullname)
     else:
         raise ValueError(f"Can not figure out Table for fullname {fullname}, too many fields")
     return element

@@ -206,16 +206,18 @@ class SplitByQuery(Splitter):
         collections = await parent.resolve_collections(session)
         butler_repo = data["butler_repo"]
         input_coll = collections["step_input"]
+        campaign_input_coll = collections["campaign_input"]
+        campaign_ancil_coll = collections["campaign_ancillary"]
         base_query = kwargs["base_query"]
         split_field = kwargs["split_field"]
         split_dataset = kwargs["split_dataset"]
         split_min_groups = kwargs.get("split_min_groups", 1)
         split_max_group_size = kwargs.get("split_max_group_size", 100000000)
         fake_status = kwargs.get("fake_status", None)
-        if fake_status is None:
+        if not fake_status:
             butler = Butler.from_config(
                 butler_repo,
-                collections=[input_coll],
+                collections=[input_coll, campaign_input_coll, campaign_ancil_coll],
             )
             itr = butler.registry.queryDataIds([split_field], datasets=split_dataset).subset(unique=True)
             sorted_field_values = np.sort(np.array([x_[split_field] for x_ in itr]))

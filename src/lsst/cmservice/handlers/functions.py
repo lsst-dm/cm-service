@@ -167,9 +167,8 @@ async def add_steps(
         )
         await session.refresh(new_step)
         step_ids_dict[child_name_] = new_step.id
-        full_child_config: dict = await new_step.get_child_config(session)
-        prereqs_names = full_child_config.pop("prerequisites", [])
-        prereq_pairs = [(child_name_, prereq_) for prereq_ in prereqs_names]
+        prereqs_names = child_config_.pop("prerequisites", [])
+        prereq_pairs += [(child_name_, prereq_) for prereq_ in prereqs_names]
 
     for depend_name, prereq_name in prereq_pairs:
         prereq_id = step_ids_dict[prereq_name]
@@ -291,16 +290,14 @@ async def load_wms_reports(
     job: Job,
     wms_run_report: WmsRunReport,
 ) -> Job:
-    for task_name, job_summary_dict_ in wms_run_report.job_summary.items():
-        job_summary = job_summary_dict_["job_summary"]
-
+    for task_name, job_summary in wms_run_report.job_summary.items():
         fullname = f"{job.fullname}/{task_name}"
         wms_dict = {f"n_{wms_state_.name.lower()}": count_ for wms_state_, count_ in job_summary.items()}
         report: WmsTaskReport | None = None
         try:
             report = await WmsTaskReport.get_row_by_fullname(session, fullname)
             await report.update_values(session, **wms_dict)
-        except KeyError:
+        except Exception:
             _report = await WmsTaskReport.create_row(
                 session,
                 job_id=job.id,
