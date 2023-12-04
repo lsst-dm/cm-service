@@ -24,6 +24,8 @@ class Production(Base, RowMixin):
 
     c_: Mapped[list["Campaign"]] = relationship("Campaign", viewonly=True)
 
+    col_names_for_table = ["id", "name"]
+
     @hybrid_property
     def db_id(self) -> DbId:
         """Returns DbId"""

@@ -9,17 +9,19 @@ import yaml
 from pydantic import BaseModel
 from safir.asyncio import run_with_asyncio
 from safir.database import create_database_engine, initialize_database
+from tabulate import tabulate
 
+from .. import db
 from ..client import CMClient
 from ..common.enums import StatusEnum
 from ..config import config
-from ..db import Base
 from . import options
 
 
 def _output_pydantic_object(
     model: BaseModel,
     output: options.OutputEnum | None,
+    col_names: list[str] | None = None,
 ) -> None:
     match output:
         case options.OutputEnum.json:
@@ -27,13 +29,17 @@ def _output_pydantic_object(
         case options.OutputEnum.yaml:
             click.echo(yaml.dump(model.dict()))
         case _:
-            click.echo(str(model.dict()))
+            assert col_names
+            the_table = [[getattr(model, col_) for col_ in col_names]]
+            click.echo(tabulate(the_table, headers=col_names, tablefmt="plain"))
 
 
 def _output_pydantic_list(
     models: Sequence[BaseModel],
     output: options.OutputEnum | None,
+    col_names: Sequence[str] | None = None,
 ) -> None:
+    the_table = []
     for model_ in models:
         match output:
             case options.OutputEnum.json:
@@ -41,7 +47,16 @@ def _output_pydantic_list(
             case options.OutputEnum.yaml:
                 click.echo(yaml.dump(model_.dict()))
             case _:
-                click.echo(str(model_.dict()))
+                assert col_names
+                the_table.append([str(getattr(model_, col_)) for col_ in col_names])
+    match output:
+        case options.OutputEnum.json:
+            pass
+        case options.OutputEnum.yaml:
+            pass
+        case _:
+            assert col_names
+            click.echo(tabulate(the_table, headers=col_names, tablefmt="plain"))
 
 
 def _output_dict(
@@ -54,7 +69,8 @@ def _output_dict(
         case options.OutputEnum.yaml:
             click.echo(yaml.dump(the_dict))
         case _:
-            click.echo(str(the_dict))
+            for key, val in the_dict.items():
+                click.echo(f"{key}: {val}")
 
 
 T = TypeVar("T")
@@ -73,7 +89,7 @@ async def init(*, reset: bool) -> None:  # pragma: no cover
     """Initialize the service database."""
     logger = structlog.get_logger(config.logger_name)
     engine = create_database_engine(config.database_url, config.database_password)
-    await initialize_database(engine, logger, schema=Base.metadata, reset=reset)
+    await initialize_database(engine, logger, schema=db.Base.metadata, reset=reset)
     await engine.dispose()
 
 
@@ -98,7 +114,7 @@ def productions(
 ) -> None:
     """List the existing productions"""
     result = client.get_productions()
-    _output_pydantic_list(result, output)
+    _output_pydantic_list(result, output, db.Production.col_names_for_table)
 
 
 @get.command()
@@ -119,7 +135,7 @@ def campaigns(
     campaigns in the associated production
     """
     result = client.get_campaigns(parent_id, parent_name)
-    _output_pydantic_list(result, output)
+    _output_pydantic_list(result, output, db.Campaign.col_names_for_table)
 
 
 @get.command()
@@ -140,7 +156,7 @@ def steps(
     steps in the associated campaign
     """
     result = client.get_steps(parent_id, parent_name)
-    _output_pydantic_list(result, output)
+    _output_pydantic_list(result, output, db.Step.col_names_for_table)
 
 
 @get.command()
@@ -161,7 +177,49 @@ def groups(
     groups in the associated step
     """
     result = client.get_groups(parent_id, parent_name)
-    _output_pydantic_list(result, output)
+    _output_pydantic_list(result, output, db.Group.col_names_for_table)
+
+
+@get.command()
+@options.cmclient()
+@options.parent_name()
+@options.parent_id()
+@options.output()
+def jobs(
+    client: CMClient,
+    parent_id: int | None,
+    parent_name: str | None,
+    output: options.OutputEnum | None,
+) -> None:
+    """List the existing jobs
+
+    Specifying either parent-name or parent-id
+    will limit the results to only those
+    groups in the associated step
+    """
+    result = client.get_jobs(parent_id, parent_name)
+    _output_pydantic_list(result, output, db.Job.col_names_for_table)
+
+
+@get.command()
+@options.cmclient()
+@options.parent_name()
+@options.parent_id()
+@options.output()
+def scripts(
+    client: CMClient,
+    parent_id: int | None,
+    parent_name: str | None,
+    output: options.OutputEnum | None,
+) -> None:
+    """List the existing scripts
+
+    Specifying either parent-name or parent-id
+    will limit the results to only those
+    groups in the associated element
+    """
+    result = client.get_scripts(parent_id, parent_name)
+    _output_pydantic_list(result, output, db.Script.col_names_for_table)
 
 
 @get.command()
@@ -175,7 +233,7 @@ def element(
 ) -> None:
     """Get a particular element"""
     result = client.get_element(fullname)
-    _output_pydantic_object(result, output)
+    _output_pydantic_object(result, output, db.ElementMixin.col_names_for_table)
 
 
 @get.command()
@@ -189,7 +247,7 @@ def script(
 ) -> None:
     """Get a particular script"""
     result = client.get_script(fullname)
-    _output_pydantic_object(result, output)
+    _output_pydantic_object(result, output, db.Script.col_names_for_table)
 
 
 @get.command()
@@ -203,7 +261,7 @@ def job(
 ) -> None:
     """Get a particular job"""
     result = client.get_job(fullname)
-    _output_pydantic_object(result, output)
+    _output_pydantic_object(result, output, db.Job.col_names_for_table)
 
 
 @get.command()
@@ -221,7 +279,7 @@ def obj_spec_block(
     table-type can be set to 'script'
     """
     result = client.get_spec_block(fullname)
-    _output_pydantic_object(result, output)
+    _output_pydantic_object(result, output, db.SpecBlock.col_names_for_table)
 
 
 @get.command()
@@ -239,7 +297,7 @@ def obj_specification(
     table-type can be set to 'script'
     """
     result = client.get_specification(fullname)
-    _output_pydantic_object(result, output)
+    _output_pydantic_object(result, output, db.Specification.col_names_for_table)
 
 
 @get.command()
@@ -362,8 +420,8 @@ def element_scripts(
     output: options.OutputEnum | None,
 ) -> None:
     """Get the Scripts used by a partiuclar element"""
-    result = client.get_scripts(fullname, script_name)
-    _output_pydantic_list(result, output)
+    result = client.get_element_scripts(fullname, script_name)
+    _output_pydantic_list(result, output, db.Script.col_names_for_table)
 
 
 @get.command()
@@ -376,8 +434,8 @@ def element_jobs(
     output: options.OutputEnum | None,
 ) -> None:
     """Get the Jobs used by a partiuclar element"""
-    result = client.get_jobs(fullname)
-    _output_pydantic_list(result, output)
+    result = client.get_element_jobs(fullname)
+    _output_pydantic_list(result, output, db.Job.col_names_for_table)
 
 
 @get.command()
@@ -391,7 +449,21 @@ def job_task_sets(
 ) -> None:
     """Get the TaskSets for a particular Job"""
     result = client.get_job_task_sets(fullname)
-    _output_pydantic_list(result, output)
+    _output_pydantic_list(result, output, db.TaskSet.col_names_for_table)
+
+
+@get.command()
+@options.cmclient()
+@options.fullname()
+@options.output()
+def job_wms_reports(
+    client: CMClient,
+    fullname: str,
+    output: options.OutputEnum | None,
+) -> None:
+    """Get the WmsReports for a particular Job"""
+    result = client.get_job_wms_reports(fullname)
+    _output_pydantic_list(result, output, db.WmsTaskReport.col_names_for_table)
 
 
 @get.command()
@@ -405,7 +477,7 @@ def job_product_sets(
 ) -> None:
     """Get the ProductSets for a particular Job"""
     result = client.get_job_product_sets(fullname)
-    _output_pydantic_list(result, output)
+    _output_pydantic_list(result, output, db.ProductSet.col_names_for_table)
 
 
 @get.command()
@@ -419,7 +491,7 @@ def job_errors(
 ) -> None:
     """Get the PipetaskErrors for a particular Job"""
     result = client.get_job_errors(fullname)
-    _output_pydantic_list(result, output)
+    _output_pydantic_list(result, output, db.PipetaskError.col_names_for_table)
 
 
 @main.group()
@@ -528,7 +600,7 @@ def groups_(
         fullname=fullname,
         child_configs=child_configs,
     )
-    _output_pydantic_list(result, output)
+    _output_pydantic_list(result, output, db.Group.col_names_for_table)
 
 
 @add.command()
@@ -547,7 +619,7 @@ def steps_(
         fullname=fullname,
         child_configs=child_configs,
     )
-    _output_pydantic_list(result, output)
+    _output_pydantic_list(result, output, db.Step.col_names_for_table)
 
 
 @add.command()
@@ -566,7 +638,7 @@ def campaign(
         fullname=fullname,
         **child_configs,
     )
-    _output_pydantic_object(result, output)
+    _output_pydantic_object(result, output, db.Campaign.col_names_for_table)
 
 
 @main.group()
@@ -586,7 +658,7 @@ def load_specification(
 ) -> None:
     """Load a Specification from a yaml file"""
     result = client.load_specification(**kwargs)
-    _output_pydantic_object(result, output)
+    _output_pydantic_object(result, output, db.Specification.col_names_for_table)
 
 
 @load.command()
@@ -598,7 +670,7 @@ def load_campaign(
 ) -> None:
     """Load a Specification from a yaml file and make a Campaign"""
     result = client.load_campaign()
-    _output_pydantic_object(result, output)
+    _output_pydantic_object(result, output, db.Campaign.col_names_for_table)
 
 
 @load.command()
@@ -612,7 +684,7 @@ def error_types(
 ) -> None:
     """Load PipetaskErrorTypes from a yaml file"""
     result = client.load_error_types(**kwargs)
-    _output_pydantic_list(result, output)
+    _output_pydantic_list(result, output, db.PipetaskErrorType.col_names_for_table)
 
 
 @load.command()
@@ -627,7 +699,7 @@ def manifest_report(
 ) -> None:
     """Load a manifest report from a yaml file"""
     result = client.load_manifest_report(**kwargs)
-    _output_pydantic_object(result, output)
+    _output_pydantic_object(result, output, db.Job.col_names_for_table)
 
 
 @main.group()
@@ -675,7 +747,7 @@ def retry_script(
         fullname=fullname,
         script_name=script_name,
     )
-    _output_pydantic_object(result, output)
+    _output_pydantic_object(result, output, db.Script.col_names_for_table)
 
 
 @action.command()
@@ -697,7 +769,7 @@ def rescue_script(
         fullname=fullname,
         script_name=script_name,
     )
-    _output_pydantic_object(result, output)
+    _output_pydantic_object(result, output, db.Script.col_names_for_table)
 
 
 @action.command()
@@ -720,7 +792,7 @@ def mark_script_rescued(
         fullname=fullname,
         script_name=script_name,
     )
-    _output_pydantic_list(result, output)
+    _output_pydantic_list(result, output, db.Script.col_names_for_table)
 
 
 @action.command()
@@ -734,4 +806,4 @@ def rematch(
 ) -> None:
     """Rematch the errors"""
     result = client.rematch_errors(**kwargs)
-    _output_pydantic_list(result, output)
+    _output_pydantic_list(result, output, db.PipetaskError.col_names_for_table)

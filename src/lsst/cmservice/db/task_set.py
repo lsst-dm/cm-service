@@ -28,3 +28,5 @@ class TaskSet(Base, RowMixin):
 
     job_: Mapped["Job"] = relationship("Job", viewonly=True)
     products_: Mapped[list["ProductSet"]] = relationship("ProductSet", viewonly=True)
+
+    col_names_for_table = ["id", "fullname", "n_expected", "n_done", "n_failed", "n_failed_upstream"]

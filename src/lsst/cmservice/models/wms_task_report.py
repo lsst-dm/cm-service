@@ -4,7 +4,7 @@ from pydantic import BaseModel
 class WmsTaskReportBase(BaseModel):
     job_id: int
     name: str
-    fullname: int
+    fullname: str
 
     n_unknown: int
     n_misfit: int

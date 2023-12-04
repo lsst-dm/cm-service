@@ -161,7 +161,7 @@ class CMClient:
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 
-    def get_scripts(
+    def get_element_scripts(
         self,
         fullname: str,
         script_name: str,
@@ -182,7 +182,7 @@ class CMClient:
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 
-    def get_jobs(
+    def get_element_jobs(
         self,
         fullname: str,
         *,
@@ -194,7 +194,7 @@ class CMClient:
             remaining_only=remaining_only,
             skip_superseded=skip_superseded,
         )
-        query = "get/jobs"
+        query = "get/element_jobs"
         results = self._client.get(f"{query}", params=params.dict()).json()
         try:
             return parse_obj_as(list[models.Job], results)
@@ -332,12 +332,12 @@ class CMClient:
     def add_steps(
         self,
         **kwargs: Any,
-    ) -> list[models.Group]:
-        query = "add/groups"
+    ) -> list[models.Step]:
+        query = "add/steps"
         params = models.AddSteps(**kwargs)
         results = self._client.post(f"{query}", content=params.json()).json()
         try:
-            return parse_obj_as(list[models.Group], results)
+            return parse_obj_as(list[models.Step], results)
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 
@@ -520,3 +520,37 @@ class CMClient:
             groups.extend(parse_obj_as(list[models.Group], results))
             params["skip"] += len(results)
         return groups
+
+    def get_jobs(
+        self,
+        parent_id: int | None = None,
+        parent_name: str | None = None,
+    ) -> list[models.Job]:
+        jobs = []
+        params: dict[str, Any] = {"skip": 0}
+        if parent_id:
+            params["parent_id"] = parent_id
+        if parent_name:
+            params["parent_name"] = parent_name
+        query = "jobs"
+        while (results := self._client.get(f"{query}", params=params).json()) != []:
+            jobs.extend(parse_obj_as(list[models.Job], results))
+            params["skip"] += len(results)
+        return jobs
+
+    def get_scripts(
+        self,
+        parent_id: int | None = None,
+        parent_name: str | None = None,
+    ) -> list[models.Script]:
+        scripts = []
+        params: dict[str, Any] = {"skip": 0}
+        if parent_id:
+            params["parent_id"] = parent_id
+        if parent_name:
+            params["parent_name"] = parent_name
+        query = "scripts"
+        while (results := self._client.get(f"{query}", params=params).json()) != []:
+            scripts.extend(parse_obj_as(list[models.Script], results))
+            params["skip"] += len(results)
+        return scripts

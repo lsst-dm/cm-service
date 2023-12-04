@@ -57,6 +57,8 @@ class Campaign(Base, ElementMixin):
     s_: Mapped[list[Step]] = relationship("Step", viewonly=True)
     scripts_: Mapped[list[Script]] = relationship("Script", viewonly=True)
 
+    col_names_for_table = ["id", "fullname", "spec_block_id", "handler", "status", "superseded"]
+
     @hybrid_property
     def db_id(self) -> DbId:
         """Returns DbId"""

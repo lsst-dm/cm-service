@@ -74,6 +74,17 @@ class Script(Base, NodeMixin):
         viewonly=True,
     )
 
+    col_names_for_table = [
+        "id",
+        "fullname",
+        "spec_block_id",
+        "handler",
+        "method",
+        "stamp_url",
+        "status",
+        "superseded",
+    ]
+
     @hybrid_property
     def db_id(self) -> DbId:
         """Returns DbId"""

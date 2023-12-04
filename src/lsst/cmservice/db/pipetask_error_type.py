@@ -26,6 +26,8 @@ class PipetaskErrorType(Base, RowMixin):
 
     errors_: Mapped[list["PipetaskError"]] = relationship("PipetaskError", viewonly=True)
 
+    col_names_for_table = ["id", "task_name", "diagnostic_message", "source", "action", "flavor"]
+
     def __repr__(self) -> str:
         s = f"Id={self.id}\n"
         if len(self.diagnostic_message) > 150:
