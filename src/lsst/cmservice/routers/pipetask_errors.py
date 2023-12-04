@@ -6,12 +6,11 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 
 from .. import db, models
 
-response_model_class = models.PipetaskErrorType
-create_model_class = models.PipetaskErrorTypeCreate
-db_class = db.PipetaskErrorType
-class_string = "pipetask_error_type"
-tag_string = "Pipetask Error Types"
-
+response_model_class = models.PipetaskError
+create_model_class = models.PipetaskErrorCreate
+db_class = db.PipetaskError
+class_string = "pipetask_error"
+tag_string = "Pipetask Errors"
 
 router = APIRouter(
     prefix=f"/{class_string}s",

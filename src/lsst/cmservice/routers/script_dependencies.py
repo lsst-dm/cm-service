@@ -6,15 +6,15 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 
 from .. import db, models
 
-response_model_class = models.Step
-create_model_class = models.StepCreate
-db_class = db.Step
-class_string = "step"
-tag_string = "Steps"
+response_model_class = models.Dependency
+create_model_class = models.DependencyCreate
+db_class = db.ScriptDependency
+class_string = "script_dependency"
+tag_string = "Script Dependencies"
 
 
 router = APIRouter(
-    prefix=f"/{class_string}s",
+    prefix="/script_dependencies",
     tags=[tag_string],
 )
 
@@ -22,7 +22,7 @@ router = APIRouter(
 @router.get(
     "",
     response_model=list[response_model_class],
-    summary=f"List {class_string}s",
+    summary="List dependencies",
 )
 async def get_rows(
     skip: int = 0,
