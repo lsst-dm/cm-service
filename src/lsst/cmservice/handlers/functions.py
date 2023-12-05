@@ -13,7 +13,10 @@ from ..db.pipetask_error import PipetaskError
 from ..db.pipetask_error_type import PipetaskErrorType
 from ..db.product_set import ProductSet
 from ..db.script_template import ScriptTemplate
-from ..db.specification import ScriptTemplateAssociation, SpecBlock, SpecBlockAssociation, Specification
+from ..db.script_template_association import ScriptTemplateAssociation
+from ..db.spec_block import SpecBlock
+from ..db.spec_block_association import SpecBlockAssociation
+from ..db.specification import Specification
 from ..db.step import Step
 from ..db.step_dependency import StepDependency
 from ..db.task_set import TaskSet

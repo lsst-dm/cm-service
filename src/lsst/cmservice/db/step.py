@@ -15,7 +15,9 @@ from .campaign import Campaign
 from .dbid import DbId
 from .element import ElementMixin
 from .enums import SqlStatusEnum
-from .specification import SpecBlock, SpecBlockAssociation, Specification
+from .spec_block import SpecBlock
+from .spec_block_association import SpecBlockAssociation
+from .specification import Specification
 
 if TYPE_CHECKING:
     from .group import Group

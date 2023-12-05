@@ -30,17 +30,10 @@ from .row import RowData, RowQuery
 from .script import Script, ScriptCreate
 from .script_error import ScriptError, ScriptErrorCreate
 from .script_template import ScriptTemplate, ScriptTemplateCreate
-from .specification import (
-    ScriptTemplateAssociation,
-    ScriptTemplateAssociationCreate,
-    SpecBlock,
-    SpecBlockAssociation,
-    SpecBlockAssociationCreate,
-    SpecBlockCreate,
-    Specification,
-    SpecificationCreate,
-    SpecificationLoad,
-)
+from .script_template_association import ScriptTemplateAssociation, ScriptTemplateAssociationCreate
+from .spec_block import SpecBlock, SpecBlockCreate
+from .spec_block_association import SpecBlockAssociation, SpecBlockAssociationCreate
+from .specification import Specification, SpecificationCreate, SpecificationLoad
 from .step import Step, StepCreate
 from .task_set import TaskSet, TaskSetCreate
 from .wms_task_report import WmsTaskReport, WmsTaskReportCreate

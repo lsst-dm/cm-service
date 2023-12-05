@@ -12,7 +12,9 @@ from .base import Base
 from .dbid import DbId
 from .element import ElementMixin
 from .enums import SqlStatusEnum
-from .specification import SpecBlock, SpecBlockAssociation, Specification
+from .spec_block import SpecBlock
+from .spec_block_association import SpecBlockAssociation
+from .specification import Specification
 from .step import Step
 
 if TYPE_CHECKING:

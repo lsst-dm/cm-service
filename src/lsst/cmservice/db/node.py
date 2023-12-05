@@ -7,7 +7,8 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 from ..common.enums import LevelEnum, NodeTypeEnum, StatusEnum
 from .handler import Handler
 from .row import RowMixin
-from .specification import SpecBlock, Specification
+from .spec_block import SpecBlock
+from .specification import Specification
 
 if TYPE_CHECKING:
     from .element import ElementMixin
