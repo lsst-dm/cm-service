@@ -1,3 +1,5 @@
+import os
+
 import yaml
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -11,23 +13,21 @@ from ..db.pipetask_error import PipetaskError
 from ..db.pipetask_error_type import PipetaskErrorType
 from ..db.product_set import ProductSet
 from ..db.script_template import ScriptTemplate
-from ..db.specification import SpecBlock, Specification
+from ..db.specification import ScriptTemplateAssociation, SpecBlock, SpecBlockAssociation, Specification
 from ..db.step import Step
 from ..db.step_dependency import StepDependency
 from ..db.task_set import TaskSet
 from ..db.wms_task_report import WmsTaskReport
 
 
-async def load_spec_block(
+async def create_spec_block(
     session: async_scoped_session,
-    specification: Specification,
     config_values: dict,
     loaded_specs: dict,
 ) -> SpecBlock | None:
     key = config_values.pop("name")
     loaded_specs[key] = config_values
-    fullname = f"{specification.name}#{key}"
-    spec_block_q = select(SpecBlock).where(SpecBlock.fullname == fullname)
+    spec_block_q = select(SpecBlock).where(SpecBlock.fullname == key)
     spec_block_result = await session.scalars(spec_block_q)
     spec_block = spec_block_result.first()
     if spec_block:
@@ -40,7 +40,7 @@ async def load_spec_block(
         if include_ in loaded_specs:
             include_data.update(loaded_specs[include_])
         else:
-            spec_block_ = await specification.get_block(session, include_)
+            spec_block_ = await SpecBlock.get_row_by_fullname(session, include_)
             include_data.update(
                 handler=spec_block_.handler,
                 data=spec_block_.data,
@@ -57,7 +57,6 @@ async def load_spec_block(
     handler = block_data.pop("handler", None)
     return await SpecBlock.create_row(
         session,
-        spec_name=specification.name,
         name=key,
         handler=handler,
         data=block_data.get("data"),
@@ -67,14 +66,12 @@ async def load_spec_block(
     )
 
 
-async def load_script_template(
+async def create_script_template(
     session: async_scoped_session,
-    specification: Specification,
     config_values: dict,
 ) -> ScriptTemplate | None:
     key = config_values.pop("name")
-    fullname = f"{specification.name}#{key}"
-    script_template_q = select(ScriptTemplate).where(ScriptTemplate.fullname == fullname)
+    script_template_q = select(ScriptTemplate).where(ScriptTemplate.fullname == key)
     script_template_result = await session.scalars(script_template_q)
     script_template = script_template_result.first()
     if script_template:
@@ -82,24 +79,20 @@ async def load_script_template(
         return None
     return await ScriptTemplate.load(
         session,
-        spec_name=specification.name,
-        spec_id=specification.id,
         name=key,
         file_path=config_values["file_path"],
     )
 
 
-async def load_specification(
+async def create_specification(
     session: async_scoped_session,
-    spec_name: str,
-    yaml_file: str,
-) -> Specification:
-    with open(yaml_file, encoding="utf-8") as fin:
-        spec_data = yaml.safe_load(fin)
+    config_values: dict,
+) -> Specification | None:
+    spec_name = config_values["name"]
+    script_templates = config_values.get("script_templates", [])
+    spec_blocks = config_values.get("spec_blocks", [])
 
-    loaded_specs: dict = {}
-
-    async with session.begin():
+    async with session.begin_nested():
         spec_q = select(Specification).where(Specification.name == spec_name)
         spec_result = await session.scalars(spec_q)
         specification = spec_result.first()
@@ -107,23 +100,69 @@ async def load_specification(
             specification = Specification(name=spec_name)
             session.add(specification)
 
-        for config_item in spec_data:
-            if "SpecBlock" in config_item:
-                await load_spec_block(
+        for script_template_config_ in script_templates:
+            new_script_template_assoc = await ScriptTemplateAssociation.create_row(
+                session,
+                spec_name=spec_name,
+                **script_template_config_,
+            )
+            assert new_script_template_assoc
+        for spec_block_config_ in spec_blocks:
+            new_spec_block_assoc = await SpecBlockAssociation.create_row(
+                session,
+                spec_name=spec_name,
+                **spec_block_config_,
+            )
+            assert new_spec_block_assoc
+        await session.commit()
+        return specification
+
+
+async def load_specification(
+    session: async_scoped_session,
+    yaml_file: str,
+    loaded_specs: dict | None = None,
+) -> Specification | None:
+    if loaded_specs is None:
+        loaded_specs = {}
+
+    specification = None
+
+    with open(yaml_file, encoding="utf-8") as fin:
+        spec_data = yaml.safe_load(fin)
+
+    for config_item in spec_data:
+        if "Imports" in config_item:
+            imports = config_item["Imports"]
+            for import_ in imports:
+                await load_specification(
                     session,
-                    specification,
+                    os.path.abspath(os.path.expandvars(import_)),
+                    loaded_specs,
+                )
+        elif "SpecBlock" in config_item:
+            async with session.begin_nested():
+                await create_spec_block(
+                    session,
                     config_item["SpecBlock"],
                     loaded_specs,
                 )
-            elif "ScriptTemplate" in config_item:
-                await load_script_template(
+        elif "ScriptTemplate" in config_item:
+            async with session.begin_nested():
+                await create_script_template(
                     session,
-                    specification,
                     config_item["ScriptTemplate"],
                 )
-            else:
-                raise KeyError(f"Expecting SpecBlock or ScriptTemplate not: {spec_data.keys()})")
-        return specification
+        elif "Specification" in config_item:
+            async with session.begin_nested():
+                specification = await create_specification(
+                    session,
+                    config_item["Specification"],
+                )
+        else:
+            good_keys = "ScriptTemplate | SpecBlock | Specification | Imports"
+            raise KeyError(f"Expecting one of {good_keys} not: {spec_data.keys()})")
+    return specification
 
 
 async def add_step_prerequisite(

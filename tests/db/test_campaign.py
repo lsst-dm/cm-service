@@ -19,7 +19,7 @@ async def test_campaign_db(session: async_scoped_session) -> None:
         await db.Campaign.create_row(
             session,
             name=cname_,
-            spec_block_name="base#campaign",
+            spec_block_assoc_name="base#campaign",
             parent_name=pnames[0],
         )
         for cname_ in cnames
@@ -30,7 +30,7 @@ async def test_campaign_db(session: async_scoped_session) -> None:
         await db.Campaign.create_row(
             session,
             name=cname_,
-            spec_block_name="base#campaign",
+            spec_block_assoc_name="base#campaign",
             parent_name=pnames[1],
         )
         for cname_ in cnames
@@ -42,7 +42,7 @@ async def test_campaign_db(session: async_scoped_session) -> None:
             session,
             name=cnames[0],
             parent_name=pnames[0],
-            spec_block_name="base#campaign",
+            spec_block_assoc_name="base#campaign",
         )
 
     await db.Production.delete_row(session, prods[0].id)

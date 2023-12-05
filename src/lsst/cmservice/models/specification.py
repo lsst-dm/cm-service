@@ -27,8 +27,7 @@ class SpecBlockBase(BaseModel):
 class SpecBlockCreate(SpecBlockBase):
     """Parameters that are used to create new rows but not in DB tables"""
 
-    # Name of associated Specification
-    spec_name: str
+    pass
 
 
 class SpecBlock(SpecBlockBase):
@@ -36,12 +35,6 @@ class SpecBlock(SpecBlockBase):
 
     # PrimaryKey
     id: int
-
-    # ForeignKey giving the associated Specification
-    spec_id: int
-
-    # Unique name for this specification
-    fullname: str
 
     class Config:
         orm_mode = True
@@ -70,11 +63,80 @@ class Specification(SpecificationBase):
         orm_mode = True
 
 
+class SpecBlockAssociationBase(BaseModel):
+    """Parameters that are in DB tables and also used to create new rows"""
+
+    # Name for this
+    alias: str
+
+
+class SpecBlockAssociationCreate(SpecBlockAssociationBase):
+    """Parameters that are used to create new rows but not in DB tables"""
+
+    # Name of the Specification
+    spec_name: str
+
+    # Name of the SpecBlock
+    spec_block_name: str
+
+
+class SpecBlockAssociation(SpecBlockAssociationBase):
+    """Parameters that are in DB tables and not used to create new rows"""
+
+    # PrimaryKey
+    id: int
+
+    # Full unique name
+    fullname: str
+
+    # Foreign Key into Specification table
+    spec_id: int
+
+    # Foreign Key in SpecBlock Table
+    spec_block_id: int
+
+    class Config:
+        orm_mode = True
+
+
+class ScriptTemplateAssociationBase(BaseModel):
+    """Parameters that are in DB tables and also used to create new rows"""
+
+    # Name for this
+    alias: str
+
+
+class ScriptTemplateAssociationCreate(ScriptTemplateAssociationBase):
+    """Parameters that are used to create new rows but not in DB tables"""
+
+    # Name of the Specification
+    spec_name: str
+
+    # Name of the ScriptTemplate
+    script_template_name: str
+
+
+class ScriptTemplateAssociation(ScriptTemplateAssociationBase):
+    """Parameters that are in DB tables and not used to create new rows"""
+
+    # PrimaryKey
+    id: int
+
+    # Full unique name
+    fullname: str
+
+    # Foreign Key into Specification table
+    spec_id: int
+
+    # Foreign Key in ScriptTemplate Table
+    script_template_id: int
+
+    class Config:
+        orm_mode = True
+
+
 class SpecificationLoad(BaseModel):
     """Parameters need to specifiy loading a Specification file"""
-
-    # Name of the Specficiation to create
-    spec_name: str = "example"
 
     # Name of the file to load
     yaml_file: str = "examples/example_config.yaml"

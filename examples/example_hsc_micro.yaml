@@ -3,37 +3,33 @@
       - "${CM_CONFIGS}/example_standard_elements.yaml"
       - "${CM_CONFIGS}/example_hsc_micro_steps.yaml"
 - SpecBlock:
-      name: basic_step
-      includes: ["step"]
-      data:
-          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#isr"
-      child_config:
-          spec_block: group
-          base_query: "instrument = 'HSC'"
-          split_method: split_by_query
-          split_dataset: raw
-          split_field: exposure
-          split_min_groups: 2
-- SpecBlock:
-      name: campaign
+      name: hsc_micro_campaign
       handler: lsst.cmservice.handlers.element_handler.ElementHandler
       collections:
-          root: 'cm/hsc_rc2_micro'
+          root: 'u/echarles/cm/hsc_rc2_micro'
           campaign_source: HSC/raw/RC2
-          campaign_input: "{root}/{campaign}/input"
-          campaign_output: "{root}/{campaign}"
-          campaign_ancillary: "{root}/{campaign}/ancillary"
-          campaign_validation: "{root}/{campaign}/validate"
+      child_config:
+          isr:
+              spec_block: hsc_micro_isr
+              child_config:
+                  base_query: "instrument = 'HSC'"
+          characterizeImage:
+              spec_block: hsc_micro_characterizeImage
+              prerequisites: ['isr']
+              child_config:
+                  base_query: "instrument = 'HSC'"
+          calibrate:
+              spec_block: hsc_micro_calibrate
+              prerequisites: ['characterizeImage']
+              child_config:
+                  base_query: "instrument = 'HSC'"
       data:
           butler_repo: '/repo/main'
           prod_area: 'output/archive'
-          data_query: "instrument = 'HSC'"
-          lsst_version: "${WEEKLY}"
-          bps_script_template: bps_panda_script_template
-          bps_yaml_template: bps_yaml_template
-          manifest_script_template: manifest_script_template
+          data_query: "instrument = 'HSC' AND exposure in (30504, 30502) AND detector in (45, 46, 47, 48)"
+          lsst_version: w_2023_46
 - Specification:
-      name: base
+      name: hsc_micro
       script_templates:
           - {script_template_name: bps_panda_script_template}
           - {script_template_name: bps_panda_yaml_template}
@@ -56,5 +52,9 @@
           - {spec_block_name: run_steps}
           - {spec_block_name: job}
           - {spec_block_name: group}
-          - {spec_block_name: basic_step}
-          - {spec_block_name: campaign}
+          - {spec_block_name: step}
+          - {spec_block_name: base_campaign}
+          - {spec_block_name: hsc_micro_isr}
+          - {spec_block_name: hsc_micro_characterizeImage}
+          - {spec_block_name: hsc_micro_calibrate}
+          - {spec_block_name: hsc_micro_campaign, alias: campaign}

@@ -19,7 +19,7 @@ from .group import Group
 from .job import Job
 from .node import NodeMixin
 from .row import RowMixin
-from .specification import SpecBlock
+from .specification import SpecBlock, SpecBlockAssociation, Specification
 from .step import Step
 
 if TYPE_CHECKING:
@@ -38,7 +38,10 @@ class Script(Base, NodeMixin):
     __tablename__ = "script"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    spec_block_id: Mapped[int] = mapped_column(ForeignKey("spec_block.id", ondelete="CASCADE"), index=True)
+    spec_block_assoc_id: Mapped[int] = mapped_column(
+        ForeignKey("spec_block_association.id", ondelete="CASCADE"),
+        index=True,
+    )
     parent_level: Mapped[LevelEnum] = mapped_column(type_=SqlLevelEnum)
     parent_id: Mapped[int] = mapped_column()
     c_id: Mapped[int | None] = mapped_column(ForeignKey("campaign.id", ondelete="CASCADE"), index=True)
@@ -62,7 +65,21 @@ class Script(Base, NodeMixin):
     stamp_url: Mapped[str | None] = mapped_column()
     log_url: Mapped[str | None] = mapped_column()
 
-    spec_block_: Mapped[SpecBlock] = relationship("SpecBlock", viewonly=True)
+    spec_block_assoc_: Mapped[SpecBlockAssociation] = relationship("SpecBlockAssociation", viewonly=True)
+    spec_: Mapped[Specification] = relationship(
+        "Specification",
+        primaryjoin="SpecBlockAssociation.id==Script.spec_block_assoc_id",
+        secondary="join(SpecBlockAssociation, Specification)",
+        secondaryjoin="SpecBlockAssociation.spec_id==Specification.id",
+        viewonly=True,
+    )
+    spec_block_: Mapped[SpecBlock] = relationship(
+        "SpecBlock",
+        primaryjoin="SpecBlockAssociation.id==Script.spec_block_assoc_id",
+        secondary="join(SpecBlockAssociation, SpecBlock)",
+        secondaryjoin="SpecBlockAssociation.spec_block_id==SpecBlock.id",
+        viewonly=True,
+    )
     c_: Mapped[Campaign] = relationship("Campaign", viewonly=True)
     s_: Mapped[Step] = relationship("Step", viewonly=True)
     g_: Mapped[Group] = relationship("Group", viewonly=True)
@@ -175,12 +192,23 @@ class Script(Base, NodeMixin):
         parent_name = kwargs["parent_name"]
         name = kwargs["name"]
         attempt = kwargs.get("attempt", 0)
-        spec_block_name = kwargs["spec_block_name"]
-        spec_block = await SpecBlock.get_row_by_fullname(session, spec_block_name)
         parent_level = kwargs["parent_level"]
-
+        spec_block_assoc_name = kwargs.get("spec_block_assoc_name", None)
+        if not spec_block_assoc_name:
+            try:
+                spec_name = kwargs["spec_name"]
+                spec_block_name = kwargs["spec_block_name"]
+                spec_block_assoc_name = f"{spec_name}#{spec_block_name}"
+            except KeyError as msg:
+                raise KeyError(
+                    "Either spec_block_assoc_name or (spec_name and spec_block_name) required",
+                ) from msg
+        spec_block_assoc = await SpecBlockAssociation.get_row_by_fullname(
+            session,
+            spec_block_assoc_name,
+        )
         ret_dict = {
-            "spec_block_id": spec_block.id,
+            "spec_block_assoc_id": spec_block_assoc.id,
             "parent_level": parent_level,
             "name": name,
             "attempt": attempt,

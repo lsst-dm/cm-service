@@ -25,7 +25,9 @@ class NodeMixin(RowMixin):
 
     level: Any  # Associated LevelEnum of the configuable
     spec_block_: Any  # Specification block that carries defaults
-    spec_block_id: Any  # Foriegn key into spec-block
+    spec_block_assoc_: Any  # SpecBlockAssociation between SpecBlock and specificaiton
+    spec_: Any  # Specificaiton
+    spec_block_assoc_id: Any  # Foriegn key into SpecBlockAssociation
     status: Any  # Current status of associated processing
     parent_id: Any  # Id of the parent row
     parent_: Any  # Parent of the current row
@@ -73,10 +75,9 @@ class NodeMixin(RowMixin):
         specification: Specification
             Requested Specification
         """
-        spec_block = await self.get_spec_block(session)
         async with session.begin_nested():
-            await session.refresh(spec_block, attribute_names=["spec_"])
-            return spec_block.spec_
+            await session.refresh(self, attribute_names=["spec_"])
+            return self.spec_
 
     async def get_parent(
         self,
@@ -119,13 +120,13 @@ class NodeMixin(RowMixin):
         handler: Handler
             The handler in question
         """
+        spec_block = await self.get_spec_block(session)
         if self.handler:
             handler_class = self.handler
         else:
-            spec_block = await self.get_spec_block(session)
             handler_class = spec_block.handler
         return Handler.get_handler(
-            self.spec_block_id,
+            spec_block.id,
             handler_class,
         )
 

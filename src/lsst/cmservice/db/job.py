@@ -14,7 +14,7 @@ from .dbid import DbId
 from .element import ElementMixin
 from .enums import SqlStatusEnum
 from .group import Group
-from .specification import SpecBlock
+from .specification import SpecBlock, SpecBlockAssociation, Specification
 from .step import Step
 
 if TYPE_CHECKING:
@@ -41,7 +41,10 @@ class Job(Base, ElementMixin):
     __tablename__ = "job"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    spec_block_id: Mapped[int] = mapped_column(ForeignKey("spec_block.id", ondelete="CASCADE"), index=True)
+    spec_block_assoc_id: Mapped[int] = mapped_column(
+        ForeignKey("spec_block_association.id", ondelete="CASCADE"),
+        index=True,
+    )
     parent_id: Mapped[int] = mapped_column(ForeignKey("group.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(index=True)
     fullname: Mapped[str] = mapped_column(unique=True)
@@ -55,7 +58,21 @@ class Job(Base, ElementMixin):
     wms_job_id: Mapped[str | None] = mapped_column()
     stamp_url: Mapped[str | None] = mapped_column()
 
-    spec_block_: Mapped[SpecBlock] = relationship("SpecBlock", viewonly=True)
+    spec_block_assoc_: Mapped[SpecBlockAssociation] = relationship("SpecBlockAssociation", viewonly=True)
+    spec_: Mapped[Specification] = relationship(
+        "Specification",
+        primaryjoin="SpecBlockAssociation.id==Job.spec_block_assoc_id",
+        secondary="join(SpecBlockAssociation, Specification)",
+        secondaryjoin="SpecBlockAssociation.spec_id==Specification.id",
+        viewonly=True,
+    )
+    spec_block_: Mapped[SpecBlock] = relationship(
+        "SpecBlock",
+        primaryjoin="SpecBlockAssociation.id==Job.spec_block_assoc_id",
+        secondary="join(SpecBlockAssociation, SpecBlock)",
+        secondaryjoin="SpecBlockAssociation.spec_block_id==SpecBlock.id",
+        viewonly=True,
+    )
     s_: Mapped[Step] = relationship(
         "Step",
         primaryjoin="Job.parent_id==Group.id",
@@ -122,12 +139,23 @@ class Job(Base, ElementMixin):
     ) -> dict:
         parent_name = kwargs["parent_name"]
         name = kwargs["name"]
-        spec_block_name = kwargs["spec_block_name"]
-        spec_block = await SpecBlock.get_row_by_fullname(session, spec_block_name)
         parent = await Group.get_row_by_fullname(session, parent_name)
-
+        spec_block_assoc_name = kwargs.get("spec_block_assoc_name", None)
+        if not spec_block_assoc_name:
+            try:
+                spec_name = kwargs["spec_name"]
+                spec_block_name = kwargs["spec_block_name"]
+                spec_block_assoc_name = f"{spec_name}#{spec_block_name}"
+            except KeyError as msg:
+                raise KeyError(
+                    "Either spec_block_assoc_name or (spec_name and spec_block_name) required",
+                ) from msg
+        spec_block_assoc = await SpecBlockAssociation.get_row_by_fullname(
+            session,
+            spec_block_assoc_name,
+        )
         return {
-            "spec_block_id": spec_block.id,
+            "spec_block_assoc_id": spec_block_assoc.id,
             "parent_id": parent.id,
             "name": name,
             "fullname": f"{parent_name}/{name}",

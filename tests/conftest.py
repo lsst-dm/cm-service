@@ -43,10 +43,10 @@ async def session_fixture(engine: AsyncEngine) -> AsyncGenerator:
     logger = structlog.get_logger(config.logger_name)
     async with engine.begin():
         the_session = await create_async_session(engine, logger)
-        specification = await interface.load_specification(the_session, "base", "examples/empty_config.yaml")
-        check = await db.SpecBlock.get_row_by_fullname(the_session, "base#campaign")
+        specification = await interface.load_specification(the_session, "examples/empty_config.yaml")
+        check = await db.SpecBlockAssociation.get_row_by_fullname(the_session, "base#campaign")
         check2 = await specification.get_block(the_session, "campaign")
-        assert check.name == "campaign"
+        assert check.fullname == "base#campaign"
         assert check2.name == "campaign"
         yield the_session
         await the_session.close()

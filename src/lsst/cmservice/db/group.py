@@ -12,7 +12,7 @@ from .base import Base
 from .dbid import DbId
 from .element import ElementMixin
 from .enums import SqlStatusEnum
-from .specification import SpecBlock
+from .specification import SpecBlock, SpecBlockAssociation, Specification
 from .step import Step
 
 if TYPE_CHECKING:
@@ -36,7 +36,10 @@ class Group(Base, ElementMixin):
     __table_args__ = (UniqueConstraint("parent_id", "name"),)  # Name must be unique within parent step
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    spec_block_id: Mapped[int] = mapped_column(ForeignKey("spec_block.id", ondelete="CASCADE"), index=True)
+    spec_block_assoc_id: Mapped[int] = mapped_column(
+        ForeignKey("spec_block_association.id", ondelete="CASCADE"),
+        index=True,
+    )
     parent_id: Mapped[int] = mapped_column(ForeignKey("step.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(index=True)
     fullname: Mapped[str] = mapped_column(unique=True)
@@ -48,7 +51,21 @@ class Group(Base, ElementMixin):
     collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
     spec_aliases: Mapped[dict | list | None] = mapped_column(type_=JSON)
 
-    spec_block_: Mapped["SpecBlock"] = relationship("SpecBlock", viewonly=True)
+    spec_block_assoc_: Mapped[SpecBlockAssociation] = relationship("SpecBlockAssociation", viewonly=True)
+    spec_: Mapped[Specification] = relationship(
+        "Specification",
+        primaryjoin="SpecBlockAssociation.id==Group.spec_block_assoc_id",
+        secondary="join(SpecBlockAssociation, Specification)",
+        secondaryjoin="SpecBlockAssociation.spec_id==Specification.id",
+        viewonly=True,
+    )
+    spec_block_: Mapped[SpecBlock] = relationship(
+        "SpecBlock",
+        primaryjoin="SpecBlockAssociation.id==Group.spec_block_assoc_id",
+        secondary="join(SpecBlockAssociation, SpecBlock)",
+        secondaryjoin="SpecBlockAssociation.spec_block_id==SpecBlock.id",
+        viewonly=True,
+    )
     c_: Mapped["Campaign"] = relationship(
         "Campaign",
         primaryjoin="Group.parent_id==Step.id",
@@ -98,12 +115,24 @@ class Group(Base, ElementMixin):
         **kwargs: Any,
     ) -> dict:
         parent_name = kwargs["parent_name"]
-        spec_block_name = kwargs["spec_block_name"]
         name = kwargs["name"]
         step = await Step.get_row_by_fullname(session, parent_name)
-        spec_block = await SpecBlock.get_row_by_fullname(session, spec_block_name)
+        spec_block_assoc_name = kwargs.get("spec_block_assoc_name", None)
+        if not spec_block_assoc_name:
+            try:
+                spec_name = kwargs["spec_name"]
+                spec_block_name = kwargs["spec_block_name"]
+                spec_block_assoc_name = f"{spec_name}#{spec_block_name}"
+            except KeyError as msg:
+                raise KeyError(
+                    "Either spec_block_assoc_name or (spec_name and spec_block_name) required",
+                ) from msg
+        spec_block_assoc = await SpecBlockAssociation.get_row_by_fullname(
+            session,
+            spec_block_assoc_name,
+        )
         return {
-            "spec_block_id": spec_block.id,
+            "spec_block_assoc_id": spec_block_assoc.id,
             "parent_id": step.id,
             "name": name,
             "fullname": f"{parent_name}/{name}",
