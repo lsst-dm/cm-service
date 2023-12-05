@@ -60,12 +60,12 @@ async def test_step_db(session: async_scoped_session) -> None:
     assert len(check_gone) == 0
 
     check_here = await db.Step.get_rows(session, parent_id=camps[1].id, parent_class=db.Campaign)
-    assert len(check_here) == 5
+    assert len(check_here) == 8
 
     await db.Step.delete_row(session, steps1[0].id)
 
     check_here = await db.Step.get_rows(session, parent_id=camps[1].id, parent_class=db.Campaign)
-    assert len(check_here) == 4
+    assert len(check_here) == 7
 
     # Finish clean up
     await db.Production.delete_row(session, prod.id)
