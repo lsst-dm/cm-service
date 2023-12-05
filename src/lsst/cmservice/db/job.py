@@ -116,7 +116,7 @@ class Job(Base, ElementMixin):
     col_names_for_table = [
         "id",
         "fullname",
-        "spec_block_id",
+        "spec_block_assoc_id",
         "handler",
         "wms_job_id",
         "stamp_url",
