@@ -22,8 +22,6 @@ class ScriptErrorBase(BaseModel):
 class ScriptErrorCreate(ScriptErrorBase):
     """Parameters that are used to create new rows but not in DB tables"""
 
-    pass
-
 
 class ScriptError(ScriptErrorBase):
     """Parameters that are in DB tables and not used to create new rows"""

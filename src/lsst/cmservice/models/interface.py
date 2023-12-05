@@ -20,8 +20,6 @@ class FullnameQuery(BaseModel):
 class NodeQuery(FullnameQuery):
     """Parameters needed to run query for Node"""
 
-    pass
-
 
 class UpdateNodeQuery(NodeQuery):
     """Parameters needed to update a Node"""
@@ -118,5 +116,3 @@ class LoadAndCreateCampaign(YamlFileQuery):
 
 class LoadManifestReport(YamlFileQuery, FullnameQuery):
     """Parameters needed to load a report produced by pipetask report"""
-
-    pass

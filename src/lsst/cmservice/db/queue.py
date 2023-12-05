@@ -199,7 +199,8 @@ class Queue(Base, NodeMixin):
         process_kwargs: dict = {}
         if isinstance(self.options, dict):
             process_kwargs.update(**self.options)
-        (changed, status) = await element.process(session, **process_kwargs)
+        (_changed, status) = await element.process(session, **process_kwargs)
+        # FIXME, use _chagned to retry
         now = datetime.now()
         update_dict = {"time_updated": now}
         if status.is_successful_element():

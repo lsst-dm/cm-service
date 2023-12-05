@@ -23,9 +23,9 @@ class SpecBlock(Base, RowMixin):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(index=True)
     handler: Mapped[str | None] = mapped_column()
-    data: Mapped[dict | list | None] = mapped_column(type_=JSON)
-    collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
-    child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    data: Mapped[dict | None] = mapped_column(type_=JSON)
+    collections: Mapped[dict | None] = mapped_column(type_=JSON)
+    child_config: Mapped[dict | None] = mapped_column(type_=JSON)
     scripts: Mapped[dict | list | None] = mapped_column(type_=JSON)
     spec_aliases: Mapped[dict | list | None] = mapped_column(type_=JSON)
 

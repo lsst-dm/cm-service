@@ -27,8 +27,6 @@ class SpecBlockBase(BaseModel):
 class SpecBlockCreate(SpecBlockBase):
     """Parameters that are used to create new rows but not in DB tables"""
 
-    pass
-
 
 class SpecBlock(SpecBlockBase):
     """Parameters that are in DB tables and not used to create new rows"""

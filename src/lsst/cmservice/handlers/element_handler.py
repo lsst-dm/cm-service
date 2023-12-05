@@ -89,7 +89,7 @@ class ElementHandler(Handler):
                 status = StatusEnum.ready
                 changed = True
         if status == StatusEnum.ready:
-            (had_changed, status) = await self.prepare(session, node)
+            (has_changed, status) = await self.prepare(session, node)
             if has_changed:
                 changed = True
         if status == StatusEnum.prepared:
@@ -105,7 +105,7 @@ class ElementHandler(Handler):
                 if has_changed:
                     changed = True
         if status == StatusEnum.reviewable:
-            (has_chagned, status) = await self.review(session, node, *kwargs)
+            (has_changed, status) = await self.review(session, node, *kwargs)
             if has_changed:
                 changed = True
         if status != orig_status:
@@ -155,6 +155,8 @@ class ElementHandler(Handler):
             spec_name = spec.name
 
         spec_aliases = await element.get_spec_aliases(session)
+        if not spec_block.scripts:
+            return (True, StatusEnum.prepared)
 
         script_ids_dict = {}
         prereq_pairs = []
@@ -339,7 +341,7 @@ class ElementHandler(Handler):
                 await job_.update_values(session, status=fake_status)
                 changed = True
             else:
-                (job_changed, job_status) = await job_.run_check(session)
+                (job_changed, _job_status) = await job_.run_check(session)
                 if job_changed:
                     changed = True
         return changed

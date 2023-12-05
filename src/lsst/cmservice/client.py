@@ -25,7 +25,7 @@ def get_object_by_fullname_function(
         params = models.FullnameQuery(
             fullname=fullname,
         )
-        results = obj._client.get(f"{query}", params=params.dict()).json()
+        results = obj.client.get(f"{query}", params=params.dict()).json()
         try:
             return parse_obj_as(response_model_class, results)
         except ValidationError as msg:
@@ -45,7 +45,7 @@ def get_node_property_function(
         params = models.NodeQuery(
             fullname=fullname,
         )
-        results = obj._client.get(f"{query}", params=params.dict()).json()
+        results = obj.client.get(f"{query}", params=params.dict()).json()
         try:
             return parse_obj_as(response_model_class, results)
         except ValidationError as msg:
@@ -65,7 +65,7 @@ def get_job_property_function(
         params = models.FullnameQuery(
             fullname=fullname,
         )
-        results = obj._client.get(f"{query}", params=params.dict()).json()
+        results = obj.client.get(f"{query}", params=params.dict()).json()
         try:
             return parse_obj_as(list[response_model_class], results)
         except ValidationError as msg:
@@ -85,12 +85,11 @@ def get_general_post_function(
         **kwargs: Any,
     ) -> response_model_class:
         params = query_class(**kwargs)
-        results = obj._client.post(f"{query}", content=params.json()).json()
+        results = obj.client.post(f"{query}", content=params.json()).json()
         try:
             if results_key is None:
                 return parse_obj_as(response_model_class, results)
-            else:
-                return parse_obj_as(response_model_class, results[results_key])
+            return parse_obj_as(response_model_class, results[results_key])
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 
@@ -104,7 +103,7 @@ def get_rows_no_parent_function(
     def get_rows(obj: CMClient) -> list[response_model_class]:
         the_list: list[response_model_class] = []
         params = {"skip": 0}
-        while (results := obj._client.get(f"{query}", params=params).json()) != []:
+        while (results := obj.client.get(f"{query}", params=params).json()) != []:
             the_list.extend(parse_obj_as(list[response_model_class], results))
             params["skip"] += len(results)
         return the_list
@@ -127,7 +126,7 @@ def get_rows_function(
             params["parent_id"] = parent_id
         if parent_name:
             params["parent_name"] = parent_name
-        while (results := obj._client.get(f"{query}", params=params).json()) != []:
+        while (results := obj.client.get(f"{query}", params=params).json()) != []:
             the_list.extend(parse_obj_as(list[response_model_class], results))
             params["skip"] += len(results)
         return the_list
@@ -144,7 +143,7 @@ def get_row_function(
         row_id: int,
     ) -> response_model_class:
         full_query = f"{query}/{row_id}"
-        results = obj._client.get(f"{full_query}").json()
+        results = obj.client.get(f"{full_query}").json()
         try:
             return parse_obj_as(response_model_class, results)
         except ValidationError as msg:
@@ -160,7 +159,7 @@ def create_row_function(
 ) -> Callable:
     def row_create(obj: CMClient, **kwargs: Any) -> response_model_class:
         params = create_model_class(**kwargs)
-        results = obj._client.post(f"{query}", content=params.json()).json()
+        results = obj.client.post(f"{query}", content=params.json()).json()
         try:
             return parse_obj_as(response_model_class, results)
         except ValidationError as msg:
@@ -180,7 +179,7 @@ def update_row_function(
     ) -> response_model_class:
         params = response_model_class(id=row_id, **kwargs)
         full_query = f"{query}/{row_id}"
-        results = obj._client.put(f"{full_query}", content=params.json()).json()
+        results = obj.client.put(f"{full_query}", content=params.json()).json()
         try:
             return parse_obj_as(response_model_class, results)
         except ValidationError as msg:
@@ -197,7 +196,7 @@ def delete_row_function(
         row_id: int,
     ) -> None:
         full_query = f"{query}/{row_id}"
-        obj._client.delete(f"{full_query}")
+        obj.client.delete(f"{full_query}")
 
     return row_delete
 
@@ -207,6 +206,10 @@ class CMClient:
 
     def __init__(self: CMClient, url: str) -> None:
         self._client = httpx.Client(base_url=url)
+
+    @property
+    def client(self):
+        return self._client
 
     get_element = get_object_by_fullname_function(models.Element, "get/element")
 
@@ -363,9 +366,9 @@ class CMClient:
 
     def queue_pause_until_next_check(
         self,
-        id: int,
+        row_id: int,
     ) -> None:
-        queue = self.queue_get(id)
+        queue = self.queue_get(row_id)
         delta_t = timedelta(seconds=queue.interval)
         next_check = queue.time_updated + delta_t
         now = datetime.now()
@@ -376,14 +379,14 @@ class CMClient:
 
     def queue_daemon(
         self,
-        id: int,
+        row_id: int,
     ) -> None:
         can_continue = True
         while can_continue:
-            self.queue_pause_until_next_check(id)
+            self.queue_pause_until_next_check(row_id)
             try:
-                can_continue = self.queue_process(id)
-            except Exception:
+                can_continue = self.queue_process(row_id)
+            except Exception:  # pylint: disable=broad-exception-caught
                 can_continue = True
 
     production_create = create_row_function(models.Production, models.ProductionCreate, "productions")

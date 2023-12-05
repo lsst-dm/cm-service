@@ -1,5 +1,6 @@
 import os
 from collections.abc import Mapping
+from typing import Any
 
 import yaml
 from sqlalchemy import select
@@ -24,7 +25,10 @@ from ..db.task_set import TaskSet
 from ..db.wms_task_report import WmsTaskReport
 
 
-def update_include_dict(orig_dict, include_dict):
+def update_include_dict(
+    orig_dict: dict[str, Any],
+    include_dict: dict[str, Any],
+) -> None:
     for key, val in include_dict.items():
         if isinstance(val, Mapping) and key in orig_dict:
             orig_dict[key].update(val)
@@ -47,7 +51,7 @@ async def create_spec_block(
         return None
     includes = config_values.pop("includes", [])
     block_data = config_values.copy()
-    include_data = {}
+    include_data: dict[str, Any] = {}
     for include_ in includes:
         if include_ in loaded_specs:
             update_include_dict(include_data, loaded_specs[include_])
@@ -55,14 +59,14 @@ async def create_spec_block(
             spec_block_ = await SpecBlock.get_row_by_fullname(session, include_)
             update_include_dict(
                 include_data,
-                dict(
-                    handler=spec_block_.handler,
-                    data=spec_block_.data,
-                    collections=spec_block_.collections,
-                    child_config=spec_block_.child_config,
-                    scripts=spec_block_.scripts,
-                    spec_aliases=spec_block_.spec_aliases,
-                ),
+                {
+                    "handler": spec_block_.handler,
+                    "data": spec_block_.data,
+                    "collections": spec_block_.collections,
+                    "child_config": spec_block_.child_config,
+                    "scripts": spec_block_.scripts,
+                    "spec_aliases": spec_block_.spec_aliases,
+                },
             )
 
     for include_key, include_val in include_data.items():

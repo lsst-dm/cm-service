@@ -16,8 +16,6 @@ class SpecificationBase(BaseModel):
 class SpecificationCreate(SpecificationBase):
     """Parameters that are used to create new rows but not in DB tables"""
 
-    pass
-
 
 class Specification(SpecificationBase):
     """Parameters that are in DB tables and not used to create new rows"""
