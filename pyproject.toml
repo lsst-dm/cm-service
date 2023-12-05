@@ -24,7 +24,7 @@ dynamic = ["version"]
 
 [project.scripts]
 cm-service = "lsst.cmservice.cli.commands:server"
-cm-client = "lsst.cmservice.cli.commands:client"
+cm-client = "lsst.cmservice.cli.commands:client_top"
 
 [project.urls]
 Homepage = "https://cm-service.lsst.io"
