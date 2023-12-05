@@ -208,7 +208,7 @@ class CMClient:
         self._client = httpx.Client(base_url=url)
 
     @property
-    def client(self):
+    def client(self) -> httpx.Client:
         return self._client
 
     get_element = get_object_by_fullname_function(models.Element, "get/element")
