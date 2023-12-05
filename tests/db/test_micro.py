@@ -14,6 +14,7 @@ async def test_micro(session: async_scoped_session) -> None:
         "examples/example_hsc_micro.yaml",
         "hsc_micro",
         "w_2023_41",
+        "hsc_micro#campaign",
     )
 
     changed, status = await interface.process(

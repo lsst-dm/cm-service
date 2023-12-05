@@ -1264,8 +1264,7 @@ async def load_and_create_campaign(  # pylint: disable=too-many-arguments
         pass
 
     if not spec_block_assoc_name:
-        spec_block = await specification.get_block(session, "campaign")
-        spec_block_assoc_name = f"{specification.name}#{spec_block.name}"
+        spec_block_assoc_name = f"{specification.name}#campaign"
 
     kwargs.update(
         spec_block_assoc_name=spec_block_assoc_name,
