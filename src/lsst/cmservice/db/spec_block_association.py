@@ -28,7 +28,7 @@ class SpecBlockAssociation(Base, RowMixin):
     spec_: Mapped[Specification] = relationship("Specification", viewonly=True)
     spec_block_: Mapped[SpecBlock] = relationship("SpecBlock", viewonly=True)
 
-    col_names_for_table = ["id", "fullname", "alias"]
+    col_names_for_table = ["id", "fullname", "spec_block_id"]
 
     @classmethod
     async def get_create_kwargs(
@@ -45,6 +45,6 @@ class SpecBlockAssociation(Base, RowMixin):
             "spec_id": spec.id,
             "spec_block_id": spec_block.id,
             "alias": alias,
-            "fullname": f"{spec_name}#{spec_block_name}",
+            "fullname": f"{spec_name}#{alias}",
         }
         return ret_dict

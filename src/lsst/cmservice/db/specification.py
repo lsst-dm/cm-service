@@ -1,15 +1,19 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
 from .row import RowMixin
-from .script_template import ScriptTemplate
-from .script_template_association import ScriptTemplateAssociation
-from .spec_block import SpecBlock
-from .spec_block_association import SpecBlockAssociation
+
+if TYPE_CHECKING:
+    from .script_template import ScriptTemplate
+    from .script_template_association import ScriptTemplateAssociation
+    from .spec_block import SpecBlock
+    from .spec_block_association import SpecBlockAssociation
 
 
 class Specification(Base, RowMixin):

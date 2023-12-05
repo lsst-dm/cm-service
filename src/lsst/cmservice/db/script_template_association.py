@@ -25,13 +25,13 @@ class ScriptTemplateAssociation(Base, RowMixin):
         ForeignKey("script_template.id", ondelete="CASCADE"),
         index=True,
     )
-    alias: Mapped[str | None] = mapped_column()
+    alias: Mapped[str] = mapped_column()
     fullname: Mapped[str] = mapped_column(unique=True)
 
     spec_: Mapped[Specification] = relationship("Specification", viewonly=True)
     script_template_: Mapped[ScriptTemplate] = relationship("ScriptTemplate", viewonly=True)
 
-    col_names_for_table = ["id", "fullname", "alias"]
+    col_names_for_table = ["id", "fullname", "script_template_id"]
 
     @classmethod
     async def get_create_kwargs(
@@ -48,6 +48,6 @@ class ScriptTemplateAssociation(Base, RowMixin):
             "spec_id": spec.id,
             "script_template_id": script_template.id,
             "alias": alias,
-            "fullname": f"{spec_name}#{script_template_name}",
+            "fullname": f"{spec_name}#{alias}",
         }
         return ret_dict

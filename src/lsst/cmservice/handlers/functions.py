@@ -1,4 +1,5 @@
 import os
+from collections.abc import Mapping
 
 import yaml
 from sqlalchemy import select
@@ -23,6 +24,14 @@ from ..db.task_set import TaskSet
 from ..db.wms_task_report import WmsTaskReport
 
 
+def update_include_dict(orig_dict, include_dict):
+    for key, val in include_dict.items():
+        if isinstance(val, Mapping) and key in orig_dict:
+            orig_dict[key].update(val)
+        else:
+            orig_dict[key] = val
+
+
 async def create_spec_block(
     session: async_scoped_session,
     config_values: dict,
@@ -41,20 +50,25 @@ async def create_spec_block(
     include_data = {}
     for include_ in includes:
         if include_ in loaded_specs:
-            include_data.update(loaded_specs[include_])
+            update_include_dict(include_data, loaded_specs[include_])
         else:
             spec_block_ = await SpecBlock.get_row_by_fullname(session, include_)
-            include_data.update(
-                handler=spec_block_.handler,
-                data=spec_block_.data,
-                collections=spec_block_.collections,
-                child_config=spec_block_.child_config,
-                scripts=spec_block_.scripts,
-                spec_aliases=spec_block_.spec_aliases,
+            update_include_dict(
+                include_data,
+                dict(
+                    handler=spec_block_.handler,
+                    data=spec_block_.data,
+                    collections=spec_block_.collections,
+                    child_config=spec_block_.child_config,
+                    scripts=spec_block_.scripts,
+                    spec_aliases=spec_block_.spec_aliases,
+                ),
             )
 
     for include_key, include_val in include_data.items():
-        if include_key not in block_data:
+        if include_key in block_data and isinstance(include_val, Mapping):
+            block_data[include_key].update(include_val)
+        else:
             block_data[include_key] = include_val
 
     handler = block_data.pop("handler", None)
@@ -199,11 +213,11 @@ async def add_steps(
                 f"child_config_ {child_name_} of {campaign.fullname} does contain 'spec_block'",
             )
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
-        spec_block = await specification.get_block(session, spec_block_name)
+        spec_block_assoc_name = f"{specification.name}#{spec_block_name}"
         new_step = await Step.create_row(
             session,
             name=child_name_,
-            spec_block_name=spec_block.fullname,
+            spec_block_assoc_name=spec_block_assoc_name,
             parent_name=campaign.fullname,
             **child_config_,
         )
@@ -239,11 +253,11 @@ async def add_groups(
         if spec_block_name is None:
             raise AttributeError(f"child_config_ {child_name_} of {step.fullname} does contain 'spec_block'")
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
-        spec_block = await specification.get_block(session, spec_block_name)
+        spec_block_assoc_name = f"{specification.name}#{spec_block_name}"
         await Group.create_row(
             session,
             name=f"group{i}",
-            spec_block_name=spec_block.fullname,
+            spec_block_assoc_name=spec_block_assoc_name,
             parent_name=step.fullname,
             **child_config_,
         )

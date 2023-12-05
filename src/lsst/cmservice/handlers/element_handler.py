@@ -150,10 +150,8 @@ class ElementHandler(Handler):
             Status of the processing
         """
         async with session.begin_nested():
-            await session.refresh(element, attribute_names=["spec_block_"])
-            spec_block = element.spec_block_
-            await session.refresh(spec_block, attribute_names=["spec_"])
-            spec = spec_block.spec_
+            spec_block = await element.get_spec_block(session)
+            spec = await element.get_specification(session)
             spec_name = spec.name
 
         spec_aliases = await element.get_spec_aliases(session)
@@ -171,15 +169,15 @@ class ElementHandler(Handler):
                 script_name = script_vals.pop("name")
             except KeyError as msg:
                 raise KeyError(f"Unnnamed Script block {script_vals}") from msg
-            script_spec_block = script_vals.get("spec_block", None)
-            if script_spec_block is None:
+            script_spec_block_name = script_vals.get("spec_block", None)
+            if script_spec_block_name is None:
                 raise AttributeError(f"Script block {script_name} does not contain spec_block")
-            script_spec_block = spec_aliases.get(script_spec_block, script_spec_block)
-            script_spec_block_fullname = f"{spec_name}#{script_spec_block}"
+            script_spec_block_name = spec_aliases.get(script_spec_block_name, script_spec_block_name)
+            script_spec_block_assoc_fullname = f"{spec_name}#{script_spec_block_name}"
             new_script = await Script.create_row(
                 session,
                 parent_level=element.level,
-                spec_block_name=script_spec_block_fullname,
+                spec_block_assoc_name=script_spec_block_assoc_fullname,
                 parent_name=element.fullname,
                 name=script_name,
                 **script_vals,

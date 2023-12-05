@@ -4,6 +4,7 @@
       - "${CM_CONFIGS}/example_hsc_micro_steps.yaml"
 - SpecBlock:
       name: hsc_micro_campaign
+      includes: ["base_campaign"]
       handler: lsst.cmservice.handlers.element_handler.ElementHandler
       collections:
           root: 'u/echarles/cm/hsc_rc2_micro'
