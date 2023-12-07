@@ -4,33 +4,24 @@
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#isr"
       child_config:
-          spec_block: group
           base_query: "instrument = 'HSC'"
-          split_method: split_by_query
           split_dataset: raw
           split_field: exposure
-          split_min_groups: 2
 - SpecBlock:
       name: hsc_micro_characterizeImage
       includes: ["step"]
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#characterizeImage"
       child_config:
-          spec_block: group
           base_query: "instrument = 'HSC'"
-          split_method: split_by_query
           split_dataset: raw
           split_field: exposure
-          split_min_groups: 2
 - SpecBlock:
       name: hsc_micro_calibrate
       includes: ["step"]
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#calibrate"
       child_config:
-          spec_block: group
           base_query: "instrument = 'HSC'"
-          split_method: split_by_query
           split_dataset: raw
           split_field: exposure
-          split_min_groups: 2

@@ -5,25 +5,30 @@
 - SpecBlock:
       name: hsc_micro_campaign
       includes: ["base_campaign"]
-      handler: lsst.cmservice.handlers.element_handler.ElementHandler
       collections:
           root: 'u/echarles/cm/hsc_rc2_micro'
           campaign_source: HSC/raw/RC2
-      child_config:
-          isr:
-              spec_block: hsc_micro_isr
-              child_config:
-                  base_query: "instrument = 'HSC'"
-          characterizeImage:
-              spec_block: hsc_micro_characterizeImage
-              prerequisites: ['isr']
-              child_config:
-                  base_query: "instrument = 'HSC'"
-          calibrate:
-              spec_block: hsc_micro_calibrate
-              prerequisites: ['characterizeImage']
-              child_config:
-                  base_query: "instrument = 'HSC'"
+      steps:
+          - Step:
+                name: isr
+                spec_block: hsc_micro_isr
+                child_config:
+                    split_method: split_by_query
+                    split_min_groups: 2
+          - Step:
+                name: characterizeImage
+                spec_block: hsc_micro_characterizeImage
+                prerequisites: ['isr']
+                child_config:
+                    split_method: split_by_query
+                    split_min_groups: 2
+          - Step:
+                name: calibrate
+                spec_block: hsc_micro_calibrate
+                prerequisites: ['characterizeImage']
+                child_config:
+                    split_method: split_by_query
+                    split_min_groups: 2
       data:
           butler_repo: '/repo/main'
           prod_area: 'output/archive'
@@ -32,30 +37,30 @@
 - Specification:
       name: hsc_micro
       script_templates:
-          - {script_template_name: bps_panda_script_template}
-          - {script_template_name: bps_panda_yaml_template}
-          - {script_template_name: stack_script_template}
+          - ScriptTemplateAssociation: {script_template_name: bps_panda_script_template}
+          - ScriptTemplateAssociation: {script_template_name: bps_panda_yaml_template}
+          - ScriptTemplateAssociation: {script_template_name: stack_script_template}
       spec_blocks:
-          - {spec_block_name: chain_create_script}
-          - {spec_block_name: chain_prepend_script}
-          - {spec_block_name: chain_collect_jobs_script}
-          - {spec_block_name: chain_collect_steps_script}
-          - {spec_block_name: tag_inputs_script}
-          - {spec_block_name: tag_create_script}
-          - {spec_block_name: tag_associate_script}
-          - {spec_block_name: prepare_step_script}
-          - {spec_block_name: validate_script}
-          - {spec_block_name: panda_submit_script}
-          - {spec_block_name: panda_report_script}
-          - {spec_block_name: manifest_report_script}
-          - {spec_block_name: run_jobs}
-          - {spec_block_name: run_groups}
-          - {spec_block_name: run_steps}
-          - {spec_block_name: job}
-          - {spec_block_name: group}
-          - {spec_block_name: step}
-          - {spec_block_name: base_campaign}
-          - {spec_block_name: hsc_micro_isr}
-          - {spec_block_name: hsc_micro_characterizeImage}
-          - {spec_block_name: hsc_micro_calibrate}
-          - {spec_block_name: hsc_micro_campaign, alias: campaign}
+          - SpecBlockAssociation: {spec_block_name: chain_create_script}
+          - SpecBlockAssociation: {spec_block_name: chain_prepend_script}
+          - SpecBlockAssociation: {spec_block_name: chain_collect_jobs_script}
+          - SpecBlockAssociation: {spec_block_name: chain_collect_steps_script}
+          - SpecBlockAssociation: {spec_block_name: tag_inputs_script}
+          - SpecBlockAssociation: {spec_block_name: tag_create_script}
+          - SpecBlockAssociation: {spec_block_name: tag_associate_script}
+          - SpecBlockAssociation: {spec_block_name: prepare_step_script}
+          - SpecBlockAssociation: {spec_block_name: validate_script}
+          - SpecBlockAssociation: {spec_block_name: panda_submit_script}
+          - SpecBlockAssociation: {spec_block_name: panda_report_script}
+          - SpecBlockAssociation: {spec_block_name: manifest_report_script}
+          - SpecBlockAssociation: {spec_block_name: run_jobs}
+          - SpecBlockAssociation: {spec_block_name: run_groups}
+          - SpecBlockAssociation: {spec_block_name: run_steps}
+          - SpecBlockAssociation: {spec_block_name: job}
+          - SpecBlockAssociation: {spec_block_name: group}
+          - SpecBlockAssociation: {spec_block_name: step}
+          - SpecBlockAssociation: {spec_block_name: base_campaign}
+          - SpecBlockAssociation: {spec_block_name: hsc_micro_isr}
+          - SpecBlockAssociation: {spec_block_name: hsc_micro_characterizeImage}
+          - SpecBlockAssociation: {spec_block_name: hsc_micro_calibrate}
+          - SpecBlockAssociation: {spec_block_name: hsc_micro_campaign, alias: campaign}
