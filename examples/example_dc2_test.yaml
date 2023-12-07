@@ -8,6 +8,12 @@
       collections:
           root: 'u/echarles/cm/dc2_test'
           campaign_source: /prod/raw/all
+          campaign_ancilllary_inputs:
+              - HSC/calib
+              - HSC/masks
+              - HSC/fgcmcal/lut/RC2
+              - refcats
+              - skymaps
       steps:
           - Step:
                 name: step1
