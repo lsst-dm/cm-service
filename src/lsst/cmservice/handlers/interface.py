@@ -1142,7 +1142,7 @@ async def add_groups(
 async def add_steps(
     session: async_scoped_session,
     fullname: str,
-    child_configs: dict,
+    step_config_list: list[dict[str, Any]],
 ) -> db.Campaign:
     """Add Steps to a `Campaign`
 
@@ -1154,7 +1154,7 @@ async def add_steps(
     fullname: str
         Full unique name for the parent `Campaign`
 
-    child_configs: dict,
+    step_config_list: list[dict[str, Any]]
         Configurations for the `Step`s to be created
 
     Returns
@@ -1170,7 +1170,7 @@ async def add_steps(
     """
 
     campaign = await db.Campaign.get_row_by_fullname(session, fullname)
-    result = await functions.add_steps(session, campaign, child_configs)
+    result = await functions.add_steps(session, campaign, step_config_list)
     await session.commit()
     return result
 

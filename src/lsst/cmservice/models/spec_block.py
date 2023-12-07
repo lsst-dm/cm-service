@@ -13,15 +13,17 @@ class SpecBlockBase(BaseModel):
     # Class of associated Handler
     handler: str | None = None
     # General Parameters
-    data: dict | list | None
+    data: dict | None
     # Parameters defining associated collection names
-    collections: dict | list | None
+    collections: dict | None
     # Configuration of child nodes associated to this node
-    child_config: dict | list | None
+    child_config: dict | None
     # Used to override Spec Block Configuration
-    spec_aliases: dict | list | None
+    spec_aliases: dict | None
     # Configuraiton of scripts associated to this Node
     scripts: dict | list | None
+    # Configuraiton of scripts associated to this Node
+    steps: dict | list | None
 
 
 class SpecBlockCreate(SpecBlockBase):

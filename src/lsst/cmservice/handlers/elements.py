@@ -315,7 +315,8 @@ class RunStepsScriptHandler(RunElementScriptHandler):
     ) -> StatusEnum:
         if not isinstance(parent, Campaign):
             raise ValueError(f"Can not run script {script} on {parent}")
-        child_configs = await parent.get_child_config(session)
+        spec_block = await parent.get_spec_block(session)
+        child_configs = spec_block.steps
         await add_steps(session, parent, child_configs)
         status = StatusEnum.prepared
         await script.update_values(session, status=status)

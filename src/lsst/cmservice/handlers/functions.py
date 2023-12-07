@@ -64,8 +64,9 @@ async def create_spec_block(
                     "data": spec_block_.data,
                     "collections": spec_block_.collections,
                     "child_config": spec_block_.child_config,
-                    "scripts": spec_block_.scripts,
                     "spec_aliases": spec_block_.spec_aliases,
+                    "scripts": spec_block_.scripts,
+                    "steps": spec_block_.steps,
                 },
             )
 
@@ -84,6 +85,7 @@ async def create_spec_block(
         collections=block_data.get("collections"),
         child_config=block_data.get("child_config"),
         scripts=block_data.get("scripts"),
+        steps=block_data.get("steps"),
     )
 
 
@@ -121,14 +123,25 @@ async def create_specification(
             specification = Specification(name=spec_name)
             session.add(specification)
 
-        for script_template_config_ in script_templates:
+        for script_list_item_ in script_templates:
+            try:
+                script_template_config_ = script_list_item_["ScriptTemplateAssociation"]
+            except KeyError as msg:
+                raise KeyError(
+                    f"Expected ScriptTemplateAssociation not {list(script_list_item_.keys())}",
+                ) from msg
             new_script_template_assoc = await ScriptTemplateAssociation.create_row(
                 session,
                 spec_name=spec_name,
                 **script_template_config_,
             )
             assert new_script_template_assoc
-        for spec_block_config_ in spec_blocks:
+        for spec_block_list_item_ in spec_blocks:
+            try:
+                spec_block_config_ = spec_block_list_item_["SpecBlockAssociation"]
+            except KeyError as msg:
+                raise KeyError(f"Expected SpecBlockAssociation not {list(script_list_item_.keys())}") from msg
+
             new_spec_block_assoc = await SpecBlockAssociation.create_row(
                 session,
                 spec_name=spec_name,
@@ -201,7 +214,7 @@ async def add_step_prerequisite(
 async def add_steps(
     session: async_scoped_session,
     campaign: Campaign,
-    child_configs: dict,
+    step_config_list: list[dict[str, dict]],
 ) -> Campaign:
     specification = await campaign.get_specification(session)
     spec_aliases = await campaign.get_spec_aliases(session)
@@ -210,11 +223,16 @@ async def add_steps(
     step_ids_dict = {step_.name: step_.id for step_ in current_steps}
 
     prereq_pairs = []
-    for child_name_, child_config_ in child_configs.items():
-        spec_block_name = child_config_.pop("spec_block")
+    for step_ in step_config_list:
+        try:
+            step_config_ = step_["Step"]
+        except KeyError as msg:
+            raise KeyError(f"Expecting Step not: {step_.keys()}") from msg
+        child_name_ = step_config_.pop("name")
+        spec_block_name = step_config_.pop("spec_block")
         if spec_block_name is None:
             raise AttributeError(
-                f"child_config_ {child_name_} of {campaign.fullname} does contain 'spec_block'",
+                f"Step {child_name_} of {campaign.fullname} does contain 'spec_block'",
             )
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
         spec_block_assoc_name = f"{specification.name}#{spec_block_name}"
@@ -223,11 +241,11 @@ async def add_steps(
             name=child_name_,
             spec_block_assoc_name=spec_block_assoc_name,
             parent_name=campaign.fullname,
-            **child_config_,
+            **step_config_,
         )
         await session.refresh(new_step)
         step_ids_dict[child_name_] = new_step.id
-        prereqs_names = child_config_.pop("prerequisites", [])
+        prereqs_names = step_config_.pop("prerequisites", [])
         prereq_pairs += [(child_name_, prereq_) for prereq_ in prereqs_names]
 
     for depend_name, prereq_name in prereq_pairs:

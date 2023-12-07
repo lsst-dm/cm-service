@@ -26,8 +26,9 @@ class SpecBlock(Base, RowMixin):
     data: Mapped[dict | None] = mapped_column(type_=JSON)
     collections: Mapped[dict | None] = mapped_column(type_=JSON)
     child_config: Mapped[dict | None] = mapped_column(type_=JSON)
+    spec_aliases: Mapped[dict | None] = mapped_column(type_=JSON)
     scripts: Mapped[dict | list | None] = mapped_column(type_=JSON)
-    spec_aliases: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    steps: Mapped[dict | list | None] = mapped_column(type_=JSON)
 
     col_names_for_table = ["id", "fullname", "handler"]
 
@@ -53,6 +54,7 @@ class SpecBlock(Base, RowMixin):
             "data": kwargs.get("data", {}),
             "collections": kwargs.get("collections", {}),
             "child_config": kwargs.get("child_config", {}),
-            "scripts": kwargs.get("scripts", {}),
             "spec_aliases": kwargs.get("spec_aliases", {}),
+            "scripts": kwargs.get("scripts", {}),
+            "steps": kwargs.get("steps", {}),
         }
