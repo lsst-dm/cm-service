@@ -892,6 +892,29 @@ def process(
 @action.command()
 @options.cmclient()
 @options.fullname()
+@options.status()
+@options.output()
+def reset_script(
+    client: CMClient,
+    fullname: options.PartialOption,
+    status: StatusEnum,
+    output: options.OutputEnum | None,
+) -> None:
+    """Reset as script to an earlier status
+
+    This will removed log files and
+    the script file, as needed.
+    """
+    result = client.reset_script(
+        fullname=fullname,
+        status=status,
+    )
+    _output_pydantic_object(result, output, db.Script.col_names_for_table)
+
+
+@action.command()
+@options.cmclient()
+@options.fullname()
 @options.script_name()
 @options.output()
 def retry_script(

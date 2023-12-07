@@ -881,6 +881,49 @@ async def process(
     raise ValueError(f"Tried to process an row from a table of type {node_type}")
 
 
+async def reset_script(
+    session: async_scoped_session,
+    fullname: str,
+    status: StatusEnum,
+) -> db.Script:
+    """Run a retry on a `Script`
+
+    Notes
+    -----
+    This can only be run on failed/rejected scripts
+
+    This will mark the current version of the
+    script as superseded and create a new version
+    of the Script
+
+    Parameters
+    ----------
+    session : async_scoped_session
+        DB session manager
+
+    fullname: str
+        Full unique name for the script
+
+    status: StatusEnum
+        Status to set script to
+
+    Returns
+    -------
+    script : Script
+        Script in question
+
+    Raises
+    ------
+    ValueError : Script was not in failed/rejected status
+
+    HTTPException : Code 404, Could not find Node
+    """
+    script = await db.Script.get_row_by_fullname(session, fullname)
+    _result = await script.reset_script(session, status)
+    await session.commit()
+    return script
+
+
 async def retry_script(
     session: async_scoped_session,
     fullname: str,

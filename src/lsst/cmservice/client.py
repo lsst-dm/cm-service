@@ -294,6 +294,8 @@ class CMClient:
 
     process = get_general_post_function(models.NodeQuery, tuple[bool, StatusEnum], "actions/process")
 
+    reset_script = get_general_post_function(models.UpdateStatusQuery, models.Script, "actions/reset_script")
+
     retry_script = get_general_post_function(models.ScriptQueryBase, models.Script, "actions/retry_script")
 
     rescue_script = get_general_post_function(models.ScriptQueryBase, models.Script, "actions/rescue_script")

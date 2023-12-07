@@ -134,3 +134,55 @@ class Handler:
             Status of the processing
         """
         raise NotImplementedError(f"{type(self)}.run_check")
+
+    async def reset(
+        self,
+        session: async_scoped_session,
+        node: NodeMixin,
+        to_status: StatusEnum,
+    ) -> StatusEnum:
+        """reset a `Node` to an earlier status
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        node: NodeMixin
+            The `Node` in question
+
+        to_status: StatusEnum
+            Status to reset the node to
+
+        Returns
+        -------
+        status : StatusEnum
+            Status of the processing
+        """
+        raise NotImplementedError(f"{type(self)}.process")
+
+    async def reset_script(
+        self,
+        session: async_scoped_session,
+        node: NodeMixin,
+        to_status: StatusEnum,
+    ) -> StatusEnum:
+        """reset a `Node` to an earlier status
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        node: NodeMixin
+            The `Node` in question
+
+        to_status: StatusEnum
+            Status to reset the node to
+
+        Returns
+        -------
+        status : StatusEnum
+            Status of the processing
+        """
+        raise NotImplementedError(f"{type(self)}.process")
