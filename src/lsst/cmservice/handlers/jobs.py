@@ -113,8 +113,9 @@ class BpsScriptHandler(ScriptHandler):
         command = f"bps --log-file {json_url} --no-log-tty submit {os.path.abspath(config_url)} > {log_url}"
 
         prepend = bps_script_template.data["text"].replace("{lsst_version}", lsst_version)
+        callback = f"cm-client action process --fullname {parent.fullname}"
 
-        await write_bash_script(script_url, command, prepend=prepend)
+        await write_bash_script(script_url, command, prepend=prepend, append=callback)
 
         workflow_config = bps_yaml_template.data.copy()
 
@@ -358,7 +359,8 @@ class ManifestReportScriptHandler(ScriptHandler):
         prepend = manifest_script_template.data["text"].replace("{lsst_version}", lsst_version)
 
         command = f"pipetask report {butler_repo} {graph_url} {report_url}"
-        await write_bash_script(script_url, command, prepend=prepend)
+        callback = f"cm-client action process --fullname {parent.fullname}"
+        await write_bash_script(script_url, command, prepend=prepend, append=callback)
 
         return StatusEnum.prepared
 
