@@ -356,6 +356,16 @@ class CMClient:
 
     queue_get = get_row_function(models.Queue, "queues")
 
+    def queue_sleep_time(
+        self,
+        row_id: int,
+    ) -> int:
+        results = self._client.get(f"queues/sleep_time/{row_id}").json()
+        try:
+            return parse_obj_as(int, results)
+        except ValidationError as msg:
+            raise ValueError(f"Bad response: {results}") from msg
+
     def queue_process(
         self,
         row_id: int,
@@ -371,10 +381,12 @@ class CMClient:
         row_id: int,
     ) -> None:
         queue = self.queue_get(row_id)
-        delta_t = timedelta(seconds=queue.interval)
+        sleep_time = self.queue_sleep_time(row_id)
+        wait_time = min(sleep_time, queue.interval)
+        delta_t = timedelta(seconds=wait_time)
         next_check = queue.time_updated + delta_t
         now = datetime.now()
-        print(now, next_check)
+        print(now, sleep_time, wait_time, next_check)
         if now < next_check:
             print("pausing")
             pause.until(next_check)
@@ -424,6 +436,26 @@ class CMClient:
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 
+    def get_element_all_scripts(
+        self,
+        fullname: str,
+        *,
+        remaining_only: bool = False,
+        skip_superseded: bool = True,
+    ) -> list[models.Script]:
+        params = models.ScriptQuery(
+            fullname=fullname,
+            script_name=None,
+            remaining_only=remaining_only,
+            skip_superseded=skip_superseded,
+        )
+        query = "get/element_all_scripts"
+        results = self._client.get(f"{query}", params=params.dict()).json()
+        try:
+            return parse_obj_as(list[models.Script], results)
+        except ValidationError as msg:
+            raise ValueError(f"Bad response: {results}") from msg
+
     def get_element_jobs(
         self,
         fullname: str,
@@ -440,5 +472,19 @@ class CMClient:
         results = self._client.get(f"{query}", params=params.dict()).json()
         try:
             return parse_obj_as(list[models.Job], results)
+        except ValidationError as msg:
+            raise ValueError(f"Bad response: {results}") from msg
+
+    def get_element_sleep(
+        self,
+        fullname: str,
+    ) -> int:
+        params = models.FullnameQuery(
+            fullname=fullname,
+        )
+        query = "get/element_sleep_time"
+        results = self._client.get(f"{query}", params=params.dict()).json()
+        try:
+            return parse_obj_as(int, results)
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg

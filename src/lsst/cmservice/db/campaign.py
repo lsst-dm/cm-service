@@ -20,6 +20,7 @@ from .spec_block_association import SpecBlockAssociation
 from .specification import Specification
 
 if TYPE_CHECKING:
+    from .job import Job
     from .script import Script
     from .step import Step
 
@@ -76,6 +77,13 @@ class Campaign(Base, ElementMixin):
     parent_: Mapped[Production] = relationship("Production", viewonly=True)
     s_: Mapped[list[Step]] = relationship("Step", viewonly=True)
     scripts_: Mapped[list[Script]] = relationship("Script", viewonly=True)
+    jobs_: Mapped[list[Job]] = relationship(
+        "Job",
+        primaryjoin="Campaign.id==Step.parent_id",
+        secondary="join(Step, Group).join(Job)",
+        secondaryjoin="and_(Step.id==Group.parent_id, Job.parent_id==Group.id)",
+        viewonly=True,
+    )
 
     col_names_for_table = ["id", "fullname", "spec_block_assoc_id", "handler", "status", "superseded"]
 

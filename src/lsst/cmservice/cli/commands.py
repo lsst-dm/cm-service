@@ -579,6 +579,20 @@ def element_scripts(
 @options.cmclient()
 @options.fullname()
 @options.output()
+def element_all_scripts(
+    client: CMClient,
+    fullname: str,
+    output: options.OutputEnum | None,
+) -> None:
+    """Get the Scripts used by a partiuclar element"""
+    result = client.get_element_all_scripts(fullname)
+    _output_pydantic_list(result, output, db.Script.col_names_for_table)
+
+
+@get.command()
+@options.cmclient()
+@options.fullname()
+@options.output()
 def element_jobs(
     client: CMClient,
     fullname: str,
@@ -587,6 +601,20 @@ def element_jobs(
     """Get the Jobs used by a partiuclar element"""
     result = client.get_element_jobs(fullname)
     _output_pydantic_list(result, output, db.Job.col_names_for_table)
+
+
+@get.command()
+@options.cmclient()
+@options.fullname()
+@options.output()
+def element_sleep(
+    client: CMClient,
+    fullname: str,
+    output: options.OutputEnum | None,
+) -> None:
+    """Get the Jobs used by a partiuclar element"""
+    result = client.get_element_sleep(fullname)
+    _output_dict({"sleep": result}, output)
 
 
 @get.command()
@@ -1172,7 +1200,7 @@ def queue_delete(
 @options.row_id()
 def queue_dameon(
     client: CMClient,
-    **kwargs: Any,
+    row_id: int,
 ) -> None:
     """Update a production"""
-    client.queue_daemon(**kwargs)
+    client.queue_daemon(row_id)

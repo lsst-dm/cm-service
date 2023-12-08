@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -107,6 +108,54 @@ class ElementMixin(NodeMixin):
                 ret_list.append(job_)
         return ret_list
 
+    async def get_all_scripts(
+        self,
+        session: async_scoped_session,
+        *,
+        remaining_only: bool = False,
+        skip_superseded: bool = True,
+    ) -> list[Script]:
+        """Return all the scripts associated to an ELement
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        remaining_only: bool
+            If True only include Jobs that are not already accepted
+
+        skip_superseded: bool
+            If True don't inlcude Jobs that are marked superseded
+
+        Returns
+        -------
+        scripts : List[Script]
+            The requested Scripts
+        """
+        ret_list = await self.get_scripts(
+            session,
+            script_name=None,
+            remaining_only=remaining_only,
+            skip_superseded=skip_superseded,
+        )
+        children = await self.children(session)
+        for child_ in children:
+            ret_list += await child_.get_all_scripts(
+                session,
+                remaining_only=remaining_only,
+                skip_superseded=skip_superseded,
+            )
+        return ret_list
+
+    async def children(
+        self,
+        session: async_scoped_session,
+    ) -> Iterable:
+        """Maps to [] for consistency"""
+        assert session
+        return []
+
     async def retry_script(
         self,
         session: async_scoped_session,
@@ -209,3 +258,20 @@ class ElementMixin(NodeMixin):
             raise ValueError(f"Expected at least one accepted job for {self.fullname}, got 0")
         await session.commit()
         return ret_list
+
+    async def estimate_sleep_time(
+        self,
+        session: async_scoped_session,
+        job_sleep: int = 150,
+        script_sleep: int = 15,
+    ) -> int:
+        sleep_time = 10
+        all_jobs = await self.get_jobs(session)
+        for job_ in all_jobs:
+            if job_.status == StatusEnum.running:
+                sleep_time = max(job_sleep, sleep_time)
+        all_scripts = await self.get_all_scripts(session)
+        for script_ in all_scripts:
+            if script_.status == StatusEnum.running:
+                sleep_time = max(script_sleep, sleep_time)
+        return sleep_time

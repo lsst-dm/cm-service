@@ -199,6 +199,26 @@ async def get_element_scripts(
 
 
 @router.get(
+    "/element_all_scripts",
+    response_model=list[models.Script],
+    summary="Get the scripts associated to an Element",
+)
+async def get_element_all_scripts(
+    fullname: str,
+    *,
+    remaining_only: bool = False,
+    skip_superseded: bool = True,
+    session: async_scoped_session = Depends(db_session_dependency),
+) -> list[db.Script]:
+    return await interface.get_all_scripts(
+        session,
+        fullname=fullname,
+        remaining_only=remaining_only,
+        skip_superseded=skip_superseded,
+    )
+
+
+@router.get(
     "/element_jobs",
     response_model=list[models.Job],
     summary="Get the jobs associated to an Element",
@@ -215,6 +235,25 @@ async def get_element_jobs(
         fullname=fullname,
         remaining_only=remaining_only,
         skip_superseded=skip_superseded,
+    )
+
+
+@router.get(
+    "/element_sleep_time",
+    response_model=int,
+    summary="Estimate the time to finish process an element",
+)
+async def get_element_sleep(
+    fullname: str,
+    job_sleep: int = 150,
+    script_sleep: int = 15,
+    session: async_scoped_session = Depends(db_session_dependency),
+) -> int:
+    return await interface.estimate_sleep(
+        session,
+        fullname=fullname,
+        job_sleep=job_sleep,
+        script_sleep=script_sleep,
     )
 
 
