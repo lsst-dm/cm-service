@@ -28,7 +28,7 @@ class ScriptTemplate(Base, RowMixin):
     name: Mapped[str] = mapped_column(index=True)
     data: Mapped[dict | list | None] = mapped_column(type_=JSON)
 
-    col_names_for_table = ["id", "fullname"]
+    col_names_for_table = ["id", "name"]
 
     @hybrid_property
     def fullname(self) -> str:

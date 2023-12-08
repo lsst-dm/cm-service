@@ -30,7 +30,7 @@ class SpecBlock(Base, RowMixin):
     scripts: Mapped[dict | list | None] = mapped_column(type_=JSON)
     steps: Mapped[dict | list | None] = mapped_column(type_=JSON)
 
-    col_names_for_table = ["id", "fullname", "handler"]
+    col_names_for_table = ["id", "name", "handler"]
 
     @hybrid_property
     def fullname(self) -> str:

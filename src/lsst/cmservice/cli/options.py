@@ -17,6 +17,7 @@ __all__ = [
     "child_config",
     "child_configs",
     "data",
+    "fake_status",
     "fullname",
     "interval",
     "handler",
@@ -173,6 +174,14 @@ data = PartialOption(
     "--data",
     type=DictParamType(),
     help="data values to update",
+)
+
+
+fake_status = PartialOption(
+    "--fake_status",
+    type=EnumChoice(StatusEnum),
+    default=None,
+    help="Status to set for Element",
 )
 
 
