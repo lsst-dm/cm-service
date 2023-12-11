@@ -11,7 +11,7 @@ async def test_productions_api(client: AsyncClient) -> None:
     pids = [4]
 
     # Get list; verify first batch all there and dead one missing
-    response = await client.get(f"{config.prefix}/productions")
+    response = await client.get(f"{config.prefix}/productions/list")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)

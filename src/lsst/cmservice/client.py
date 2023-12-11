@@ -103,7 +103,7 @@ def get_rows_no_parent_function(
     def get_rows(obj: CMClient) -> list[response_model_class]:
         the_list: list[response_model_class] = []
         params = {"skip": 0}
-        while (results := obj.client.get(f"{query}/list", params=params).json()) != []:
+        while (results := obj.client.get(f"{query}", params=params).json()) != []:
             the_list.extend(parse_obj_as(list[response_model_class], results))
             params["skip"] += len(results)
         return the_list
@@ -126,7 +126,7 @@ def get_rows_function(
             params["parent_id"] = parent_id
         if parent_name:
             params["parent_name"] = parent_name
-        while (results := obj.client.get(f"{query}/list", params=params).json()) != []:
+        while (results := obj.client.get(f"{query}", params=params).json()) != []:
             the_list.extend(parse_obj_as(list[response_model_class], results))
             params["skip"] += len(results)
         return the_list
