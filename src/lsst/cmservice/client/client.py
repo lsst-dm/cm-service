@@ -8,8 +8,13 @@ import httpx
 import pause
 from pydantic import BaseModel, ValidationError, parse_obj_as
 
-from . import models
-from .common.enums import StatusEnum
+from .. import models
+from ..common.enums import StatusEnum
+from .campaigns import CMCampaignClient
+from .groups import CMGroupClient
+from .jobs import CMJobClient
+from .queries import CMQueryClient
+from .steps import CMStepClient
 
 __all__ = ["CMClient"]
 
@@ -206,65 +211,15 @@ class CMClient:
 
     def __init__(self: CMClient, url: str) -> None:
         self._client = httpx.Client(base_url=url)
+        self.campaign = CMCampaignClient(self)
+        self.step = CMStepClient(self)
+        self.group = CMGroupClient(self)
+        self.job = CMJobClient(self)
+        self.query = CMQueryClient(self)
 
     @property
     def client(self) -> httpx.Client:
         return self._client
-
-    get_element = get_object_by_fullname_function(models.Element, "get/element")
-
-    get_script = get_object_by_fullname_function(models.Script, "get/script")
-
-    get_job = get_object_by_fullname_function(models.Job, "get/job")
-
-    get_spec_block = get_object_by_fullname_function(models.SpecBlock, "get/spec_block")
-
-    get_specification = get_object_by_fullname_function(models.Specification, "get/specification")
-
-    get_resolved_collections = get_node_property_function(dict, "get/resolved_collections")
-
-    get_collections = get_node_property_function(dict, "get/collections")
-
-    get_child_config = get_node_property_function(dict, "get/child_config")
-
-    get_spec_aliases = get_node_property_function(dict, "get/spec_aliases")
-
-    get_data_dict = get_node_property_function(dict, "get/data_dict")
-
-    get_prerequisites = get_node_property_function(dict, "get/prerequisites")
-
-    get_job_task_sets = get_job_property_function(models.TaskSet, "get/job/task_sets")
-
-    get_job_wms_reports = get_job_property_function(models.WmsTaskReport, "get/job/wms_reports")
-
-    get_job_product_sets = get_job_property_function(models.ProductSet, "get/job/product_sets")
-
-    get_job_errors = get_job_property_function(models.PipetaskError, "get/job/errors")
-
-    update_status = get_general_post_function(models.UpdateStatusQuery, StatusEnum, "update/status", "status")
-
-    update_collections = get_general_post_function(
-        models.UpdateNodeQuery,
-        dict,
-        "update/collections",
-        "collections",
-    )
-
-    update_data_dict = get_general_post_function(models.UpdateNodeQuery, dict, "update/data_dict", "data")
-
-    update_spec_aliases = get_general_post_function(
-        models.UpdateNodeQuery,
-        dict,
-        "update/spec_aliases",
-        "spec_aliases",
-    )
-
-    update_child_config = get_general_post_function(
-        models.UpdateNodeQuery,
-        dict,
-        "update/child_config",
-        "child_config",
-    )
 
     add_groups = get_general_post_function(models.AddGroups, list[models.Group], "add/groups")
 
@@ -311,45 +266,6 @@ class CMClient:
         list[models.PipetaskError],
         "actions/rematch_errors",
     )
-
-    get_productions = get_rows_no_parent_function(models.Production, "productions/list")
-
-    get_campaigns = get_rows_function(models.Campaign, "campaigns/list")
-
-    get_steps = get_rows_function(models.Step, "steps/list")
-
-    get_groups = get_rows_function(models.Group, "groups/list")
-
-    get_jobs = get_rows_function(models.Job, "jobs/list")
-
-    get_scripts = get_rows_function(models.Script, "scripts/list")
-
-    get_specifications = get_rows_no_parent_function(models.Specification, "specifications/list")
-
-    get_spec_blocks = get_rows_no_parent_function(models.SpecBlock, "spec_blocks/list")
-
-    get_script_templates = get_rows_no_parent_function(models.ScriptTemplate, "script_templates/list")
-
-    get_pipetask_error_types = get_rows_no_parent_function(
-        models.PipetaskErrorType,
-        "pipetask_error_types/list",
-    )
-
-    get_pipetask_errors = get_rows_no_parent_function(models.PipetaskError, "pipetask_errors/list")
-
-    get_script_errors = get_rows_no_parent_function(models.ScriptError, "script_errors/list")
-
-    get_task_sets = get_rows_no_parent_function(models.TaskSet, "task_sets/list")
-
-    get_product_sets = get_rows_no_parent_function(models.ProductSet, "product_sets/list")
-
-    get_wms_task_reports = get_rows_no_parent_function(models.WmsTaskReport, "wms_task_reports/list")
-
-    get_queues = get_rows_no_parent_function(models.Queue, "queues/list")
-
-    get_script_dependencies = get_rows_no_parent_function(models.Dependency, "script_dependencies/list")
-
-    get_step_dependencies = get_rows_no_parent_function(models.Dependency, "step_dependencies/list")
 
     queue_create = create_row_function(models.Queue, models.QueueCreate, "queues")
 
@@ -405,18 +321,6 @@ class CMClient:
                 can_continue = self.queue_process(row_id)
             except Exception:  # pylint: disable=broad-exception-caught
                 can_continue = True
-
-    production_create = create_row_function(models.Production, models.ProductionCreate, "productions")
-
-    production_update = update_row_function(models.Production, "productions")
-
-    production_delete = delete_row_function("productions")
-
-    campaign_create = create_row_function(models.Campaign, models.CampaignCreate, "campaigns")
-
-    campaign_update = update_row_function(models.Campaign, "campaigns")
-
-    campaign_delete = delete_row_function("campaigns")
 
     def get_element_scripts(
         self,

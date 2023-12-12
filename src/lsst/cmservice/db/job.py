@@ -41,6 +41,7 @@ class Job(Base, ElementMixin):
     """
 
     __tablename__ = "job"
+    class_string = "job"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     spec_block_assoc_id: Mapped[int] = mapped_column(

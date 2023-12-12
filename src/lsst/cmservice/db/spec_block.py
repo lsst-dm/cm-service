@@ -19,6 +19,7 @@ class SpecBlock(Base, RowMixin):
     """
 
     __tablename__ = "spec_block"
+    class_string = "spec_block"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(index=True)

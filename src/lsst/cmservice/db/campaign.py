@@ -41,6 +41,7 @@ class Campaign(Base, ElementMixin):
 
     __tablename__ = "campaign"
     __table_args__ = (UniqueConstraint("parent_id", "name"),)  # Name must be unique within parent production
+    class_string = "campaign"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     spec_block_assoc_id: Mapped[int] = mapped_column(

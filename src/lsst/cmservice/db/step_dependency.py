@@ -24,6 +24,7 @@ class StepDependency(Base, RowMixin):
     """
 
     __tablename__ = "step_dependency"
+    class_string = "step_dependency"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     prereq_id: Mapped[int] = mapped_column(ForeignKey("step.id", ondelete="CASCADE"), index=True)

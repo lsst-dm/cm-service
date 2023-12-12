@@ -17,7 +17,7 @@ class FullnameQuery(BaseModel):
     fullname: str
 
 
-class NodeQuery(FullnameQuery):
+class NodeQuery(BaseModel):
     """Parameters needed to run query for Node"""
 
 

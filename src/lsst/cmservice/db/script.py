@@ -38,6 +38,7 @@ class Script(Base, NodeMixin):
     """
 
     __tablename__ = "script"
+    class_string = "script"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     spec_block_assoc_id: Mapped[int] = mapped_column(

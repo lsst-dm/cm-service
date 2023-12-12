@@ -18,6 +18,7 @@ class Production(Base, RowMixin):
     """Database table to associated a set of related `Campaign`s"""
 
     __tablename__ = "production"
+    class_string = "production"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(index=True, unique=True)

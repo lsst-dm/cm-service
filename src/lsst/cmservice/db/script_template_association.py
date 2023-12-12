@@ -18,6 +18,7 @@ class ScriptTemplateAssociation(Base, RowMixin):
     """
 
     __tablename__ = "script_template_association"
+    class_string = "script_template_association"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     spec_id: Mapped[int] = mapped_column(ForeignKey("specification.id", ondelete="CASCADE"), index=True)

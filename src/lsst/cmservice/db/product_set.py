@@ -15,6 +15,7 @@ class ProductSet(Base, RowMixin):
     """Count by status of numbers of files of a particular type"""
 
     __tablename__ = "product_set"
+    class_string = "product_set"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     job_id: Mapped[int] = mapped_column(ForeignKey("job.id", ondelete="CASCADE"), index=True)

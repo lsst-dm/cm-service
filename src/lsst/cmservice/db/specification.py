@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
 class Specification(Base, RowMixin):
     __tablename__ = "specification"
+    class_string = "specification"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(index=True)
