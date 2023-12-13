@@ -103,8 +103,8 @@ def get_row_command(
     ) -> None:
         """Get a single row"""
         sub_client = getattr(client, sub_client_name)
-        result = sub_client.get_rows()
-        _output_pydantic_list(result, output, db_class.col_names_for_table)
+        result = sub_client.get_row(row_id)
+        _output_pydantic_object(result, output, db_class.col_names_for_table)
 
     return get_row
 
@@ -214,6 +214,8 @@ def get_specification_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    assert db_class
+
     @group_command(name="specification")
     @options.cmclient()
     @options.row_id()
@@ -236,6 +238,8 @@ def get_resolved_collections_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    assert db_class
+
     @group_command(name="resolved_collections")
     @options.cmclient()
     @options.row_id()
@@ -258,6 +262,8 @@ def get_collections_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    assert db_class
+
     @group_command(name="collections")
     @options.cmclient()
     @options.row_id()
@@ -280,6 +286,8 @@ def get_child_config_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    assert db_class
+
     @group_command(name="child_config")
     @options.cmclient()
     @options.row_id()
@@ -302,6 +310,8 @@ def get_data_dict_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    assert db_class
+
     @group_command(name="data_dict")
     @options.cmclient()
     @options.row_id()
@@ -324,6 +334,8 @@ def get_spec_aliases_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    assert db_class
+
     @group_command(name="spec_alias")
     @options.cmclient()
     @options.row_id()
@@ -346,6 +358,8 @@ def get_update_status_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    assert db_class
+
     @group_command(name="status")
     @options.cmclient()
     @options.row_id()
@@ -373,6 +387,8 @@ def get_update_collections_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    assert db_class
+
     @group_command(name="collections")
     @options.cmclient()
     @options.row_id()
@@ -400,6 +416,8 @@ def get_update_child_config_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    assert db_class
+
     @group_command(name="child_config")
     @options.cmclient()
     @options.row_id()
@@ -427,6 +445,8 @@ def get_update_data_dict_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    assert db_class
+
     @group_command(name="data_dict")
     @options.cmclient()
     @options.row_id()
@@ -454,6 +474,8 @@ def get_update_spec_aliases_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    assert db_class
+
     @group_command(name="spec_aliases")
     @options.cmclient()
     @options.row_id()
@@ -481,6 +503,8 @@ def get_action_process_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    assert db_class
+
     @group_command()
     @options.cmclient()
     @options.row_id()
@@ -508,6 +532,8 @@ def get_action_run_check_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    assert db_class
+
     @group_command(name="run_check")
     @options.cmclient()
     @options.row_id()
@@ -515,7 +541,6 @@ def get_action_run_check_command(
     def run_check(
         client: CMClient,
         row_id: int,
-        fake_status: StatusEnum | None,
         output: options.OutputEnum | None,
     ) -> None:
         """Check the status of a node"""
