@@ -10,7 +10,7 @@ tag_string = "Script Dependencies"
 
 
 router = APIRouter(
-    prefix="/{db_class.class_string}",
+    prefix=f"/{db_class.class_string}",
     tags=[tag_string],
 )
 

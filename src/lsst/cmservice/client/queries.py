@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import httpx
+from pydantic import ValidationError, parse_obj_as
 
 from .. import models
 from . import wrappers
@@ -39,6 +40,10 @@ class CMQueryClient:
 
     get_script_templates = wrappers.get_rows_no_parent_function(models.ScriptTemplate, "script_template/list")
 
+    get_step_dependencies = wrappers.get_rows_function(models.Dependency, "step_dependency/list")
+
+    get_script_dependencies = wrappers.get_rows_function(models.Dependency, "script_dependency/list")
+
     get_pipetask_error_types = wrappers.get_rows_no_parent_function(
         models.PipetaskErrorType,
         "pipetask_error_type/list",
@@ -53,6 +58,8 @@ class CMQueryClient:
     get_product_sets = wrappers.get_rows_no_parent_function(models.ProductSet, "product_set/list")
 
     get_wms_task_reports = wrappers.get_rows_no_parent_function(models.WmsTaskReport, "wms_task_report/list")
+
+    get_queues = wrappers.get_rows_no_parent_function(models.Queue, "queue/list")
 
     get_element = wrappers.get_object_by_fullname_function(models.Element, "get/element")
 
@@ -83,3 +90,77 @@ class CMQueryClient:
     get_job_product_sets = wrappers.get_job_property_function(models.ProductSet, "get/job/product_sets")
 
     get_job_errors = wrappers.get_job_property_function(models.PipetaskError, "get/job/errors")
+
+    def get_element_scripts(
+        self,
+        fullname: str,
+        script_name: str,
+        *,
+        remaining_only: bool = False,
+        skip_superseded: bool = True,
+    ) -> list[models.Script]:
+        params = models.ScriptQuery(
+            fullname=fullname,
+            script_name=script_name,
+            remaining_only=remaining_only,
+            skip_superseded=skip_superseded,
+        )
+        query = "get/element_scripts"
+        results = self._client.get(f"{query}", params=params.dict()).json()
+        try:
+            return parse_obj_as(list[models.Script], results)
+        except ValidationError as msg:
+            raise ValueError(f"Bad response: {results}") from msg
+
+    def get_element_all_scripts(
+        self,
+        fullname: str,
+        *,
+        remaining_only: bool = False,
+        skip_superseded: bool = True,
+    ) -> list[models.Script]:
+        params = models.ScriptQuery(
+            fullname=fullname,
+            script_name=None,
+            remaining_only=remaining_only,
+            skip_superseded=skip_superseded,
+        )
+        query = "get/element_all_scripts"
+        results = self._client.get(f"{query}", params=params.dict()).json()
+        try:
+            return parse_obj_as(list[models.Script], results)
+        except ValidationError as msg:
+            raise ValueError(f"Bad response: {results}") from msg
+
+    def get_element_jobs(
+        self,
+        fullname: str,
+        *,
+        remaining_only: bool = False,
+        skip_superseded: bool = True,
+    ) -> list[models.Job]:
+        params = models.JobQuery(
+            fullname=fullname,
+            remaining_only=remaining_only,
+            skip_superseded=skip_superseded,
+        )
+        query = "get/element_jobs"
+        results = self._client.get(f"{query}", params=params.dict()).json()
+        try:
+            return parse_obj_as(list[models.Job], results)
+        except ValidationError as msg:
+            raise ValueError(f"Bad response: {results}") from msg
+
+    def get_element_sleep(
+        self,
+        fullname: str,
+    ) -> int:
+        params = models.FullnameQuery(
+            fullname=fullname,
+        )
+        query = "get/element_sleep_time"
+        results = self._client.get(f"{query}", params=params.dict()).json()
+        try:
+            return parse_obj_as(int, results)
+        except ValidationError as msg:
+            raise ValueError(f"Bad response: {results}") from msg

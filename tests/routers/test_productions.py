@@ -11,7 +11,7 @@ async def test_productions_api(client: AsyncClient) -> None:
     pids = [4]
 
     # Get list; verify first batch all there and dead one missing
-    response = await client.get(f"{config.prefix}/productions/list")
+    response = await client.get(f"{config.prefix}/production/list")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
@@ -20,7 +20,7 @@ async def test_productions_api(client: AsyncClient) -> None:
     assert pids_expected <= pids_retrieved
 
     # Verify an individual get
-    response = await client.get(f"{config.prefix}/productions/{pids[0]}")
+    response = await client.get(f"{config.prefix}/production/get/{data[0]['id']}")
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == pids[0]

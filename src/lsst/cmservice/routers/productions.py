@@ -10,7 +10,7 @@ tag_string = "Productions"
 
 
 router = APIRouter(
-    prefix=f"/{db_class.class_string}s",
+    prefix=f"/{db_class.class_string}",
     tags=[tag_string],
 )
 

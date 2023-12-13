@@ -15,7 +15,8 @@ if TYPE_CHECKING:
 class PipetaskErrorType(Base, RowMixin):
     """Database table to keep track of types of errors from Pipetask tasks"""
 
-    __tablename__ = "error_type"
+    __tablename__ = "pipetask_error_type"
+    class_string = "pipetask_error_type"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     source: Mapped[ErrorSourceEnum] = mapped_column(type_=SqlErrorSourceEnum)
