@@ -1,10 +1,15 @@
+"""CLI to manage Group table"""
 from .. import db
 from . import wrappers
 from .commands import group_group
 
+# Template specialization
+# Specify the cli path to attach these commands to
 cli_group = group_group
+# Specify the associated database table
 db_class = db.Group
 
+# Construct derived templates
 group_command = cli_group.command
 sub_client = db_class.class_string
 
@@ -33,6 +38,7 @@ def action() -> None:
 action_command = action.command
 
 
+# Add functions to the router
 get_rows = wrappers.get_list_command(group_command, sub_client, db_class)
 
 create = wrappers.get_create_command(group_command, sub_client, db_class)

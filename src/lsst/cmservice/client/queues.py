@@ -1,3 +1,4 @@
+"""python for client API for managing Group tables"""
 from __future__ import annotations
 
 from datetime import datetime, timedelta
@@ -7,15 +8,26 @@ import httpx
 import pause
 from pydantic import ValidationError, parse_obj_as
 
-from .. import models
+from .. import db, models
 from . import wrappers
 
 if TYPE_CHECKING:
     from .client import CMClient
 
+# Template specialization
+# Specify the pydantic model for Group
+response_model_class = models.Queue
+# Specify the pydantic model from making new Groups
+create_model_class = models.QueueCreate
+# Specify the associated database table
+db_class = db.Queue
+
+# Construct derived templates
+router_string = f"{db_class.class_string}"
+
 
 class CMQueueClient:
-    """Interface for accessing remote cm-service."""
+    """Interface for accessing remote cm-service to manipulate Queue Tables"""
 
     def __init__(self, parent: CMClient) -> None:
         self._client = parent.client
@@ -24,13 +36,25 @@ class CMQueueClient:
     def client(self) -> httpx.Client:
         return self._client
 
-    create = wrappers.create_row_function(models.Queue, models.QueueCreate, "queues")
+    # Add functions to the client class
+    get_rows = wrappers.get_rows_no_parent_function(response_model_class, f"{router_string}/list")
 
-    update = wrappers.update_row_function(models.Queue, "queues")
+    get_row = wrappers.get_row_function(response_model_class, f"{router_string}/get")
 
-    delete = wrappers.delete_row_function("queues")
+    # get_row_by_fullname =
 
-    get = wrappers.get_row_function(models.Queue, "queues")
+    create = wrappers.create_row_function(
+        response_model_class,
+        create_model_class,
+        f"{router_string}/create",
+    )
+
+    update = wrappers.update_row_function(
+        response_model_class,
+        f"{router_string}/update",
+    )
+
+    delete = wrappers.delete_row_function(f"{router_string}/delete")
 
     def sleep_time(
         self,

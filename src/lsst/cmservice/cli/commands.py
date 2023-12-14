@@ -13,6 +13,7 @@ from ..config import config
 T = TypeVar("T")
 
 
+# build the server CLI
 @click.group()
 @click.version_option(package_name="lsst-cm-service")
 def server() -> None:
@@ -37,10 +38,14 @@ def run(port: int) -> None:  # pragma: no cover
     uvicorn.run("lsst.cmservice.main:app", host="0.0.0.0", port=port, reload=True, reload_dirs=["src"])
 
 
+# Build the client CLI
 @click.group(name="client")
 @click.version_option(package_name="lsst-cm-service")
 def client_top() -> None:
     """Administrative command-line interface client-side commands."""
+
+
+# Construct client sub-command groups
 
 
 @client_top.group(name="get")

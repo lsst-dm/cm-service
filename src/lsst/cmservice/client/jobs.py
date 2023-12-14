@@ -1,3 +1,4 @@
+"""python for client API for managing Job tables"""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -11,14 +12,20 @@ from . import wrappers
 if TYPE_CHECKING:
     from .client import CMClient
 
+# Template specialization
+# Specify the pydantic model for Job
 response_model_class = models.Job
+# Specify the pydantic model from making new Jobs
 create_model_class = models.JobCreate
+# Specify the associated database table
 db_class = db.Job
+
+# Construct derived templates
 router_string = f"{db_class.class_string}"
 
 
 class CMJobClient:
-    """Interface for accessing remote cm-service."""
+    """Interface for accessing remote cm-service to manipulate Job Tables"""
 
     def __init__(self, parent: CMClient) -> None:
         self._client = parent.client

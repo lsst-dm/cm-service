@@ -1,3 +1,5 @@
+"""python for client API for managing Campaign tables"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -11,14 +13,21 @@ from . import wrappers
 if TYPE_CHECKING:
     from .client import CMClient
 
+# Template specialization
+# Specify the pydantic model for Campaign
 response_model_class = models.Campaign
+# Specify the pydantic model from making new Campaigns
 create_model_class = models.CampaignCreate
+# Specify the associated database table
 db_class = db.Campaign
+
+# Construct derived templates
 router_string = f"{db_class.class_string}"
 
 
 class CMCampaignClient:
-    """Interface for accessing remote cm-service."""
+    """Interface for accessing remote cm-service to manipulate
+    Campaign Tables"""
 
     def __init__(self, parent: CMClient) -> None:
         self._client = parent.client
@@ -27,6 +36,7 @@ class CMCampaignClient:
     def client(self) -> httpx.Client:
         return self._client
 
+    # Add functions to the client class
     get_rows = wrappers.get_rows_no_parent_function(response_model_class, f"{router_string}/list")
 
     get_row = wrappers.get_row_function(response_model_class, f"{router_string}/get")

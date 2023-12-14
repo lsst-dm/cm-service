@@ -1,3 +1,4 @@
+"""python for client API for managing Production tables"""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -10,14 +11,21 @@ from . import wrappers
 if TYPE_CHECKING:
     from .client import CMClient
 
+# Template specialization
+# Specify the pydantic model for Production
 response_model_class = models.Production
+# Specify the pydantic model from making new Production
 create_model_class = models.ProductionCreate
+# Specify the associated database table
 db_class = db.Production
+
+# Construct derived templates
 router_string = f"{db_class.class_string}"
 
 
 class CMProductionClient:
-    """Interface for accessing remote cm-service."""
+    """Interface for accessing remote cm-service to manipulate
+    Production Tables"""
 
     def __init__(self, parent: CMClient) -> None:
         self._client = parent.client
@@ -26,6 +34,7 @@ class CMProductionClient:
     def client(self) -> httpx.Client:
         return self._client
 
+    # Add functions to the client class
     get_rows = wrappers.get_rows_no_parent_function(response_model_class, f"{router_string}/list")
 
     get_row = wrappers.get_row_function(response_model_class, f"{router_string}/get")

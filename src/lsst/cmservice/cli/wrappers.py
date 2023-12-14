@@ -1,3 +1,12 @@
+"""Wrappers to create functions for the various parts of the CLI
+
+These wrappers create functions that invoke interface
+functions that are defined in the db.row.RowMixin,
+db.node.NodeMixin, and db.element.ElementMixin classes.
+
+These make it easier to define router functions that
+apply to all RowMixin, NodeMixin and ElementMixin classes."""
+
 import json
 from collections.abc import Callable, Sequence
 from typing import Any, TypeAlias
@@ -17,6 +26,19 @@ def _output_pydantic_object(
     output: options.OutputEnum | None,
     col_names: list[str] | None = None,
 ) -> None:
+    """Render a single object as requested
+
+    Parameters
+    ----------
+    model: BaseModel
+        Object in question
+
+    output: options.OutputEnum | None
+        Output format
+
+    col_names: list[str] | None = None
+        Names for columns in tabular representation
+    """
     match output:
         case options.OutputEnum.json:
             click.echo(json.dumps(model.dict(), indent=4))
@@ -33,6 +55,19 @@ def _output_pydantic_list(
     output: options.OutputEnum | None,
     col_names: Sequence[str] | None = None,
 ) -> None:
+    """Render a sequences of objects as requested
+
+    Parameters
+    ----------
+    models: Sequence[BaseModel]
+        Objects in question
+
+    output: options.OutputEnum | None
+        Output format
+
+    col_names: list[str] | None = None
+        Names for columns in tabular representation
+    """
     the_table = []
     for model_ in models:
         match output:
@@ -57,6 +92,16 @@ def _output_dict(
     the_dict: dict,
     output: options.OutputEnum | None,
 ) -> None:
+    """Render a python dict as requested
+
+    Parameters
+    ----------
+    the_dict: dict
+        The dict in question
+
+    output: options.OutputEnum | None
+        Output format
+    """
     match output:
         case options.OutputEnum.json:
             click.echo(json.dumps(the_dict, indent=4))
@@ -72,7 +117,30 @@ def get_list_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
-    @group_command(name="list", help="list dem rows")
+    """Return a function that gets all the rows from a table
+    and attaches that function to the cli.
+
+    This version will provide a function that always returns
+    all the rows
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that return all the rows for the table in question
+    """
+
+    @group_command(name="list", help="list rows in table")
     @options.cmclient()
     @options.output()
     def get_rows(
@@ -92,6 +160,26 @@ def get_row_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    """Return a function that gets a row from a table
+    and attaches that function to the cli.
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that returns the row for the table in question
+    """
+
     @group_command(name="all")
     @options.cmclient()
     @options.row_id()
@@ -114,6 +202,26 @@ def get_create_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    """Return a function that creates a new row in the table
+    and attaches that function to the cli.
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that creates a row in the table
+    """
+
     @group_command(name="create")
     @options.cmclient()
     @options.name()
@@ -143,6 +251,26 @@ def get_update_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    """Return a function that updates a row in the table
+    and attaches that function to the cli.
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that updates a row in the table
+    """
+
     @group_command(name="all")
     @options.cmclient()
     @options.row_id()
@@ -173,6 +301,23 @@ def get_delete_command(
     group_command: Callable,
     sub_client_name: str,
 ) -> Callable:
+    """Return a function that delets a row in the table
+    and attaches that function to the cli.
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    Returns
+    -------
+    the_function: Callable
+        Function that deletes a row in the table
+    """
+
     @group_command(name="delete")
     @options.cmclient()
     @options.row_id()
@@ -192,6 +337,26 @@ def get_spec_block_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    """Return a function that gets the spec_block from a row in the table
+    and attaches that function to the cli.
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that returns the spec_block from a row
+    """
+
     @group_command(name="get_spec_block")
     @options.cmclient()
     @options.row_id()
@@ -214,6 +379,25 @@ def get_specification_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    """Return a function that gets the specification from a row in the table
+    and attaches that function to the cli.
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that returns the specification from a row
+    """
     assert db_class
 
     @group_command(name="specification")
@@ -238,6 +422,25 @@ def get_resolved_collections_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    """Return a function that gets the resolved collection names
+    from a row in the table and attaches that function to the cli.
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that returns the resolved collection names from a row
+    """
     assert db_class
 
     @group_command(name="resolved_collections")
@@ -262,6 +465,25 @@ def get_collections_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    """Return a function that gets the collection names
+    from a row in the table and attaches that function to the cli.
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that returns the collection names from a row
+    """
     assert db_class
 
     @group_command(name="collections")
@@ -286,6 +508,25 @@ def get_child_config_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    """Return a function that gets the child_config
+    from a row in the table and attaches that function to the cli.
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that returns the child_config from a row
+    """
     assert db_class
 
     @group_command(name="child_config")
@@ -310,6 +551,25 @@ def get_data_dict_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    """Return a function that gets the data_dict
+    from a row in the table and attaches that function to the cli.
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that returns the data_dict from a row
+    """
     assert db_class
 
     @group_command(name="data_dict")
@@ -334,6 +594,25 @@ def get_spec_aliases_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    """Return a function that gets the spec_aliases
+    from a row in the table and attaches that function to the cli.
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that returns the spec_aliases from a row
+    """
     assert db_class
 
     @group_command(name="spec_alias")
@@ -358,6 +637,25 @@ def get_update_status_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    """Return a function that updates the status
+    of row in the table and attaches that function to the cli.
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that updates the status of a row
+    """
     assert db_class
 
     @group_command(name="status")
@@ -387,6 +685,25 @@ def get_update_collections_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    """Return a function that updates the collection names
+    of row in the table and attaches that function to the cli.
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that updates the collections names of a row
+    """
     assert db_class
 
     @group_command(name="collections")
@@ -416,6 +733,25 @@ def get_update_child_config_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    """Return a function that updates the collection names
+    of row in the table and attaches that function to the cli.
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that updates the collections names of a row
+    """
     assert db_class
 
     @group_command(name="child_config")
@@ -445,6 +781,25 @@ def get_update_data_dict_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    """Return a function that updates the data_dict
+    of row in the table and attaches that function to the cli.
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that updates the data_dict of a row
+    """
     assert db_class
 
     @group_command(name="data_dict")
@@ -474,6 +829,25 @@ def get_update_spec_aliases_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    """Return a function that updates the spec_aliases
+    of row in the table and attaches that function to the cli.
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that updates the spec_aliases of a row
+    """
     assert db_class
 
     @group_command(name="spec_aliases")
@@ -503,6 +877,25 @@ def get_action_process_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    """Return a function that processes a
+    row in the table and attaches that function to the cli.
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that processes a row
+    """
     assert db_class
 
     @group_command()
@@ -532,6 +925,25 @@ def get_action_run_check_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    """Return a function that checks the status of a
+    row in the table and attaches that function to the cli.
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that checks the status a row
+    """
     assert db_class
 
     @group_command(name="run_check")
@@ -556,6 +968,26 @@ def get_action_accept_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    """Return a function that marks a row in the table as accepted
+    and attaches that function to the cli.
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that marks a row in the table as accepted
+    """
+
     @group_command(name="accept")
     @options.cmclient()
     @options.row_id()
@@ -578,6 +1010,26 @@ def get_action_reject_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    """Return a function that marks a row in the table as rejected
+    and attaches that function to the cli.
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that marks a row in the table as rejected
+    """
+
     @group_command(name="reject")
     @options.cmclient()
     @options.row_id()
@@ -600,6 +1052,26 @@ def get_action_reset_command(
     sub_client_name: str,
     db_class: TypeAlias,
 ) -> Callable:
+    """Return a function that resets the status of a row in the table
+    and attaches that function to the cli.
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that resets the status of a row in the table
+    """
+
     @group_command(name="reset")
     @options.cmclient()
     @options.row_id()

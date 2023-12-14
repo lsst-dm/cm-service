@@ -1,3 +1,23 @@
+"""python client API
+
+Much of this API is built using function templates defined in
+lsst.cmservice.client.wrappers and is implemeted as many sub-clients.
+
+Most of these sub-clients implement functions that manipulate individual
+database tables.   Those will typically define a few variables
+that specify which table is being manipulated, and then populate the
+sub-client class using the wrapper template functions.
+
+The exceptions to this pattern are:
+
+index: top-level index
+actions: specfic database actions
+adders: adding things to the database (such as campaigns, steps or groups)
+loaders: reading yaml files an loading objects into the database
+queries: getting objects from the database
+"""
+
+
 from .actions import CMActionClient
 from .adders import CMAddClient
 from .campaigns import CMCampaignClient

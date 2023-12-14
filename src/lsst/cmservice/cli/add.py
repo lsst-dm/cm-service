@@ -29,7 +29,7 @@ def groups(
 @options.fullname()
 @options.output()
 @options.child_configs()
-def steps_(
+def steps(
     client: CMClient,
     fullname: options.PartialOption,
     child_configs: dict,

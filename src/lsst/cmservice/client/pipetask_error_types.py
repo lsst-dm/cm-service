@@ -1,3 +1,4 @@
+"""python for client API for managing PipetaskErrorType tables"""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -10,14 +11,21 @@ from . import wrappers
 if TYPE_CHECKING:
     from .client import CMClient
 
+# Template specialization
+# Specify the pydantic model for PipetaskErrorType
 response_model_class = models.PipetaskErrorType
+# Specify the pydantic model from making new PipetaskErrorTypes
 create_model_class = models.PipetaskErrorTypeCreate
+# Specify the associated database table
 db_class = db.PipetaskErrorType
+
+# Construct derived templates
 router_string = f"{db_class.class_string}"
 
 
 class CMPipetaskErrorTypeClient:
-    """Interface for accessing remote cm-service."""
+    """Interface for accessing remote cm-service to manipulate
+    PipetaskErrorType Tables"""
 
     def __init__(self, parent: CMClient) -> None:
         self._client = parent.client
