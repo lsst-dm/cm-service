@@ -80,7 +80,7 @@ class CMQueueClient:
         self,
         row_id: int,
     ) -> None:
-        queue = self.get(row_id)
+        queue = self.get_row(row_id)
         sleep_time = self.sleep_time(row_id)
         wait_time = min(sleep_time, queue.interval)
         delta_t = timedelta(seconds=wait_time)
