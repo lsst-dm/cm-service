@@ -18,6 +18,7 @@ from tabulate import tabulate
 
 from ..client.client import CMClient
 from ..common.enums import StatusEnum
+from ..db import SpecBlock, Specification
 from . import options
 
 
@@ -357,7 +358,7 @@ def get_spec_block_command(
         Function that returns the spec_block from a row
     """
 
-    @group_command(name="get_spec_block")
+    @group_command(name="spec_block")
     @options.cmclient()
     @options.row_id()
     @options.output()
@@ -369,7 +370,7 @@ def get_spec_block_command(
         """Get the SpecBlock associated to a Node"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_spec_block(row_id)
-        _output_pydantic_object(result, output, db_class.col_names_for_table)
+        _output_pydantic_object(result, output, SpecBlock.col_names_for_table)
 
     return get_spec_block
 
@@ -412,7 +413,7 @@ def get_specification_command(
         """Get the Specification associated to a Node"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_specification(row_id)
-        _output_pydantic_object(result, output, db_class.col_names_for_table)
+        _output_pydantic_object(result, output, Specification.col_names_for_table)
 
     return get_specification
 
@@ -671,11 +672,11 @@ def get_update_status_command(
     ) -> None:
         """Update the status of a particular Node"""
         sub_client = getattr(client, sub_client_name)
-        status = sub_client.update_status(
+        result = sub_client.update_status(
             row_id=row_id,
             status=status,
         )
-        _output_dict({"status": status}, output)
+        _output_pydantic_object(result, output, db_class.col_names_for_table)
 
     return update_status
 

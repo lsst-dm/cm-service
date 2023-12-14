@@ -69,7 +69,7 @@ def action() -> None:
 
 
 @client_top.group(name="production")
-def production() -> None:
+def production_group() -> None:
     """Manage production table"""
 
 

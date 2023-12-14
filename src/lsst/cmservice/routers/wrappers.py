@@ -637,7 +637,7 @@ def update_node_status_function(
         session: async_scoped_session = Depends(db_session_dependency),
     ) -> response_model_class:
         the_node = await db_class.get_row(session, row_id)
-        return await the_node.update_status(session, query.status)
+        return await the_node.update_values(session, status=query.status)
 
     return update_node_status
 
@@ -747,7 +747,7 @@ def update_node_data_dict_function(
         Function that updates the data_dict associated to a Node.
     """
 
-    @router.get(
+    @router.post(
         "/update/{row_id}/data_dict",
         response_model=response_model_class,
         summary=f"Update the data_dict associated to a {db_class.class_string}",
@@ -787,7 +787,7 @@ def update_node_spec_aliases_function(
         Function that updates the spec_aliases associated to a Node.
     """
 
-    @router.get(
+    @router.post(
         "/update/{row_id}/spec_aliases",
         response_model=response_model_class,
         summary=f"Update the spec_aliases associated to a {db_class.class_string}",
@@ -981,17 +981,18 @@ def get_node_process_function(
     the_function: Callable
         Function that causes a Node to be processed.
     """
+    assert response_model_class
 
     @router.post(
         "/action/{row_id}/process",
         status_code=201,
-        response_model=response_model_class,
+        response_model=tuple[bool, StatusEnum],
         summary=f"Mark a {db_class.class_string} as processed",
     )
     async def node_process(
         row_id: int,
         session: async_scoped_session = Depends(db_session_dependency),
-    ) -> response_model_class:
+    ) -> tuple[bool, StatusEnum]:
         the_node = await db_class.get_row(session, row_id)
         return await the_node.process(session)
 
@@ -1021,17 +1022,18 @@ def get_node_run_check_function(
     the_function: Callable
         Function that checks the status of a Node
     """
+    assert response_model_class
 
     @router.post(
         "/action/{row_id}/run_check",
         status_code=201,
-        response_model=response_model_class,
+        response_model=tuple[bool, StatusEnum],
         summary=f"Mark a {db_class.class_string} as run_checked",
     )
     async def node_run_check(
         row_id: int,
         session: async_scoped_session = Depends(db_session_dependency),
-    ) -> response_model_class:
+    ) -> tuple[bool, StatusEnum]:
         the_node = await db_class.get_row(session, row_id)
         return await the_node.run_check(session)
 

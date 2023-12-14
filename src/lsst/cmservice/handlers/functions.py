@@ -4,6 +4,7 @@ from typing import Any
 
 import yaml
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from lsst.ctrl.bps.wms_service import WmsRunReport
@@ -130,12 +131,15 @@ async def create_specification(
                 raise KeyError(
                     f"Expected ScriptTemplateAssociation not {list(script_list_item_.keys())}",
                 ) from msg
-            new_script_template_assoc = await ScriptTemplateAssociation.create_row(
-                session,
-                spec_name=spec_name,
-                **script_template_config_,
-            )
-            assert new_script_template_assoc
+            try:
+                new_script_template_assoc = await ScriptTemplateAssociation.create_row(
+                    session,
+                    spec_name=spec_name,
+                    **script_template_config_,
+                )
+                assert new_script_template_assoc
+            except IntegrityError:
+                print("ScriptTemplateAssociation already defined, skipping it")
         for spec_block_list_item_ in spec_blocks:
             try:
                 spec_block_config_ = spec_block_list_item_["SpecBlockAssociation"]
@@ -143,12 +147,15 @@ async def create_specification(
                 raise KeyError(
                     f"Expected SpecBlockAssociation not {list(spec_block_list_item_.keys())}",
                 ) from msg
-            new_spec_block_assoc = await SpecBlockAssociation.create_row(
-                session,
-                spec_name=spec_name,
-                **spec_block_config_,
-            )
-            assert new_spec_block_assoc
+            try:
+                new_spec_block_assoc = await SpecBlockAssociation.create_row(
+                    session,
+                    spec_name=spec_name,
+                    **spec_block_config_,
+                )
+                assert new_spec_block_assoc
+            except IntegrityError:
+                print("SpecBlockAssociation already defined, skipping it")
         await session.commit()
         return specification
 

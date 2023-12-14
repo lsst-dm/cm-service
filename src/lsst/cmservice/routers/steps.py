@@ -42,6 +42,7 @@ get_collections = wrappers.get_node_collections_function(router, db_class)
 get_child_config = wrappers.get_node_child_config_function(router, db_class)
 get_data_dict = wrappers.get_node_data_dict_function(router, db_class)
 get_spec_aliases = wrappers.get_node_spec_aliases_function(router, db_class)
+update_status = wrappers.update_node_status_function(router, response_model_class, db_class)
 update_collections = wrappers.update_node_collections_function(
     router,
     response_model_class,

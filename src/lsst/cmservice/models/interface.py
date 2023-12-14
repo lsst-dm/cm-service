@@ -20,6 +20,8 @@ class FullnameQuery(BaseModel):
 class NodeQuery(BaseModel):
     """Parameters needed to run query for Node"""
 
+    fullname: str | None = None
+
 
 class UpdateNodeQuery(NodeQuery):
     """Parameters needed to update a Node"""

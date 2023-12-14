@@ -30,6 +30,7 @@ from . import (
     pipetask_error,
     pipetask_error_type,
     product_set,
+    production,
     query,
     queue,
     script,

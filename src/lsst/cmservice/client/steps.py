@@ -122,7 +122,7 @@ class CMStepClient:
     )
 
     accept = wrappers.get_node_post_no_query_function(
-        tuple[bool, StatusEnum],
+        response_model_class,
         f"{router_string}/action",
         "accept",
     )
@@ -140,7 +140,7 @@ class CMStepClient:
     )
 
     process = wrappers.get_node_post_no_query_function(
-        response_model_class,
+        tuple[bool, StatusEnum],
         f"{router_string}/action",
         "process",
     )
