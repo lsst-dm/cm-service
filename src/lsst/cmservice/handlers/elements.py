@@ -99,10 +99,10 @@ class RunJobsScriptHandler(RunElementScriptHandler):
             raise MissingScriptInputError(f"child_config for {script.fullname} does not contain spec_block")
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
         spec_block_assoc_name = f"{specification.name}#{spec_block_name}"
-        attempt = 0
         _new_job = await Job.create_row(
             session,
-            name=f"job_{attempt:03}",
+            name="job",
+            attempt=0,
             parent_name=parent.fullname,
             spec_block_assoc_name=spec_block_assoc_name,
             **child_config,

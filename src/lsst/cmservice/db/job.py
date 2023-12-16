@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import JSON
+from sqlalchemy import JSON, and_, select
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -50,6 +51,7 @@ class Job(Base, ElementMixin):
     )
     parent_id: Mapped[int] = mapped_column(ForeignKey("group.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(index=True)
+    attempt: Mapped[int] = mapped_column()
     fullname: Mapped[str] = mapped_column(unique=True)
     status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting, type_=SqlStatusEnum)
     superseded: Mapped[bool] = mapped_column(default=False)
@@ -134,6 +136,33 @@ class Job(Base, ElementMixin):
     def level(self) -> LevelEnum:
         return LevelEnum.job
 
+    async def get_siblings(
+        self,
+        session: async_scoped_session,
+    ) -> Sequence[Job]:
+        """Get the sibling Jobs
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        Returns
+        -------
+        siblings : List['Job']
+            Requested siblings
+        """
+        q = select(Job).where(
+            and_(
+                Job.parent_id == self.parent_id,
+                Job.name == self.name,
+                Job.id != self.id,
+            ),
+        )
+        async with session.begin_nested():
+            rows = await session.scalars(q)
+            return rows.all()
+
     def __repr__(self) -> str:
         return f"Job {self.fullname} {self.id} {self.status.name}"
 
@@ -145,6 +174,7 @@ class Job(Base, ElementMixin):
     ) -> dict:
         parent_name = kwargs["parent_name"]
         name = kwargs["name"]
+        attempt = kwargs.get("attempt", 0)
         parent = await Group.get_row_by_fullname(session, parent_name)
         spec_block_assoc_name = kwargs.get("spec_block_assoc_name", None)
         if not spec_block_assoc_name:
@@ -164,7 +194,8 @@ class Job(Base, ElementMixin):
             "spec_block_assoc_id": spec_block_assoc.id,
             "parent_id": parent.id,
             "name": name,
-            "fullname": f"{parent_name}/{name}",
+            "attempt": attempt,
+            "fullname": f"{parent_name}/{name}_{attempt:03}",
             "handler": kwargs.get("handler"),
             "data": kwargs.get("data", {}),
             "child_config": kwargs.get("child_config", {}),
@@ -192,4 +223,44 @@ class Job(Base, ElementMixin):
         new_job: Job
             Newly created Job
         """
-        raise NotImplementedError
+        siblings = await self.get_siblings(session)
+        skip_colls = []
+        attempt = 2
+        for sib_ in siblings:
+            attempt += 1
+            if sib_.status.rescuable and not sib_.superseded:
+                sib_colls = await sib_.resolve_collections(session)
+                skip_colls.append(sib_colls["job_run"])
+
+        self_colls = await self.resolve_collections(session)
+        skip_colls.append(self_colls["job_run"])
+        parent = await self.get_parent(session)
+
+        fullname = f"{parent.fullname}/{self.name}_{attempt:03}"
+        if self.data:
+            assert isinstance(self.data, dict)
+            data = self.data.copy()
+        else:
+            data = {}
+        data["rescue"] = True
+        data["skip_colls"] = ",".join(skip_colls)
+        new_job = Job(
+            spec_block_assoc_id=self.spec_block_assoc_id,
+            parent_id=self.parent_id,
+            name=self.name,
+            attempt=attempt,
+            fullname=fullname,
+            status=StatusEnum.waiting,
+            superseded=False,
+            handler=self.handler,
+            data=data,
+            child_config=self.child_config,
+            collections=self.collections,
+            spec_aliases=self.spec_aliases,
+            wms_job_id=None,
+            stamp_url=None,
+        )
+        async with session.begin_nested():
+            session.add(new_job)
+        await session.refresh(new_job)
+        return new_job
