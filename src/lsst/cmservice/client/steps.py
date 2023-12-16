@@ -17,6 +17,8 @@ if TYPE_CHECKING:
 response_model_class = models.Step
 # Specify the pydantic model from making new Step
 create_model_class = models.StepCreate
+# Specify the pydantic model from updating rows
+update_model_class = models.StepUpdate
 # Specify the associated database table
 db_class = db.Step
 
@@ -49,6 +51,7 @@ class CMStepClient:
 
     update = wrappers.update_row_function(
         response_model_class,
+        update_model_class,
         f"{router_string}/update",
     )
 

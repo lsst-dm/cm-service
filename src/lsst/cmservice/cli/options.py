@@ -47,7 +47,7 @@ __all__ = [
     "spec_block_assoc_name",
     "spec_name",
     "status",
-    "steps",
+    "superseded",
     "task_id",
     "task_name",
     "update_dict",
@@ -434,10 +434,10 @@ status = PartialOption(
 )
 
 
-steps = PartialOption(
-    "--steps",
-    type=DictParamType(),
-    help="Description of steps associated to a Campaign",
+superseded = PartialOption(
+    "--superseded",
+    is_flag=True,
+    help="Mark element as superseded",
 )
 
 

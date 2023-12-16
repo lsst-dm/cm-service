@@ -69,3 +69,31 @@ class Script(ScriptBase):
 
     class Config:
         orm_mode = True
+
+
+class ScriptUpdate(ScriptBase):
+    """Parameters that can be udpated"""
+
+    # Method used to process this script
+    method: ScriptMethodEnum = ScriptMethodEnum.slurm
+    # Override for Callback handler class
+    handler: str | None = None
+    # Parameter Overrides
+    data: dict | None = None
+    # Overrides for configuring child nodes
+    child_config: dict | None = None
+    # Overrides for making collection names
+    collections: dict | None = None
+    # URL for script file
+    script_url: str | None = None
+    # URL used to check script processing
+    stamp_url: str | None = None
+    # URL for processing log file
+    log_url: str | None = None
+    # Status of processing
+    status: StatusEnum = StatusEnum.waiting
+    # True is Script is superseded
+    superseded: bool = False
+
+    class Config:
+        orm_mode = True

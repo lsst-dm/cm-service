@@ -43,3 +43,21 @@ class Queue(QueueBase):
 
     class Config:
         orm_mode = True
+
+
+class QueueUpdate(QueueBase):
+    """Parameters that can be udpated"""
+
+    # Interval between calls to process
+    interval: float = 300.0
+    # Options based to process
+    options: dict | str | None = None
+    # When this was added to Queue
+    time_created: datetime
+    # Time last call to process finished
+    time_updated: datetime
+    # When processing of this element completed
+    time_finished: datetime | None
+
+    class Config:
+        orm_mode = True

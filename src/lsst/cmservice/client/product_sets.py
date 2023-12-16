@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 response_model_class = models.ProductSet
 # Specify the pydantic model from making new ProductSets
 create_model_class = models.ProductSetCreate
+# Specify the pydantic model from updating rows
+update_model_class = models.ProductSetUpdate
 # Specify the associated database table
 db_class = db.ProductSet
 
@@ -49,6 +51,7 @@ class CMProductSetClient:
 
     update = wrappers.update_row_function(
         response_model_class,
+        update_model_class,
         f"{router_string}/update",
     )
 

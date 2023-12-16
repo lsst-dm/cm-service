@@ -45,3 +45,19 @@ class TaskSet(TaskSetBase):
 
     class Config:
         orm_mode = True
+
+
+class TaskSetUpdate(TaskSetBase):
+    """Parameters that can be udpated"""
+
+    # Number of expected quanta run in the workflow
+    n_expected: int
+    # Number of quanta run sucessfully
+    n_done: int = 0
+    # Number of quanta that failed
+    n_failed: int = 0
+    # Number of quanta did not run b/c of upstream failures
+    n_failed_upstream: int = 0
+
+    class Config:
+        orm_mode = True

@@ -18,6 +18,8 @@ if TYPE_CHECKING:
 response_model_class = models.Campaign
 # Specify the pydantic model from making new Campaigns
 create_model_class = models.CampaignCreate
+# Specify the pydantic model from updating rows
+update_model_class = models.CampaignUpdate
 # Specify the associated database table
 db_class = db.Campaign
 
@@ -51,6 +53,7 @@ class CMCampaignClient:
 
     update = wrappers.update_row_function(
         response_model_class,
+        update_model_class,
         f"{router_string}/update",
     )
 

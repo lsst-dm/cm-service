@@ -4,7 +4,7 @@ These tables don't have anything beyond
 standard Element columns
 """
 
-from .element import ElementCreateMixin, ElementMixin
+from .element import ElementCreateMixin, ElementMixin, ElementUpdate
 
 
 class CampaignCreate(ElementCreateMixin):
@@ -16,3 +16,7 @@ class Campaign(ElementMixin):
 
     class Config:
         orm_mode = True
+
+
+class CampaignUpdate(ElementUpdate):
+    """Parameters that can be udpated"""

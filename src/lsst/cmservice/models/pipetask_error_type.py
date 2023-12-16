@@ -44,3 +44,10 @@ class PipetaskErrorType(PipetaskErrorTypeBase):
 
     class Config:
         orm_mode = True
+
+
+class PipetaskErrorTypeUpdate(PipetaskErrorTypeBase):
+    """Parameters that can be udpated"""
+
+    class Config:
+        orm_mode = True

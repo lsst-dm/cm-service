@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 response_model_class = models.PipetaskErrorType
 # Specify the pydantic model from making new PipetaskErrorTypes
 create_model_class = models.PipetaskErrorTypeCreate
+# Specify the pydantic model from updating rows
+update_model_class = models.PipetaskErrorTypeUpdate
 # Specify the associated database table
 db_class = db.PipetaskErrorType
 
@@ -48,6 +50,7 @@ class CMPipetaskErrorTypeClient:
 
     update = wrappers.update_row_function(
         response_model_class,
+        update_model_class,
         f"{router_string}/update",
     )
 

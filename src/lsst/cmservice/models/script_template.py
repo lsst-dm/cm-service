@@ -29,3 +29,13 @@ class ScriptTemplate(ScriptTemplateBase):
 
     class Config:
         orm_mode = True
+
+
+class ScriptTemplateUpdate(ScriptTemplateBase):
+    """Parameters that can be udpated"""
+
+    # Corresponding data
+    data: dict | list | None
+
+    class Config:
+        orm_mode = True

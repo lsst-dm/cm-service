@@ -23,6 +23,16 @@ create_options = [
     options.spec_block_assoc_name(),
     options.output(),
 ]
+update_options = [
+    options.cmclient(),
+    options.row_id(),
+    options.data(),
+    options.child_config(),
+    options.collections(),
+    options.spec_aliases(),
+    options.handler(),
+    options.output(),
+]
 
 
 # Construct derived templates
@@ -77,7 +87,7 @@ get_data_dict = wrappers.get_data_dict_command(get_command, sub_client, db_class
 
 get_spec_aliases = wrappers.get_spec_aliases_command(get_command, sub_client, db_class)
 
-update_row = wrappers.get_update_command(update_command, sub_client, db_class)
+update_row = wrappers.get_update_command(update_command, sub_client, db_class, update_options)
 
 update_status = wrappers.get_update_status_command(update_command, sub_client, db_class)
 

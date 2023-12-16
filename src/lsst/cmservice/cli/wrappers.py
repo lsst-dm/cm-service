@@ -248,6 +248,7 @@ def get_update_command(
     group_command: Callable,
     sub_client_name: str,
     db_class: TypeAlias,
+    update_options: list[Callable],
 ) -> Callable:
     """Return a function that updates a row in the table
     and attaches that function to the cli.
@@ -263,24 +264,15 @@ def get_update_command(
     db_class: TypeAlias = db.RowMixin
         Underlying database class
 
+    update_options: list[Callable]
+        Command line options for the create function
+
     Returns
     -------
     the_function: Callable
         Function that updates a row in the table
     """
 
-    @group_command(name="all")
-    @options.cmclient()
-    @options.row_id()
-    @options.name()
-    @options.parent_name()
-    @options.spec_block_name()
-    @options.data()
-    @options.child_config()
-    @options.collections()
-    @options.spec_aliases()
-    @options.handler()
-    @options.output()
     def update(
         client: CMClient,
         output: options.OutputEnum | None,
@@ -292,6 +284,10 @@ def get_update_command(
         result = sub_client.update(row_id, **kwargs)
         _output_pydantic_object(result, output, db_class.col_names_for_table)
 
+    for option_ in update_options:
+        update = option_(update)
+
+    update = group_command(name="update")(update)
     return update
 
 

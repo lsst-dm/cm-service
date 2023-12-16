@@ -280,6 +280,7 @@ def delete_row_function(
 def put_row_function(
     router: APIRouter,
     response_model_class: TypeAlias = BaseModel,
+    update_model_class: TypeAlias = BaseModel,
     db_class: TypeAlias = db.RowMixin,
 ) -> Callable:
     """Return a function that updates a single row in a table
@@ -291,7 +292,10 @@ def put_row_function(
         Router to attach the function to
 
     response_model_class: TypeAlias = BaseModel
-        Pydantic class used to serialize both the input and return values
+        Pydantic class used to serialize the return values
+
+    update_model_class: TypeAlias = BaseModel,
+        Pydantic class used to serialize the input values
 
     db_class: TypeAlias = db.RowMixin
         Underlying database class
@@ -309,7 +313,7 @@ def put_row_function(
     )
     async def update_row(
         row_id: int,
-        row_update: response_model_class,
+        row_update: update_model_class,
         session: async_scoped_session = Depends(db_session_dependency),
     ) -> db_class:
         return await db_class.update_row(session, row_id, **row_update.dict())

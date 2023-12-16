@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 response_model_class = models.SpecBlock
 # Specify the pydantic model from making new SpecBlocks
 create_model_class = models.SpecBlockCreate
+# Specify the pydantic model from updating rows
+update_model_class = models.SpecBlockUpdate
 # Specify the associated database table
 db_class = db.SpecBlock
 
@@ -49,6 +51,7 @@ class CMSpecBlockClient:
 
     update = wrappers.update_row_function(
         response_model_class,
+        update_model_class,
         f"{router_string}/update",
     )
 

@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 response_model_class = models.WmsTaskReport
 # Specify the pydantic model from making new WmsTaskReport
 create_model_class = models.WmsTaskReportCreate
+# Specify the pydantic model from updating rows
+update_model_class = models.WmsTaskReportUpdate
 # Specify the associated database table
 db_class = db.WmsTaskReport
 
@@ -49,6 +51,7 @@ class CMWmsTaskReportClient:
 
     update = wrappers.update_row_function(
         response_model_class,
+        update_model_class,
         f"{router_string}/update",
     )
 

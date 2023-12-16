@@ -17,6 +17,8 @@ if TYPE_CHECKING:
 response_model_class = models.Script
 # Specify the pydantic model from making new Scripts
 create_model_class = models.ScriptCreate
+# Specify the pydantic model from updating rows
+update_model_class = models.ScriptUpdate
 # Specify the associated database table
 db_class = db.Script
 
@@ -49,6 +51,7 @@ class CMScriptClient:
 
     update = wrappers.update_row_function(
         response_model_class,
+        update_model_class,
         f"{router_string}/update",
     )
 
