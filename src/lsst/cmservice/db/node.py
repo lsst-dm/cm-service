@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.orm.collections import InstrumentedList
 
 from ..common.enums import LevelEnum, NodeTypeEnum, StatusEnum
+from ..common.errors import ResolveCollectionsError
 from .handler import Handler
 from .row import RowMixin
 from .spec_block import SpecBlock
@@ -210,7 +211,7 @@ class NodeMixin(RowMixin):
                     try:
                         resolved_collections[name_].append(f1.format(**name_dict))
                     except KeyError as msg:
-                        raise KeyError(
+                        raise ResolveCollectionsError(
                             f"Failed to resolve collection {name_} {f1} using: {name_dict!s}",
                         ) from msg
             else:
@@ -221,7 +222,7 @@ class NodeMixin(RowMixin):
                 try:
                     resolved_collections[name_] = f1.format(**name_dict)
                 except KeyError as msg:
-                    raise KeyError(
+                    raise ResolveCollectionsError(
                         f"Failed to resolve collection {name_}, {f1} using: {name_dict!s}",
                     ) from msg
         return resolved_collections

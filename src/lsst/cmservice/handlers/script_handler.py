@@ -6,12 +6,21 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from ..common.bash import check_stamp_file, run_bash_job
-from ..common.enums import ScriptMethodEnum, StatusEnum
+from ..common.enums import ErrorSourceEnum, ScriptMethodEnum, StatusEnum
+from ..common.errors import (
+    BadExecutionMethodError,
+    BadStateTransitionError,
+    BashSubmitError,
+    MissingNodeUrlError,
+    MissingScriptInputError,
+    SlurmSubmitError,
+)
 from ..common.slurm import check_slurm_job, submit_slurm_job
 from ..db.element import ElementMixin
 from ..db.handler import Handler
 from ..db.node import NodeMixin
 from ..db.script import Script
+from ..db.script_error import ScriptError
 
 slurm_status_map = {
     "BOOT_FAIL": StatusEnum.failed,
@@ -63,11 +72,43 @@ class BaseScriptHandler(Handler):
                 status = StatusEnum.ready
         parent = await node.get_parent(session)
         if status == StatusEnum.ready:
-            status = await self.prepare(session, node, parent, **kwargs)
+            try:
+                status = await self.prepare(session, node, parent, **kwargs)
+            except (BadExecutionMethodError, MissingScriptInputError) as msg:
+                _new_error = await ScriptError.create_row(
+                    session,
+                    script_id=node.id,
+                    source=ErrorSourceEnum.cmservice,
+                    diagnostic_message=msg,
+                )
+                status = StatusEnum.failed
         if status == StatusEnum.prepared:
-            status = await self.launch(session, node, parent, **kwargs)
+            try:
+                status = await self.launch(session, node, parent, **kwargs)
+            except (
+                BadExecutionMethodError,
+                MissingNodeUrlError,
+                SlurmSubmitError,
+                BashSubmitError,
+            ) as msg:
+                _new_error = await ScriptError.create_row(
+                    session,
+                    script_id=node.id,
+                    source=ErrorSourceEnum.cmservice,
+                    diagnostic_message=msg,
+                )
+                status = StatusEnum.failed
         if status == StatusEnum.running:
-            status = await self.check(session, node, parent, **kwargs)
+            try:
+                status = await self.check(session, node, parent, **kwargs)
+            except (BadExecutionMethodError, MissingNodeUrlError) as msg:
+                _new_error = await ScriptError.create_row(
+                    session,
+                    script_id=node.id,
+                    source=ErrorSourceEnum.cmservice,
+                    diagnostic_message=msg,
+                )
+                status = StatusEnum.failed
         if status == StatusEnum.reviewable:
             status = await self.review(session, node, parent)
         if status != orig_status:
@@ -230,13 +271,17 @@ class BaseScriptHandler(Handler):
 
         valid_states = [StatusEnum.waiting, StatusEnum.ready, StatusEnum.prepared]
         if to_status not in valid_states:
-            raise ValueError(f"script.reset to_status should be in {valid_states}, not: {to_status}")
+            raise BadStateTransitionError(
+                f"script.reset to_status should be in {valid_states}, not: {to_status}",
+            )
 
         if to_status.value >= node.status.value and not node.status.is_bad():
-            raise ValueError(f"Current status of {node.status} is less advanced than {to_status}")
+            raise BadStateTransitionError(
+                f"Current status of {node.status} is less advanced than {to_status}",
+            )
 
         if node.status.value >= StatusEnum.running.value:
-            raise ValueError(
+            raise BadStateTransitionError(
                 f"Can not use script.reset on script in {node.status}.  "
                 "Use script.rollback or script.retry instead",
             )
@@ -344,7 +389,7 @@ class ScriptHandler(BaseScriptHandler):
 
         status = script.status
         if script_method == ScriptMethodEnum.no_script:  # pragma: no cover
-            raise ValueError("ScriptMethodEnum.no_script can not be set for ScriptHandler")
+            raise BadExecutionMethodError("ScriptMethodEnum.no_script can not be set for ScriptHandler")
         if script_method == ScriptMethodEnum.bash:
             status = await self._write_script(session, script, parent, **kwargs)
         elif script_method == ScriptMethodEnum.slurm:  # pragma: no cover
@@ -367,29 +412,28 @@ class ScriptHandler(BaseScriptHandler):
 
         fake_status = kwargs.get("fake_status", None)
         if script_method == ScriptMethodEnum.no_script:  # pragma: no cover
-            raise ValueError("ScriptMethodEnum.no_script can not be set for ScriptHandler")
+            raise BadExecutionMethodError("ScriptMethodEnum.no_script can not be set for ScriptHandler")
         orig_status = script.status
         if fake_status:
             status = fake_status
         elif script_method == ScriptMethodEnum.bash:
             if not script.script_url:
-                raise ValueError(f"script_url is not set for {script}")
+                raise MissingNodeUrlError(f"script_url is not set for {script}")
             if not script.log_url:
-                raise ValueError(f"log_url is not set for {script}")
+                raise MissingNodeUrlError(f"log_url is not set for {script}")
             await run_bash_job(script.script_url, script.log_url)
             status = StatusEnum.running
         elif script_method == ScriptMethodEnum.slurm:  # pragma: no cover
             if not script.script_url:
-                raise ValueError(f"script_url is not set for {script}")
+                raise MissingNodeUrlError(f"script_url is not set for {script}")
             if not script.log_url:
-                raise ValueError(f"log_url is not set for {script}")
+                raise MissingNodeUrlError(f"log_url is not set for {script}")
             job_id = await submit_slurm_job(script.script_url, script.log_url)
             status = StatusEnum.running
-            print(f"Setting {job_id} {script.fullname}")
             await script.update_values(session, stamp_url=job_id, status=status)
             await session.commit()
         else:
-            raise ValueError(f"Method {script_method} not valid for {script}")
+            raise BadExecutionMethodError(f"Method {script_method} not valid for {script}")
         if status != orig_status:
             await script.update_values(session, status=status)
             await session.commit()
@@ -410,19 +454,37 @@ class ScriptHandler(BaseScriptHandler):
         if fake_status:
             status = fake_status
         elif script_method == ScriptMethodEnum.no_script:  # pragma: no cover
-            raise ValueError("ScriptMethodEnum.no_script can not be set for ScriptHandler")
+            raise BadExecutionMethodError("ScriptMethodEnum.no_script can not be set for ScriptHandler")
         elif script_method == ScriptMethodEnum.bash:
             if not script.stamp_url:
-                raise ValueError(f"stamp_url is not set for {script}")
+                raise MissingNodeUrlError(f"stamp_url is not set for {script}")
             status = await self._check_stamp_file(session, script.stamp_url, script, parent)
         elif script_method == ScriptMethodEnum.slurm:  # pragma: no cover
             if not script.stamp_url:
-                raise ValueError(f"stamp_url is not set for {script}")
+                raise MissingNodeUrlError(f"stamp_url is not set for {script}")
             status = await self._check_slurm_job(session, script.stamp_url, script, parent)
+        if status == StatusEnum.failed:
+            if not script.log_url:
+                raise MissingNodeUrlError(f"log_url is not set for {script}")
+            diagnostic_message = await self._get_diagnostic_message(script.log_url)
+            _new_error = await ScriptError.create_row(
+                session,
+                script_id=script.id,
+                source=ErrorSourceEnum.local_script,
+                diagnostic_message=diagnostic_message,
+            )
         if status != script.status:
             await script.update_values(session, status=status)
             await session.commit()
         return status
+
+    async def _get_diagnostic_message(
+        self,
+        log_url: str,
+    ) -> str:
+        with open(log_url) as fin:
+            lines = fin.readlines()
+            return lines[-1]
 
     async def _write_script(
         self,
@@ -496,7 +558,7 @@ class FunctionHandler(BaseScriptHandler):
         if script_method is ScriptMethodEnum.default:
             script_method = self.default_method
         if script_method != ScriptMethodEnum.no_script:
-            raise ValueError(f"ScriptMethodEnum.no_script must be set for {type(self)}")
+            raise BadExecutionMethodError(f"ScriptMethodEnum.no_script must be set for {type(self)}")
         status = await self._do_prepare(session, script, parent, **kwargs)
         if status != script.status:
             await script.update_values(session, status=status)
@@ -515,7 +577,7 @@ class FunctionHandler(BaseScriptHandler):
             script_method = self.default_method
 
         if script_method != ScriptMethodEnum.no_script:
-            raise ValueError(f"ScriptMethodEnum.no_script must be set for {type(self)}")
+            raise BadExecutionMethodError(f"ScriptMethodEnum.no_script must be set for {type(self)}")
         status = await self._do_run(session, script, parent, **kwargs)
         if status != script.status:
             await script.update_values(session, status=status)
@@ -534,7 +596,7 @@ class FunctionHandler(BaseScriptHandler):
             script_method = self.default_method
 
         if script_method != ScriptMethodEnum.no_script:
-            raise ValueError(f"ScriptMethodEnum.no_script must be set for {type(self)}")
+            raise BadExecutionMethodError(f"ScriptMethodEnum.no_script must be set for {type(self)}")
         status = await self._do_check(session, script, parent, **kwargs)
         if status != script.status:
             await script.update_values(session, status=status)

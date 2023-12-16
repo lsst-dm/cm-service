@@ -14,6 +14,7 @@ from lsst.cmservice.db.script import Script
 from lsst.daf.butler import Butler
 
 from ..common.enums import StatusEnum
+from ..common.errors import BadExecutionMethodError, MissingScriptInputError
 from ..common.slurm import check_slurm_job
 from .functions import add_steps
 from .script_handler import FunctionHandler
@@ -95,7 +96,7 @@ class RunJobsScriptHandler(RunElementScriptHandler):
         specification = await parent.get_specification(session)
         spec_block_name = child_config.pop("spec_block", None)
         if spec_block_name is None:
-            raise AttributeError(f"child_config for {script.fullname} does not contain spec_block")
+            raise MissingScriptInputError(f"child_config for {script.fullname} does not contain spec_block")
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
         spec_block_assoc_name = f"{specification.name}#{spec_block_name}"
         attempt = 0
@@ -272,7 +273,7 @@ class RunGroupsScriptHandler(RunElementScriptHandler):
         specification = await parent.get_specification(session)
         spec_block_name = child_config.pop("spec_block", None)
         if spec_block_name is None:
-            raise AttributeError(f"child_config for {script.fullname} does not contain spec_block")
+            raise MissingScriptInputError(f"child_config for {script.fullname} does not contain spec_block")
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
         spec_block_assoc_name = f"{specification.name}#{spec_block_name}"
         fake_status = kwargs.get("fake_status")
@@ -314,7 +315,7 @@ class RunStepsScriptHandler(RunElementScriptHandler):
         **kwargs: Any,
     ) -> StatusEnum:
         if not isinstance(parent, Campaign):
-            raise ValueError(f"Can not run script {script} on {parent}")
+            raise BadExecutionMethodError(f"Can not run script {script} on {parent}")
         spec_block = await parent.get_spec_block(session)
         child_configs = spec_block.steps
         await add_steps(session, parent, child_configs)
