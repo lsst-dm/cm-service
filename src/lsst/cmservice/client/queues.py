@@ -60,7 +60,7 @@ class CMQueueClient:
         self,
         row_id: int,
     ) -> int:
-        results = self._client.get(f"queues/sleep_time/{row_id}").json()
+        results = self._client.get(f"{router_string}/sleep_time/{row_id}").json()
         try:
             return parse_obj_as(int, results)
         except ValidationError as msg:
@@ -70,7 +70,7 @@ class CMQueueClient:
         self,
         row_id: int,
     ) -> bool:
-        results = self._client.get(f"queues/process/{row_id}").json()
+        results = self._client.get(f"{router_string}/process/{row_id}").json()
         try:
             return parse_obj_as(bool, results)
         except ValidationError as msg:
