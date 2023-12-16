@@ -51,6 +51,7 @@
           - SpecBlockAssociation: {spec_block_name: panda_submit_script}
           - SpecBlockAssociation: {spec_block_name: panda_report_script}
           - SpecBlockAssociation: {spec_block_name: manifest_report_script}
+          - SpecBlockAssociation: {spec_block_name: manifest_report_load}
           - SpecBlockAssociation: {spec_block_name: run_jobs}
           - SpecBlockAssociation: {spec_block_name: run_groups}
           - SpecBlockAssociation: {spec_block_name: run_steps}

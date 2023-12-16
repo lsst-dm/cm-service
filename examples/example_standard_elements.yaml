@@ -27,6 +27,12 @@
                 prerequisites: ['bps_report']
                 collections:
                     run: "{job_run}"
+          - Script:
+                name: manifest_report_load
+                spec_block: manifest_report_load
+                prerequisites: ['manifest_report']
+                collections:
+                    run: "{job_run}"
 # Group Template, runs a group, hopefully using a single job to do so
 - SpecBlock:
       name: group

@@ -397,7 +397,31 @@ class ElementHandler(Handler):
                 await session.commit()
                 return (changed, status)
 
+        status = await self._post_check(session, element, **kwargs)
         status = StatusEnum.accepted
         await element.update_values(session, status=status)
         await session.commit()
         return (True, status)
+
+    async def _post_check(
+        self,
+        session: async_scoped_session,
+        element: ElementMixin,
+        **kwargs: Any,
+    ) -> StatusEnum:
+        """Hook for a final check after all the scripts have run
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        element: ElementMixin
+            `Element` in question
+
+        Returns
+        -------
+        status : StatusEnum
+            Status of the processing
+        """
+        return StatusEnum.accepted

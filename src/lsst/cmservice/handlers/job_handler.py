@@ -1,7 +1,58 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
+
+from sqlalchemy.ext.asyncio import async_scoped_session
+
+from ..common.enums import ErrorActionEnum, StatusEnum
+from ..db.element import ElementMixin
 from .element_handler import ElementHandler
+
+if TYPE_CHECKING:
+    from ..db import Job
 
 
 class JobHandler(ElementHandler):
     """SubClass of ElementHandler to deal with job operations"""
+
+    async def _post_check(
+        self,
+        session: async_scoped_session,
+        element: ElementMixin,
+        **kwargs: Any,
+    ) -> StatusEnum:
+        if TYPE_CHECKING:
+            assert isinstance(element, Job)
+
+        async with session.begin_nested():
+            await session.refresh(element, attribute_names=["tasks_", "errors_"])
+
+            requires_review = False
+            is_failure = False
+
+            for error_ in element.errors_:
+                if error_.error_type_id is None:
+                    requires_review = True
+                    continue
+                await session.refresh(error_, attribute_names=["error_type_"])
+
+                error_type_ = error_.error_type_
+                if error_type_.error_action == ErrorActionEnum.fail:
+                    is_failure = True
+                    break
+
+                if error_type_.error_action == ErrorActionEnum.review:
+                    requires_review = True
+                    continue
+
+                if error_type_.error_action == ErrorActionEnum.accept:
+                    continue
+
+                raise ValueError(f"Unexpected ErrorActionnEnum {error_type_.error_action}")
+
+            if is_failure:
+                return StatusEnum.failed
+            if requires_review:
+                return StatusEnum.reviewable
+
+            return StatusEnum.accepted

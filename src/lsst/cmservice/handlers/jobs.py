@@ -17,7 +17,7 @@ from lsst.utils import doImport
 
 from ..common.enums import StatusEnum, TaskStatusEnum, WmsMethodEnum
 from ..common.errors import BadExecutionMethodError
-from .functions import load_wms_reports
+from .functions import load_manifest_report, load_wms_reports
 from .script_handler import FunctionHandler, ScriptHandler
 
 WMS_TO_JOB_STATUS_MAP = {
@@ -361,3 +361,68 @@ class ManifestReportScriptHandler(ScriptHandler):
         await write_bash_script(script_url, command, prepend=prepend)
 
         return StatusEnum.prepared
+
+
+class ManifestReportLoadHandler(FunctionHandler):
+    """Class to load the Manifest check report"""
+
+    async def _do_prepare(
+        self,
+        session: async_scoped_session,
+        script: Script,
+        parent: ElementMixin,
+        **kwargs: Any,
+    ) -> StatusEnum:
+        data_dict = await script.data_dict(session)
+        prod_area = os.path.expandvars(data_dict["prod_area"])
+        report_url = os.path.expandvars(f"{prod_area}/{parent.fullname}/submit/manifest_report.yaml")
+
+        await script.update_values(
+            session,
+            stamp_url=report_url,
+        )
+        return StatusEnum.prepared
+
+    async def _do_check(
+        self,
+        session: async_scoped_session,
+        script: Script,
+        parent: ElementMixin,
+        **kwargs: Any,
+    ) -> StatusEnum:
+        fake_status = kwargs.get("fake_status", None)
+        if fake_status:
+            status = fake_status
+        else:
+            status = await self._load_pipetask_report(session, parent, script.stamp_url)
+        if status is None:
+            status = script.status
+        if status != script.status:
+            await script.update_values(session, status=status)
+            await session.commit()
+        return status
+
+    async def _load_pipetask_report(
+        self,
+        session: async_scoped_session,
+        job: Job,
+        pipetask_report_yaml: str | None,
+    ) -> StatusEnum:
+        """Load the job processing info
+
+        Paramters
+        ---------
+        job: Job
+            Job in question
+
+        pipetask_report_yaml : str | None
+            Yaml file
+
+        """
+        if pipetask_report_yaml is None:
+            return None
+
+        check_job = await load_manifest_report(session, job.fullname, pipetask_report_yaml)
+        assert job.id == check_job.id
+
+        return StatusEnum.accepted
