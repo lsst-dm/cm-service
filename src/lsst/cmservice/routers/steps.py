@@ -68,3 +68,9 @@ reject = wrappers.get_node_reject_function(router, response_model_class, db_clas
 reset = wrappers.get_node_reset_function(router, response_model_class, db_class)
 process = wrappers.get_node_process_function(router, response_model_class, db_class)
 run_check = wrappers.get_node_run_check_function(router, response_model_class, db_class)
+
+get_scripts = wrappers.get_element_get_scripts_function(router, db_class)
+get_all_scripts = wrappers.get_element_get_all_scripts_function(router, db_class)
+get_jobs = wrappers.get_element_get_jobs_function(router, db_class)
+retry_script = wrappers.get_element_retry_script_function(router, db_class)
+estimate_sleep_time = wrappers.get_element_estimate_sleep_time_function(router, db_class)

@@ -41,6 +41,7 @@ get_collections = wrappers.get_node_collections_function(router, db_class)
 get_child_config = wrappers.get_node_child_config_function(router, db_class)
 get_data_dict = wrappers.get_node_data_dict_function(router, db_class)
 get_spec_aliases = wrappers.get_node_spec_aliases_function(router, db_class)
+update_status = wrappers.update_node_status_function(router, response_model_class, db_class)
 update_collections = wrappers.update_node_collections_function(
     router,
     response_model_class,
@@ -66,3 +67,9 @@ reject = wrappers.get_node_reject_function(router, response_model_class, db_clas
 reset = wrappers.get_node_reset_function(router, response_model_class, db_class)
 process = wrappers.get_node_process_function(router, response_model_class, db_class)
 run_check = wrappers.get_node_run_check_function(router, response_model_class, db_class)
+
+get_scripts = wrappers.get_element_get_scripts_function(router, db_class)
+get_all_scripts = wrappers.get_element_get_all_scripts_function(router, db_class)
+get_jobs = wrappers.get_element_get_jobs_function(router, db_class)
+retry_script = wrappers.get_element_retry_script_function(router, db_class)
+estimate_sleep_time = wrappers.get_element_estimate_sleep_time_function(router, db_class)

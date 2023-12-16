@@ -342,3 +342,27 @@ def get_general_post_function(
             raise ValueError(f"Bad response: {results}") from msg
 
     return general_post_function
+
+
+def get_general_query_function(
+    query_class: TypeAlias = BaseModel,
+    response_model_class: TypeAlias = Any,
+    query: str = "",
+    query_suffix: str = "",
+    results_key: str | None = None,
+) -> Callable:
+    def general_query_function(
+        obj: CMClient,
+        row_id: int,
+        **kwargs: Any,
+    ) -> response_model_class:
+        params = query_class(**kwargs)
+        results = obj.client.get(f"{query}/{row_id}/{query_suffix}", params=params.dict()).json()
+        try:
+            if results_key is None:
+                return parse_obj_as(response_model_class, results)
+            return parse_obj_as(response_model_class, results[results_key])
+        except ValidationError as msg:
+            raise ValueError(f"Bad response: {results}") from msg
+
+    return general_query_function
