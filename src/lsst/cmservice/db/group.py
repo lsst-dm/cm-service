@@ -149,7 +149,7 @@ class Group(Base, ElementMixin):
     async def rescue_job(
         self,
         session: async_scoped_session,
-    ) -> Job:
+    ) -> "Job":
         """Create a rescue `Job`
 
         This will make a new `Job` in the DB
@@ -181,7 +181,7 @@ class Group(Base, ElementMixin):
     async def mark_job_rescued(
         self,
         session: async_scoped_session,
-    ) -> list[Job]:
+    ) -> list["Job"]:
         """Mark jobs as `rescued` once one of their siblings is `accepted`
 
         Parameters
