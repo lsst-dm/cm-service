@@ -20,9 +20,6 @@ class ScriptTemplateBase(BaseModel):
 class ScriptTemplateCreate(ScriptTemplateBase):
     """Parameters that are used to create new rows but not in DB tables"""
 
-    # Name of associated Specification
-    spec_name: str
-
 
 class ScriptTemplate(ScriptTemplateBase):
     """Parameters that are in DB tables and not used to create new rows"""

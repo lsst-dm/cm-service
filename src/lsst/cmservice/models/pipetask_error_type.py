@@ -17,13 +17,13 @@ class PipetaskErrorTypeBase(BaseModel):
     """Parameters that are in DB tables and also used to create new rows"""
 
     # Who reported this error
-    source: ErrorSourceEnum
+    error_source: ErrorSourceEnum
 
     # What sort of error is this
-    flavor: ErrorFlavorEnum
+    error_flavor: ErrorFlavorEnum
 
     # What action should we take
-    action: ErrorActionEnum
+    error_action: ErrorActionEnum
 
     # What Pipetask is this error tpye associated to
     task_name: str

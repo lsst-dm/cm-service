@@ -37,12 +37,6 @@ class ElementCreateMixin(ElementBase):
     # Name of the SpecBlockAssociation
     spec_block_assoc_name: str | None = None
 
-    # Name of the Specification to use as a template
-    spec_name: str | None = None
-
-    # Name of the SpecBlock to use as a template
-    spec_block_name: str | None = None
-
     # Fullname of the parent Node
     parent_name: str
 

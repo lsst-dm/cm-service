@@ -19,15 +19,22 @@ class PipetaskErrorType(Base, RowMixin):
     class_string = "pipetask_error_type"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    source: Mapped[ErrorSourceEnum] = mapped_column(type_=SqlErrorSourceEnum)
-    flavor: Mapped[ErrorFlavorEnum] = mapped_column(type_=SqlErrorFlavorEnum)
-    action: Mapped[ErrorActionEnum] = mapped_column(type_=SqlErrorActionEnum)
+    error_source: Mapped[ErrorSourceEnum] = mapped_column(type_=SqlErrorSourceEnum)
+    error_flavor: Mapped[ErrorFlavorEnum] = mapped_column(type_=SqlErrorFlavorEnum)
+    error_action: Mapped[ErrorActionEnum] = mapped_column(type_=SqlErrorActionEnum)
     task_name: Mapped[str] = mapped_column()
     diagnostic_message: Mapped[str] = mapped_column(unique=True)
 
     errors_: Mapped[list["PipetaskError"]] = relationship("PipetaskError", viewonly=True)
 
-    col_names_for_table = ["id", "task_name", "diagnostic_message", "source", "action", "flavor"]
+    col_names_for_table = [
+        "id",
+        "task_name",
+        "diagnostic_message",
+        "error_source",
+        "error_action",
+        "error_flavor",
+    ]
 
     def __repr__(self) -> str:
         s = f"Id={self.id}\n"
