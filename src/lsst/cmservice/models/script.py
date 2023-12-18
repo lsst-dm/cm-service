@@ -31,10 +31,6 @@ class ScriptBase(BaseModel):
 class ScriptCreate(ScriptBase):
     """Parameters that are used to create new rows but not in DB tables"""
 
-    # Name of the SpecBlockAssociation
-    spec_block_assoc_name: str | None = None
-    # Name of the Specification to use as a template
-    spec_name: str | None = None
     # Name of the SpecBlock to use as a template
     spec_block_name: str | None = None
     # Name of Parent Node
@@ -48,7 +44,7 @@ class Script(ScriptBase):
     id: int
 
     # ForeignKey giving associated SpecBlock
-    spec_block_assoc_id: int
+    spec_block_id: int
     # Id of parent Node
     parent_id: int
     # Level of parent Node

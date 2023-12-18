@@ -29,7 +29,7 @@ async def test_step_db(session: async_scoped_session) -> None:
         await db.Step.create_row(
             session,
             name=sname_,
-            spec_block_assoc_name="base#basic_step",
+            spec_block_name="basic_step",
             parent_name=camps[0].fullname,
         )
         for sname_ in snames
@@ -40,7 +40,7 @@ async def test_step_db(session: async_scoped_session) -> None:
         await db.Step.create_row(
             session,
             name=sname_,
-            spec_block_assoc_name="base#basic_step",
+            spec_block_name="basic_step",
             parent_name=camps[1].fullname,
         )
         for sname_ in snames
@@ -52,7 +52,7 @@ async def test_step_db(session: async_scoped_session) -> None:
             session,
             name=snames[0],
             parent_name=camps[0].fullname,
-            spec_block_assoc_name="base#basic_step",
+            spec_block_name="basic_step",
         )
 
     await db.Campaign.delete_row(session, camps[0].id)

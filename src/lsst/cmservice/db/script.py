@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
 from ..common.enums import LevelEnum, NodeTypeEnum, ScriptMethodEnum, StatusEnum
+from ..common.errors import MissingRowCreateInputError
 from .base import Base
 from .campaign import Campaign
 from .dbid import DbId
@@ -20,8 +21,6 @@ from .job import Job
 from .node import NodeMixin
 from .row import RowMixin
 from .spec_block import SpecBlock
-from .spec_block_association import SpecBlockAssociation
-from .specification import Specification
 from .step import Step
 
 if TYPE_CHECKING:
@@ -41,8 +40,8 @@ class Script(Base, NodeMixin):
     class_string = "script"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    spec_block_assoc_id: Mapped[int] = mapped_column(
-        ForeignKey("spec_block_association.id", ondelete="CASCADE"),
+    spec_block_id: Mapped[int] = mapped_column(
+        ForeignKey("spec_block.id", ondelete="CASCADE"),
         index=True,
     )
     parent_level: Mapped[LevelEnum] = mapped_column(type_=SqlLevelEnum)
@@ -68,21 +67,7 @@ class Script(Base, NodeMixin):
     stamp_url: Mapped[str | None] = mapped_column()
     log_url: Mapped[str | None] = mapped_column()
 
-    spec_block_assoc_: Mapped[SpecBlockAssociation] = relationship("SpecBlockAssociation", viewonly=True)
-    spec_: Mapped[Specification] = relationship(
-        "Specification",
-        primaryjoin="SpecBlockAssociation.id==Script.spec_block_assoc_id",
-        secondary="join(SpecBlockAssociation, Specification)",
-        secondaryjoin="SpecBlockAssociation.spec_id==Specification.id",
-        viewonly=True,
-    )
-    spec_block_: Mapped[SpecBlock] = relationship(
-        "SpecBlock",
-        primaryjoin="SpecBlockAssociation.id==Script.spec_block_assoc_id",
-        secondary="join(SpecBlockAssociation, SpecBlock)",
-        secondaryjoin="SpecBlockAssociation.spec_block_id==SpecBlock.id",
-        viewonly=True,
-    )
+    spec_block_: Mapped[SpecBlock] = relationship("SpecBlock", viewonly=True)
     c_: Mapped[Campaign] = relationship("Campaign", viewonly=True)
     s_: Mapped[Step] = relationship("Step", viewonly=True)
     g_: Mapped[Group] = relationship("Group", viewonly=True)
@@ -119,6 +104,14 @@ class Script(Base, NodeMixin):
     @property
     def level(self) -> LevelEnum:
         return LevelEnum.script
+
+    async def get_campaign(
+        self,
+        session: async_scoped_session,
+    ) -> Campaign:
+        """Maps self.get_parent().c_ to self.get_campaign() for consistency"""
+        parent = await self.get_parent(session)
+        return await parent.get_campaign(session)
 
     @property
     def node_type(self) -> NodeTypeEnum:
@@ -193,26 +186,16 @@ class Script(Base, NodeMixin):
         session: async_scoped_session,
         **kwargs: Any,
     ) -> dict:
-        parent_name = kwargs["parent_name"]
-        name = kwargs["name"]
+        try:
+            parent_name = kwargs["parent_name"]
+            name = kwargs["name"]
+            spec_block_name = kwargs["spec_block_name"]
+        except KeyError as msg:
+            raise MissingRowCreateInputError(f"Missing input to create Script: {msg}")
         attempt = kwargs.get("attempt", 0)
         parent_level = kwargs["parent_level"]
-        spec_block_assoc_name = kwargs.get("spec_block_assoc_name", None)
-        if not spec_block_assoc_name:
-            try:
-                spec_name = kwargs["spec_name"]
-                spec_block_name = kwargs["spec_block_name"]
-                spec_block_assoc_name = f"{spec_name}#{spec_block_name}"
-            except KeyError as msg:
-                raise KeyError(
-                    "Either spec_block_assoc_name or (spec_name and spec_block_name) required",
-                ) from msg
-        spec_block_assoc = await SpecBlockAssociation.get_row_by_fullname(
-            session,
-            spec_block_assoc_name,
-        )
+
         ret_dict = {
-            "spec_block_assoc_id": spec_block_assoc.id,
             "parent_level": parent_level,
             "name": name,
             "attempt": attempt,
@@ -239,6 +222,11 @@ class Script(Base, NodeMixin):
         else:
             raise ValueError(f"Bad level for script: {parent_level}")
         ret_dict["parent_id"] = element.id
+
+        specification = await element.get_specification(session)
+        spec_block = await specification.get_block(session, spec_block_name)
+        ret_dict["spec_block_id"] = spec_block.id
+
         return ret_dict
 
     async def copy_script(

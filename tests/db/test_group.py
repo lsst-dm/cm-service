@@ -24,7 +24,7 @@ async def test_group_db(session: async_scoped_session) -> None:
         await db.Step.create_row(
             session,
             name=sname_,
-            spec_block_assoc_name="base#basic_step",
+            spec_block_name="basic_step",
             parent_name=camp.fullname,
         )
         for sname_ in snames
@@ -36,7 +36,7 @@ async def test_group_db(session: async_scoped_session) -> None:
         await db.Group.create_row(
             session,
             name=gname_,
-            spec_block_assoc_name="base#group",
+            spec_block_name="group",
             parent_name=steps[0].fullname,
         )
         for gname_ in gnames
@@ -47,7 +47,7 @@ async def test_group_db(session: async_scoped_session) -> None:
         await db.Group.create_row(
             session,
             name=gname_,
-            spec_block_assoc_name="base#group",
+            spec_block_name="group",
             parent_name=steps[1].fullname,
         )
         for gname_ in gnames
@@ -59,7 +59,7 @@ async def test_group_db(session: async_scoped_session) -> None:
             session,
             name=gnames[0],
             parent_name=steps[0].fullname,
-            spec_block_assoc_name="base#group",
+            spec_block_name="group",
         )
 
     # Finish clean up

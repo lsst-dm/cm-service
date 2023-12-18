@@ -420,7 +420,7 @@ class ManifestReportLoadHandler(FunctionHandler):
 
         """
         if pipetask_report_yaml is None:
-            return None
+            return StatusEnum.failed
 
         check_job = await load_manifest_report(session, job.fullname, pipetask_report_yaml)
         assert job.id == check_job.id

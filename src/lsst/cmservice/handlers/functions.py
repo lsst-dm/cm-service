@@ -224,7 +224,6 @@ async def add_steps(
     campaign: Campaign,
     step_config_list: list[dict[str, dict]],
 ) -> Campaign:
-    specification = await campaign.get_specification(session)
     spec_aliases = await campaign.get_spec_aliases(session)
 
     current_steps = await campaign.children(session)
@@ -243,11 +242,10 @@ async def add_steps(
                 f"Step {child_name_} of {campaign.fullname} does contain 'spec_block'",
             )
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
-        spec_block_assoc_name = f"{specification.name}#{spec_block_name}"
         new_step = await Step.create_row(
             session,
             name=child_name_,
-            spec_block_assoc_name=spec_block_assoc_name,
+            spec_block_name=spec_block_name,
             parent_name=campaign.fullname,
             **step_config_,
         )
@@ -272,7 +270,6 @@ async def add_groups(
     step: Step,
     child_configs: dict,
 ) -> Step:
-    specification = await step.get_specification(session)
     spec_aliases = await step.get_spec_aliases(session)
 
     current_groups = await step.children(session)
@@ -283,11 +280,10 @@ async def add_groups(
         if spec_block_name is None:
             raise AttributeError(f"child_config_ {child_name_} of {step.fullname} does contain 'spec_block'")
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
-        spec_block_assoc_name = f"{specification.name}#{spec_block_name}"
         await Group.create_row(
             session,
             name=f"group{i}",
-            spec_block_assoc_name=spec_block_assoc_name,
+            spec_block_name=spec_block_name,
             parent_name=step.fullname,
             **child_config_,
         )
