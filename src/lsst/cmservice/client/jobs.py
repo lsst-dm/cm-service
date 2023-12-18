@@ -179,3 +179,21 @@ class CMJobClient:
         f"{router_string}/get",
         "jobs",
     )
+
+    get_wms_task_reports = wrappers.get_node_property_function(
+        dict[str, models.WmsTaskReport],
+        f"{router_string}/get",
+        "wms_task_reports",
+    )
+
+    get_tasks = wrappers.get_node_property_function(
+        dict[str, models.TaskSet],
+        f"{router_string}/get",
+        "tasks",
+    )
+
+    get_products = wrappers.get_node_property_function(
+        dict[str, models.ProductSet],
+        f"{router_string}/get",
+        "products",
+    )

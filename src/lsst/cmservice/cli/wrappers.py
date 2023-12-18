@@ -18,7 +18,7 @@ from tabulate import tabulate
 
 from ..client.client import CMClient
 from ..common.enums import StatusEnum
-from ..db import Job, Script, SpecBlock, Specification
+from ..db import Job, ProductSet, Script, SpecBlock, Specification, TaskSet, WmsTaskReport
 from . import options
 
 
@@ -1292,3 +1292,126 @@ def get_element_estimate_sleep_time_command(
         _output_dict({"sleep_time": result}, output)
 
     return estimate_sleep_time
+
+
+def get_element_wms_task_reports_command(
+    group_command: Callable,
+    sub_client_name: str,
+    db_class: TypeAlias,
+) -> Callable:
+    """Return a function that gets the WmsTaskReports assocaited to an element
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that gets the WmsTaskReports assocaited to an element
+    """
+
+    @group_command(name="wms_task_reports")
+    @options.cmclient()
+    @options.row_id()
+    @options.output()
+    def wms_task_reports(
+        client: CMClient,
+        row_id: int,
+        output: options.OutputEnum | None,
+    ) -> None:
+        """Get the WmsTaskReports assocaited to an element"""
+        sub_client = getattr(client, sub_client_name)
+        result = sub_client.get_wms_task_reports(row_id=row_id)
+        _output_pydantic_list(list(result.values()), output, WmsTaskReport.col_names_for_table)
+
+    return wms_task_reports
+
+
+def get_element_tasks_command(
+    group_command: Callable,
+    sub_client_name: str,
+    db_class: TypeAlias,
+) -> Callable:
+    """Return a function that gets the TaskSets assocaited to an element
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that gets the TaskSets assocaited to an element
+    """
+
+    @group_command(name="tasks")
+    @options.cmclient()
+    @options.row_id()
+    @options.output()
+    def tasks(
+        client: CMClient,
+        row_id: int,
+        output: options.OutputEnum | None,
+    ) -> None:
+        """Get the scripts assocaited to an element"""
+        sub_client = getattr(client, sub_client_name)
+        result = sub_client.get_tasks(row_id=row_id)
+        _output_pydantic_list(list(result.values()), output, TaskSet.col_names_for_table)
+
+    return tasks
+
+
+def get_element_products_command(
+    group_command: Callable,
+    sub_client_name: str,
+    db_class: TypeAlias,
+) -> Callable:
+    """Return a function that gets the ProductSets assocaited to an element
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that gets the ProductSets assocaited to an element
+    """
+
+    @group_command(name="products")
+    @options.cmclient()
+    @options.row_id()
+    @options.output()
+    def products(
+        client: CMClient,
+        row_id: int,
+        output: options.OutputEnum | None,
+    ) -> None:
+        """Get the scripts assocaited to an element"""
+        sub_client = getattr(client, sub_client_name)
+        result = sub_client.get_products(row_id=row_id)
+        _output_pydantic_list(list(result.values()), output, ProductSet.col_names_for_table)
+
+    return products

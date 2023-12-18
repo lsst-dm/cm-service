@@ -157,6 +157,36 @@ class Job(Base, ElementMixin):
             rows = await session.scalars(q)
             return rows.all()
 
+    async def get_wms_reports(
+        self,
+        session: async_scoped_session,
+        **kwargs: Any,
+    ) -> dict[str, WmsTaskReport]:
+        async with session.begin_nested():
+            await session.refresh(self, attribute_names=["wms_reports_"])
+            ret_dict = {wms_report_.name: wms_report_ for wms_report_ in self.wms_reports_}
+            return ret_dict
+
+    async def get_tasks(
+        self,
+        session: async_scoped_session,
+        **kwargs: Any,
+    ) -> dict[str, TaskSet]:
+        async with session.begin_nested():
+            await session.refresh(self, attribute_names=["tasks_"])
+            ret_dict = {task_.name: task_ for task_ in self.tasks_}
+            return ret_dict
+
+    async def get_products(
+        self,
+        session: async_scoped_session,
+        **kwargs: Any,
+    ) -> dict[str, ProductSet]:
+        async with session.begin_nested():
+            await session.refresh(self, attribute_names=["products_"])
+            ret_dict = {product_.name: product_ for product_ in self.products_}
+            return ret_dict
+
     def __repr__(self) -> str:
         return f"Job {self.fullname} {self.id} {self.status.name}"
 

@@ -1229,3 +1229,114 @@ def get_element_estimate_sleep_time_function(
         return await the_element.estimate_sleep_time(session, **kwargs)
 
     return element_estimate_sleep_time
+
+
+def get_element_wms_task_reports_function(
+    router: APIRouter,
+    db_class: TypeAlias = db.ElementMixin,
+) -> Callable:
+    """Return a function get the WmsTaskReports associated to an Element.
+
+    Parameters
+    ----------
+    router: APIRouter
+        Router to attach the function to
+
+    db_class: TypeAlias = db.ElementMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that get the WmsTaskReports associated to an Element
+    """
+
+    @router.get(
+        "/get/{row_id}/wms_task_reports",
+        status_code=201,
+        response_model=dict[str, models.WmsTaskReport],
+        summary=f"Get the WmsTaskReports associated to a {db_class.class_string}",
+    )
+    async def element_get_wms_task_reports(
+        row_id: int,
+        session: async_scoped_session = Depends(db_session_dependency),
+        **kwargs: Any,
+    ) -> dict[str, db.WmsTaskReport]:
+        the_element = await db_class.get_row(session, row_id)
+        return await the_element.get_wms_reports(session, **kwargs)
+
+    return element_get_wms_task_reports
+
+
+def get_element_tasks_function(
+    router: APIRouter,
+    db_class: TypeAlias = db.ElementMixin,
+) -> Callable:
+    """Return a function get the TaskSets associated to an Element.
+
+    Parameters
+    ----------
+    router: APIRouter
+        Router to attach the function to
+
+    db_class: TypeAlias = db.ElementMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that get the TaskSets associated to an Element
+    """
+
+    @router.get(
+        "/get/{row_id}/tasks",
+        status_code=201,
+        response_model=dict[str, models.TaskSet],
+        summary=f"Get the TaskSets associated to a {db_class.class_string}",
+    )
+    async def element_get_tasks(
+        row_id: int,
+        session: async_scoped_session = Depends(db_session_dependency),
+        **kwargs: Any,
+    ) -> dict[str, db.TaskSet]:
+        the_element = await db_class.get_row(session, row_id)
+        return await the_element.get_tasks(session, **kwargs)
+
+    return element_get_tasks
+
+
+def get_element_products_function(
+    router: APIRouter,
+    db_class: TypeAlias = db.ElementMixin,
+) -> Callable:
+    """Return a function get the ProductSets associated to an Element.
+
+    Parameters
+    ----------
+    router: APIRouter
+        Router to attach the function to
+
+    db_class: TypeAlias = db.ElementMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that get the ProductSets associated to an Element
+    """
+
+    @router.get(
+        "/get/{row_id}/products",
+        status_code=201,
+        response_model=dict[str, models.ProductSet],
+        summary=f"Get the ProductSets associated to a {db_class.class_string}",
+    )
+    async def element_get_products(
+        row_id: int,
+        session: async_scoped_session = Depends(db_session_dependency),
+        **kwargs: Any,
+    ) -> dict[str, db.ProductSet]:
+        the_element = await db_class.get_row(session, row_id)
+        return await the_element.get_products(session, **kwargs)
+
+    return element_get_products
