@@ -76,6 +76,11 @@ class Step(Base, ElementMixin):
         foreign_keys="StepDependency.depend_id",
         viewonly=True,
     )
+    depends_: Mapped[list[StepDependency]] = relationship(
+        "StepDependency",
+        foreign_keys="StepDependency.prereq_id",
+        viewonly=True,
+    )
     jobs_: Mapped[list[Job]] = relationship(
         "Job",
         primaryjoin="Group.parent_id==Step.id",
