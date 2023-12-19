@@ -8,14 +8,15 @@ from lsst.cmservice.config import config
 async def test_productions_api(client: AsyncClient) -> None:
     """Test `/productions` API endpoint."""
 
-    # Get list; it should be empty
+    pids = [4]
+    # Get list;
     response = await client.get(f"{config.prefix}/production/list")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
-    # pids_expected = set(pids)
+    pids_expected = set(pids)
     pids_retrieved = {production["id"] for production in data}
-    assert not pids_retrieved
+    assert pids_retrieved == pids_expected
 
     # Verify an individual get
     # response =
