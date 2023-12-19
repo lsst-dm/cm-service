@@ -7,14 +7,14 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 
 from ..common.enums import NodeTypeEnum, StatusEnum
 from ..common.errors import CMBadStateTransitionError, CMTooManyActiveScriptsError
+from ..models.merged_product_set import MergedProductSetDict
+from ..models.merged_task_set import MergedTaskSetDict
 from ..models.merged_wms_task_report import MergedWmsTaskReportDict
 from .node import NodeMixin
 
 if TYPE_CHECKING:
     from .job import Job
-    from .product_set import ProductSet
     from .script import Script
-    from .task_set import TaskSet
 
 
 class ElementMixin(NodeMixin):
@@ -255,7 +255,7 @@ class ElementMixin(NodeMixin):
         self,
         session: async_scoped_session,
         **kwargs: Any,
-    ) -> dict[str, TaskSet]:
+    ) -> MergedTaskSetDict:
         """Get the TaskSet associated to this element
 
         Parameters
@@ -265,7 +265,7 @@ class ElementMixin(NodeMixin):
 
         Returns
         -------
-        the_dict : dict[str, "TaskSet"]
+        the_dict : MergedTaskSetDict
              Requested reports
         """
         raise NotImplementedError()
@@ -274,7 +274,7 @@ class ElementMixin(NodeMixin):
         self,
         session: async_scoped_session,
         **kwargs: Any,
-    ) -> dict[str, ProductSet]:
+    ) -> MergedProductSetDict:
         """Get the ProductSet associated to this element
 
         Parameters
@@ -284,7 +284,7 @@ class ElementMixin(NodeMixin):
 
         Returns
         -------
-        the_dict : dict[str, "ProductSet"]
+        the_dict : MergedProductSetDict
              Requested reports
         """
         raise NotImplementedError()

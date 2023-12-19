@@ -1382,14 +1382,14 @@ def get_element_tasks_function(
     @router.get(
         "/get/{row_id}/tasks",
         status_code=201,
-        response_model=dict[str, models.TaskSet],
+        response_model=models.MergedTaskSetDict,
         summary=f"Get the TaskSets associated to a {db_class.class_string}",
     )
     async def element_get_tasks(
         row_id: int,
         session: async_scoped_session = Depends(db_session_dependency),
         **kwargs: Any,
-    ) -> dict[str, db.TaskSet]:
+    ) -> models.MergedTaskSetDict:
         try:
             the_element = await db_class.get_row(session, row_id)
             return await the_element.get_tasks(session, **kwargs)
@@ -1422,14 +1422,14 @@ def get_element_products_function(
     @router.get(
         "/get/{row_id}/products",
         status_code=201,
-        response_model=dict[str, models.ProductSet],
+        response_model=models.MergedProductSetDict,
         summary=f"Get the ProductSets associated to a {db_class.class_string}",
     )
     async def element_get_products(
         row_id: int,
         session: async_scoped_session = Depends(db_session_dependency),
         **kwargs: Any,
-    ) -> dict[str, db.ProductSet]:
+    ) -> models.MergedProductSetDict:
         try:
             the_element = await db_class.get_row(session, row_id)
             return await the_element.get_products(session, **kwargs)

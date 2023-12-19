@@ -187,13 +187,13 @@ class CMJobClient:
     )
 
     get_tasks = wrappers.get_node_property_function(
-        dict[str, models.TaskSet],
+        models.MergedTaskSetDict,
         f"{router_string}/get",
         "tasks",
     )
 
     get_products = wrappers.get_node_property_function(
-        dict[str, models.ProductSet],
+        models.MergedProductSetDict,
         f"{router_string}/get",
         "products",
     )

@@ -119,6 +119,12 @@ action_retry_script = wrappers.get_element_retry_script_command(action_command, 
 
 get_sleep_time = wrappers.get_element_estimate_sleep_time_command(action_command, sub_client, db_class)
 
+get_wms_task_reports = wrappers.get_element_wms_task_reports_command(get_command, sub_client, db_class)
+
+get_tasks = wrappers.get_element_tasks_command(get_command, sub_client, db_class)
+
+get_products = wrappers.get_element_products_command(get_command, sub_client, db_class)
+
 
 @action_command(name="rescue_job")
 @options.cmclient()

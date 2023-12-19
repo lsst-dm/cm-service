@@ -21,6 +21,8 @@ from .interface import (
     YamlFileQuery,
 )
 from .job import Job, JobCreate, JobUpdate
+from .merged_product_set import MergedProductSet, MergedProductSetDict
+from .merged_task_set import MergedTaskSet, MergedTaskSetDict
 from .merged_wms_task_report import MergedWmsTaskReport, MergedWmsTaskReportDict
 from .pipetask_error import PipetaskError, PipetaskErrorCreate, PipetaskErrorUpdate
 from .pipetask_error_type import PipetaskErrorType, PipetaskErrorTypeCreate, PipetaskErrorTypeUpdate
@@ -85,9 +87,13 @@ __all__ = [
     "TaskSet",
     "TaskSetCreate",
     "TaskSetUpdate",
+    "MergedTaskSet",
+    "MergedTaskSetDict",
     "ProductSet",
     "ProductSetCreate",
     "ProductSetUpdate",
+    "MergedProductSet",
+    "MergedProductSetDict",
     "Script",
     "ScriptCreate",
     "ScriptUpdate",
