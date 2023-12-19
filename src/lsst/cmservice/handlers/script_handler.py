@@ -62,7 +62,7 @@ class BaseScriptHandler(Handler):
     ) -> tuple[bool, StatusEnum]:
         # Need this so mypy doesn't think we are passing in Element
         if TYPE_CHECKING:
-            assert isinstance(node, Script)
+            assert isinstance(node, Script)  # for mypy
         orig_status = node.status
         status = node.status
         changed = False
@@ -124,7 +124,7 @@ class BaseScriptHandler(Handler):
     ) -> tuple[bool, StatusEnum]:
         # Need this so mypy doesn't think we are passing in Element
         if TYPE_CHECKING:
-            assert isinstance(node, Script)
+            assert isinstance(node, Script)  # for mypy
         parent = await node.get_parent(session)
         orig_status = node.status
         changed = False
@@ -267,7 +267,7 @@ class BaseScriptHandler(Handler):
         to_status: StatusEnum,
     ) -> StatusEnum:
         if TYPE_CHECKING:
-            assert isinstance(node, Script)
+            assert isinstance(node, Script)  # for mypy
 
         valid_states = [StatusEnum.waiting, StatusEnum.ready, StatusEnum.prepared]
         if to_status not in valid_states:

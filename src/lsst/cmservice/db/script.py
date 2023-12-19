@@ -263,17 +263,15 @@ class Script(Base, NodeMixin):
 
             await session.refresh(self, attribute_names=["prereqs_", "depends_"])
             for prereq_ in self.prereqs_:
-                new_prereq = await ScriptDependency.create_row(
+                _new_prereq = await ScriptDependency.create_row(
                     depend_id=new_script.id,
                     prereq_id=prereq_.prereq_id,
                 )
-                assert new_prereq
             for depend_ in self.depends_:
-                new_depend = await ScriptDependency.create_row(
+                _new_depend = await ScriptDependency.create_row(
                     depend_id=depend_.depend_id,
                     prereq_id=new_script.id,
                 )
-                assert new_depend
         return new_script
 
     async def reset_script(

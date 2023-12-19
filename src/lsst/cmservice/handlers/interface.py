@@ -1093,7 +1093,8 @@ async def rescue_job(
     CMMissingFullnameError : Could not find Element
     """
     element = await get_element_by_fullname(session, fullname)
-    assert isinstance(element, db.Group)
+    if not isinstance(element, db.Group):
+        raise CMBadExecutionMethodError(f"rescue_job should only be run on Group nodes, not {type(element)}")
     return await element.rescue_job(session)
 
 
@@ -1133,7 +1134,10 @@ async def mark_job_rescued(
     CMMissingFullnameError : Could not find Element
     """
     element = await get_element_by_fullname(session, fullname)
-    assert isinstance(element, db.Group)
+    if not isinstance(element, db.Group):
+        raise CMBadExecutionMethodError(
+            f"mark_job_rescued should only be run on Group nodes, not {type(element)}",
+        )
     return await element.mark_job_rescued(session)
 
 
@@ -1352,7 +1356,7 @@ async def load_specification(
         Newly created `Specification`
     """
     result = await functions.load_specification(session, yaml_file)
-    assert result
+    assert result  # for mypy
     return result
 
 
@@ -1389,7 +1393,7 @@ async def load_and_create_campaign(  # pylint: disable=too-many-arguments
         Newly created `Campaign`
     """
     specification = await functions.load_specification(session, yaml_file)
-    assert specification
+    assert specification  # for mypy
 
     try:
         await db.Production.create_row(session, name=parent_name)

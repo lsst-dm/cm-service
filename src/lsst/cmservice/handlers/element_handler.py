@@ -83,7 +83,7 @@ class ElementHandler(Handler):
         has_changed = False
         # Need this so mypy doesn't think we are passing in Script
         if TYPE_CHECKING:
-            assert isinstance(node, ElementMixin)
+            assert isinstance(node, ElementMixin)  # for mypy
         if status == StatusEnum.waiting:
             is_ready = await node.check_prerequisites(session)
             if is_ready:
@@ -122,7 +122,7 @@ class ElementHandler(Handler):
     ) -> tuple[bool, StatusEnum]:
         # Need this so mypy doesn't think we are passing in Script
         if TYPE_CHECKING:
-            assert isinstance(node, ElementMixin)
+            assert isinstance(node, ElementMixin)  # for mypy
         return await self.check(session, node, **kwargs)
 
     async def prepare(

@@ -141,7 +141,7 @@ class RowMixin:
         # This is a stupid workaround to fool mypy
         cls_copy = cls
         if TYPE_CHECKING:
-            assert issubclass(cls_copy, RowMixin)
+            assert issubclass(cls_copy, RowMixin)  # for mypy
         query = select(cls).where(cls_copy.fullname == fullname)
         async with session.begin_nested():
             rows = await session.scalars(query)
@@ -226,7 +226,7 @@ class RowMixin:
             return row
         except IntegrityError as e:
             if TYPE_CHECKING:
-                assert e.orig
+                assert e.orig  # for mypy
             raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
 
     @classmethod
@@ -253,7 +253,7 @@ class RowMixin:
         # This is a stupid workaround to fool mypy
         cls_copy = cls
         if TYPE_CHECKING:
-            assert issubclass(cls_copy, RowMixin)
+            assert issubclass(cls_copy, RowMixin)  # for mypy
         create_kwargs = await cls_copy.get_create_kwargs(session, **kwargs)
         row = cls(**create_kwargs)
         async with session.begin_nested():
@@ -320,5 +320,5 @@ class RowMixin:
             return self
         except IntegrityError as e:
             if TYPE_CHECKING:
-                assert e.orig
+                assert e.orig  # for mypy
             raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e

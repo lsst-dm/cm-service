@@ -106,7 +106,7 @@ class Campaign(Base, ElementMixin):
         session: async_scoped_session,
     ) -> Campaign:
         """Maps self to self.get_campaign() for consistency"""
-        assert session
+        assert session  # For mypy
         return self
 
     def __repr__(self) -> str:

@@ -22,8 +22,9 @@ class JobHandler(ElementHandler):
         element: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
+        # This is so mypy doesn't think we are passing in a script
         if TYPE_CHECKING:
-            assert isinstance(element, Job)
+            assert isinstance(element, Job)  # for mypy
 
         async with session.begin_nested():
             await session.refresh(element, attribute_names=["tasks_", "errors_"])

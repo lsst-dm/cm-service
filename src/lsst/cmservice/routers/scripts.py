@@ -70,8 +70,8 @@ update_spec_aliases = wrappers.update_node_spec_aliases_function(
 accept = wrappers.get_node_accept_function(router, response_model_class, db_class)
 reject = wrappers.get_node_reject_function(router, response_model_class, db_class)
 reset = wrappers.get_node_reset_function(router, response_model_class, db_class)
-process = wrappers.get_node_process_function(router, response_model_class, db_class)
-run_check = wrappers.get_node_run_check_function(router, response_model_class, db_class)
+process = wrappers.get_node_process_function(router, db_class)
+run_check = wrappers.get_node_run_check_function(router, db_class)
 
 
 @router.put(

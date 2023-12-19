@@ -10,7 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
 from ..common.enums import LevelEnum, StatusEnum
-from ..common.errors import CMMissingRowCreateInputError
+from ..common.errors import CMBadParameterTypeError, CMMissingRowCreateInputError
 from ..models.merged_product_set import MergedProductSet, MergedProductSetDict
 from ..models.merged_task_set import MergedTaskSet, MergedTaskSetDict
 from ..models.merged_wms_task_report import MergedWmsTaskReport, MergedWmsTaskReportDict
@@ -260,7 +260,8 @@ class Job(Base, ElementMixin):
 
         fullname = f"{parent.fullname}/{self.name}_{attempt:03}"
         if self.data:
-            assert isinstance(self.data, dict)
+            if not isinstance(self.data, dict):
+                raise CMBadParameterTypeError(f"job.data should be dict | None, not {type(self.data)}")
             data = self.data.copy()
         else:
             data = {}
