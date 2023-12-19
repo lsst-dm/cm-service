@@ -82,7 +82,7 @@ class Script(Base, NodeMixin):
     col_names_for_table = [
         "id",
         "fullname",
-        "spec_block_assoc_id",
+        "spec_block_id",
         "handler",
         "method",
         "stamp_url",
