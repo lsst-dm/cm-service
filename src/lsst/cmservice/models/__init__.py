@@ -21,6 +21,7 @@ from .interface import (
     YamlFileQuery,
 )
 from .job import Job, JobCreate, JobUpdate
+from .merged_wms_task_report import MergedWmsTaskReport, MergedWmsTaskReportDict
 from .pipetask_error import PipetaskError, PipetaskErrorCreate, PipetaskErrorUpdate
 from .pipetask_error_type import PipetaskErrorType, PipetaskErrorTypeCreate, PipetaskErrorTypeUpdate
 from .product_set import ProductSet, ProductSetCreate, ProductSetUpdate
@@ -93,6 +94,8 @@ __all__ = [
     "WmsTaskReport",
     "WmsTaskReportCreate",
     "WmsTaskReportUpdate",
+    "MergedWmsTaskReport",
+    "MergedWmsTaskReportDict",
     "Dependency",
     "DependencyCreate",
     "RowQuery",

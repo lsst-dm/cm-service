@@ -7,11 +7,14 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 
 from ..common.enums import NodeTypeEnum, StatusEnum
 from ..common.errors import CMBadStateTransitionError, CMTooManyActiveScriptsError
+from ..models.merged_wms_task_report import MergedWmsTaskReportDict
 from .node import NodeMixin
 
 if TYPE_CHECKING:
     from .job import Job
+    from .product_set import ProductSet
     from .script import Script
+    from .task_set import TaskSet
 
 
 class ElementMixin(NodeMixin):
@@ -228,3 +231,60 @@ class ElementMixin(NodeMixin):
             if script_.status == StatusEnum.running:
                 sleep_time = max(script_sleep, sleep_time)
         return sleep_time
+
+    async def get_wms_reports(
+        self,
+        session: async_scoped_session,
+        **kwargs: Any,
+    ) -> MergedWmsTaskReportDict:
+        """Get the WmwTaskReports associated to this element
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        Returns
+        -------
+        the_dict: MergedWmsTaskReportDict
+             Requested reports
+        """
+        raise NotImplementedError()
+
+    async def get_tasks(
+        self,
+        session: async_scoped_session,
+        **kwargs: Any,
+    ) -> dict[str, TaskSet]:
+        """Get the TaskSet associated to this element
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        Returns
+        -------
+        the_dict : dict[str, "TaskSet"]
+             Requested reports
+        """
+        raise NotImplementedError()
+
+    async def get_products(
+        self,
+        session: async_scoped_session,
+        **kwargs: Any,
+    ) -> dict[str, ProductSet]:
+        """Get the ProductSet associated to this element
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        Returns
+        -------
+        the_dict : dict[str, "ProductSet"]
+             Requested reports
+        """
+        raise NotImplementedError()

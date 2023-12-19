@@ -11,6 +11,7 @@ from sqlalchemy.schema import ForeignKey
 
 from ..common.enums import LevelEnum, StatusEnum
 from ..common.errors import CMMissingRowCreateInputError
+from ..models.merged_wms_task_report import MergedWmsTaskReport, MergedWmsTaskReportDict
 from .base import Base
 from .dbid import DbId
 from .element import ElementMixin
@@ -161,11 +162,14 @@ class Job(Base, ElementMixin):
         self,
         session: async_scoped_session,
         **kwargs: Any,
-    ) -> dict[str, WmsTaskReport]:
+    ) -> MergedWmsTaskReportDict:
         async with session.begin_nested():
             await session.refresh(self, attribute_names=["wms_reports_"])
-            ret_dict = {wms_report_.name: wms_report_ for wms_report_ in self.wms_reports_}
-            return ret_dict
+            reports = {
+                wms_report_.name: MergedWmsTaskReport.from_orm(wms_report_)
+                for wms_report_ in self.wms_reports_
+            }
+            return MergedWmsTaskReportDict(reports=reports)
 
     async def get_tasks(
         self,

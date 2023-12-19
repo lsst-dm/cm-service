@@ -11,6 +11,7 @@ from sqlalchemy.schema import ForeignKey, UniqueConstraint
 
 from ..common.enums import LevelEnum, StatusEnum
 from ..common.errors import CMMissingRowCreateInputError
+from ..models.merged_wms_task_report import MergedWmsTaskReportDict
 from .base import Base
 from .campaign import Campaign
 from .dbid import DbId
@@ -112,6 +113,19 @@ class Step(Base, ElementMixin):
         async with session.begin_nested():
             await session.refresh(self, attribute_names=["g_"])
             return self.g_
+
+    async def get_wms_reports(
+        self,
+        session: async_scoped_session,
+        **kwargs: Any,
+    ) -> MergedWmsTaskReportDict:
+        the_dict = MergedWmsTaskReportDict(reports={})
+
+        async with session.begin_nested():
+            await session.refresh(self, attribute_names=["g_"])
+            for group_ in self.g_:
+                the_dict += await group_.get_wms_reports(session)
+            return the_dict
 
     @classmethod
     async def get_create_kwargs(
