@@ -1,5 +1,5 @@
 """http routers for managing Queue tables"""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from safir.dependencies.db_session import db_session_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
 
@@ -48,8 +48,11 @@ async def process_element(
     row_id: int,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> bool:
-    queue = await db.Queue.get_row(session, row_id)
-    can_continue = await queue.process_element(session)
+    try:
+        queue = await db.Queue.get_row(session, row_id)
+        can_continue = await queue.process_element(session)
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
     return can_continue
 
 
@@ -62,6 +65,9 @@ async def sleep_time(
     row_id: int,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> int:
-    queue = await db.Queue.get_row(session, row_id)
-    element_sleep_time = await queue.element_sleep_time(session)
+    try:
+        queue = await db.Queue.get_row(session, row_id)
+        element_sleep_time = await queue.element_sleep_time(session)
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
     return element_sleep_time

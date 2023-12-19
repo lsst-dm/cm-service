@@ -9,6 +9,7 @@ from lsst.utils import doImport
 from lsst.utils.introspection import get_full_type_name
 
 from ..common.enums import StatusEnum
+from ..common.errors import CMBadHandlerTypeError
 from ..common.utils import add_sys_path
 
 if TYPE_CHECKING:
@@ -65,7 +66,7 @@ class Handler:
             with add_sys_path(Handler.plugin_dir):
                 handler_class = doImport(class_name)
             if isinstance(handler_class, types.ModuleType):
-                raise TypeError
+                raise CMBadHandlerTypeError(f"{type(handler_class)} is a Module, not a handler class")
             cached_handler = handler_class(spec_block_id, **kwargs)
             Handler.handler_cache[spec_block_id] = cached_handler
         return cached_handler

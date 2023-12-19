@@ -10,7 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
 from ..common.enums import LevelEnum, NodeTypeEnum, ScriptMethodEnum, StatusEnum
-from ..common.errors import MissingRowCreateInputError
+from ..common.errors import CMBadEnumError, CMMissingRowCreateInputError
 from .base import Base
 from .campaign import Campaign
 from .dbid import DbId
@@ -149,7 +149,7 @@ class Script(Base, NodeMixin):
                 await session.refresh(self, attribute_names=["j_"])
                 element = self.j_
             else:
-                raise ValueError(f"Bad level for script: {self.parent_level}")
+                raise CMBadEnumError(f"Bad level for script: {self.parent_level}")
             return element
 
     async def get_siblings(
@@ -191,7 +191,7 @@ class Script(Base, NodeMixin):
             name = kwargs["name"]
             spec_block_name = kwargs["spec_block_name"]
         except KeyError as msg:
-            raise MissingRowCreateInputError(f"Missing input to create Script: {msg}")
+            raise CMMissingRowCreateInputError(f"Missing input to create Script: {msg}")
         attempt = kwargs.get("attempt", 0)
         parent_level = kwargs["parent_level"]
 
@@ -220,7 +220,7 @@ class Script(Base, NodeMixin):
             element = await Job.get_row_by_fullname(session, parent_name)
             ret_dict["j_id"] = element.id
         else:
-            raise ValueError(f"Bad level for script: {parent_level}")
+            raise CMBadEnumError(f"Bad level for script: {parent_level}")
         ret_dict["parent_id"] = element.id
 
         specification = await element.get_specification(session)

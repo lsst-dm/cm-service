@@ -10,7 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
 from ..common.enums import LevelEnum, StatusEnum
-from ..common.errors import MissingRowCreateInputError
+from ..common.errors import CMMissingRowCreateInputError
 from .base import Base
 from .dbid import DbId
 from .element import ElementMixin
@@ -201,7 +201,7 @@ class Job(Base, ElementMixin):
             name = kwargs["name"]
             spec_block_name = kwargs["spec_block_name"]
         except KeyError as msg:
-            raise MissingRowCreateInputError(f"Missing input to create Job: {msg}")
+            raise CMMissingRowCreateInputError(f"Missing input to create Job: {msg}")
         attempt = kwargs.get("attempt", 0)
         parent = await Group.get_row_by_fullname(session, parent_name)
         specification = await parent.get_specification(session)

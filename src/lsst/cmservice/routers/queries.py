@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from safir.dependencies.db_session import db_session_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
 
@@ -20,10 +20,13 @@ async def get_element(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.ElementMixin:
-    return await interface.get_element_by_fullname(
-        session,
-        fullname,
-    )
+    try:
+        return await interface.get_element_by_fullname(
+            session,
+            fullname,
+        )
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.get(
@@ -35,10 +38,13 @@ async def get_script(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Script:
-    return await db.Script.get_row_by_fullname(
-        session,
-        fullname,
-    )
+    try:
+        return await db.Script.get_row_by_fullname(
+            session,
+            fullname,
+        )
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.get(
@@ -50,10 +56,13 @@ async def get_job(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Job:
-    return await db.Job.get_row_by_fullname(
-        session,
-        fullname,
-    )
+    try:
+        return await db.Job.get_row_by_fullname(
+            session,
+            fullname,
+        )
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.get(
@@ -65,10 +74,13 @@ async def get_spec_block(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.SpecBlock:
-    return await interface.get_spec_block(
-        session,
-        fullname,
-    )
+    try:
+        return await interface.get_spec_block(
+            session,
+            fullname,
+        )
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.get(
@@ -80,10 +92,13 @@ async def get_specification(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Specification:
-    return await interface.get_specification(
-        session,
-        fullname,
-    )
+    try:
+        return await interface.get_specification(
+            session,
+            fullname,
+        )
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.get(
@@ -95,10 +110,13 @@ async def get_resolved_collections(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> dict:
-    return await interface.get_resolved_collections(
-        session,
-        fullname,
-    )
+    try:
+        return await interface.get_resolved_collections(
+            session,
+            fullname,
+        )
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.get(
@@ -110,10 +128,13 @@ async def get_collections(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> dict:
-    return await interface.get_collections(
-        session,
-        fullname,
-    )
+    try:
+        return await interface.get_collections(
+            session,
+            fullname,
+        )
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.get(
@@ -125,10 +146,13 @@ async def get_child_config(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> dict:
-    return await interface.get_child_config(
-        session,
-        fullname,
-    )
+    try:
+        return await interface.get_child_config(
+            session,
+            fullname,
+        )
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.get(
@@ -140,10 +164,13 @@ async def get_data_dict(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> dict:
-    return await interface.get_data_dict(
-        session,
-        fullname,
-    )
+    try:
+        return await interface.get_data_dict(
+            session,
+            fullname,
+        )
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.get(
@@ -155,10 +182,13 @@ async def get_spec_aliases(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> dict:
-    return await interface.get_spec_aliases(
-        session,
-        fullname,
-    )
+    try:
+        return await interface.get_spec_aliases(
+            session,
+            fullname,
+        )
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.get(
@@ -170,10 +200,13 @@ async def get_prerequisites(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> bool:
-    return await interface.check_prerequisites(
-        session,
-        fullname=fullname,
-    )
+    try:
+        return await interface.check_prerequisites(
+            session,
+            fullname=fullname,
+        )
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.get(
@@ -189,13 +222,16 @@ async def get_element_scripts(
     skip_superseded: bool = True,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> list[db.Script]:
-    return await interface.get_scripts(
-        session,
-        fullname=fullname,
-        script_name=script_name,
-        remaining_only=remaining_only,
-        skip_superseded=skip_superseded,
-    )
+    try:
+        return await interface.get_scripts(
+            session,
+            fullname=fullname,
+            script_name=script_name,
+            remaining_only=remaining_only,
+            skip_superseded=skip_superseded,
+        )
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.get(
@@ -210,12 +246,15 @@ async def get_element_all_scripts(
     skip_superseded: bool = True,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> list[db.Script]:
-    return await interface.get_all_scripts(
-        session,
-        fullname=fullname,
-        remaining_only=remaining_only,
-        skip_superseded=skip_superseded,
-    )
+    try:
+        return await interface.get_all_scripts(
+            session,
+            fullname=fullname,
+            remaining_only=remaining_only,
+            skip_superseded=skip_superseded,
+        )
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.get(
@@ -230,12 +269,15 @@ async def get_element_jobs(
     skip_superseded: bool = True,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> list[db.Job]:
-    return await interface.get_jobs(
-        session,
-        fullname=fullname,
-        remaining_only=remaining_only,
-        skip_superseded=skip_superseded,
-    )
+    try:
+        return await interface.get_jobs(
+            session,
+            fullname=fullname,
+            remaining_only=remaining_only,
+            skip_superseded=skip_superseded,
+        )
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.get(
@@ -249,12 +291,15 @@ async def get_element_sleep(
     script_sleep: int = 15,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> int:
-    return await interface.estimate_sleep(
-        session,
-        fullname=fullname,
-        job_sleep=job_sleep,
-        script_sleep=script_sleep,
-    )
+    try:
+        return await interface.estimate_sleep(
+            session,
+            fullname=fullname,
+            job_sleep=job_sleep,
+            script_sleep=script_sleep,
+        )
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.get(
@@ -266,10 +311,13 @@ async def get_job_task_sets(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> list[db.TaskSet]:
-    return await interface.get_task_sets_for_job(
-        session,
-        fullname=fullname,
-    )
+    try:
+        return await interface.get_task_sets_for_job(
+            session,
+            fullname=fullname,
+        )
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.get(
@@ -281,10 +329,13 @@ async def get_job_wms_reports(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> list[db.WmsTaskReport]:
-    return await interface.get_wms_reports_for_job(
-        session,
-        fullname=fullname,
-    )
+    try:
+        return await interface.get_wms_reports_for_job(
+            session,
+            fullname=fullname,
+        )
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.get(
@@ -296,10 +347,13 @@ async def get_job_product_sets(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> list[db.ProductSet]:
-    return await interface.get_product_sets_for_job(
-        session,
-        fullname=fullname,
-    )
+    try:
+        return await interface.get_product_sets_for_job(
+            session,
+            fullname=fullname,
+        )
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.get(
@@ -311,7 +365,10 @@ async def get_job_errors(
     fullname: str,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> list[db.PipetaskError]:
-    return await interface.get_errors_for_job(
-        session,
-        fullname=fullname,
-    )
+    try:
+        return await interface.get_errors_for_job(
+            session,
+            fullname=fullname,
+        )
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")

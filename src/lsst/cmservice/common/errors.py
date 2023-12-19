@@ -1,37 +1,84 @@
 """cm-service specific error types"""
 
 
-class BashSubmitError(KeyError):
+from sqlalchemy.exc import IntegrityError
+
+
+class CMBashSubmitError(KeyError):
     """Raised when bash submisison fails"""
 
 
-class BadStateTransitionError(ValueError):
+class CMBadFullnameError(ValueError):
+    """Raised when a fullname is badly formed"""
+
+
+class CMBadStateTransitionError(ValueError):
     """Raised when requesting a bad transition states for a Node"""
 
 
-class BadExecutionMethodError(ValueError):
+class CMBadExecutionMethodError(ValueError):
     """Raised when requesting a bed execution method for a Node"""
 
 
-class MissingNodeUrlError(ValueError):
+class CMBadHandlerTypeError(TypeError):
+    """Raised when the specified handler type is not a valid type"""
+
+
+class CMBadEnumError(ValueError):
+    """Raised when an enum value isn't handled in a switch"""
+
+
+class CMIDMismatchError(ValueError):
+    """Raised when there is an ID mismatch between row IDs"""
+
+
+class CMIntegrityError(IntegrityError):
+    """Raise when catching a sqlalchemy.exc.IntegrityError"""
+
+
+class CMMissingNodeUrlError(ValueError):
     """Raised when a URL needed by a Node does not exist"""
 
 
-class MissingScriptInputError(KeyError):
+class CMMissingScriptInputError(KeyError):
     """Raised when a script is missing an input in needs"""
 
 
-class MissingRowCreateInputError(KeyError):
+class CMMissingRowCreateInputError(KeyError):
     """Raised when command to create a row is missing an input"""
 
 
-class ResolveCollectionsError(KeyError):
+class CMMissingFullnameError(KeyError):
+    """Raised when no row matches the requested fullname"""
+
+
+class CMMissingIDError(KeyError):
+    """Raised when no row matches the requested ID"""
+
+
+class CMResolveCollectionsError(KeyError):
     """Raised when the collection name resolution fails"""
 
 
-class SlurmSubmitError(KeyError):
+class CMSlurmSubmitError(KeyError):
     """Raised when slurm submisison fails"""
 
 
-class YamlParseError(KeyError):
+class CMSpecficiationError(KeyError):
+    """Raised when Specification calls out an non-existing fragement"""
+
+
+class CMTooFewAcceptedJobsError(KeyError):
+    """Raised when no jobs of the same name are accepted"""
+
+
+class CMTooManyAcceptedJobsError(KeyError):
+    """Raised when more that one job of the same name is accepted"""
+
+
+class CMTooManyActiveScriptsError(KeyError):
+    """Raised when more that one script of the same name is active"""
+
+
+class CMYamlParseError(KeyError):
     """Raised when parsing a yaml file fails"""

@@ -3,12 +3,18 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, TypeVar
 
-from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from ..common.enums import StatusEnum
+from ..common.errors import (
+    CMBadStateTransitionError,
+    CMIDMismatchError,
+    CMIntegrityError,
+    CMMissingFullnameError,
+    CMMissingIDError,
+)
 
 T = TypeVar("T")
 
@@ -108,7 +114,7 @@ class RowMixin:
         async with session.begin_nested():
             result = await session.get(cls, row_id)
             if result is None:
-                raise HTTPException(status_code=404, detail=f"{cls} {row_id} not found")
+                raise CMMissingIDError(f"{cls} {row_id} not found")
             return result
 
     @classmethod
@@ -141,7 +147,7 @@ class RowMixin:
             rows = await session.scalars(query)
             row = rows.first()
             if row is None:
-                raise HTTPException(status_code=404, detail=f"{cls} {fullname} not found")
+                raise CMMissingFullnameError(f"{cls} {fullname} not found")
             return row
 
     @classmethod
@@ -159,12 +165,18 @@ class RowMixin:
 
         row_id: int
             PrimaryKey of the row to delete
+
+        Raises
+        ------
+        CMBadStateTransitionError: Row is in use
         """
         async with session.begin_nested():
             row = await session.get(cls, row_id)
             if row is not None:
                 if hasattr(row, "status") and row.status not in DELETEABLE_STATES:
-                    raise ValueError(f"Can not delete a row because it is in use {row} {row.status}")
+                    raise CMBadStateTransitionError(
+                        f"Can not delete a row because it is in use {row} {row.status}",
+                    )
                 await session.delete(row)
                 await session.commit()
 
@@ -195,23 +207,27 @@ class RowMixin:
 
         Raises
         ------
-        HTTPException : Code 400, ID mismatch between row IDs
+        CMIDMismatchError : ID mismatch between row IDs
 
-        HTTPException : Code 404, Could not find row
+        CMMissingFullnameError : Could not find row
+
+        CMIntegrityError : catching a IntegrityError
         """
         if kwargs.get("id", row_id) != row_id:
-            raise HTTPException(status_code=400, detail="ID mismatch between URL and body")
+            raise CMIDMismatchError("ID mismatch between URL and body")
         try:
             async with session.begin_nested():
                 row = await session.get(cls, row_id)
                 if row is None:
-                    raise HTTPException(status_code=404, detail=f"{cls} {row_id} not found")
+                    raise CMMissingFullnameError(f"{cls} {row_id} not found")
                 for var, value in kwargs.items():
                     setattr(row, var, value)
             await session.refresh(row)
             return row
         except IntegrityError as e:
-            raise HTTPException(422, detail=str(e)) from e
+            if TYPE_CHECKING:
+                assert e.orig
+            raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
 
     @classmethod
     async def create_row(
@@ -294,7 +310,7 @@ class RowMixin:
 
         Raises
         ------
-        HTTPException : Code 422, IntegrityError
+        CMIntegrityError : Catching a IntegrityError
         """
         try:
             async with session.begin_nested():
@@ -303,4 +319,6 @@ class RowMixin:
             await session.refresh(self)
             return self
         except IntegrityError as e:
-            raise HTTPException(422, detail=str(e)) from e
+            if TYPE_CHECKING:
+                assert e.orig
+            raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e

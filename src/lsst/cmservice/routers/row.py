@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 
 from .. import models
 from ..common.enums import TableEnum
+from ..common.errors import CMBadEnumError, CMMissingFullnameError
 from ..db.node import NodeMixin
 from ..handlers.interface import get_row_by_table_and_id
 
@@ -24,9 +25,10 @@ async def get_row_data(
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> dict:
     table_enum = TableEnum[table_name]
-    result = await get_row_by_table_and_id(session, row_id, table_enum)
-    if result is None:
-        raise HTTPException(status_code=404, detail=f"Row {table_name} {row_id} not found")
+    try:
+        result = await get_row_by_table_and_id(session, row_id, table_enum)
+    except (CMBadEnumError, CMMissingFullnameError, CMMissingFullnameError) as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
     assert isinstance(result, NodeMixin)
     data_dict = await result.data_dict(session)
     return {"data": data_dict}
@@ -42,10 +44,13 @@ async def post_row(
     row_query: models.RowQuery,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> dict:
-    row = await get_row_by_table_and_id(
-        session,
-        row_query.row_id,
-        row_query.table_enum,
-    )
+    try:
+        row = await get_row_by_table_and_id(
+            session,
+            row_query.row_id,
+            row_query.table_enum,
+        )
+    except (CMBadEnumError, CMMissingFullnameError, CMMissingFullnameError) as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
     assert isinstance(row, NodeMixin)
     return await row.data_dict(session)

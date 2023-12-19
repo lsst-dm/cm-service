@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from ..common.enums import ErrorActionEnum, StatusEnum
+from ..common.errors import CMBadEnumError
 from ..db.element import ElementMixin
 from .element_handler import ElementHandler
 
@@ -48,7 +49,7 @@ class JobHandler(ElementHandler):
                 if error_type_.error_action == ErrorActionEnum.accept:
                     continue
 
-                raise ValueError(f"Unexpected ErrorActionnEnum {error_type_.error_action}")
+                raise CMBadEnumError(f"Unexpected ErrorActionnEnum {error_type_.error_action}")
 
             if is_failure:
                 return StatusEnum.failed

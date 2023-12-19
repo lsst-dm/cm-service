@@ -6,7 +6,12 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.orm.collections import InstrumentedList
 
 from ..common.enums import LevelEnum, NodeTypeEnum, StatusEnum
-from ..common.errors import ResolveCollectionsError
+from ..common.errors import (
+    CMBadExecutionMethodError,
+    CMBadFullnameError,
+    CMBadStateTransitionError,
+    CMResolveCollectionsError,
+)
 from .handler import Handler
 from .row import RowMixin
 from .spec_block import SpecBlock
@@ -185,7 +190,7 @@ class NodeMixin(RowMixin):
             elif i == 4:
                 fields["job"] = token
             else:
-                raise ValueError(f"Too many fields in {fullname}")
+                raise CMBadFullnameError(f"Too many fields in {fullname}")
         return fields
 
     async def resolve_collections(
@@ -227,7 +232,7 @@ class NodeMixin(RowMixin):
                     try:
                         resolved_collections[name_].append(f1.format(**name_dict))
                     except KeyError as msg:
-                        raise ResolveCollectionsError(
+                        raise CMResolveCollectionsError(
                             f"Failed to resolve collection {name_} {f1} using: {name_dict!s}",
                         ) from msg
             else:
@@ -238,7 +243,7 @@ class NodeMixin(RowMixin):
                 try:
                     resolved_collections[name_] = f1.format(**name_dict)
                 except KeyError as msg:
-                    raise ResolveCollectionsError(
+                    raise CMResolveCollectionsError(
                         f"Failed to resolve collection {name_}, {f1} using: {name_dict!s}",
                     ) from msg
         return resolved_collections
@@ -416,10 +421,12 @@ class NodeMixin(RowMixin):
             Updated Node
         """
         if not hasattr(self, "child_config"):
-            raise AttributeError(f"{self.fullname} does not have attribute child_config")
+            raise CMBadExecutionMethodError(f"{self.fullname} does not have attribute child_config")
 
         if self.status.value >= StatusEnum.prepared.value:
-            raise ValueError(f"Tried to modify a node that is in use. {self.fullname}:{self.status}")
+            raise CMBadExecutionMethodError(
+                f"Tried to modify a node that is in use. {self.fullname}:{self.status}",
+            )
 
         async with session.begin_nested():
             if self.child_config:
@@ -453,10 +460,12 @@ class NodeMixin(RowMixin):
             Updated Node
         """
         if not hasattr(self, "collections"):
-            raise AttributeError(f"{self.fullname} does not have attribute collections")
+            raise CMBadExecutionMethodError(f"{self.fullname} does not have attribute collections")
 
         if self.status.value >= StatusEnum.prepared.value:
-            raise ValueError(f"Tried to modify a node that is in use. {self.fullname}:{self.status}")
+            raise CMBadStateTransitionError(
+                f"Tried to modify a node that is in use. {self.fullname}:{self.status}",
+            )
 
         async with session.begin_nested():
             if self.collections:
@@ -490,10 +499,12 @@ class NodeMixin(RowMixin):
             Updated Node
         """
         if not hasattr(self, "spec_aliases"):
-            raise AttributeError(f"{self.fullname} does not have attribute spec_aliases")
+            raise CMBadExecutionMethodError(f"{self.fullname} does not have attribute spec_aliases")
 
         if self.status.value >= StatusEnum.prepared.value:
-            raise ValueError(f"Tried to modify a node that is in use. {self.fullname}:{self.status}")
+            raise CMBadStateTransitionError(
+                f"Tried to modify a node that is in use. {self.fullname}:{self.status}",
+            )
 
         async with session.begin_nested():
             if self.spec_aliases:
@@ -527,10 +538,12 @@ class NodeMixin(RowMixin):
             Updated Node
         """
         if not hasattr(self, "data"):
-            raise AttributeError(f"{self.fullname} does not have attribute data")
+            raise CMBadExecutionMethodError(f"{self.fullname} does not have attribute data")
 
         if self.status.value >= StatusEnum.prepared.value:
-            raise ValueError(f"Tried to modify a node that is in use. {self.fullname}:{self.status}")
+            raise CMBadStateTransitionError(
+                f"Tried to modify a node that is in use. {self.fullname}:{self.status}",
+            )
 
         async with session.begin_nested():
             if self.data:
@@ -589,7 +602,7 @@ class NodeMixin(RowMixin):
             Node being rejected
         """
         if self.status in [StatusEnum.accepted, StatusEnum.rescued]:
-            raise ValueError(f"Can not reject {self} as it is in status {self.status}")
+            raise CMBadStateTransitionError(f"Can not reject {self} as it is in status {self.status}")
 
         await self.update_values(session, status=StatusEnum.rejected)
         await session.commit()
@@ -612,7 +625,7 @@ class NodeMixin(RowMixin):
             Node being accepted
         """
         if self.status in [StatusEnum.running, StatusEnum.reviewable, StatusEnum.rescuable]:
-            raise ValueError(f"Can not accept {self} as it is in status {self.status}")
+            raise CMBadStateTransitionError(f"Can not accept {self} as it is in status {self.status}")
 
         await self.update_values(session, status=StatusEnum.accepted)
         await session.commit()
@@ -635,7 +648,7 @@ class NodeMixin(RowMixin):
             Node being reset
         """
         if self.status not in [StatusEnum.rejected, StatusEnum.failed, StatusEnum.ready]:
-            raise ValueError(f"Can not reset {self} as it is in status {self.status}")
+            raise CMBadStateTransitionError(f"Can not reset {self} as it is in status {self.status}")
 
         await self._clean_up_node(session)
         await self.update_values(session, status=StatusEnum.waiting, superseded=False)

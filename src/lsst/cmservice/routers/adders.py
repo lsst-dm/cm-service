@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from safir.dependencies.db_session import db_session_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
 
@@ -21,7 +21,10 @@ async def add_groups(
     query: models.AddGroups,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Step:
-    return await interface.add_groups(session, **query.dict())
+    try:
+        return await interface.add_groups(session, **query.dict())
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.post(
@@ -34,7 +37,10 @@ async def add_steps(
     query: models.AddSteps,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Campaign:
-    return await interface.add_steps(session, **query.dict())
+    try:
+        return await interface.add_steps(session, **query.dict())
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.post(
@@ -47,4 +53,7 @@ async def add_campaign(
     query: models.CampaignCreate,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Campaign:
-    return await interface.create_campaign(session, **query.dict())
+    try:
+        return await interface.create_campaign(session, **query.dict())
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")

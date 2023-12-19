@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 
 from lsst.ctrl.bps.wms_service import WmsRunReport
 
+from ..common.errors import CMYamlParseError
 from ..db.campaign import Campaign
 from ..db.group import Group
 from ..db.job import Job
@@ -128,7 +129,7 @@ async def create_specification(
             try:
                 script_template_config_ = script_list_item_["ScriptTemplateAssociation"]
             except KeyError as msg:
-                raise KeyError(
+                raise CMYamlParseError(
                     f"Expected ScriptTemplateAssociation not {list(script_list_item_.keys())}",
                 ) from msg
             try:
@@ -144,7 +145,7 @@ async def create_specification(
             try:
                 spec_block_config_ = spec_block_list_item_["SpecBlockAssociation"]
             except KeyError as msg:
-                raise KeyError(
+                raise CMYamlParseError(
                     f"Expected SpecBlockAssociation not {list(spec_block_list_item_.keys())}",
                 ) from msg
             try:
@@ -203,7 +204,7 @@ async def load_specification(
                 )
         else:
             good_keys = "ScriptTemplate | SpecBlock | Specification | Imports"
-            raise KeyError(f"Expecting one of {good_keys} not: {spec_data.keys()})")
+            raise CMYamlParseError(f"Expecting one of {good_keys} not: {spec_data.keys()})")
     return specification
 
 
@@ -234,11 +235,11 @@ async def add_steps(
         try:
             step_config_ = step_["Step"]
         except KeyError as msg:
-            raise KeyError(f"Expecting Step not: {step_.keys()}") from msg
+            raise CMYamlParseError(f"Expecting Step not: {step_.keys()}") from msg
         child_name_ = step_config_.pop("name")
         spec_block_name = step_config_.pop("spec_block")
         if spec_block_name is None:
-            raise AttributeError(
+            raise CMYamlParseError(
                 f"Step {child_name_} of {campaign.fullname} does contain 'spec_block'",
             )
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
@@ -278,7 +279,9 @@ async def add_groups(
     for child_name_, child_config_ in child_configs.items():
         spec_block_name = child_config_.pop("spec_block", None)
         if spec_block_name is None:
-            raise AttributeError(f"child_config_ {child_name_} of {step.fullname} does contain 'spec_block'")
+            raise CMYamlParseError(
+                f"child_config_ {child_name_} of {step.fullname} does contain 'spec_block'",
+            )
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
         await Group.create_row(
             session,
@@ -435,7 +438,7 @@ async def load_error_types(
         try:
             val = error_type_["PipetaskErrorType"]
         except KeyError as msg:
-            raise KeyError(f"Expecting PipetaskErrorType items not: {error_type_.keys()})") from msg
+            raise CMYamlParseError(f"Expecting PipetaskErrorType items not: {error_type_.keys()})") from msg
 
         new_error_type = await PipetaskErrorType.create_row(session, **val)
         ret_list.append(new_error_type)

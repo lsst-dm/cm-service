@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from ..common.enums import NodeTypeEnum, StatusEnum
+from ..common.errors import CMBadStateTransitionError, CMTooManyActiveScriptsError
 from .node import NodeMixin
 
 if TYPE_CHECKING:
@@ -180,12 +181,12 @@ class ElementMixin(NodeMixin):
         """
         scripts = await self.get_scripts(session, script_name)
         if len(scripts) != 1:
-            raise ValueError(
+            raise CMTooManyActiveScriptsError(
                 f"Expected one active script matching {script_name} for {self.fullname}, got {len(scripts)}",
             )
         the_script = scripts[0]
         if the_script.status.value > StatusEnum.rejected.value:
-            raise ValueError(
+            raise CMBadStateTransitionError(
                 f"Can only retry failed/rejected scripts, {the_script.fullname} is {the_script.status.value}",
             )
         new_script = await the_script.copy_script(session)

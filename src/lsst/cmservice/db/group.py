@@ -8,7 +8,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey, UniqueConstraint
 
 from ..common.enums import LevelEnum, StatusEnum
-from ..common.errors import MissingRowCreateInputError
+from ..common.errors import (
+    CMBadStateTransitionError,
+    CMMissingRowCreateInputError,
+    CMTooFewAcceptedJobsError,
+    CMTooManyActiveScriptsError,
+)
 from .base import Base
 from .dbid import DbId
 from .element import ElementMixin
@@ -116,7 +121,7 @@ class Group(Base, ElementMixin):
             name = kwargs["name"]
             spec_block_name = kwargs["spec_block_name"]
         except KeyError as msg:
-            raise MissingRowCreateInputError(f"Missing input to create Group: {msg}")
+            raise CMMissingRowCreateInputError(f"Missing input to create Group: {msg}")
         step = await Step.get_row_by_fullname(session, parent_name)
         specification = await step.get_specification(session)
         spec_block = await specification.get_block(session, spec_block_name)
@@ -156,9 +161,9 @@ class Group(Base, ElementMixin):
             if job_.status == StatusEnum.rescuable:
                 rescuable_jobs.append(job_)
             else:
-                raise ValueError(f"Found unrescuable job: {job_.fullname}")
+                raise CMBadStateTransitionError(f"Found unrescuable job: {job_.fullname}")
         if not rescuable_jobs:
-            raise ValueError(f"Expected at least one rescuable job for {self.fullname}, got 0")
+            raise CMTooFewAcceptedJobsError(f"Expected at least one rescuable job for {self.fullname}, got 0")
         latest_resuable_job = rescuable_jobs[-1]
         new_job = await latest_resuable_job.copy_job(session, self)
         await session.commit()
@@ -188,12 +193,14 @@ class Group(Base, ElementMixin):
                 await job_.update_values(session, status=StatusEnum.rescued)
                 ret_list.append(job_)
             elif job_.status != StatusEnum.accepted:
-                raise ValueError(f"Job should be rescuable or accepted: {job_.fullname} is {job_.status}")
+                raise CMBadStateTransitionError(
+                    f"Job should be rescuable or accepted: {job_.fullname} is {job_.status}",
+                )
             else:
                 if has_accepted:
-                    raise ValueError(f"More that one accepted job found: {job_.fullname}")
+                    raise CMTooManyActiveScriptsError(f"More that one accepted job found: {job_.fullname}")
                 has_accepted = True
         if not has_accepted:
-            raise ValueError(f"Expected at least one accepted job for {self.fullname}, got 0")
+            raise CMTooFewAcceptedJobsError(f"Expected at least one accepted job for {self.fullname}, got 0")
         await session.commit()
         return ret_list
