@@ -18,7 +18,7 @@ from tabulate import tabulate
 
 from ..client.client import CMClient
 from ..common.enums import StatusEnum
-from ..db import Job, ProductSet, Script, SpecBlock, Specification, TaskSet, WmsTaskReport
+from ..db import Job, Script, SpecBlock, Specification
 from . import options
 
 
@@ -1097,17 +1097,15 @@ def get_element_all_scripts_command(
     @group_command(name="all_scripts")
     @options.cmclient()
     @options.row_id()
-    @options.script_name()
     @options.output()
     def all_scripts(
         client: CMClient,
         row_id: int,
-        script_name: str,
         output: options.OutputEnum | None,
     ) -> None:
         """Get the scripts assocaited to an element"""
         sub_client = getattr(client, sub_client_name)
-        result = sub_client.get_all_scripts(row_id=row_id, script_name=script_name)
+        result = sub_client.get_all_scripts(row_id=row_id)
         _output_pydantic_list(result, output, Script.col_names_for_table)
 
     return all_scripts
@@ -1274,7 +1272,22 @@ def get_element_wms_task_reports_command(
         """Get the WmsTaskReports assocaited to an element"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_wms_task_reports(row_id=row_id)
-        _output_pydantic_list(list(result.reports.values()), output, WmsTaskReport.col_names_for_table)
+        col_names = [
+            "name",
+            "n_expected",
+            "n_unknown",
+            "n_misfit",
+            "n_unready",
+            "n_ready",
+            "n_pending",
+            "n_running",
+            "n_deleted",
+            "n_held",
+            "n_succeeded",
+            "n_failed",
+            "n_pruned",
+        ]
+        _output_pydantic_list(list(result.reports.values()), output, col_names)
 
     return wms_task_reports
 
@@ -1315,7 +1328,8 @@ def get_element_tasks_command(
         """Get the scripts assocaited to an element"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_tasks(row_id=row_id)
-        _output_pydantic_list(list(result.values()), output, TaskSet.col_names_for_table)
+        col_names = ["name", "n_expected", "n_done", "n_failed", "n_failed_upstream"]
+        _output_pydantic_list(list(result.reports.values()), output, col_names)
 
     return tasks
 
@@ -1356,6 +1370,7 @@ def get_element_products_command(
         """Get the scripts assocaited to an element"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_products(row_id=row_id)
-        _output_pydantic_list(list(result.values()), output, ProductSet.col_names_for_table)
+        col_names = ["name", "n_expected", "n_done", "n_failed", "n_failed_upstream", "n_missing"]
+        _output_pydantic_list(list(result.reports.values()), output, col_names)
 
     return products

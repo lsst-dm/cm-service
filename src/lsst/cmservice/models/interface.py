@@ -14,7 +14,7 @@ class FullnameQuery(BaseModel):
     """Parameters needed to run query by fullname"""
 
     # Fullname of Node
-    fullname: str
+    fullname: str | None = None
 
 
 class NodeQuery(BaseModel):
@@ -55,7 +55,7 @@ class ScriptQueryBase(FullnameQuery):
     """Parameters needed to run query for Scripts associted to a Node"""
 
     # Name of the script
-    script_name: str
+    script_name: str | None = None
 
 
 class ScriptQuery(ScriptQueryBase):

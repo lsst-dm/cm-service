@@ -1134,11 +1134,11 @@ def get_element_get_scripts_function(
     async def element_get_scripts(
         row_id: int,
         session: async_scoped_session = Depends(db_session_dependency),
-        **kwargs: Any,
+        script_name: str = "",
     ) -> tuple[bool, StatusEnum]:
         try:
             the_element = await db_class.get_row(session, row_id)
-            return await the_element.get_scripts(session, **kwargs)
+            return await the_element.get_scripts(session, script_name=script_name)
         except Exception as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
@@ -1174,11 +1174,10 @@ def get_element_get_all_scripts_function(
     async def element_get_all_scripts(
         row_id: int,
         session: async_scoped_session = Depends(db_session_dependency),
-        **kwargs: Any,
-    ) -> tuple[bool, StatusEnum]:
+    ) -> list[db.Script]:
         try:
             the_element = await db_class.get_row(session, row_id)
-            return await the_element.get_all_scripts(session, **kwargs)
+            return await the_element.get_all_scripts(session)
         except Exception as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
@@ -1214,11 +1213,10 @@ def get_element_get_jobs_function(
     async def element_get_jobs(
         row_id: int,
         session: async_scoped_session = Depends(db_session_dependency),
-        **kwargs: Any,
     ) -> tuple[bool, StatusEnum]:
         try:
             the_element = await db_class.get_row(session, row_id)
-            return await the_element.get_jobs(session, **kwargs)
+            return await the_element.get_jobs(session)
         except Exception as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
@@ -1336,11 +1334,10 @@ def get_element_wms_task_reports_function(
     async def element_get_wms_task_reports(
         row_id: int,
         session: async_scoped_session = Depends(db_session_dependency),
-        **kwargs: Any,
     ) -> models.MergedWmsTaskReportDict:
         try:
             the_element = await db_class.get_row(session, row_id)
-            return await the_element.get_wms_reports(session, **kwargs)
+            return await the_element.get_wms_reports(session)
         except Exception as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
@@ -1376,11 +1373,10 @@ def get_element_tasks_function(
     async def element_get_tasks(
         row_id: int,
         session: async_scoped_session = Depends(db_session_dependency),
-        **kwargs: Any,
     ) -> models.MergedTaskSetDict:
         try:
             the_element = await db_class.get_row(session, row_id)
-            return await the_element.get_tasks(session, **kwargs)
+            return await the_element.get_tasks(session)
         except Exception as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
@@ -1416,11 +1412,10 @@ def get_element_products_function(
     async def element_get_products(
         row_id: int,
         session: async_scoped_session = Depends(db_session_dependency),
-        **kwargs: Any,
     ) -> models.MergedProductSetDict:
         try:
             the_element = await db_class.get_row(session, row_id)
-            return await the_element.get_products(session, **kwargs)
+            return await the_element.get_products(session)
         except Exception as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}")
 

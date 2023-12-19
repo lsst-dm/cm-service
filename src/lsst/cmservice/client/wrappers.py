@@ -196,6 +196,7 @@ def update_row_function(
         try:
             return parse_obj_as(response_model_class, results)
         except ValidationError as msg:
+            print(results)
             raise ValueError(f"Bad response: {results}") from msg
 
     return row_update
