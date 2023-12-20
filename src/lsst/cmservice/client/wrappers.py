@@ -271,7 +271,7 @@ def get_node_property_by_fullname_function(
     response_model_class: TypeAlias,
     query: str = "",
 ) -> Callable:
-    def get_node_property(
+    def get_node_property_by_fullname(
         obj: CMClient,
         fullname: str,
     ) -> response_model_class:
@@ -284,7 +284,7 @@ def get_node_property_by_fullname_function(
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 
-    return get_node_property
+    return get_node_property_by_fullname
 
 
 def get_node_post_query_function(
