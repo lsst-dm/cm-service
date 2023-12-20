@@ -267,6 +267,26 @@ def get_node_property_function(
     return get_node_property
 
 
+def get_node_property_by_fullname_function(
+    response_model_class: TypeAlias,
+    query: str = "",
+) -> Callable:
+    def get_node_property(
+        obj: CMClient,
+        fullname: str,
+    ) -> response_model_class:
+        params = models.FullnameQuery(
+            fullname=fullname,
+        )
+        results = obj.client.get(f"{query}", params=params.dict()).json()
+        try:
+            return parse_obj_as(response_model_class, results)
+        except ValidationError as msg:
+            raise ValueError(f"Bad response: {results}") from msg
+
+    return get_node_property
+
+
 def get_node_post_query_function(
     response_model_class: TypeAlias,
     query_class: TypeAlias,
