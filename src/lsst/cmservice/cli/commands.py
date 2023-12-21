@@ -224,6 +224,138 @@ def scripts(
 
 @get.command()
 @options.cmclient()
+@options.output()
+def specifications(
+    client: CMClient,
+    output: options.OutputEnum | None,
+) -> None:
+    """List the existing specifications"""
+    result = client.get_specifications()
+    _output_pydantic_list(result, output, db.Specification.col_names_for_table)
+
+
+@get.command()
+@options.cmclient()
+@options.output()
+def spec_blocks(
+    client: CMClient,
+    output: options.OutputEnum | None,
+) -> None:
+    """List the existing spec blocks"""
+    result = client.get_spec_blocks()
+    _output_pydantic_list(result, output, db.SpecBlock.col_names_for_table)
+
+
+@get.command()
+@options.cmclient()
+@options.output()
+def script_templates(
+    client: CMClient,
+    output: options.OutputEnum | None,
+) -> None:
+    """List the existing script_templates"""
+    result = client.get_script_templates()
+    _output_pydantic_list(result, output, db.ScriptTemplate.col_names_for_table)
+
+
+@get.command()
+@options.cmclient()
+@options.output()
+def pipetask_error_types(
+    client: CMClient,
+    output: options.OutputEnum | None,
+) -> None:
+    """List the existing pipetask_error_types"""
+    result = client.get_pipetask_error_types()
+    _output_pydantic_list(result, output, db.PipetaskErrorType.col_names_for_table)
+
+
+@get.command()
+@options.cmclient()
+@options.output()
+def pipetask_errors(
+    client: CMClient,
+    output: options.OutputEnum | None,
+) -> None:
+    """List the existing pipetask_errors"""
+    result = client.get_pipetask_errors()
+    _output_pydantic_list(result, output, db.PipetaskError.col_names_for_table)
+
+
+@get.command()
+@options.cmclient()
+@options.output()
+def script_errors(
+    client: CMClient,
+    output: options.OutputEnum | None,
+) -> None:
+    """List the existing script_errors"""
+    result = client.get_script_errors()
+    _output_pydantic_list(result, output, db.ScriptError.col_names_for_table)
+
+
+@get.command()
+@options.cmclient()
+@options.output()
+def task_sets(
+    client: CMClient,
+    output: options.OutputEnum | None,
+) -> None:
+    """List the existing task_sets"""
+    result = client.get_task_sets()
+    _output_pydantic_list(result, output, db.TaskSet.col_names_for_table)
+
+
+@get.command()
+@options.cmclient()
+@options.output()
+def product_sets(
+    client: CMClient,
+    output: options.OutputEnum | None,
+) -> None:
+    """List the existing product_sets"""
+    result = client.get_product_sets()
+    _output_pydantic_list(result, output, db.ProductSet.col_names_for_table)
+
+
+@get.command()
+@options.cmclient()
+@options.output()
+def wms_task_reports(
+    client: CMClient,
+    output: options.OutputEnum | None,
+) -> None:
+    """List the existing task_reports"""
+    result = client.get_wms_task_reports()
+    _output_pydantic_list(result, output, db.WmsTaskReport.col_names_for_table)
+
+
+@get.command()
+@options.cmclient()
+@options.output()
+def script_dependencies(
+    client: CMClient,
+    output: options.OutputEnum | None,
+) -> None:
+    """List the existing script_dependencies"""
+    result = client.get_script_dependencies()
+    _output_pydantic_list(result, output, db.ScriptDependency.col_names_for_table)
+
+
+@get.command()
+@options.cmclient()
+@options.output()
+def step_dependencies(
+    client: CMClient,
+    output: options.OutputEnum | None,
+) -> None:
+    """List the existing step_dependencies"""
+    result = client.get_step_dependencies()
+    _output_pydantic_list(result, output, db.StepDependency.col_names_for_table)
+
+
+@get.command()
+@options.cmclient()
 @options.fullname()
 @options.output()
 def element(
@@ -661,15 +793,26 @@ def load_specification(
     _output_pydantic_object(result, output, db.Specification.col_names_for_table)
 
 
-@load.command()
+@load.command(name="campaign")
 @options.cmclient()
 @options.output()
+@options.yaml_file()
+@options.name()
+@options.parent_name()
+@options.spec_name()
+@options.spec_block_name()
+@options.handler()
+@options.data()
+@options.child_config()
+@options.collections()
+@options.spec_aliases()
 def load_campaign(
     client: CMClient,
     output: options.OutputEnum | None,
+    **kwargs: Any,
 ) -> None:
     """Load a Specification from a yaml file and make a Campaign"""
-    result = client.load_campaign()
+    result = client.load_campaign(**kwargs)
     _output_pydantic_object(result, output, db.Campaign.col_names_for_table)
 
 
@@ -807,3 +950,114 @@ def rematch(
     """Rematch the errors"""
     result = client.rematch_errors(**kwargs)
     _output_pydantic_list(result, output, db.PipetaskError.col_names_for_table)
+
+
+@main.group()
+def manage() -> None:
+    """manage the DB directly"""
+
+
+@manage.group()
+def production() -> None:
+    """Manage production table"""
+
+
+@production.command(name="create")
+@options.cmclient()
+@options.name()
+@options.output()
+def production_create(
+    client: CMClient,
+    output: options.OutputEnum | None,
+    **kwargs: Any,
+) -> None:
+    """Create a production"""
+    result = client.production_create(**kwargs)
+    _output_pydantic_object(result, output, db.Production.col_names_for_table)
+
+
+@production.command(name="update")
+@options.cmclient()
+@options.id()
+@options.name()
+@options.output()
+def prodcution_update(
+    client: CMClient,
+    output: options.OutputEnum | None,
+    id: int,
+    **kwargs: Any,
+) -> None:
+    """Update a production"""
+    result = client.production_update(id, **kwargs)
+    _output_pydantic_object(result, output, db.Production.col_names_for_table)
+
+
+@production.command(name="delete")
+@options.cmclient()
+@options.id()
+def prodcution_delete(
+    client: CMClient,
+    id: int,
+) -> None:
+    """Update a production"""
+    client.production_delete(id)
+
+
+@manage.group(name="campaign")
+def campaign_command() -> None:
+    """Manage production table"""
+
+
+@campaign_command.command(name="create")
+@options.cmclient()
+@options.name()
+@options.parent_name()
+@options.spec_block_name()
+@options.data()
+@options.child_config()
+@options.collections()
+@options.spec_aliases()
+@options.handler()
+@options.output()
+def campagin_create(
+    client: CMClient,
+    output: options.OutputEnum | None,
+    **kwargs: Any,
+) -> None:
+    """Create a campaign"""
+    result = client.campaign_create(**kwargs)
+    _output_pydantic_object(result, output, db.Campaign.col_names_for_table)
+
+
+@campaign_command.command(name="update")
+@options.cmclient()
+@options.name()
+@options.parent_name()
+@options.spec_block_name()
+@options.data()
+@options.child_config()
+@options.collections()
+@options.spec_aliases()
+@options.handler()
+@options.output()
+@options.id()
+def campaign_update(
+    client: CMClient,
+    output: options.OutputEnum | None,
+    id: int,
+    **kwargs: Any,
+) -> None:
+    """Update a campaign"""
+    result = client.campaign_update(id, **kwargs)
+    _output_pydantic_object(result, output, db.Campaign.col_names_for_table)
+
+
+@campaign_command.command(name="delete")
+@options.cmclient()
+@options.id()
+def campaign_delete(
+    client: CMClient,
+    id: int,
+) -> None:
+    """Delete a campaign"""
+    client.campaign_delete(id)

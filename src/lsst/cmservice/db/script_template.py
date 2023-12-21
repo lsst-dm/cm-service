@@ -35,6 +35,8 @@ class ScriptTemplate(Base, RowMixin):
     def __repr__(self) -> str:
         return f"ScriptTemplate {self.id}: {self.fullname} {self.data}"
 
+    col_names_for_table = ["id", "fullname"]
+
     @classmethod
     async def get_create_kwargs(
         cls,

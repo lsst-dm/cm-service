@@ -241,30 +241,63 @@ async def load_manifest_report(
         n_failed_upstream = task_data_.get("n_quanta_blocked", 0)
         n_done = n_expected - n_failed - n_failed_upstream
 
-        new_task_set = await TaskSet.create_row(
-            session,
-            job_id=job.id,
-            name=task_name_,
-            fullname=f"{job_name}/{task_name_}",
-            n_expected=n_expected,
-            n_done=n_done,
-            n_failed=n_failed,
-            n_failed_upstream=n_failed_upstream,
-        )
-
-        for data_type_, counts_ in outputs.items():
-            _new_product_set = await ProductSet.create_row(
+        try:
+            task_set = await TaskSet.create_row(
                 session,
                 job_id=job.id,
-                task_id=new_task_set.id,
-                name=data_type_,
-                fullname=f"{new_task_set.fullname}/{data_type_}",
-                n_expected=counts_.get("expected", 0),
-                n_done=counts_.get("produced", 0),
-                n_failed=counts_.get("missing_failed", 0),
-                n_failed_upstream=counts_.get("missing_upsteam_failed", 0),
-                n_missing=counts_.get("missing_not_produced", 0),
+                name=task_name_,
+                fullname=f"{job_name}/{task_name_}",
+                n_expected=n_expected,
+                n_done=n_done,
+                n_failed=n_failed,
+                n_failed_upstream=n_failed_upstream,
             )
+        except Exception:
+            task_set = await TaskSet.get_row_by_fullname(session, f"{job_name}/{task_name_}")
+            task_set = await TaskSet.update_row(
+                session,
+                row_id=task_set.id,
+                job_id=job.id,
+                name=task_name_,
+                fullname=f"{job_name}/{task_name_}",
+                n_expected=n_expected,
+                n_done=n_done,
+                n_failed=n_failed,
+                n_failed_upstream=n_failed_upstream,
+            )
+
+        for data_type_, counts_ in outputs.items():
+            try:
+                product_set = await ProductSet.create_row(
+                    session,
+                    job_id=job.id,
+                    task_id=task_set.id,
+                    name=data_type_,
+                    fullname=f"{task_set.fullname}/{data_type_}",
+                    n_expected=counts_.get("expected", 0),
+                    n_done=counts_.get("produced", 0),
+                    n_failed=counts_.get("missing_failed", 0),
+                    n_failed_upstream=counts_.get("missing_upsteam_failed", 0),
+                    n_missing=counts_.get("missing_not_produced", 0),
+                )
+            except Exception:
+                product_set = await ProductSet.get_row_by_fullname(
+                    session,
+                    f"{task_set.fullname}/{data_type_}",
+                )
+                product_set = await ProductSet.update_row(
+                    session,
+                    row_id=product_set.id,
+                    job_id=job.id,
+                    task_id=task_set.id,
+                    name=data_type_,
+                    fullname=f"{task_set.fullname}/{data_type_}",
+                    n_expected=counts_.get("expected", 0),
+                    n_done=counts_.get("produced", 0),
+                    n_failed=counts_.get("missing_failed", 0),
+                    n_failed_upstream=counts_.get("missing_upsteam_failed", 0),
+                    n_missing=counts_.get("missing_not_produced", 0),
+                )
 
         for failed_quanta_uuid_, failed_quanta_data_ in failed_quanta.items():
             diagnostic_message = failed_quanta_data_["error"][-1]
@@ -276,7 +309,7 @@ async def load_manifest_report(
             _new_pipetask_error = await PipetaskError.create_row(
                 session,
                 error_type_id=error_type_id,
-                task_id=new_task_set.id,
+                task_id=task_set.id,
                 quanta=failed_quanta_uuid_,
                 data_id=failed_quanta_data_["data_id"],
                 diagnostic_message=diagnostic_message,

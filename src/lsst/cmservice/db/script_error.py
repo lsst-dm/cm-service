@@ -20,6 +20,8 @@ class ScriptError(Base, RowMixin):
 
     script_: Mapped["Script"] = relationship("Script", viewonly=True)
 
+    col_names_for_table = ["id", "script_id", "source"]
+
     def __repr__(self) -> str:
         s = f"Id={self.id} {self.script_id}\n"
         if len(self.diagnostic_message) > 150:

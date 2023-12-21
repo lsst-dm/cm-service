@@ -10,17 +10,25 @@ from ..client import CMClient
 from ..common.enums import NodeTypeEnum, StatusEnum
 
 __all__ = [
-    "child_configs",
     "cmclient",
     "output",
     "OutputEnum",
+    "collections",
+    "child_config",
+    "child_configs",
+    "data",
     "fullname",
+    "id",
+    "handler",
+    "name",
     "node_type",
     "parent_name",
     "parent_id",
     "rematch",
     "script_name",
     "spec_name",
+    "spec_block_name",
+    "spec_aliases",
     "status",
     "update_dict",
     "yaml_file",
@@ -140,11 +148,32 @@ class OutputEnum(Enum):
     json = auto()
 
 
+collections = PartialOption(
+    "--collections",
+    type=DictParamType(),
+    help="collections values to update",
+)
+
 child_configs = PartialOption(
     "--child_configs",
     type=dict,
-    help="Configuration to use for creating new Elements.",
+    help="child_configurations",
 )
+
+
+child_config = PartialOption(
+    "--child_config",
+    type=DictParamType(),
+    help="child_config values to update",
+)
+
+
+data = PartialOption(
+    "--data",
+    type=DictParamType(),
+    help="data values to update",
+)
+
 
 output = PartialOption(
     "--output",
@@ -173,6 +202,17 @@ parent_id = PartialOption(
     default=None,
     help="ID of parent object in DB.",
 )
+
+handler = PartialOption("--handler", type=str, help="Name of object")
+
+
+id = PartialOption(
+    "--id",
+    type=int,
+    help="ID of object.",
+)
+
+name = PartialOption("--name", type=str, help="Name of object")
 
 node_type = PartialOption(
     "--node_type",
@@ -204,6 +244,21 @@ spec_name = PartialOption(
     type=str,
     help="Name of the specification",
 )
+
+
+spec_block_name = PartialOption(
+    "--spec_block_name",
+    type=str,
+    help="Name of the SpecBlock",
+)
+
+
+spec_aliases = PartialOption(
+    "--spec_aliases",
+    type=DictParamType(),
+    help="Spec aliases to update",
+)
+
 
 update_dict = PartialOption(
     "--update_dict",
