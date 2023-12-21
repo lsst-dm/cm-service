@@ -333,6 +333,18 @@ def wms_task_reports(
 @get.command()
 @options.cmclient()
 @options.output()
+def queues(
+    client: CMClient,
+    output: options.OutputEnum | None,
+) -> None:
+    """List the existing queues"""
+    result = client.get_queues()
+    _output_pydantic_list(result, output, db.Queue.col_names_for_table)
+
+
+@get.command()
+@options.cmclient()
+@options.output()
 def script_dependencies(
     client: CMClient,
     output: options.OutputEnum | None,
@@ -1061,3 +1073,76 @@ def campaign_delete(
 ) -> None:
     """Delete a campaign"""
     client.campaign_delete(id)
+
+
+@main.group()
+def queue() -> None:
+    """manage the processing queue"""
+
+
+@queue.command(name="create")
+@options.cmclient()
+@options.fullname()
+@options.interval()
+@options.output()
+def queue_create(
+    client: CMClient,
+    output: options.OutputEnum | None,
+    **kwargs: Any,
+) -> None:
+    """Create a production"""
+    result = client.queue_create(**kwargs)
+    _output_pydantic_object(result, output, db.Queue.col_names_for_table)
+
+
+@queue.command(name="update")
+@options.cmclient()
+@options.id()
+@options.fullname()
+@options.interval()
+@options.output()
+def queue_update(
+    client: CMClient,
+    output: options.OutputEnum | None,
+    id: int,
+    **kwargs: Any,
+) -> None:
+    """Update a production"""
+    result = client.queue_update(id, **kwargs)
+    _output_pydantic_object(result, output, db.Queue.col_names_for_table)
+
+
+@queue.command(name="get")
+@options.cmclient()
+@options.id()
+@options.output()
+def queue_get(
+    client: CMClient,
+    output: options.OutputEnum | None,
+    id: int,
+) -> None:
+    """Update a production"""
+    result = client.queue_get(id)
+    _output_pydantic_object(result, output, db.Queue.col_names_for_table)
+
+
+@queue.command(name="delete")
+@options.cmclient()
+@options.id()
+def queue_delete(
+    client: CMClient,
+    id: int,
+) -> None:
+    """Update a production"""
+    client.queue_delete(id)
+
+
+@queue.command(name="daemon")
+@options.cmclient()
+@options.id()
+def queue_dameon(
+    client: CMClient,
+    **kwargs: Any,
+) -> None:
+    """Update a production"""
+    client.queue_daemon(**kwargs)

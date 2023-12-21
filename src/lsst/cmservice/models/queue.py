@@ -15,7 +15,7 @@ class QueueCreate(QueueBase):
 class Queue(QueueBase):
     id: int
 
-    element_level: int
+    # element_level: int
     element_id: int
 
     time_created: datetime

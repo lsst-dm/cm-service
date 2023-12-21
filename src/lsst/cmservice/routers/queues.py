@@ -1,4 +1,6 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from safir.dependencies.db_session import db_session_dependency
+from sqlalchemy.ext.asyncio import async_scoped_session
 
 from .. import db, models
 from . import wrappers
@@ -26,3 +28,17 @@ post_row = wrappers.post_row_function(
 )
 delete_row = wrappers.delete_row_function(router, db_class, class_string)
 update_row = wrappers.put_row_function(router, response_model_class, db_class, class_string)
+
+
+@router.get(
+    "/process/{row_id}",
+    response_model=bool,
+    summary="Process the associated element",
+)
+async def process_element(
+    row_id: int,
+    session: async_scoped_session = Depends(db_session_dependency),
+) -> bool:
+    queue = await db.Queue.get_row(session, row_id)
+    can_continue = await queue.process_element(session)
+    return can_continue

@@ -4,7 +4,8 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import pause
-from sqlalchemy import JSON, DateTime
+from fastapi import HTTPException
+from sqlalchemy import JSON, DateTime, and_, select
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -46,6 +47,16 @@ class Queue(Base, NodeMixin):
     g_: Mapped[Group] = relationship("Group", viewonly=True)
     j_: Mapped[Job] = relationship("Job", viewonly=True)
 
+    col_names_for_table = [
+        "id",
+        # "element_level",
+        "element_id",
+        "interval",
+        "time_created",
+        "time_updated",
+        "time_finished",
+    ]
+
     @hybrid_property
     def element_db_id(self) -> DbId:
         """Returns DbId"""
@@ -84,6 +95,38 @@ class Queue(Base, NodeMixin):
             else:
                 raise ValueError(f"Bad level for script: {self.element_level}")
             return element
+
+    @classmethod
+    async def get_queue_item(
+        cls,
+        session: async_scoped_session,
+        **kwargs: Any,
+    ) -> Queue:
+        fullname = kwargs["fullname"]
+        element_level = LevelEnum.get_level_from_fullname(fullname)
+        element: ElementMixin | None = None
+        if element_level == LevelEnum.campaign:
+            element = await Campaign.get_row_by_fullname(session, fullname)
+        elif element_level == LevelEnum.step:
+            element = await Step.get_row_by_fullname(session, fullname)
+        elif element_level == LevelEnum.group:
+            element = await Group.get_row_by_fullname(session, fullname)
+        elif element_level == LevelEnum.job:
+            element = await Job.get_row_by_fullname(session, fullname)
+        else:
+            raise ValueError(f"Bad level for queue: {element_level}")
+        query = select(cls).where(
+            and_(
+                cls.element_level == element_level,
+                cls.element_id == element.id,
+            ),
+        )
+        async with session.begin_nested():
+            rows = await session.scalars(query)
+            row = rows.first()
+            if row is None:
+                raise HTTPException(status_code=404, detail=f"{cls} {element_level} {element.id} not found")
+            return row
 
     @classmethod
     async def get_create_kwargs(
@@ -163,6 +206,7 @@ class Queue(Base, NodeMixin):
             update_dict.update(time_finished=now)
 
         await self.update_values(session, **update_dict)
+        await session.commit()
         return element.status.is_processable_element()
 
     async def process_element(

@@ -19,6 +19,7 @@ __all__ = [
     "data",
     "fullname",
     "id",
+    "interval",
     "handler",
     "name",
     "node_type",
@@ -210,6 +211,13 @@ id = PartialOption(
     "--id",
     type=int,
     help="ID of object.",
+)
+
+interval = PartialOption(
+    "--interval",
+    type=int,
+    help="Interval between process calls (s)",
+    default=300,
 )
 
 name = PartialOption("--name", type=str, help="Name of object")
