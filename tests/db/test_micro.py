@@ -16,10 +16,11 @@ async def test_micro(session: async_scoped_session) -> None:
         "w_2023_41",
     )
 
-    status = await interface.process(
+    changed, status = await interface.process(
         session,
         "hsc_micro/w_2023_41",
         fake_status=StatusEnum.accepted,
     )
 
+    assert changed
     assert status == StatusEnum.accepted

@@ -49,11 +49,13 @@ class BaseScriptHandler(Handler):
         session: async_scoped_session,
         node: NodeMixin,
         **kwargs: Any,
-    ) -> StatusEnum:
+    ) -> tuple[bool, StatusEnum]:
         # Need this so mypy doesn't think we are passing in Element
         if TYPE_CHECKING:
             assert isinstance(node, Script)
+        orig_status = node.status
         status = node.status
+        changed = False
         if status == StatusEnum.waiting:
             is_ready = await node.check_prerequisites(session)
             if is_ready:
@@ -67,21 +69,27 @@ class BaseScriptHandler(Handler):
             status = await self.check(session, node, parent, **kwargs)
         if status == StatusEnum.reviewable:
             status = await self.review(session, node, parent)
-        if status != node.status:
+        if status != orig_status:
+            changed = True
             await node.update_values(session, status=status)
-        return status
+        return (changed, status)
 
     async def run_check(
         self,
         session: async_scoped_session,
         node: NodeMixin,
         **kwargs: Any,
-    ) -> StatusEnum:
+    ) -> tuple[bool, StatusEnum]:
         # Need this so mypy doesn't think we are passing in Element
         if TYPE_CHECKING:
             assert isinstance(node, Script)
         parent = await node.get_parent(session)
-        return await self.check(session, node, parent, **kwargs)
+        orig_status = node.status
+        changed = False
+        status = await self.check(session, node, parent, **kwargs)
+        if orig_status != status:
+            changed = True
+        return (changed, status)
 
     async def prepare(
         self,

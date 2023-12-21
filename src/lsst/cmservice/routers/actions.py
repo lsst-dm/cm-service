@@ -15,13 +15,13 @@ router = APIRouter(
 @router.post(
     "/process_script",
     status_code=201,
-    response_model=StatusEnum,
+    response_model=tuple[bool, StatusEnum],
     summary="Process a script",
 )
 async def process_script(
     query: models.ProcessQuery,
     session: async_scoped_session = Depends(db_session_dependency),
-) -> StatusEnum:
+) -> tuple[bool, StatusEnum]:
     params = query.dict()
     if params.get("fake_status"):
         params["fake_status"] = StatusEnum(params["fake_status"])
@@ -31,13 +31,13 @@ async def process_script(
 @router.post(
     "/process_job",
     status_code=201,
-    response_model=StatusEnum,
+    response_model=tuple[bool, StatusEnum],
     summary="Process a job",
 )
 async def process_job(
     query: models.ProcessQuery,
     session: async_scoped_session = Depends(db_session_dependency),
-) -> StatusEnum:
+) -> tuple[bool, StatusEnum]:
     params = query.dict()
     if params.get("fake_status"):
         params["fake_status"] = StatusEnum(params["fake_status"])
@@ -47,13 +47,13 @@ async def process_job(
 @router.post(
     "/process_element",
     status_code=201,
-    response_model=StatusEnum,
+    response_model=tuple[bool, StatusEnum],
     summary="Process an Element",
 )
 async def process_element(
     query: models.ProcessQuery,
     session: async_scoped_session = Depends(db_session_dependency),
-) -> StatusEnum:
+) -> tuple[bool, StatusEnum]:
     params = query.dict()
     if params.get("fake_status"):
         params["fake_status"] = StatusEnum(params["fake_status"])
@@ -63,13 +63,13 @@ async def process_element(
 @router.post(
     "/process",
     status_code=201,
-    response_model=StatusEnum,
+    response_model=tuple[bool, StatusEnum],
     summary="Process a Node",
 )
 async def process(
     query: models.ProcessNodeQuery,
     session: async_scoped_session = Depends(db_session_dependency),
-) -> StatusEnum:
+) -> tuple[bool, StatusEnum]:
     params = query.dict()
     if params.get("fake_status"):
         params["fake_status"] = StatusEnum(params["fake_status"])

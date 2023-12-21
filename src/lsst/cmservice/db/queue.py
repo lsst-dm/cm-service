@@ -156,7 +156,7 @@ class Queue(Base, NodeMixin):
         process_kwargs: dict = {}
         if isinstance(self.options, dict):
             process_kwargs.update(**self.options)
-        status = await element.process(session, **process_kwargs)
+        (changed, status) = await element.process(session, **process_kwargs)
         now = datetime.now()
         update_dict = {"time_updated": now}
         if status.is_successful_element():

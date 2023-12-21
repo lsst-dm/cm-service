@@ -254,7 +254,7 @@ class PrepareStepScriptHandler(ScriptHandler):
                 await session.refresh(prereq_, attribute_names=["prereq_"])
                 prereq_step = prereq_.prereq_
                 prereq_step_colls = await prereq_step.resolve_collections(session)
-                prereq_colls.append(prereq_step_colls["step_output"])
+                prereq_colls.append(prereq_step_colls["step_public_output"])
         if not prereq_colls:
             prereq_colls += resolved_cols["global_inputs"]
 

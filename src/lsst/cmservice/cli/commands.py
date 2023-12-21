@@ -864,10 +864,10 @@ def process(
     By default this selects elements, but
     table-type can be set to 'script'
     """
-    status = client.process(
+    changed, status = client.process(
         fullname=fullname,
     )
-    _output_dict({"status": status}, output)
+    _output_dict({"changed": changed, "status": status}, output)
 
 
 @action.command()

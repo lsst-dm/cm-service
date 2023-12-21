@@ -269,7 +269,7 @@ class CMClient:
         "load/manifest_report",
     )
 
-    process = get_general_post_function(models.NodeQuery, StatusEnum, "actions/process")
+    process = get_general_post_function(models.NodeQuery, tuple[bool, StatusEnum], "actions/process")
 
     retry_script = get_general_post_function(models.ScriptQueryBase, models.Script, "actions/retry_script")
 
