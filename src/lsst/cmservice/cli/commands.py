@@ -78,11 +78,11 @@ T = TypeVar("T")
 
 @click.group()
 @click.version_option(package_name="lsst-cm-service")
-def main() -> None:
+def server() -> None:
     """Administrative command-line interface for cm-service."""
 
 
-@main.command()
+@server.command()
 @click.option("--reset", is_flag=True, help="Delete all existing database data.")
 @run_with_asyncio
 async def init(*, reset: bool) -> None:  # pragma: no cover
@@ -93,14 +93,20 @@ async def init(*, reset: bool) -> None:  # pragma: no cover
     await engine.dispose()
 
 
-@main.command()
+@server.command()
 @click.option("--port", default=8080, type=int, help="Port to run the application on.")
 def run(port: int) -> None:  # pragma: no cover
     """Run the service application (for testing only)."""
     uvicorn.run("lsst.cmservice.main:app", host="0.0.0.0", port=port, reload=True, reload_dirs=["src"])
 
 
-@main.group()
+@click.group()
+@click.version_option(package_name="lsst-cm-service")
+def client() -> None:
+    """Administrative command-line interface client-side commands."""
+
+
+@client.group()
 def get() -> None:
     """Display one or many resources."""
 
@@ -638,7 +644,7 @@ def job_errors(
     _output_pydantic_list(result, output, db.PipetaskError.col_names_for_table)
 
 
-@main.group()
+@client.group()
 def update() -> None:
     """Update a resource."""
 
@@ -723,7 +729,7 @@ def data_dict(
     _output_dict(result, output)
 
 
-@main.group()
+@client.group()
 def add() -> None:
     """Add a resource"""
 
@@ -785,7 +791,7 @@ def campaign(
     _output_pydantic_object(result, output, db.Campaign.col_names_for_table)
 
 
-@main.group()
+@client.group()
 def load() -> None:
     """Read a yaml file and add stuff to the DB"""
 
@@ -857,7 +863,7 @@ def manifest_report(
     _output_pydantic_object(result, output, db.Job.col_names_for_table)
 
 
-@main.group()
+@client.group()
 def action() -> None:
     """Do something"""
 
@@ -964,7 +970,7 @@ def rematch(
     _output_pydantic_list(result, output, db.PipetaskError.col_names_for_table)
 
 
-@main.group()
+@client.group()
 def manage() -> None:
     """manage the DB directly"""
 
@@ -1075,7 +1081,7 @@ def campaign_delete(
     client.campaign_delete(id)
 
 
-@main.group()
+@client.group()
 def queue() -> None:
     """manage the processing queue"""
 

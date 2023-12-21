@@ -1,7 +1,7 @@
 from click.testing import CliRunner
 from safir.testing.uvicorn import UvicornProcess
 
-from lsst.cmservice.cli.commands import main
+from lsst.cmservice.cli.commands import client, server
 from lsst.cmservice.config import config
 
 
@@ -9,32 +9,32 @@ def test_commands(uvicorn: UvicornProcess) -> None:
     env = {"CM_SERVICE": f"{uvicorn.url}{config.prefix}"}
     runner = CliRunner(env=env)
 
-    result = runner.invoke(main, "--version")
+    result = runner.invoke(server, "--version")
     assert result.exit_code == 0
     assert "version" in result.output
 
-    result = runner.invoke(main, "--help")
+    result = runner.invoke(server, "--help")
     assert result.exit_code == 0
     assert "Usage:" in result.output
 
-    result = runner.invoke(main, "init")
+    result = runner.invoke(server, "init")
     assert result.exit_code == 0
 
-    result = runner.invoke(main, "get productions")
+    result = runner.invoke(client, "get productions")
     assert result.exit_code == 0
 
-    result = runner.invoke(main, "get productions -o yaml")
+    result = runner.invoke(client, "get productions -o yaml")
     assert result.exit_code == 0
 
-    result = runner.invoke(main, "get productions -o json")
+    result = runner.invoke(client, "get productions -o json")
     assert result.exit_code == 0
 
-    result = runner.invoke(main, "get campaigns")
+    result = runner.invoke(client, "get campaigns")
     assert result.exit_code == 0
 
-    result = runner.invoke(main, "get campaigns -o yaml")
+    result = runner.invoke(client, "get campaigns -o yaml")
     assert result.exit_code == 0
 
     # FIXME StatusEnum not JSON serializable
-    # result = runner.invoke(main, "get campaigns -o json")
+    # result = runner.invoke(client, "get campaigns -o json")
     # assert result.exit_code == 0
