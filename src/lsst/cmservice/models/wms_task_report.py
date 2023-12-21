@@ -20,6 +20,8 @@ class WmsTaskReportBase(BaseModel):
 
 
 class WmsTaskReportCreate(WmsTaskReportBase):
+    """Parameters that are used to create new rows but not in DB tables"""
+
     pass
 
 
