@@ -400,7 +400,7 @@ class ElementHandler(Handler):
         await session.commit()
         return (True, status)
 
-    async def _post_check(
+    async def _post_check(  # pylint: disable=unused-argument
         self,
         session: async_scoped_session,
         element: ElementMixin,

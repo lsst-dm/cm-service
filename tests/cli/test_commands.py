@@ -6,6 +6,7 @@ from lsst.cmservice.config import config
 
 
 def test_commands(uvicorn: UvicornProcess) -> None:
+    """Test the cli"""
     env = {"CM_SERVICE": f"{uvicorn.url}{config.prefix}"}
     runner = CliRunner(env=env)
 

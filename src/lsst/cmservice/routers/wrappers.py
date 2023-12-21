@@ -5,7 +5,8 @@ functions that are defined in the db.row.RowMixin,
 db.node.NodeMixin, and db.element.ElementMixin classes.
 
 These make it easier to define router functions that
-apply to all RowMixin, NodeMixin and ElementMixin classes."""
+apply to all RowMixin, NodeMixin and ElementMixin classes.
+"""
 
 from collections.abc import Callable, Sequence
 from typing import Any, TypeAlias
@@ -154,7 +155,7 @@ def get_row_function(
         try:
             return await db_class.get_row(session, row_id)
         except CMMissingIDError as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return get_row
 
@@ -196,7 +197,7 @@ def get_row_by_fullname_function(
         try:
             return await db_class.get_row_by_fullname(session, fullname)
         except CMMissingFullnameError as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return get_row_by_fullname
 
@@ -244,7 +245,7 @@ def post_row_function(
             result = await db_class.create_row(session, **row_create.dict())
             await session.commit()
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
         return result
 
     return post_row
@@ -283,7 +284,7 @@ def delete_row_function(
         try:
             await db_class.delete_row(session, row_id)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return delete_row
 
@@ -330,7 +331,7 @@ def put_row_function(
         try:
             return await db_class.update_row(session, row_id, **row_update.dict())
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return update_row
 
@@ -368,7 +369,7 @@ def get_node_spec_block_function(
             the_node = await db_class.get_row(session, row_id)
             return await the_node.get_spec_block(session)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return get_node_spec_block
 
@@ -406,7 +407,7 @@ def get_node_specification_function(
             the_node = await db_class.get_row(session, row_id)
             return await the_node.get_specification(session)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return get_node_specification
 
@@ -448,7 +449,7 @@ def get_node_parent_function(
             the_node = await db_class.get_row(session, row_id)
             return await the_node.get_parent(session)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return get_node_parent
 
@@ -486,7 +487,7 @@ def get_node_resolved_collections_function(
             the_node = await db_class.get_row(session, row_id)
             return await the_node.resolve_collections(session)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return get_node_resolved_collections
 
@@ -524,7 +525,7 @@ def get_node_collections_function(
             the_node = await db_class.get_row(session, row_id)
             return await the_node.get_collections(session)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return get_node_collections
 
@@ -562,7 +563,7 @@ def get_node_child_config_function(
             the_node = await db_class.get_row(session, row_id)
             return await the_node.get_child_config(session)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return get_node_child_config
 
@@ -600,7 +601,7 @@ def get_node_data_dict_function(
             the_node = await db_class.get_row(session, row_id)
             return await the_node.data_dict(session)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return get_node_data_dict
 
@@ -638,7 +639,7 @@ def get_node_spec_aliases_function(
             the_node = await db_class.get_row(session, row_id)
             return await the_node.get_spec_aliases(session)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return get_node_spec_aliases
 
@@ -682,7 +683,7 @@ def update_node_status_function(
             the_node = await db_class.get_row(session, row_id)
             return await the_node.update_values(session, status=query.status)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return update_node_status
 
@@ -726,7 +727,7 @@ def update_node_collections_function(
             the_node = await db_class.get_row(session, row_id)
             return await the_node.update_collections(session, **query.update_dict)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return update_node_collections
 
@@ -769,7 +770,7 @@ def update_node_child_config_function(
             the_node = await db_class.get_row(session, row_id)
             return await the_node.update_child_config(session, **query.update_dict)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return update_node_child_config
 
@@ -812,7 +813,7 @@ def update_node_data_dict_function(
             the_node = await db_class.get_row(session, row_id)
             return await the_node.update_data_dict(session, **query.update_dict)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return update_node_data_dict
 
@@ -855,7 +856,7 @@ def update_node_spec_aliases_function(
             the_node = await db_class.get_row(session, row_id)
             return await the_node.update_spec_aliases(session, **query.update_dict)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return update_node_spec_aliases
 
@@ -893,7 +894,7 @@ def get_node_check_prerequisites_function(
             the_node = await db_class.get_row(session, row_id)
             return await the_node.check_prerequisites(session)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return node_check_prerequisites
 
@@ -936,7 +937,7 @@ def get_node_reject_function(
             the_node = await db_class.get_row(session, row_id)
             return await the_node.reject(session)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return node_reject
 
@@ -979,7 +980,7 @@ def get_node_accept_function(
             the_node = await db_class.get_row(session, row_id)
             return await the_node.accept(session)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return node_accept
 
@@ -1022,7 +1023,7 @@ def get_node_reset_function(
             the_node = await db_class.get_row(session, row_id)
             return await the_node.reset(session)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return node_reset
 
@@ -1061,7 +1062,7 @@ def get_node_process_function(
             the_node = await db_class.get_row(session, row_id)
             return await the_node.process(session)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return node_process
 
@@ -1100,7 +1101,7 @@ def get_node_run_check_function(
             the_node = await db_class.get_row(session, row_id)
             return await the_node.run_check(session)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return node_run_check
 
@@ -1140,7 +1141,7 @@ def get_element_get_scripts_function(
             the_element = await db_class.get_row(session, row_id)
             return await the_element.get_scripts(session, script_name=script_name)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return element_get_scripts
 
@@ -1179,7 +1180,7 @@ def get_element_get_all_scripts_function(
             the_element = await db_class.get_row(session, row_id)
             return await the_element.get_all_scripts(session)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return element_get_all_scripts
 
@@ -1218,7 +1219,7 @@ def get_element_get_jobs_function(
             the_element = await db_class.get_row(session, row_id)
             return await the_element.get_jobs(session)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return element_get_jobs
 
@@ -1258,7 +1259,7 @@ def get_element_retry_script_function(
             the_element = await db_class.get_row(session, row_id)
             return await the_element.retry_script(session, **kwargs)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return element_retry_script
 
@@ -1300,7 +1301,7 @@ def get_element_estimate_sleep_time_function(
             the_element = await db_class.get_row(session, row_id)
             return await the_element.estimate_sleep_time(session, **kwargs)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return element_estimate_sleep_time
 
@@ -1339,7 +1340,7 @@ def get_element_wms_task_reports_function(
             the_element = await db_class.get_row(session, row_id)
             return await the_element.get_wms_reports(session)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return element_get_wms_task_reports
 
@@ -1378,7 +1379,7 @@ def get_element_tasks_function(
             the_element = await db_class.get_row(session, row_id)
             return await the_element.get_tasks(session)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return element_get_tasks
 
@@ -1417,6 +1418,6 @@ def get_element_products_function(
             the_element = await db_class.get_row(session, row_id)
             return await the_element.get_products(session)
         except Exception as msg:
-            raise HTTPException(status_code=404, detail=f"{str(msg)}")
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
     return element_get_products

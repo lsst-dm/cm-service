@@ -90,6 +90,7 @@ class Group(Base, ElementMixin):
 
     @property
     def level(self) -> LevelEnum:
+        """Returns LevelEnum.group"""
         return LevelEnum.group
 
     async def get_campaign(
@@ -161,7 +162,7 @@ class Group(Base, ElementMixin):
             name = kwargs["name"]
             spec_block_name = kwargs["spec_block_name"]
         except KeyError as msg:
-            raise CMMissingRowCreateInputError(f"Missing input to create Group: {msg}")
+            raise CMMissingRowCreateInputError(f"Missing input to create Group: {msg}") from msg
         step = await Step.get_row_by_fullname(session, parent_name)
         specification = await step.get_specification(session)
         spec_block = await specification.get_block(session, spec_block_name)

@@ -1,3 +1,5 @@
+"""Pydantic models"""
+
 from .campaign import Campaign, CampaignCreate, CampaignUpdate
 from .dependency import Dependency, DependencyCreate
 from .element import Element

@@ -13,45 +13,47 @@ if TYPE_CHECKING:
 
 # Template specialization
 # Specify the pydantic model for SpecBlock
-response_model_class = models.SpecBlock
+ResponseModelClass = models.SpecBlock
 # Specify the pydantic model from making new SpecBlocks
-create_model_class = models.SpecBlockCreate
+CreateModelClass = models.SpecBlockCreate
 # Specify the pydantic model from updating rows
-update_model_class = models.SpecBlockUpdate
+UpdateModelClass = models.SpecBlockUpdate
 # Specify the associated database table
-db_class = db.SpecBlock
+DbClass = db.SpecBlock
 
 # Construct derived templates
-router_string = f"{db_class.class_string}"
+router_string = f"{DbClass.class_string}"
 
 
 class CMSpecBlockClient:
     """Interface for accessing remote cm-service to manipulate
-    SpecBlock Tables"""
+    SpecBlock Tables
+    """
 
     def __init__(self, parent: CMClient) -> None:
         self._client = parent.client
 
     @property
     def client(self) -> httpx.Client:
+        """Return the httpx.Client"""
         return self._client
 
     # Add functions to the client class
-    get_rows = wrappers.get_rows_no_parent_function(response_model_class, f"{router_string}/list")
+    get_rows = wrappers.get_rows_no_parent_function(ResponseModelClass, f"{router_string}/list")
 
-    get_row = wrappers.get_row_function(response_model_class, f"{router_string}/get")
+    get_row = wrappers.get_row_function(ResponseModelClass, f"{router_string}/get")
 
     # get_row_by_fullname =
 
     create = wrappers.create_row_function(
-        response_model_class,
-        create_model_class,
+        ResponseModelClass,
+        CreateModelClass,
         f"{router_string}/create",
     )
 
     update = wrappers.update_row_function(
-        response_model_class,
-        update_model_class,
+        ResponseModelClass,
+        UpdateModelClass,
         f"{router_string}/update",
     )
 

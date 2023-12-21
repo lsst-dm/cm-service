@@ -122,6 +122,7 @@ class Job(Base, ElementMixin):
 
     @property
     def level(self) -> LevelEnum:
+        """Returns LevelEnum.job"""
         return LevelEnum.job
 
     async def get_campaign(
@@ -207,7 +208,7 @@ class Job(Base, ElementMixin):
             name = kwargs["name"]
             spec_block_name = kwargs["spec_block_name"]
         except KeyError as msg:
-            raise CMMissingRowCreateInputError(f"Missing input to create Job: {msg}")
+            raise CMMissingRowCreateInputError(f"Missing input to create Job: {msg}") from msg
         attempt = kwargs.get("attempt", 0)
         parent = await Group.get_row_by_fullname(session, parent_name)
         specification = await parent.get_specification(session)

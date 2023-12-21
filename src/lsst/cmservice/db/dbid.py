@@ -17,8 +17,10 @@ class DbId:
 
     @property
     def level(self) -> LevelEnum:
+        """Returns LevelEnum of row"""
         return self._level
 
     @property
     def id(self) -> int:
+        """Returns ID of row"""
         return self._id

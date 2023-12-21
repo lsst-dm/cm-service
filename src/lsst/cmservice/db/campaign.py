@@ -99,6 +99,7 @@ class Campaign(Base, ElementMixin):
 
     @property
     def level(self) -> LevelEnum:
+        """Returns LevelEnum.campaign"""
         return LevelEnum.campaign
 
     async def get_campaign(

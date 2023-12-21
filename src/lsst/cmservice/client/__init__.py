@@ -61,7 +61,7 @@ __all__ = [
     "CMScriptDependencyClient",
     "CMScriptErrorClient",
     "CMScriptTemplateAssociationClient",
-    "CMScriptTemplteClient",
+    "CMScriptTemplateClient",
     "CMScriptClient",
     "CMSpecBlockAssociationClient",
     "CMSpecBlockClient",

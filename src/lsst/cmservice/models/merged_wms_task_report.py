@@ -3,21 +3,23 @@ from __future__ import annotations
 from pydantic import BaseModel
 
 
-class MergedWmsTaskReport(BaseModel):
+class MergedWmsTaskReport(BaseModel):  # pylint: disable=too-many-instance-attributes
+    """Pydantic model for combining data on WmsTasks"""
+
     name: str
 
     n_expected: int = 0
-    n_unknown: int
-    n_misfit: int
-    n_unready: int
-    n_ready: int
-    n_pending: int
-    n_running: int
-    n_deleted: int
-    n_held: int
-    n_succeeded: int
-    n_failed: int
-    n_pruned: int
+    n_unknown: int = 0
+    n_misfit: int = 0
+    n_unready: int = 0
+    n_ready: int = 0
+    n_pending: int = 0
+    n_running: int = 0
+    n_deleted: int = 0
+    n_held: int = 0
+    n_succeeded: int = 0
+    n_failed: int = 0
+    n_pruned: int = 0
 
     class Config:
         orm_mode = True
@@ -39,6 +41,8 @@ class MergedWmsTaskReport(BaseModel):
 
 
 class MergedWmsTaskReportDict(BaseModel):
+    """Pydantic model for combining data on sets of WmsTasks"""
+
     reports: dict[str, MergedWmsTaskReport]
 
     def __iadd__(self, other: MergedWmsTaskReportDict) -> MergedWmsTaskReportDict:

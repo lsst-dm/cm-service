@@ -16,16 +16,16 @@ if TYPE_CHECKING:
 
 # Template specialization
 # Specify the pydantic model for Group
-response_model_class = models.Queue
+ResponseModelClass = models.Queue
 # Specify the pydantic model from making new Groups
-create_model_class = models.QueueCreate
+CreateModelClass = models.QueueCreate
 # Specify the pydantic model from updating rows
-update_model_class = models.QueueUpdate
+UpdateModelClass = models.QueueUpdate
 # Specify the associated database table
-db_class = db.Queue
+DbClass = db.Queue
 
 # Construct derived templates
-router_string = f"{db_class.class_string}"
+router_string = f"{DbClass.class_string}"
 
 
 class CMQueueClient:
@@ -36,24 +36,25 @@ class CMQueueClient:
 
     @property
     def client(self) -> httpx.Client:
+        """Return the httpx.Client"""
         return self._client
 
     # Add functions to the client class
-    get_rows = wrappers.get_rows_no_parent_function(response_model_class, f"{router_string}/list")
+    get_rows = wrappers.get_rows_no_parent_function(ResponseModelClass, f"{router_string}/list")
 
-    get_row = wrappers.get_row_function(response_model_class, f"{router_string}/get")
+    get_row = wrappers.get_row_function(ResponseModelClass, f"{router_string}/get")
 
     # get_row_by_fullname =
 
     create = wrappers.create_row_function(
-        response_model_class,
-        create_model_class,
+        ResponseModelClass,
+        CreateModelClass,
         f"{router_string}/create",
     )
 
     update = wrappers.update_row_function(
-        response_model_class,
-        update_model_class,
+        ResponseModelClass,
+        UpdateModelClass,
         f"{router_string}/update",
     )
 
@@ -63,6 +64,18 @@ class CMQueueClient:
         self,
         row_id: int,
     ) -> int:
+        """Check how long to sleep based on what is running
+
+        Parameters
+        ----------
+        row_id: int
+            ID of the Queue row in question
+
+        Returns
+        -------
+        sleep_time: int
+            Time to sleep before next call to process (in seconds)
+        """
         results = self._client.get(f"{router_string}/sleep_time/{row_id}").json()
         try:
             return parse_obj_as(int, results)
@@ -73,6 +86,18 @@ class CMQueueClient:
         self,
         row_id: int,
     ) -> bool:
+        """Process associated element
+
+        Parameters
+        ----------
+        row_id: int
+            ID of the Queue row in question
+
+        Returns
+        -------
+        can_continue: bool
+            True if processing can continue
+        """
         results = self._client.get(f"{router_string}/process/{row_id}").json()
         try:
             return parse_obj_as(bool, results)
@@ -83,6 +108,13 @@ class CMQueueClient:
         self,
         row_id: int,
     ) -> None:
+        """Sleep until the next time to check associated element
+
+        Parameters
+        ----------
+        row_id: int
+            ID of the Queue row in question
+        """
         queue = self.get_row(row_id)
         sleep_time = self.sleep_time(row_id)
         wait_time = min(sleep_time, queue.interval)
@@ -98,6 +130,13 @@ class CMQueueClient:
         self,
         row_id: int,
     ) -> None:
+        """Run client-side daemon on a queued element
+
+        Parameters
+        ----------
+        row_id: int
+            ID of the Queue row in question
+        """
         can_continue = True
         while can_continue:
             self.pause_until_next_check(row_id)

@@ -37,10 +37,12 @@ class StepDependency(Base, RowMixin):
 
     @hybrid_property
     def prereq_db_id(self) -> DbId:
+        """Returns DdbId of prerequisite Step"""
         return DbId(LevelEnum.step, self.prereq_id)
 
     @hybrid_property
     def depend_db_id(self) -> DbId:
+        """Returns DdbId of depenedent Step"""
         return DbId(LevelEnum.step, self.depend_id)
 
     def __repr__(self) -> str:

@@ -31,6 +31,15 @@ def update_include_dict(
     orig_dict: dict[str, Any],
     include_dict: dict[str, Any],
 ) -> None:
+    """Update a dict by updating (instead of replacing) sub-dicts
+
+    Parameters
+    ----------
+    orig_dict: dict[str, Any]
+        Original dict
+    include_dict: dict[str, Any],
+        Dict used to update the original
+    """
     for key, val in include_dict.items():
         if isinstance(val, Mapping) and key in orig_dict:
             orig_dict[key].update(val)
@@ -43,6 +52,24 @@ async def create_spec_block(
     config_values: dict,
     loaded_specs: dict,
 ) -> SpecBlock | None:
+    """Create and return a SpecBlock
+
+    Parameters
+    ----------
+    session: async_scoped_session
+        DB session manager
+
+    config_values: dict
+        Values for the SpecBlock
+
+    loaded_specs: dict
+        Already loaded SpecBlocks, used for include statments
+
+    Returns
+    -------
+    spec_block: SpecBlock
+        Newly created SpecBlock
+    """
     key = config_values.pop("name")
     loaded_specs[key] = config_values
     spec_block_q = select(SpecBlock).where(SpecBlock.fullname == key)
@@ -95,6 +122,21 @@ async def create_script_template(
     session: async_scoped_session,
     config_values: dict,
 ) -> ScriptTemplate | None:
+    """Create and return a ScriptTemplate
+
+    Parameters
+    ----------
+    session: async_scoped_session
+        DB session manager
+
+    config_values: dict
+        Values for the ScriptTemplate
+
+    Returns
+    -------
+    script_template: ScriptTemplate
+        Newly created ScriptTemplate
+    """
     key = config_values.pop("name")
     script_template_q = select(ScriptTemplate).where(ScriptTemplate.fullname == key)
     script_template_result = await session.scalars(script_template_q)
@@ -113,6 +155,21 @@ async def create_specification(
     session: async_scoped_session,
     config_values: dict,
 ) -> Specification | None:
+    """Create and return a Specification
+
+    Parameters
+    ----------
+    session: async_scoped_session
+        DB session manager
+
+    config_values: dict
+        Values for the ScriptTemplate
+
+    Returns
+    -------
+    specification: Specification
+        Newly created Specification
+    """
     spec_name = config_values["name"]
     script_templates = config_values.get("script_templates", [])
     spec_blocks = config_values.get("spec_blocks", [])
@@ -164,6 +221,24 @@ async def load_specification(
     yaml_file: str,
     loaded_specs: dict | None = None,
 ) -> Specification | None:
+    """Read a yaml file and create Specification objects
+
+    Parameters
+    ----------
+    session: async_scoped_session
+        DB session manager
+
+    yaml_file: str
+        File in question
+
+    loaded_specs: dict
+        Already loaded SpecBlocks, used for include statments
+
+    Returns
+    -------
+    specification: Specification
+        Newly created Specification
+    """
     if loaded_specs is None:
         loaded_specs = {}
 
@@ -208,13 +283,31 @@ async def load_specification(
 
 async def add_step_prerequisite(
     session: async_scoped_session,
-    script_id: int,
+    depend_id: int,
     prereq_id: int,
 ) -> StepDependency:
+    """Create and return a StepDependency
+
+    Parameters
+    ----------
+    session: async_scoped_session
+        DB session manager
+
+    depend_id: int
+        Id of dependency Step
+
+    prereq_id: int
+        Id of prerequisite Step
+
+    Returns
+    -------
+    step_dependency: StepDependency
+        Newly created StepDependency
+    """
     return await StepDependency.create_row(
         session,
         prereq_id=prereq_id,
-        depend_id=script_id,
+        depend_id=depend_id,
     )
 
 
@@ -223,6 +316,24 @@ async def add_steps(
     campaign: Campaign,
     step_config_list: list[dict[str, dict]],
 ) -> Campaign:
+    """Add steps to a Campaign
+
+    Parameters
+    ----------
+    session: async_scoped_session
+        DB session manager
+
+    campaign: Campaign
+        Campaign in question
+
+    step_config_list: list[dict[str, dict]]
+        Configuration for the steps
+
+    Returns
+    -------
+    campaign : Campaign
+        Campaign in question
+    """
     spec_aliases = await campaign.get_spec_aliases(session)
 
     current_steps = await campaign.children(session)
@@ -269,6 +380,24 @@ async def add_groups(
     step: Step,
     child_configs: dict,
 ) -> Step:
+    """Add Groups to a Step
+
+    Parameters
+    ----------
+    session: async_scoped_session
+        DB session manager
+
+    step: Step
+        Step in question
+
+    child_configs: dict
+        Configuration for the Groups
+
+    Returns
+    -------
+    step: Step
+        Step in question
+    """
     spec_aliases = await step.get_spec_aliases(session)
 
     current_groups = await step.children(session)
@@ -300,6 +429,24 @@ async def match_pipetask_error(
     task_name: str,
     diagnostic_message: str,
 ) -> PipetaskErrorType | None:
+    """Match task_name and diagnostic_message to PipetaskErrorType
+
+    Parameters
+    ----------
+    session: async_scoped_session
+        DB session manager
+
+    task_name: str
+        Name of associated Pipetask
+
+    diagnostic_message: str
+        Diagnostic message of error
+
+    Returns
+    -------
+    error_type : PipetaskErrorType | None
+        Matched error type, or None for no match
+    """
     for pipetask_error_type_ in await PipetaskErrorType.get_rows(session):
         if pipetask_error_type_.match(task_name, diagnostic_message):
             return pipetask_error_type_
@@ -311,6 +458,24 @@ async def load_manifest_report(
     job_name: str,
     yaml_file: str,
 ) -> Job:
+    """Parse and load output of pipetask report
+
+    Parameters
+    ----------
+    session: async_scoped_session
+        DB session manager
+
+    job_name: str
+        Name of associated Job
+
+    yaml_file: str
+        Pipetask report yaml file
+
+    Returns
+    -------
+    job : Job
+        Associated Job
+    """
     with open(yaml_file, encoding="utf-8") as fin:
         manifest_data = yaml.safe_load(fin)
 
@@ -406,6 +571,24 @@ async def load_wms_reports(
     job: Job,
     wms_run_report: WmsRunReport,
 ) -> Job:
+    """Parse and load output of bps report
+
+    Parameters
+    ----------
+    session: async_scoped_session
+        DB session manager
+
+    job_name: str
+        Name of associated Job
+
+    wms_run_report: WmsRunReport
+        bps report return object
+
+    Returns
+    -------
+    job : Job
+        Associated Job
+    """
     for task_name, job_summary in wms_run_report.job_summary.items():
         fullname = f"{job.fullname}/{task_name}"
         wms_dict = {f"n_{wms_state_.name.lower()}": count_ for wms_state_, count_ in job_summary.items()}
@@ -428,6 +611,21 @@ async def load_error_types(
     session: async_scoped_session,
     yaml_file: str,
 ) -> list[PipetaskErrorType]:
+    """Parse and load error types
+
+    Parameters
+    ----------
+    session: async_scoped_session
+        DB session manager
+
+    yaml_file: str
+        Error type definition yaml file
+
+    Returns
+    -------
+    error_types : list[PipetaskErrorType]
+        Newly loaded error types
+    """
     with open(yaml_file, encoding="utf-8") as fin:
         error_types = yaml.safe_load(fin)
 

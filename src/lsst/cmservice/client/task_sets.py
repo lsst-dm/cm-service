@@ -13,45 +13,47 @@ if TYPE_CHECKING:
 
 # Template specialization
 # Specify the pydantic model for TaskSet
-response_model_class = models.TaskSet
+ResponseModelClass = models.TaskSet
 # Specify the pydantic model from making new TaskSets
-create_model_class = models.TaskSetCreate
+CreateModelClass = models.TaskSetCreate
 # Specify the pydantic model from updating rows
-update_model_class = models.TaskSetUpdate
+UpdateModelClass = models.TaskSetUpdate
 # Specify the associated database table
-db_class = db.TaskSet
+DbClass = db.TaskSet
 
 # Construct derived templates
-router_string = f"{db_class.class_string}"
+router_string = f"{DbClass.class_string}"
 
 
 class CMTaskSetClient:
     """Interface for accessing remote cm-service to manipulate
-    TaskSet Tables"""
+    TaskSet Tables
+    """
 
     def __init__(self, parent: CMClient) -> None:
         self._client = parent.client
 
     @property
     def client(self) -> httpx.Client:
+        """Return the httpx.Client"""
         return self._client
 
     # Add functions to the client class
-    get_rows = wrappers.get_rows_no_parent_function(response_model_class, f"{router_string}/list")
+    get_rows = wrappers.get_rows_no_parent_function(ResponseModelClass, f"{router_string}/list")
 
-    get_row = wrappers.get_row_function(response_model_class, f"{router_string}/get")
+    get_row = wrappers.get_row_function(ResponseModelClass, f"{router_string}/get")
 
     # get_row_by_fullname =
 
     create = wrappers.create_row_function(
-        response_model_class,
-        create_model_class,
+        ResponseModelClass,
+        CreateModelClass,
         f"{router_string}/create",
     )
 
     update = wrappers.update_row_function(
-        response_model_class,
-        update_model_class,
+        ResponseModelClass,
+        UpdateModelClass,
         f"{router_string}/update",
     )
 

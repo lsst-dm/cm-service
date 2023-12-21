@@ -98,6 +98,7 @@ class Step(Base, ElementMixin):
 
     @property
     def level(self) -> LevelEnum:
+        """Returns LevelEnum.step"""
         return LevelEnum.step
 
     def __repr__(self) -> str:
@@ -169,7 +170,7 @@ class Step(Base, ElementMixin):
             name = kwargs["name"]
             spec_block_name = kwargs["spec_block_name"]
         except KeyError as msg:
-            raise CMMissingRowCreateInputError(f"Missing input to create Step: {msg}")
+            raise CMMissingRowCreateInputError(f"Missing input to create Step: {msg}") from msg
 
         campaign = await Campaign.get_row_by_fullname(session, parent_name)
         specification = await campaign.get_specification(session)

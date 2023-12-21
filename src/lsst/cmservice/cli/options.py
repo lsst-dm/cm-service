@@ -66,15 +66,15 @@ class DictParamType(click.ParamType):
               must be separated by commas.
         - Converts numbers to int.
 
-    Usage:
+    Usage
         >>> @click.option("--param", default=None, type=DictParamType())
         ... def command(param):
         ...     ...
 
         CLI: command --param='page=1; name=Items; rules=1, 2, three; extra=A,;'
 
-    Example:
-
+    Example
+    -------
         >>> param_value = 'page=1; name=Items; rules=1, 2, three; extra=A,;'
         >>> DictParamType().convert(param_value, None, None)
         {'page': 1, 'name': 'Items', 'rules': [1, 2, 'three'], 'extra': ['A']}`
@@ -91,17 +91,21 @@ class DictParamType(click.ParamType):
     ) -> dict:
         """Converts CLI value to the dictionary structure.
 
-        Args:
-            value (Any): The value to convert.
-            param (click.Parameter | None): The parameter that is using this
-                type to convert its value.
-            ctx (click.Context | None): The current context that arrived
-                at this value.
+        Parameters
+        ----------
+        value: Any
+            The value to convert.
+        param: (click.Parameter | None)
+            The parameter that is using this type to convert its value.
+        ctx:  (click.Context | None)
+            The current context that arrived at this value.
 
-        Returns:
+        Returns
+        -------
             dict: The validated and converted dictionary.
 
-        Raises:
+        Raises
+        ------
             click.BadParameter: If the validation is failed.
         """
         if isinstance(value, dict):
@@ -164,8 +168,10 @@ class PartialOption:
 
 
 class OutputEnum(Enum):
-    yaml = auto()
-    json = auto()
+    """Options for output format"""
+
+    yaml = auto()  # pylint: disable=invalid-name
+    json = auto()  # pylint: disable=invalid-name
 
 
 output = PartialOption(
@@ -469,6 +475,7 @@ yaml_file = PartialOption(
 
 
 def make_client(_ctx: click.Context, _param: click.Parameter, value: Any) -> CMClient:
+    """Build and return a CMCLient object"""
     return CMClient(value)
 
 

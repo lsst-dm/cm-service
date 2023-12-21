@@ -131,13 +131,13 @@ class BpsScriptHandler(ScriptHandler):
             workflow_config["custom_lsst_setup"] = data_dict["lsst_custom_setup"]
         workflow_config["pipelineYaml"] = os.path.expandvars(data_dict["pipeline_yaml"])
 
-        inCollection = ",".join(input_colls)
+        in_collection = ",".join(input_colls)
 
         payload = {
             "payloadName": parent.c_.name,
             "butlerConfig": butler_repo,
             "outputRun": run_coll,
-            "inCollection": inCollection,
+            "inCollection": in_collection,
         }
         if data_query:
             payload["dataQuery"] = data_query

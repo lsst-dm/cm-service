@@ -19,6 +19,7 @@ class CMAddClient:
 
     @property
     def client(self) -> httpx.Client:
+        """Return the httpx.Client"""
         return self._client
 
     groups = wrappers.get_general_post_function(models.AddGroups, list[models.Group], "add/groups")

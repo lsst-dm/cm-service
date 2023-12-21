@@ -20,6 +20,7 @@ class CMQueryClient:
 
     @property
     def client(self) -> httpx.Client:
+        """Return the httpx.Client"""
         return self._client
 
     get_productions = wrappers.get_rows_no_parent_function(models.Production, "production/list")
@@ -102,6 +103,27 @@ class CMQueryClient:
         remaining_only: bool = False,
         skip_superseded: bool = True,
     ) -> list[models.Script]:
+        """Return the `Script`s associated to an element
+
+        Parameters
+        ----------
+        fullname: str
+            Fullname of the Element in question
+
+        script_name: str | None
+            If provided, only return scripts with this name
+
+        remaining_only: bool
+            If True only include Scripts that are not revieable or accepted
+
+        skip_superseded: bool
+            If True don't inlcude Scripts that are marked superseded
+
+        Returns
+        -------
+        scripts : List[Script]
+            The requested scripts
+        """
         params = models.ScriptQuery(
             fullname=fullname,
             script_name=script_name,
@@ -122,6 +144,24 @@ class CMQueryClient:
         remaining_only: bool = False,
         skip_superseded: bool = True,
     ) -> list[models.Script]:
+        """Return all the scripts associated to an ELement
+
+        Parameters
+        ----------
+        fullname: str
+            Fullname of the Element in question
+
+        remaining_only: bool
+            If True only include Scripts that are not revieable or accepted
+
+        skip_superseded: bool
+            If True don't inlcude Scripts that are marked superseded
+
+        Returns
+        -------
+        scripts : List[Script]
+            The requested scripts
+        """
         params = models.ScriptQuery(
             fullname=fullname,
             script_name=None,
@@ -142,6 +182,24 @@ class CMQueryClient:
         remaining_only: bool = False,
         skip_superseded: bool = True,
     ) -> list[models.Job]:
+        """Return all the jobs associated to an ELement
+
+        Parameters
+        ----------
+        fullname: str
+            Fullname of the Element in question
+
+        remaining_only: bool
+            If True only include Scripts that are not revieable or accepted
+
+        skip_superseded: bool
+            If True don't inlcude Scripts that are marked superseded
+
+        Returns
+        -------
+        jobs : List[Job]
+            The requested jobs
+        """
         params = models.JobQuery(
             fullname=fullname,
             remaining_only=remaining_only,
@@ -158,10 +216,22 @@ class CMQueryClient:
         self,
         fullname: str,
     ) -> int:
+        """Estimate how long to sleep before calling process again
+
+        Parameters
+        ----------
+        fullname : str
+            Fullname of element in question
+
+        Returns
+        -------
+        sleep_time : int
+            Time to sleep in seconds
+        """
         params = models.FullnameQuery(
             fullname=fullname,
         )
-        query = "get/element_sleep_time"
+        query = "get/element_sleep_ime"
         results = self._client.get(f"{query}", params=params.dict()).json()
         try:
             return parse_obj_as(int, results)

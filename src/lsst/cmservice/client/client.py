@@ -31,7 +31,7 @@ from .wms_task_reports import CMWmsTaskReportClient
 __all__ = ["CMClient"]
 
 
-class CMClient:
+class CMClient:  # pylint: disable=too-many-instance-attributes
     """Interface for accessing remote cm-service."""
 
     def __init__(self: CMClient, url: str) -> None:
@@ -68,4 +68,5 @@ class CMClient:
 
     @property
     def client(self) -> httpx.Client:
+        """Return the httpx.Client"""
         return self._client

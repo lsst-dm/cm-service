@@ -20,6 +20,7 @@ class CMActionClient:
 
     @property
     def client(self) -> httpx.Client:
+        """Return the httpx.Client"""
         return self._client
 
     process = wrappers.get_general_post_function(

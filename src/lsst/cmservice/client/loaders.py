@@ -15,10 +15,12 @@ class CMLoadClient:
     """Interface for accessing remote cm-service."""
 
     def __init__(self, parent: CMClient) -> None:
+        """Return the httpx.Client"""
         self._client = parent.client
 
     @property
     def client(self) -> httpx.Client:
+        """Return the httpx.Client"""
         return self._client
 
     specification = wrappers.get_general_post_function(

@@ -103,6 +103,23 @@ class Queue(Base, NodeMixin):
         session: async_scoped_session,
         **kwargs: Any,
     ) -> Queue:
+        """Get the queue row corresponding to a partiuclar element
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        Keywords
+        --------
+        fullname: str
+            Fullname of the associated elememnt
+
+        Returns
+        -------
+        queue : Queue
+            Requested Queue row
+        """
         fullname = kwargs["fullname"]
         element_level = LevelEnum.get_level_from_fullname(fullname)
         element: ElementMixin | None = None
@@ -203,6 +220,7 @@ class Queue(Base, NodeMixin):
         self,
         session: async_scoped_session,
     ) -> bool:
+        """Process associated element and update queue row"""
         element = await self.get_element(session)
         if not element.status.is_processable_element():
             return False
@@ -232,6 +250,9 @@ class Queue(Base, NodeMixin):
         self,
         session: async_scoped_session,
     ) -> None:
+        """Process associated element until it is done or requires
+        intervention
+        """
         can_continue = True
         while can_continue:
             estimated_wait_time = await self.element_sleep_time(session)
