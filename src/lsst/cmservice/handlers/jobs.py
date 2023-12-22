@@ -180,6 +180,34 @@ class BpsScriptHandler(ScriptHandler):
             await session.commit()
         return status
 
+    async def _reset_script(
+        self,
+        session: async_scoped_session,
+        script: Script,
+        to_status: StatusEnum,
+    ) -> dict[str, Any]:
+        update_fields = await ScriptHandler._reset_script(self, session, script, to_status)
+        if script.script_url and to_status.value <= StatusEnum.ready.value:
+            json_url = script.script_url.replace(".sh", "_log.json")
+            config_url = script.script_url.replace(".sh", "_bps_config.yaml")
+            submit_path = script.script_url.replace(
+                os.path.basename(script.script_url),
+                "/submit",
+            )
+            try:
+                os.unlink(json_url)
+            except Exception:
+                pass
+            try:
+                os.unlink(config_url)
+            except Exception:
+                pass
+            try:
+                os.rmdir(submit_path)
+            except Exception:
+                pass
+        return update_fields
+
 
 class BpsReportHandler(FunctionHandler):
     """Class to handle running BpsReport"""

@@ -77,6 +77,20 @@ async def process(
 
 
 @router.post(
+    "/reset_script",
+    status_code=201,
+    response_model=models.Script,
+    summary="Reset `Script`",
+)
+async def reset_script(
+    query: models.UpdateStatusQuery,
+    session: async_scoped_session = Depends(db_session_dependency),
+) -> db.Script:
+    params = query.dict()
+    return await interface.reset_script(session, **params)
+
+
+@router.post(
     "/retry_script",
     status_code=201,
     response_model=models.Script,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -218,6 +219,42 @@ class BaseScriptHandler(Handler):
         """
         return script.status
 
+    async def reset_script(
+        self,
+        session: async_scoped_session,
+        node: NodeMixin,
+        to_status: StatusEnum,
+    ) -> StatusEnum:
+        if TYPE_CHECKING:
+            assert isinstance(node, Script)
+
+        valid_states = [StatusEnum.waiting, StatusEnum.ready, StatusEnum.prepared]
+        if to_status not in valid_states:
+            raise ValueError(f"script.reset to_status should be in {valid_states}, not: {to_status}")
+
+        if to_status.value >= node.status.value and not node.status.is_bad():
+            raise ValueError(f"Current status of {node.status} is less advanced than {to_status}")
+
+        if node.status.value >= StatusEnum.running.value:
+            raise ValueError(
+                f"Can not use script.reset on script in {node.status}.  "
+                "Use script.rollback or script.retry instead",
+            )
+
+        update_fields = await self._reset_script(session, node, to_status)
+        await node.update_values(session, **update_fields)
+        await session.commit()
+        await session.refresh(node, attribute_names=["status"])
+        return node.status
+
+    async def _reset_script(
+        self,
+        session: async_scoped_session,
+        script: Script,
+        to_status: StatusEnum,
+    ) -> dict[str, Any]:
+        raise NotImplementedError(f"{type(self)}._reset_script()")
+
 
 class ScriptHandler(BaseScriptHandler):
     default_method = ScriptMethodEnum.slurm
@@ -425,6 +462,25 @@ class ScriptHandler(BaseScriptHandler):
         await script.update_values(session, script_url=script_url, log_url=log_url)
         return script_url
 
+    async def _reset_script(
+        self,
+        session: async_scoped_session,
+        script: Script,
+        to_status: StatusEnum,
+    ) -> dict[str, Any]:
+        update_fields: dict[str, Any] = {}
+        if to_status.value <= StatusEnum.prepared.value:
+            update_fields["stamp_url"] = None
+            if script.log_url:
+                os.unlink(script.log_url)
+        if to_status.value <= StatusEnum.ready.value:
+            if script.script_url:
+                os.unlink(script.script_url)
+            update_fields["script_url"] = None
+            update_fields["log_url"] = None
+        update_fields["status"] = to_status
+        return update_fields
+
 
 class FunctionHandler(BaseScriptHandler):
     default_method = ScriptMethodEnum.no_script
@@ -565,3 +621,13 @@ class FunctionHandler(BaseScriptHandler):
             The status of the processing
         """
         return StatusEnum.accepted
+
+    async def _reset_script(
+        self,
+        session: async_scoped_session,
+        script: Script,
+        to_status: StatusEnum,
+    ) -> dict[str, Any]:
+        update_fields = {}
+        update_fields["status"] = to_status
+        return update_fields

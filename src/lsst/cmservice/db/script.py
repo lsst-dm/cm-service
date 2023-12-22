@@ -100,6 +100,7 @@ class Script(Base, NodeMixin):
         "handler",
         "method",
         "stamp_url",
+        "script_url",
         "status",
         "superseded",
     ]
@@ -266,3 +267,31 @@ class Script(Base, NodeMixin):
             session.add(new_script)
         await session.refresh(new_script)
         return new_script
+
+    async def reset_script(
+        self,
+        session: async_scoped_session,
+        to_status: StatusEnum,
+    ) -> StatusEnum:
+        """Reset a script to a lower status
+        This will remove log files and processing
+        files.
+
+        This can not be used on script that have
+        completed processing.
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        to_status : StatusEnum
+            Status to set script to
+
+        Returns
+        -------
+        status : StatusEnum
+            New status
+        """
+        handler = await self.get_handler(session)
+        return await handler.reset_script(session, self, to_status)

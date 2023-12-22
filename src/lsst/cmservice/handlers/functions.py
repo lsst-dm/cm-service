@@ -140,8 +140,9 @@ async def create_specification(
             try:
                 spec_block_config_ = spec_block_list_item_["SpecBlockAssociation"]
             except KeyError as msg:
-                raise KeyError(f"Expected SpecBlockAssociation not {list(script_list_item_.keys())}") from msg
-
+                raise KeyError(
+                    f"Expected SpecBlockAssociation not {list(spec_block_list_item_.keys())}",
+                ) from msg
             new_spec_block_assoc = await SpecBlockAssociation.create_row(
                 session,
                 spec_name=spec_name,
