@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 import json
 from collections.abc import Sequence
 from typing import Any, TypeVar
@@ -100,13 +101,13 @@ def run(port: int) -> None:  # pragma: no cover
     uvicorn.run("lsst.cmservice.main:app", host="0.0.0.0", port=port, reload=True, reload_dirs=["src"])
 
 
-@click.group()
+@click.group(name="client")
 @click.version_option(package_name="lsst-cm-service")
-def client() -> None:
+def client_top() -> None:
     """Administrative command-line interface client-side commands."""
 
 
-@client.group()
+@client_top.group()
 def get() -> None:
     """Display one or many resources."""
 
@@ -644,7 +645,7 @@ def job_errors(
     _output_pydantic_list(result, output, db.PipetaskError.col_names_for_table)
 
 
-@client.group()
+@client_top.group()
 def update() -> None:
     """Update a resource."""
 
@@ -729,7 +730,7 @@ def data_dict(
     _output_dict(result, output)
 
 
-@client.group()
+@client_top.group()
 def add() -> None:
     """Add a resource"""
 
@@ -791,7 +792,7 @@ def campaign(
     _output_pydantic_object(result, output, db.Campaign.col_names_for_table)
 
 
-@client.group()
+@client_top.group()
 def load() -> None:
     """Read a yaml file and add stuff to the DB"""
 
@@ -863,7 +864,7 @@ def manifest_report(
     _output_pydantic_object(result, output, db.Job.col_names_for_table)
 
 
-@client.group()
+@client_top.group()
 def action() -> None:
     """Do something"""
 
@@ -970,7 +971,7 @@ def rematch(
     _output_pydantic_list(result, output, db.PipetaskError.col_names_for_table)
 
 
-@client.group()
+@client_top.group()
 def manage() -> None:
     """manage the DB directly"""
 
@@ -996,29 +997,29 @@ def production_create(
 
 @production.command(name="update")
 @options.cmclient()
-@options.id()
+@options.row_id()
 @options.name()
 @options.output()
 def prodcution_update(
     client: CMClient,
     output: options.OutputEnum | None,
-    id: int,
+    row_id: int,
     **kwargs: Any,
 ) -> None:
     """Update a production"""
-    result = client.production_update(id, **kwargs)
+    result = client.production_update(row_id, **kwargs)
     _output_pydantic_object(result, output, db.Production.col_names_for_table)
 
 
 @production.command(name="delete")
 @options.cmclient()
-@options.id()
+@options.row_id()
 def prodcution_delete(
     client: CMClient,
-    id: int,
+    row_id: int,
 ) -> None:
     """Update a production"""
-    client.production_delete(id)
+    client.production_delete(row_id)
 
 
 @manage.group(name="campaign")
@@ -1058,30 +1059,30 @@ def campagin_create(
 @options.spec_aliases()
 @options.handler()
 @options.output()
-@options.id()
+@options.row_id()
 def campaign_update(
     client: CMClient,
     output: options.OutputEnum | None,
-    id: int,
+    row_id: int,
     **kwargs: Any,
 ) -> None:
     """Update a campaign"""
-    result = client.campaign_update(id, **kwargs)
+    result = client.campaign_update(row_id, **kwargs)
     _output_pydantic_object(result, output, db.Campaign.col_names_for_table)
 
 
 @campaign_command.command(name="delete")
 @options.cmclient()
-@options.id()
+@options.row_id()
 def campaign_delete(
     client: CMClient,
-    id: int,
+    row_id: int,
 ) -> None:
     """Delete a campaign"""
-    client.campaign_delete(id)
+    client.campaign_delete(row_id)
 
 
-@client.group()
+@client_top.group()
 def queue() -> None:
     """manage the processing queue"""
 
@@ -1103,49 +1104,49 @@ def queue_create(
 
 @queue.command(name="update")
 @options.cmclient()
-@options.id()
+@options.row_id()
 @options.fullname()
 @options.interval()
 @options.output()
 def queue_update(
     client: CMClient,
     output: options.OutputEnum | None,
-    id: int,
+    row_id: int,
     **kwargs: Any,
 ) -> None:
     """Update a production"""
-    result = client.queue_update(id, **kwargs)
+    result = client.queue_update(row_id, **kwargs)
     _output_pydantic_object(result, output, db.Queue.col_names_for_table)
 
 
 @queue.command(name="get")
 @options.cmclient()
-@options.id()
+@options.row_id()
 @options.output()
 def queue_get(
     client: CMClient,
     output: options.OutputEnum | None,
-    id: int,
+    row_id: int,
 ) -> None:
     """Update a production"""
-    result = client.queue_get(id)
+    result = client.queue_get(row_id)
     _output_pydantic_object(result, output, db.Queue.col_names_for_table)
 
 
 @queue.command(name="delete")
 @options.cmclient()
-@options.id()
+@options.row_id()
 def queue_delete(
     client: CMClient,
-    id: int,
+    row_id: int,
 ) -> None:
     """Update a production"""
-    client.queue_delete(id)
+    client.queue_delete(row_id)
 
 
 @queue.command(name="daemon")
 @options.cmclient()
-@options.id()
+@options.row_id()
 def queue_dameon(
     client: CMClient,
     **kwargs: Any,

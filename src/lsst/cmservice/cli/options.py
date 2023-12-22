@@ -18,7 +18,6 @@ __all__ = [
     "child_configs",
     "data",
     "fullname",
-    "id",
     "interval",
     "handler",
     "name",
@@ -26,6 +25,7 @@ __all__ = [
     "parent_name",
     "parent_id",
     "rematch",
+    "row_id",
     "script_name",
     "spec_name",
     "spec_block_name",
@@ -207,7 +207,7 @@ parent_id = PartialOption(
 handler = PartialOption("--handler", type=str, help="Name of object")
 
 
-id = PartialOption(
+row_id = PartialOption(
     "--id",
     type=int,
     help="ID of object.",

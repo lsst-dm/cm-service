@@ -1,7 +1,7 @@
 from click.testing import CliRunner
 from safir.testing.uvicorn import UvicornProcess
 
-from lsst.cmservice.cli.commands import client, server
+from lsst.cmservice.cli.commands import client_top, server
 from lsst.cmservice.config import config
 
 
@@ -20,21 +20,21 @@ def test_commands(uvicorn: UvicornProcess) -> None:
     result = runner.invoke(server, "init")
     assert result.exit_code == 0
 
-    result = runner.invoke(client, "get productions")
+    result = runner.invoke(client_top, "get productions")
     assert result.exit_code == 0
 
-    result = runner.invoke(client, "get productions -o yaml")
+    result = runner.invoke(client_top, "get productions -o yaml")
     assert result.exit_code == 0
 
-    result = runner.invoke(client, "get productions -o json")
+    result = runner.invoke(client_top, "get productions -o json")
     assert result.exit_code == 0
 
-    result = runner.invoke(client, "get campaigns")
+    result = runner.invoke(client_top, "get campaigns")
     assert result.exit_code == 0
 
-    result = runner.invoke(client, "get campaigns -o yaml")
+    result = runner.invoke(client_top, "get campaigns -o yaml")
     assert result.exit_code == 0
 
     # FIXME StatusEnum not JSON serializable
-    # result = runner.invoke(client, "get campaigns -o json")
+    # result = runner.invoke(client_top, "get campaigns -o json")
     # assert result.exit_code == 0

@@ -1,0 +1,141 @@
+- Imports:
+      - "${CM_CONFIGS}/example_standard_scripts.yaml"
+      - "${CM_CONFIGS}/example_standard_elements.yaml"
+      - "${CM_CONFIGS}/example_dc2_steps.yaml"
+- SpecBlock:
+      name: dc2_test_campaign
+      includes: ["base_campaign"]
+      collections:
+          root: 'u/echarles/cm/dc2_test'
+          campaign_source: /prod/raw/all
+      steps:
+          - Step:
+                name: step1
+                spec_block: dc2_step1
+                child_config:
+                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+                    split_method: split_by_query
+                    split_min_groups: 4
+          - Step:
+                name: step2
+                spec_block: dc2_step2
+                prerequisites: ['step1']
+                child_config:
+                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+                    split_method: no_split
+          - Step:
+                name: step3
+                spec_block: dc2_step3
+                prerequisites: ['step2']
+                child_config:
+                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2'"
+                    split_method: split_by_vals
+                    split_vals:
+                        - 3828
+                        - 3829
+          - Step:
+                name: step4
+                spec_block: dc2_step4
+                prerequisites: ['step3']
+                child_config:
+                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+                    split_method: split_by_query
+                    split_min_groups: 4
+          - Step:
+                name: step5
+                spec_block: dc2_step5
+                prerequisites: ['step4']
+                child_config:
+                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+                    split_method: split_by_vals
+                    split_vals:
+                        - 3828
+                        - 3829
+          - Step:
+                name: step6
+                spec_block: dc2_step6
+                prerequisites: ['step4']
+                child_config:
+                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+                    split_method: split_by_query
+                    split_min_groups: 4
+          - Step:
+                name: step7
+                spec_block: dc2_step7
+                prerequisites: ['step3']
+                child_config:
+                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+          - Step:
+                name: step8
+                spec_block: dc2_step8
+                prerequisites: ['step3']
+                child_config:
+                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+          - Step:
+                name: faro_visit
+                spec_block: dc2_faro_visit
+                prerequisites: ['step6']
+                child_config:
+                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+          - Step:
+                name: faro_matched
+                spec_block: dc2_faro_matched
+                prerequisites: ['step6']
+                child_config:
+                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+          - Step:
+                name: faro_tract
+                spec_block: dc2_faro_tract
+                prerequisites: ['step3']
+                child_config:
+                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+          - Step:
+                name: plots
+                spec_block: dc2_plots
+                prerequisites: ['step3']
+                child_config:
+                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+      data:
+          butler_repo: '/repo/dc2'
+          prod_area: 'output/archive'
+          data_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+          lsst_version: w_2023_46
+- Specification:
+      name: dc2_test
+      script_templates:
+          - ScriptTemplateAssociation: {script_template_name: bps_panda_script_template}
+          - ScriptTemplateAssociation: {script_template_name: bps_panda_yaml_template}
+          - ScriptTemplateAssociation: {script_template_name: stack_script_template}
+      spec_blocks:
+          - SpecBlockAssociation: {spec_block_name: chain_create_script}
+          - SpecBlockAssociation: {spec_block_name: chain_prepend_script}
+          - SpecBlockAssociation: {spec_block_name: chain_collect_jobs_script}
+          - SpecBlockAssociation: {spec_block_name: chain_collect_steps_script}
+          - SpecBlockAssociation: {spec_block_name: tag_inputs_script}
+          - SpecBlockAssociation: {spec_block_name: tag_create_script}
+          - SpecBlockAssociation: {spec_block_name: tag_associate_script}
+          - SpecBlockAssociation: {spec_block_name: prepare_step_script}
+          - SpecBlockAssociation: {spec_block_name: validate_script}
+          - SpecBlockAssociation: {spec_block_name: panda_submit_script}
+          - SpecBlockAssociation: {spec_block_name: panda_report_script}
+          - SpecBlockAssociation: {spec_block_name: manifest_report_script}
+          - SpecBlockAssociation: {spec_block_name: run_jobs}
+          - SpecBlockAssociation: {spec_block_name: run_groups}
+          - SpecBlockAssociation: {spec_block_name: run_steps}
+          - SpecBlockAssociation: {spec_block_name: job}
+          - SpecBlockAssociation: {spec_block_name: group}
+          - SpecBlockAssociation: {spec_block_name: step}
+          - SpecBlockAssociation: {spec_block_name: base_campaign}
+          - SpecBlockAssociation: {spec_block_name: dc2_step1}
+          - SpecBlockAssociation: {spec_block_name: dc2_step2}
+          - SpecBlockAssociation: {spec_block_name: dc2_step3}
+          - SpecBlockAssociation: {spec_block_name: dc2_step4}
+          - SpecBlockAssociation: {spec_block_name: dc2_step5}
+          - SpecBlockAssociation: {spec_block_name: dc2_step6}
+          - SpecBlockAssociation: {spec_block_name: dc2_step7}
+          - SpecBlockAssociation: {spec_block_name: dc2_step8}
+          - SpecBlockAssociation: {spec_block_name: dc2_faro_visit}
+          - SpecBlockAssociation: {spec_block_name: dc2_faro_matched}
+          - SpecBlockAssociation: {spec_block_name: dc2_faro_track}
+          - SpecBlockAssociation: {spec_block_name: dc2_plots}
+          - SpecBlockAssociation: {spec_block_name: dc2_test_campaign, alias: campaign}

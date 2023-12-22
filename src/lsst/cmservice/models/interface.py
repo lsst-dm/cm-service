@@ -20,8 +20,6 @@ class FullnameQuery(BaseModel):
 class NodeQuery(FullnameQuery):
     """Parameters needed to run query for Node"""
 
-    pass
-
 
 class UpdateNodeQuery(NodeQuery):
     """Parameters needed to update a Node"""
@@ -102,10 +100,8 @@ class LoadAndCreateCampaign(YamlFileQuery):
     name: str
     # Name of the associated production
     parent_name: str
-    # Name of the associated Specification.  If empty, use production name
-    spec_name: str | None = None
-    # Name of the associated SpecBlock.  If empty use specification#campaign
-    spec_block_name: str | None = None
+    # Name of the SpecBlockAssociation.  If empty use {spec_name}#campaign
+    spec_block_assoc_name: str | None = None
     # Parameter Overrides
     data: dict | str | None = None
     # Overrides for configuring child nodes
@@ -120,5 +116,3 @@ class LoadAndCreateCampaign(YamlFileQuery):
 
 class LoadManifestReport(YamlFileQuery, FullnameQuery):
     """Parameters needed to load a report produced by pipetask report"""
-
-    pass

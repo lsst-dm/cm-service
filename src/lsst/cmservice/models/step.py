@@ -10,8 +10,6 @@ from .element import ElementCreateMixin, ElementMixin
 class StepCreate(ElementCreateMixin):
     """Parameters that are used to create new rows but not in DB tables"""
 
-    pass
-
 
 class Step(ElementMixin):
     """Parameters that are in DB tables and not used to create new rows"""

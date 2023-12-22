@@ -3,11 +3,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.ext.asyncio import async_scoped_session
+from sqlalchemy.orm.collections import InstrumentedList
 
 from ..common.enums import LevelEnum, NodeTypeEnum, StatusEnum
 from .handler import Handler
 from .row import RowMixin
-from .specification import SpecBlock, Specification
+from .spec_block import SpecBlock
+from .specification import Specification
 
 if TYPE_CHECKING:
     from .element import ElementMixin
@@ -25,7 +27,9 @@ class NodeMixin(RowMixin):
 
     level: Any  # Associated LevelEnum of the configuable
     spec_block_: Any  # Specification block that carries defaults
-    spec_block_id: Any  # Foriegn key into spec-block
+    spec_block_assoc_: Any  # SpecBlockAssociation between SpecBlock and specificaiton
+    spec_: Any  # Specificaiton
+    spec_block_assoc_id: Any  # Foriegn key into SpecBlockAssociation
     status: Any  # Current status of associated processing
     parent_id: Any  # Id of the parent row
     parent_: Any  # Parent of the current row
@@ -55,6 +59,8 @@ class NodeMixin(RowMixin):
         """
         async with session.begin_nested():
             await session.refresh(self, attribute_names=["spec_block_"])
+            if isinstance(self.spec_block_, InstrumentedList):
+                return self.spec_block_[0]
             return self.spec_block_
 
     async def get_specification(
@@ -73,10 +79,11 @@ class NodeMixin(RowMixin):
         specification: Specification
             Requested Specification
         """
-        spec_block = await self.get_spec_block(session)
         async with session.begin_nested():
-            await session.refresh(spec_block, attribute_names=["spec_"])
-            return spec_block.spec_
+            await session.refresh(self, attribute_names=["spec_"])
+            if isinstance(self.spec_, InstrumentedList):
+                return self.spec_[0]
+            return self.spec_
 
     async def get_parent(
         self,
@@ -96,6 +103,8 @@ class NodeMixin(RowMixin):
         """
         async with session.begin_nested():
             await session.refresh(self, attribute_names=["parent_"])
+            if isinstance(self.parent_, InstrumentedList):
+                return self.parent_[0]
             return self.parent_
 
     async def get_handler(
@@ -119,13 +128,13 @@ class NodeMixin(RowMixin):
         handler: Handler
             The handler in question
         """
+        spec_block = await self.get_spec_block(session)
         if self.handler:
             handler_class = self.handler
         else:
-            spec_block = await self.get_spec_block(session)
             handler_class = spec_block.handler
         return Handler.get_handler(
-            self.spec_block_id,
+            spec_block.id,
             handler_class,
         )
 
@@ -249,12 +258,12 @@ class NodeMixin(RowMixin):
                 parent_colls = await parent_.get_collections(session)
                 ret_dict.update(parent_colls)
             elif self.level.value > LevelEnum.campaign.value:
-                await session.refresh(self, attribute_names=["parent_"])
-                parent_colls = await self.parent_.get_collections(session)
+                parent = await self.get_parent(session)
+                parent_colls = await parent.get_collections(session)
                 ret_dict.update(parent_colls)
-            await session.refresh(self, attribute_names=["spec_block_"])
-            if self.spec_block_.collections:
-                ret_dict.update(self.spec_block_.collections)
+            spec_block = await self.get_spec_block(session)
+            if spec_block.collections:
+                ret_dict.update(spec_block.collections)
             if self.collections:
                 ret_dict.update(self.collections)
             return ret_dict
@@ -285,9 +294,9 @@ class NodeMixin(RowMixin):
         if not hasattr(self, "child_config"):
             return {}
         async with session.begin_nested():
-            await session.refresh(self, attribute_names=["spec_block_"])
-            if self.spec_block_.child_config:
-                ret_dict.update(**self.spec_block_.child_config)
+            spec_block = await self.get_spec_block(session)
+            if spec_block.child_config:
+                ret_dict.update(**spec_block.child_config)
             if self.child_config:
                 ret_dict.update(**self.child_config)
             return ret_dict
@@ -321,12 +330,12 @@ class NodeMixin(RowMixin):
                 parent_data = await parent_.data_dict(session)
                 ret_dict.update(parent_data)
             elif self.level.value > LevelEnum.campaign.value:
-                await session.refresh(self, attribute_names=["parent_"])
-                parent_data = await self.parent_.data_dict(session)
+                parent = await self.get_parent(session)
+                parent_data = await parent.data_dict(session)
                 ret_dict.update(parent_data)
-            await session.refresh(self, attribute_names=["spec_block_"])
-            if self.spec_block_.data:
-                ret_dict.update(self.spec_block_.data)
+            spec_block = await self.get_spec_block(session)
+            if spec_block.data:
+                ret_dict.update(spec_block.data)
             if self.data:
                 ret_dict.update(self.data)
             return ret_dict
@@ -358,12 +367,12 @@ class NodeMixin(RowMixin):
             if self.level == LevelEnum.script:
                 raise NotImplementedError
             if self.level.value > LevelEnum.campaign.value:
-                await session.refresh(self, attribute_names=["parent_"])
-                parent_data = await self.parent_.get_spec_aliases(session)
+                parent = await self.get_parent(session)
+                parent_data = await parent.get_spec_aliases(session)
                 ret_dict.update(parent_data)
-            await session.refresh(self, attribute_names=["spec_block_"])
-            if self.spec_block_.spec_aliases:
-                ret_dict.update(self.spec_block_.spec_aliases)
+            spec_block = await self.get_spec_block(session)
+            if spec_block.spec_aliases:
+                ret_dict.update(spec_block.spec_aliases)
             if self.spec_aliases:
                 ret_dict.update(self.spec_aliases)
             return ret_dict
@@ -541,7 +550,6 @@ class NodeMixin(RowMixin):
                 return True
             print(f"N prereq {len(self.prereqs_)}")
             for prereq_ in self.prereqs_:
-                print(prereq_)
                 is_done = await prereq_.is_done(session)
                 if not is_done:
                     return False

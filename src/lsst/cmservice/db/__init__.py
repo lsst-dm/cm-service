@@ -17,7 +17,10 @@ from .script import Script
 from .script_dependency import ScriptDependency
 from .script_error import ScriptError
 from .script_template import ScriptTemplate
-from .specification import SpecBlock, Specification
+from .script_template_association import ScriptTemplateAssociation
+from .spec_block import SpecBlock
+from .spec_block_association import SpecBlockAssociation
+from .specification import Specification
 from .step import Step
 from .step_dependency import StepDependency
 from .task_set import TaskSet
@@ -41,7 +44,9 @@ __all__ = [
     "ScriptDependency",
     "ScriptError",
     "ScriptTemplate",
+    "ScriptTemplateAssociation",
     "SpecBlock",
+    "SpecBlockAssociation",
     "Specification",
     "Step",
     "StepDependency",

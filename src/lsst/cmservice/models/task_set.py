@@ -26,8 +26,6 @@ class TaskSetBase(BaseModel):
 class TaskSetCreate(TaskSetBase):
     """Parameters that are used to create new rows but not in DB tables"""
 
-    pass
-
 
 class TaskSet(TaskSetBase):
     """Parameters that are in DB tables and not used to create new rows"""

@@ -97,13 +97,13 @@ class RunJobsScriptHandler(RunElementScriptHandler):
         if spec_block_name is None:
             raise AttributeError(f"child_config for {script.fullname} does not contain spec_block")
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
-        spec_block = await specification.get_block(session, spec_block_name)
+        spec_block_assoc_name = f"{specification.name}#{spec_block_name}"
         attempt = 0
         _new_job = await Job.create_row(
             session,
             name=f"job_{attempt:03}",
             parent_name=parent.fullname,
-            spec_block_name=spec_block.fullname,
+            spec_block_assoc_name=spec_block_assoc_name,
             **child_config,
         )
         await script.update_values(session, status=StatusEnum.prepared)
@@ -274,7 +274,7 @@ class RunGroupsScriptHandler(RunElementScriptHandler):
         if spec_block_name is None:
             raise AttributeError(f"child_config for {script.fullname} does not contain spec_block")
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
-        spec_block = await specification.get_block(session, spec_block_name)
+        spec_block_assoc_name = f"{specification.name}#{spec_block_name}"
         fake_status = kwargs.get("fake_status")
 
         split_method = child_config.pop("split_method", "no_split")
@@ -287,7 +287,7 @@ class RunGroupsScriptHandler(RunElementScriptHandler):
             _new_group = await Group.create_row(
                 session,
                 name=f"group{i}",
-                spec_block_name=spec_block.fullname,
+                spec_block_assoc_name=spec_block_assoc_name,
                 parent_name=parent.fullname,
                 **group_dict_,
             )
@@ -315,7 +315,8 @@ class RunStepsScriptHandler(RunElementScriptHandler):
     ) -> StatusEnum:
         if not isinstance(parent, Campaign):
             raise ValueError(f"Can not run script {script} on {parent}")
-        child_configs = await parent.get_child_config(session)
+        spec_block = await parent.get_spec_block(session)
+        child_configs = spec_block.steps
         await add_steps(session, parent, child_configs)
         status = StatusEnum.prepared
         await script.update_values(session, status=status)

@@ -89,7 +89,7 @@ class ElementHandler(Handler):
                 status = StatusEnum.ready
                 changed = True
         if status == StatusEnum.ready:
-            (had_changed, status) = await self.prepare(session, node)
+            (has_changed, status) = await self.prepare(session, node)
             if has_changed:
                 changed = True
         if status == StatusEnum.prepared:
@@ -105,7 +105,7 @@ class ElementHandler(Handler):
                 if has_changed:
                     changed = True
         if status == StatusEnum.reviewable:
-            (has_chagned, status) = await self.review(session, node, *kwargs)
+            (has_changed, status) = await self.review(session, node, *kwargs)
             if has_changed:
                 changed = True
         if status != orig_status:
@@ -150,13 +150,13 @@ class ElementHandler(Handler):
             Status of the processing
         """
         async with session.begin_nested():
-            await session.refresh(element, attribute_names=["spec_block_"])
-            spec_block = element.spec_block_
-            await session.refresh(spec_block, attribute_names=["spec_"])
-            spec = spec_block.spec_
+            spec_block = await element.get_spec_block(session)
+            spec = await element.get_specification(session)
             spec_name = spec.name
 
         spec_aliases = await element.get_spec_aliases(session)
+        if not spec_block.scripts:
+            return (True, StatusEnum.prepared)
 
         script_ids_dict = {}
         prereq_pairs = []
@@ -171,15 +171,15 @@ class ElementHandler(Handler):
                 script_name = script_vals.pop("name")
             except KeyError as msg:
                 raise KeyError(f"Unnnamed Script block {script_vals}") from msg
-            script_spec_block = script_vals.get("spec_block", None)
-            if script_spec_block is None:
+            script_spec_block_name = script_vals.get("spec_block", None)
+            if script_spec_block_name is None:
                 raise AttributeError(f"Script block {script_name} does not contain spec_block")
-            script_spec_block = spec_aliases.get(script_spec_block, script_spec_block)
-            script_spec_block_fullname = f"{spec_name}#{script_spec_block}"
+            script_spec_block_name = spec_aliases.get(script_spec_block_name, script_spec_block_name)
+            script_spec_block_assoc_fullname = f"{spec_name}#{script_spec_block_name}"
             new_script = await Script.create_row(
                 session,
                 parent_level=element.level,
-                spec_block_name=script_spec_block_fullname,
+                spec_block_assoc_name=script_spec_block_assoc_fullname,
                 parent_name=element.fullname,
                 name=script_name,
                 **script_vals,
@@ -341,7 +341,7 @@ class ElementHandler(Handler):
                 await job_.update_values(session, status=fake_status)
                 changed = True
             else:
-                (job_changed, job_status) = await job_.run_check(session)
+                (job_changed, _job_status) = await job_.run_check(session)
                 if job_changed:
                     changed = True
         return changed

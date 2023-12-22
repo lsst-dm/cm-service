@@ -35,8 +35,6 @@ class PipetaskErrorTypeBase(BaseModel):
 class PipetaskErrorTypeCreate(PipetaskErrorTypeBase):
     """Parameters that are used to create new rows but not in DB tables"""
 
-    pass
-
 
 class PipetaskErrorType(PipetaskErrorTypeBase):
     """Parameters that are in DB tables and not used to create new rows"""

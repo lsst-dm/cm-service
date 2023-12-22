@@ -23,7 +23,6 @@ def get_rows_no_parent_function(
         summary=f"List {class_string}s",
     )
     async def get_rows(
-        parent_id: int | None = None,
         skip: int = 0,
         limit: int = 100,
         session: async_scoped_session = Depends(db_session_dependency),

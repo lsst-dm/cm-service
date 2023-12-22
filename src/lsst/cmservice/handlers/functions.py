@@ -1,3 +1,7 @@
+import os
+from collections.abc import Mapping
+from typing import Any
+
 import yaml
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -11,23 +15,35 @@ from ..db.pipetask_error import PipetaskError
 from ..db.pipetask_error_type import PipetaskErrorType
 from ..db.product_set import ProductSet
 from ..db.script_template import ScriptTemplate
-from ..db.specification import SpecBlock, Specification
+from ..db.script_template_association import ScriptTemplateAssociation
+from ..db.spec_block import SpecBlock
+from ..db.spec_block_association import SpecBlockAssociation
+from ..db.specification import Specification
 from ..db.step import Step
 from ..db.step_dependency import StepDependency
 from ..db.task_set import TaskSet
 from ..db.wms_task_report import WmsTaskReport
 
 
-async def load_spec_block(
+def update_include_dict(
+    orig_dict: dict[str, Any],
+    include_dict: dict[str, Any],
+) -> None:
+    for key, val in include_dict.items():
+        if isinstance(val, Mapping) and key in orig_dict:
+            orig_dict[key].update(val)
+        else:
+            orig_dict[key] = val
+
+
+async def create_spec_block(
     session: async_scoped_session,
-    specification: Specification,
     config_values: dict,
     loaded_specs: dict,
 ) -> SpecBlock | None:
     key = config_values.pop("name")
     loaded_specs[key] = config_values
-    fullname = f"{specification.name}#{key}"
-    spec_block_q = select(SpecBlock).where(SpecBlock.fullname == fullname)
+    spec_block_q = select(SpecBlock).where(SpecBlock.fullname == key)
     spec_block_result = await session.scalars(spec_block_q)
     spec_block = spec_block_result.first()
     if spec_block:
@@ -35,46 +51,50 @@ async def load_spec_block(
         return None
     includes = config_values.pop("includes", [])
     block_data = config_values.copy()
-    include_data = {}
+    include_data: dict[str, Any] = {}
     for include_ in includes:
         if include_ in loaded_specs:
-            include_data.update(loaded_specs[include_])
+            update_include_dict(include_data, loaded_specs[include_])
         else:
-            spec_block_ = await specification.get_block(session, include_)
-            include_data.update(
-                handler=spec_block_.handler,
-                data=spec_block_.data,
-                collections=spec_block_.collections,
-                child_config=spec_block_.child_config,
-                scripts=spec_block_.scripts,
-                spec_aliases=spec_block_.spec_aliases,
+            spec_block_ = await SpecBlock.get_row_by_fullname(session, include_)
+            update_include_dict(
+                include_data,
+                {
+                    "handler": spec_block_.handler,
+                    "data": spec_block_.data,
+                    "collections": spec_block_.collections,
+                    "child_config": spec_block_.child_config,
+                    "spec_aliases": spec_block_.spec_aliases,
+                    "scripts": spec_block_.scripts,
+                    "steps": spec_block_.steps,
+                },
             )
 
     for include_key, include_val in include_data.items():
-        if include_key not in block_data:
+        if include_key in block_data and isinstance(include_val, Mapping):
+            block_data[include_key].update(include_val)
+        else:
             block_data[include_key] = include_val
 
     handler = block_data.pop("handler", None)
     return await SpecBlock.create_row(
         session,
-        spec_name=specification.name,
         name=key,
         handler=handler,
         data=block_data.get("data"),
         collections=block_data.get("collections"),
         child_config=block_data.get("child_config"),
         scripts=block_data.get("scripts"),
+        steps=block_data.get("steps"),
     )
 
 
-async def load_script_template(
+async def create_script_template(
     session: async_scoped_session,
-    specification: Specification,
     config_values: dict,
 ) -> ScriptTemplate | None:
     key = config_values.pop("name")
-    fullname = f"{specification.name}#{key}"
-    script_template_q = select(ScriptTemplate).where(ScriptTemplate.fullname == fullname)
+    script_template_q = select(ScriptTemplate).where(ScriptTemplate.fullname == key)
     script_template_result = await session.scalars(script_template_q)
     script_template = script_template_result.first()
     if script_template:
@@ -82,24 +102,20 @@ async def load_script_template(
         return None
     return await ScriptTemplate.load(
         session,
-        spec_name=specification.name,
-        spec_id=specification.id,
         name=key,
         file_path=config_values["file_path"],
     )
 
 
-async def load_specification(
+async def create_specification(
     session: async_scoped_session,
-    spec_name: str,
-    yaml_file: str,
-) -> Specification:
-    with open(yaml_file, encoding="utf-8") as fin:
-        spec_data = yaml.safe_load(fin)
+    config_values: dict,
+) -> Specification | None:
+    spec_name = config_values["name"]
+    script_templates = config_values.get("script_templates", [])
+    spec_blocks = config_values.get("spec_blocks", [])
 
-    loaded_specs: dict = {}
-
-    async with session.begin():
+    async with session.begin_nested():
         spec_q = select(Specification).where(Specification.name == spec_name)
         spec_result = await session.scalars(spec_q)
         specification = spec_result.first()
@@ -107,23 +123,80 @@ async def load_specification(
             specification = Specification(name=spec_name)
             session.add(specification)
 
-        for config_item in spec_data:
-            if "SpecBlock" in config_item:
-                await load_spec_block(
+        for script_list_item_ in script_templates:
+            try:
+                script_template_config_ = script_list_item_["ScriptTemplateAssociation"]
+            except KeyError as msg:
+                raise KeyError(
+                    f"Expected ScriptTemplateAssociation not {list(script_list_item_.keys())}",
+                ) from msg
+            new_script_template_assoc = await ScriptTemplateAssociation.create_row(
+                session,
+                spec_name=spec_name,
+                **script_template_config_,
+            )
+            assert new_script_template_assoc
+        for spec_block_list_item_ in spec_blocks:
+            try:
+                spec_block_config_ = spec_block_list_item_["SpecBlockAssociation"]
+            except KeyError as msg:
+                raise KeyError(f"Expected SpecBlockAssociation not {list(script_list_item_.keys())}") from msg
+
+            new_spec_block_assoc = await SpecBlockAssociation.create_row(
+                session,
+                spec_name=spec_name,
+                **spec_block_config_,
+            )
+            assert new_spec_block_assoc
+        await session.commit()
+        return specification
+
+
+async def load_specification(
+    session: async_scoped_session,
+    yaml_file: str,
+    loaded_specs: dict | None = None,
+) -> Specification | None:
+    if loaded_specs is None:
+        loaded_specs = {}
+
+    specification = None
+
+    with open(yaml_file, encoding="utf-8") as fin:
+        spec_data = yaml.safe_load(fin)
+
+    for config_item in spec_data:
+        if "Imports" in config_item:
+            imports = config_item["Imports"]
+            for import_ in imports:
+                await load_specification(
                     session,
-                    specification,
+                    os.path.abspath(os.path.expandvars(import_)),
+                    loaded_specs,
+                )
+        elif "SpecBlock" in config_item:
+            async with session.begin_nested():
+                await create_spec_block(
+                    session,
                     config_item["SpecBlock"],
                     loaded_specs,
                 )
-            elif "ScriptTemplate" in config_item:
-                await load_script_template(
+        elif "ScriptTemplate" in config_item:
+            async with session.begin_nested():
+                await create_script_template(
                     session,
-                    specification,
                     config_item["ScriptTemplate"],
                 )
-            else:
-                raise KeyError(f"Expecting SpecBlock or ScriptTemplate not: {spec_data.keys()})")
-        return specification
+        elif "Specification" in config_item:
+            async with session.begin_nested():
+                specification = await create_specification(
+                    session,
+                    config_item["Specification"],
+                )
+        else:
+            good_keys = "ScriptTemplate | SpecBlock | Specification | Imports"
+            raise KeyError(f"Expecting one of {good_keys} not: {spec_data.keys()})")
+    return specification
 
 
 async def add_step_prerequisite(
@@ -141,7 +214,7 @@ async def add_step_prerequisite(
 async def add_steps(
     session: async_scoped_session,
     campaign: Campaign,
-    child_configs: dict,
+    step_config_list: list[dict[str, dict]],
 ) -> Campaign:
     specification = await campaign.get_specification(session)
     spec_aliases = await campaign.get_spec_aliases(session)
@@ -150,24 +223,29 @@ async def add_steps(
     step_ids_dict = {step_.name: step_.id for step_ in current_steps}
 
     prereq_pairs = []
-    for child_name_, child_config_ in child_configs.items():
-        spec_block_name = child_config_.pop("spec_block")
+    for step_ in step_config_list:
+        try:
+            step_config_ = step_["Step"]
+        except KeyError as msg:
+            raise KeyError(f"Expecting Step not: {step_.keys()}") from msg
+        child_name_ = step_config_.pop("name")
+        spec_block_name = step_config_.pop("spec_block")
         if spec_block_name is None:
             raise AttributeError(
-                f"child_config_ {child_name_} of {campaign.fullname} does contain 'spec_block'",
+                f"Step {child_name_} of {campaign.fullname} does contain 'spec_block'",
             )
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
-        spec_block = await specification.get_block(session, spec_block_name)
+        spec_block_assoc_name = f"{specification.name}#{spec_block_name}"
         new_step = await Step.create_row(
             session,
             name=child_name_,
-            spec_block_name=spec_block.fullname,
+            spec_block_assoc_name=spec_block_assoc_name,
             parent_name=campaign.fullname,
-            **child_config_,
+            **step_config_,
         )
         await session.refresh(new_step)
         step_ids_dict[child_name_] = new_step.id
-        prereqs_names = child_config_.pop("prerequisites", [])
+        prereqs_names = step_config_.pop("prerequisites", [])
         prereq_pairs += [(child_name_, prereq_) for prereq_ in prereqs_names]
 
     for depend_name, prereq_name in prereq_pairs:
@@ -197,11 +275,11 @@ async def add_groups(
         if spec_block_name is None:
             raise AttributeError(f"child_config_ {child_name_} of {step.fullname} does contain 'spec_block'")
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
-        spec_block = await specification.get_block(session, spec_block_name)
+        spec_block_assoc_name = f"{specification.name}#{spec_block_name}"
         await Group.create_row(
             session,
             name=f"group{i}",
-            spec_block_name=spec_block.fullname,
+            spec_block_assoc_name=spec_block_assoc_name,
             parent_name=step.fullname,
             **child_config_,
         )

@@ -26,8 +26,6 @@ class ProductSetBase(BaseModel):
 class ProductSetCreate(ProductSetBase):
     """Parameters that are used to create new rows but not in DB tables"""
 
-    pass
-
 
 class ProductSet(ProductSetBase):
     """Parameters that are in DB tables and not used to create new rows"""

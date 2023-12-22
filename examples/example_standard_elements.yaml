@@ -1,0 +1,124 @@
+# This is an example of the template specification file for the standard cm-service processing setup
+# for 'Elements', i.e., Jobs, Group, Steps, Campaign
+
+# Job Template, runs a single workflow, checks on the status, upload bps and pipetask reports
+- SpecBlock:
+      name: job
+      handler: lsst.cmservice.handlers.job_handler.JobHandler
+      collections:
+          # This is that RUN collection produced by bps
+          job_run: "{root}/{campaign}/{step}/{group}/{job}"
+      scripts:
+          - Script:
+                name: bps_submit
+                spec_block: panda_submit_script
+                collections:
+                    run: "{job_run}"
+                    inputs: ["{step_input}", "{campaign_input}", "{campaign_ancillary}"]
+          - Script:
+                name: bps_report
+                spec_block: panda_report_script
+                prerequisites: ['bps_submit']
+                collections:
+                    run: "{job_run}"
+          - Script:
+                name: manifest_report
+                spec_block: manifest_report_script
+                prerequisites: ['bps_report']
+                collections:
+                    run: "{job_run}"
+# Group Template, runs a group, hopefully using a single job to do so
+- SpecBlock:
+      name: group
+      handler: lsst.cmservice.handlers.element_handler.ElementHandler
+      collections:
+          group_output: "{root}/{campaign}/{step}/{group}"
+          group_validation: "{root}/{campaign}/{step}/{group}/validate"
+      scripts:
+          - Script:
+                name: run
+                spec_block: run_jobs
+      child_config:
+          spec_block: job
+# Step Template, runs a step, possibly using several groups
+# This will prepare the step by chaining the correct inputs, create and run the groups, and collect the outputs
+- SpecBlock:
+      name: step
+      handler: lsst.cmservice.handlers.element_handler.ElementHandler
+      collections:
+          step_input: "{root}/{campaign}/{step}/input"
+          step_output: "{root}/{campaign}/{step}_ouput"
+          step_public_output: "{root}/{campaign}/{step}"
+          step_validation: "{root}/{campaign}/{step}/validate"
+      scripts:
+          - Script:
+                name: prepare
+                spec_block: prepare_step_script
+                collections:
+                    output: "{step_input}"
+                    inputs: []
+          - Script:
+                name: run
+                prerequisites: ['prepare']
+                spec_block: run_groups
+          - Script:
+                name: collect_groups
+                prerequisites: ['run']
+                spec_block: chain_collect_jobs_script
+                collections:
+                    inputs: []
+                    output: "{step_output}"
+          - Script:
+                name: make_step_public_output
+                prerequisites: ['collect_groups']
+                spec_block: chain_create_script
+                collections:
+                    inputs: ["{step_output}", "{campaign_input}", "{campaign_ancillary}"]
+                    output: "{step_public_output}"
+      child_config:
+          spec_block: group
+# Campagin Template, runs a campaign
+# This will tag the input data, create the ancillary collection, run the steps and then collect the outputs
+# Note that the steps are not defined here.
+- SpecBlock:
+      name: base_campaign
+      handler: lsst.cmservice.handlers.element_handler.ElementHandler
+      collections:
+          campaign_input: "{root}/{campaign}/input"
+          campaign_output: "{root}/{campaign}/output"
+          campaign_public_output: "{root}/{campaign}"
+          campaign_ancillary: "{root}/{campaign}/ancillary"
+          campaign_validation: "{root}/{campaign}/validate"
+      scripts:
+          - Script:
+                name: tag_inputs
+                spec_block: tag_inputs_script
+                collections:
+                    input: "{campaign_source}"
+                    output: "{campaign_input}"
+          - Script:
+                name: ancillary
+                spec_block: chain_create_script
+                collections:
+                    inputs:
+                        - HSC/calib
+                        - HSC/masks
+                        - HSC/fgcmcal/lut/RC2
+                        - refcats
+                        - skymaps
+                    output: "{campaign_ancillary}"
+          - Script:
+                name: run
+                spec_block: run_steps
+                prerequisites: ['tag_inputs', 'ancillary']
+          - Script:
+                name: collect_steps
+                prerequisites: ['run']
+                spec_block: chain_collect_steps_script
+                collections:
+                    inputs: []
+                    output: "{campaign_output}"
+      data:
+          bps_script_template: bps_panda_script_template
+          bps_yaml_template: bps_panda_yaml_template
+          manifest_script_template: stack_script_template

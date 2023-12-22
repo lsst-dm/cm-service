@@ -15,7 +15,9 @@ from .campaign import Campaign
 from .dbid import DbId
 from .element import ElementMixin
 from .enums import SqlStatusEnum
-from .specification import SpecBlock
+from .spec_block import SpecBlock
+from .spec_block_association import SpecBlockAssociation
+from .specification import Specification
 
 if TYPE_CHECKING:
     from .group import Group
@@ -40,7 +42,10 @@ class Step(Base, ElementMixin):
     __table_args__ = (UniqueConstraint("parent_id", "name"),)  # Name must be unique within parent campaign
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    spec_block_id: Mapped[int] = mapped_column(ForeignKey("spec_block.id", ondelete="CASCADE"), index=True)
+    spec_block_assoc_id: Mapped[int] = mapped_column(
+        ForeignKey("spec_block_association.id", ondelete="CASCADE"),
+        index=True,
+    )
     parent_id: Mapped[int] = mapped_column(ForeignKey("campaign.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(index=True)
     fullname: Mapped[str] = mapped_column(unique=True)
@@ -52,7 +57,21 @@ class Step(Base, ElementMixin):
     collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
     spec_aliases: Mapped[dict | list | None] = mapped_column(type_=JSON)
 
-    spec_block_: Mapped[SpecBlock] = relationship("SpecBlock", viewonly=True)
+    spec_block_assoc_: Mapped[SpecBlockAssociation] = relationship("SpecBlockAssociation", viewonly=True)
+    spec_: Mapped[Specification] = relationship(
+        "Specification",
+        primaryjoin="SpecBlockAssociation.id==Step.spec_block_assoc_id",
+        secondary="join(SpecBlockAssociation, Specification)",
+        secondaryjoin="SpecBlockAssociation.spec_id==Specification.id",
+        viewonly=True,
+    )
+    spec_block_: Mapped[SpecBlock] = relationship(
+        "SpecBlock",
+        primaryjoin="SpecBlockAssociation.id==Step.spec_block_assoc_id",
+        secondary="join(SpecBlockAssociation, SpecBlock)",
+        secondaryjoin="SpecBlockAssociation.spec_block_id==SpecBlock.id",
+        viewonly=True,
+    )
     parent_: Mapped[Campaign] = relationship("Campaign", back_populates="s_")
     p_: Mapped[Production] = relationship(
         "Production",
@@ -76,7 +95,7 @@ class Step(Base, ElementMixin):
         viewonly=True,
     )
 
-    col_names_for_table = ["id", "fullname", "spec_block_id", "handler", "status", "superseded"]
+    col_names_for_table = ["id", "fullname", "spec_block_id_assoc", "handler", "status", "superseded"]
 
     @hybrid_property
     def db_id(self) -> DbId:
@@ -106,12 +125,24 @@ class Step(Base, ElementMixin):
         **kwargs: Any,
     ) -> dict:
         parent_name = kwargs["parent_name"]
-        spec_block_name = kwargs["spec_block_name"]
         name = kwargs["name"]
         campaign = await Campaign.get_row_by_fullname(session, parent_name)
-        spec_block = await SpecBlock.get_row_by_fullname(session, spec_block_name)
+        spec_block_assoc_name = kwargs.get("spec_block_assoc_name", None)
+        if not spec_block_assoc_name:
+            try:
+                spec_name = kwargs["spec_name"]
+                spec_block_name = kwargs["spec_block_name"]
+                spec_block_assoc_name = f"{spec_name}#{spec_block_name}"
+            except KeyError as msg:
+                raise KeyError(
+                    "Either spec_block_assoc_name or (spec_name and spec_block_name) required",
+                ) from msg
+        spec_block_assoc = await SpecBlockAssociation.get_row_by_fullname(
+            session,
+            spec_block_assoc_name,
+        )
         return {
-            "spec_block_id": spec_block.id,
+            "spec_block_assoc_id": spec_block_assoc.id,
             "parent_id": campaign.id,
             "name": name,
             "fullname": f"{campaign.fullname}/{name}",

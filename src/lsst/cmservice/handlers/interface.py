@@ -1142,7 +1142,7 @@ async def add_groups(
 async def add_steps(
     session: async_scoped_session,
     fullname: str,
-    child_configs: dict,
+    step_config_list: list[dict[str, Any]],
 ) -> db.Campaign:
     """Add Steps to a `Campaign`
 
@@ -1154,7 +1154,7 @@ async def add_steps(
     fullname: str
         Full unique name for the parent `Campaign`
 
-    child_configs: dict,
+    step_config_list: list[dict[str, Any]]
         Configurations for the `Step`s to be created
 
     Returns
@@ -1170,7 +1170,7 @@ async def add_steps(
     """
 
     campaign = await db.Campaign.get_row_by_fullname(session, fullname)
-    result = await functions.add_steps(session, campaign, child_configs)
+    result = await functions.add_steps(session, campaign, step_config_list)
     await session.commit()
     return result
 
@@ -1201,7 +1201,6 @@ async def create_campaign(
 
 async def load_specification(
     session: async_scoped_session,
-    spec_name: str,
     yaml_file: str,
 ) -> db.Specification:
     """Load a Specification from a yaml file
@@ -1211,9 +1210,6 @@ async def load_specification(
     session : async_scoped_session
         DB session manager
 
-    spec_name: str,
-        Name for the specification
-
     yaml_file: str,
         Path to the yaml file
 
@@ -1222,8 +1218,8 @@ async def load_specification(
     specification : `Specification`
         Newly created `Specification`
     """
-    result = await functions.load_specification(session, spec_name, yaml_file)
-    await session.commit()
+    result = await functions.load_specification(session, yaml_file)
+    assert result
     return result
 
 
@@ -1232,8 +1228,7 @@ async def load_and_create_campaign(  # pylint: disable=too-many-arguments
     yaml_file: str,
     parent_name: str,
     name: str,
-    spec_name: str | None = None,
-    spec_block_name: str | None = None,
+    spec_block_assoc_name: str | None = None,
     **kwargs: Any,
 ) -> db.Campaign:
     """Load a Specification and use it to create a `Campaign`
@@ -1252,33 +1247,30 @@ async def load_and_create_campaign(  # pylint: disable=too-many-arguments
     name: str,
         Name for the `Campaign` and default value for spec_block_name
 
-    spec_name: str | None=None
-        Name for the `Specication
-
-    spec_block_name: str | None=None,
-        Name for the `SpecBlock` to use to build `Campaign`
+    spec_block_assoc_name: str | None=None,
+        Name for the `SpecBlockAssociation` to use to build `Campaign`
 
     Returns
     -------
     campaign : `Campaign`
         Newly created `Campaign`
     """
-    if not spec_name:
-        spec_name = parent_name
-    if not spec_block_name:
-        spec_block_name = f"{spec_name}#campaign"
-
-    kwargs.update(
-        spec_block_name=spec_block_name,
-        parent_name=parent_name,
-        name=name,
-    )
-    await functions.load_specification(session, spec_name, yaml_file)
+    specification = await functions.load_specification(session, yaml_file)
+    assert specification
 
     try:
         await db.Production.create_row(session, name=parent_name)
     except Exception:  # pylint: disable=broad-exception-caught
         pass
+
+    if not spec_block_assoc_name:
+        spec_block_assoc_name = f"{specification.name}#campaign"
+
+    kwargs.update(
+        spec_block_assoc_name=spec_block_assoc_name,
+        parent_name=parent_name,
+        name=name,
+    )
 
     result = await create_campaign(
         session,

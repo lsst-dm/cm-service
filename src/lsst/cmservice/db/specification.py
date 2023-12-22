@@ -1,66 +1,19 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.schema import ForeignKey
 
 from .base import Base
 from .row import RowMixin
-from .script_template import ScriptTemplate
 
-
-class SpecBlock(Base, RowMixin):
-    """Database table to manage blocks that are used to build campaigns
-
-    A 'SpecBlock' is tagged fragment of a yaml file that specifies how
-    to build an element of a campaign
-    """
-
-    __tablename__ = "spec_block"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    spec_id: Mapped[int] = mapped_column(ForeignKey("specification.id", ondelete="CASCADE"), index=True)
-    name: Mapped[str] = mapped_column(index=True)
-    fullname: Mapped[str] = mapped_column(unique=True)
-    handler: Mapped[str | None] = mapped_column()
-    data: Mapped[dict | list | None] = mapped_column(type_=JSON)
-    collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
-    child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
-    scripts: Mapped[dict | list | None] = mapped_column(type_=JSON)
-    spec_aliases: Mapped[dict | list | None] = mapped_column(type_=JSON)
-
-    spec_: Mapped[Specification] = relationship("Specification", viewonly=True)
-
-    col_names_for_table = ["id", "fullname", "handler"]
-
-    def __repr__(self) -> str:
-        return f"SpecBlock {self.id}: {self.fullname} {self.data}"
-
-    @classmethod
-    async def get_create_kwargs(
-        cls,
-        session: async_scoped_session,
-        **kwargs: Any,
-    ) -> dict:
-        spec_name = kwargs["spec_name"]
-        spec = await Specification.get_row_by_fullname(session, spec_name)
-        handler = kwargs["handler"]
-        name = kwargs["name"]
-        return {
-            "spec_id": spec.id,
-            "name": name,
-            "handler": handler,
-            "fullname": f"{spec_name}#{name}",
-            "data": kwargs.get("data", {}),
-            "collections": kwargs.get("collections", {}),
-            "child_config": kwargs.get("child_config", {}),
-            "scripts": kwargs.get("scripts", {}),
-            "spec_aliases": kwargs.get("spec_aliases", {}),
-        }
+if TYPE_CHECKING:
+    from .script_template import ScriptTemplate
+    from .script_template_association import ScriptTemplateAssociation
+    from .spec_block import SpecBlock
+    from .spec_block_association import SpecBlockAssociation
 
 
 class Specification(Base, RowMixin):
@@ -69,8 +22,26 @@ class Specification(Base, RowMixin):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(index=True)
 
-    blocks_: Mapped[list[SpecBlock]] = relationship("SpecBlock", viewonly=True)
-    script_templates_: Mapped[list[ScriptTemplate]] = relationship("ScriptTemplate", viewonly=True)
+    block_assocs_: Mapped[list[SpecBlockAssociation]] = relationship("SpecBlockAssociation", viewonly=True)
+    script_template_assocs_: Mapped[list[ScriptTemplateAssociation]] = relationship(
+        "ScriptTemplateAssociation",
+        viewonly=True,
+    )
+
+    blocks_: Mapped[list[SpecBlock]] = relationship(
+        "SpecBlock",
+        primaryjoin="SpecBlockAssociation.spec_id==Specification.id",
+        secondary="join(SpecBlockAssociation, SpecBlock)",
+        secondaryjoin="SpecBlock.id==SpecBlockAssociation.spec_block_id",
+        viewonly=True,
+    )
+    script_templates_: Mapped[list[ScriptTemplate]] = relationship(
+        "ScriptTemplate",
+        primaryjoin="ScriptTemplateAssociation.spec_id==Specification.id",
+        secondary="join(ScriptTemplateAssociation, ScriptTemplate)",
+        secondaryjoin="ScriptTemplate.id==ScriptTemplateAssociation.script_template_id",
+        viewonly=True,
+    )
 
     col_names_for_table = ["id", "name"]
 
@@ -103,10 +74,11 @@ class Specification(Base, RowMixin):
             Requested SpecBlock
         """
         async with session.begin_nested():
-            await session.refresh(self, attribute_names=["blocks_"])
-            for block_ in self.blocks_:
-                if block_.name == spec_block_name:
-                    return block_
+            await session.refresh(self, attribute_names=["block_assocs_"])
+            for block_assoc_ in self.block_assocs_:
+                if block_assoc_.alias == spec_block_name:
+                    await session.refresh(block_assoc_, attribute_names=["spec_block_"])
+                    return block_assoc_.spec_block_
             raise KeyError(f"Could not find spec_block {spec_block_name} in {self}")
 
     async def get_script_template(
@@ -130,8 +102,9 @@ class Specification(Base, RowMixin):
             Requested ScriptTemplate
         """
         async with session.begin_nested():
-            await session.refresh(self, attribute_names=["script_templates_"])
-            for script_template_ in self.script_templates_:
-                if script_template_.name == script_template_name:
-                    return script_template_
+            await session.refresh(self, attribute_names=["script_template_assocs_"])
+            for script_template_assoc_ in self.script_template_assocs_:
+                if script_template_assoc_.alias == script_template_name:
+                    await session.refresh(script_template_assoc_, attribute_names=["script_template_"])
+                    return script_template_assoc_.script_template_
             raise KeyError(f"Could not find ScriptTemplate {script_template_name} in {self}")
