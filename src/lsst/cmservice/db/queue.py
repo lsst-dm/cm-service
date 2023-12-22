@@ -163,6 +163,14 @@ class Queue(Base, NodeMixin):
         ret_dict["element_id"] = element.id
         return ret_dict
 
+    async def element_sleep_time(
+        self,
+        session: async_scoped_session,
+    ) -> int:
+        """Check how long to sleep based on what is running"""
+        element = await self.get_element(session)
+        return await element.estimate_sleep_time(session)
+
     def waiting(
         self,
     ) -> bool:
@@ -180,9 +188,11 @@ class Queue(Base, NodeMixin):
 
     def pause_until_next_check(
         self,
+        estimated_wait_time: int,
     ) -> None:
         """Sleep until the next time check"""
-        delta_t = timedelta(seconds=self.interval)
+        wait_time = min(estimated_wait_time, self.interval)
+        delta_t = timedelta(seconds=wait_time)
         next_check = self.time_updated + delta_t
         now = datetime.now()
         if now < next_check:
@@ -215,8 +225,6 @@ class Queue(Base, NodeMixin):
         session: async_scoped_session,
     ) -> bool:
         """Process associated element"""
-        if self.waiting():
-            return True
         return await self._process_and_update(session)
 
     async def process_element_loop(
@@ -225,5 +233,6 @@ class Queue(Base, NodeMixin):
     ) -> None:
         can_continue = True
         while can_continue:
-            self.pause_until_next_check()
+            estimated_wait_time = await self.element_sleep_time(session)
+            self.pause_until_next_check(estimated_wait_time)
             can_continue = await self._process_and_update(session)

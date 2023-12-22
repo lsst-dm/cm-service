@@ -699,6 +699,48 @@ async def get_scripts(
     )
 
 
+async def get_all_scripts(
+    session: async_scoped_session,
+    fullname: str,
+    *,
+    remaining_only: bool = False,
+    skip_superseded: bool = True,
+) -> list[db.Script]:
+    """Get the all scripts associated to an `Element`
+
+    Parameters
+    ----------
+    session : async_scoped_session
+        DB session manager
+
+    fullname: str
+        Full unique name for the `Element`
+
+    remaining_only : bool
+        Only include unprocessed scripts
+
+    skip_superseded : bool = True,
+        Don't include superseded scripts
+
+    Returns
+    -------
+    scripts : List[Script]
+        Requested Scripts
+
+    Raises
+    ------
+    ValueError : could not parse fullname to determine table
+
+    HTTPException : Code 404, Could not find Element
+    """
+    element = await get_element_by_fullname(session, fullname)
+    return await element.get_all_scripts(
+        session,
+        remaining_only=remaining_only,
+        skip_superseded=skip_superseded,
+    )
+
+
 async def get_jobs(
     session: async_scoped_session,
     fullname: str,
@@ -735,6 +777,41 @@ async def get_jobs(
     """
     element = await get_element_by_fullname(session, fullname)
     return await element.get_jobs(session, remaining_only=remaining_only, skip_superseded=skip_superseded)
+
+
+async def estimate_sleep(
+    session: async_scoped_session,
+    fullname: str,
+    job_sleep: int = 150,
+    script_sleep: int = 15,
+) -> int:
+    """Estimate how long to sleep a process for
+
+    Parameters
+    ----------
+    session : async_scoped_session
+        DB session manager
+
+    fullname: str
+        Full unique name for the `Script`
+
+    job_sleep: int
+        Time to sleep for running jobs
+
+    script_sleep: int
+        Time to sleep for running scripts
+
+    Returns
+    -------
+    sleep: int
+        How long to sleep for
+
+    Raises
+    ------
+    HTTPException : Code 404, Could not find Script
+    """
+    element = await get_element_by_fullname(session, fullname)
+    return await element.estimate_sleep_time(session, job_sleep, script_sleep)
 
 
 async def process_script(

@@ -133,6 +133,9 @@ class Job(Base, ElementMixin):
     def level(self) -> LevelEnum:
         return LevelEnum.job
 
+    def __repr__(self) -> str:
+        return f"Job {self.fullname} {self.id} {self.status.name}"
+
     @classmethod
     async def get_create_kwargs(
         cls,

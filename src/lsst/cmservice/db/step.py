@@ -107,7 +107,7 @@ class Step(Base, ElementMixin):
         return LevelEnum.step
 
     def __repr__(self) -> str:
-        return f"Production {self.fullname} {self.id} {self.status.name}"
+        return f"Step {self.fullname} {self.id} {self.status.name}"
 
     async def children(
         self,

@@ -42,3 +42,17 @@ async def process_element(
     queue = await db.Queue.get_row(session, row_id)
     can_continue = await queue.process_element(session)
     return can_continue
+
+
+@router.get(
+    "/sleep_time/{row_id}",
+    response_model=int,
+    summary="Process the associated element",
+)
+async def sleep_time(
+    row_id: int,
+    session: async_scoped_session = Depends(db_session_dependency),
+) -> int:
+    queue = await db.Queue.get_row(session, row_id)
+    element_sleep_time = await queue.element_sleep_time(session)
+    return element_sleep_time
