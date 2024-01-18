@@ -150,3 +150,15 @@ class CMScriptClient:
         f"{router_string}/action",
         "run_check",
     )
+
+    reset_script = wrappers.get_node_post_no_query_function(
+        StatusEnum,
+        f"{router_string}/action",
+        "reset_script",
+    )
+
+    copy = wrappers.get_node_post_no_query_function(
+        response_model_class,
+        f"{router_string}/action",
+        "copy",
+    )

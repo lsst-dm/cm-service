@@ -8,7 +8,7 @@ These make it easier to define router functions that
 apply to all RowMixin, NodeMixin and ElementMixin classes."""
 
 from collections.abc import Callable, Sequence
-from typing import TypeAlias
+from typing import Any, TypeAlias
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -1038,3 +1038,190 @@ def get_node_run_check_function(
         return await the_node.run_check(session)
 
     return node_run_check
+
+
+def get_element_get_scripts_function(
+    router: APIRouter,
+    db_class: TypeAlias = db.ElementMixin,
+) -> Callable:
+    """Return a function get the scripts associated to an Element.
+
+    Parameters
+    ----------
+    router: APIRouter
+        Router to attach the function to
+
+    db_class: TypeAlias = db.ElementMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that get the scripts associated to an Element.
+    """
+
+    @router.get(
+        "/get/{row_id}/scripts",
+        status_code=201,
+        response_model=Sequence[models.Script],
+        summary=f"Get the scripts associated to a {db_class.class_string}",
+    )
+    async def element_get_scripts(
+        row_id: int,
+        session: async_scoped_session = Depends(db_session_dependency),
+        **kwargs: Any,
+    ) -> tuple[bool, StatusEnum]:
+        the_element = await db_class.get_row(session, row_id)
+        return await the_element.get_scripts(session, **kwargs)
+
+    return element_get_scripts
+
+
+def get_element_get_all_scripts_function(
+    router: APIRouter,
+    db_class: TypeAlias = db.ElementMixin,
+) -> Callable:
+    """Return a function that gets all scripts associated to an Element.
+
+    Parameters
+    ----------
+    router: APIRouter
+        Router to attach the function to
+
+    db_class: TypeAlias = db.ElementMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that gets all scripts associated to an Element.
+    """
+
+    @router.get(
+        "/get/{row_id}/all_scripts",
+        status_code=201,
+        response_model=Sequence[models.Script],
+        summary=f"Get the all scripts associated to a {db_class.class_string}",
+    )
+    async def element_get_all_scripts(
+        row_id: int,
+        session: async_scoped_session = Depends(db_session_dependency),
+        **kwargs: Any,
+    ) -> tuple[bool, StatusEnum]:
+        the_element = await db_class.get_row(session, row_id)
+        return await the_element.get_all_scripts(session, **kwargs)
+
+    return element_get_all_scripts
+
+
+def get_element_get_jobs_function(
+    router: APIRouter,
+    db_class: TypeAlias = db.ElementMixin,
+) -> Callable:
+    """Return a function get the jobs associated to an Element.
+
+    Parameters
+    ----------
+    router: APIRouter
+        Router to attach the function to
+
+    db_class: TypeAlias = db.ElementMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that jobs associated to an Element
+    """
+
+    @router.get(
+        "/get/{row_id}/jobs",
+        status_code=201,
+        response_model=Sequence[models.Job],
+        summary=f"Get the jobs associated to a {db_class.class_string}",
+    )
+    async def element_get_jobs(
+        row_id: int,
+        session: async_scoped_session = Depends(db_session_dependency),
+        **kwargs: Any,
+    ) -> tuple[bool, StatusEnum]:
+        the_element = await db_class.get_row(session, row_id)
+        return await the_element.get_jobs(session, **kwargs)
+
+    return element_get_jobs
+
+
+def get_element_retry_script_function(
+    router: APIRouter,
+    db_class: TypeAlias = db.ElementMixin,
+) -> Callable:
+    """Return a function that will retry a script
+
+    Parameters
+    ----------
+    router: APIRouter
+        Router to attach the function to
+
+    db_class: TypeAlias = db.ElementMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that will retry a script
+    """
+
+    @router.post(
+        "/get/{row_id}/retry_script",
+        status_code=201,
+        response_model=models.Script,
+        summary=f"Retry a script associated to a {db_class.class_string}",
+    )
+    async def element_retry_script(
+        row_id: int,
+        session: async_scoped_session = Depends(db_session_dependency),
+        **kwargs: Any,
+    ) -> tuple[bool, StatusEnum]:
+        the_element = await db_class.get_row(session, row_id)
+        return await the_element.retry_script(session, **kwargs)
+
+    return element_retry_script
+
+
+def get_element_estimate_sleep_time_function(
+    router: APIRouter,
+    db_class: TypeAlias = db.ElementMixin,
+) -> Callable:
+    """Return a function that will estimate how long to sleep before
+    calling process again
+
+    Parameters
+    ----------
+    router: APIRouter
+        Router to attach the function to
+
+    db_class: TypeAlias = db.ElementMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that will estimate how long to sleep before
+        calling process again
+    """
+
+    @router.post(
+        "/get/{row_id}/estimate_sleep_time",
+        status_code=201,
+        response_model=int,
+        summary=f"Retry a script associated to a {db_class.class_string}",
+    )
+    async def element_estimate_sleep_time(
+        row_id: int,
+        session: async_scoped_session = Depends(db_session_dependency),
+        **kwargs: Any,
+    ) -> int:
+        the_element = await db_class.get_row(session, row_id)
+        return await the_element.estimate_sleep_time(session, **kwargs)
+
+    return element_estimate_sleep_time

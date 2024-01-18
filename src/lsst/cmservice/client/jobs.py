@@ -149,3 +149,30 @@ class CMJobClient:
         f"{router_string}/action",
         "run_check",
     )
+
+    get_scripts = wrappers.get_general_query_function(
+        models.ScriptQuery,
+        list[models.Script],
+        f"{router_string}/get",
+        "scripts",
+    )
+
+    get_all_scripts = wrappers.get_general_query_function(
+        models.ScriptQuery,
+        list[models.Script],
+        f"{router_string}/get",
+        "all_scripts",
+    )
+
+    retry_script = wrappers.get_general_post_function(
+        models.ScriptQuery,
+        models.Script,
+        f"{router_string}/action",
+        "retry_script",
+    )
+
+    estimate_sleep_time = wrappers.get_node_property_function(
+        int,
+        f"{router_string}/get",
+        "jobs",
+    )

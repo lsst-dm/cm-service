@@ -1,5 +1,6 @@
 """CLI to manage Group table"""
 from .. import db
+from ..client.client import CMClient
 from . import options, wrappers
 from .commands import group_group
 
@@ -97,3 +98,41 @@ action_accept = wrappers.get_action_accept_command(action_command, sub_client, d
 action_reject = wrappers.get_action_reject_command(action_command, sub_client, db_class)
 
 action_reset = wrappers.get_action_reset_command(action_command, sub_client, db_class)
+
+get_scripts = wrappers.get_element_scripts_command(get_command, sub_client, db_class)
+
+get_all_scripts = wrappers.get_element_all_scripts_command(get_command, sub_client, db_class)
+
+get_jobs = wrappers.get_element_jobs_command(get_command, sub_client, db_class)
+
+action_retry_script = wrappers.get_element_retry_script_command(action_command, sub_client, db_class)
+
+get_sleep_time = wrappers.get_element_estimate_sleep_time_command(action_command, sub_client, db_class)
+
+
+@action_command(name="rescue_job")
+@options.cmclient()
+@options.row_id()
+@options.output()
+def rescue_job(
+    client: CMClient,
+    row_id: int,
+    output: options.OutputEnum | None,
+) -> None:
+    """Create a rescue job"""
+    result = client.group.rescue_job(row_id=row_id)
+    wrappers._output_pydantic_object(result, output, db.Job.col_names_for_table)
+
+
+@action_command(name="mark_rescued")
+@options.cmclient()
+@options.row_id()
+@options.output()
+def mark_rescued(
+    client: CMClient,
+    row_id: int,
+    output: options.OutputEnum | None,
+) -> None:
+    """Create a rescue job"""
+    result = client.group.mark_rescued(row_id=row_id)
+    wrappers._output_pydantic_object(result, output, db.Job.col_names_for_table)

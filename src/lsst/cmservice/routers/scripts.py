@@ -44,6 +44,7 @@ get_collections = wrappers.get_node_collections_function(router, db_class)
 get_child_config = wrappers.get_node_child_config_function(router, db_class)
 get_data_dict = wrappers.get_node_data_dict_function(router, db_class)
 get_spec_aliases = wrappers.get_node_spec_aliases_function(router, db_class)
+update_status = wrappers.update_node_status_function(router, response_model_class, db_class)
 update_collections = wrappers.update_node_collections_function(
     router,
     response_model_class,
@@ -72,15 +73,31 @@ run_check = wrappers.get_node_run_check_function(router, response_model_class, d
 
 
 @router.put(
-    "/set_status/{row_id}/",
-    response_model=response_model_class,
-    summary=f"Set the status of a {db_class.class_string}",
+    "/action/{row_id}/reset_script",
+    response_model=StatusEnum,
+    summary=f"Reset the status of a {db_class.class_string}",
 )
-async def update_row_status(
+async def reset_script(
     row_id: int,
-    status: int,
     session: async_scoped_session = Depends(db_session_dependency),
-) -> db_class:
-    result = await db_class.update_row(session, row_id, status=StatusEnum(status))
+    to_status: StatusEnum = StatusEnum.waiting,
+) -> StatusEnum:
+    script = await db_class.get_row(session, row_id)
+    result = await script.reset_script(session, to_status=to_status)
+    await session.commit()
+    return result
+
+
+@router.put(
+    "/action/{row_id}/copy",
+    response_model=models.Script,
+    summary=f"Make a copy of a {db_class.class_string}",
+)
+async def copy(
+    row_id: int,
+    session: async_scoped_session = Depends(db_session_dependency),
+) -> db.Script:
+    script = await db_class.get_row(session, row_id)
+    result = await script.copy_script(session)
     await session.commit()
     return result

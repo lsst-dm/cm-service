@@ -1082,6 +1082,7 @@ async def rescue_job(
     HTTPException : Code 404, Could not find Element
     """
     element = await get_element_by_fullname(session, fullname)
+    assert isinstance(element, db.Group)
     return await element.rescue_job(session)
 
 
@@ -1121,6 +1122,7 @@ async def mark_job_rescued(
     HTTPException : Code 404, Could not find Element
     """
     element = await get_element_by_fullname(session, fullname)
+    assert isinstance(element, db.Group)
     return await element.mark_job_rescued(session)
 
 

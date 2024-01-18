@@ -193,78 +193,30 @@ class ElementMixin(NodeMixin):
         await session.commit()
         return new_script
 
-    async def rescue_job(
-        self,
-        session: async_scoped_session,
-    ) -> Job:
-        """Create a rescue `Job`
-
-        This will make a new `Job` in the DB
-
-        Parameters
-        ----------
-        session : async_scoped_session
-            DB session manager
-
-        Returns
-        -------
-        job: Job
-            Newly created Job
-        """
-        jobs = await self.get_jobs(session)
-        rescuable_jobs = []
-        for job_ in jobs:
-            if job_.status == StatusEnum.rescuable:
-                rescuable_jobs.append(job_)
-            else:
-                raise ValueError(f"Found unrescuable job: {job_.fullname}")
-        if not rescuable_jobs:
-            raise ValueError(f"Expected at least one rescuable job for {self.fullname}, got 0")
-        latest_resuable_job = rescuable_jobs[-1]
-        new_job = await latest_resuable_job.copy_job(session, self)
-        await session.commit()
-        return new_job
-
-    async def mark_job_rescued(
-        self,
-        session: async_scoped_session,
-    ) -> list[Job]:
-        """Mark jobs as `rescued` once one of their siblings is `accepted`
-
-        Parameters
-        ----------
-        session : async_scoped_session
-            DB session manager
-
-        Returns
-        -------
-        jobs: List[Job]
-            Jobs marked as `rescued`
-        """
-        jobs = await self.get_jobs(session)
-        has_accepted = False
-        ret_list = []
-        for job_ in jobs:
-            if job_.status == StatusEnum.rescuable:
-                await job_.update_values(session, status=StatusEnum.rescued)
-                ret_list.append(job_)
-            elif job_.status != StatusEnum.accepted:
-                raise ValueError(f"Job should be rescuable or accepted: {job_.fullname} is {job_.status}")
-            else:
-                if has_accepted:
-                    raise ValueError(f"More that one accepted job found: {job_.fullname}")
-                has_accepted = True
-        if not has_accepted:
-            raise ValueError(f"Expected at least one accepted job for {self.fullname}, got 0")
-        await session.commit()
-        return ret_list
-
     async def estimate_sleep_time(
         self,
         session: async_scoped_session,
         job_sleep: int = 150,
         script_sleep: int = 15,
     ) -> int:
+        """Estimate how long to sleep before calling process again
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        job_sleep: int = 150
+            Time to sleep if jobs are running
+
+        script_sleep: int = 15
+            Time to sleep if scripts are running
+
+        Returns
+        -------
+        sleep_time : int
+            Time to sleep in seconds
+        """
         sleep_time = 10
         all_jobs = await self.get_jobs(session)
         for job_ in all_jobs:

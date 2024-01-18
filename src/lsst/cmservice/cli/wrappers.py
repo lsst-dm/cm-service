@@ -18,7 +18,7 @@ from tabulate import tabulate
 
 from ..client.client import CMClient
 from ..common.enums import StatusEnum
-from ..db import SpecBlock, Specification
+from ..db import Job, Script, SpecBlock, Specification
 from . import options
 
 
@@ -1085,3 +1085,214 @@ def get_action_reset_command(
         _output_pydantic_object(result, output, db_class.col_names_for_table)
 
     return reset
+
+
+def get_element_scripts_command(
+    group_command: Callable,
+    sub_client_name: str,
+    db_class: TypeAlias,
+) -> Callable:
+    """Return a function that gets the scripts assocaited to an element
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that gets the scripts assocaited to an element
+    """
+
+    @group_command(name="scripts")
+    @options.cmclient()
+    @options.row_id()
+    @options.script_name()
+    @options.output()
+    def scripts(
+        client: CMClient,
+        row_id: int,
+        script_name: str,
+        output: options.OutputEnum | None,
+    ) -> None:
+        """Get the scripts assocaited to an element"""
+        sub_client = getattr(client, sub_client_name)
+        result = sub_client.get_scripts(row_id=row_id, script_name=script_name)
+        _output_pydantic_list(result, output, Script.col_names_for_table)
+
+    return scripts
+
+
+def get_element_all_scripts_command(
+    group_command: Callable,
+    sub_client_name: str,
+    db_class: TypeAlias,
+) -> Callable:
+    """Return a function that gets the scripts assocaited to an element
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that gets the scripts assocaited to an element
+    """
+
+    @group_command(name="all_scripts")
+    @options.cmclient()
+    @options.row_id()
+    @options.script_name()
+    @options.output()
+    def all_scripts(
+        client: CMClient,
+        row_id: int,
+        script_name: str,
+        output: options.OutputEnum | None,
+    ) -> None:
+        """Get the scripts assocaited to an element"""
+        sub_client = getattr(client, sub_client_name)
+        result = sub_client.get_all_scripts(row_id=row_id, script_name=script_name)
+        _output_pydantic_list(result, output, Script.col_names_for_table)
+
+    return all_scripts
+
+
+def get_element_jobs_command(
+    group_command: Callable,
+    sub_client_name: str,
+    db_class: TypeAlias,
+) -> Callable:
+    """Return a function that gets the jobs assocaited to an element
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that gets the jobs assocaited to an element
+    """
+
+    @group_command(name="jobs")
+    @options.cmclient()
+    @options.row_id()
+    @options.output()
+    def jobs(
+        client: CMClient,
+        row_id: int,
+        output: options.OutputEnum | None,
+    ) -> None:
+        """Get the scripts assocaited to an element"""
+        sub_client = getattr(client, sub_client_name)
+        result = sub_client.get_jobs(row_id=row_id)
+        _output_pydantic_list(result, output, Job.col_names_for_table)
+
+    return jobs
+
+
+def get_element_retry_script_command(
+    group_command: Callable,
+    sub_client_name: str,
+    db_class: TypeAlias,
+) -> Callable:
+    """Return a function that retries a script
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that retries a script
+    """
+
+    @group_command(name="retry_script")
+    @options.cmclient()
+    @options.row_id()
+    @options.script_name()
+    @options.output()
+    def retry_script(
+        client: CMClient,
+        row_id: int,
+        script_name: str,
+        output: options.OutputEnum | None,
+    ) -> None:
+        """Get the scripts assocaited to an element"""
+        sub_client = getattr(client, sub_client_name)
+        result = sub_client.retry_script(row_id=row_id, script_name=script_name)
+        _output_pydantic_object(result, output, Script.col_names_for_table)
+
+    return retry_script
+
+
+def get_element_estimate_sleep_time_command(
+    group_command: Callable,
+    sub_client_name: str,
+    db_class: TypeAlias,
+) -> Callable:
+    """Return a function estimates the sleep time before calling process
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that estimates the sleep time before calling process
+    """
+
+    @group_command(name="estimate_sleep_time")
+    @options.cmclient()
+    @options.row_id()
+    @options.output()
+    def estimate_sleep_time(
+        client: CMClient,
+        row_id: int,
+        output: options.OutputEnum | None,
+    ) -> None:
+        """Estimates the sleep time before calling process"""
+        sub_client = getattr(client, sub_client_name)
+        result = sub_client.estimate_sleep_time(row_id=row_id)
+        _output_dict({"sleep_time": result}, output)
+
+    return estimate_sleep_time
