@@ -31,7 +31,7 @@ async def add_groups(
     summary="Add Steps to a Campaign",
 )
 async def add_steps(
-    query: models.AddGroups,
+    query: models.AddSteps,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Campaign:
     return await interface.add_steps(session, **query.dict())

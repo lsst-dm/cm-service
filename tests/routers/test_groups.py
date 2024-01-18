@@ -11,7 +11,7 @@ async def test_groups_api(client: AsyncClient) -> None:
     gids = list(range(12, 18))
 
     # Get list; verify first batch all there and dead one missing
-    response = await client.get(f"{config.prefix}/groups/list")
+    response = await client.get(f"{config.prefix}/group/list")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
@@ -20,7 +20,7 @@ async def test_groups_api(client: AsyncClient) -> None:
     assert gids_expected <= gids_retrieved
 
     # Verify an individual get
-    response = await client.get(f"{config.prefix}/groups/{gids[0]}")
+    response = await client.get(f"{config.prefix}/group/get/{data[0]['id']}")
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == gids[0]

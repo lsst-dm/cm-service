@@ -14,6 +14,7 @@ class WmsTaskReport(Base, RowMixin):
     """Count by status of numbers of workflows task of a particular type"""
 
     __tablename__ = "wms_task_report"
+    class_string = "wms_task_report"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     job_id: Mapped[int] = mapped_column(ForeignKey("job.id", ondelete="CASCADE"), index=True)

@@ -17,10 +17,11 @@ class PipetaskError(Base, RowMixin):
     """Database table to keep track of individual errors from Pipetask tasks"""
 
     __tablename__ = "pipetask_error"
+    class_string = "pipetask_error"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     error_type_id: Mapped[int | None] = mapped_column(
-        ForeignKey("error_type.id", ondelete="CASCADE"),
+        ForeignKey("pipetask_error_type.id", ondelete="CASCADE"),
         index=True,
     )
     task_id: Mapped[int] = mapped_column(ForeignKey("task_set.id", ondelete="CASCADE"), index=True)

@@ -23,6 +23,7 @@ class ScriptTemplate(Base, RowMixin):
     """
 
     __tablename__ = "script_template"
+    class_string = "script_template"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(index=True)

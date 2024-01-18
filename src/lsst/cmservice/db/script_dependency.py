@@ -22,6 +22,7 @@ class ScriptDependency(Base, RowMixin):
     """
 
     __tablename__ = "script_dependency"
+    class_string = "script_dependency"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     prereq_id: Mapped[int] = mapped_column(ForeignKey("script.id", ondelete="CASCADE"), index=True)

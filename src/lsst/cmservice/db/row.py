@@ -31,6 +31,8 @@ class RowMixin:
     id: Any  # Primary Key, typically an int
     fullname: Any  # Human-readable name for row
 
+    class_string: str  # Name to use for help functions and descriptions
+
     @classmethod
     async def get_rows(
         cls: type[T],

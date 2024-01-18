@@ -12,6 +12,7 @@ class ScriptError(Base, RowMixin):
     """Database table to keep track of errors from running `Scripts`"""
 
     __tablename__ = "script_error"
+    class_string = "script_error"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     script_id: Mapped[int | None] = mapped_column(ForeignKey("script.id", ondelete="CASCADE"), index=True)

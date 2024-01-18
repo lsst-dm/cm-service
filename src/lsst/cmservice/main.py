@@ -36,7 +36,6 @@ from .routers import (
     step_dependencies,
     steps,
     task_sets,
-    updates,
     wms_task_reports,
 )
 
@@ -64,11 +63,6 @@ tags_metadata = [
     {
         "name": "Adders",
         "description": "Operations explicitly add new Objects in to the DB."
-        "These are typically used when we need to do something unexpected",
-    },
-    {
-        "name": "Updates",
-        "description": "Operations update Objects in to the DB."
         "These are typically used when we need to do something unexpected",
     },
     {
@@ -139,7 +133,7 @@ tags_metadata = [
     {"name": "Specifications", "description": "Operations with `specification` table."},
     {"name": "SpecBlocks", "description": "Operations with `spec_block` table."},
     {"name": "ScriptTemplates", "description": "Operations with `script_template` table."},
-    {"name": "SpecBlockAssociationss", "description": "Operations with `spec_block_association` table."},
+    {"name": "SpecBlockAssociations", "description": "Operations with `spec_block_association` table."},
     {
         "name": "ScriptTemplateAssociations",
         "description": "Operations with `script_template_association` table.",
@@ -184,7 +178,6 @@ app.include_router(loaders.router, prefix=config.prefix)
 app.include_router(queries.router, prefix=config.prefix)
 app.include_router(actions.router, prefix=config.prefix)
 app.include_router(adders.router, prefix=config.prefix)
-app.include_router(updates.router, prefix=config.prefix)
 
 app.include_router(productions.router, prefix=config.prefix)
 app.include_router(campaigns.router, prefix=config.prefix)

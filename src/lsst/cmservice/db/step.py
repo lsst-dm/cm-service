@@ -39,6 +39,7 @@ class Step(Base, ElementMixin):
     """
 
     __tablename__ = "step"
+    class_string = "step"
     __table_args__ = (UniqueConstraint("parent_id", "name"),)  # Name must be unique within parent campaign
 
     id: Mapped[int] = mapped_column(primary_key=True)

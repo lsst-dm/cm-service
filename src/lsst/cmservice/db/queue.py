@@ -27,6 +27,7 @@ class Queue(Base, NodeMixin):
     """Database table to implement processing queue"""
 
     __tablename__ = "queue"
+    class_string = "queue"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     time_created: Mapped[datetime] = mapped_column(type_=DateTime)

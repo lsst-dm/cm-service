@@ -6,7 +6,7 @@ from typing import Any
 import click
 from click.decorators import FC
 
-from ..client import CMClient
+from ..client.client import CMClient
 from ..common.enums import NodeTypeEnum, StatusEnum
 
 __all__ = [
@@ -217,7 +217,7 @@ handler = PartialOption("--handler", type=str, help="Name of object")
 
 
 row_id = PartialOption(
-    "--id",
+    "--row_id",
     type=int,
     help="ID of object.",
 )

@@ -15,6 +15,7 @@ class TaskSet(Base, RowMixin):
     """Count by status of numbers of task of a particular type"""
 
     __tablename__ = "task_set"
+    class_string = "task_set"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     job_id: Mapped[int] = mapped_column(ForeignKey("job.id", ondelete="CASCADE"), index=True)

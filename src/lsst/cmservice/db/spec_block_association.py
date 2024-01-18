@@ -18,6 +18,7 @@ class SpecBlockAssociation(Base, RowMixin):
     """
 
     __tablename__ = "spec_block_association"
+    class_string = "spec_block_association"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     spec_id: Mapped[int] = mapped_column(ForeignKey("specification.id", ondelete="CASCADE"), index=True)
