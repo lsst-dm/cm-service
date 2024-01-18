@@ -16,6 +16,7 @@ from lsst.ctrl.bps import BaseWmsService, WmsRunReport, WmsStates
 from lsst.utils import doImport
 
 from ..common.enums import StatusEnum, TaskStatusEnum, WmsMethodEnum
+from ..common.errors import BadExecutionMethodError
 from .functions import load_wms_reports
 from .script_handler import FunctionHandler, ScriptHandler
 
@@ -171,7 +172,7 @@ class BpsScriptHandler(ScriptHandler):
         **kwargs: Any,
     ) -> StatusEnum:
         if not isinstance(parent, Job):
-            raise TypeError(f"Script {script} should not be run on {parent}")
+            raise BadExecutionMethodError(f"Script {script} should not be run on {parent}")
 
         status = await ScriptHandler.launch(self, session, script, parent, **kwargs)
 
@@ -222,10 +223,12 @@ class BpsReportHandler(FunctionHandler):
     def _get_wms_svc(self, **kwargs: Any) -> BaseWmsService:
         if self._wms_svc is None:
             if self.wms_svc_class_name is None:
-                raise NotImplementedError(f"{type(self)} should not be used, use a sub-class instead")
+                raise BadExecutionMethodError(f"{type(self)} should not be used, use a sub-class instead")
             self._wms_svc_class = doImport(self.wms_svc_class_name)
             if isinstance(self._wms_svc_class, types.ModuleType):
-                raise RuntimeError(f"Site class={self.wms_svc_class_name} is not a BaseWmsService subclass")
+                raise BadExecutionMethodError(
+                    f"Site class={self.wms_svc_class_name} is not a BaseWmsService subclass",
+                )
             self._wms_svc = self._wms_svc_class(kwargs)
         return self._wms_svc
 

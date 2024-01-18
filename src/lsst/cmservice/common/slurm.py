@@ -2,6 +2,7 @@
 import subprocess
 
 from .enums import StatusEnum
+from .errors import SlurmSubmitError
 
 slurm_status_map = {
     "BOOT_FAIL": StatusEnum.failed,
@@ -60,7 +61,7 @@ async def submit_slurm_job(
             line = sbatch.stdout.read().decode().strip()
             return line.split("|")[0]
     except TypeError as msg:
-        raise TypeError(f"Bad slurm submit from {script_url}") from msg
+        raise SlurmSubmitError(f"Bad slurm submit: {msg}") from msg
 
 
 async def check_slurm_job(

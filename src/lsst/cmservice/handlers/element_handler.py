@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from ..common.enums import StatusEnum
+from ..common.errors import YamlParseError
 from ..db.element import ElementMixin
 from ..db.handler import Handler
 from ..db.node import NodeMixin
@@ -164,16 +165,16 @@ class ElementHandler(Handler):
             try:
                 script_vals = script_item["Script"].copy()
             except KeyError as msg:
-                raise KeyError(f"Expected Script tag, found {script_item.keys()}") from msg
+                raise YamlParseError(f"Expected Script tag, found {script_item.keys()}") from msg
             if not isinstance(script_vals, dict):
-                raise TypeError(f"Script Tag should be a dict not {script_vals}")
+                raise YamlParseError(f"Script Tag should be a dict not {script_vals}")
             try:
                 script_name = script_vals.pop("name")
             except KeyError as msg:
-                raise KeyError(f"Unnnamed Script block {script_vals}") from msg
+                raise YamlParseError(f"Unnnamed Script block {script_vals}") from msg
             script_spec_block_name = script_vals.get("spec_block", None)
             if script_spec_block_name is None:
-                raise AttributeError(f"Script block {script_name} does not contain spec_block")
+                raise YamlParseError(f"Script block {script_name} does not contain spec_block")
             script_spec_block_name = spec_aliases.get(script_spec_block_name, script_spec_block_name)
             script_spec_block_assoc_fullname = f"{spec_name}#{script_spec_block_name}"
             new_script = await Script.create_row(
