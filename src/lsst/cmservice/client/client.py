@@ -59,7 +59,7 @@ class CMClient:
         self.script_template_association = CMScriptTemplateAssociationClient(self)
         self.spec_block_association = CMSpecBlockAssociationClient(self)
         self.script_dependency = CMScriptDependencyClient(self)
-        self.step_dependenciy = CMStepDependencyClient(self)
+        self.step_dependency = CMStepDependencyClient(self)
 
         self.query = CMQueryClient(self)
         self.action = CMActionClient(self)
