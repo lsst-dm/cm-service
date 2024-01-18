@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from safir.dependencies.db_session import db_session_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
 
@@ -25,7 +25,10 @@ async def process_script(
     params = query.dict()
     if params.get("fake_status"):
         params["fake_status"] = StatusEnum(params["fake_status"])
-    return await interface.process_script(session, **params)
+    try:
+        return await interface.process_script(session, **params)
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.post(
@@ -41,7 +44,10 @@ async def process_job(
     params = query.dict()
     if params.get("fake_status"):
         params["fake_status"] = StatusEnum(params["fake_status"])
-    return await interface.process_job(session, **params)
+    try:
+        return await interface.process_job(session, **params)
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.post(
@@ -57,7 +63,10 @@ async def process_element(
     params = query.dict()
     if params.get("fake_status"):
         params["fake_status"] = StatusEnum(params["fake_status"])
-    return await interface.process_element(session, **params)
+    try:
+        return await interface.process_element(session, **params)
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.post(
@@ -73,7 +82,10 @@ async def process(
     params = query.dict()
     if params.get("fake_status"):
         params["fake_status"] = StatusEnum(params["fake_status"])
-    return await interface.process(session, **params)
+    try:
+        return await interface.process(session, **params)
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.post(
@@ -87,7 +99,10 @@ async def reset_script(
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Script:
     params = query.dict()
-    return await interface.reset_script(session, **params)
+    try:
+        return await interface.reset_script(session, **params)
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.post(
@@ -101,7 +116,10 @@ async def retry_script(
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Script:
     params = query.dict()
-    return await interface.retry_script(session, **params)
+    try:
+        return await interface.retry_script(session, **params)
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.post(
@@ -115,7 +133,10 @@ async def rescue_job(
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Job:
     params = query.dict()
-    return await interface.rescue_job(session, **params)
+    try:
+        return await interface.rescue_job(session, **params)
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.post(
@@ -129,7 +150,10 @@ async def mark_job_rescued(
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> list[db.Job]:
     params = query.dict()
-    return await interface.mark_job_rescued(session, **params)
+    try:
+        return await interface.mark_job_rescued(session, **params)
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
 
 
 @router.post(
@@ -143,4 +167,7 @@ async def rematch_pipetask_errors(
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> list[db.PipetaskError]:
     params = query.dict()
-    return await interface.match_pipetask_errors(session, **params)
+    try:
+        return await interface.match_pipetask_errors(session, **params)
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")

@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import pause
-from fastapi import HTTPException
 from sqlalchemy import JSON, DateTime, and_, select
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -12,6 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
 from ..common.enums import LevelEnum
+from ..common.errors import CMBadEnumError, CMMissingFullnameError
 from .base import Base
 from .campaign import Campaign
 from .dbid import DbId
@@ -94,7 +94,7 @@ class Queue(Base, NodeMixin):
                 await session.refresh(self, attribute_names=["j_"])
                 element = self.j_
             else:
-                raise ValueError(f"Bad level for script: {self.element_level}")
+                raise CMBadEnumError(f"Bad level for script: {self.element_level}")
             return element
 
     @classmethod
@@ -115,7 +115,7 @@ class Queue(Base, NodeMixin):
         elif element_level == LevelEnum.job:
             element = await Job.get_row_by_fullname(session, fullname)
         else:
-            raise ValueError(f"Bad level for queue: {element_level}")
+            raise CMBadEnumError(f"Bad level for queue: {element_level}")
         query = select(cls).where(
             and_(
                 cls.element_level == element_level,
@@ -126,7 +126,7 @@ class Queue(Base, NodeMixin):
             rows = await session.scalars(query)
             row = rows.first()
             if row is None:
-                raise HTTPException(status_code=404, detail=f"{cls} {element_level} {element.id} not found")
+                raise CMMissingFullnameError(f"{cls} {element_level} {element.id} not found")
             return row
 
     @classmethod
@@ -159,7 +159,7 @@ class Queue(Base, NodeMixin):
             element = await Job.get_row_by_fullname(session, fullname)
             ret_dict["j_id"] = element.id
         else:
-            raise ValueError(f"Bad level for queue: {element_level}")
+            raise CMBadEnumError(f"Bad level for queue: {element_level}")
 
         ret_dict["element_id"] = element.id
         return ret_dict

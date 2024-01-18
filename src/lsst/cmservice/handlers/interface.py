@@ -1,12 +1,17 @@
 # pylint: disable=too-many-lines
 from typing import Any
 
-from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from .. import db
 from ..common.enums import LevelEnum, NodeTypeEnum, StatusEnum, TableEnum
+from ..common.errors import (
+    CMBadEnumError,
+    CMBadExecutionMethodError,
+    CMBadFullnameError,
+    CMMissingFullnameError,
+)
 from . import functions
 
 TABLE_DICT: dict[TableEnum, type[db.RowMixin]] = {
@@ -80,20 +85,22 @@ async def get_row_by_table_and_id(
 
     Raises
     ------
-    HTTPException : No such row was found
+    CMBadEnumError : Table enum does not match a known table
+
+    CMMissingFullnameError : No such row was found
     """
     try:
         table_class = get_table(table_enum)
     except KeyError as msg:
-        raise KeyError(f"Unknown table {table_enum}") from msg
+        raise CMBadEnumError(f"Unknown table {table_enum}") from msg
     query = select(table_class).where(table_class.id == row_id)
     async with session.begin():
         result_s = await session.scalars(query)
         if result_s is None:
-            raise HTTPException(status_code=404, detail=f"{table_class} {row_id} not found")
+            raise CMMissingFullnameError(f"{table_class} {row_id} not found")
         result = result_s.first()
         if result is None:
-            raise HTTPException(status_code=404, detail=f"{table_class} {row_id} not found")
+            raise CMMissingFullnameError(f"{table_class} {row_id} not found")
         return result
 
 
@@ -122,16 +129,18 @@ async def get_node_by_level_and_id(
 
     Raises
     ------
-    HTTPException : No such element was found
+    CMBadEnumError : level enum does not match a known table
+
+    CMMissingFullnameError : No such element was found
     """
     try:
         element_class = LEVEL_DICT[level]
     except KeyError as msg:
-        raise KeyError(f"Unknown level {level}") from msg
+        raise CMBadEnumError(f"Unknown level {level}") from msg
     async with session.begin_nested():
         result = await session.get(element_class, element_id)
         if result is None:
-            raise HTTPException(status_code=404, detail=f"{element_class} {element_id} not found")
+            raise CMMissingFullnameError(f"{element_class} {element_id} not found")
         return result
 
 
@@ -176,14 +185,14 @@ async def get_element_by_fullname(
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    HTTPException : No such element was found
+    CMMissingFullnameError : No such element was found
     """
     n_slash = fullname.count("/")
     element: db.ElementMixin | db.Production | None = None
     if n_slash == 0:
-        raise ValueError(f"Can not figure out Table for fullname {fullname}, not enough fields")
+        raise CMBadFullnameError(f"Can not figure out Table for fullname {fullname}, not enough fields")
     if n_slash == 1:
         element = await db.Campaign.get_row_by_fullname(session, fullname)
     elif n_slash == 2:
@@ -193,7 +202,7 @@ async def get_element_by_fullname(
     elif n_slash == 4:
         element = await db.Job.get_row_by_fullname(session, fullname)
     else:
-        raise ValueError(f"Can not figure out Table for fullname {fullname}, too many fields")
+        raise CMBadFullnameError(f"Can not figure out Table for fullname {fullname}, too many fields")
     return element
 
 
@@ -219,9 +228,9 @@ async def get_node_by_fullname(
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    HTTPException : No such element was found
+    CMMissingFullnameError : No such element was found
     """
     node_type = get_node_type_by_fullname(fullname)
     if node_type == NodeTypeEnum.element:
@@ -252,9 +261,9 @@ async def get_spec_block(
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    HTTPException : No such element was found
+    CMMissingFullnameError : No such element was found
     """
     row = await get_node_by_fullname(session, fullname)
     return await row.get_spec_block(session)
@@ -281,9 +290,9 @@ async def get_specification(
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    HTTPException : No such element was found
+    CMMissingFullnameError : No such element was found
     """
     row = await get_node_by_fullname(session, fullname)
     return await row.get_specification(session)
@@ -310,9 +319,9 @@ async def get_resolved_collections(
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    HTTPException : No such element was found
+    CMMissingFullnameError : No such element was found
     """
     row = await get_node_by_fullname(session, fullname)
     return await row.resolve_collections(session)
@@ -339,9 +348,9 @@ async def get_collections(
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    HTTPException : No such element was found
+    CMMissingFullnameError : No such element was found
     """
     row = await get_node_by_fullname(session, fullname)
     return await row.get_collections(session)
@@ -368,9 +377,9 @@ async def get_child_config(
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    HTTPException : No such element was found
+    CMMissingFullnameError : No such element was found
     """
     row = await get_node_by_fullname(session, fullname)
     return await row.get_child_config(session)
@@ -397,9 +406,9 @@ async def get_data_dict(
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    HTTPException : No such element was found
+    CMMissingFullnameError : No such element was found
     """
     row = await get_node_by_fullname(session, fullname)
     return await row.data_dict(session)
@@ -426,9 +435,9 @@ async def get_spec_aliases(
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    HTTPException : No such element was found
+    CMMissingFullnameError : No such element was found
     """
     row = await get_node_by_fullname(session, fullname)
     return await row.get_spec_aliases(session)
@@ -458,11 +467,11 @@ async def update_status(session: async_scoped_session, fullname: str, status: St
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    HTTPException : Code 400, ID mismatch between row IDs
+    CMIDMismatchError : ID mismatch between row IDs
 
-    HTTPException : Code 404, Could not find row
+    CMMissingFullnameError : Could not find row
     """
     row = await get_node_by_fullname(session, fullname)
     result = await row.update_values(session, status=status)
@@ -495,11 +504,11 @@ async def update_child_config(
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    HTTPException : Code 400, ID mismatch between row IDs
+    CMMissingFullnameError : ID mismatch between row IDs
 
-    HTTPException : Code 404, Could not find row
+    CMMissingFullnameError : Could not find row
     """
     row = await get_node_by_fullname(session, fullname)
     result = await row.update_child_config(session, **kwargs)
@@ -532,11 +541,11 @@ async def update_collections(
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    HTTPException : Code 400, ID mismatch between row IDs
+    CMMissingFullnameError : ID mismatch between row IDs
 
-    HTTPException : Code 404, Could not find row
+    CMMissingFullnameError : Could not find row
     """
     row = await get_node_by_fullname(session, fullname)
     result = await row.update_collections(session, **kwargs)
@@ -569,11 +578,11 @@ async def update_data_dict(
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    HTTPException : Code 400, ID mismatch between row IDs
+    CMIDMismatchError : ID mismatch between row IDs
 
-    HTTPException : Code 404, Could not find row
+    CMMissingFullnameError : Could not find row
     """
     row = await get_node_by_fullname(session, fullname)
     result = await row.update_data_dict(session, **kwargs)
@@ -606,11 +615,11 @@ async def update_spec_aliases(
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    HTTPException : Code 400, ID mismatch between row IDs
+    CMIDMismatchError : ID mismatch between row IDs
 
-    HTTPException : Code 404, Could not find row
+    CMMissingFullnameError : Could not find row
     """
     row = await get_node_by_fullname(session, fullname)
     result = await row.update_spec_aliases(session, **kwargs)
@@ -642,11 +651,11 @@ async def check_prerequisites(
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    HTTPException : Code 400, ID mismatch between row IDs
+    CMIDMismatchError : ID mismatch between row IDs
 
-    HTTPException : Code 404, Could not find row
+    CMMissingFullnameError : Could not find row
     """
     row = await get_node_by_fullname(session, fullname)
     return await row.check_prerequisites(session)
@@ -686,9 +695,9 @@ async def get_scripts(
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    HTTPException : Code 404, Could not find Element
+    CMIDMismatchError : Could not find Element
     """
     element = await get_element_by_fullname(session, fullname)
     return await element.get_scripts(
@@ -729,9 +738,9 @@ async def get_all_scripts(
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    HTTPException : Code 404, Could not find Element
+    CMMissingFullnameError : Could not find Element
     """
     element = await get_element_by_fullname(session, fullname)
     return await element.get_all_scripts(
@@ -771,9 +780,9 @@ async def get_jobs(
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    HTTPException : Code 404, Could not find Element
+    CMMissingFullnameError : Could not find Element
     """
     element = await get_element_by_fullname(session, fullname)
     return await element.get_jobs(session, remaining_only=remaining_only, skip_superseded=skip_superseded)
@@ -808,7 +817,7 @@ async def estimate_sleep(
 
     Raises
     ------
-    HTTPException : Code 404, Could not find Script
+    CMMissingFullnameError : Could not find Script
     """
     element = await get_element_by_fullname(session, fullname)
     return await element.estimate_sleep_time(session, job_sleep, script_sleep)
@@ -841,7 +850,7 @@ async def process_script(
 
     Raises
     ------
-    HTTPException : Code 404, Could not find Script
+    CMMissingFullnameError : Could not find Script
     """
     script = await db.Script.get_row_by_fullname(session, fullname)
     changed, result = await script.process(session, fake_status=fake_status)
@@ -876,7 +885,7 @@ async def process_job(
 
     Raises
     ------
-    HTTPException : Code 404, Could not find Job
+    CMMissingFullnameError : Could not find Job
     """
     job = await db.Job.get_row_by_fullname(session, fullname)
     changed, result = await job.process(session, fake_status=fake_status)
@@ -911,9 +920,9 @@ async def process_element(
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    HTTPException : Code 404, Could not find Job
+    CMMissingFullnameError : Could not find Job
     """
     element = await get_element_by_fullname(session, fullname)
     return await element.process(session, fake_status=fake_status)
@@ -946,16 +955,18 @@ async def process(
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    HTTPException : Code 404, Could not find Node
+    CMMissingFullnameError : Could not find Node
+
+    CMBadExecutionMethodError: Called on the wrong type of table
     """
     node_type = get_node_type_by_fullname(fullname)
     if node_type == NodeTypeEnum.element:
         return await process_element(session, fullname, fake_status=fake_status)
     if node_type == NodeTypeEnum.script:
         return await process_script(session, fullname[7:], fake_status=fake_status)
-    raise ValueError(f"Tried to process an row from a table of type {node_type}")
+    raise CMBadExecutionMethodError(f"Tried to process an row from a table of type {node_type}")
 
 
 async def reset_script(
@@ -991,9 +1002,9 @@ async def reset_script(
 
     Raises
     ------
-    ValueError : Script was not in failed/rejected status
+    CMBadStateTransitionError : Script was not in failed/rejected status
 
-    HTTPException : Code 404, Could not find Node
+    CMMissingFullnameError : Could not find Node
     """
     script = await db.Script.get_row_by_fullname(session, fullname)
     _result = await script.reset_script(session, status)
@@ -1034,13 +1045,13 @@ async def retry_script(
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    ValueError : Script was not in failed/rejected status
+    CMBadStateTransitionError : Script was not in failed/rejected status
 
     ValueError : More that one active script matching request
 
-    HTTPException : Code 404, Could not find Node
+    CMMissingFullnameError : Could not find Node
     """
     element = await get_element_by_fullname(session, fullname)
     result = await element.retry_script(session, script_name)
@@ -1073,13 +1084,13 @@ async def rescue_job(
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    ValueError : Active script was not in rescuable status
+    CMBadStateTransitionError : Active script was not in rescuable status
 
     ValueError : No rescuable scripts found
 
-    HTTPException : Code 404, Could not find Element
+    CMMissingFullnameError : Could not find Element
     """
     element = await get_element_by_fullname(session, fullname)
     assert isinstance(element, db.Group)
@@ -1111,15 +1122,15 @@ async def mark_job_rescued(
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    ValueError : Active job was not in rescuable status
+    CMBadStateTransitionError : Active job was not in rescuable status
 
     ValueError : More that one active and accepted job found
 
     ValueError : No rescuable jobs found
 
-    HTTPException : Code 404, Could not find Element
+    CMMissingFullnameError : Could not find Element
     """
     element = await get_element_by_fullname(session, fullname)
     assert isinstance(element, db.Group)
@@ -1251,9 +1262,9 @@ async def add_groups(
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    HTTPException : Code 404, Could not find Element
+    CMMissingFullnameError : Could not find Element
     """
     step = await db.Step.get_row_by_fullname(session, fullname)
     result = await functions.add_groups(session, step, child_configs)
@@ -1286,9 +1297,9 @@ async def add_steps(
 
     Raises
     ------
-    ValueError : could not parse fullname to determine table
+    CMBadFullnameError : could not parse fullname to determine table
 
-    HTTPException : Code 404, Could not find Element
+    CMMissingFullnameError : Could not find Element
     """
 
     campaign = await db.Campaign.get_row_by_fullname(session, fullname)

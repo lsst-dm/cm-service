@@ -10,7 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey, UniqueConstraint
 
 from ..common.enums import LevelEnum, StatusEnum
-from ..common.errors import MissingRowCreateInputError
+from ..common.errors import CMMissingRowCreateInputError
 from .base import Base
 from .campaign import Campaign
 from .dbid import DbId
@@ -124,7 +124,7 @@ class Step(Base, ElementMixin):
             name = kwargs["name"]
             spec_block_name = kwargs["spec_block_name"]
         except KeyError as msg:
-            raise MissingRowCreateInputError(f"Missing input to create Step: {msg}")
+            raise CMMissingRowCreateInputError(f"Missing input to create Step: {msg}")
 
         campaign = await Campaign.get_row_by_fullname(session, parent_name)
         specification = await campaign.get_specification(session)

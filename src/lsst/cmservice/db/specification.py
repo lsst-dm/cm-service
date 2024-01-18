@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from ..common.errors import CMSpecficiationError
 from .base import Base
 from .row import RowMixin
 from .script_template import ScriptTemplate
@@ -85,7 +86,7 @@ class Specification(Base, RowMixin):
                 spec_block = await SpecBlock.get_row_by_fullname(session, spec_block_name)
                 return spec_block
             except KeyError as msg:
-                raise KeyError(f"Could not find spec_block {spec_block_name} in {self}") from msg
+                raise CMSpecficiationError(f"Could not find spec_block {spec_block_name} in {self}") from msg
 
     async def get_script_template(
         self,
@@ -118,4 +119,4 @@ class Specification(Base, RowMixin):
                 script_template = await ScriptTemplate.get_row_by_fullname(session, script_template_name)
                 return script_template
             except KeyError:
-                raise KeyError(f"Could not find ScriptTemplate {script_template_name} in {self}")
+                raise CMSpecficiationError(f"Could not find ScriptTemplate {script_template_name} in {self}")

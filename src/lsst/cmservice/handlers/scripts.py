@@ -9,7 +9,7 @@ from lsst.cmservice.db.script import Script
 
 from ..common.bash import write_bash_script
 from ..common.enums import StatusEnum
-from ..common.errors import BadExecutionMethodError, MissingScriptInputError
+from ..common.errors import CMBadExecutionMethodError, CMMissingScriptInputError
 from ..db.step import Step
 from .script_handler import ScriptHandler
 
@@ -41,7 +41,7 @@ class ChainCreateScriptHandler(ScriptHandler):
             script_url = await self._set_script_files(session, script, data_dict["prod_area"])
             butler_repo = data_dict["butler_repo"]
         except KeyError as msg:
-            raise MissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"butler collection-chain {butler_repo} {output_coll}"
         for input_coll in input_colls:
             command += f" {input_coll}"
@@ -77,7 +77,7 @@ class ChainPrependScriptHandler(ScriptHandler):
             script_url = await self._set_script_files(session, script, data_dict["prod_area"])
             butler_repo = data_dict["butler_repo"]
         except KeyError as msg:
-            raise MissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"butler collection-chain {butler_repo} {output_coll} --mode prepend {input_coll}"
         await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
@@ -110,7 +110,7 @@ class ChainCollectScriptHandler(ScriptHandler):
             input_colls = resolved_cols["inputs"]
             to_collect = data_dict["collect"]
         except KeyError as msg:
-            raise MissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         collect_colls = []
         if to_collect == "jobs":
             jobs = await parent.get_jobs(session)
@@ -123,7 +123,7 @@ class ChainCollectScriptHandler(ScriptHandler):
                 collect_colls.append(step_colls["step_output"])
                 collect_colls = collect_colls[::-1]
         else:
-            raise MissingScriptInputError(
+            raise CMMissingScriptInputError(
                 "Must specify what to collect in ChainCollectScriptHandler, jobs or steps",
             )
         script_url = await self._set_script_files(session, script, data_dict["prod_area"])
@@ -166,7 +166,7 @@ class TagInputsScriptHandler(ScriptHandler):
             butler_repo = data_dict["butler_repo"]
             data_query = data_dict.get("data_query")
         except KeyError as msg:
-            raise MissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"butler associate {butler_repo} {output_coll}"
         command += f" --collections {input_coll}"
         if data_query:
@@ -198,7 +198,7 @@ class TagCreateScriptHandler(ScriptHandler):
             script_url = await self._set_script_files(session, script, data_dict["prod_area"])
             butler_repo = data_dict["butler_repo"]
         except KeyError as msg:
-            raise MissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"butler associate {butler_repo} {output_coll}"
         await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, status=StatusEnum.prepared)
@@ -230,7 +230,7 @@ class TagAssociateScriptHandler(ScriptHandler):
             script_url = await self._set_script_files(session, script, data_dict["prod_area"])
             butler_repo = data_dict["butler_repo"]
         except KeyError as msg:
-            raise MissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"butler associate {butler_repo} {output_coll}"
         command += f" --collections {input_coll}"
         await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
@@ -263,7 +263,7 @@ class PrepareStepScriptHandler(ScriptHandler):
         **kwargs: Any,
     ) -> StatusEnum:
         if not isinstance(parent, Step):
-            raise BadExecutionMethodError(f"script {script} should only be run on steps, not {parent}")
+            raise CMBadExecutionMethodError(f"script {script} should only be run on steps, not {parent}")
 
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
@@ -273,7 +273,7 @@ class PrepareStepScriptHandler(ScriptHandler):
             input_colls = resolved_cols["inputs"]
             output_coll = resolved_cols["output"]
         except KeyError as msg:
-            raise MissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
         prereq_colls: list[str] = []
 
@@ -323,7 +323,7 @@ class ValidateScriptHandler(ScriptHandler):
             script_url = await self._set_script_files(session, script, data_dict["prod_area"])
             butler_repo = data_dict["butler_repo"]
         except KeyError as msg:
-            raise MissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"pipetask FIXME {butler_repo} {input_coll} {output_coll}"
         await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)

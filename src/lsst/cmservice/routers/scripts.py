@@ -1,5 +1,5 @@
 """http routers for managing Script tables"""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from safir.dependencies.db_session import db_session_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
 
@@ -84,9 +84,12 @@ async def reset_script(
     session: async_scoped_session = Depends(db_session_dependency),
     to_status: StatusEnum = StatusEnum.waiting,
 ) -> StatusEnum:
-    script = await db_class.get_row(session, row_id)
-    result = await script.reset_script(session, to_status=to_status)
-    await session.commit()
+    try:
+        script = await db_class.get_row(session, row_id)
+        result = await script.reset_script(session, to_status=to_status)
+        await session.commit()
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
     return result
 
 
@@ -99,7 +102,10 @@ async def copy(
     row_id: int,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Script:
-    script = await db_class.get_row(session, row_id)
-    result = await script.copy_script(session)
-    await session.commit()
+    try:
+        script = await db_class.get_row(session, row_id)
+        result = await script.copy_script(session)
+        await session.commit()
+    except Exception as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}")
     return result

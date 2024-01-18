@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey, UniqueConstraint
 
 from ..common.enums import LevelEnum, StatusEnum
+from ..common.errors import CMMissingRowCreateInputError
 from .base import Base
 from .dbid import DbId
 from .element import ElementMixin
@@ -133,7 +134,7 @@ class Campaign(Base, ElementMixin):
                 spec_block_name = kwargs["spec_block_name"]
                 spec_block_assoc_name = f"{spec_name}#{spec_block_name}"
             except KeyError as msg:
-                raise KeyError(
+                raise CMMissingRowCreateInputError(
                     "Either spec_block_assoc_name or (spec_name and spec_block_name) required",
                 ) from msg
         spec_block_assoc = await SpecBlockAssociation.get_row_by_fullname(
