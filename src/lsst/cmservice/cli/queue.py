@@ -16,10 +16,25 @@ create_options = [
     options.interval(),
     options.output(),
 ]
+# Specify the options for the update command
+update_options = [
+    options.cmclient(),
+    options.fullname(),
+    options.interval(),
+    options.output(),
+]
 
 # Construct derived templates
 group_command = cli_group.command
 sub_client = db_class.class_string
+
+
+@cli_group.group()
+def update() -> None:
+    """Update an attribute"""
+
+
+update_command = update.command
 
 
 # Add functions to the router
@@ -30,6 +45,8 @@ create = wrappers.get_create_command(group_command, sub_client, db_class, create
 delete = wrappers.get_delete_command(group_command, sub_client)
 
 get_row = wrappers.get_row_command(group_command, sub_client, db_class)
+
+update_row = wrappers.get_update_command(update_command, sub_client, db_class, update_options)
 
 
 @queue_group.command(name="daemon")

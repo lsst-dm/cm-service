@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 response_model_class = models.PipetaskError
 # Specify the pydantic model from making new Groups
 create_model_class = models.PipetaskErrorCreate
+# Specify the pydantic model from updating rows
+update_model_class = models.PipetaskErrorUpdate
 # Specify the associated database table
 db_class = db.PipetaskError
 
@@ -49,6 +51,7 @@ class CMPipetaskErrorClient:
 
     update = wrappers.update_row_function(
         response_model_class,
+        update_model_class,
         f"{router_string}/update",
     )
 

@@ -9,6 +9,8 @@ from . import wrappers
 response_model_class = models.SpecBlock
 # Specify the pydantic model from making new rows
 create_model_class = models.SpecBlockCreate
+# Specify the pydantic model from updating rows
+update_model_class = models.SpecBlockUpdate
 # Specify the associated database table
 db_class = db.SpecBlock
 # Specify the tag in the router documentation
@@ -33,4 +35,4 @@ post_row = wrappers.post_row_function(
     db_class,
 )
 delete_row = wrappers.delete_row_function(router, db_class)
-update_row = wrappers.put_row_function(router, response_model_class, db_class)
+update_row = wrappers.put_row_function(router, response_model_class, update_model_class, db_class)

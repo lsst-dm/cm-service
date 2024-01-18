@@ -68,3 +68,31 @@ class ElementMixin(ElementBase):
 
 class Element(ElementMixin):
     pass
+
+
+class ElementUpdate(BaseModel):
+    """Parameters that can be udpated"""
+
+    # Parameter Overrides
+    data: dict | str | None = None
+
+    # Overrides for configuring child nodes
+    child_config: dict | str | None = None
+
+    # Overrides for making collection names
+    collections: dict | str | None = None
+
+    # Overrides for which SpecBlocks to use in constructing child Nodes
+    spec_aliases: dict | str | None = None
+
+    # Override for Callback handler class
+    handler: str | None = None
+
+    # Processing Status
+    status: StatusEnum = StatusEnum.waiting
+
+    # Flag to set if this Node is superseded
+    superseded: bool = False
+
+    class Config:
+        orm_mode = True

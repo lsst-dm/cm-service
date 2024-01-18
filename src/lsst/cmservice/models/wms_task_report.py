@@ -28,3 +28,22 @@ class WmsTaskReport(WmsTaskReportBase):
 
     class Config:
         orm_mode = True
+
+
+class WmsTaskReportUpdate(WmsTaskReportBase):
+    """Parameters that can be udpated"""
+
+    n_unknown: int
+    n_misfit: int
+    n_unready: int
+    n_ready: int
+    n_pending: int
+    n_running: int
+    n_deleted: int
+    n_held: int
+    n_succeeded: int
+    n_failed: int
+    n_pruned: int
+
+    class Config:
+        orm_mode = True

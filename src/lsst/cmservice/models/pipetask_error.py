@@ -42,3 +42,23 @@ class PipetaskError(PipetaskErrorBase):
 
     class Config:
         orm_mode = True
+
+
+class PipetaskErrorUpdate(PipetaskErrorBase):
+    """Parameters that can be udpated"""
+
+    # ForeignKey into PipetaskErrorType table
+    # None means that the error in not yet identified
+    error_type_id: int | None = None
+
+    # UUID for the quanta that had the error
+    quanta: str
+
+    # Diagnostic message produced by the error
+    diagnostic_message: str
+
+    # Data ID for the quanta that had the error
+    data_id: dict
+
+    class Config:
+        orm_mode = True

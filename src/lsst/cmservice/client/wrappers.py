@@ -162,6 +162,7 @@ def create_row_function(
 
 def update_row_function(
     response_model_class: TypeAlias = BaseModel,
+    update_model_class: TypeAlias = BaseModel,
     query: str = "",
 ) -> Callable:
     """Return a function that updates a single row in a table
@@ -171,6 +172,9 @@ def update_row_function(
     ----------
     response_model_class: TypeAlias = BaseModel,
         Pydantic class used to serialize the return value
+
+    update_model_class: TypeAlias = BaseModel,
+        Pydantic class used to serialize the input values
 
     query: str
         http query
@@ -186,7 +190,7 @@ def update_row_function(
         row_id: int,
         **kwargs: Any,
     ) -> response_model_class:
-        params = response_model_class(id=row_id, **kwargs)
+        params = update_model_class(**kwargs)
         full_query = f"{query}/{row_id}"
         results = obj.client.put(f"{full_query}", content=params.json()).json()
         try:

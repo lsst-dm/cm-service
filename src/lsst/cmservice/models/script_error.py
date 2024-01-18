@@ -31,3 +31,15 @@ class ScriptError(ScriptErrorBase):
 
     class Config:
         orm_mode = True
+
+
+class ScriptErrorUpdate(ScriptErrorBase):
+    """Parameters that can be udpated"""
+
+    # Who reported This error
+    source: int
+    # Message associated to this error
+    diagnostic_message: str
+
+    class Config:
+        orm_mode = True

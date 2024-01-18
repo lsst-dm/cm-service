@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 response_model_class = models.TaskSet
 # Specify the pydantic model from making new TaskSets
 create_model_class = models.TaskSetCreate
+# Specify the pydantic model from updating rows
+update_model_class = models.TaskSetUpdate
 # Specify the associated database table
 db_class = db.TaskSet
 
@@ -49,6 +51,7 @@ class CMTaskSetClient:
 
     update = wrappers.update_row_function(
         response_model_class,
+        update_model_class,
         f"{router_string}/update",
     )
 

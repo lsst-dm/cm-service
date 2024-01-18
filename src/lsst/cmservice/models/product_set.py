@@ -46,3 +46,21 @@ class ProductSet(ProductSetBase):
 
     class Config:
         orm_mode = True
+
+
+class ProductSetUpdate(ProductSetBase):
+    """Parameters that can be udpated"""
+
+    # Number of files of this type expected for this task
+    n_expected: int
+    # Number of files produced
+    n_done: int = 0
+    # Number of files not produced because the task failed
+    n_failed: int = 0
+    # Number of files not produced because of upstream failures
+    n_failed_upstream: int = 0
+    # Number of files missing
+    n_missing: int = 0
+
+    class Config:
+        orm_mode = True
