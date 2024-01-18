@@ -78,6 +78,11 @@ class Script(Base, NodeMixin):
         foreign_keys="ScriptDependency.depend_id",
         viewonly=True,
     )
+    depends_: Mapped[list[ScriptDependency]] = relationship(
+        "ScriptDependency",
+        foreign_keys="ScriptDependency.prereq_id",
+        viewonly=True,
+    )
 
     col_names_for_table = [
         "id",
@@ -254,6 +259,7 @@ class Script(Base, NodeMixin):
                 the_dict["attempt"] = 1
             new_script = Script(**the_dict)
             session.add(new_script)
+
         await session.refresh(new_script)
         return new_script
 
