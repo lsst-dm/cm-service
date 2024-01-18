@@ -202,3 +202,21 @@ class CMGroupClient:
         f"{router_string}/action",
         "retry_script",
     )
+
+    get_wms_task_reports = wrappers.get_node_property_function(
+        models.MergedWmsTaskReportDict,
+        f"{router_string}/get",
+        "wms_task_reports",
+    )
+
+    get_tasks = wrappers.get_node_property_function(
+        models.MergedTaskSetDict,
+        f"{router_string}/get",
+        "tasks",
+    )
+
+    get_products = wrappers.get_node_property_function(
+        models.MergedProductSetDict,
+        f"{router_string}/get",
+        "products",
+    )

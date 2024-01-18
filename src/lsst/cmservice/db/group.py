@@ -14,6 +14,8 @@ from ..common.errors import (
     CMTooFewAcceptedJobsError,
     CMTooManyActiveScriptsError,
 )
+from ..models.merged_product_set import MergedProductSetDict
+from ..models.merged_task_set import MergedTaskSetDict
 from ..models.merged_wms_task_report import MergedWmsTaskReportDict
 from .base import Base
 from .dbid import DbId
@@ -122,6 +124,30 @@ class Group(Base, ElementMixin):
             await session.refresh(self, attribute_names=["jobs_"])
             for job_ in self.jobs_:
                 the_dict += await job_.get_wms_reports(session)
+            return the_dict
+
+    async def get_tasks(
+        self,
+        session: async_scoped_session,
+        **kwargs: Any,
+    ) -> MergedTaskSetDict:
+        the_dict = MergedTaskSetDict(reports={})
+        async with session.begin_nested():
+            await session.refresh(self, attribute_names=["jobs_"])
+            for job_ in self.jobs_:
+                the_dict.merge(await job_.get_tasks(session))
+            return the_dict
+
+    async def get_products(
+        self,
+        session: async_scoped_session,
+        **kwargs: Any,
+    ) -> MergedProductSetDict:
+        the_dict = MergedProductSetDict(reports={})
+        async with session.begin_nested():
+            await session.refresh(self, attribute_names=["jobs_"])
+            for job_ in self.jobs_:
+                the_dict.merge(await job_.get_products(session))
             return the_dict
 
     @classmethod

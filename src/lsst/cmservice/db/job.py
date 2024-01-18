@@ -11,6 +11,8 @@ from sqlalchemy.schema import ForeignKey
 
 from ..common.enums import LevelEnum, StatusEnum
 from ..common.errors import CMMissingRowCreateInputError
+from ..models.merged_product_set import MergedProductSet, MergedProductSetDict
+from ..models.merged_task_set import MergedTaskSet, MergedTaskSetDict
 from ..models.merged_wms_task_report import MergedWmsTaskReport, MergedWmsTaskReportDict
 from .base import Base
 from .dbid import DbId
@@ -175,21 +177,21 @@ class Job(Base, ElementMixin):
         self,
         session: async_scoped_session,
         **kwargs: Any,
-    ) -> dict[str, TaskSet]:
+    ) -> MergedTaskSetDict:
         async with session.begin_nested():
             await session.refresh(self, attribute_names=["tasks_"])
-            ret_dict = {task_.name: task_ for task_ in self.tasks_}
-            return ret_dict
+            reports = {task_.name: MergedTaskSet.from_orm(task_) for task_ in self.tasks_}
+            return MergedTaskSetDict(reports=reports)
 
     async def get_products(
         self,
         session: async_scoped_session,
         **kwargs: Any,
-    ) -> dict[str, ProductSet]:
+    ) -> MergedProductSetDict:
         async with session.begin_nested():
             await session.refresh(self, attribute_names=["products_"])
-            ret_dict = {product_.name: product_ for product_ in self.products_}
-            return ret_dict
+            reports = {product_.name: MergedProductSet.from_orm(product_) for product_ in self.products_}
+            return MergedProductSetDict(reports=reports)
 
     def __repr__(self) -> str:
         return f"Job {self.fullname} {self.id} {self.status.name}"
