@@ -93,18 +93,16 @@ class RunJobsScriptHandler(RunElementScriptHandler):
     ) -> StatusEnum:
         child_config = await parent.get_child_config(session)
         spec_aliases = await parent.get_spec_aliases(session)
-        specification = await parent.get_specification(session)
         spec_block_name = child_config.pop("spec_block", None)
         if spec_block_name is None:
             raise MissingScriptInputError(f"child_config for {script.fullname} does not contain spec_block")
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
-        spec_block_assoc_name = f"{specification.name}#{spec_block_name}"
         _new_job = await Job.create_row(
             session,
             name="job",
             attempt=0,
             parent_name=parent.fullname,
-            spec_block_assoc_name=spec_block_assoc_name,
+            spec_block_name=spec_block_name,
             **child_config,
         )
         await script.update_values(session, status=StatusEnum.prepared)
@@ -270,12 +268,10 @@ class RunGroupsScriptHandler(RunElementScriptHandler):
     ) -> StatusEnum:
         child_config = await parent.get_child_config(session)
         spec_aliases = await parent.get_spec_aliases(session)
-        specification = await parent.get_specification(session)
         spec_block_name = child_config.pop("spec_block", None)
         if spec_block_name is None:
             raise MissingScriptInputError(f"child_config for {script.fullname} does not contain spec_block")
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
-        spec_block_assoc_name = f"{specification.name}#{spec_block_name}"
         fake_status = kwargs.get("fake_status")
 
         split_method = child_config.pop("split_method", "no_split")
@@ -288,7 +284,7 @@ class RunGroupsScriptHandler(RunElementScriptHandler):
             _new_group = await Group.create_row(
                 session,
                 name=f"group{i}",
-                spec_block_assoc_name=spec_block_assoc_name,
+                spec_block_name=spec_block_name,
                 parent_name=parent.fullname,
                 **group_dict_,
             )

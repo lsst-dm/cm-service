@@ -21,6 +21,10 @@ class MissingScriptInputError(KeyError):
     """Raised when a script is missing an input in needs"""
 
 
+class MissingRowCreateInputError(KeyError):
+    """Raised when command to create a row is missing an input"""
+
+
 class ResolveCollectionsError(KeyError):
     """Raised when the collection name resolution fails"""
 

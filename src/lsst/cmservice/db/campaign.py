@@ -97,6 +97,14 @@ class Campaign(Base, ElementMixin):
     def level(self) -> LevelEnum:
         return LevelEnum.campaign
 
+    async def get_campaign(
+        self,
+        session: async_scoped_session,
+    ) -> Campaign:
+        """Maps self to self.get_campaign() for consistency"""
+        assert session
+        return self
+
     def __repr__(self) -> str:
         return f"Campaign {self.fullname} {self.id} {self.status.name}"
 
@@ -117,7 +125,6 @@ class Campaign(Base, ElementMixin):
     ) -> dict:
         parent_name = kwargs["parent_name"]
         name = kwargs["name"]
-
         production = await Production.get_row_by_fullname(session, parent_name)
         spec_block_assoc_name = kwargs.get("spec_block_assoc_name", None)
         if not spec_block_assoc_name:

@@ -13,6 +13,7 @@ from .spec_block import SpecBlock
 from .specification import Specification
 
 if TYPE_CHECKING:
+    from .campaign import Campaign
     from .element import ElementMixin
 
 
@@ -28,9 +29,7 @@ class NodeMixin(RowMixin):
 
     level: Any  # Associated LevelEnum of the configuable
     spec_block_: Any  # Specification block that carries defaults
-    spec_block_assoc_: Any  # SpecBlockAssociation between SpecBlock and specificaiton
     spec_: Any  # Specificaiton
-    spec_block_assoc_id: Any  # Foriegn key into SpecBlockAssociation
     status: Any  # Current status of associated processing
     parent_id: Any  # Id of the parent row
     parent_: Any  # Parent of the current row
@@ -68,7 +67,7 @@ class NodeMixin(RowMixin):
         self,
         session: async_scoped_session,
     ) -> Specification:
-        """Get the `Specification` object associated this node
+        """Get the `Specification` object associated to a particular row
 
         Parameters
         ----------
@@ -80,11 +79,28 @@ class NodeMixin(RowMixin):
         specification: Specification
             Requested Specification
         """
+        campaign = await self.get_campaign(session)
         async with session.begin_nested():
-            await session.refresh(self, attribute_names=["spec_"])
-            if isinstance(self.spec_, InstrumentedList):
-                return self.spec_[0]
-            return self.spec_
+            await session.refresh(campaign, attribute_names=["spec_"])
+            return campaign.spec_
+
+    async def get_campaign(
+        self,
+        session: async_scoped_session,
+    ) -> Campaign:
+        """Get the parent `Campaign`
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        Returns
+        -------
+        campaign: Campaign
+            Parent campaign
+        """
+        raise NotImplementedError()
 
     async def get_parent(
         self,

@@ -63,6 +63,10 @@
 - SpecBlock:
       name: manifest_report_script
       handler: lsst.cmservice.handlers.jobs.ManifestReportScriptHandler
+# Load a manifest checker report script
+- SpecBlock:
+      name: manifest_report_load
+      handler: lsst.cmservice.handlers.jobs.ManifestReportLoadHandler
 # Create and run Jobs associated to a Group
 - SpecBlock:
       name: run_jobs

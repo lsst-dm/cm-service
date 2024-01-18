@@ -8,11 +8,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
 from .row import RowMixin
+from .script_template import ScriptTemplate
+from .spec_block import SpecBlock
 
 if TYPE_CHECKING:
-    from .script_template import ScriptTemplate
     from .script_template_association import ScriptTemplateAssociation
-    from .spec_block import SpecBlock
     from .spec_block_association import SpecBlockAssociation
 
 
@@ -80,7 +80,12 @@ class Specification(Base, RowMixin):
                 if block_assoc_.alias == spec_block_name:
                     await session.refresh(block_assoc_, attribute_names=["spec_block_"])
                     return block_assoc_.spec_block_
-            raise KeyError(f"Could not find spec_block {spec_block_name} in {self}")
+            # No overrides defined locally, just use the main table
+            try:
+                spec_block = await SpecBlock.get_row_by_fullname(session, spec_block_name)
+                return spec_block
+            except KeyError as msg:
+                raise KeyError(f"Could not find spec_block {spec_block_name} in {self}") from msg
 
     async def get_script_template(
         self,
@@ -108,4 +113,9 @@ class Specification(Base, RowMixin):
                 if script_template_assoc_.alias == script_template_name:
                     await session.refresh(script_template_assoc_, attribute_names=["script_template_"])
                     return script_template_assoc_.script_template_
-            raise KeyError(f"Could not find ScriptTemplate {script_template_name} in {self}")
+            # No overrides defined locally, just use the main table
+            try:
+                script_template = await ScriptTemplate.get_row_by_fullname(session, script_template_name)
+                return script_template
+            except KeyError:
+                raise KeyError(f"Could not find ScriptTemplate {script_template_name} in {self}")

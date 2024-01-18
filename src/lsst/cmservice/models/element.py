@@ -34,9 +34,6 @@ class ElementBase(BaseModel):
 class ElementCreateMixin(ElementBase):
     """Parameters that are used to create new rows but not in DB tables"""
 
-    # Name of the SpecBlockAssociation
-    spec_block_assoc_name: str | None = None
-
     # Fullname of the parent Node
     parent_name: str
 
@@ -46,9 +43,6 @@ class ElementMixin(ElementBase):
 
     # primary key
     id: int
-
-    # ForeignKey for SpecBlockAssociation
-    spec_block_assoc_id: int
 
     # ForeignKey for Parent Node
     parent_id: int

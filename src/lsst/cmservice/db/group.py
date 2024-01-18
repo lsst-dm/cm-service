@@ -8,13 +8,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey, UniqueConstraint
 
 from ..common.enums import LevelEnum, StatusEnum
+from ..common.errors import MissingRowCreateInputError
 from .base import Base
 from .dbid import DbId
 from .element import ElementMixin
 from .enums import SqlStatusEnum
 from .spec_block import SpecBlock
-from .spec_block_association import SpecBlockAssociation
-from .specification import Specification
 from .step import Step
 
 if TYPE_CHECKING:
@@ -39,8 +38,8 @@ class Group(Base, ElementMixin):
     class_string = "group"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    spec_block_assoc_id: Mapped[int] = mapped_column(
-        ForeignKey("spec_block_association.id", ondelete="CASCADE"),
+    spec_block_id: Mapped[int] = mapped_column(
+        ForeignKey("spec_block.id", ondelete="CASCADE"),
         index=True,
     )
     parent_id: Mapped[int] = mapped_column(ForeignKey("step.id", ondelete="CASCADE"), index=True)
@@ -54,21 +53,7 @@ class Group(Base, ElementMixin):
     collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
     spec_aliases: Mapped[dict | list | None] = mapped_column(type_=JSON)
 
-    spec_block_assoc_: Mapped[SpecBlockAssociation] = relationship("SpecBlockAssociation", viewonly=True)
-    spec_: Mapped[Specification] = relationship(
-        "Specification",
-        primaryjoin="SpecBlockAssociation.id==Group.spec_block_assoc_id",
-        secondary="join(SpecBlockAssociation, Specification)",
-        secondaryjoin="SpecBlockAssociation.spec_id==Specification.id",
-        viewonly=True,
-    )
-    spec_block_: Mapped[SpecBlock] = relationship(
-        "SpecBlock",
-        primaryjoin="SpecBlockAssociation.id==Group.spec_block_assoc_id",
-        secondary="join(SpecBlockAssociation, SpecBlock)",
-        secondaryjoin="SpecBlockAssociation.spec_block_id==SpecBlock.id",
-        viewonly=True,
-    )
+    spec_block_: Mapped[SpecBlock] = relationship("SpecBlock", viewonly=True)
     c_: Mapped["Campaign"] = relationship(
         "Campaign",
         primaryjoin="Group.parent_id==Step.id",
@@ -99,6 +84,15 @@ class Group(Base, ElementMixin):
     def level(self) -> LevelEnum:
         return LevelEnum.group
 
+    async def get_campaign(
+        self,
+        session: async_scoped_session,
+    ) -> "Campaign":
+        """Maps self.c_ to self.get_campaign() for consistency"""
+        async with session.begin_nested():
+            await session.refresh(self, attribute_names=["c_"])
+            return self.c_
+
     def __repr__(self) -> str:
         return f"Group {self.fullname} {self.id} {self.status.name}"
 
@@ -117,25 +111,17 @@ class Group(Base, ElementMixin):
         session: async_scoped_session,
         **kwargs: Any,
     ) -> dict:
-        parent_name = kwargs["parent_name"]
-        name = kwargs["name"]
+        try:
+            parent_name = kwargs["parent_name"]
+            name = kwargs["name"]
+            spec_block_name = kwargs["spec_block_name"]
+        except KeyError as msg:
+            raise MissingRowCreateInputError(f"Missing input to create Group: {msg}")
         step = await Step.get_row_by_fullname(session, parent_name)
-        spec_block_assoc_name = kwargs.get("spec_block_assoc_name", None)
-        if not spec_block_assoc_name:
-            try:
-                spec_name = kwargs["spec_name"]
-                spec_block_name = kwargs["spec_block_name"]
-                spec_block_assoc_name = f"{spec_name}#{spec_block_name}"
-            except KeyError as msg:
-                raise KeyError(
-                    "Either spec_block_assoc_name or (spec_name and spec_block_name) required",
-                ) from msg
-        spec_block_assoc = await SpecBlockAssociation.get_row_by_fullname(
-            session,
-            spec_block_assoc_name,
-        )
+        specification = await step.get_specification(session)
+        spec_block = await specification.get_block(session, spec_block_name)
         return {
-            "spec_block_assoc_id": spec_block_assoc.id,
+            "spec_block_id": spec_block.id,
             "parent_id": step.id,
             "name": name,
             "fullname": f"{parent_name}/{name}",

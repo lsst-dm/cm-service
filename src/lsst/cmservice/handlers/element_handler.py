@@ -152,8 +152,6 @@ class ElementHandler(Handler):
         """
         async with session.begin_nested():
             spec_block = await element.get_spec_block(session)
-            spec = await element.get_specification(session)
-            spec_name = spec.name
 
         spec_aliases = await element.get_spec_aliases(session)
         if not spec_block.scripts:
@@ -176,11 +174,10 @@ class ElementHandler(Handler):
             if script_spec_block_name is None:
                 raise YamlParseError(f"Script block {script_name} does not contain spec_block")
             script_spec_block_name = spec_aliases.get(script_spec_block_name, script_spec_block_name)
-            script_spec_block_assoc_fullname = f"{spec_name}#{script_spec_block_name}"
             new_script = await Script.create_row(
                 session,
                 parent_level=element.level,
-                spec_block_assoc_name=script_spec_block_assoc_fullname,
+                spec_block_name=script_spec_block_name,
                 parent_name=element.fullname,
                 name=script_name,
                 **script_vals,
@@ -397,7 +394,31 @@ class ElementHandler(Handler):
                 await session.commit()
                 return (changed, status)
 
+        status = await self._post_check(session, element, **kwargs)
         status = StatusEnum.accepted
         await element.update_values(session, status=status)
         await session.commit()
         return (True, status)
+
+    async def _post_check(
+        self,
+        session: async_scoped_session,
+        element: ElementMixin,
+        **kwargs: Any,
+    ) -> StatusEnum:
+        """Hook for a final check after all the scripts have run
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        element: ElementMixin
+            `Element` in question
+
+        Returns
+        -------
+        status : StatusEnum
+            Status of the processing
+        """
+        return StatusEnum.accepted

@@ -102,40 +102,6 @@
           lsst_version: w_2023_46
 - Specification:
       name: dc2_test
-      script_templates:
-          - ScriptTemplateAssociation: {script_template_name: bps_panda_script_template}
-          - ScriptTemplateAssociation: {script_template_name: bps_panda_yaml_template}
-          - ScriptTemplateAssociation: {script_template_name: stack_script_template}
+      script_templates: []
       spec_blocks:
-          - SpecBlockAssociation: {spec_block_name: chain_create_script}
-          - SpecBlockAssociation: {spec_block_name: chain_prepend_script}
-          - SpecBlockAssociation: {spec_block_name: chain_collect_jobs_script}
-          - SpecBlockAssociation: {spec_block_name: chain_collect_steps_script}
-          - SpecBlockAssociation: {spec_block_name: tag_inputs_script}
-          - SpecBlockAssociation: {spec_block_name: tag_create_script}
-          - SpecBlockAssociation: {spec_block_name: tag_associate_script}
-          - SpecBlockAssociation: {spec_block_name: prepare_step_script}
-          - SpecBlockAssociation: {spec_block_name: validate_script}
-          - SpecBlockAssociation: {spec_block_name: panda_submit_script}
-          - SpecBlockAssociation: {spec_block_name: panda_report_script}
-          - SpecBlockAssociation: {spec_block_name: manifest_report_script}
-          - SpecBlockAssociation: {spec_block_name: run_jobs}
-          - SpecBlockAssociation: {spec_block_name: run_groups}
-          - SpecBlockAssociation: {spec_block_name: run_steps}
-          - SpecBlockAssociation: {spec_block_name: job}
-          - SpecBlockAssociation: {spec_block_name: group}
-          - SpecBlockAssociation: {spec_block_name: step}
-          - SpecBlockAssociation: {spec_block_name: base_campaign}
-          - SpecBlockAssociation: {spec_block_name: dc2_step1}
-          - SpecBlockAssociation: {spec_block_name: dc2_step2}
-          - SpecBlockAssociation: {spec_block_name: dc2_step3}
-          - SpecBlockAssociation: {spec_block_name: dc2_step4}
-          - SpecBlockAssociation: {spec_block_name: dc2_step5}
-          - SpecBlockAssociation: {spec_block_name: dc2_step6}
-          - SpecBlockAssociation: {spec_block_name: dc2_step7}
-          - SpecBlockAssociation: {spec_block_name: dc2_step8}
-          - SpecBlockAssociation: {spec_block_name: dc2_faro_visit}
-          - SpecBlockAssociation: {spec_block_name: dc2_faro_matched}
-          - SpecBlockAssociation: {spec_block_name: dc2_faro_track}
-          - SpecBlockAssociation: {spec_block_name: dc2_plots}
           - SpecBlockAssociation: {spec_block_name: dc2_test_campaign, alias: campaign}
