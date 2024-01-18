@@ -88,7 +88,8 @@ class BpsScriptHandler(ScriptHandler):
         script_url = await self._set_script_files(session, script, prod_area)
         butler_repo = data_dict["butler_repo"]
         lsst_version = data_dict["lsst_version"]
-
+        rescue = data_dict.get("rescue", False)
+        skip_colls = data_dict.get("skip_colls", "")
         script_url = await self._set_script_files(session, script, prod_area)
         json_url = os.path.abspath(os.path.expandvars(f"{prod_area}/{script.fullname}_log.json"))
         config_url = os.path.abspath(os.path.expandvars(f"{prod_area}/{script.fullname}_bps_config.yaml"))
@@ -140,6 +141,8 @@ class BpsScriptHandler(ScriptHandler):
         }
         if data_query:
             payload["dataQuery"] = data_query
+        if rescue:
+            payload["extra_args"] = f"--skip-existing-in {skip_colls}"  # FIXME, is this right
 
         workflow_config["payload"] = payload
         with contextlib.suppress(OSError):
