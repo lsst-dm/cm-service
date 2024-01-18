@@ -292,7 +292,7 @@ class CMClient:
         "load/manifest_report",
     )
 
-    process = get_general_post_function(models.NodeQuery, tuple[bool, StatusEnum], "actions/process")
+    process = get_general_post_function(models.ProcessQuery, tuple[bool, StatusEnum], "actions/process")
 
     reset_script = get_general_post_function(models.UpdateStatusQuery, models.Script, "actions/reset_script")
 
@@ -312,41 +312,44 @@ class CMClient:
         "actions/rematch_errors",
     )
 
-    get_productions = get_rows_no_parent_function(models.Production, "productions")
+    get_productions = get_rows_no_parent_function(models.Production, "productions/list")
 
-    get_campaigns = get_rows_function(models.Campaign, "campaigns")
+    get_campaigns = get_rows_function(models.Campaign, "campaigns/list")
 
-    get_steps = get_rows_function(models.Step, "steps")
+    get_steps = get_rows_function(models.Step, "steps/list")
 
-    get_groups = get_rows_function(models.Group, "groups")
+    get_groups = get_rows_function(models.Group, "groups/list")
 
-    get_jobs = get_rows_function(models.Job, "jobs")
+    get_jobs = get_rows_function(models.Job, "jobs/list")
 
-    get_scripts = get_rows_function(models.Script, "scripts")
+    get_scripts = get_rows_function(models.Script, "scripts/list")
 
-    get_specifications = get_rows_no_parent_function(models.Specification, "specifications")
+    get_specifications = get_rows_no_parent_function(models.Specification, "specifications/list")
 
-    get_spec_blocks = get_rows_no_parent_function(models.SpecBlock, "spec_blocks")
+    get_spec_blocks = get_rows_no_parent_function(models.SpecBlock, "spec_blocks/list")
 
-    get_script_templates = get_rows_no_parent_function(models.ScriptTemplate, "script_templates")
+    get_script_templates = get_rows_no_parent_function(models.ScriptTemplate, "script_templates/list")
 
-    get_pipetask_error_types = get_rows_no_parent_function(models.PipetaskErrorType, "pipetask_error_types")
+    get_pipetask_error_types = get_rows_no_parent_function(
+        models.PipetaskErrorType,
+        "pipetask_error_types/list",
+    )
 
-    get_pipetask_errors = get_rows_no_parent_function(models.PipetaskError, "pipetask_errors")
+    get_pipetask_errors = get_rows_no_parent_function(models.PipetaskError, "pipetask_errors/list")
 
-    get_script_errors = get_rows_no_parent_function(models.ScriptError, "script_errors")
+    get_script_errors = get_rows_no_parent_function(models.ScriptError, "script_errors/list")
 
-    get_task_sets = get_rows_no_parent_function(models.TaskSet, "task_sets")
+    get_task_sets = get_rows_no_parent_function(models.TaskSet, "task_sets/list")
 
-    get_product_sets = get_rows_no_parent_function(models.ProductSet, "product_sets")
+    get_product_sets = get_rows_no_parent_function(models.ProductSet, "product_sets/list")
 
-    get_wms_task_reports = get_rows_no_parent_function(models.WmsTaskReport, "wms_task_reports")
+    get_wms_task_reports = get_rows_no_parent_function(models.WmsTaskReport, "wms_task_reports/list")
 
-    get_queues = get_rows_no_parent_function(models.Queue, "queues")
+    get_queues = get_rows_no_parent_function(models.Queue, "queues/list")
 
-    get_script_dependencies = get_rows_no_parent_function(models.Dependency, "script_dependencies")
+    get_script_dependencies = get_rows_no_parent_function(models.Dependency, "script_dependencies/list")
 
-    get_step_dependencies = get_rows_no_parent_function(models.Dependency, "step_dependencies")
+    get_step_dependencies = get_rows_no_parent_function(models.Dependency, "step_dependencies/list")
 
     queue_create = create_row_function(models.Queue, models.QueueCreate, "queues")
 

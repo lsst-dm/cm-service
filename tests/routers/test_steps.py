@@ -11,7 +11,7 @@ async def test_steps_api(client: AsyncClient) -> None:
     sids = list(range(3, 6))
 
     # Get list; verify first batch all there and dead one missing
-    response = await client.get(f"{config.prefix}/steps")
+    response = await client.get(f"{config.prefix}/steps/list")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)

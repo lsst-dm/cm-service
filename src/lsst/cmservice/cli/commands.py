@@ -900,10 +900,12 @@ def action() -> None:
 @action.command()
 @options.cmclient()
 @options.fullname()
+@options.fake_status()
 @options.output()
 def process(
     client: CMClient,
     fullname: options.PartialOption,
+    fake_status: StatusEnum | None,
     output: options.OutputEnum | None,
 ) -> None:
     """Process an node
@@ -913,6 +915,7 @@ def process(
     """
     changed, status = client.process(
         fullname=fullname,
+        fake_status=fake_status,
     )
     _output_dict({"changed": changed, "status": status}, output)
 

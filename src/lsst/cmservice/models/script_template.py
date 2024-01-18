@@ -30,11 +30,5 @@ class ScriptTemplate(ScriptTemplateBase):
     # PrimaryKey
     id: int
 
-    # ForeignKey giving assocated Specification
-    spec_id: int
-
-    # Unique name for this
-    fullname: str
-
     class Config:
         orm_mode = True

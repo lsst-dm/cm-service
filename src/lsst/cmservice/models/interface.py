@@ -32,7 +32,7 @@ class ProcessQuery(FullnameQuery):
     """Parameters needed to process a Node"""
 
     # If set, set the status without actually processing
-    fake_status: int | None = None
+    fake_status: StatusEnum | None = None
 
 
 class ProcessNodeQuery(NodeQuery):

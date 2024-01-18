@@ -18,6 +18,7 @@ router = APIRouter(
 
 get_rows = wrappers.get_rows_no_parent_function(router, response_model_class, db_class, class_string)
 get_row = wrappers.get_row_function(router, response_model_class, db_class, class_string)
+get_row_by_fullname = wrappers.get_row_function(router, response_model_class, db_class, class_string)
 post_row = wrappers.post_row_function(
     router,
     response_model_class,
