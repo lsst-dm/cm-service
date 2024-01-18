@@ -1,6 +1,6 @@
 """CLI to manage ProductSet table"""
 from .. import db
-from . import wrappers
+from . import options, wrappers
 from .commands import product_set_group
 
 # Template specialization
@@ -8,6 +8,16 @@ from .commands import product_set_group
 cli_group = product_set_group
 # Specify the associated database table
 db_class = db.ProductSet
+# Specify the options for the create command
+create_options = [
+    options.cmclient(),
+    options.name(),
+    options.job_id(),
+    options.task_id(),
+    options.n_expected(),
+    options.output(),
+]
+
 
 # Construct derived templates
 group_command = cli_group.command
@@ -17,7 +27,7 @@ sub_client = db_class.class_string
 # Add functions to the router
 get_rows = wrappers.get_list_command(group_command, sub_client, db_class)
 
-create = wrappers.get_create_command(group_command, sub_client, db_class)
+create = wrappers.get_create_command(group_command, sub_client, db_class, create_options)
 
 delete = wrappers.get_delete_command(group_command, sub_client)
 

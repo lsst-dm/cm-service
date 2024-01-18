@@ -14,20 +14,16 @@ async def test_error_match(session: async_scoped_session) -> None:
     """
     # Here we list an error which we will insert into the database table.
     known_error = {
-        "source": "manifest",
-        "flavor": "configuration",
-        "action": "review",
+        "error_source": "manifest",
+        "error_flavor": "configuration",
+        "error_action": "review",
         "task_name": "skyObjectMean",
         "diagnostic_message": "The error message from a regular pipetask error",
     }
     # First we want to make a row of the database table for the error.
     e1 = await db.PipetaskErrorType.create_row(
         session,
-        source=known_error["source"],
-        flavor=known_error["flavor"],
-        action=known_error["action"],
-        task_name=known_error["task_name"],
-        diagnostic_message=known_error["diagnostic_message"],
+        **known_error,
     )
 
     # Assert that the error we just put in the database will match with itself
@@ -71,9 +67,9 @@ async def test_error_type_db(session: async_scoped_session) -> None:
     # Check UNIQUE constraint
     # Make a PipetaskErrorType to test with
     error = {
-        "source": "manifest",
-        "flavor": "pipelines",
-        "action": "fail",
+        "error_source": "manifest",
+        "error_flavor": "pipelines",
+        "error_action": "fail",
         "task_name": "task",
         "diagnostic_message": "message",
     }
@@ -85,20 +81,12 @@ async def test_error_type_db(session: async_scoped_session) -> None:
     #       which arise from different tasks.
     e1 = await db.PipetaskErrorType.create_row(
         session,
-        source=error["source"],
-        flavor=error["flavor"],
-        action=error["action"],
-        task_name=error["task_name"],
-        diagnostic_message=error["diagnostic_message"],
+        **error,
     )
     with pytest.raises(IntegrityError):
         e1 = await db.PipetaskErrorType.create_row(
             session,
-            source=error["source"],
-            flavor=error["flavor"],
-            action=error["action"],
-            task_name=error["task_name"],
-            diagnostic_message=error["diagnostic_message"],
+            **error,
         )
 
     # Make sure we can read the same values out of the PipetaskErrorType

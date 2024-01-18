@@ -1,7 +1,7 @@
 """CLI to manage PipetaskError table"""
 
 from .. import db
-from . import wrappers
+from . import options, wrappers
 from .commands import pipetask_error_group
 
 # Template specialization
@@ -9,6 +9,16 @@ from .commands import pipetask_error_group
 cli_group = pipetask_error_group
 # Specify the associated database table
 db_class = db.PipetaskError
+# Specify the options for the create command
+create_options = [
+    options.cmclient(),
+    options.error_type_id(),
+    options.task_id(),
+    options.quanta(),
+    options.diagnostic_message(),
+    options.data_id(),
+    options.output(),
+]
 
 
 # Construct derived templates
@@ -19,7 +29,7 @@ sub_client = db_class.class_string
 # Add functions to the router
 get_rows = wrappers.get_list_command(group_command, sub_client, db_class)
 
-create = wrappers.get_create_command(group_command, sub_client, db_class)
+create = wrappers.get_create_command(group_command, sub_client, db_class, create_options)
 
 delete = wrappers.get_delete_command(group_command, sub_client)
 

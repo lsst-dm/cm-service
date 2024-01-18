@@ -202,6 +202,7 @@ def get_create_command(
     group_command: Callable,
     sub_client_name: str,
     db_class: TypeAlias,
+    create_options: list[Callable],
 ) -> Callable:
     """Return a function that creates a new row in the table
     and attaches that function to the cli.
@@ -217,23 +218,15 @@ def get_create_command(
     db_class: TypeAlias = db.RowMixin
         Underlying database class
 
+    create_options: list[Callable]
+        Command line options for the create function
+
     Returns
     -------
     the_function: Callable
         Function that creates a row in the table
     """
 
-    @group_command(name="create")
-    @options.cmclient()
-    @options.name()
-    @options.parent_name()
-    @options.spec_block_name()
-    @options.data()
-    @options.child_config()
-    @options.collections()
-    @options.spec_aliases()
-    @options.handler()
-    @options.output()
     def create(
         client: CMClient,
         output: options.OutputEnum | None,
@@ -244,6 +237,10 @@ def get_create_command(
         result = sub_client.create(**kwargs)
         _output_pydantic_object(result, output, db_class.col_names_for_table)
 
+    for option_ in create_options:
+        create = option_(create)
+
+    create = group_command(name="create")(create)
     return create
 
 

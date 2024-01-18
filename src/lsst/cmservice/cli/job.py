@@ -1,12 +1,27 @@
 """CLI to manage Job table"""
 from .. import db
-from . import wrappers
+from . import options, wrappers
 from .commands import job_group
 
 # Template specialization
 # Specify the cli path to attach these commands to
 cli_group = job_group
 db_class = db.Job
+# Specify the options for the create command
+create_options = [
+    options.cmclient(),
+    options.name(),
+    options.data(),
+    options.child_config(),
+    options.collections(),
+    options.spec_aliases(),
+    options.handler(),
+    options.parent_name(),
+    options.spec_name(),
+    options.spec_block_name(),
+    options.spec_block_assoc_name(),
+    options.output(),
+]
 
 # Construct derived templates
 group_command = cli_group.command
@@ -40,7 +55,7 @@ action_command = action.command
 # Add functions to the router
 get_rows = wrappers.get_list_command(group_command, sub_client, db_class)
 
-create = wrappers.get_create_command(group_command, sub_client, db_class)
+create = wrappers.get_create_command(group_command, sub_client, db_class, create_options)
 
 delete = wrappers.get_delete_command(group_command, sub_client)
 
