@@ -14,6 +14,7 @@ from ..common.errors import (
     CMTooFewAcceptedJobsError,
     CMTooManyActiveScriptsError,
 )
+from ..models.merged_wms_task_report import MergedWmsTaskReportDict
 from .base import Base
 from .dbid import DbId
 from .element import ElementMixin
@@ -109,6 +110,19 @@ class Group(Base, ElementMixin):
         async with session.begin_nested():
             await session.refresh(self, attribute_names=["jobs_"])
             return self.jobs_
+
+    async def get_wms_reports(
+        self,
+        session: async_scoped_session,
+        **kwargs: Any,
+    ) -> MergedWmsTaskReportDict:
+        the_dict = MergedWmsTaskReportDict(reports={})
+
+        async with session.begin_nested():
+            await session.refresh(self, attribute_names=["jobs_"])
+            for job_ in self.jobs_:
+                the_dict += await job_.get_wms_reports(session)
+            return the_dict
 
     @classmethod
     async def get_create_kwargs(

@@ -1330,7 +1330,7 @@ def get_element_wms_task_reports_command(
         """Get the WmsTaskReports assocaited to an element"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_wms_task_reports(row_id=row_id)
-        _output_pydantic_list(list(result.values()), output, WmsTaskReport.col_names_for_table)
+        _output_pydantic_list(list(result.reports.values()), output, WmsTaskReport.col_names_for_table)
 
     return wms_task_reports
 

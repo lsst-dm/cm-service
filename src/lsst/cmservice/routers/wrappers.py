@@ -1342,14 +1342,14 @@ def get_element_wms_task_reports_function(
     @router.get(
         "/get/{row_id}/wms_task_reports",
         status_code=201,
-        response_model=dict[str, models.WmsTaskReport],
+        response_model=models.MergedWmsTaskReportDict,
         summary=f"Get the WmsTaskReports associated to a {db_class.class_string}",
     )
     async def element_get_wms_task_reports(
         row_id: int,
         session: async_scoped_session = Depends(db_session_dependency),
         **kwargs: Any,
-    ) -> dict[str, db.WmsTaskReport]:
+    ) -> models.MergedWmsTaskReportDict:
         try:
             the_element = await db_class.get_row(session, row_id)
             return await the_element.get_wms_reports(session, **kwargs)

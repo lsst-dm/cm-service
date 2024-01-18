@@ -181,7 +181,7 @@ class CMJobClient:
     )
 
     get_wms_task_reports = wrappers.get_node_property_function(
-        dict[str, models.WmsTaskReport],
+        models.MergedWmsTaskReportDict,
         f"{router_string}/get",
         "wms_task_reports",
     )
