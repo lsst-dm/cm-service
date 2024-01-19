@@ -98,6 +98,8 @@ class YamlFileQuery(BaseModel):
 
 
 class LoadAndCreateCampaign(YamlFileQuery):
+    """Parameters needed to load an create campaigns"""
+
     # Name of the campaign
     name: str
     # Name of the associated production

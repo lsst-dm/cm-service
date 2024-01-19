@@ -34,6 +34,7 @@ class Production(Base, RowMixin):
 
     @property
     def level(self) -> LevelEnum:
+        """Returns LevelEnum.production"""
         return LevelEnum.production
 
     @hybrid_property

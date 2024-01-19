@@ -142,7 +142,7 @@ class Handler:
         node: NodeMixin,
         to_status: StatusEnum,
     ) -> StatusEnum:
-        """reset a `Node` to an earlier status
+        """Reset a `Node` to an earlier status
 
         Parameters
         ----------
@@ -168,7 +168,7 @@ class Handler:
         node: NodeMixin,
         to_status: StatusEnum,
     ) -> StatusEnum:
-        """reset a `Node` to an earlier status
+        """Reset a `Node` to an earlier status
 
         Parameters
         ----------

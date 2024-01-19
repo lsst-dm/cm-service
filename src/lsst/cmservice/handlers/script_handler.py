@@ -52,7 +52,7 @@ slurm_status_map = {
 
 
 class BaseScriptHandler(Handler):
-    """SubClass of Handler to deal with script operatins"""
+    """SubClass of Handler to deal with script operations"""
 
     async def process(
         self,
@@ -302,6 +302,8 @@ class BaseScriptHandler(Handler):
 
 
 class ScriptHandler(BaseScriptHandler):
+    """SubClass of Handler to deal with script operations using real scripts"""
+
     default_method = ScriptMethodEnum.slurm
 
     @staticmethod
@@ -482,7 +484,7 @@ class ScriptHandler(BaseScriptHandler):
         self,
         log_url: str,
     ) -> str:
-        with open(log_url) as fin:
+        with open(log_url, encoding="utf-8") as fin:
             lines = fin.readlines()
             return lines[-1]
 
@@ -545,6 +547,8 @@ class ScriptHandler(BaseScriptHandler):
 
 
 class FunctionHandler(BaseScriptHandler):
+    """SubClass of Handler for scripts that are actually python functions"""
+
     default_method = ScriptMethodEnum.no_script
 
     async def prepare(

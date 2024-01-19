@@ -18,6 +18,14 @@ if TYPE_CHECKING:
 
 
 class Specification(Base, RowMixin):
+    """Database table to manage mapping and grouping of SpecBlock
+    and ScriptTemplate by associating them to a Specification
+
+    The alias field in SpecBlockAssociation and ScriptTemplateAssociation
+    can be used to re-define how those are called out within the
+    context of a Specification
+    """
+
     __tablename__ = "specification"
     class_string = "specification"
 
@@ -118,5 +126,7 @@ class Specification(Base, RowMixin):
             try:
                 script_template = await ScriptTemplate.get_row_by_fullname(session, script_template_name)
                 return script_template
-            except KeyError:
-                raise CMSpecficiationError(f"Could not find ScriptTemplate {script_template_name} in {self}")
+            except KeyError as msg:
+                raise CMSpecficiationError(
+                    f"Could not find ScriptTemplate {script_template_name} in {self}",
+                ) from msg

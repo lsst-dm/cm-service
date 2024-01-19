@@ -151,6 +151,8 @@ add-ignore = [
     # Properties shouldn't be written in imperative mode. This will be fixed
     # post 6.1.1, see https://github.com/PyCQA/pydocstyle/pull/546
     "D401",
+    # To avoid all the pydantic config class giving errors
+    "D106",
 ]
 
 [tool.pylint]
@@ -162,6 +164,7 @@ disable = [
     "missing-class-docstring",
     "missing-function-docstring",
     "too-few-public-methods",
+    "too-many-lines",
     "duplicate-code"
 ]
 max-line-length = 110

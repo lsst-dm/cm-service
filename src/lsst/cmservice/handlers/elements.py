@@ -148,6 +148,8 @@ class RunJobsScriptHandler(RunElementScriptHandler):
 
 
 class Splitter:
+    """Class to split Steps into Groups"""
+
     @classmethod
     async def split(  # pylint: disable=unused-argument
         cls,
@@ -156,10 +158,29 @@ class Splitter:
         parent: ElementMixin,
         **kwargs: Any,
     ) -> AsyncGenerator:
+        """Create a generator that will split a step into groups
+
+        Parameters
+        ----------
+        session: async_scoped_session
+            DB session manager
+
+        script: Script
+            The `Script` in question
+
+        parent: ElementMixin
+            Parent Element of the `Script` in question
+
+        Returns
+        -------
+        generator : AsyncGenerator
+        """
         yield
 
 
 class NoSplit(Splitter):
+    """Class create a single Group for a Step"""
+
     @classmethod
     async def split(
         cls,
@@ -175,6 +196,10 @@ class NoSplit(Splitter):
 
 
 class SplitByVals(Splitter):
+    """Class create groups from a Step by using
+    a provided set of lists to make DB queries
+    """
+
     @classmethod
     async def split(
         cls,
@@ -193,6 +218,12 @@ class SplitByVals(Splitter):
 
 
 class SplitByQuery(Splitter):
+    """Class create groups from a Step by making a DB query
+    to get the total number values of a particular field
+    and then constructing queries to split those values
+    into a number of groups.
+    """
+
     @classmethod
     async def split(
         cls,

@@ -21,11 +21,26 @@ async def load_specification(
     query: models.SpecificationLoad,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Specification:
+    """Load a specification object fom a yaml file
+
+    Parameters
+    ----------
+    query: models.SpecificationLoad
+        Details of what to load
+
+    session: async_scoped_session
+        DB session manager
+
+    Returns
+    -------
+    specification: db.Specification
+        Specification in question
+    """
     try:
         result = await interface.load_specification(session, **query.dict())
         await session.commit()
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}")
+        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
     return result
 
 
@@ -39,11 +54,26 @@ async def load_and_create_campaign(
     query: models.LoadAndCreateCampaign,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Campaign:
+    """Load a specification and use it to create a `Campaign`
+
+    Parameters
+    ----------
+    query: models.LoadAndCreateCampaign
+        Details of what to load and create
+
+    session: async_scoped_session
+        DB session manager
+
+    Returns
+    -------
+    campaign: db.Campaign
+        Campaign in question
+    """
     try:
         result = await interface.load_and_create_campaign(session, **query.dict())
         await session.commit()
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}")
+        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
     return result
 
 
@@ -57,10 +87,25 @@ async def load_error_types(
     query: models.YamlFileQuery,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> list[db.PipetaskErrorType]:
+    """Load a set of PipetaskErrorType object from a yaml file
+
+    Parameters
+    ----------
+    query: models.YamlFileQuery
+        Details of what to load
+
+    session: async_scoped_session
+        DB session manager
+
+    Returns
+    -------
+    error_types : list[db.PipetaskErrorType]
+        Newly loaded PipetaskErrorTypes
+    """
     try:
         return await interface.load_error_types(session, **query.dict())
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}")
+        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
 
 @router.post(
@@ -73,7 +118,22 @@ async def load_manifest_report(
     query: models.LoadManifestReport,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Job:
+    """Load a pipetask report and associated it to a Job
+
+    Parameters
+    ----------
+    query: models.LoadManifestReport
+        Details of what to load
+
+    session: async_scoped_session
+        DB session manager
+
+    Returns
+    -------
+    job : Job
+        Associated job
+    """
     try:
         return await interface.load_manifest_report(session, **query.dict())
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}")
+        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg

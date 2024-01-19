@@ -6,32 +6,32 @@ from . import wrappers
 
 # Template specialization
 # Specify the pydantic model for the table
-response_model_class = models.ScriptError
+ResponseModelClass = models.ScriptError
 # Specify the pydantic model from making new rows
-create_model_class = models.ScriptErrorCreate
+CreateModelClass = models.ScriptErrorCreate
 # Specify the pydantic model from updating rows
-update_model_class = models.ScriptErrorUpdate
+UpdateModelClass = models.ScriptErrorUpdate
 # Specify the associated database table
-db_class = db.ScriptError
+DbClass = db.ScriptError
 # Specify the tag in the router documentation
-tag_string = "ScriptErrors"
+TAG_STRING = "ScriptErrors"
 
 
 # Build the router
 router = APIRouter(
-    prefix=f"/{db_class.class_string}",
-    tags=[tag_string],
+    prefix=f"/{DbClass.class_string}",
+    tags=[TAG_STRING],
 )
 
 
 # Attach functions to the router
-get_rows = wrappers.get_rows_no_parent_function(router, response_model_class, db_class)
-get_row = wrappers.get_row_function(router, response_model_class, db_class)
+get_rows = wrappers.get_rows_no_parent_function(router, ResponseModelClass, DbClass)
+get_row = wrappers.get_row_function(router, ResponseModelClass, DbClass)
 post_row = wrappers.post_row_function(
     router,
-    response_model_class,
-    create_model_class,
-    db_class,
+    ResponseModelClass,
+    CreateModelClass,
+    DbClass,
 )
-delete_row = wrappers.delete_row_function(router, db_class)
-update_row = wrappers.put_row_function(router, response_model_class, update_model_class, db_class)
+delete_row = wrappers.delete_row_function(router, DbClass)
+update_row = wrappers.put_row_function(router, ResponseModelClass, UpdateModelClass, DbClass)

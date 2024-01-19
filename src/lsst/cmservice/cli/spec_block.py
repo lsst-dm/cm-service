@@ -7,7 +7,7 @@ from .commands import spec_block_group
 # Specify the cli path to attach these commands to
 cli_group = spec_block_group
 # Specify the associated database table
-db_class = db.SpecBlock
+DbClass = db.SpecBlock
 # Specify the options for the create command
 create_options = [
     options.cmclient(),
@@ -34,7 +34,7 @@ update_options = [
 
 # Construct derived templates
 group_command = cli_group.command
-sub_client = db_class.class_string
+sub_client = DbClass.class_string
 
 
 @cli_group.group()
@@ -46,12 +46,12 @@ update_command = update.command
 
 
 # Add functions to the router
-get_rows = wrappers.get_list_command(group_command, sub_client, db_class)
+get_rows = wrappers.get_list_command(group_command, sub_client, DbClass)
 
-create = wrappers.get_create_command(group_command, sub_client, db_class, create_options)
+create = wrappers.get_create_command(group_command, sub_client, DbClass, create_options)
 
 delete = wrappers.get_delete_command(group_command, sub_client)
 
-get_row = wrappers.get_row_command(group_command, sub_client, db_class)
+get_row = wrappers.get_row_command(group_command, sub_client, DbClass)
 
-update_row = wrappers.get_update_command(update_command, sub_client, db_class, update_options)
+update_row = wrappers.get_update_command(update_command, sub_client, DbClass, update_options)

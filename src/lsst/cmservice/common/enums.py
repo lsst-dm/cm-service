@@ -1,3 +1,4 @@
+# pylint: disable=invalid-name
 from __future__ import annotations
 
 import enum
@@ -72,6 +73,7 @@ class LevelEnum(enum.Enum):
 
     @staticmethod
     def get_level_from_fullname(fullname: str) -> LevelEnum:
+        """Parse fullname to determine Level"""
         if fullname.find("script:") == 0:
             return LevelEnum.script
         n_slash = fullname.count("/")

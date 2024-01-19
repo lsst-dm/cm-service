@@ -1305,7 +1305,6 @@ async def add_steps(
 
     CMMissingFullnameError : Could not find Element
     """
-
     campaign = await db.Campaign.get_row_by_fullname(session, fullname)
     result = await functions.add_steps(session, campaign, step_config_list)
     await session.commit()

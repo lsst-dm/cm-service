@@ -14,16 +14,16 @@ if TYPE_CHECKING:
 
 # Template specialization
 # Specify the pydantic model for Job
-response_model_class = models.Job
+ResponseModelClass = models.Job
 # Specify the pydantic model from making new Jobs
-create_model_class = models.JobCreate
+CreateModelClass = models.JobCreate
 # Specify the pydantic model from updating rows
-update_model_class = models.JobUpdate
+UpdateModelClass = models.JobUpdate
 # Specify the associated database table
-db_class = db.Job
+DbClass = db.Job
 
 # Construct derived templates
-router_string = f"{db_class.class_string}"
+router_string = f"{DbClass.class_string}"
 
 
 class CMJobClient:
@@ -34,23 +34,24 @@ class CMJobClient:
 
     @property
     def client(self) -> httpx.Client:
+        """Return the httpx.Client"""
         return self._client
 
-    get_rows = wrappers.get_rows_no_parent_function(response_model_class, f"{router_string}/list")
+    get_rows = wrappers.get_rows_no_parent_function(ResponseModelClass, f"{router_string}/list")
 
-    get_row = wrappers.get_row_function(response_model_class, f"{router_string}/get")
+    get_row = wrappers.get_row_function(ResponseModelClass, f"{router_string}/get")
 
     # get_row_by_fullname =
 
     create = wrappers.create_row_function(
-        response_model_class,
-        create_model_class,
+        ResponseModelClass,
+        CreateModelClass,
         f"{router_string}/create",
     )
 
     update = wrappers.update_row_function(
-        response_model_class,
-        update_model_class,
+        ResponseModelClass,
+        UpdateModelClass,
         f"{router_string}/update",
     )
 
@@ -89,35 +90,35 @@ class CMJobClient:
     get_spec_aliases = wrappers.get_node_property_function(dict, f"{router_string}/get", "spec_aliases")
 
     update_status = wrappers.get_node_post_query_function(
-        response_model_class,
+        ResponseModelClass,
         models.UpdateStatusQuery,
         f"{router_string}/update",
         "status",
     )
 
     update_collections = wrappers.get_node_post_query_function(
-        response_model_class,
+        ResponseModelClass,
         models.UpdateNodeQuery,
         f"{router_string}/update",
         "collections",
     )
 
     update_child_config = wrappers.get_node_post_query_function(
-        response_model_class,
+        ResponseModelClass,
         models.UpdateNodeQuery,
         f"{router_string}/update",
         "child_config",
     )
 
     update_data_dict = wrappers.get_node_post_query_function(
-        response_model_class,
+        ResponseModelClass,
         models.UpdateNodeQuery,
         f"{router_string}/update",
         "data_dict",
     )
 
     update_spec_aliases = wrappers.get_node_post_query_function(
-        response_model_class,
+        ResponseModelClass,
         models.UpdateNodeQuery,
         f"{router_string}/update",
         "spec_aliases",
@@ -130,19 +131,19 @@ class CMJobClient:
     )
 
     reject = wrappers.get_node_post_no_query_function(
-        response_model_class,
+        ResponseModelClass,
         f"{router_string}/action",
         "reject",
     )
 
     reset = wrappers.get_node_post_no_query_function(
-        response_model_class,
+        ResponseModelClass,
         f"{router_string}/action",
         "reset",
     )
 
     process = wrappers.get_node_post_no_query_function(
-        response_model_class,
+        ResponseModelClass,
         f"{router_string}/action",
         "process",
     )

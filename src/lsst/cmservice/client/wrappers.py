@@ -233,6 +233,23 @@ def get_object_by_fullname_function(
     response_model_class: TypeAlias = BaseModel,
     query: str = "",
 ) -> Callable:
+    """Return a function that gets a single row from a table (by name)
+    and attaches that function to a client.
+
+    Parameters
+    ----------
+    response_model_class: TypeAlias = BaseModel,
+        Pydantic class used to serialize the return value
+
+    query: str
+        http query
+
+    Returns
+    -------
+    the_function: Callable
+        Function that returns a single row from a table by name
+    """
+
     def get_obj_by_fullname(
         obj: CMClient,
         fullname: str,
@@ -254,6 +271,26 @@ def get_node_property_function(
     query: str = "",
     query_suffix: str = "",
 ) -> Callable:
+    """Return a function that gets a property of a single row of a table
+    and attaches that function to a client.
+
+    Parameters
+    ----------
+    response_model_class: TypeAlias = BaseModel,
+        Pydantic class used to serialize the return value
+
+    query: str
+        http query
+
+    query_suffix: str
+        suffix of query specifying the property in question
+
+    Returns
+    -------
+    the_function: Callable
+        Function that returns a property of a single row from a table by name
+    """
+
     def get_node_property(
         obj: CMClient,
         row_id: int,
@@ -271,6 +308,23 @@ def get_node_property_by_fullname_function(
     response_model_class: TypeAlias,
     query: str = "",
 ) -> Callable:
+    """Return a function that gets a property of a single row of a table
+    and attaches that function to a client.
+
+    Parameters
+    ----------
+    response_model_class: TypeAlias = BaseModel,
+        Pydantic class used to serialize the return value
+
+    query: str
+        http query
+
+    Returns
+    -------
+    the_function: Callable
+        Function that returns a property of a single row from a table by name
+    """
+
     def get_node_property_by_fullname(
         obj: CMClient,
         fullname: str,
@@ -293,6 +347,29 @@ def get_node_post_query_function(
     query: str = "",
     query_suffix: str = "",
 ) -> Callable:
+    """Return a function that invokeds a post method on DB ojbject
+    and attaches that function to a client.
+
+    Parameters
+    ----------
+    response_model_class: TypeAlias = BaseModel,
+        Pydantic class used to serialize the return value
+
+    query_class: TypeAlias
+        Pydantic class used to serialize the query parameters
+
+    query: str
+        http query
+
+    query_suffix: str
+        suffix of query specifying the property in question
+
+    Returns
+    -------
+    the_function: Callable
+        Function that invokeds a post method on DB ojbject
+    """
+
     def node_update(
         obj: CMClient,
         row_id: int,
@@ -313,10 +390,29 @@ def get_node_post_no_query_function(
     query: str = "",
     query_suffix: str = "",
 ) -> Callable:
+    """Return a function that invokeds a post method on DB ojbject
+    and attaches that function to a client.
+
+    Parameters
+    ----------
+    response_model_class: TypeAlias = BaseModel,
+        Pydantic class used to serialize the return value
+
+    query: str
+        http query
+
+    query_suffix: str
+        suffix of query specifying the property in question
+
+    Returns
+    -------
+    the_function: Callable
+        Function that invokeds a post method on DB ojbject
+    """
+
     def node_update(
         obj: CMClient,
         row_id: int,
-        **kwargs: Any,
     ) -> response_model_class:
         results = obj.client.post(f"{query}/{row_id}/{query_suffix}").json()
         try:
@@ -331,6 +427,23 @@ def get_job_property_function(
     response_model_class: TypeAlias,
     query: str = "",
 ) -> Callable:
+    """Return a function that invokes a query
+    and attaches that function to a client.
+
+    Parameters
+    ----------
+    response_model_class: TypeAlias = BaseModel,
+        Pydantic class used to serialize the return value
+
+    query: str
+        http query
+
+    Returns
+    -------
+    the_function: Callable
+        Function that invokes a query
+    """
+
     def get_job_property(
         obj: CMClient,
         fullname: str,
@@ -353,6 +466,26 @@ def get_general_post_function(
     query: str = "",
     results_key: str | None = None,
 ) -> Callable:
+    """Return a function that invokeds a post method on DB ojbject
+    and attaches that function to a client.
+
+    Parameters
+    ----------
+    response_model_class: TypeAlias = BaseModel,
+        Pydantic class used to serialize the return value
+
+    query: str
+        http query
+
+    results_key
+        Used to grab part of the response
+
+    Returns
+    -------
+    the_function: Callable
+        Function that invokeds a post method on DB ojbject
+    """
+
     def general_post_function(
         obj: CMClient,
         **kwargs: Any,
@@ -376,6 +509,32 @@ def get_general_query_function(
     query_suffix: str = "",
     results_key: str | None = None,
 ) -> Callable:
+    """Return a function that invokeds a get method on DB ojbject
+    and attaches that function to a client.
+
+    Parameters
+    ----------
+    query_class: TypeAlias
+        Pydantic class used to serialize the query parameters
+
+    response_model_class: TypeAlias = BaseModel,
+        Pydantic class used to serialize the return value
+
+    query: str
+        http query
+
+    query_suffix: str
+        suffix of query specifying the property in question
+
+    results_key: str | None
+        Used to grab part of the response
+
+    Returns
+    -------
+    the_function: Callable
+        Function that invokeds a get method on DB ojbject
+    """
+
     def general_query_function(
         obj: CMClient,
         row_id: int,

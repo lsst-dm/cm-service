@@ -20,11 +20,11 @@ from .group import Group
 from .job import Job
 from .node import NodeMixin
 from .row import RowMixin
+from .script_dependency import ScriptDependency
 from .spec_block import SpecBlock
 from .step import Step
 
 if TYPE_CHECKING:
-    from .dependency import ScriptDependency
     from .script_error import ScriptError
 
 
@@ -108,6 +108,7 @@ class Script(Base, NodeMixin):
 
     @property
     def level(self) -> LevelEnum:
+        """Returns LevelEnum.script"""
         return LevelEnum.script
 
     async def get_campaign(
@@ -196,7 +197,7 @@ class Script(Base, NodeMixin):
             name = kwargs["name"]
             spec_block_name = kwargs["spec_block_name"]
         except KeyError as msg:
-            raise CMMissingRowCreateInputError(f"Missing input to create Script: {msg}")
+            raise CMMissingRowCreateInputError(f"Missing input to create Script: {msg}") from msg
         attempt = kwargs.get("attempt", 0)
         parent_level = kwargs["parent_level"]
 
@@ -264,11 +265,13 @@ class Script(Base, NodeMixin):
             await session.refresh(self, attribute_names=["prereqs_", "depends_"])
             for prereq_ in self.prereqs_:
                 _new_prereq = await ScriptDependency.create_row(
+                    session,
                     depend_id=new_script.id,
                     prereq_id=prereq_.prereq_id,
                 )
             for depend_ in self.depends_:
                 _new_depend = await ScriptDependency.create_row(
+                    session,
                     depend_id=depend_.depend_id,
                     prereq_id=new_script.id,
                 )

@@ -8,35 +8,35 @@ from . import wrappers
 
 # Template specialization
 # Specify the pydantic model for the table
-response_model_class = models.Queue
+ResponseModelClass = models.Queue
 # Specify the pydantic model from making new rows
-create_model_class = models.QueueCreate
+CreateModelClass = models.QueueCreate
 # Specify the pydantic model from updating rows
-update_model_class = models.QueueUpdate
+UpdateModelClass = models.QueueUpdate
 # Specify the associated database table
-db_class = db.Queue
+DbClass = db.Queue
 # Specify the tag in the router documentation
-tag_string = "Queues"
+TAG_STRING = "Queues"
 
 
 # Build the router
 router = APIRouter(
-    prefix=f"/{db_class.class_string}",
-    tags=[tag_string],
+    prefix=f"/{DbClass.class_string}",
+    tags=[TAG_STRING],
 )
 
 
 # Attach functions to the router
-get_rows = wrappers.get_rows_function(router, response_model_class, db_class)
-get_row = wrappers.get_row_function(router, response_model_class, db_class)
+get_rows = wrappers.get_rows_function(router, ResponseModelClass, DbClass)
+get_row = wrappers.get_row_function(router, ResponseModelClass, DbClass)
 post_row = wrappers.post_row_function(
     router,
-    response_model_class,
-    create_model_class,
-    db_class,
+    ResponseModelClass,
+    CreateModelClass,
+    DbClass,
 )
-delete_row = wrappers.delete_row_function(router, db_class)
-update_row = wrappers.put_row_function(router, response_model_class, update_model_class, db_class)
+delete_row = wrappers.delete_row_function(router, DbClass)
+update_row = wrappers.put_row_function(router, ResponseModelClass, UpdateModelClass, DbClass)
 
 
 @router.get(
@@ -48,26 +48,56 @@ async def process_element(
     row_id: int,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> bool:
+    """Process associated element
+
+    Parameters
+    ----------
+    row_id: int
+        ID of the Queue row in question
+
+    session: async_scoped_session
+        DB session manager
+
+    Returns
+    -------
+    can_continue: bool
+        True if processing can continue
+    """
     try:
         queue = await db.Queue.get_row(session, row_id)
         can_continue = await queue.process_element(session)
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}")
+        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
     return can_continue
 
 
 @router.get(
     "/sleep_time/{row_id}",
     response_model=int,
-    summary="Process the associated element",
+    summary="Check how long to sleep based on what is running",
 )
 async def sleep_time(
     row_id: int,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> int:
+    """Check how long to sleep based on what is running
+
+    Parameters
+    ----------
+    row_id: int
+        ID of the Queue row in question
+
+    session: async_scoped_session
+        DB session manager
+
+    Returns
+    -------
+    sleep_time: int
+        Time to sleep before next call to process (in seconds)
+    """
     try:
         queue = await db.Queue.get_row(session, row_id)
         element_sleep_time = await queue.element_sleep_time(session)
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}")
+        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
     return element_sleep_time

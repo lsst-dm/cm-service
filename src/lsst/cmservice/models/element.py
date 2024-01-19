@@ -61,7 +61,7 @@ class ElementMixin(ElementBase):
 
 
 class Element(ElementMixin):
-    pass
+    """Parameters that are in DB tables"""
 
 
 class ElementUpdate(BaseModel):

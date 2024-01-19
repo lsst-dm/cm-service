@@ -36,7 +36,7 @@ class CMIDMismatchError(ValueError):
     """Raised when there is an ID mismatch between row IDs"""
 
 
-class CMIntegrityError(IntegrityError):
+class CMIntegrityError(IntegrityError):  # pylint: disable=too-many-ancestors
     """Raise when catching a sqlalchemy.exc.IntegrityError"""
 
 

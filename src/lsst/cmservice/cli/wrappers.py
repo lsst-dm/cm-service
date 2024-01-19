@@ -5,7 +5,8 @@ functions that are defined in the db.row.RowMixin,
 db.node.NodeMixin, and db.element.ElementMixin classes.
 
 These make it easier to define router functions that
-apply to all RowMixin, NodeMixin and ElementMixin classes."""
+apply to all RowMixin, NodeMixin and ElementMixin classes.
+"""
 
 import json
 from collections.abc import Callable, Sequence
@@ -326,7 +327,6 @@ def get_delete_command(
 def get_spec_block_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
 ) -> Callable:
     """Return a function that gets the spec_block from a row in the table
     and attaches that function to the cli.
@@ -338,9 +338,6 @@ def get_spec_block_command(
 
     sub_client_name: str
         Name of python API sub-client to use
-
-    db_class: TypeAlias = db.RowMixin
-        Underlying database class
 
     Returns
     -------
@@ -523,7 +520,6 @@ def get_child_config_command(
 def get_data_dict_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
 ) -> Callable:
     """Return a function that gets the data_dict
     from a row in the table and attaches that function to the cli.
@@ -819,7 +815,6 @@ def get_update_spec_aliases_command(
 def get_action_process_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
 ) -> Callable:
     """Return a function that processes a
     row in the table and attaches that function to the cli.
@@ -1030,7 +1025,6 @@ def get_action_reset_command(
 def get_element_scripts_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
 ) -> Callable:
     """Return a function that gets the scripts assocaited to an element
 
@@ -1041,9 +1035,6 @@ def get_element_scripts_command(
 
     sub_client_name: str
         Name of python API sub-client to use
-
-    db_class: TypeAlias = db.RowMixin
-        Underlying database class
 
     Returns
     -------
@@ -1073,7 +1064,6 @@ def get_element_scripts_command(
 def get_element_all_scripts_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
 ) -> Callable:
     """Return a function that gets the scripts assocaited to an element
 
@@ -1084,10 +1074,6 @@ def get_element_all_scripts_command(
 
     sub_client_name: str
         Name of python API sub-client to use
-
-    db_class: TypeAlias = db.RowMixin
-        Underlying database class
-
     Returns
     -------
     the_function: Callable
@@ -1114,7 +1100,6 @@ def get_element_all_scripts_command(
 def get_element_jobs_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
 ) -> Callable:
     """Return a function that gets the jobs assocaited to an element
 
@@ -1125,9 +1110,6 @@ def get_element_jobs_command(
 
     sub_client_name: str
         Name of python API sub-client to use
-
-    db_class: TypeAlias = db.RowMixin
-        Underlying database class
 
     Returns
     -------
@@ -1155,7 +1137,6 @@ def get_element_jobs_command(
 def get_element_retry_script_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
 ) -> Callable:
     """Return a function that retries a script
 
@@ -1166,9 +1147,6 @@ def get_element_retry_script_command(
 
     sub_client_name: str
         Name of python API sub-client to use
-
-    db_class: TypeAlias = db.RowMixin
-        Underlying database class
 
     Returns
     -------
@@ -1198,7 +1176,6 @@ def get_element_retry_script_command(
 def get_element_estimate_sleep_time_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
 ) -> Callable:
     """Return a function estimates the sleep time before calling process
 
@@ -1209,9 +1186,6 @@ def get_element_estimate_sleep_time_command(
 
     sub_client_name: str
         Name of python API sub-client to use
-
-    db_class: TypeAlias = db.RowMixin
-        Underlying database class
 
     Returns
     -------
@@ -1239,7 +1213,6 @@ def get_element_estimate_sleep_time_command(
 def get_element_wms_task_reports_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
 ) -> Callable:
     """Return a function that gets the WmsTaskReports assocaited to an element
 
@@ -1250,9 +1223,6 @@ def get_element_wms_task_reports_command(
 
     sub_client_name: str
         Name of python API sub-client to use
-
-    db_class: TypeAlias = db.RowMixin
-        Underlying database class
 
     Returns
     -------
@@ -1295,7 +1265,6 @@ def get_element_wms_task_reports_command(
 def get_element_tasks_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
 ) -> Callable:
     """Return a function that gets the TaskSets assocaited to an element
 
@@ -1306,9 +1275,6 @@ def get_element_tasks_command(
 
     sub_client_name: str
         Name of python API sub-client to use
-
-    db_class: TypeAlias = db.RowMixin
-        Underlying database class
 
     Returns
     -------
@@ -1337,7 +1303,6 @@ def get_element_tasks_command(
 def get_element_products_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
 ) -> Callable:
     """Return a function that gets the ProductSets assocaited to an element
 
@@ -1348,9 +1313,6 @@ def get_element_products_command(
 
     sub_client_name: str
         Name of python API sub-client to use
-
-    db_class: TypeAlias = db.RowMixin
-        Underlying database class
 
     Returns
     -------

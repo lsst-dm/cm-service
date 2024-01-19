@@ -20,6 +20,7 @@ from lsst.cmservice.handlers import interface
 
 @pytest.fixture(scope="session", name="event_loop")
 def event_loop_fixture() -> Iterator[AbstractEventLoop]:
+    """Return a AbstractEventLoop that does some abstract stuff"""
     policy = get_event_loop_policy()
     loop = policy.new_event_loop()
     yield loop
@@ -72,6 +73,7 @@ async def client_fixture(app: FastAPI) -> AsyncIterator[AsyncClient]:
 
 @pytest_asyncio.fixture
 async def uvicorn(tmp_path: Path) -> AsyncIterator[UvicornProcess]:
+    """Spawn and return a uvicorn process configured to talk to test app."""
     my_uvicorn = spawn_uvicorn(working_directory=tmp_path, app="lsst.cmservice.main:app")
     yield my_uvicorn
     my_uvicorn.process.terminate()

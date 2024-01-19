@@ -6,33 +6,33 @@ from . import wrappers
 
 # Template specialization
 # Specify the pydantic model for the table
-response_model_class = models.ProductSet
+ResponseModelClass = models.ProductSet
 # Specify the pydantic model from making new rows
-create_model_class = models.ProductSetCreate
+CreateModelClass = models.ProductSetCreate
 # Specify the pydantic model from updating rows
-update_model_class = models.ProductSetUpdate
+UpdateModelClass = models.ProductSetUpdate
 # Specify the associated database table
-db_class = db.ProductSet
+DbClass = db.ProductSet
 # Specify the tag in the router documentation
-tag_string = "Product Sets"
+TAG_STRING = "Product Sets"
 
 
 # Build the router
 router = APIRouter(
-    prefix=f"/{db_class.class_string}",
-    tags=[tag_string],
+    prefix=f"/{DbClass.class_string}",
+    tags=[TAG_STRING],
 )
 
 
 # Attach functions to the router
-get_rows = wrappers.get_rows_no_parent_function(router, response_model_class, db_class)
-get_row = wrappers.get_row_function(router, response_model_class, db_class)
-get_row_by_fullname = wrappers.get_row_function(router, response_model_class, db_class)
+get_rows = wrappers.get_rows_no_parent_function(router, ResponseModelClass, DbClass)
+get_row = wrappers.get_row_function(router, ResponseModelClass, DbClass)
+get_row_by_fullname = wrappers.get_row_function(router, ResponseModelClass, DbClass)
 post_row = wrappers.post_row_function(
     router,
-    response_model_class,
-    create_model_class,
-    db_class,
+    ResponseModelClass,
+    CreateModelClass,
+    DbClass,
 )
-delete_row = wrappers.delete_row_function(router, db_class)
-update_row = wrappers.put_row_function(router, response_model_class, update_model_class, db_class)
+delete_row = wrappers.delete_row_function(router, DbClass)
+update_row = wrappers.put_row_function(router, ResponseModelClass, UpdateModelClass, DbClass)

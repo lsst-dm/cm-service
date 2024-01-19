@@ -2,6 +2,8 @@ from pydantic import BaseModel
 
 
 class WmsTaskReportBase(BaseModel):
+    """Parameters that are in DB tables and also used to create new rows"""
+
     job_id: int
     name: str
     fullname: str
@@ -24,6 +26,8 @@ class WmsTaskReportCreate(WmsTaskReportBase):
 
 
 class WmsTaskReport(WmsTaskReportBase):
+    """Parameters that are in DB tables and not used to create new rows"""
+
     id: int
 
     class Config:

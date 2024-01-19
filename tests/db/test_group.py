@@ -9,6 +9,7 @@ from lsst.cmservice import db
 
 @pytest.mark.asyncio()
 async def test_group_db(session: async_scoped_session) -> None:
+    """Test the Group db table interface"""
     pname = str(uuid1())
     prod = await db.Production.create_row(session, name=pname)
     cname = str(uuid1())

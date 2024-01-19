@@ -9,103 +9,136 @@ from . import wrappers
 
 # Template specialization
 # Specify the pydantic model for the table
-response_model_class = models.Script
+ResponseModelClass = models.Script
 # Specify the pydantic model from making new rows
-create_model_class = models.ScriptCreate
+CreateModelClass = models.ScriptCreate
 # Specify the pydantic model from updating rows
-update_model_class = models.ScriptUpdate
+UpdateModelClass = models.ScriptUpdate
 # Specify the associated database table
-db_class = db.Script
+DbClass = db.Script
 # Specify the tag in the router documentation
-tag_string = "Scripts"
+TAG_STRING = "Scripts"
 
 
 # Build the router
 router = APIRouter(
-    prefix=f"/{db_class.class_string}",
-    tags=[tag_string],
+    prefix=f"/{DbClass.class_string}",
+    tags=[TAG_STRING],
 )
 
 
 # Attach functions to the router
-get_rows = wrappers.get_rows_function(router, response_model_class, db_class)
-get_row = wrappers.get_row_function(router, response_model_class, db_class)
+get_rows = wrappers.get_rows_function(router, ResponseModelClass, DbClass)
+get_row = wrappers.get_row_function(router, ResponseModelClass, DbClass)
 post_row = wrappers.post_row_function(
     router,
-    response_model_class,
-    create_model_class,
-    db_class,
+    ResponseModelClass,
+    CreateModelClass,
+    DbClass,
 )
-delete_row = wrappers.delete_row_function(router, db_class)
-update_row = wrappers.put_row_function(router, response_model_class, update_model_class, db_class)
-get_spec_block = wrappers.get_node_spec_block_function(router, db_class)
-get_specification = wrappers.get_node_specification_function(router, db_class)
-get_parent = wrappers.get_node_parent_function(router, models.Production, db_class)
-get_resolved_collections = wrappers.get_node_resolved_collections_function(router, db_class)
-get_collections = wrappers.get_node_collections_function(router, db_class)
-get_child_config = wrappers.get_node_child_config_function(router, db_class)
-get_data_dict = wrappers.get_node_data_dict_function(router, db_class)
-get_spec_aliases = wrappers.get_node_spec_aliases_function(router, db_class)
-update_status = wrappers.update_node_status_function(router, response_model_class, db_class)
+delete_row = wrappers.delete_row_function(router, DbClass)
+update_row = wrappers.put_row_function(router, ResponseModelClass, UpdateModelClass, DbClass)
+get_spec_block = wrappers.get_node_spec_block_function(router, DbClass)
+get_specification = wrappers.get_node_specification_function(router, DbClass)
+get_parent = wrappers.get_node_parent_function(router, models.Production, DbClass)
+get_resolved_collections = wrappers.get_node_resolved_collections_function(router, DbClass)
+get_collections = wrappers.get_node_collections_function(router, DbClass)
+get_child_config = wrappers.get_node_child_config_function(router, DbClass)
+get_data_dict = wrappers.get_node_data_dict_function(router, DbClass)
+get_spec_aliases = wrappers.get_node_spec_aliases_function(router, DbClass)
+update_status = wrappers.update_node_status_function(router, ResponseModelClass, DbClass)
 update_collections = wrappers.update_node_collections_function(
     router,
-    response_model_class,
-    db_class,
+    ResponseModelClass,
+    DbClass,
 )
 update_child_config = wrappers.update_node_child_config_function(
     router,
-    response_model_class,
-    db_class,
+    ResponseModelClass,
+    DbClass,
 )
 update_data_dict = wrappers.update_node_data_dict_function(
     router,
-    response_model_class,
-    db_class,
+    ResponseModelClass,
+    DbClass,
 )
 update_spec_aliases = wrappers.update_node_spec_aliases_function(
     router,
-    response_model_class,
-    db_class,
+    ResponseModelClass,
+    DbClass,
 )
-accept = wrappers.get_node_accept_function(router, response_model_class, db_class)
-reject = wrappers.get_node_reject_function(router, response_model_class, db_class)
-reset = wrappers.get_node_reset_function(router, response_model_class, db_class)
-process = wrappers.get_node_process_function(router, db_class)
-run_check = wrappers.get_node_run_check_function(router, db_class)
+accept = wrappers.get_node_accept_function(router, ResponseModelClass, DbClass)
+reject = wrappers.get_node_reject_function(router, ResponseModelClass, DbClass)
+reset = wrappers.get_node_reset_function(router, ResponseModelClass, DbClass)
+process = wrappers.get_node_process_function(router, DbClass)
+run_check = wrappers.get_node_run_check_function(router, DbClass)
 
 
 @router.put(
     "/action/{row_id}/reset_script",
     response_model=StatusEnum,
-    summary=f"Reset the status of a {db_class.class_string}",
+    summary=f"Reset the status of a {DbClass.class_string}",
 )
 async def reset_script(
     row_id: int,
     session: async_scoped_session = Depends(db_session_dependency),
     to_status: StatusEnum = StatusEnum.waiting,
 ) -> StatusEnum:
+    """Reset a script to an earlier status
+
+    Parameters
+    ----------
+    row_id: int
+        ID of the script in question
+
+    session: async_scoped_session
+        DB session manager
+
+    to_status: StatusEnum
+        Status to set script to
+
+    Returns
+    -------
+    new_status: StatusEnum
+        New status of script
+    """
     try:
-        script = await db_class.get_row(session, row_id)
+        script = await DbClass.get_row(session, row_id)
         result = await script.reset_script(session, to_status=to_status)
         await session.commit()
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}")
+        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
     return result
 
 
 @router.put(
     "/action/{row_id}/copy",
     response_model=models.Script,
-    summary=f"Make a copy of a {db_class.class_string}",
+    summary=f"Make a copy of a {DbClass.class_string}",
 )
 async def copy(
     row_id: int,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Script:
+    """Create and return a cope of a script
+
+    Parameters
+    ----------
+    row_id: int
+        ID of the script in question
+
+    session: async_scoped_session
+        DB session manager
+
+    Returns
+    -------
+    new_script: Script
+        Newly copied Script
+    """
     try:
-        script = await db_class.get_row(session, row_id)
+        script = await DbClass.get_row(session, row_id)
         result = await script.copy_script(session)
         await session.commit()
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}")
+        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
     return result
