@@ -6,7 +6,7 @@ from pydantic import BaseModel
 class MergedWmsTaskReport(BaseModel):
     name: str
 
-    n_expected: int
+    n_expected: int = 0
     n_unknown: int
     n_misfit: int
     n_unready: int

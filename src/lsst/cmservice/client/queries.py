@@ -71,15 +71,18 @@ class CMQueryClient:
 
     get_specification = wrappers.get_object_by_fullname_function(models.Specification, "get/specification")
 
-    get_resolved_collections = wrappers.get_node_property_function(dict, "get/resolved_collections")
+    get_resolved_collections = wrappers.get_node_property_by_fullname_function(
+        dict,
+        "get/resolved_collections",
+    )
 
-    get_collections = wrappers.get_node_property_function(dict, "get/collections")
+    get_collections = wrappers.get_node_property_by_fullname_function(dict, "get/collections")
 
-    get_child_config = wrappers.get_node_property_function(dict, "get/child_config")
+    get_child_config = wrappers.get_node_property_by_fullname_function(dict, "get/child_config")
 
-    get_spec_aliases = wrappers.get_node_property_function(dict, "get/spec_aliases")
+    get_spec_aliases = wrappers.get_node_property_by_fullname_function(dict, "get/spec_aliases")
 
-    get_data_dict = wrappers.get_node_property_function(dict, "get/data_dict")
+    get_data_dict = wrappers.get_node_property_by_fullname_function(dict, "get/data_dict")
 
     get_prerequisites = wrappers.get_node_property_function(dict, "get/prerequisites")
 
