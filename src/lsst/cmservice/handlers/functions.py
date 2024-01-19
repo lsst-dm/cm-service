@@ -133,12 +133,11 @@ async def create_specification(
                     f"Expected ScriptTemplateAssociation not {list(script_list_item_.keys())}",
                 ) from msg
             try:
-                new_script_template_assoc = await ScriptTemplateAssociation.create_row(
+                _new_script_template_assoc = await ScriptTemplateAssociation.create_row(
                     session,
                     spec_name=spec_name,
                     **script_template_config_,
                 )
-                assert new_script_template_assoc
             except IntegrityError:
                 print("ScriptTemplateAssociation already defined, skipping it")
         for spec_block_list_item_ in spec_blocks:
@@ -149,12 +148,11 @@ async def create_specification(
                     f"Expected SpecBlockAssociation not {list(spec_block_list_item_.keys())}",
                 ) from msg
             try:
-                new_spec_block_assoc = await SpecBlockAssociation.create_row(
+                _new_spec_block_assoc = await SpecBlockAssociation.create_row(
                     session,
                     spec_name=spec_name,
                     **spec_block_config_,
                 )
-                assert new_spec_block_assoc
             except IntegrityError:
                 print("SpecBlockAssociation already defined, skipping it")
         await session.commit()

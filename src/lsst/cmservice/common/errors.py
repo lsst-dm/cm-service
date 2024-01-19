@@ -20,6 +20,10 @@ class CMBadExecutionMethodError(ValueError):
     """Raised when requesting a bed execution method for a Node"""
 
 
+class CMBadParameterTypeError(TypeError):
+    """Raised when a parameter is of the wrong type"""
+
+
 class CMBadHandlerTypeError(TypeError):
     """Raised when the specified handler type is not a valid type"""
 

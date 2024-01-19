@@ -157,7 +157,7 @@ class ElementMixin(NodeMixin):
         session: async_scoped_session,
     ) -> Iterable:
         """Maps to [] for consistency"""
-        assert session
+        assert session  # for mypy
         return []
 
     async def retry_script(

@@ -25,7 +25,7 @@ from . import options
 def _output_pydantic_object(
     model: BaseModel,
     output: options.OutputEnum | None,
-    col_names: list[str] | None = None,
+    col_names: list[str],
 ) -> None:
     """Render a single object as requested
 
@@ -37,7 +37,7 @@ def _output_pydantic_object(
     output: options.OutputEnum | None
         Output format
 
-    col_names: list[str] | None = None
+    col_names: list[str]
         Names for columns in tabular representation
     """
     match output:
@@ -46,7 +46,6 @@ def _output_pydantic_object(
         case options.OutputEnum.yaml:
             click.echo(yaml.dump(model.dict()))
         case _:
-            assert col_names
             the_table = [[getattr(model, col_) for col_ in col_names]]
             click.echo(tabulate(the_table, headers=col_names, tablefmt="plain"))
 
@@ -54,7 +53,7 @@ def _output_pydantic_object(
 def _output_pydantic_list(
     models: Sequence[BaseModel],
     output: options.OutputEnum | None,
-    col_names: Sequence[str] | None = None,
+    col_names: list[str],
 ) -> None:
     """Render a sequences of objects as requested
 
@@ -66,7 +65,7 @@ def _output_pydantic_list(
     output: options.OutputEnum | None
         Output format
 
-    col_names: list[str] | None = None
+    col_names: list[str]
         Names for columns in tabular representation
     """
     the_table = []
@@ -77,7 +76,6 @@ def _output_pydantic_list(
             case options.OutputEnum.yaml:
                 click.echo(yaml.dump(model_.dict()))
             case _:
-                assert col_names
                 the_table.append([str(getattr(model_, col_)) for col_ in col_names])
     match output:
         case options.OutputEnum.json:
@@ -85,7 +83,6 @@ def _output_pydantic_list(
         case options.OutputEnum.yaml:
             pass
         case _:
-            assert col_names
             click.echo(tabulate(the_table, headers=col_names, tablefmt="plain"))
 
 
@@ -371,7 +368,6 @@ def get_spec_block_command(
 def get_specification_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
 ) -> Callable:
     """Return a function that gets the specification from a row in the table
     and attaches that function to the cli.
@@ -384,15 +380,11 @@ def get_specification_command(
     sub_client_name: str
         Name of python API sub-client to use
 
-    db_class: TypeAlias = db.RowMixin
-        Underlying database class
-
     Returns
     -------
     the_function: Callable
         Function that returns the specification from a row
     """
-    assert db_class
 
     @group_command(name="specification")
     @options.cmclient()
@@ -414,7 +406,6 @@ def get_specification_command(
 def get_resolved_collections_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
 ) -> Callable:
     """Return a function that gets the resolved collection names
     from a row in the table and attaches that function to the cli.
@@ -435,7 +426,6 @@ def get_resolved_collections_command(
     the_function: Callable
         Function that returns the resolved collection names from a row
     """
-    assert db_class
 
     @group_command(name="resolved_collections")
     @options.cmclient()
@@ -457,7 +447,6 @@ def get_resolved_collections_command(
 def get_collections_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
 ) -> Callable:
     """Return a function that gets the collection names
     from a row in the table and attaches that function to the cli.
@@ -470,15 +459,11 @@ def get_collections_command(
     sub_client_name: str
         Name of python API sub-client to use
 
-    db_class: TypeAlias = db.RowMixin
-        Underlying database class
-
     Returns
     -------
     the_function: Callable
         Function that returns the collection names from a row
     """
-    assert db_class
 
     @group_command(name="collections")
     @options.cmclient()
@@ -500,7 +485,6 @@ def get_collections_command(
 def get_child_config_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
 ) -> Callable:
     """Return a function that gets the child_config
     from a row in the table and attaches that function to the cli.
@@ -513,15 +497,11 @@ def get_child_config_command(
     sub_client_name: str
         Name of python API sub-client to use
 
-    db_class: TypeAlias = db.RowMixin
-        Underlying database class
-
     Returns
     -------
     the_function: Callable
         Function that returns the child_config from a row
     """
-    assert db_class
 
     @group_command(name="child_config")
     @options.cmclient()
@@ -556,15 +536,11 @@ def get_data_dict_command(
     sub_client_name: str
         Name of python API sub-client to use
 
-    db_class: TypeAlias = db.RowMixin
-        Underlying database class
-
     Returns
     -------
     the_function: Callable
         Function that returns the data_dict from a row
     """
-    assert db_class
 
     @group_command(name="data_dict")
     @options.cmclient()
@@ -586,7 +562,6 @@ def get_data_dict_command(
 def get_spec_aliases_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
 ) -> Callable:
     """Return a function that gets the spec_aliases
     from a row in the table and attaches that function to the cli.
@@ -599,15 +574,11 @@ def get_spec_aliases_command(
     sub_client_name: str
         Name of python API sub-client to use
 
-    db_class: TypeAlias = db.RowMixin
-        Underlying database class
-
     Returns
     -------
     the_function: Callable
         Function that returns the spec_aliases from a row
     """
-    assert db_class
 
     @group_command(name="spec_alias")
     @options.cmclient()
@@ -650,7 +621,6 @@ def get_update_status_command(
     the_function: Callable
         Function that updates the status of a row
     """
-    assert db_class
 
     @group_command(name="status")
     @options.cmclient()
@@ -677,7 +647,6 @@ def get_update_status_command(
 def get_update_collections_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
 ) -> Callable:
     """Return a function that updates the collection names
     of row in the table and attaches that function to the cli.
@@ -690,15 +659,11 @@ def get_update_collections_command(
     sub_client_name: str
         Name of python API sub-client to use
 
-    db_class: TypeAlias = db.RowMixin
-        Underlying database class
-
     Returns
     -------
     the_function: Callable
         Function that updates the collections names of a row
     """
-    assert db_class
 
     @group_command(name="collections")
     @options.cmclient()
@@ -725,7 +690,6 @@ def get_update_collections_command(
 def get_update_child_config_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
 ) -> Callable:
     """Return a function that updates the collection names
     of row in the table and attaches that function to the cli.
@@ -738,15 +702,11 @@ def get_update_child_config_command(
     sub_client_name: str
         Name of python API sub-client to use
 
-    db_class: TypeAlias = db.RowMixin
-        Underlying database class
-
     Returns
     -------
     the_function: Callable
         Function that updates the collections names of a row
     """
-    assert db_class
 
     @group_command(name="child_config")
     @options.cmclient()
@@ -773,7 +733,6 @@ def get_update_child_config_command(
 def get_update_data_dict_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
 ) -> Callable:
     """Return a function that updates the data_dict
     of row in the table and attaches that function to the cli.
@@ -786,15 +745,11 @@ def get_update_data_dict_command(
     sub_client_name: str
         Name of python API sub-client to use
 
-    db_class: TypeAlias = db.RowMixin
-        Underlying database class
-
     Returns
     -------
     the_function: Callable
         Function that updates the data_dict of a row
     """
-    assert db_class
 
     @group_command(name="data_dict")
     @options.cmclient()
@@ -821,7 +776,6 @@ def get_update_data_dict_command(
 def get_update_spec_aliases_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
 ) -> Callable:
     """Return a function that updates the spec_aliases
     of row in the table and attaches that function to the cli.
@@ -834,15 +788,11 @@ def get_update_spec_aliases_command(
     sub_client_name: str
         Name of python API sub-client to use
 
-    db_class: TypeAlias = db.RowMixin
-        Underlying database class
-
     Returns
     -------
     the_function: Callable
         Function that updates the spec_aliases of a row
     """
-    assert db_class
 
     @group_command(name="spec_aliases")
     @options.cmclient()
@@ -882,15 +832,11 @@ def get_action_process_command(
     sub_client_name: str
         Name of python API sub-client to use
 
-    db_class: TypeAlias = db.RowMixin
-        Underlying database class
-
     Returns
     -------
     the_function: Callable
         Function that processes a row
     """
-    assert db_class
 
     @group_command()
     @options.cmclient()
@@ -917,7 +863,6 @@ def get_action_process_command(
 def get_action_run_check_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
 ) -> Callable:
     """Return a function that checks the status of a
     row in the table and attaches that function to the cli.
@@ -938,7 +883,6 @@ def get_action_run_check_command(
     the_function: Callable
         Function that checks the status a row
     """
-    assert db_class
 
     @group_command(name="run_check")
     @options.cmclient()

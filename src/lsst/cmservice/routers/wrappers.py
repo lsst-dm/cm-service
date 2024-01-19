@@ -48,8 +48,6 @@ def get_rows_no_parent_function(
         Function that return all the rows for the table in question
     """
 
-    assert issubclass(db_class, db.RowMixin)
-
     @router.get(
         "/list",
         response_model=list[response_model_class],
@@ -1031,7 +1029,6 @@ def get_node_reset_function(
 
 def get_node_process_function(
     router: APIRouter,
-    response_model_class: TypeAlias = tuple[bool, StatusEnum],
     db_class: TypeAlias = db.NodeMixin,
 ) -> Callable:
     """Return a function that causes a Node to be processed.
@@ -1041,9 +1038,6 @@ def get_node_process_function(
     router: APIRouter
         Router to attach the function to
 
-    response_model_class: TypeAlias = BaseModel
-        Pydantic class used to serialize the return value
-
     db_class: TypeAlias = db.RowMixin
         Underlying database class
 
@@ -1052,7 +1046,6 @@ def get_node_process_function(
     the_function: Callable
         Function that causes a Node to be processed.
     """
-    assert response_model_class
 
     @router.post(
         "/action/{row_id}/process",
@@ -1075,7 +1068,6 @@ def get_node_process_function(
 
 def get_node_run_check_function(
     router: APIRouter,
-    response_model_class: TypeAlias = tuple[bool, StatusEnum],
     db_class: TypeAlias = db.NodeMixin,
 ) -> Callable:
     """Return a function that checks the status of a Node.
@@ -1085,9 +1077,6 @@ def get_node_run_check_function(
     router: APIRouter
         Router to attach the function to
 
-    response_model_class: TypeAlias = BaseModel
-        Pydantic class used to serialize the return value
-
     db_class: TypeAlias = db.RowMixin
         Underlying database class
 
@@ -1096,7 +1085,6 @@ def get_node_run_check_function(
     the_function: Callable
         Function that checks the status of a Node
     """
-    assert response_model_class
 
     @router.post(
         "/action/{row_id}/run_check",

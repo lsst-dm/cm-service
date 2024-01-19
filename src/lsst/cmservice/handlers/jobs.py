@@ -16,7 +16,7 @@ from lsst.ctrl.bps import BaseWmsService, WmsRunReport, WmsStates
 from lsst.utils import doImport
 
 from ..common.enums import StatusEnum, TaskStatusEnum, WmsMethodEnum
-from ..common.errors import CMBadExecutionMethodError
+from ..common.errors import CMBadExecutionMethodError, CMIDMismatchError
 from .functions import load_manifest_report, load_wms_reports
 from .script_handler import FunctionHandler, ScriptHandler
 
@@ -423,6 +423,7 @@ class ManifestReportLoadHandler(FunctionHandler):
             return StatusEnum.failed
 
         check_job = await load_manifest_report(session, job.fullname, pipetask_report_yaml)
-        assert job.id == check_job.id
+        if not job.id == check_job.id:
+            raise CMIDMismatchError(f"job.id {job.id} != check_job.id {check_job.id}")
 
         return StatusEnum.accepted
