@@ -48,14 +48,7 @@ class ChainCreateScriptHandler(ScriptHandler):
                 command += f" {input_coll}"
         else:
             command += f" {input_colls}"
-        callback = f"cm-client action process --fullname {parent.fullname}"
-        await write_bash_script(
-            script_url,
-            command,
-            prepend="#!/usr/bin/bash\n",
-            append=callback,
-            **data_dict,
-        )
+        await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -89,14 +82,7 @@ class ChainPrependScriptHandler(ScriptHandler):
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"butler collection-chain {butler_repo} {output_coll} --mode prepend {input_coll}"
-        callback = f"cm-client action process --fullname {parent.fullname}"
-        await write_bash_script(
-            script_url,
-            command,
-            prepend="#!/usr/bin/bash\n",
-            append=callback,
-            **data_dict,
-        )
+        await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -150,14 +136,7 @@ class ChainCollectScriptHandler(ScriptHandler):
             command += f" {collect_coll_}"
         for input_coll_ in input_colls:
             command += f" {input_coll_}"
-        callback = f"cm-client action process --fullname {parent.fullname}"
-        await write_bash_script(
-            script_url,
-            command,
-            prepend="#!/usr/bin/bash\n",
-            append=callback,
-            **data_dict,
-        )
+        await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -195,14 +174,7 @@ class TagInputsScriptHandler(ScriptHandler):
         command += f" --collections {input_coll}"
         if data_query:
             command += f' --where "{data_query}"'
-        callback = f"cm-client action process --fullname {parent.fullname}"
-        await write_bash_script(
-            script_url,
-            command,
-            prepend="#!/usr/bin/bash\n",
-            append=callback,
-            **data_dict,
-        )
+        await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -231,14 +203,7 @@ class TagCreateScriptHandler(ScriptHandler):
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"butler associate {butler_repo} {output_coll}"
-        callback = f"cm-client action process --fullname {parent.fullname}"
-        await write_bash_script(
-            script_url,
-            command,
-            prepend="#!/usr/bin/bash\n",
-            append=callback,
-            **data_dict,
-        )
+        await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -271,14 +236,7 @@ class TagAssociateScriptHandler(ScriptHandler):
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"butler associate {butler_repo} {output_coll}"
         command += f" --collections {input_coll}"
-        callback = f"cm-client action process --fullname {parent.fullname}"
-        await write_bash_script(
-            script_url,
-            command,
-            prepend="#!/usr/bin/bash\n",
-            append=callback,
-            **data_dict,
-        )
+        await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -340,14 +298,6 @@ class PrepareStepScriptHandler(ScriptHandler):
             for input_coll_ in input_colls:
                 command += f" {input_coll_}"
         await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
-        callback = f"cm-client action process --fullname {parent.fullname}"
-        await write_bash_script(
-            script_url,
-            command,
-            prepend="#!/usr/bin/bash\n",
-            append=callback,
-            **data_dict,
-        )
         return StatusEnum.prepared
 
 
@@ -377,13 +327,6 @@ class ValidateScriptHandler(ScriptHandler):
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"pipetask FIXME {butler_repo} {input_coll} {output_coll}"
-        callback = f"cm-client action process --fullname {parent.fullname}"
-        await write_bash_script(
-            script_url,
-            command,
-            prepend="#!/usr/bin/bash\n",
-            append=callback,
-            **data_dict,
-        )
+        await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
