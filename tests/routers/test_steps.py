@@ -5,6 +5,7 @@ from lsst.cmservice.config import config
 
 
 @pytest.mark.asyncio()
+@pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
 async def test_steps_api(client: AsyncClient) -> None:
     """Test `/steps` API endpoint."""
 
