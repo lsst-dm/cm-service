@@ -3,7 +3,7 @@
 These tables connect individual SpecBlocks into Specifications
 that can be used to build entire campaigns
 """
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class SpecBlockAssociationBase(BaseModel):
@@ -26,6 +26,8 @@ class SpecBlockAssociationCreate(SpecBlockAssociationBase):
 class SpecBlockAssociation(SpecBlockAssociationBase):
     """Parameters that are in DB tables and not used to create new rows"""
 
+    model_config = ConfigDict(from_attributes=True)
+
     # PrimaryKey
     id: int
 
@@ -37,6 +39,3 @@ class SpecBlockAssociation(SpecBlockAssociationBase):
 
     # Foreign Key in SpecBlock Table
     spec_block_id: int
-
-    class Config:
-        orm_mode = True

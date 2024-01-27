@@ -257,7 +257,7 @@ def get_object_by_fullname_function(
         params = models.FullnameQuery(
             fullname=fullname,
         )
-        results = obj.client.get(f"{query}", params=params.dict()).json()
+        results = obj.client.get(f"{query}", params=params.model_dump()).json()
         try:
             return parse_obj_as(response_model_class, results)
         except ValidationError as msg:
@@ -332,7 +332,7 @@ def get_node_property_by_fullname_function(
         params = models.FullnameQuery(
             fullname=fullname,
         )
-        results = obj.client.get(f"{query}", params=params.dict()).json()
+        results = obj.client.get(f"{query}", params=params.model_dump()).json()
         try:
             return parse_obj_as(response_model_class, results)
         except ValidationError as msg:
@@ -451,7 +451,7 @@ def get_job_property_function(
         params = models.FullnameQuery(
             fullname=fullname,
         )
-        results = obj.client.get(f"{query}", params=params.dict()).json()
+        results = obj.client.get(f"{query}", params=params.model_dump()).json()
         try:
             return parse_obj_as(list[response_model_class], results)
         except ValidationError as msg:
@@ -541,7 +541,7 @@ def get_general_query_function(
         **kwargs: Any,
     ) -> response_model_class:
         params = query_class(**kwargs)
-        results = obj.client.get(f"{query}/{row_id}/{query_suffix}", params=params.dict()).json()
+        results = obj.client.get(f"{query}/{row_id}/{query_suffix}", params=params.model_dump()).json()
         try:
             if results_key is None:
                 return parse_obj_as(response_model_class, results)

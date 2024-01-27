@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class WmsTaskReportBase(BaseModel):
@@ -28,14 +28,15 @@ class WmsTaskReportCreate(WmsTaskReportBase):
 class WmsTaskReport(WmsTaskReportBase):
     """Parameters that are in DB tables and not used to create new rows"""
 
-    id: int
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        orm_mode = True
+    id: int
 
 
 class WmsTaskReportUpdate(WmsTaskReportBase):
     """Parameters that can be udpated"""
+
+    model_config = ConfigDict(from_attributes=True)
 
     n_unknown: int
     n_misfit: int
@@ -48,6 +49,3 @@ class WmsTaskReportUpdate(WmsTaskReportBase):
     n_succeeded: int
     n_failed: int
     n_pruned: int
-
-    class Config:
-        orm_mode = True

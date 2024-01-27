@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class MergedTaskSet(BaseModel):
     """Pydantic model for combining data on Tasks"""
+
+    model_config = ConfigDict(from_attributes=True)
 
     name: str
 
@@ -12,9 +14,6 @@ class MergedTaskSet(BaseModel):
     n_failed: int = 0
     n_failed_upstream: int = 0
     n_done: int = 0
-
-    class Config:
-        orm_mode = True
 
     def __iadd__(self, other: MergedTaskSet) -> MergedTaskSet:
         self.n_expected += other.n_expected

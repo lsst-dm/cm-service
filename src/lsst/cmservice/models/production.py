@@ -1,6 +1,6 @@
 """Pydantic model for the Production tables
 """
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ProductionBase(BaseModel):
@@ -17,8 +17,7 @@ class ProductionCreate(ProductionBase):
 class Production(ProductionBase):
     """Parameters that are in DB tables and not used to create new rows"""
 
+    model_config = ConfigDict(from_attributes=True)
+
     # PrimaryKey
     id: int
-
-    class Config:
-        orm_mode = True

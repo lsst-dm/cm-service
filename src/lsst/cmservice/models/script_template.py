@@ -4,7 +4,7 @@ These represent files that provide templates
 for bash scripts or pipetask configurations that
 have been uploaded to the database
 """
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ScriptTemplateBase(BaseModel):
@@ -14,7 +14,7 @@ class ScriptTemplateBase(BaseModel):
     name: str
 
     # Corresponding data
-    data: dict | list | None
+    data: dict | list | None = None
 
 
 class ScriptTemplateCreate(ScriptTemplateBase):
@@ -24,18 +24,16 @@ class ScriptTemplateCreate(ScriptTemplateBase):
 class ScriptTemplate(ScriptTemplateBase):
     """Parameters that are in DB tables and not used to create new rows"""
 
+    model_config = ConfigDict(from_attributes=True)
+
     # PrimaryKey
     id: int
-
-    class Config:
-        orm_mode = True
 
 
 class ScriptTemplateUpdate(ScriptTemplateBase):
     """Parameters that can be udpated"""
 
-    # Corresponding data
-    data: dict | list | None
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        orm_mode = True
+    # Corresponding data
+    data: dict | list | None = None

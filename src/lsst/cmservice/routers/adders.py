@@ -23,7 +23,7 @@ async def add_groups(
 ) -> db.Step:
     """Invoke the interface.add_groups function"""
     try:
-        return await interface.add_groups(session, **query.dict())
+        return await interface.add_groups(session, **query.model_dump())
     except Exception as msg:
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
@@ -40,7 +40,7 @@ async def add_steps(
 ) -> db.Campaign:
     """Invoke the interface.add_steps function"""
     try:
-        return await interface.add_steps(session, **query.dict())
+        return await interface.add_steps(session, **query.model_dump())
     except Exception as msg:
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
@@ -57,6 +57,6 @@ async def add_campaign(
 ) -> db.Campaign:
     """Invoke the interface.add_campaign function"""
     try:
-        return await interface.create_campaign(session, **query.dict())
+        return await interface.create_campaign(session, **query.model_dump())
     except Exception as msg:
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg

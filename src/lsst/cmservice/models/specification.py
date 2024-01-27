@@ -3,7 +3,7 @@
 These tables group templates for building processing Nodes into
 sets that can be used to define a Campaign
 """
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class SpecificationBase(BaseModel):
@@ -20,11 +20,10 @@ class SpecificationCreate(SpecificationBase):
 class Specification(SpecificationBase):
     """Parameters that are in DB tables and not used to create new rows"""
 
+    model_config = ConfigDict(from_attributes=True)
+
     # Primary Key
     id: int
-
-    class Config:
-        orm_mode = True
 
 
 class SpecificationLoad(BaseModel):

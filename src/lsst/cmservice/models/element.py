@@ -4,7 +4,7 @@ These are the things that are shared between
 'Campaign', 'Step', 'Group', 'Job' and 'Script'
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from ..common.enums import StatusEnum
 
@@ -41,6 +41,8 @@ class ElementCreateMixin(ElementBase):
 class ElementMixin(ElementBase):
     """Parameters that are in DB tables and not used to create new rows"""
 
+    model_config = ConfigDict(from_attributes=True)
+
     # primary key
     id: int
 
@@ -56,9 +58,6 @@ class ElementMixin(ElementBase):
     # Flag to set if this Node is superseded
     superseded: bool = False
 
-    class Config:
-        orm_mode = True
-
 
 class Element(ElementMixin):
     """Parameters that are in DB tables"""
@@ -66,6 +65,8 @@ class Element(ElementMixin):
 
 class ElementUpdate(BaseModel):
     """Parameters that can be udpated"""
+
+    model_config = ConfigDict(from_attributes=True)
 
     # Parameter Overrides
     data: dict | str | None = None
@@ -87,6 +88,3 @@ class ElementUpdate(BaseModel):
 
     # Flag to set if this Node is superseded
     superseded: bool = False
-
-    class Config:
-        orm_mode = True

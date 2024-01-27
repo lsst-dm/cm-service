@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class MergedProductSet(BaseModel):
     """Pydantic model for combining data on Products"""
+
+    model_config = ConfigDict(from_attributes=True)
 
     name: str
 
@@ -13,9 +15,6 @@ class MergedProductSet(BaseModel):
     n_failed_upstream: int = 0
     n_missing: int = 0
     n_done: int = 0
-
-    class Config:
-        orm_mode = True
 
     def __iadd__(self, other: MergedProductSet) -> MergedProductSet:
         self.n_expected += other.n_expected

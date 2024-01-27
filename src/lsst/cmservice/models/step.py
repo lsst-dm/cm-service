@@ -4,6 +4,8 @@ These tables don't have anything beyond
 standard Element columns
 """
 
+from pydantic import ConfigDict
+
 from .element import ElementCreateMixin, ElementMixin, ElementUpdate
 
 
@@ -17,11 +19,10 @@ class StepCreate(ElementCreateMixin):
 class Step(ElementMixin):
     """Parameters that are in DB tables and not used to create new rows"""
 
+    model_config = ConfigDict(from_attributes=True)
+
     # ForeignKey for SpecBlock
     spec_block_id: int
-
-    class Config:
-        orm_mode = True
 
 
 class StepUpdate(ElementUpdate):

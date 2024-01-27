@@ -2,7 +2,7 @@
 
 These tables provide templates for build processing Nodes
 """
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class SpecBlockBase(BaseModel):
@@ -13,17 +13,17 @@ class SpecBlockBase(BaseModel):
     # Class of associated Handler
     handler: str | None = None
     # General Parameters
-    data: dict | None
+    data: dict | None = None
     # Parameters defining associated collection names
-    collections: dict | None
+    collections: dict | None = None
     # Configuration of child nodes associated to this node
-    child_config: dict | None
+    child_config: dict | None = None
     # Used to override Spec Block Configuration
-    spec_aliases: dict | None
+    spec_aliases: dict | None = None
     # Configuraiton of scripts associated to this Node
-    scripts: dict | list | None
+    scripts: dict | list | None = None
     # Configuraiton of scripts associated to this Node
-    steps: dict | list | None
+    steps: dict | list | None = None
 
 
 class SpecBlockCreate(SpecBlockBase):
@@ -33,30 +33,28 @@ class SpecBlockCreate(SpecBlockBase):
 class SpecBlock(SpecBlockBase):
     """Parameters that are in DB tables and not used to create new rows"""
 
+    model_config = ConfigDict(from_attributes=True)
+
     # PrimaryKey
     id: int
-
-    class Config:
-        orm_mode = True
 
 
 class SpecBlockUpdate(SpecBlockBase):
     """Parameters that can be udpated"""
 
+    model_config = ConfigDict(from_attributes=True)
+
     # Class of associated Handler
     handler: str | None = None
     # General Parameters
-    data: dict | None
+    data: dict | None = None
     # Parameters defining associated collection names
-    collections: dict | None
+    collections: dict | None = None
     # Configuration of child nodes associated to this node
-    child_config: dict | None
+    child_config: dict | None = None
     # Used to override Spec Block Configuration
-    spec_aliases: dict | None
+    spec_aliases: dict | None = None
     # Configuraiton of scripts associated to this Node
-    scripts: dict | list | None
+    scripts: dict | list | None = None
     # Configuraiton of scripts associated to this Node
-    steps: dict | list | None
-
-    class Config:
-        orm_mode = True
+    steps: dict | list | None = None
