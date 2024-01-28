@@ -81,10 +81,15 @@ class RowMixin:
         parent_class = kwargs.get("parent_class")
 
         q = select(cls)
-        if parent_name is not None and parent_class is not None:
-            parent_id = (await parent_class.get_row_by_fullname(session, parent_name)).id
-        if parent_id is not None and parent_class is not None:
-            q = q.where(parent_class.id == parent_id)
+        # TODO: Being a mixin leads to loose typing here.
+        # Is there a better way?
+        if hasattr(cls, "parent_id"):
+            if parent_class is not None:
+                q = q.where(parent_class.id == cls.parent_id)  # type: ignore
+            if parent_name is not None:
+                q = q.where(parent_class.fullname == parent_name)
+            if parent_id is not None:
+                q = q.where(parent_class.id == parent_id)
         q = q.offset(skip).limit(limit)
         async with session.begin_nested():
             results = await session.scalars(q)
