@@ -5,10 +5,11 @@ from lsst.cmservice.config import config
 
 
 @pytest.mark.asyncio()
+@pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
 async def test_productions_api(client: AsyncClient) -> None:
     """Test `/productions` API endpoint."""
 
-    pids = [4]
+    pids: list[int] = []
     # Get list;
     response = await client.get(f"{config.prefix}/production/list")
     assert response.status_code == 200

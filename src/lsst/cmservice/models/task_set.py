@@ -7,7 +7,7 @@ These tables are populated with the output
 of pipetask report
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class TaskSetBase(BaseModel):
@@ -30,6 +30,8 @@ class TaskSetCreate(TaskSetBase):
 class TaskSet(TaskSetBase):
     """Parameters that are in DB tables and not used to create new rows"""
 
+    model_config = ConfigDict(from_attributes=True)
+
     # Primary Key
     id: int
 
@@ -43,12 +45,11 @@ class TaskSet(TaskSetBase):
     # Number of quanta did not run b/c of upstream failures
     n_failed_upstream: int = 0
 
-    class Config:
-        orm_mode = True
-
 
 class TaskSetUpdate(TaskSetBase):
     """Parameters that can be udpated"""
+
+    model_config = ConfigDict(from_attributes=True)
 
     # Number of expected quanta run in the workflow
     n_expected: int
@@ -58,6 +59,3 @@ class TaskSetUpdate(TaskSetBase):
     n_failed: int = 0
     # Number of quanta did not run b/c of upstream failures
     n_failed_upstream: int = 0
-
-    class Config:
-        orm_mode = True

@@ -43,9 +43,9 @@ def _output_pydantic_object(
     """
     match output:
         case options.OutputEnum.json:
-            click.echo(json.dumps(model.dict(), indent=4))
+            click.echo(json.dumps(model.model_dump(), indent=4))
         case options.OutputEnum.yaml:
-            click.echo(yaml.dump(model.dict()))
+            click.echo(yaml.dump(model.model_dump()))
         case _:
             the_table = [[getattr(model, col_) for col_ in col_names]]
             click.echo(tabulate(the_table, headers=col_names, tablefmt="plain"))
@@ -73,9 +73,9 @@ def _output_pydantic_list(
     for model_ in models:
         match output:
             case options.OutputEnum.json:
-                click.echo(json.dumps(model_.dict(), indent=4))
+                click.echo(json.dumps(model_.model_dump(), indent=4))
             case options.OutputEnum.yaml:
-                click.echo(yaml.dump(model_.dict()))
+                click.echo(yaml.dump(model_.model_dump()))
             case _:
                 the_table.append([str(getattr(model_, col_)) for col_ in col_names])
     match output:

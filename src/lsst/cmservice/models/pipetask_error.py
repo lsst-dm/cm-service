@@ -7,7 +7,7 @@ These are errors associated to processing
 specific quanta.
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class PipetaskErrorBase(BaseModel):
@@ -37,15 +37,16 @@ class PipetaskErrorCreate(PipetaskErrorBase):
 class PipetaskError(PipetaskErrorBase):
     """Parameters that are in DB tables and not used to create new rows"""
 
+    model_config = ConfigDict(from_attributes=True)
+
     # Primary Key
     id: int
-
-    class Config:
-        orm_mode = True
 
 
 class PipetaskErrorUpdate(PipetaskErrorBase):
     """Parameters that can be udpated"""
+
+    model_config = ConfigDict(from_attributes=True)
 
     # ForeignKey into PipetaskErrorType table
     # None means that the error in not yet identified
@@ -59,6 +60,3 @@ class PipetaskErrorUpdate(PipetaskErrorBase):
 
     # Data ID for the quanta that had the error
     data_id: dict
-
-    class Config:
-        orm_mode = True

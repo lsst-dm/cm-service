@@ -1,5 +1,6 @@
 from arq.connections import RedisSettings
-from pydantic import BaseSettings, Field, RedisDsn
+from pydantic import Field, RedisDsn
+from pydantic_settings import BaseSettings
 from safir.arq import ArqMode
 from safir.logging import LogLevel, Profile
 
@@ -12,48 +13,48 @@ class Configuration(BaseSettings):
     prefix: str = Field(
         default="/cm-service/v1",
         title="The URL prefix for the cm-service API",
-        env="CM_URL_PREFIX",
+        validation_alias="CM_URL_PREFIX",
     )
 
     database_url: str = Field(
         default="",
         title="The URL for the cm-service database",
-        env="CM_DATABASE_URL",
+        validation_alias="CM_DATABASE_URL",
     )
 
     database_password: str | None = Field(
         title="The password for the cm-service database",
-        env="CM_DATABASE_PASSWORD",
+        validation_alias="CM_DATABASE_PASSWORD",
     )
 
     database_schema: str | None = Field(
         default=None,
         title="Schema to use for cm-service database",
-        env="CM_DATABASE_SCHEMA",
+        validation_alias="CM_DATABASE_SCHEMA",
     )
 
-    database_echo: bool | str = Field(
+    database_echo: bool = Field(
         default=False,
         title="SQLAlchemy engine echo setting for the cm-service database",
-        env="CM_DATABASE_ECHO",
+        validation_alias="CM_DATABASE_ECHO",
     )
 
     profile: Profile = Field(
         default=Profile.development,
         title="Application logging profile",
-        env="CM_LOG_PROFILE",
+        validation_alias="CM_LOG_PROFILE",
     )
 
     logger_name: str = Field(
         default="cmservice",
         title="The root name of the application's logger",
-        env="CM_LOGGER",
+        validation_alias="CM_LOGGER",
     )
 
     log_level: LogLevel = Field(
         default=LogLevel.INFO,
         title="Log level of the application's logger",
-        env="CM_LOG_LEVEL",
+        validation_alias="CM_LOG_LEVEL",
     )
 
     arq_mode: ArqMode = Field(
@@ -61,14 +62,14 @@ class Configuration(BaseSettings):
     )
 
     arq_redis_url: RedisDsn = Field(
-        default=RedisDsn("redis://localhost:6379/1", scheme="redis"),
+        default=RedisDsn("redis://localhost:6379/1"),
         title="The URL for the cm-service arq redis database",
-        env="CM_ARQ_REDIS_URL",
+        validation_alias="CM_ARQ_REDIS_URL",
     )
 
     arq_redis_password: str | None = Field(
         title="The password for the cm-service arq redis database",
-        env="CM_ARQ_REDIS_PASSWORD",
+        validation_alias="CM_ARQ_REDIS_PASSWORD",
     )
 
     @property

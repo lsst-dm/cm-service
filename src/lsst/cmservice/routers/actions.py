@@ -23,7 +23,7 @@ async def process_script(
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> tuple[bool, StatusEnum]:
     """Invoke the interface.process_script function"""
-    params = query.dict()
+    params = query.model_dump()
     if params.get("fake_status"):
         params["fake_status"] = StatusEnum(params["fake_status"])
     try:
@@ -43,7 +43,7 @@ async def process_job(
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> tuple[bool, StatusEnum]:
     """Invoke the interface.process_job function"""
-    params = query.dict()
+    params = query.model_dump()
     if params.get("fake_status"):
         params["fake_status"] = StatusEnum(params["fake_status"])
     try:
@@ -63,7 +63,7 @@ async def process_element(
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> tuple[bool, StatusEnum]:
     """Invoke the interface.process_element function"""
-    params = query.dict()
+    params = query.model_dump()
     if params.get("fake_status"):
         params["fake_status"] = StatusEnum(params["fake_status"])
     try:
@@ -83,7 +83,7 @@ async def process(
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> tuple[bool, StatusEnum]:
     """Invoke the interface.process function"""
-    params = query.dict()
+    params = query.model_dump()
     if params.get("fake_status"):
         params["fake_status"] = StatusEnum(params["fake_status"])
     try:
@@ -103,7 +103,7 @@ async def reset_script(
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Script:
     """Invoke the interface.reset_script function"""
-    params = query.dict()
+    params = query.model_dump()
     try:
         return await interface.reset_script(session, **params)
     except Exception as msg:
@@ -121,7 +121,7 @@ async def retry_script(
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Script:
     """Invoke the interface.retry_script function"""
-    params = query.dict()
+    params = query.model_dump()
     try:
         return await interface.retry_script(session, **params)
     except Exception as msg:
@@ -139,7 +139,7 @@ async def rescue_job(
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Job:
     """Invoke the interface.rescue_job function"""
-    params = query.dict()
+    params = query.model_dump()
     try:
         return await interface.rescue_job(session, **params)
     except Exception as msg:
@@ -157,7 +157,7 @@ async def mark_job_rescued(
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> list[db.Job]:
     """Invoke the interface.mark_job_rescued function"""
-    params = query.dict()
+    params = query.model_dump()
     try:
         return await interface.mark_job_rescued(session, **params)
     except Exception as msg:
@@ -175,7 +175,7 @@ async def rematch_pipetask_errors(
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> list[db.PipetaskError]:
     """Invoke the interface.match_pipetask_errors function"""
-    params = query.dict()
+    params = query.model_dump()
     try:
         return await interface.match_pipetask_errors(session, **params)
     except Exception as msg:

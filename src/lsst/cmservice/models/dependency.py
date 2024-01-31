@@ -7,7 +7,7 @@ between Steps and Scripts, respectively.
 In each case the 'prerequisite' Node must run before the 'dependent' Node
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class DependencyBase(BaseModel):
@@ -26,8 +26,7 @@ class DependencyCreate(DependencyBase):
 class Dependency(DependencyBase):
     """Parameters that are in DB tables and not used to create new rows"""
 
+    model_config = ConfigDict(from_attributes=True)
+
     # primary key
     id: int
-
-    class Config:
-        orm_mode = True

@@ -7,7 +7,7 @@ These tables are populated with the output
 of pipetask report
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ProductSetBase(BaseModel):
@@ -30,6 +30,8 @@ class ProductSetCreate(ProductSetBase):
 class ProductSet(ProductSetBase):
     """Parameters that are in DB tables and not used to create new rows"""
 
+    model_config = ConfigDict(from_attributes=True)
+
     # Primary Key
     id: int
     # Unique Name for the combination of Job/Task/File
@@ -44,12 +46,11 @@ class ProductSet(ProductSetBase):
     # Number of files missing
     n_missing: int = 0
 
-    class Config:
-        orm_mode = True
-
 
 class ProductSetUpdate(ProductSetBase):
     """Parameters that can be udpated"""
+
+    model_config = ConfigDict(from_attributes=True)
 
     # Number of files of this type expected for this task
     n_expected: int
@@ -61,6 +62,3 @@ class ProductSetUpdate(ProductSetBase):
     n_failed_upstream: int = 0
     # Number of files missing
     n_missing: int = 0
-
-    class Config:
-        orm_mode = True

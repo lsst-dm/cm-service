@@ -131,7 +131,7 @@ class CMQueryClient:
             skip_superseded=skip_superseded,
         )
         query = "get/element_scripts"
-        results = self._client.get(f"{query}", params=params.dict()).json()
+        results = self._client.get(f"{query}", params=params.model_dump()).json()
         try:
             return parse_obj_as(list[models.Script], results)
         except ValidationError as msg:
@@ -169,7 +169,7 @@ class CMQueryClient:
             skip_superseded=skip_superseded,
         )
         query = "get/element_all_scripts"
-        results = self._client.get(f"{query}", params=params.dict()).json()
+        results = self._client.get(f"{query}", params=params.model_dump()).json()
         try:
             return parse_obj_as(list[models.Script], results)
         except ValidationError as msg:
@@ -206,7 +206,7 @@ class CMQueryClient:
             skip_superseded=skip_superseded,
         )
         query = "get/element_jobs"
-        results = self._client.get(f"{query}", params=params.dict()).json()
+        results = self._client.get(f"{query}", params=params.model_dump()).json()
         try:
             return parse_obj_as(list[models.Job], results)
         except ValidationError as msg:
@@ -232,7 +232,7 @@ class CMQueryClient:
             fullname=fullname,
         )
         query = "get/element_sleep_ime"
-        results = self._client.get(f"{query}", params=params.dict()).json()
+        results = self._client.get(f"{query}", params=params.model_dump()).json()
         try:
             return parse_obj_as(int, results)
         except ValidationError as msg:

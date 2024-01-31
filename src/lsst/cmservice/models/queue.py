@@ -6,7 +6,7 @@ being processed by daemons.
 
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class QueueBase(BaseModel):
@@ -28,6 +28,8 @@ class QueueCreate(QueueBase):
 class Queue(QueueBase):
     """Parameters that are in DB tables and not used to create new rows"""
 
+    model_config = ConfigDict(from_attributes=True)
+
     # PrimaryKey
     id: int
 
@@ -39,14 +41,13 @@ class Queue(QueueBase):
     # Time last call to process finished
     time_updated: datetime
     # When processing of this element completed
-    time_finished: datetime | None
-
-    class Config:
-        orm_mode = True
+    time_finished: datetime | None = None
 
 
 class QueueUpdate(QueueBase):
     """Parameters that can be udpated"""
+
+    model_config = ConfigDict(from_attributes=True)
 
     # Interval between calls to process
     interval: float = 300.0
@@ -57,7 +58,4 @@ class QueueUpdate(QueueBase):
     # Time last call to process finished
     time_updated: datetime
     # When processing of this element completed
-    time_finished: datetime | None
-
-    class Config:
-        orm_mode = True
+    time_finished: datetime | None = None

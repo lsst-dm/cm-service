@@ -8,7 +8,7 @@ if the diagnostic_message matches the regexp defined
 in the PipetaskErrorType AND the task_name also matches
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from ..common.enums import ErrorActionEnum, ErrorFlavorEnum, ErrorSourceEnum
 
@@ -39,15 +39,13 @@ class PipetaskErrorTypeCreate(PipetaskErrorTypeBase):
 class PipetaskErrorType(PipetaskErrorTypeBase):
     """Parameters that are in DB tables and not used to create new rows"""
 
+    model_config = ConfigDict(from_attributes=True)
+
     # PrimaryKey
     id: int
-
-    class Config:
-        orm_mode = True
 
 
 class PipetaskErrorTypeUpdate(PipetaskErrorTypeBase):
     """Parameters that can be udpated"""
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

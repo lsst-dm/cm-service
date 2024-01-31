@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from ..common.enums import LevelEnum, ScriptMethodEnum, StatusEnum
 
@@ -40,6 +40,8 @@ class ScriptCreate(ScriptBase):
 class Script(ScriptBase):
     """Parameters that are in DB tables and not used to create new rows"""
 
+    model_config = ConfigDict(from_attributes=True)
+
     # Primary Key
     id: int
 
@@ -63,12 +65,11 @@ class Script(ScriptBase):
     # True is Script is superseded
     superseded: bool = False
 
-    class Config:
-        orm_mode = True
-
 
 class ScriptUpdate(ScriptBase):
     """Parameters that can be udpated"""
+
+    model_config = ConfigDict(from_attributes=True)
 
     # Method used to process this script
     method: ScriptMethodEnum = ScriptMethodEnum.slurm
@@ -90,6 +91,3 @@ class ScriptUpdate(ScriptBase):
     status: StatusEnum = StatusEnum.waiting
     # True is Script is superseded
     superseded: bool = False
-
-    class Config:
-        orm_mode = True

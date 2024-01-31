@@ -242,7 +242,7 @@ def post_row_function(
         session: async_scoped_session = Depends(db_session_dependency),
     ) -> db_class:
         try:
-            result = await db_class.create_row(session, **row_create.dict())
+            result = await db_class.create_row(session, **row_create.model_dump())
             await session.commit()
         except Exception as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
@@ -329,7 +329,7 @@ def put_row_function(
         session: async_scoped_session = Depends(db_session_dependency),
     ) -> db_class:
         try:
-            return await db_class.update_row(session, row_id, **row_update.dict())
+            return await db_class.update_row(session, row_id, **row_update.model_dump())
         except Exception as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 

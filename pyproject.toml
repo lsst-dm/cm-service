@@ -58,24 +58,6 @@ exclude_lines = [
     "if TYPE_CHECKING:",
 ]
 
-[tool.black]
-line-length = 110
-target-version = ["py310"]
-exclude = '''
-/(
-    \.git
-  | \.mypy_cache
-  | \.venv
-)/
-'''
-# Use single-quoted strings so TOML treats the string like a Python r-string
-# Multi-line strings are implicitly treated by black as regular expressions
-
-[tool.isort]
-profile = "black"
-line_length = 110
-known_first_party = ["lsst", "tests"]
-
 [tool.ruff]
 exclude = [
     "__init__.py",
@@ -103,6 +85,9 @@ target-version = "py311"
 extend-select = [
     "RUF100", # Warn about unused noqa
 ]
+
+[tool.ruff.lint.isort]
+known-first-party = ["lsst", "tests"]
 
 [tool.ruff.pycodestyle]
 max-doc-length = 79

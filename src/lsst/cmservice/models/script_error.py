@@ -5,7 +5,7 @@ Scripts, i.e., stuff like butler commands or
 quantum graph generation failing.
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ScriptErrorBase(BaseModel):
@@ -26,20 +26,18 @@ class ScriptErrorCreate(ScriptErrorBase):
 class ScriptError(ScriptErrorBase):
     """Parameters that are in DB tables and not used to create new rows"""
 
+    model_config = ConfigDict(from_attributes=True)
+
     # Primary Key
     id: int
-
-    class Config:
-        orm_mode = True
 
 
 class ScriptErrorUpdate(ScriptErrorBase):
     """Parameters that can be udpated"""
 
+    model_config = ConfigDict(from_attributes=True)
+
     # Who reported This error
     source: int
     # Message associated to this error
     diagnostic_message: str
-
-    class Config:
-        orm_mode = True

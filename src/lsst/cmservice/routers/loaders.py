@@ -37,7 +37,7 @@ async def load_specification(
         Specification in question
     """
     try:
-        result = await interface.load_specification(session, **query.dict())
+        result = await interface.load_specification(session, **query.model_dump())
         await session.commit()
     except Exception as msg:
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
@@ -70,7 +70,7 @@ async def load_and_create_campaign(
         Campaign in question
     """
     try:
-        result = await interface.load_and_create_campaign(session, **query.dict())
+        result = await interface.load_and_create_campaign(session, **query.model_dump())
         await session.commit()
     except Exception as msg:
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
@@ -103,7 +103,7 @@ async def load_error_types(
         Newly loaded PipetaskErrorTypes
     """
     try:
-        return await interface.load_error_types(session, **query.dict())
+        return await interface.load_error_types(session, **query.model_dump())
     except Exception as msg:
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
@@ -134,6 +134,6 @@ async def load_manifest_report(
         Associated job
     """
     try:
-        return await interface.load_manifest_report(session, **query.dict())
+        return await interface.load_manifest_report(session, **query.model_dump())
     except Exception as msg:
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg

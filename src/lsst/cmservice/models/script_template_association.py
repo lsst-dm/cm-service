@@ -3,7 +3,7 @@
 These tables connect individual ScriptTemplates to Specifications that
 can be used to build entire Campaigns
 """
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ScriptTemplateAssociationBase(BaseModel):
@@ -26,6 +26,8 @@ class ScriptTemplateAssociationCreate(ScriptTemplateAssociationBase):
 class ScriptTemplateAssociation(ScriptTemplateAssociationBase):
     """Parameters that are in DB tables and not used to create new rows"""
 
+    model_config = ConfigDict(from_attributes=True)
+
     # PrimaryKey
     id: int
 
@@ -37,6 +39,3 @@ class ScriptTemplateAssociation(ScriptTemplateAssociationBase):
 
     # Foreign Key in ScriptTemplate Table
     script_template_id: int
-
-    class Config:
-        orm_mode = True

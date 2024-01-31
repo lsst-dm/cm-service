@@ -5,6 +5,7 @@ from lsst.cmservice.config import config
 
 
 @pytest.mark.asyncio()
+@pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
 async def test_groups_api(client: AsyncClient) -> None:
     """Test `/groups` API endpoint."""
 

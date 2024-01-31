@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from ..common.enums import TableEnum
 
@@ -13,7 +13,6 @@ class RowQuery(BaseModel):
 class RowData(BaseModel):
     """Pydantic model for getting data field from a row in a table"""
 
-    data: dict
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        orm_mode = False
+    data: dict

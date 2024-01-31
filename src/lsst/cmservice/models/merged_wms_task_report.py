@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class MergedWmsTaskReport(BaseModel):  # pylint: disable=too-many-instance-attributes
     """Pydantic model for combining data on WmsTasks"""
+
+    model_config = ConfigDict(from_attributes=True)
 
     name: str
 
@@ -20,9 +22,6 @@ class MergedWmsTaskReport(BaseModel):  # pylint: disable=too-many-instance-attri
     n_succeeded: int = 0
     n_failed: int = 0
     n_pruned: int = 0
-
-    class Config:
-        orm_mode = True
 
     def __iadd__(self, other: MergedWmsTaskReport) -> MergedWmsTaskReport:
         self.n_expected += other.n_expected

@@ -3,6 +3,7 @@ from httpx import AsyncClient
 
 
 @pytest.mark.asyncio()
+@pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
 async def test_get_index(client: AsyncClient) -> None:
     """Test ``GET /``."""
     response = await client.get("/")
