@@ -277,13 +277,11 @@ class PrepareStepScriptHandler(ScriptHandler):
 
         prereq_colls: list[str] = []
 
-        async with session.begin_nested():
-            await session.refresh(parent, attribute_names=["prereqs_"])
-            for prereq_ in parent.prereqs_:
-                await session.refresh(prereq_, attribute_names=["prereq_"])
-                prereq_step = prereq_.prereq_
-                prereq_step_colls = await prereq_step.resolve_collections(session)
-                prereq_colls.append(prereq_step_colls["step_public_output"])
+        all_prereqs = await parent.get_all_prereqs(session)
+        for prereq_step in all_prereqs:
+            prereq_step_colls = await prereq_step.resolve_collections(session)
+            prereq_colls.append(prereq_step_colls["step_public_output"])
+
         if not prereq_colls:
             prereq_colls += resolved_cols["global_inputs"]
 

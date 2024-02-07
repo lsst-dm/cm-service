@@ -226,8 +226,10 @@ class RowMixin:
                 if row is None:
                     raise CMMissingFullnameError(f"{cls} {row_id} not found")
                 for var, value in kwargs.items():
-                    setattr(row, var, value)
+                    if value:
+                        setattr(row, var, value)
             await session.refresh(row)
+            await session.commit()
             return row
         except IntegrityError as e:
             if TYPE_CHECKING:

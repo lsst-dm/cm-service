@@ -283,6 +283,7 @@ def delete_row_function(
     ) -> None:
         try:
             await db_class.delete_row(session, row_id)
+            await session.commit()
         except Exception as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 
@@ -681,7 +682,8 @@ def update_node_status_function(
     ) -> response_model_class:
         try:
             the_node = await db_class.get_row(session, row_id)
-            return await the_node.update_values(session, status=query.status)
+            await the_node.update_values(session, status=query.status)
+            await session.commit()
         except Exception as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
 

@@ -155,6 +155,12 @@ class CMCampaignClient:
     run_check = wrappers.get_node_post_no_query_function(
         tuple[bool, StatusEnum],
         f"{router_string}/action",
+        "process",
+    )
+
+    run_check = wrappers.get_node_post_no_query_function(
+        tuple[bool, StatusEnum],
+        f"{router_string}/action",
         "run_check",
     )
 

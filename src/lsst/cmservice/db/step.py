@@ -159,6 +159,21 @@ class Step(Base, ElementMixin):
                 the_dict += await group_.get_products(session)
             return the_dict
 
+    async def get_all_prereqs(
+        self,
+        session: async_scoped_session,
+        **kwargs: Any,
+    ) -> list[Step]:
+        all_prereqs: list[Step] = []
+        async with session.begin_nested():
+            await session.refresh(self, attribute_names=["prereqs_"])
+            for prereq_ in self.prereqs_:
+                await session.refresh(prereq_, attribute_names=["prereq_"])
+                prereq_step = prereq_.prereq_
+                all_prereqs.append(prereq_step)
+                all_prereqs += await prereq_step.get_all_prereqs(session)
+        return all_prereqs
+
     @classmethod
     async def get_create_kwargs(
         cls,
