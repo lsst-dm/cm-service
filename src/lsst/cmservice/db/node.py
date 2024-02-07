@@ -436,6 +436,7 @@ class NodeMixin(RowMixin):
             else:
                 self.child_config = kwargs.copy()
         await session.refresh(self)
+        await session.commit()
         return self
 
     async def update_collections(

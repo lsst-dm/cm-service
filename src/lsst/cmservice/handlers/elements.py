@@ -309,6 +309,7 @@ class RunGroupsScriptHandler(RunElementScriptHandler):
         splitter = SPLIT_CLASSES[split_method]
 
         i = 0
+
         group_gen = splitter.split(session, script, parent, fake_status=fake_status, **child_config)
 
         async for group_dict_ in group_gen:
@@ -323,6 +324,7 @@ class RunGroupsScriptHandler(RunElementScriptHandler):
 
         status = StatusEnum.prepared
         await script.update_values(session, status=status)
+        await session.commit()
         return status
 
 

@@ -34,6 +34,9 @@ update_options = [
     options.output(),
 ]
 
+# Construct derived templates
+group_command = cli_group.command
+sub_client = DbClass.class_string
 
 # Construct derived templates
 group_command = cli_group.command

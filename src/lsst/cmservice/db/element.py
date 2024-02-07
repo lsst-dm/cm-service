@@ -258,10 +258,8 @@ class ElementMixin(NodeMixin):
     ) -> MergedTaskSetDict:
         """Get the TaskSet associated to this element
 
-        Parameters
-        ----------
-        session : async_scoped_session
-            DB session manager
+        script_sleep: int = 15
+            Time to sleep if scripts are running
 
         Returns
         -------

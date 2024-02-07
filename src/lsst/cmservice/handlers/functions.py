@@ -548,7 +548,12 @@ async def load_manifest_report(
                 )
 
         for failed_quanta_uuid_, failed_quanta_data_ in failed_quanta.items():
-            diagnostic_message = failed_quanta_data_["error"][-1]
+            diagnostic_message_list = failed_quanta_data_["error"]
+            if diagnostic_message_list:
+                diagnostic_message = diagnostic_message_list[-1]
+            else:
+                diagnostic_message = "Super-unhelpful empty message"
+
             error_type_id = await match_pipetask_error(
                 session,
                 task_name_,

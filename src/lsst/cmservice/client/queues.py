@@ -115,13 +115,20 @@ class CMQueueClient:
         row_id: int
             ID of the Queue row in question
         """
-        queue = self.get_row(row_id)
-        sleep_time = self.sleep_time(row_id)
-        wait_time = min(sleep_time, queue.interval)
-        delta_t = timedelta(seconds=wait_time)
-        next_check = queue.time_updated + delta_t
         now = datetime.now()
-        print(now, sleep_time, wait_time, next_check)
+        try:
+            queue = self.get_row(row_id)
+            sleep_time = self.sleep_time(row_id)
+            wait_time = min(sleep_time, queue.interval)
+            delta_t = timedelta(seconds=wait_time)
+            next_check = queue.time_updated + delta_t
+        except Exception as msg:  # pylint: disable=broad-exception-caught
+            print(msg)
+            sleep_time = 300
+            wait_time = 300
+            delta_t = timedelta(seconds=sleep_time)
+            next_check = now + delta_t
+        print(now, sleep_time, wait_time, delta_t, next_check)
         if now < next_check:
             print("pausing")
             pause.until(next_check)
