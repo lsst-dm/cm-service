@@ -315,6 +315,7 @@ class RunGroupsScriptHandler(RunElementScriptHandler):
         async for group_dict_ in group_gen:
             _new_group = await Group.create_row(
                 session,
+                do_commit=False,
                 name=f"group{i}",
                 spec_block_name=spec_block_name,
                 parent_name=parent.fullname,
@@ -323,8 +324,7 @@ class RunGroupsScriptHandler(RunElementScriptHandler):
             i += 1
 
         status = StatusEnum.prepared
-        await script.update_values(session, status=status)
-        await session.commit()
+        await script.update_values(session, do_commit=True, status=status)
         return status
 
 

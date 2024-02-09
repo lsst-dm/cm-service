@@ -94,7 +94,7 @@ async def get_row_by_table_and_id(
     except KeyError as msg:
         raise CMBadEnumError(f"Unknown table {table_enum}") from msg
     query = select(table_class).where(table_class.id == row_id)
-    async with session.begin():
+    async with session.begin_nested():
         result_s = await session.scalars(query)
         if result_s is None:
             raise CMMissingFullnameError(f"{table_class} {row_id} not found")
@@ -474,8 +474,7 @@ async def update_status(session: async_scoped_session, fullname: str, status: St
     CMMissingFullnameError : Could not find row
     """
     row = await get_node_by_fullname(session, fullname)
-    result = await row.update_values(session, status=status)
-    await session.commit()
+    result = await row.update_values(session, do_commit=True, status=status)
     return result
 
 
@@ -511,8 +510,7 @@ async def update_child_config(
     CMMissingFullnameError : Could not find row
     """
     row = await get_node_by_fullname(session, fullname)
-    result = await row.update_child_config(session, **kwargs)
-    await session.commit()
+    result = await row.update_child_config(session, do_commit=True, **kwargs)
     return result
 
 
@@ -548,8 +546,7 @@ async def update_collections(
     CMMissingFullnameError : Could not find row
     """
     row = await get_node_by_fullname(session, fullname)
-    result = await row.update_collections(session, **kwargs)
-    await session.commit()
+    result = await row.update_collections(session, do_commit=True, **kwargs)
     return result
 
 
@@ -585,8 +582,7 @@ async def update_data_dict(
     CMMissingFullnameError : Could not find row
     """
     row = await get_node_by_fullname(session, fullname)
-    result = await row.update_data_dict(session, **kwargs)
-    await session.commit()
+    result = await row.update_data_dict(session, do_commit=True, **kwargs)
     return result
 
 
@@ -622,8 +618,7 @@ async def update_spec_aliases(
     CMMissingFullnameError : Could not find row
     """
     row = await get_node_by_fullname(session, fullname)
-    result = await row.update_spec_aliases(session, **kwargs)
-    await session.commit()
+    result = await row.update_spec_aliases(session, do_commit=True, **kwargs)
     return result
 
 
@@ -1008,7 +1003,6 @@ async def reset_script(
     """
     script = await db.Script.get_row_by_fullname(session, fullname)
     _result = await script.reset_script(session, status)
-    await session.commit()
     return script
 
 
@@ -1055,7 +1049,6 @@ async def retry_script(
     """
     element = await get_element_by_fullname(session, fullname)
     result = await element.retry_script(session, script_name)
-    await session.commit()
     return result
 
 
@@ -1307,7 +1300,6 @@ async def add_steps(
     """
     campaign = await db.Campaign.get_row_by_fullname(session, fullname)
     result = await functions.add_steps(session, campaign, step_config_list)
-    await session.commit()
     return result
 
 
@@ -1330,8 +1322,7 @@ async def create_campaign(
     campaign: Campaign
         Newly created Campaign
     """
-    result = await db.Campaign.create_row(session, **kwargs)
-    await session.commit()
+    result = await db.Campaign.create_row(session, do_commit=True, **kwargs)
     return result
 
 
@@ -1436,7 +1427,6 @@ async def load_error_types(
         New created PipetaskErrorTypes
     """
     error_types = await functions.load_error_types(session, yaml_file)
-    await session.commit()
     return error_types
 
 
@@ -1464,7 +1454,6 @@ async def load_manifest_report(
         Newly updated job
     """
     result = await functions.load_manifest_report(session, fullname, yaml_file)
-    await session.commit()
     return result
 
 
@@ -1510,6 +1499,5 @@ async def create_error_type(
     error_type : PipetaskErrorType
         Newly created PipetaskErrorType
     """
-    result = await db.PipetaskErrorType.create_row(session, **kwargs)
-    await session.commit()
+    result = await db.PipetaskErrorType.create_row(session, do_commit=True, **kwargs)
     return result
