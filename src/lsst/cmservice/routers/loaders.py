@@ -37,11 +37,11 @@ async def load_specification(
         Specification in question
     """
     try:
-        result = await interface.load_specification(session, **query.model_dump())
-        await session.commit()
+        async with session.begin():
+            result = await interface.load_specification(session, **query.model_dump())
+        return result
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-    return result
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.post(
@@ -70,11 +70,11 @@ async def load_and_create_campaign(
         Campaign in question
     """
     try:
-        result = await interface.load_and_create_campaign(session, **query.model_dump())
-        await session.commit()
+        async with session.begin():
+            result = await interface.load_and_create_campaign(session, **query.model_dump())
+        return result
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-    return result
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.post(
@@ -103,9 +103,11 @@ async def load_error_types(
         Newly loaded PipetaskErrorTypes
     """
     try:
-        return await interface.load_error_types(session, **query.model_dump())
+        async with session.begin():
+            the_error_types = await interface.load_error_types(session, **query.model_dump())
+        return the_error_types
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.post(
@@ -134,6 +136,8 @@ async def load_manifest_report(
         Associated job
     """
     try:
-        return await interface.load_manifest_report(session, **query.model_dump())
+        async with session.begin():
+            the_job = await interface.load_manifest_report(session, **query.model_dump())
+        return the_job
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg

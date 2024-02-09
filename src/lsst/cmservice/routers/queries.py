@@ -22,12 +22,14 @@ async def get_element(
 ) -> db.ElementMixin:
     """Invoke the interface.get_element_by_fullname function"""
     try:
-        return await interface.get_element_by_fullname(
-            session,
-            fullname,
-        )
+        async with session.begin():
+            the_element = await interface.get_element_by_fullname(
+                session,
+                fullname,
+            )
+        return the_element
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.get(
@@ -41,12 +43,14 @@ async def get_script(
 ) -> db.Script:
     """Invoke the Script.get_row_by_fullname function"""
     try:
-        return await db.Script.get_row_by_fullname(
-            session,
-            fullname,
-        )
+        async with session.begin():
+            the_script = await db.Script.get_row_by_fullname(
+                session,
+                fullname,
+            )
+        return the_script
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.get(
@@ -60,12 +64,14 @@ async def get_job(
 ) -> db.Job:
     """Invoke the Job.get_row_by_fullname function"""
     try:
-        return await db.Job.get_row_by_fullname(
-            session,
-            fullname,
-        )
+        async with session.begin():
+            the_job = await db.Job.get_row_by_fullname(
+                session,
+                fullname,
+            )
+        return the_job
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.get(
@@ -79,12 +85,14 @@ async def get_spec_block(
 ) -> db.SpecBlock:
     """Invoke the interface.get_spec_block function"""
     try:
-        return await interface.get_spec_block(
-            session,
-            fullname,
-        )
+        async with session.begin():
+            the_spec_block = await interface.get_spec_block(
+                session,
+                fullname,
+            )
+        return the_spec_block
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.get(
@@ -98,12 +106,14 @@ async def get_specification(
 ) -> db.Specification:
     """Invoke the interface.get_specification function"""
     try:
-        return await interface.get_specification(
-            session,
-            fullname,
-        )
+        async with session.begin():
+            the_specification = await interface.get_specification(
+                session,
+                fullname,
+            )
+        return the_specification
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.get(
@@ -117,12 +127,14 @@ async def get_resolved_collections(
 ) -> dict:
     """Invoke the interface.get_resolved_collections function"""
     try:
-        return await interface.get_resolved_collections(
-            session,
-            fullname,
-        )
+        async with session.begin():
+            the_dict = await interface.get_resolved_collections(
+                session,
+                fullname,
+            )
+        return the_dict
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.get(
@@ -136,12 +148,14 @@ async def get_collections(
 ) -> dict:
     """Invoke the interface.get_collections function"""
     try:
-        return await interface.get_collections(
-            session,
-            fullname,
-        )
+        async with session.begin():
+            the_dict = await interface.get_collections(
+                session,
+                fullname,
+            )
+        return the_dict
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.get(
@@ -155,12 +169,14 @@ async def get_child_config(
 ) -> dict:
     """Invoke the interface.get_child_config function"""
     try:
-        return await interface.get_child_config(
-            session,
-            fullname,
-        )
+        async with session.begin():
+            the_dict = await interface.get_child_config(
+                session,
+                fullname,
+            )
+        return the_dict
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.get(
@@ -174,12 +190,14 @@ async def get_data_dict(
 ) -> dict:
     """Invoke the interface.get_data_dict function"""
     try:
-        return await interface.get_data_dict(
-            session,
-            fullname,
-        )
+        async with session.begin():
+            the_dict = await interface.get_data_dict(
+                session,
+                fullname,
+            )
+        return the_dict
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.get(
@@ -193,12 +211,14 @@ async def get_spec_aliases(
 ) -> dict:
     """Invoke the interface.get_spec_aliases function"""
     try:
-        return await interface.get_spec_aliases(
-            session,
-            fullname,
-        )
+        async with session.begin():
+            the_dict = await interface.get_spec_aliases(
+                session,
+                fullname,
+            )
+        return the_dict
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=400, detail=f"{str(msg)}") from msg
 
 
 @router.get(
@@ -212,12 +232,14 @@ async def get_prerequisites(
 ) -> bool:
     """Invoke the interface.check_prerequisites function"""
     try:
-        return await interface.check_prerequisites(
-            session,
-            fullname=fullname,
-        )
+        async with session.begin():
+            ret_val = await interface.check_prerequisites(
+                session,
+                fullname=fullname,
+            )
+        return ret_val
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.get(
@@ -235,15 +257,17 @@ async def get_element_scripts(
 ) -> list[db.Script]:
     """Invoke the interface.get_scripts function"""
     try:
-        return await interface.get_scripts(
-            session,
-            fullname=fullname,
-            script_name=script_name,
-            remaining_only=remaining_only,
-            skip_superseded=skip_superseded,
-        )
+        async with session.begin():
+            the_scripts = await interface.get_scripts(
+                session,
+                fullname=fullname,
+                script_name=script_name,
+                remaining_only=remaining_only,
+                skip_superseded=skip_superseded,
+            )
+        return the_scripts
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.get(
@@ -260,14 +284,16 @@ async def get_element_all_scripts(
 ) -> list[db.Script]:
     """Invoke the interface.get_element_all_scripts function"""
     try:
-        return await interface.get_all_scripts(
-            session,
-            fullname=fullname,
-            remaining_only=remaining_only,
-            skip_superseded=skip_superseded,
-        )
+        async with session.begin():
+            the_scripts = await interface.get_all_scripts(
+                session,
+                fullname=fullname,
+                remaining_only=remaining_only,
+                skip_superseded=skip_superseded,
+            )
+        return the_scripts
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.get(
@@ -284,14 +310,16 @@ async def get_element_jobs(
 ) -> list[db.Job]:
     """Invoke the interface.get_jobs function"""
     try:
-        return await interface.get_jobs(
-            session,
-            fullname=fullname,
-            remaining_only=remaining_only,
-            skip_superseded=skip_superseded,
-        )
+        async with session.begin():
+            the_jobs = await interface.get_jobs(
+                session,
+                fullname=fullname,
+                remaining_only=remaining_only,
+                skip_superseded=skip_superseded,
+            )
+        return the_jobs
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.get(
@@ -307,14 +335,15 @@ async def get_element_sleep(
 ) -> int:
     """Invoke the interface.get_element_sleep function"""
     try:
-        return await interface.estimate_sleep(
-            session,
-            fullname=fullname,
-            job_sleep=job_sleep,
-            script_sleep=script_sleep,
-        )
+        async with session.begin():
+            return await interface.estimate_sleep(
+                session,
+                fullname=fullname,
+                job_sleep=job_sleep,
+                script_sleep=script_sleep,
+            )
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.get(
@@ -328,12 +357,13 @@ async def get_job_task_sets(
 ) -> list[db.TaskSet]:
     """Invoke the interface.get_job_task_sets function"""
     try:
-        return await interface.get_task_sets_for_job(
-            session,
-            fullname=fullname,
-        )
+        async with session.begin():
+            return await interface.get_task_sets_for_job(
+                session,
+                fullname=fullname,
+            )
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.get(
@@ -347,12 +377,13 @@ async def get_job_wms_reports(
 ) -> list[db.WmsTaskReport]:
     """Invoke the interface.get_wms_reports_for_job function"""
     try:
-        return await interface.get_wms_reports_for_job(
-            session,
-            fullname=fullname,
-        )
+        async with session.begin():
+            return await interface.get_wms_reports_for_job(
+                session,
+                fullname=fullname,
+            )
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.get(
@@ -366,12 +397,13 @@ async def get_job_product_sets(
 ) -> list[db.ProductSet]:
     """Invoke the interface.get_product_sets_for_job function"""
     try:
-        return await interface.get_product_sets_for_job(
-            session,
-            fullname=fullname,
-        )
+        async with session.begin():
+            return await interface.get_product_sets_for_job(
+                session,
+                fullname=fullname,
+            )
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.get(
@@ -385,9 +417,10 @@ async def get_job_errors(
 ) -> list[db.PipetaskError]:
     """Invoke the interface.get_errors_for_job function"""
     try:
-        return await interface.get_errors_for_job(
-            session,
-            fullname=fullname,
-        )
+        async with session.begin():
+            return await interface.get_errors_for_job(
+                session,
+                fullname=fullname,
+            )
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg

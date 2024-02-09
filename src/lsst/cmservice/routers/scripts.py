@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 
 from .. import db, models
 from ..common.enums import StatusEnum
+from ..common.errors import CMMissingIDError
 from . import wrappers
 
 # Template specialization
@@ -103,11 +104,13 @@ async def reset_script(
         New status of script
     """
     try:
-        script = await DbClass.get_row(session, row_id)
-        result = await script.reset_script(session, to_status=to_status)
-        await session.commit()
-    except Exception as msg:
+        async with session.begin():
+            script = await DbClass.get_row(session, row_id)
+            result = await script.reset_script(session, to_status=to_status)
+    except CMMissingIDError as msg:
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+    except Exception as msg:
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
     return result
 
 
@@ -136,9 +139,11 @@ async def copy(
         Newly copied Script
     """
     try:
-        script = await DbClass.get_row(session, row_id)
-        result = await script.copy_script(session)
-        await session.commit()
-    except Exception as msg:
+        async with session.begin():
+            script = await DbClass.get_row(session, row_id)
+            result = await script.copy_script(session)
+    except CMMissingIDError as msg:
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+    except Exception as msg:
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
     return result

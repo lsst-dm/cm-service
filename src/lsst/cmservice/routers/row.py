@@ -27,9 +27,10 @@ async def get_row_data(
     """Invoke the interface.get_row_by_table_and_id function"""
     table_enum = TableEnum[table_name]
     try:
-        result = await get_row_by_table_and_id(session, row_id, table_enum)
+        async with session.begin():
+            result = await get_row_by_table_and_id(session, row_id, table_enum)
     except (CMBadEnumError, CMMissingFullnameError, CMMissingFullnameError) as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
     if not isinstance(result, NodeMixin):
         raise CMBadExecutionMethodError(f"Result is a {type(result)}, not a subclass of NodeMixin")
     data_dict = await result.data_dict(session)
@@ -48,13 +49,14 @@ async def post_row(
 ) -> dict:
     """Invoke the interface.get_row_by_table_and_id function"""
     try:
-        row = await get_row_by_table_and_id(
-            session,
-            row_query.row_id,
-            row_query.table_enum,
-        )
+        async with session.begin():
+            row = await get_row_by_table_and_id(
+                session,
+                row_query.row_id,
+                row_query.table_enum,
+            )
     except (CMBadEnumError, CMMissingFullnameError, CMMissingFullnameError) as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
     if not isinstance(row, NodeMixin):
         raise CMBadExecutionMethodError(f"Row is a {type(row)} not a subclass of NodeMixin")
     return await row.data_dict(session)

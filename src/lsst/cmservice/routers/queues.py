@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from safir.dependencies.db_session import db_session_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
 
+from ..common.errors import CMMissingIDError
 from .. import db, models
 from . import wrappers
 
@@ -64,10 +65,13 @@ async def process_element(
         True if processing can continue
     """
     try:
-        queue = await db.Queue.get_row(session, row_id)
-        can_continue = await queue.process_element(session)
-    except Exception as msg:
+        async with session.begin():
+            queue = await db.Queue.get_row(session, row_id)
+            can_continue = await queue.process_element(session)
+    except CMMissingIDError as msg:
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+    except Exception as msg:
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
     return can_continue
 
 
@@ -96,8 +100,11 @@ async def sleep_time(
         Time to sleep before next call to process (in seconds)
     """
     try:
-        queue = await db.Queue.get_row(session, row_id)
-        element_sleep_time = await queue.element_sleep_time(session)
-    except Exception as msg:
+        async with session.begin():
+            queue = await db.Queue.get_row(session, row_id)
+            element_sleep_time = await queue.element_sleep_time(session)
+    except CMMissingIDError as msg:
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+    except Exception as msg:
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
     return element_sleep_time
