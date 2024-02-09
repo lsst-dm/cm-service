@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.orm.collections import InstrumentedList
 
@@ -443,9 +444,11 @@ class NodeMixin(RowMixin):
                 else:
                     self.child_config = kwargs.copy()
                 await session.refresh(self)
-            except Exception as msg:
+            except IntegrityError as e:
+                if TYPE_CHECKING:
+                    assert e.orig  # for mypy
                 await session.rollback()
-                raise CMIntegrityError(f"str{msg}") from msg
+                raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
             if do_commit:
                 await session.commit()
         return self
@@ -493,9 +496,11 @@ class NodeMixin(RowMixin):
                 else:
                     self.collections = kwargs.copy()
                 await session.refresh(self)
-            except Exception as msg:
+            except IntegrityError as e:
+                if TYPE_CHECKING:
+                    assert e.orig  # for mypy
                 await session.rollback()
-                raise CMIntegrityError(f"str{msg}") from msg
+                raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
             if do_commit:
                 await session.commit()
         return self
@@ -543,9 +548,11 @@ class NodeMixin(RowMixin):
                 else:
                     self.spec_aliases = kwargs.copy()
                 await session.refresh(self)
-            except Exception as msg:
+            except IntegrityError as e:
+                if TYPE_CHECKING:
+                    assert e.orig  # for mypy
                 await session.rollback()
-                raise CMIntegrityError(f"str{msg}") from msg
+                raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
             if do_commit:
                 await session.commit()
         return self
@@ -593,9 +600,11 @@ class NodeMixin(RowMixin):
                 else:
                     self.data = kwargs.copy()
                 await session.refresh(self)
-            except Exception as msg:
+            except IntegrityError as e:
+                if TYPE_CHECKING:
+                    assert e.orig  # for mypy
                 await session.rollback()
-                raise CMIntegrityError(f"str{msg}") from msg
+                raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
             if do_commit:
                 await session.commit()
         return self

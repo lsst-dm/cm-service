@@ -189,9 +189,11 @@ class RowMixin:
                     )
                 try:
                     await session.delete(row)
-                except Exception as msg:
+                except IntegrityError as e:
+                    if TYPE_CHECKING:
+                        assert e.orig  # for mypy
                     await session.rollback()
-                    raise CMIntegrityError(f"str{msg}") from msg
+                    raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
                 if do_commit:
                     await session.commit()
 
@@ -235,26 +237,26 @@ class RowMixin:
         """
         if kwargs.get("id", row_id) != row_id:
             raise CMIDMismatchError("ID mismatch between URL and body")
-        try:
-            async with session.begin_nested():
-                row = await session.get(cls, row_id)
-                if row is None:
-                    raise CMMissingFullnameError(f"{cls} {row_id} not found")
-                for var, value in kwargs.items():
-                    if value:
-                        setattr(row, var, value)
-                try:
-                    await session.refresh(row)
-                except Exception as msg:
-                    await session.rollback()
-                    raise CMIntegrityError(f"str{msg}") from msg
-                if do_commit:
-                    await session.commit()
-            return row
-        except IntegrityError as e:
-            if TYPE_CHECKING:
-                assert e.orig  # for mypy
-            raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
+        async with session.begin_nested():
+            row = await session.get(cls, row_id)
+            if row is None:
+                raise CMMissingFullnameError(f"{cls} {row_id} not found")
+            for var, value in kwargs.items():
+                if value:
+                    setattr(row, var, value)
+            try:
+                await session.refresh(row)
+            except IntegrityError as e:
+                if TYPE_CHECKING:
+                    assert e.orig  # for mypy
+                raise CMIntegrityError(
+                    params=e.params,
+                    orig=e.orig,
+                    statement=e.statement,
+                ) from e
+        if do_commit:
+            await session.commit()
+        return row
 
     @classmethod
     async def create_row(
@@ -292,9 +294,11 @@ class RowMixin:
             try:
                 session.add(row)
                 await session.refresh(row)
-            except Exception as msg:
+            except IntegrityError as e:
+                if TYPE_CHECKING:
+                    assert e.orig  # for mypy
                 await session.rollback()
-                raise CMIntegrityError(f"str{msg}") from msg
+                raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
             if do_commit:
                 await session.commit()
         return row
