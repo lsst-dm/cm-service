@@ -207,7 +207,6 @@ class Group(Base, ElementMixin):
             raise CMTooFewAcceptedJobsError(f"Expected at least one rescuable job for {self.fullname}, got 0")
         latest_resuable_job = rescuable_jobs[-1]
         new_job = await latest_resuable_job.copy_job(session, self)
-        await session.commit()
         return new_job
 
     async def mark_job_rescued(
@@ -243,5 +242,4 @@ class Group(Base, ElementMixin):
                 has_accepted = True
         if not has_accepted:
             raise CMTooFewAcceptedJobsError(f"Expected at least one accepted job for {self.fullname}, got 0")
-        await session.commit()
         return ret_list
