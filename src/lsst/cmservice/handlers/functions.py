@@ -73,9 +73,8 @@ async def create_spec_block(
     key = config_values.pop("name")
     loaded_specs[key] = config_values
     spec_block_q = select(SpecBlock).where(SpecBlock.fullname == key)
-    async with session.begin_nested():
-        spec_block_result = await session.scalars(spec_block_q)
-        spec_block = spec_block_result.first()
+    spec_block_result = await session.scalars(spec_block_q)
+    spec_block = spec_block_result.first()
     if spec_block:
         print(f"SpecBlock {key} already defined, skipping it")
         return None
@@ -140,9 +139,8 @@ async def create_script_template(
     """
     key = config_values.pop("name")
     script_template_q = select(ScriptTemplate).where(ScriptTemplate.fullname == key)
-    async with session.begin_nested():
-        script_template_result = await session.scalars(script_template_q)
-        script_template = script_template_result.first()
+    script_template_result = await session.scalars(script_template_q)
+    script_template = script_template_result.first()
     if script_template:
         print(f"ScriptTemplate {key} already defined, skipping it")
         return None
@@ -177,12 +175,11 @@ async def create_specification(
     spec_blocks = config_values.get("spec_blocks", [])
 
     spec_q = select(Specification).where(Specification.name == spec_name)
-    async with session.begin_nested():
-        spec_result = await session.scalars(spec_q)
-        specification = spec_result.first()
-        if specification is None:
-            specification = Specification(name=spec_name)
-            session.add(specification)
+    spec_result = await session.scalars(spec_q)
+    specification = spec_result.first()
+    if specification is None:
+        specification = Specification(name=spec_name)
+        session.add(specification)
 
     for script_list_item_ in script_templates:
         try:
@@ -371,8 +368,7 @@ async def add_steps(
         new_depend = await add_step_prerequisite(session, depend_id, prereq_id)
         await session.refresh(new_depend)
 
-    async with session.begin_nested():
-        await session.refresh(campaign)
+    await session.refresh(campaign)
     return campaign
 
 
@@ -420,8 +416,7 @@ async def add_groups(
         )
         i += 1
 
-    async with session.begin_nested():
-        await session.refresh(step)
+    await session.refresh(step)
     return step
 
 

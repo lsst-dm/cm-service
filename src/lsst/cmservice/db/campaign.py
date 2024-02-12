@@ -118,9 +118,8 @@ class Campaign(Base, ElementMixin):
         session: async_scoped_session,
     ) -> Iterable:
         """Maps self.s_ to self.children() for consistency"""
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["s_"])
-            return self.s_
+        await session.refresh(self, attribute_names=["s_"])
+        return self.s_
 
     async def get_wms_reports(
         self,
@@ -129,11 +128,10 @@ class Campaign(Base, ElementMixin):
     ) -> MergedWmsTaskReportDict:
         the_dict = MergedWmsTaskReportDict(reports={})
 
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["s_"])
-            for step_ in self.s_:
-                the_dict += await step_.get_wms_reports(session)
-            return the_dict
+        await session.refresh(self, attribute_names=["s_"])
+        for step_ in self.s_:
+            the_dict += await step_.get_wms_reports(session)
+        return the_dict
 
     async def get_tasks(
         self,
@@ -141,11 +139,10 @@ class Campaign(Base, ElementMixin):
         **kwargs: Any,
     ) -> MergedTaskSetDict:
         the_dict = MergedTaskSetDict(reports={})
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["s_"])
-            for step_ in self.s_:
-                the_dict += await step_.get_tasks(session)
-            return the_dict
+        await session.refresh(self, attribute_names=["s_"])
+        for step_ in self.s_:
+            the_dict += await step_.get_tasks(session)
+        return the_dict
 
     async def get_products(
         self,
@@ -153,11 +150,10 @@ class Campaign(Base, ElementMixin):
         **kwargs: Any,
     ) -> MergedProductSetDict:
         the_dict = MergedProductSetDict(reports={})
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["s_"])
-            for step_ in self.s_:
-                the_dict += await step_.get_products(session)
-            return the_dict
+        await session.refresh(self, attribute_names=["s_"])
+        for step_ in self.s_:
+            the_dict += await step_.get_products(session)
+        return the_dict
 
     @classmethod
     async def get_create_kwargs(

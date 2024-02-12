@@ -47,9 +47,8 @@ class ElementHandler(Handler):
             prereq_id=prereq_id,
             depend_id=script_id,
         )
-        async with session.begin_nested():
-            await session.refresh(new_depend)
-            return new_depend
+        # await session.refresh(new_depend)
+        return new_depend
 
     async def process(
         self,
@@ -150,9 +149,7 @@ class ElementHandler(Handler):
         status : StatusEnum
             Status of the processing
         """
-        async with session.begin_nested():
-            spec_block = await element.get_spec_block(session)
-
+        spec_block = await element.get_spec_block(session)
         spec_aliases = await element.get_spec_aliases(session)
         if not spec_block.scripts:
             return (True, StatusEnum.prepared)
@@ -182,17 +179,17 @@ class ElementHandler(Handler):
                 name=script_name,
                 **script_vals,
             )
-            await session.refresh(new_script)
+            await session.refresh(new_script, attribute_names=["id"])
             script_ids_dict[script_name] = new_script.id
             prereq_pairs += [(script_name, prereq_) for prereq_ in script_vals.get("prerequisites", [])]
 
         for depend_name, prereq_name in prereq_pairs:
             prereq_id = script_ids_dict[prereq_name]
             depend_id = script_ids_dict[depend_name]
-            new_depend = await self._add_prerequisite(session, depend_id, prereq_id)
-            await session.refresh(new_depend)
+            _new_depend = await self._add_prerequisite(session, depend_id, prereq_id)
+            # await session.refresh(new_depend)
 
-        await element.update_values(session, do_commit=True, status=StatusEnum.prepared)
+        await element.update_values(session, do_commit=False, status=StatusEnum.prepared)
         return (True, StatusEnum.prepared)
 
     async def continue_processing(
@@ -226,8 +223,9 @@ class ElementHandler(Handler):
             for script_ in scripts:
                 (script_changed, _script_status) = await script_.process(session, **kwargs)
                 if script_changed:
+                    await script_.update_values(session, do_commit=False, status=_script_status)
                     changed = True
-        await element.update_values(session, do_commit=True, status=StatusEnum.running)
+        await element.update_values(session, do_commit=False, status=StatusEnum.running)
         return (changed, StatusEnum.running)
 
     async def review(  # pylint: disable=unused-argument
@@ -393,7 +391,7 @@ class ElementHandler(Handler):
 
         status = await self._post_check(session, element, **kwargs)
         status = StatusEnum.accepted
-        await element.update_values(session, do_commit=True, status=status)
+        await element.update_values(session, do_commit=False, status=status)
         return (True, status)
 
     async def _post_check(  # pylint: disable=unused-argument

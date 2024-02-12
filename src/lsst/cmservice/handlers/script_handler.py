@@ -287,7 +287,7 @@ class BaseScriptHandler(Handler):
             )
 
         update_fields = await self._reset_script(session, node, to_status)
-        await node.update_values(session, do_commit=True, **update_fields)
+        await node.update_values(session, do_commit=False, **update_fields)
         await session.refresh(node, attribute_names=["status"])
         return node.status
 
@@ -373,7 +373,7 @@ class ScriptHandler(BaseScriptHandler):
         if status is None:
             status = StatusEnum.running
         if status != script.status:
-            await script.update_values(session, do_commit=True, status=status)
+            await script.update_values(session, do_commit=False, status=status)
         return status
 
     async def prepare(
@@ -395,7 +395,7 @@ class ScriptHandler(BaseScriptHandler):
         elif script_method == ScriptMethodEnum.slurm:  # pragma: no cover
             status = await self._write_script(session, script, parent, **kwargs)
         if status != script.status:
-            await script.update_values(session, do_commit=True, status=status)
+            await script.update_values(session, do_commit=False, status=status)
         return status
 
     async def launch(
@@ -429,11 +429,11 @@ class ScriptHandler(BaseScriptHandler):
                 raise CMMissingNodeUrlError(f"log_url is not set for {script}")
             job_id = await submit_slurm_job(script.script_url, script.log_url)
             status = StatusEnum.running
-            await script.update_values(session, do_commit=True, stamp_url=job_id, status=status)
+            await script.update_values(session, do_commit=False, stamp_url=job_id, status=status)
         else:
             raise CMBadExecutionMethodError(f"Method {script_method} not valid for {script}")
         if status != orig_status:
-            await script.update_values(session, do_commit=True, status=status)
+            await script.update_values(session, do_commit=False, status=status)
         return status
 
     async def check(
@@ -471,7 +471,7 @@ class ScriptHandler(BaseScriptHandler):
                 diagnostic_message=diagnostic_message,
             )
         if status != script.status:
-            await script.update_values(session, do_commit=True, status=status)
+            await script.update_values(session, do_commit=False, status=status)
         return status
 
     async def _get_diagnostic_message(
@@ -559,7 +559,7 @@ class FunctionHandler(BaseScriptHandler):
             raise CMBadExecutionMethodError(f"ScriptMethodEnum.no_script must be set for {type(self)}")
         status = await self._do_prepare(session, script, parent, **kwargs)
         if status != script.status:
-            await script.update_values(session, do_commit=True, status=status)
+            await script.update_values(session, do_commit=False, status=status)
         return status
 
     async def launch(
@@ -577,7 +577,7 @@ class FunctionHandler(BaseScriptHandler):
             raise CMBadExecutionMethodError(f"ScriptMethodEnum.no_script must be set for {type(self)}")
         status = await self._do_run(session, script, parent, **kwargs)
         if status != script.status:
-            await script.update_values(session, do_commit=True, status=status)
+            await script.update_values(session, do_commit=False, status=status)
         return status
 
     async def check(
@@ -595,7 +595,7 @@ class FunctionHandler(BaseScriptHandler):
             raise CMBadExecutionMethodError(f"ScriptMethodEnum.no_script must be set for {type(self)}")
         status = await self._do_check(session, script, parent, **kwargs)
         if status != script.status:
-            await script.update_values(session, do_commit=True, status=status)
+            await script.update_values(session, do_commit=False, status=status)
         return status
 
     async def _do_prepare(  # pylint: disable=unused-argument

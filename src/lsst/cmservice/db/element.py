@@ -64,16 +64,15 @@ class ElementMixin(NodeMixin):
             The requested scripts
         """
         ret_list = []
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["scripts_"])
-            for script_ in self.scripts_:
-                if script_name and script_name != script_.name:
-                    continue
-                if remaining_only and script_.status.value >= StatusEnum.reviewable.value:
-                    continue
-                if skip_superseded and script_.superseded:
-                    continue
-                ret_list.append(script_)
+        await session.refresh(self, attribute_names=["scripts_"])
+        for script_ in self.scripts_:
+            if script_name and script_name != script_.name:
+                continue
+            if remaining_only and script_.status.value >= StatusEnum.reviewable.value:
+                continue
+            if skip_superseded and script_.superseded:
+                continue
+            ret_list.append(script_)
         return ret_list
 
     async def get_jobs(
@@ -102,14 +101,13 @@ class ElementMixin(NodeMixin):
             The requested Jobs
         """
         ret_list = []
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["jobs_"])
-            for job_ in self.jobs_:
-                if remaining_only and job_.status.value >= StatusEnum.accepted.value:
-                    continue
-                if skip_superseded and job_.superseded:
-                    continue
-                ret_list.append(job_)
+        await session.refresh(self, attribute_names=["jobs_"])
+        for job_ in self.jobs_:
+            if remaining_only and job_.status.value >= StatusEnum.accepted.value:
+                continue
+            if skip_superseded and job_.superseded:
+                continue
+            ret_list.append(job_)
         return ret_list
 
     async def get_all_scripts(

@@ -140,23 +140,22 @@ class Script(Base, NodeMixin):
         element : ElementMixin
             Requested Parent Element
         """
-        async with session.begin_nested():
-            element: ElementMixin | None = None
-            if self.parent_level == LevelEnum.campaign:
-                await session.refresh(self, attribute_names=["c_"])
-                element = self.c_
-            elif self.parent_level == LevelEnum.step:
-                await session.refresh(self, attribute_names=["s_"])
-                element = self.s_
-            elif self.parent_level == LevelEnum.group:
-                await session.refresh(self, attribute_names=["g_"])
-                element = self.g_
-            elif self.parent_level == LevelEnum.job:
-                await session.refresh(self, attribute_names=["j_"])
-                element = self.j_
-            else:
-                raise CMBadEnumError(f"Bad level for script: {self.parent_level}")
-            return element
+        element: ElementMixin | None = None
+        if self.parent_level == LevelEnum.campaign:
+            await session.refresh(self, attribute_names=["c_"])
+            element = self.c_
+        elif self.parent_level == LevelEnum.step:
+            await session.refresh(self, attribute_names=["s_"])
+            element = self.s_
+        elif self.parent_level == LevelEnum.group:
+            await session.refresh(self, attribute_names=["g_"])
+            element = self.g_
+        elif self.parent_level == LevelEnum.job:
+            await session.refresh(self, attribute_names=["j_"])
+            element = self.j_
+        else:
+            raise CMBadEnumError(f"Bad level for script: {self.parent_level}")
+        return element
 
     async def get_siblings(
         self,
@@ -182,9 +181,8 @@ class Script(Base, NodeMixin):
                 Script.id != self.id,
             ),
         )
-        async with session.begin_nested():
-            rows = await session.scalars(q)
-            return rows.all()
+        rows = await session.scalars(q)
+        return rows.all()
 
     @classmethod
     async def get_create_kwargs(
@@ -251,30 +249,29 @@ class Script(Base, NodeMixin):
         new_script: Script
             Newly created script
         """
-        async with session.begin_nested():
-            the_dict = self.__dict__
-            sibs = await self.get_siblings(session)
-            if sibs:
-                the_dict["attempt"] = len(sibs) + 1
-            else:
-                the_dict["attempt"] = 1
-            new_script = Script(**the_dict)
-            session.add(new_script)
-            await session.refresh(new_script)
+        the_dict = self.__dict__
+        sibs = await self.get_siblings(session)
+        if sibs:
+            the_dict["attempt"] = len(sibs) + 1
+        else:
+            the_dict["attempt"] = 1
+        new_script = Script(**the_dict)
+        session.add(new_script)
+        await session.refresh(new_script)
 
-            await session.refresh(self, attribute_names=["prereqs_", "depends_"])
-            for prereq_ in self.prereqs_:
-                _new_prereq = await ScriptDependency.create_row(
-                    session,
-                    depend_id=new_script.id,
-                    prereq_id=prereq_.prereq_id,
-                )
-            for depend_ in self.depends_:
-                _new_depend = await ScriptDependency.create_row(
-                    session,
-                    depend_id=depend_.depend_id,
-                    prereq_id=new_script.id,
-                )
+        await session.refresh(self, attribute_names=["prereqs_", "depends_"])
+        for prereq_ in self.prereqs_:
+            _new_prereq = await ScriptDependency.create_row(
+                session,
+                depend_id=new_script.id,
+                prereq_id=prereq_.prereq_id,
+            )
+        for depend_ in self.depends_:
+            _new_depend = await ScriptDependency.create_row(
+                session,
+                depend_id=depend_.depend_id,
+                prereq_id=new_script.id,
+            )
         return new_script
 
     async def reset_script(

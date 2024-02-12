@@ -123,8 +123,7 @@ class RunJobsScriptHandler(RunElementScriptHandler):
             await script.update_values(session, status=StatusEnum.reviewable)
             bps_dict = parse_bps_stdout(script.log_url)
             panda_url = bps_dict["Run Id"]
-            async with session.begin_nested():
-                await parent.update_values(session, wms_stamp_url=panda_url)
+            await parent.update_values(session, wms_stamp_url=panda_url)
             return StatusEnum.reviewable
         return slurm_status
 
@@ -324,7 +323,7 @@ class RunGroupsScriptHandler(RunElementScriptHandler):
             i += 1
 
         status = StatusEnum.prepared
-        await script.update_values(session, do_commit=True, status=status)
+        await script.update_values(session, do_commit=False, status=status)
         return status
 
 

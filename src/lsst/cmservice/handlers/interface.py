@@ -94,14 +94,13 @@ async def get_row_by_table_and_id(
     except KeyError as msg:
         raise CMBadEnumError(f"Unknown table {table_enum}") from msg
     query = select(table_class).where(table_class.id == row_id)
-    async with session.begin_nested():
-        result_s = await session.scalars(query)
-        if result_s is None:
-            raise CMMissingFullnameError(f"{table_class} {row_id} not found")
-        result = result_s.first()
-        if result is None:
-            raise CMMissingFullnameError(f"{table_class} {row_id} not found")
-        return result
+    result_s = await session.scalars(query)
+    if result_s is None:
+        raise CMMissingFullnameError(f"{table_class} {row_id} not found")
+    result = result_s.first()
+    if result is None:
+        raise CMMissingFullnameError(f"{table_class} {row_id} not found")
+    return result
 
 
 async def get_node_by_level_and_id(
@@ -137,11 +136,10 @@ async def get_node_by_level_and_id(
         element_class = LEVEL_DICT[level]
     except KeyError as msg:
         raise CMBadEnumError(f"Unknown level {level}") from msg
-    async with session.begin_nested():
-        result = await session.get(element_class, element_id)
-        if result is None:
-            raise CMMissingFullnameError(f"{element_class} {element_id} not found")
-        return result
+    result = await session.get(element_class, element_id)
+    if result is None:
+        raise CMMissingFullnameError(f"{element_class} {element_id} not found")
+    return result
 
 
 def get_node_type_by_fullname(
@@ -474,7 +472,7 @@ async def update_status(session: async_scoped_session, fullname: str, status: St
     CMMissingFullnameError : Could not find row
     """
     row = await get_node_by_fullname(session, fullname)
-    result = await row.update_values(session, do_commit=True, status=status)
+    result = await row.update_values(session, do_commit=False, status=status)
     return result
 
 
@@ -510,7 +508,7 @@ async def update_child_config(
     CMMissingFullnameError : Could not find row
     """
     row = await get_node_by_fullname(session, fullname)
-    result = await row.update_child_config(session, do_commit=True, **kwargs)
+    result = await row.update_child_config(session, do_commit=False, **kwargs)
     return result
 
 
@@ -546,7 +544,7 @@ async def update_collections(
     CMMissingFullnameError : Could not find row
     """
     row = await get_node_by_fullname(session, fullname)
-    result = await row.update_collections(session, do_commit=True, **kwargs)
+    result = await row.update_collections(session, do_commit=False, **kwargs)
     return result
 
 
@@ -582,7 +580,7 @@ async def update_data_dict(
     CMMissingFullnameError : Could not find row
     """
     row = await get_node_by_fullname(session, fullname)
-    result = await row.update_data_dict(session, do_commit=True, **kwargs)
+    result = await row.update_data_dict(session, do_commit=False, **kwargs)
     return result
 
 
@@ -618,7 +616,7 @@ async def update_spec_aliases(
     CMMissingFullnameError : Could not find row
     """
     row = await get_node_by_fullname(session, fullname)
-    result = await row.update_spec_aliases(session, do_commit=True, **kwargs)
+    result = await row.update_spec_aliases(session, do_commit=False, **kwargs)
     return result
 
 
@@ -920,7 +918,9 @@ async def process_element(
     CMMissingFullnameError : Could not find Job
     """
     element = await get_element_by_fullname(session, fullname)
-    return await element.process(session, fake_status=fake_status)
+    changed, result = await element.process(session, fake_status=fake_status)
+    await session.commit()
+    return changed, result
 
 
 async def process(
@@ -1154,9 +1154,8 @@ async def get_task_sets_for_job(
         Requested TaskSets
     """
     job = await db.Job.get_row_by_fullname(session, fullname)
-    async with session.begin_nested():
-        await session.refresh(job, attribute_names=["tasks_"])
-        return job.tasks_
+    await session.refresh(job, attribute_names=["tasks_"])
+    return job.tasks_
 
 
 async def get_wms_reports_for_job(
@@ -1179,9 +1178,8 @@ async def get_wms_reports_for_job(
         Requested WmsTaskReport
     """
     job = await db.Job.get_row_by_fullname(session, fullname)
-    async with session.begin_nested():
-        await session.refresh(job, attribute_names=["wms_reports_"])
-        return job.wms_reports_
+    await session.refresh(job, attribute_names=["wms_reports_"])
+    return job.wms_reports_
 
 
 async def get_product_sets_for_job(
@@ -1204,9 +1202,8 @@ async def get_product_sets_for_job(
         Requested ProductSets
     """
     job = await db.Job.get_row_by_fullname(session, fullname)
-    async with session.begin_nested():
-        await session.refresh(job, attribute_names=["products_"])
-        return job.products_
+    await session.refresh(job, attribute_names=["products_"])
+    return job.products_
 
 
 async def get_errors_for_job(
@@ -1229,9 +1226,8 @@ async def get_errors_for_job(
         Requested PipetaskErrors
     """
     job = await db.Job.get_row_by_fullname(session, fullname)
-    async with session.begin_nested():
-        await session.refresh(job, attribute_names=["errors_"])
-        return job.errors_
+    await session.refresh(job, attribute_names=["errors_"])
+    return job.errors_
 
 
 async def add_groups(
@@ -1265,7 +1261,7 @@ async def add_groups(
     """
     step = await db.Step.get_row_by_fullname(session, fullname)
     result = await functions.add_groups(session, step, child_configs)
-    await session.commit()
+    # await session.commit()
     return result
 
 
@@ -1322,7 +1318,7 @@ async def create_campaign(
     campaign: Campaign
         Newly created Campaign
     """
-    result = await db.Campaign.create_row(session, do_commit=True, **kwargs)
+    result = await db.Campaign.create_row(session, do_commit=False, **kwargs)
     return result
 
 
@@ -1403,7 +1399,7 @@ async def load_and_create_campaign(  # pylint: disable=too-many-arguments
         session,
         **kwargs,
     )
-    await session.commit()
+    # await session.commit()
     return result
 
 
@@ -1499,5 +1495,5 @@ async def create_error_type(
     error_type : PipetaskErrorType
         Newly created PipetaskErrorType
     """
-    result = await db.PipetaskErrorType.create_row(session, do_commit=True, **kwargs)
+    result = await db.PipetaskErrorType.create_row(session, do_commit=False, **kwargs)
     return result

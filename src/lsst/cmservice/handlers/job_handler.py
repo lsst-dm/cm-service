@@ -26,35 +26,34 @@ class JobHandler(ElementHandler):
         if TYPE_CHECKING:
             assert isinstance(element, Job)  # for mypy
 
-        async with session.begin_nested():
-            await session.refresh(element, attribute_names=["tasks_", "errors_"])
+        await session.refresh(element, attribute_names=["tasks_", "errors_"])
 
-            requires_review = False
-            is_failure = False
+        requires_review = False
+        is_failure = False
 
-            for error_ in element.errors_:
-                if error_.error_type_id is None:
-                    requires_review = True
-                    continue
-                await session.refresh(error_, attribute_names=["error_type_"])
+        for error_ in element.errors_:
+            if error_.error_type_id is None:
+                requires_review = True
+                continue
+            await session.refresh(error_, attribute_names=["error_type_"])
 
-                error_type_ = error_.error_type_
-                if error_type_.error_action == ErrorActionEnum.fail:
-                    is_failure = True
-                    break
+            error_type_ = error_.error_type_
+            if error_type_.error_action == ErrorActionEnum.fail:
+                is_failure = True
+                break
 
-                if error_type_.error_action == ErrorActionEnum.review:
-                    requires_review = True
-                    continue
+            if error_type_.error_action == ErrorActionEnum.review:
+                requires_review = True
+                continue
 
-                if error_type_.error_action == ErrorActionEnum.accept:
-                    continue
+            if error_type_.error_action == ErrorActionEnum.accept:
+                continue
 
-                raise CMBadEnumError(f"Unexpected ErrorActionnEnum {error_type_.error_action}")
+            raise CMBadEnumError(f"Unexpected ErrorActionnEnum {error_type_.error_action}")
 
-            if is_failure:
-                return StatusEnum.failed
-            if requires_review:
-                return StatusEnum.reviewable
+        if is_failure:
+            return StatusEnum.failed
+        if requires_review:
+            return StatusEnum.reviewable
 
-            return StatusEnum.accepted
+        return StatusEnum.accepted

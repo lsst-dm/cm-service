@@ -109,18 +109,16 @@ class Step(Base, ElementMixin):
         session: async_scoped_session,
     ) -> Campaign:
         """Maps self.c_ to self.get_campaign() for consistency"""
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["parent_"])
-            return self.parent_
+        await session.refresh(self, attribute_names=["parent_"])
+        return self.parent_
 
     async def children(
         self,
         session: async_scoped_session,
     ) -> Iterable:
         """Maps self.g_ to self.children() for consistency"""
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["g_"])
-            return self.g_
+        await session.refresh(self, attribute_names=["g_"])
+        return self.g_
 
     async def get_wms_reports(
         self,
@@ -129,11 +127,10 @@ class Step(Base, ElementMixin):
     ) -> MergedWmsTaskReportDict:
         the_dict = MergedWmsTaskReportDict(reports={})
 
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["g_"])
-            for group_ in self.g_:
-                the_dict += await group_.get_wms_reports(session)
-            return the_dict
+        await session.refresh(self, attribute_names=["g_"])
+        for group_ in self.g_:
+            the_dict += await group_.get_wms_reports(session)
+        return the_dict
 
     async def get_tasks(
         self,
@@ -141,11 +138,10 @@ class Step(Base, ElementMixin):
         **kwargs: Any,
     ) -> MergedTaskSetDict:
         the_dict = MergedTaskSetDict(reports={})
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["g_"])
-            for group_ in self.g_:
-                the_dict += await group_.get_tasks(session)
-            return the_dict
+        await session.refresh(self, attribute_names=["g_"])
+        for group_ in self.g_:
+            the_dict += await group_.get_tasks(session)
+        return the_dict
 
     async def get_products(
         self,
@@ -153,11 +149,10 @@ class Step(Base, ElementMixin):
         **kwargs: Any,
     ) -> MergedProductSetDict:
         the_dict = MergedProductSetDict(reports={})
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["g_"])
-            for group_ in self.g_:
-                the_dict += await group_.get_products(session)
-            return the_dict
+        await session.refresh(self, attribute_names=["g_"])
+        for group_ in self.g_:
+            the_dict += await group_.get_products(session)
+        return the_dict
 
     async def get_all_prereqs(
         self,
@@ -165,13 +160,12 @@ class Step(Base, ElementMixin):
         **kwargs: Any,
     ) -> list[Step]:
         all_prereqs: list[Step] = []
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["prereqs_"])
-            for prereq_ in self.prereqs_:
-                await session.refresh(prereq_, attribute_names=["prereq_"])
-                prereq_step = prereq_.prereq_
-                all_prereqs.append(prereq_step)
-                all_prereqs += await prereq_step.get_all_prereqs(session)
+        await session.refresh(self, attribute_names=["prereqs_"])
+        for prereq_ in self.prereqs_:
+            await session.refresh(prereq_, attribute_names=["prereq_"])
+            prereq_step = prereq_.prereq_
+            all_prereqs.append(prereq_step)
+            all_prereqs += await prereq_step.get_all_prereqs(session)
         return all_prereqs
 
     @classmethod
