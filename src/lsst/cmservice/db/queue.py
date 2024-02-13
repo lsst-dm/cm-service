@@ -233,7 +233,7 @@ class Queue(Base, NodeMixin):
         if status.is_successful_element():
             update_dict.update(time_finished=now)
 
-        await self.update_values(session, do_commit=True, **update_dict)
+        await self.update_values(session, **update_dict)
         return element.status.is_processable_element()
 
     async def process_element(

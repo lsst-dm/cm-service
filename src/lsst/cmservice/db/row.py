@@ -157,8 +157,6 @@ class RowMixin:
         cls,
         session: async_scoped_session,
         row_id: int,
-        *,
-        do_commit: bool = False,
     ) -> None:
         """Delete a single row, matching row.id == row_id
 
@@ -169,9 +167,6 @@ class RowMixin:
 
         row_id: int
             PrimaryKey of the row to delete
-
-        do_commit: bool
-            If True, commit the session in this function
 
         Raises
         ------
@@ -189,16 +184,12 @@ class RowMixin:
                 if TYPE_CHECKING:
                     assert e.orig  # for mypy
                 raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
-        if do_commit:
-            await session.commit()
 
     @classmethod
     async def update_row(
         cls: type[T],
         session: async_scoped_session,
         row_id: int,
-        *,
-        do_commit: bool = False,
         **kwargs: Any,
     ) -> T:
         """Update a single row, matching row.id == row_id
@@ -213,9 +204,6 @@ class RowMixin:
 
         kwargs: Any
             Columns and associated new values
-
-        do_commit: bool
-            If True, commit the session in this function
 
         Returns
         -------
@@ -235,29 +223,27 @@ class RowMixin:
         row = await session.get(cls, row_id)
         if row is None:
             raise CMMissingFullnameError(f"{cls} {row_id} not found")
-        for var, value in kwargs.items():
-            if value:
-                setattr(row, var, value)
-        try:
-            await session.refresh(row)
-        except IntegrityError as e:
-            if TYPE_CHECKING:
-                assert e.orig  # for mypy
-            raise CMIntegrityError(
-                params=e.params,
-                orig=e.orig,
-                statement=e.statement,
-            ) from e
-        if do_commit:
-            await session.commit()
+        async with session.begin_nested():
+            try:
+                for var, value in kwargs.items():
+                    if value:
+                        setattr(row, var, value)
+            except IntegrityError as e:
+                await session.rollback()
+                if TYPE_CHECKING:
+                    assert e.orig  # for mypy
+                raise CMIntegrityError(
+                    params=e.params,
+                    orig=e.orig,
+                    statement=e.statement,
+                ) from e
+        await session.refresh(row)
         return row
 
     @classmethod
     async def create_row(
         cls: type[T],
         session: async_scoped_session,
-        *,
-        do_commit: bool = False,
         **kwargs: Any,
     ) -> T:
         """Create a single row
@@ -266,9 +252,6 @@ class RowMixin:
         ----------
         session : async_scoped_session
             DB session manager
-
-        do_commit: bool
-            If True, commit the session in this function
 
         kwargs: Any
             Columns and associated values for the new row
@@ -288,12 +271,11 @@ class RowMixin:
             try:
                 session.add(row)
             except IntegrityError as e:
+                await session.rollback()
                 if TYPE_CHECKING:
                     assert e.orig  # for mypy
                 raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
         await session.refresh(row)
-        if do_commit:
-            await session.commit()
         return row
 
     @classmethod
@@ -326,8 +308,6 @@ class RowMixin:
     async def update_values(
         self: T,
         session: async_scoped_session,
-        *,
-        do_commit: bool = False,
         **kwargs: Any,
     ) -> T:
         """Update values in a row
@@ -336,9 +316,6 @@ class RowMixin:
         ----------
         session : async_scoped_session
             DB session manager
-
-        do_commit: bool
-            If True, commit the session in this function
 
         kwargs: Any
             Columns and associated new values
@@ -352,15 +329,14 @@ class RowMixin:
         ------
         CMIntegrityError : Catching a IntegrityError
         """
-        async with session.begin_nested():
-            try:
+        try:
+            async with session.begin_nested():
                 for var, value in kwargs.items():
                     setattr(self, var, value)
-            except IntegrityError as e:
-                if TYPE_CHECKING:
-                    assert e.orig  # for mypy
-                raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
-        await session.refresh(self)
-        if do_commit:
-            await session.commit()
+            await session.refresh(self)
+        except IntegrityError as e:
+            await session.rollback()
+            if TYPE_CHECKING:
+                assert e.orig  # for mypy
+            raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
         return self

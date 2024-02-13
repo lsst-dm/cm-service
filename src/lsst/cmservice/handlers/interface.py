@@ -472,7 +472,7 @@ async def update_status(session: async_scoped_session, fullname: str, status: St
     CMMissingFullnameError : Could not find row
     """
     row = await get_node_by_fullname(session, fullname)
-    result = await row.update_values(session, do_commit=False, status=status)
+    result = await row.update_values(session, status=status)
     return result
 
 
@@ -508,7 +508,7 @@ async def update_child_config(
     CMMissingFullnameError : Could not find row
     """
     row = await get_node_by_fullname(session, fullname)
-    result = await row.update_child_config(session, do_commit=False, **kwargs)
+    result = await row.update_child_config(session, **kwargs)
     return result
 
 
@@ -544,7 +544,7 @@ async def update_collections(
     CMMissingFullnameError : Could not find row
     """
     row = await get_node_by_fullname(session, fullname)
-    result = await row.update_collections(session, do_commit=False, **kwargs)
+    result = await row.update_collections(session, **kwargs)
     return result
 
 
@@ -580,7 +580,7 @@ async def update_data_dict(
     CMMissingFullnameError : Could not find row
     """
     row = await get_node_by_fullname(session, fullname)
-    result = await row.update_data_dict(session, do_commit=False, **kwargs)
+    result = await row.update_data_dict(session, **kwargs)
     return result
 
 
@@ -616,7 +616,7 @@ async def update_spec_aliases(
     CMMissingFullnameError : Could not find row
     """
     row = await get_node_by_fullname(session, fullname)
-    result = await row.update_spec_aliases(session, do_commit=False, **kwargs)
+    result = await row.update_spec_aliases(session, **kwargs)
     return result
 
 
@@ -1318,7 +1318,7 @@ async def create_campaign(
     campaign: Campaign
         Newly created Campaign
     """
-    result = await db.Campaign.create_row(session, do_commit=False, **kwargs)
+    result = await db.Campaign.create_row(session, **kwargs)
     return result
 
 
@@ -1495,5 +1495,5 @@ async def create_error_type(
     error_type : PipetaskErrorType
         Newly created PipetaskErrorType
     """
-    result = await db.PipetaskErrorType.create_row(session, do_commit=False, **kwargs)
+    result = await db.PipetaskErrorType.create_row(session, **kwargs)
     return result

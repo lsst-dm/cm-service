@@ -179,7 +179,7 @@ class BpsScriptHandler(ScriptHandler):
         status = await ScriptHandler.launch(self, session, script, parent, **kwargs)
 
         if status == StatusEnum.running:
-            await parent.update_values(session, do_commit=False, stamp_url=script.stamp_url)
+            await parent.update_values(session, stamp_url=script.stamp_url)
         return status
 
     async def _reset_script(
@@ -309,7 +309,7 @@ class BpsReportHandler(FunctionHandler):
         if status is None:
             status = script.status
         if status != script.status:
-            await script.update_values(session, do_commit=False, status=status)
+            await script.update_values(session, status=status)
         return status
 
 
@@ -395,7 +395,7 @@ class ManifestReportLoadHandler(FunctionHandler):
         if status is None:
             status = script.status
         if status != script.status:
-            await script.update_values(session, do_commit=False, status=status)
+            await script.update_values(session, status=status)
         return status
 
     async def _load_pipetask_report(

@@ -191,7 +191,7 @@ class ElementMixin(NodeMixin):
                 f"Can only retry failed/rejected scripts, {the_script.fullname} is {the_script.status.value}",
             )
         new_script = await the_script.copy_script(session)
-        await the_script.update_values(session, do_commit=True, superseded=True)
+        await the_script.update_values(session, superseded=True)
         return new_script
 
     async def estimate_sleep_time(

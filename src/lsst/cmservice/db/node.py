@@ -397,8 +397,6 @@ class NodeMixin(RowMixin):
     async def update_child_config(
         self,
         session: async_scoped_session,
-        *,
-        do_commit: bool = False,
         **kwargs: Any,
     ) -> NodeMixin:
         """Update the child configuration
@@ -408,9 +406,6 @@ class NodeMixin(RowMixin):
         ----------
         session : async_scoped_session
             DB session manager
-
-        do_commit: bool
-            If True, commit the session in this function
 
         kwargs: Any
             Key-value pairs to update
@@ -441,15 +436,11 @@ class NodeMixin(RowMixin):
                 assert e.orig  # for mypy
             await session.rollback()
             raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
-        if do_commit:
-            await session.commit()
         return self
 
     async def update_collections(
         self,
         session: async_scoped_session,
-        *,
-        do_commit: bool = False,
         **kwargs: Any,
     ) -> NodeMixin:
         """Update the collection configuration
@@ -459,9 +450,6 @@ class NodeMixin(RowMixin):
         ----------
         session : async_scoped_session
             DB session manager
-
-        do_commit: bool
-            If True, commit the session in this function
 
         kwargs: Any
             Key-value pairs to update
@@ -491,15 +479,11 @@ class NodeMixin(RowMixin):
             if TYPE_CHECKING:
                 assert e.orig  # for mypy
             raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
-        if do_commit:
-            await session.commit()
         return self
 
     async def update_spec_aliases(
         self,
         session: async_scoped_session,
-        *,
-        do_commit: bool = False,
         **kwargs: Any,
     ) -> NodeMixin:
         """Update the spec_alisases configuration
@@ -509,9 +493,6 @@ class NodeMixin(RowMixin):
         ----------
         session : async_scoped_session
             DB session manager
-
-        do_commit: bool
-            If True, commit the session in this function
 
         kwargs: Any
             Key-value pairs to update
@@ -542,15 +523,11 @@ class NodeMixin(RowMixin):
                 assert e.orig  # for mypy
             await session.rollback()
             raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
-        if do_commit:
-            await session.commit()
         return self
 
     async def update_data_dict(
         self,
         session: async_scoped_session,
-        *,
-        do_commit: bool = False,
         **kwargs: Any,
     ) -> NodeMixin:
         """Update the data configuration
@@ -560,9 +537,6 @@ class NodeMixin(RowMixin):
         ----------
         session : async_scoped_session
             DB session manager
-
-        do_commit:  bool
-            If True, commit the session in this function
 
         kwargs: Any
             Key-value pairs to update
@@ -593,8 +567,6 @@ class NodeMixin(RowMixin):
                 assert e.orig  # for mypy
             await session.rollback()
             raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
-        if do_commit:
-            await session.commit()
         return self
 
     async def check_prerequisites(
@@ -628,8 +600,6 @@ class NodeMixin(RowMixin):
 
     async def reject(
         self,
-        *,
-        do_commit: bool = False,
         session: async_scoped_session,
     ) -> NodeMixin:
         """Set a node as rejected
@@ -639,9 +609,6 @@ class NodeMixin(RowMixin):
         session : async_scoped_session
             DB session manager
 
-        do_commit: bool
-            If True, commit the session in this function
-
         Returns
         -------
         node: NodeMixin
@@ -650,14 +617,12 @@ class NodeMixin(RowMixin):
         if self.status in [StatusEnum.accepted, StatusEnum.rescued]:
             raise CMBadStateTransitionError(f"Can not reject {self} as it is in status {self.status}")
 
-        await self.update_values(session, do_commit=do_commit, status=StatusEnum.rejected)
+        await self.update_values(session, status=StatusEnum.rejected)
         return self
 
     async def accept(
         self,
         session: async_scoped_session,
-        *,
-        do_commit: bool = False,
     ) -> NodeMixin:
         """Set a node as accepted
 
@@ -665,9 +630,6 @@ class NodeMixin(RowMixin):
         ----------
         session : async_scoped_session
             DB session manager
-
-        do_commit: bool
-            If True, commit the session in this function
 
         Returns
         -------
@@ -677,14 +639,12 @@ class NodeMixin(RowMixin):
         if self.status in [StatusEnum.running, StatusEnum.reviewable, StatusEnum.rescuable]:
             raise CMBadStateTransitionError(f"Can not accept {self} as it is in status {self.status}")
 
-        await self.update_values(session, do_commit=do_commit, status=StatusEnum.accepted)
+        await self.update_values(session, status=StatusEnum.accepted)
         return self
 
     async def reset(
         self,
         session: async_scoped_session,
-        *,
-        do_commit: bool = False,
     ) -> NodeMixin:
         """Reset a Node to `waiting`
 
@@ -692,9 +652,6 @@ class NodeMixin(RowMixin):
         ----------
         session : async_scoped_session
             DB session manager
-
-        do_commit: bool
-            If True, commit the session in this function
 
         Returns
         -------
@@ -705,7 +662,7 @@ class NodeMixin(RowMixin):
             raise CMBadStateTransitionError(f"Can not reset {self} as it is in status {self.status}")
 
         await self._clean_up_node(session)
-        await self.update_values(session, do_commit=do_commit, status=StatusEnum.waiting, superseded=False)
+        await self.update_values(session, status=StatusEnum.waiting, superseded=False)
         return self
 
     async def _clean_up_node(

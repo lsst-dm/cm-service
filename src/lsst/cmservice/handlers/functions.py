@@ -191,7 +191,6 @@ async def create_specification(
         try:
             _new_script_template_assoc = await ScriptTemplateAssociation.create_row(
                 session,
-                do_commit=False,
                 spec_name=spec_name,
                 **script_template_config_,
             )
@@ -208,7 +207,6 @@ async def create_specification(
         try:
             _new_spec_block_assoc = await SpecBlockAssociation.create_row(
                 session,
-                do_commit=False,
                 spec_name=spec_name,
                 **spec_block_config_,
             )
