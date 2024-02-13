@@ -43,8 +43,11 @@ class ChainCreateScriptHandler(ScriptHandler):
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"butler collection-chain {butler_repo} {output_coll}"
-        for input_coll in input_colls:
-            command += f" {input_coll}"
+        if isinstance(input_colls, list):
+            for input_coll in input_colls:
+                command += f" {input_coll}"
+        else:
+            command += f" {input_colls}"
         await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared

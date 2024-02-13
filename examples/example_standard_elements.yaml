@@ -106,12 +106,7 @@
                 name: ancillary
                 spec_block: chain_create_script
                 collections:
-                    inputs:
-                        - HSC/calib
-                        - HSC/masks
-                        - HSC/fgcmcal/lut/RC2
-                        - refcats
-                        - skymaps
+                    inputs: "{campaign_ancilllary_inputs}"
                     output: "{campaign_ancillary}"
           - Script:
                 name: run
