@@ -14,7 +14,7 @@ setup lsst_distrib\n
 
 # setup PanDA env.\n
 latest_panda=$(ls -td /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v* | head -1)\n
-setupScript=${latest_panda}/setup_panda_cern.sh\n
+setupScript=${latest_panda}/setup_panda_usdf.sh\n
 source $setupScript ${WEEKLY}\n
 
 env | grep PANDA\n

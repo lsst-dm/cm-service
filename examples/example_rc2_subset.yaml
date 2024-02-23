@@ -1,0 +1,90 @@
+- Imports:
+      - "${CM_CONFIGS}/example_standard_scripts.yaml"
+      - "${CM_CONFIGS}/example_standard_elements.yaml"
+      - "${CM_CONFIGS}/example_rc2_subset_steps.yaml"
+- SpecBlock:
+      name: rc2_subset_campaign
+      includes: ["base_campaign"]
+      collections:
+          root: 'u/echarles/cm/rc2_subset'
+          campaign_source: HSC/raw/RC2_subset
+          campaign_ancilllary_inputs:
+              - HSC/calib
+              - HSC/masks
+              - HSC/fgcmcal/lut/RC2
+              - refcats
+              - skymaps
+      steps:
+          - Step:
+                name: step1
+                spec_block: rc2_subset_step1
+                child_config:
+                    base_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1'"
+                    split_method: no_split
+          - Step:
+                name: step2a
+                spec_block: rc2_subset_step2a
+                prerequisites: ['step1']
+                child_config:
+                    base_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1'"
+                    split_method: no_split
+          - Step:
+                name: step2b
+                spec_block: rc2_subset_step2b
+                prerequisites: ['step2a']
+                child_config:
+                    base_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1' and tract = '9813'"
+                    split_method: no_split
+          - Step:
+                name: step2c
+                spec_block: rc2_subset_step2c
+                prerequisites: ['step2b']
+                child_config:
+                    base_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1'"
+                    split_method: no_split
+          - Step:
+                name: step2d
+                spec_block: rc2_subset_step2d
+                prerequisites: ['step2c']
+                child_config:
+                    base_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1'"
+                    split_method: no_split
+          - Step:
+                name: step3
+                spec_block: rc2_subset_step3
+                prerequisites: ['step2d']
+                child_config:
+                    base_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1' and tract = 9813 and patch IN (40)"
+                    split_method: no_split
+          - Step:
+                name: step4
+                spec_block: rc2_subset_step4
+                prerequisites: ['step3']
+                child_config:
+                    base_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1' and patch IN (40)"
+                    split_method: no_split
+          - Step:
+                name: step5
+                spec_block: rc2_subset_step5
+                prerequisites: ['step4']
+                child_config:
+                    base_query: >
+                        instrument = 'HSC' and skymap = 'hsc_rings_v1' and tract = 9813,
+                        band IN ('g', 'r', 'i', 'z', 'y') and patch IN (40)
+                    split_method: no_split
+          - Step:
+                name: step8
+                spec_block: rc2_subset_step8
+                prerequisites: ['step3']
+                child_config:
+                    base_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1'"
+      data:
+          butler_repo: '/repo/main'
+          prod_area: 'output/archive'
+          data_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1'"
+          lsst_version: w_2024_08
+- Specification:
+      name: rc2_subset
+      script_templates: []
+      spec_blocks:
+          - SpecBlockAssociation: {spec_block_name: rc2_subset_campaign, alias: campaign}
