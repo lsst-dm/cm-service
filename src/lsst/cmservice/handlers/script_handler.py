@@ -301,6 +301,7 @@ class BaseScriptHandler(Handler):
 
     async def _purge_products(
         self,
+        session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
     ) -> None:
@@ -544,7 +545,7 @@ class ScriptHandler(BaseScriptHandler):
             update_fields["script_url"] = None
             update_fields["log_url"] = None
         update_fields["status"] = to_status
-        self._purge_products(script, to_status)
+        await self._purge_products(session, script, to_status)
         return update_fields
 
 
@@ -695,5 +696,5 @@ class FunctionHandler(BaseScriptHandler):
     ) -> dict[str, Any]:
         update_fields = {}
         update_fields["status"] = to_status
-        self._purge_products(script, to_status)
+        await self._purge_products(session, script, to_status)
         return update_fields

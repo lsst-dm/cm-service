@@ -8,6 +8,12 @@ from lsst.cmservice.db.element import ElementMixin
 from lsst.cmservice.db.script import Script
 
 from ..common.bash import write_bash_script
+from ..common.butler import (
+    remove_run_collections,
+    remove_non_run_collections,
+    remove_collection_from_chain,
+    remove_datasets_from_collections,
+)
 from ..common.enums import StatusEnum
 from ..common.errors import CMBadExecutionMethodError, CMMissingScriptInputError
 from ..db.step import Step
@@ -54,6 +60,7 @@ class ChainCreateScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
+        session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
     ) -> None:
@@ -104,6 +111,7 @@ class ChainPrependScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
+        session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
     ) -> None:
@@ -175,6 +183,7 @@ class ChainCollectScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
+        session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
     ) -> None:
@@ -229,6 +238,7 @@ class TagInputsScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
+        session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
     ) -> None:
@@ -274,6 +284,7 @@ class TagCreateScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
+        session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
     ) -> None:
@@ -323,6 +334,7 @@ class TagAssociateScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
+        session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
     ) -> None:
@@ -388,11 +400,8 @@ class PrepareStepScriptHandler(ScriptHandler):
 
         command = f"butler collection-chain {butler_repo} {output_coll}"
         if prereq_colls:
-            if isinstance(prereq_colls, list):
-                for prereq_coll_ in prereq_colls:
-                    command += f" {prereq_coll_}"
-            else:
-                command += f" {prereq_colls}"
+            for prereq_coll_ in prereq_colls:
+                command += f" {prereq_coll_}"
         else:
             command += f" {input_colls}"
         await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
@@ -401,6 +410,7 @@ class PrepareStepScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
+        session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
     ) -> None:
@@ -448,6 +458,7 @@ class ValidateScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
+        session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
     ) -> None:

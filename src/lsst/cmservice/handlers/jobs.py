@@ -8,19 +8,26 @@ from typing import Any
 import yaml
 from sqlalchemy.ext.asyncio import async_scoped_session
 
+
 from lsst.cmservice.common.bash import write_bash_script
 from lsst.cmservice.db.element import ElementMixin
 from lsst.cmservice.db.job import Job
 from lsst.cmservice.db.script import Script
 from lsst.cmservice.db.task_set import TaskSet
 from lsst.cmservice.db.wms_task_report import WmsTaskReport
-from lsst.ctrl.bps import BaseWmsService, WmsRunReport, WmsStates
+from lsst.ctrl.bps import BaseWmsService, WmsStates, WmRunReport
 from lsst.utils import doImport
 
+from ..common.butler import remove_run_collections
 from ..common.enums import LevelEnum, StatusEnum, TaskStatusEnum, WmsMethodEnum
-from ..common.errors import CMBadExecutionMethodError, CMIDMismatchError
+from ..common.errors import (
+    CMBadExecutionMethodError,
+    CMIDMismatchError,
+    CMMissingScriptInputError,
+    CMBadParameterTypeError,
+)
 from .functions import load_manifest_report, load_wms_reports
-from .script_handler import FunctionHandler, ScriptHandler
+from .script_handler import BaseScriptHandler, FunctionHandler, ScriptHandler
 
 WMS_TO_JOB_STATUS_MAP = {
     WmsStates.UNKNOWN: None,
@@ -193,7 +200,7 @@ class BpsScriptHandler(ScriptHandler):
         script: Script,
         to_status: StatusEnum,
     ) -> dict[str, Any]:
-        update_fields = await ScriptHandler._reset_script(self, session, script, to_status)
+        update_fields = await BaseScriptHandler._reset_script(self, session, script, to_status)
         if script.script_url and to_status.value <= StatusEnum.ready.value:
             json_url = script.script_url.replace(".sh", "_log.json")
             config_url = script.script_url.replace(".sh", "_bps_config.yaml")
@@ -217,6 +224,7 @@ class BpsScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
+        session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
     ) -> None:
@@ -343,7 +351,7 @@ class BpsReportHandler(FunctionHandler):
         script: Script,
         to_status: StatusEnum,
     ) -> dict[str, Any]:
-        update_fields = await ScriptHandler._reset_script(self, session, script, to_status)
+        update_fields = await BaseScriptHandler._reset_script(self, session, script, to_status)
         parent = await script.get_parent(session)
         if parent.level != LevelEnum.job:
             raise CMBadParameterTypeError(f"Script parent is a {parent.level}, not a LevelEnum.job")
@@ -394,7 +402,7 @@ class ManifestReportScriptHandler(ScriptHandler):
         )
         prepend = manifest_script_template.data["text"].replace("{lsst_version}", lsst_version)
         if "custom_lsst_setup" in data_dict:
-            custom_lsst_setup = data_dict[custom_lsst_setup]
+            custom_lsst_setup = data_dict["custom_lsst_setup"]
             prepend += f"\n{custom_lsst_setup}"
 
         command = f"pipetask report {butler_repo} {graph_url} {report_url}"
@@ -473,7 +481,7 @@ class ManifestReportLoadHandler(FunctionHandler):
         script: Script,
         to_status: StatusEnum,
     ) -> dict[str, Any]:
-        update_fields = await ScriptHandler._reset_script(self, session, script, to_status)
+        update_fields = await BaseScriptHandler._reset_script(self, session, script, to_status)
         parent = await script.get_parent(session)
         if parent.level != LevelEnum.job:
             raise CMBadParameterTypeError(f"Script parent is a {parent.level}, not a LevelEnum.job")

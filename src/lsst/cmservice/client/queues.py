@@ -154,5 +154,5 @@ class CMQueueClient:
                 try:
                     self.update(row_id, time_updated=datetime.now())
                 except Exception as msg2:  # pylint: disable=broad-exception-caught
-                    print(f"Failed to modify time_updated: {msg}, continuing")
+                    print(f"Failed to modify time_updated: {msg2}, continuing")
                 can_continue = True
