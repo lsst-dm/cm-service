@@ -33,7 +33,7 @@
                 spec_block: rc2_subset_step2b
                 prerequisites: ['step2a']
                 child_config:
-                    base_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1' and tract = '9813'"
+                    base_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1' and tract = 9813"
                     split_method: no_split
           - Step:
                 name: step2c
