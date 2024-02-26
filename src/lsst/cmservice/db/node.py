@@ -565,7 +565,8 @@ class NodeMixin(RowMixin):
                 self.data = the_data
             else:
                 self.data = kwargs.copy()
-            await session.refresh(self)
+            await session.commit()
+            # await session.refresh(self)
         except IntegrityError as e:
             if TYPE_CHECKING:
                 assert e.orig  # for mypy
