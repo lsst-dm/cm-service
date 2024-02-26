@@ -764,7 +764,7 @@ def get_update_data_dict_command(
             row_id=row_id,
             **kwargs,
         )
-        _output_dict(result, output)
+        _output_dict(result.data, output)
 
     return update_data_dict
 
