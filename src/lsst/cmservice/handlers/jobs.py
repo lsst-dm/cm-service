@@ -15,7 +15,7 @@ from lsst.cmservice.db.job import Job
 from lsst.cmservice.db.script import Script
 from lsst.cmservice.db.task_set import TaskSet
 from lsst.cmservice.db.wms_task_report import WmsTaskReport
-from lsst.ctrl.bps import BaseWmsService, WmsStates, WmRunReport
+from lsst.ctrl.bps import BaseWmsService, WmsStates, WmsRunReport
 from lsst.utils import doImport
 
 from ..common.butler import remove_run_collections
@@ -265,7 +265,7 @@ class BpsReportHandler(FunctionHandler):
     def _get_wms_report(
         self,
         wms_workflow_id: int,
-    ) -> WmRunReport:
+    ) -> WmsRunReport:
         """Get the WmsRunReport for a job
 
         Paramters
@@ -351,7 +351,7 @@ class BpsReportHandler(FunctionHandler):
         script: Script,
         to_status: StatusEnum,
     ) -> dict[str, Any]:
-        update_fields = await BaseScriptHandler._reset_script(self, session, script, to_status)
+        update_fields = await FunctionHandler._reset_script(self, session, script, to_status)
         parent = await script.get_parent(session)
         if parent.level != LevelEnum.job:
             raise CMBadParameterTypeError(f"Script parent is a {parent.level}, not a LevelEnum.job")
@@ -481,7 +481,7 @@ class ManifestReportLoadHandler(FunctionHandler):
         script: Script,
         to_status: StatusEnum,
     ) -> dict[str, Any]:
-        update_fields = await BaseScriptHandler._reset_script(self, session, script, to_status)
+        update_fields = await FunctionHandler._reset_script(self, session, script, to_status)
         parent = await script.get_parent(session)
         if parent.level != LevelEnum.job:
             raise CMBadParameterTypeError(f"Script parent is a {parent.level}, not a LevelEnum.job")
