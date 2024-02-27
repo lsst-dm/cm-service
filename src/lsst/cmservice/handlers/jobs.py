@@ -118,10 +118,9 @@ class BpsScriptHandler(ScriptHandler):
 
         workflow_config = bps_yaml_template.data.copy()
 
-        async with session.begin_nested():
-            await session.refresh(parent, attribute_names=["c_", "p_"])
-            workflow_config["project"] = parent.p_.name
-            workflow_config["campaign"] = parent.c_.name
+        await session.refresh(parent, attribute_names=["c_", "p_"])
+        workflow_config["project"] = parent.p_.name
+        workflow_config["campaign"] = parent.c_.name
 
         data_query = data_dict.get("data_query", None)
         workflow_config["submitPath"] = submit_path
@@ -181,7 +180,6 @@ class BpsScriptHandler(ScriptHandler):
 
         if status == StatusEnum.running:
             await parent.update_values(session, stamp_url=script.stamp_url)
-            await session.commit()
         return status
 
     async def _reset_script(
@@ -312,7 +310,6 @@ class BpsReportHandler(FunctionHandler):
             status = script.status
         if status != script.status:
             await script.update_values(session, status=status)
-            await session.commit()
         return status
 
 
@@ -399,7 +396,6 @@ class ManifestReportLoadHandler(FunctionHandler):
             status = script.status
         if status != script.status:
             await script.update_values(session, status=status)
-            await session.commit()
         return status
 
     async def _load_pipetask_report(

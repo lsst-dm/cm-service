@@ -23,9 +23,11 @@ async def add_groups(
 ) -> db.Step:
     """Invoke the interface.add_groups function"""
     try:
-        return await interface.add_groups(session, **query.model_dump())
+        async with session.begin():
+            ret_val = await interface.add_groups(session, **query.model_dump())
+        return ret_val
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.post(
@@ -40,9 +42,11 @@ async def add_steps(
 ) -> db.Campaign:
     """Invoke the interface.add_steps function"""
     try:
-        return await interface.add_steps(session, **query.model_dump())
+        async with session.begin():
+            ret_val = await interface.add_steps(session, **query.model_dump())
+        return ret_val
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.post(
@@ -57,6 +61,8 @@ async def add_campaign(
 ) -> db.Campaign:
     """Invoke the interface.add_campaign function"""
     try:
-        return await interface.create_campaign(session, **query.model_dump())
+        async with session.begin():
+            ret_val = await interface.create_campaign(session, **query.model_dump())
+        return ret_val
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg

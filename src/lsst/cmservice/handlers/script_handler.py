@@ -288,7 +288,6 @@ class BaseScriptHandler(Handler):
 
         update_fields = await self._reset_script(session, node, to_status)
         await node.update_values(session, **update_fields)
-        await session.commit()
         await session.refresh(node, attribute_names=["status"])
         return node.status
 
@@ -375,7 +374,6 @@ class ScriptHandler(BaseScriptHandler):
             status = StatusEnum.running
         if status != script.status:
             await script.update_values(session, status=status)
-            await session.commit()
         return status
 
     async def prepare(
@@ -398,7 +396,6 @@ class ScriptHandler(BaseScriptHandler):
             status = await self._write_script(session, script, parent, **kwargs)
         if status != script.status:
             await script.update_values(session, status=status)
-            await session.commit()
         return status
 
     async def launch(
@@ -433,12 +430,10 @@ class ScriptHandler(BaseScriptHandler):
             job_id = await submit_slurm_job(script.script_url, script.log_url)
             status = StatusEnum.running
             await script.update_values(session, stamp_url=job_id, status=status)
-            await session.commit()
         else:
             raise CMBadExecutionMethodError(f"Method {script_method} not valid for {script}")
         if status != orig_status:
             await script.update_values(session, status=status)
-            await session.commit()
         return status
 
     async def check(
@@ -477,7 +472,6 @@ class ScriptHandler(BaseScriptHandler):
             )
         if status != script.status:
             await script.update_values(session, status=status)
-            await session.commit()
         return status
 
     async def _get_diagnostic_message(
@@ -566,7 +560,6 @@ class FunctionHandler(BaseScriptHandler):
         status = await self._do_prepare(session, script, parent, **kwargs)
         if status != script.status:
             await script.update_values(session, status=status)
-            await session.commit()
         return status
 
     async def launch(
@@ -585,7 +578,6 @@ class FunctionHandler(BaseScriptHandler):
         status = await self._do_run(session, script, parent, **kwargs)
         if status != script.status:
             await script.update_values(session, status=status)
-            await session.commit()
         return status
 
     async def check(
@@ -604,7 +596,6 @@ class FunctionHandler(BaseScriptHandler):
         status = await self._do_check(session, script, parent, **kwargs)
         if status != script.status:
             await script.update_values(session, status=status)
-            await session.commit()
         return status
 
     async def _do_prepare(  # pylint: disable=unused-argument

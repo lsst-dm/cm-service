@@ -83,18 +83,17 @@ class Specification(Base, RowMixin):
         spec_block: SpecBlock
             Requested SpecBlock
         """
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["block_assocs_"])
-            for block_assoc_ in self.block_assocs_:
-                if block_assoc_.alias == spec_block_name:
-                    await session.refresh(block_assoc_, attribute_names=["spec_block_"])
-                    return block_assoc_.spec_block_
+        await session.refresh(self, attribute_names=["block_assocs_"])
+        for block_assoc_ in self.block_assocs_:
+            if block_assoc_.alias == spec_block_name:
+                await session.refresh(block_assoc_, attribute_names=["spec_block_"])
+                return block_assoc_.spec_block_
             # No overrides defined locally, just use the main table
-            try:
-                spec_block = await SpecBlock.get_row_by_fullname(session, spec_block_name)
-                return spec_block
-            except KeyError as msg:
-                raise CMSpecficiationError(f"Could not find spec_block {spec_block_name} in {self}") from msg
+        try:
+            spec_block = await SpecBlock.get_row_by_fullname(session, spec_block_name)
+            return spec_block
+        except KeyError as msg:
+            raise CMSpecficiationError(f"Could not find spec_block {spec_block_name} in {self}") from msg
 
     async def get_script_template(
         self,
@@ -116,17 +115,16 @@ class Specification(Base, RowMixin):
         script_template: ScriptTemplate
             Requested ScriptTemplate
         """
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["script_template_assocs_"])
-            for script_template_assoc_ in self.script_template_assocs_:
-                if script_template_assoc_.alias == script_template_name:
-                    await session.refresh(script_template_assoc_, attribute_names=["script_template_"])
-                    return script_template_assoc_.script_template_
+        await session.refresh(self, attribute_names=["script_template_assocs_"])
+        for script_template_assoc_ in self.script_template_assocs_:
+            if script_template_assoc_.alias == script_template_name:
+                await session.refresh(script_template_assoc_, attribute_names=["script_template_"])
+                return script_template_assoc_.script_template_
             # No overrides defined locally, just use the main table
-            try:
-                script_template = await ScriptTemplate.get_row_by_fullname(session, script_template_name)
-                return script_template
-            except KeyError as msg:
-                raise CMSpecficiationError(
-                    f"Could not find ScriptTemplate {script_template_name} in {self}",
-                ) from msg
+        try:
+            script_template = await ScriptTemplate.get_row_by_fullname(session, script_template_name)
+            return script_template
+        except KeyError as msg:
+            raise CMSpecficiationError(
+                f"Could not find ScriptTemplate {script_template_name} in {self}",
+            ) from msg

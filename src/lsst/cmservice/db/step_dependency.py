@@ -64,8 +64,7 @@ class StepDependency(Base, RowMixin):
         done: bool
             Returns True if the prerequisite is done
         """
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["prereq_"])
-            if self.prereq_.status.value >= StatusEnum.accepted.value:
-                return True
-            return False
+        await session.refresh(self, attribute_names=["prereq_"])
+        if self.prereq_.status.value >= StatusEnum.accepted.value:
+            return True
+        return False

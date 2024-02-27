@@ -27,9 +27,11 @@ async def process_script(
     if params.get("fake_status"):
         params["fake_status"] = StatusEnum(params["fake_status"])
     try:
-        return await interface.process_script(session, **params)
+        async with session.begin():
+            ret_val = await interface.process_script(session, **params)
+        return ret_val
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.post(
@@ -47,9 +49,11 @@ async def process_job(
     if params.get("fake_status"):
         params["fake_status"] = StatusEnum(params["fake_status"])
     try:
-        return await interface.process_job(session, **params)
+        async with session.begin():
+            ret_val = await interface.process_job(session, **params)
+        return ret_val
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.post(
@@ -67,9 +71,11 @@ async def process_element(
     if params.get("fake_status"):
         params["fake_status"] = StatusEnum(params["fake_status"])
     try:
-        return await interface.process_element(session, **params)
+        async with session.begin():
+            ret_val = await interface.process_element(session, **params)
+        return ret_val
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.post(
@@ -87,9 +93,11 @@ async def process(
     if params.get("fake_status"):
         params["fake_status"] = StatusEnum(params["fake_status"])
     try:
-        return await interface.process(session, **params)
+        async with session.begin():
+            ret_val = await interface.process(session, **params)
+        return ret_val
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.post(
@@ -105,9 +113,11 @@ async def reset_script(
     """Invoke the interface.reset_script function"""
     params = query.model_dump()
     try:
-        return await interface.reset_script(session, **params)
+        async with session.begin():
+            ret_val = await interface.reset_script(session, **params)
+        return ret_val
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.post(
@@ -123,9 +133,11 @@ async def retry_script(
     """Invoke the interface.retry_script function"""
     params = query.model_dump()
     try:
-        return await interface.retry_script(session, **params)
+        async with session.begin():
+            ret_val = await interface.retry_script(session, **params)
+        return ret_val
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.post(
@@ -141,9 +153,11 @@ async def rescue_job(
     """Invoke the interface.rescue_job function"""
     params = query.model_dump()
     try:
-        return await interface.rescue_job(session, **params)
+        async with session.begin():
+            ret_val = await interface.rescue_job(session, **params)
+        return ret_val
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.post(
@@ -159,9 +173,11 @@ async def mark_job_rescued(
     """Invoke the interface.mark_job_rescued function"""
     params = query.model_dump()
     try:
-        return await interface.mark_job_rescued(session, **params)
+        async with session.begin():
+            ret_val = await interface.mark_job_rescued(session, **params)
+        return ret_val
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.post(
@@ -177,6 +193,8 @@ async def rematch_pipetask_errors(
     """Invoke the interface.match_pipetask_errors function"""
     params = query.model_dump()
     try:
-        return await interface.match_pipetask_errors(session, **params)
+        async with session.begin():
+            ret_val = await interface.match_pipetask_errors(session, **params)
+        return ret_val
     except Exception as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg

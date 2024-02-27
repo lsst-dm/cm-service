@@ -98,9 +98,8 @@ class Group(Base, ElementMixin):
         session: async_scoped_session,
     ) -> "Campaign":
         """Maps self.c_ to self.get_campaign() for consistency"""
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["c_"])
-            return self.c_
+        await session.refresh(self, attribute_names=["c_"])
+        return self.c_
 
     def __repr__(self) -> str:
         return f"Group {self.fullname} {self.id} {self.status.name}"
@@ -110,9 +109,8 @@ class Group(Base, ElementMixin):
         session: async_scoped_session,  # pylint: disable=unused-argument
     ) -> Iterable:
         """Maps self.g_ to self.children() for consistency"""
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["jobs_"])
-            return self.jobs_
+        await session.refresh(self, attribute_names=["jobs_"])
+        return self.jobs_
 
     async def get_wms_reports(
         self,
@@ -121,11 +119,10 @@ class Group(Base, ElementMixin):
     ) -> MergedWmsTaskReportDict:
         the_dict = MergedWmsTaskReportDict(reports={})
 
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["jobs_"])
-            for job_ in self.jobs_:
-                the_dict += await job_.get_wms_reports(session)
-            return the_dict
+        await session.refresh(self, attribute_names=["jobs_"])
+        for job_ in self.jobs_:
+            the_dict += await job_.get_wms_reports(session)
+        return the_dict
 
     async def get_tasks(
         self,
@@ -133,11 +130,10 @@ class Group(Base, ElementMixin):
         **kwargs: Any,
     ) -> MergedTaskSetDict:
         the_dict = MergedTaskSetDict(reports={})
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["jobs_"])
-            for job_ in self.jobs_:
-                the_dict.merge(await job_.get_tasks(session))
-            return the_dict
+        await session.refresh(self, attribute_names=["jobs_"])
+        for job_ in self.jobs_:
+            the_dict.merge(await job_.get_tasks(session))
+        return the_dict
 
     async def get_products(
         self,
@@ -145,11 +141,10 @@ class Group(Base, ElementMixin):
         **kwargs: Any,
     ) -> MergedProductSetDict:
         the_dict = MergedProductSetDict(reports={})
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["jobs_"])
-            for job_ in self.jobs_:
-                the_dict.merge(await job_.get_products(session))
-            return the_dict
+        await session.refresh(self, attribute_names=["jobs_"])
+        for job_ in self.jobs_:
+            the_dict.merge(await job_.get_products(session))
+        return the_dict
 
     @classmethod
     async def get_create_kwargs(
@@ -207,7 +202,6 @@ class Group(Base, ElementMixin):
             raise CMTooFewAcceptedJobsError(f"Expected at least one rescuable job for {self.fullname}, got 0")
         latest_resuable_job = rescuable_jobs[-1]
         new_job = await latest_resuable_job.copy_job(session, self)
-        await session.commit()
         return new_job
 
     async def mark_job_rescued(
@@ -243,5 +237,4 @@ class Group(Base, ElementMixin):
                 has_accepted = True
         if not has_accepted:
             raise CMTooFewAcceptedJobsError(f"Expected at least one accepted job for {self.fullname}, got 0")
-        await session.commit()
         return ret_list

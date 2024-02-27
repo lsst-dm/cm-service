@@ -130,9 +130,8 @@ class Job(Base, ElementMixin):
         session: async_scoped_session,
     ) -> Campaign:
         """Maps self.c_ to self.get_campaign() for consistency"""
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["c_"])
-            return self.c_
+        await session.refresh(self, attribute_names=["c_"])
+        return self.c_
 
     async def get_siblings(
         self,
@@ -157,42 +156,37 @@ class Job(Base, ElementMixin):
                 Job.id != self.id,
             ),
         )
-        async with session.begin_nested():
-            rows = await session.scalars(q)
-            return rows.all()
+        rows = await session.scalars(q)
+        return rows.all()
 
     async def get_wms_reports(
         self,
         session: async_scoped_session,
         **kwargs: Any,
     ) -> MergedWmsTaskReportDict:
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["wms_reports_"])
-            reports = {
-                wms_report_.name: MergedWmsTaskReport.from_orm(wms_report_)
-                for wms_report_ in self.wms_reports_
-            }
-            return MergedWmsTaskReportDict(reports=reports)
+        await session.refresh(self, attribute_names=["wms_reports_"])
+        reports = {
+            wms_report_.name: MergedWmsTaskReport.from_orm(wms_report_) for wms_report_ in self.wms_reports_
+        }
+        return MergedWmsTaskReportDict(reports=reports)
 
     async def get_tasks(
         self,
         session: async_scoped_session,
         **kwargs: Any,
     ) -> MergedTaskSetDict:
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["tasks_"])
-            reports = {task_.name: MergedTaskSet.from_orm(task_) for task_ in self.tasks_}
-            return MergedTaskSetDict(reports=reports)
+        await session.refresh(self, attribute_names=["tasks_"])
+        reports = {task_.name: MergedTaskSet.from_orm(task_) for task_ in self.tasks_}
+        return MergedTaskSetDict(reports=reports)
 
     async def get_products(
         self,
         session: async_scoped_session,
         **kwargs: Any,
     ) -> MergedProductSetDict:
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["products_"])
-            reports = {product_.name: MergedProductSet.from_orm(product_) for product_ in self.products_}
-            return MergedProductSetDict(reports=reports)
+        await session.refresh(self, attribute_names=["products_"])
+        reports = {product_.name: MergedProductSet.from_orm(product_) for product_ in self.products_}
+        return MergedProductSetDict(reports=reports)
 
     def __repr__(self) -> str:
         return f"Job {self.fullname} {self.id} {self.status.name}"
@@ -284,7 +278,6 @@ class Job(Base, ElementMixin):
             wms_job_id=None,
             stamp_url=None,
         )
-        async with session.begin_nested():
-            session.add(new_job)
+        session.add(new_job)
         await session.refresh(new_job)
         return new_job

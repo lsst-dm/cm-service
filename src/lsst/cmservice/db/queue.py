@@ -79,23 +79,22 @@ class Queue(Base, NodeMixin):
         element : ElementMixin
             Requested Parent Element
         """
-        async with session.begin_nested():
-            element: ElementMixin | None = None
-            if self.element_level == LevelEnum.campaign:
-                await session.refresh(self, attribute_names=["c_"])
-                element = self.c_
-            elif self.element_level == LevelEnum.step:
-                await session.refresh(self, attribute_names=["s_"])
-                element = self.s_
-            elif self.element_level == LevelEnum.group:
-                await session.refresh(self, attribute_names=["g_"])
-                element = self.g_
-            elif self.element_level == LevelEnum.job:
-                await session.refresh(self, attribute_names=["j_"])
-                element = self.j_
-            else:
-                raise CMBadEnumError(f"Bad level for script: {self.element_level}")
-            return element
+        element: ElementMixin | None = None
+        if self.element_level == LevelEnum.campaign:
+            await session.refresh(self, attribute_names=["c_"])
+            element = self.c_
+        elif self.element_level == LevelEnum.step:
+            await session.refresh(self, attribute_names=["s_"])
+            element = self.s_
+        elif self.element_level == LevelEnum.group:
+            await session.refresh(self, attribute_names=["g_"])
+            element = self.g_
+        elif self.element_level == LevelEnum.job:
+            await session.refresh(self, attribute_names=["j_"])
+            element = self.j_
+        else:
+            raise CMBadEnumError(f"Bad level for script: {self.element_level}")
+        return element
 
     @classmethod
     async def get_queue_item(
@@ -139,12 +138,11 @@ class Queue(Base, NodeMixin):
                 cls.element_id == element.id,
             ),
         )
-        async with session.begin_nested():
-            rows = await session.scalars(query)
-            row = rows.first()
-            if row is None:
-                raise CMMissingFullnameError(f"{cls} {element_level} {element.id} not found")
-            return row
+        rows = await session.scalars(query)
+        row = rows.first()
+        if row is None:
+            raise CMMissingFullnameError(f"{cls} {element_level} {element.id} not found")
+        return row
 
     @classmethod
     async def get_create_kwargs(
@@ -236,7 +234,6 @@ class Queue(Base, NodeMixin):
             update_dict.update(time_finished=now)
 
         await self.update_values(session, **update_dict)
-        await session.commit()
         return element.status.is_processable_element()
 
     async def process_element(

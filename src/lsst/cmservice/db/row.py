@@ -91,9 +91,8 @@ class RowMixin:
             if parent_id is not None:
                 q = q.where(parent_class.id == parent_id)
         q = q.offset(skip).limit(limit)
-        async with session.begin_nested():
-            results = await session.scalars(q)
-            return results.all()
+        results = await session.scalars(q)
+        return results.all()
 
     @classmethod
     async def get_row(
@@ -116,11 +115,10 @@ class RowMixin:
         results: T
             The matching row
         """
-        async with session.begin_nested():
-            result = await session.get(cls, row_id)
-            if result is None:
-                raise CMMissingIDError(f"{cls} {row_id} not found")
-            return result
+        result = await session.get(cls, row_id)
+        if result is None:
+            raise CMMissingIDError(f"{cls} {row_id} not found")
+        return result
 
     @classmethod
     async def get_row_by_fullname(
@@ -148,12 +146,11 @@ class RowMixin:
         if TYPE_CHECKING:
             assert issubclass(cls_copy, RowMixin)  # for mypy
         query = select(cls).where(cls_copy.fullname == fullname)
-        async with session.begin_nested():
-            rows = await session.scalars(query)
-            row = rows.first()
-            if row is None:
-                raise CMMissingFullnameError(f"{cls} {fullname} not found")
-            return row
+        rows = await session.scalars(query)
+        row = rows.first()
+        if row is None:
+            raise CMMissingFullnameError(f"{cls} {fullname} not found")
+        return row
 
     @classmethod
     async def delete_row(
@@ -175,15 +172,18 @@ class RowMixin:
         ------
         CMBadStateTransitionError: Row is in use
         """
-        async with session.begin_nested():
-            row = await session.get(cls, row_id)
-            if row is not None:
-                if hasattr(row, "status") and row.status not in DELETEABLE_STATES:
-                    raise CMBadStateTransitionError(
-                        f"Can not delete a row because it is in use {row} {row.status}",
-                    )
+        row = await session.get(cls, row_id)
+        if row is not None:
+            if hasattr(row, "status") and row.status not in DELETEABLE_STATES:
+                raise CMBadStateTransitionError(
+                    f"Can not delete a row because it is in use {row} {row.status}",
+                )
+            try:
                 await session.delete(row)
-                await session.commit()
+            except IntegrityError as e:
+                if TYPE_CHECKING:
+                    assert e.orig  # for mypy
+                raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
 
     @classmethod
     async def update_row(
@@ -220,21 +220,25 @@ class RowMixin:
         """
         if kwargs.get("id", row_id) != row_id:
             raise CMIDMismatchError("ID mismatch between URL and body")
-        try:
-            async with session.begin_nested():
-                row = await session.get(cls, row_id)
-                if row is None:
-                    raise CMMissingFullnameError(f"{cls} {row_id} not found")
+        row = await session.get(cls, row_id)
+        if row is None:
+            raise CMMissingFullnameError(f"{cls} {row_id} not found")
+        async with session.begin_nested():
+            try:
                 for var, value in kwargs.items():
                     if value:
                         setattr(row, var, value)
-            await session.refresh(row)
-            await session.commit()
-            return row
-        except IntegrityError as e:
-            if TYPE_CHECKING:
-                assert e.orig  # for mypy
-            raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
+            except IntegrityError as e:
+                await session.rollback()
+                if TYPE_CHECKING:
+                    assert e.orig  # for mypy
+                raise CMIntegrityError(
+                    params=e.params,
+                    orig=e.orig,
+                    statement=e.statement,
+                ) from e
+        await session.refresh(row)
+        return row
 
     @classmethod
     async def create_row(
@@ -264,7 +268,13 @@ class RowMixin:
         create_kwargs = await cls_copy.get_create_kwargs(session, **kwargs)
         row = cls(**create_kwargs)
         async with session.begin_nested():
-            session.add(row)
+            try:
+                session.add(row)
+            except IntegrityError as e:
+                await session.rollback()
+                if TYPE_CHECKING:
+                    assert e.orig  # for mypy
+                raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
         await session.refresh(row)
         return row
 
@@ -324,8 +334,9 @@ class RowMixin:
                 for var, value in kwargs.items():
                     setattr(self, var, value)
             await session.refresh(self)
-            return self
         except IntegrityError as e:
+            await session.rollback()
             if TYPE_CHECKING:
                 assert e.orig  # for mypy
             raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
+        return self

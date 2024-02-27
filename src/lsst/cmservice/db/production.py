@@ -50,6 +50,5 @@ class Production(Base, RowMixin):
         session: async_scoped_session,
     ) -> Iterable:
         """Maps self.c_ to self.children() for consistency"""
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["c_"])
-            return self.c_
+        await session.refresh(self, attribute_names=["c_"])
+        return self.c_

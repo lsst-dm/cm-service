@@ -174,46 +174,45 @@ async def create_specification(
     script_templates = config_values.get("script_templates", [])
     spec_blocks = config_values.get("spec_blocks", [])
 
-    async with session.begin_nested():
-        spec_q = select(Specification).where(Specification.name == spec_name)
-        spec_result = await session.scalars(spec_q)
-        specification = spec_result.first()
-        if specification is None:
-            specification = Specification(name=spec_name)
-            session.add(specification)
+    spec_q = select(Specification).where(Specification.name == spec_name)
+    spec_result = await session.scalars(spec_q)
+    specification = spec_result.first()
+    if specification is None:
+        specification = Specification(name=spec_name)
+        session.add(specification)
 
-        for script_list_item_ in script_templates:
-            try:
-                script_template_config_ = script_list_item_["ScriptTemplateAssociation"]
-            except KeyError as msg:
-                raise CMYamlParseError(
-                    f"Expected ScriptTemplateAssociation not {list(script_list_item_.keys())}",
-                ) from msg
-            try:
-                _new_script_template_assoc = await ScriptTemplateAssociation.create_row(
-                    session,
-                    spec_name=spec_name,
-                    **script_template_config_,
-                )
-            except IntegrityError:
-                print("ScriptTemplateAssociation already defined, skipping it")
-        for spec_block_list_item_ in spec_blocks:
-            try:
-                spec_block_config_ = spec_block_list_item_["SpecBlockAssociation"]
-            except KeyError as msg:
-                raise CMYamlParseError(
-                    f"Expected SpecBlockAssociation not {list(spec_block_list_item_.keys())}",
-                ) from msg
-            try:
-                _new_spec_block_assoc = await SpecBlockAssociation.create_row(
-                    session,
-                    spec_name=spec_name,
-                    **spec_block_config_,
-                )
-            except IntegrityError:
-                print("SpecBlockAssociation already defined, skipping it")
-        await session.commit()
-        return specification
+    for script_list_item_ in script_templates:
+        try:
+            script_template_config_ = script_list_item_["ScriptTemplateAssociation"]
+        except KeyError as msg:
+            raise CMYamlParseError(
+                f"Expected ScriptTemplateAssociation not {list(script_list_item_.keys())}",
+            ) from msg
+        try:
+            _new_script_template_assoc = await ScriptTemplateAssociation.create_row(
+                session,
+                spec_name=spec_name,
+                **script_template_config_,
+            )
+        except IntegrityError:
+            print("ScriptTemplateAssociation already defined, skipping it")
+
+    for spec_block_list_item_ in spec_blocks:
+        try:
+            spec_block_config_ = spec_block_list_item_["SpecBlockAssociation"]
+        except KeyError as msg:
+            raise CMYamlParseError(
+                f"Expected SpecBlockAssociation not {list(spec_block_list_item_.keys())}",
+            ) from msg
+        try:
+            _new_spec_block_assoc = await SpecBlockAssociation.create_row(
+                session,
+                spec_name=spec_name,
+                **spec_block_config_,
+            )
+        except IntegrityError:
+            print("SpecBlockAssociation already defined, skipping it")
+    return specification
 
 
 async def load_specification(
@@ -257,24 +256,21 @@ async def load_specification(
                     loaded_specs,
                 )
         elif "SpecBlock" in config_item:
-            async with session.begin_nested():
-                await create_spec_block(
-                    session,
-                    config_item["SpecBlock"],
-                    loaded_specs,
-                )
+            await create_spec_block(
+                session,
+                config_item["SpecBlock"],
+                loaded_specs,
+            )
         elif "ScriptTemplate" in config_item:
-            async with session.begin_nested():
-                await create_script_template(
-                    session,
-                    config_item["ScriptTemplate"],
-                )
+            await create_script_template(
+                session,
+                config_item["ScriptTemplate"],
+            )
         elif "Specification" in config_item:
-            async with session.begin_nested():
-                specification = await create_specification(
-                    session,
-                    config_item["Specification"],
-                )
+            specification = await create_specification(
+                session,
+                config_item["Specification"],
+            )
         else:
             good_keys = "ScriptTemplate | SpecBlock | Specification | Imports"
             raise CMYamlParseError(f"Expecting one of {good_keys} not: {spec_data.keys()})")
@@ -370,8 +366,7 @@ async def add_steps(
         new_depend = await add_step_prerequisite(session, depend_id, prereq_id)
         await session.refresh(new_depend)
 
-    async with session.begin_nested():
-        await session.refresh(campaign)
+    await session.refresh(campaign)
     return campaign
 
 
@@ -419,8 +414,7 @@ async def add_groups(
         )
         i += 1
 
-    async with session.begin_nested():
-        await session.refresh(step)
+    await session.refresh(step)
     return step
 
 

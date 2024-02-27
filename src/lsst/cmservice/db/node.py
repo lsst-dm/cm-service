@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.orm.collections import InstrumentedList
 
@@ -10,6 +11,7 @@ from ..common.errors import (
     CMBadExecutionMethodError,
     CMBadFullnameError,
     CMBadStateTransitionError,
+    CMIntegrityError,
     CMResolveCollectionsError,
 )
 from .handler import Handler
@@ -62,11 +64,10 @@ class NodeMixin(RowMixin):
         spec_block: SpecBlock
             Requested Specblock
         """
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["spec_block_"])
-            if isinstance(self.spec_block_, InstrumentedList):
-                return self.spec_block_[0]
-            return self.spec_block_
+        await session.refresh(self, attribute_names=["spec_block_"])
+        if isinstance(self.spec_block_, InstrumentedList):
+            return self.spec_block_[0]
+        return self.spec_block_
 
     async def get_specification(
         self,
@@ -85,9 +86,8 @@ class NodeMixin(RowMixin):
             Requested Specification
         """
         campaign = await self.get_campaign(session)
-        async with session.begin_nested():
-            await session.refresh(campaign, attribute_names=["spec_"])
-            return campaign.spec_
+        await session.refresh(campaign, attribute_names=["spec_"])
+        return campaign.spec_
 
     async def get_campaign(
         self,
@@ -123,11 +123,10 @@ class NodeMixin(RowMixin):
         element : ElementMixin
             Requested parent Element
         """
-        async with session.begin_nested():
-            await session.refresh(self, attribute_names=["parent_"])
-            if isinstance(self.parent_, InstrumentedList):
-                return self.parent_[0]
-            return self.parent_
+        await session.refresh(self, attribute_names=["parent_"])
+        if isinstance(self.parent_, InstrumentedList):
+            return self.parent_[0]
+        return self.parent_
 
     async def get_handler(
         self,
@@ -274,21 +273,20 @@ class NodeMixin(RowMixin):
         if not hasattr(self, "collections"):
             return {}
 
-        async with session.begin_nested():
-            if self.level == LevelEnum.script:
-                parent_ = await self.get_parent(session)
-                parent_colls = await parent_.get_collections(session)
-                ret_dict.update(parent_colls)
-            elif self.level.value > LevelEnum.campaign.value:
-                parent = await self.get_parent(session)
-                parent_colls = await parent.get_collections(session)
-                ret_dict.update(parent_colls)
-            spec_block = await self.get_spec_block(session)
-            if spec_block.collections:
-                ret_dict.update(spec_block.collections)
-            if self.collections:
-                ret_dict.update(self.collections)
-            return ret_dict
+        if self.level == LevelEnum.script:
+            parent_ = await self.get_parent(session)
+            parent_colls = await parent_.get_collections(session)
+            ret_dict.update(parent_colls)
+        elif self.level.value > LevelEnum.campaign.value:
+            parent = await self.get_parent(session)
+            parent_colls = await parent.get_collections(session)
+            ret_dict.update(parent_colls)
+        spec_block = await self.get_spec_block(session)
+        if spec_block.collections:
+            ret_dict.update(spec_block.collections)
+        if self.collections:
+            ret_dict.update(self.collections)
+        return ret_dict
 
     async def get_child_config(
         self,
@@ -315,13 +313,12 @@ class NodeMixin(RowMixin):
         ret_dict: dict = {}
         if not hasattr(self, "child_config"):
             return {}
-        async with session.begin_nested():
-            spec_block = await self.get_spec_block(session)
-            if spec_block.child_config:
-                ret_dict.update(**spec_block.child_config)
-            if self.child_config:
-                ret_dict.update(**self.child_config)
-            return ret_dict
+        spec_block = await self.get_spec_block(session)
+        if spec_block.child_config:
+            ret_dict.update(**spec_block.child_config)
+        if self.child_config:
+            ret_dict.update(**self.child_config)
+        return ret_dict
 
     async def data_dict(
         self,
@@ -346,21 +343,20 @@ class NodeMixin(RowMixin):
             Requested data configuration
         """
         ret_dict = {}
-        async with session.begin_nested():
-            if self.level == LevelEnum.script:
-                parent_ = await self.get_parent(session)
-                parent_data = await parent_.data_dict(session)
-                ret_dict.update(parent_data)
-            elif self.level.value > LevelEnum.campaign.value:
-                parent = await self.get_parent(session)
-                parent_data = await parent.data_dict(session)
-                ret_dict.update(parent_data)
-            spec_block = await self.get_spec_block(session)
-            if spec_block.data:
-                ret_dict.update(spec_block.data)
-            if self.data:
-                ret_dict.update(self.data)
-            return ret_dict
+        if self.level == LevelEnum.script:
+            parent_ = await self.get_parent(session)
+            parent_data = await parent_.data_dict(session)
+            ret_dict.update(parent_data)
+        elif self.level.value > LevelEnum.campaign.value:
+            parent = await self.get_parent(session)
+            parent_data = await parent.data_dict(session)
+            ret_dict.update(parent_data)
+        spec_block = await self.get_spec_block(session)
+        if spec_block.data:
+            ret_dict.update(spec_block.data)
+        if self.data:
+            ret_dict.update(self.data)
+        return ret_dict
 
     async def get_spec_aliases(
         self,
@@ -385,19 +381,18 @@ class NodeMixin(RowMixin):
             Requested spec_aliases configuration
         """
         ret_dict = {}
-        async with session.begin_nested():
-            if self.level == LevelEnum.script:
-                raise NotImplementedError
-            if self.level.value > LevelEnum.campaign.value:
-                parent = await self.get_parent(session)
-                parent_data = await parent.get_spec_aliases(session)
-                ret_dict.update(parent_data)
-            spec_block = await self.get_spec_block(session)
-            if spec_block.spec_aliases:
-                ret_dict.update(spec_block.spec_aliases)
-            if self.spec_aliases:
-                ret_dict.update(self.spec_aliases)
-            return ret_dict
+        if self.level == LevelEnum.script:
+            raise NotImplementedError
+        if self.level.value > LevelEnum.campaign.value:
+            parent = await self.get_parent(session)
+            parent_data = await parent.get_spec_aliases(session)
+            ret_dict.update(parent_data)
+        spec_block = await self.get_spec_block(session)
+        if spec_block.spec_aliases:
+            ret_dict.update(spec_block.spec_aliases)
+        if self.spec_aliases:
+            ret_dict.update(self.spec_aliases)
+        return ret_dict
 
     async def update_child_config(
         self,
@@ -428,15 +423,19 @@ class NodeMixin(RowMixin):
                 f"Tried to modify a node that is in use. {self.fullname}:{self.status}",
             )
 
-        async with session.begin_nested():
+        try:
             if self.child_config:
                 the_child_config = self.child_config.copy()
                 the_child_config.update(**kwargs)
                 self.child_config = the_child_config
             else:
                 self.child_config = kwargs.copy()
-        await session.refresh(self)
-        await session.commit()
+            await session.refresh(self)
+        except IntegrityError as e:
+            if TYPE_CHECKING:
+                assert e.orig  # for mypy
+            await session.rollback()
+            raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
         return self
 
     async def update_collections(
@@ -468,14 +467,18 @@ class NodeMixin(RowMixin):
                 f"Tried to modify a node that is in use. {self.fullname}:{self.status}",
             )
 
-        async with session.begin_nested():
+        try:
             if self.collections:
                 the_collections = self.collections.copy()
                 the_collections.update(**kwargs)
                 self.collections = the_collections
             else:
                 self.collections = kwargs.copy()
-        await session.refresh(self)
+            await session.refresh(self)
+        except IntegrityError as e:
+            if TYPE_CHECKING:
+                assert e.orig  # for mypy
+            raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
         return self
 
     async def update_spec_aliases(
@@ -507,14 +510,19 @@ class NodeMixin(RowMixin):
                 f"Tried to modify a node that is in use. {self.fullname}:{self.status}",
             )
 
-        async with session.begin_nested():
+        try:
             if self.spec_aliases:
                 the_data = self.spec_aliases.copy()
                 the_data.update(**kwargs)
                 self.spec_aliases = the_data
             else:
                 self.spec_aliases = kwargs.copy()
-        await session.refresh(self)
+            await session.refresh(self)
+        except IntegrityError as e:
+            if TYPE_CHECKING:
+                assert e.orig  # for mypy
+            await session.rollback()
+            raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
         return self
 
     async def update_data_dict(
@@ -546,14 +554,19 @@ class NodeMixin(RowMixin):
                 f"Tried to modify a node that is in use. {self.fullname}:{self.status}",
             )
 
-        async with session.begin_nested():
+        try:
             if self.data:
                 the_data = self.data.copy()
                 the_data.update(**kwargs)
                 self.data = the_data
             else:
                 self.data = kwargs.copy()
-        await session.refresh(self)
+            await session.refresh(self)
+        except IntegrityError as e:
+            if TYPE_CHECKING:
+                assert e.orig  # for mypy
+            await session.rollback()
+            raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
         return self
 
     async def check_prerequisites(
@@ -574,16 +587,15 @@ class NodeMixin(RowMixin):
         done: bool
             Returns True if the prerequisites are done
         """
-        async with session.begin_nested():
-            try:
-                await session.refresh(self, attribute_names=["prereqs_"])
-            except Exception:  # pylint: disable=broad-exception-caught
-                return True
-            print(f"N prereq {len(self.prereqs_)}")
-            for prereq_ in self.prereqs_:
-                is_done = await prereq_.is_done(session)
-                if not is_done:
-                    return False
+        try:
+            await session.refresh(self, attribute_names=["prereqs_"])
+        except Exception:  # pylint: disable=broad-exception-caught
+            return True
+        print(f"N prereq {len(self.prereqs_)}")
+        for prereq_ in self.prereqs_:
+            is_done = await prereq_.is_done(session)
+            if not is_done:
+                return False
         return True
 
     async def reject(
@@ -606,7 +618,6 @@ class NodeMixin(RowMixin):
             raise CMBadStateTransitionError(f"Can not reject {self} as it is in status {self.status}")
 
         await self.update_values(session, status=StatusEnum.rejected)
-        await session.commit()
         return self
 
     async def accept(
@@ -629,7 +640,6 @@ class NodeMixin(RowMixin):
             raise CMBadStateTransitionError(f"Can not accept {self} as it is in status {self.status}")
 
         await self.update_values(session, status=StatusEnum.accepted)
-        await session.commit()
         return self
 
     async def reset(
@@ -653,7 +663,6 @@ class NodeMixin(RowMixin):
 
         await self._clean_up_node(session)
         await self.update_values(session, status=StatusEnum.waiting, superseded=False)
-        await session.commit()
         return self
 
     async def _clean_up_node(
