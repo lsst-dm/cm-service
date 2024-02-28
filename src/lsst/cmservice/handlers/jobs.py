@@ -27,7 +27,7 @@ from ..common.errors import (
     CMBadParameterTypeError,
 )
 from .functions import load_manifest_report, load_wms_reports
-from .script_handler import BaseScriptHandler, FunctionHandler, ScriptHandler
+from .script_handler import FunctionHandler, ScriptHandler
 
 WMS_TO_JOB_STATUS_MAP = {
     WmsStates.UNKNOWN: None,
@@ -151,7 +151,7 @@ class BpsScriptHandler(ScriptHandler):
             "inCollection": in_collection,
         }
         if data_query:
-            payload["dataQuery"] = data_query
+            payload["dataQuery"] = data_query.strip()
         if rescue:
             payload["extra_args"] = f"--skip-existing-in {skip_colls}"  # FIXME, is this right
 
@@ -200,7 +200,7 @@ class BpsScriptHandler(ScriptHandler):
         script: Script,
         to_status: StatusEnum,
     ) -> dict[str, Any]:
-        update_fields = await BaseScriptHandler._reset_script(self, session, script, to_status)
+        update_fields = await ScriptHandler._reset_script(self, session, script, to_status)
         if script.script_url and to_status.value <= StatusEnum.ready.value:
             json_url = script.script_url.replace(".sh", "_log.json")
             config_url = script.script_url.replace(".sh", "_bps_config.yaml")
@@ -210,15 +210,18 @@ class BpsScriptHandler(ScriptHandler):
             )
             try:
                 os.unlink(json_url)
-            except Exception:
+            except Exception as msg:
+                print(f"Failed to unlink log file: {json_url}: {msg}, continuing")
                 pass
             try:
                 os.unlink(config_url)
-            except Exception:
+            except Exception as msg:
+                print(f"Failed to unlink configuration file: {config_url}: {msg}, continuing")
                 pass
             try:
                 os.rmdir(submit_path)
-            except Exception:
+            except Exception as msg:
+                print(f"Failed to remove submit dir: {submit_path}: {msg}, continuing")
                 pass
         return update_fields
 
