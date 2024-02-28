@@ -69,7 +69,7 @@
                 prerequisites: ['step4']
                 child_config:
                     base_query: >
-                        instrument = 'HSC' and skymap = 'hsc_rings_v1' and tract = 9813,
+                        instrument = 'HSC' and skymap = 'hsc_rings_v1' and tract = 9813 and
                         band IN ('g', 'r', 'i', 'z', 'y') and patch IN (40)
                     split_method: no_split
           - Step:
