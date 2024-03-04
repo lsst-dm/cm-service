@@ -1,3 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@tailwind forms;
+@tailwind typography;
+@tailwind aspect-ration;
+
 h1 {
   color: blue;
 }
