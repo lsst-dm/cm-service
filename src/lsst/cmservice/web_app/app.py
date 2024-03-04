@@ -63,7 +63,13 @@ async def read_items(request: Request, session: async_scoped_session = Depends(d
         async with session.begin():
             print(session)
             items = await db.Campaign.get_rows(session)
-        return templates.TemplateResponse(name="base_2.html", request=request, context={"campaigns": items})
+        return templates.TemplateResponse(
+            name="campaigns.html",
+            request=request,
+            context={
+                "campaigns": items,
+            },
+        )
     except Exception as e:
         print(e)
         traceback.print_tb()
