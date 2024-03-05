@@ -61,13 +61,19 @@ async def read_item(request: Request):
 async def read_items(request: Request, session: async_scoped_session = Depends(db_session_dependency)):
     try:
         async with session.begin():
-            print(session)
             items = await db.Campaign.get_rows(session)
+            production_list = {}
+            productions = await db.Production.get_rows(session)
+            for p in productions:
+                children = await p.children(session)
+                production_list[p.name] = children
+
         return templates.TemplateResponse(
             name="campaigns.html",
             request=request,
             context={
                 "campaigns": items,
+                "productions": production_list,
             },
         )
     except Exception as e:
@@ -77,4 +83,4 @@ async def read_items(request: Request, session: async_scoped_session = Depends(d
 
 @web_app.get("/layout/", response_class=HTMLResponse)
 async def test_layout(request: Request):
-    return templates.TemplateResponse("base.html", {"request": request})
+    return templates.TemplateResponse("mockup.html", {"request": request})
