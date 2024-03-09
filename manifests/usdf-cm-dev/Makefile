@@ -21,11 +21,10 @@ remove-vault-secrets:
 	rm -rf .secrets
 
 .PHONY: deploy
-deploy:
+deploy: fetch-vault-secrets
 	fetch-vault-secrets
 	kubectl apply -k .
-	remove-vault-secrets
 
 .PHONY: undeploy
-undeploy:
-	kubectl delete -f .
+undeploy: fetch-vault-secrets
+	kubectl delete -k .
