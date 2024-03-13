@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 from safir.logging import configure_logging, configure_uvicorn_logging
 
 from lsst.cmservice.config import config
+from lsst.cmservice.web_app.pages.campaigns import search_campaigns
 
 configure_logging(profile=config.profile, log_level=config.log_level, name=config.logger_name)
 configure_uvicorn_logging(config.log_level)
@@ -58,7 +59,7 @@ async def read_item(request: Request):
 
 
 @web_app.get("/campaigns/", response_class=HTMLResponse)
-async def read_items(request: Request, session: async_scoped_session = Depends(db_session_dependency)):
+async def get_campaigns(request: Request, session: async_scoped_session = Depends(db_session_dependency)):
     try:
         async with session.begin():
             items = await db.Campaign.get_rows(session)
@@ -72,7 +73,7 @@ async def read_items(request: Request, session: async_scoped_session = Depends(d
             name="campaigns.html",
             request=request,
             context={
-                "campaigns": items,
+                "recent_campaigns": items,
                 "productions": production_list,
             },
         )
@@ -83,4 +84,15 @@ async def read_items(request: Request, session: async_scoped_session = Depends(d
 
 @web_app.get("/layout/", response_class=HTMLResponse)
 async def test_layout(request: Request):
+    return templates.TemplateResponse("mockup.html", {"request": request})
+
+
+@web_app.get("/campaign-search/", response_class=HTMLResponse)
+async def search(
+    request: Request,
+    session: async_scoped_session = Depends(db_session_dependency),
+    search_term: str | None = None,
+):
+    campaigns = await search_campaigns(session, search_term)
+    print(campaigns)
     return templates.TemplateResponse("mockup.html", {"request": request})
