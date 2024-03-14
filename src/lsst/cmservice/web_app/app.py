@@ -1,9 +1,10 @@
 from pathlib import Path
+from typing import Annotated
 import traceback
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from fastapi import APIRouter, FastAPI, Request, Depends
+from fastapi import APIRouter, FastAPI, Request, Depends, Form
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -82,17 +83,37 @@ async def get_campaigns(request: Request, session: async_scoped_session = Depend
         traceback.print_tb()
 
 
+@web_app.post("/campaigns/", response_class=HTMLResponse)
+async def search(
+    request: Request,
+    search: Annotated[str, Form()],
+    session: async_scoped_session = Depends(db_session_dependency),
+):
+    try:
+        results = await search_campaigns(session, search)
+        return templates.TemplateResponse(
+            "campaign_search_results.html",
+            context={
+                "request": request,
+                "search_results": results,
+            },
+        )
+    except Exception as e:
+        print(e)
+        traceback.print_tb()
+
+
 @web_app.get("/layout/", response_class=HTMLResponse)
 async def test_layout(request: Request):
     return templates.TemplateResponse("mockup.html", {"request": request})
 
 
-@web_app.get("/campaign-search/", response_class=HTMLResponse)
-async def search(
-    request: Request,
-    session: async_scoped_session = Depends(db_session_dependency),
-    search_term: str | None = None,
-):
-    campaigns = await search_campaigns(session, search_term)
-    print(campaigns)
-    return templates.TemplateResponse("mockup.html", {"request": request})
+# @web_app.get("/campaign-search/", response_class=HTMLResponse)
+# async def search(
+#     request: Request,
+#     session: async_scoped_session = Depends(db_session_dependency),
+#     search_term: str | None = None,
+# ):
+#     campaigns = await search_campaigns(session, search_term)
+#     print(campaigns)
+#     return templates.TemplateResponse("mockup.html", {"request": request})
