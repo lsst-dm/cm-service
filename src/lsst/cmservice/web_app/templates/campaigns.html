@@ -2,6 +2,7 @@
 {% block title %} Campaigns {% endblock %}
 {% block content %}
     <div class="px-4 sm:px-6 lg:px-8">
+        <form method="post">
         <div class="relative mt-2 inline-flex">
             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-teal-600">
                 <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
@@ -11,17 +12,21 @@
             <input name="search" id="search" class="block bg-teal-50 border-0 py-1.5 pl-10 text-teal-600 ring-1 ring-inset ring-teal-600 placeholder:text-teal-500 sm:text-sm sm:leading-6" placeholder="Search Campaigns">
             <span class="pl-3 uppercase text-teal-600 text-sm leading-8 font-mono drop-shadow-xl">+ new production</span>
         </div>
+        </form>
         <h1 class="text-sm font-bold leading-tight tracking-tight text-gray-400 pb-3 font-mono uppercase pt-8">most recent campaigns</h1>
     </div>
+    {% if recent_campaigns %}
     <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-6 px-4 sm:px-6 lg:px-8">
         <!-- Campaign Cards -->
         {% for campaign in recent_campaigns %}
         {% include "campaign_card.html" %}
         {% endfor %}
     </div>
+    {% endif %}
+    {% if productions %}
     <!-- Productions -->
-
     {% for production in productions.keys() %}
     {% include "production.html" %}
     {% endfor %}
+    {% endif %}
 {% endblock %}
