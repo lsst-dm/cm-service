@@ -12,10 +12,12 @@ from lsst.cmservice.common.bash import write_bash_script
 from lsst.cmservice.db.element import ElementMixin
 from lsst.cmservice.db.job import Job
 from lsst.cmservice.db.script import Script
+from lsst.cmservice.db.task_set import TaskSet
+from lsst.cmservice.db.wms_task_report import WmsTaskReport
 from lsst.ctrl.bps import BaseWmsService, WmsRunReport, WmsStates
 from lsst.utils import doImport
 
-from ..common.enums import StatusEnum, TaskStatusEnum, WmsMethodEnum
+from ..common.enums import LevelEnum, StatusEnum, TaskStatusEnum, WmsMethodEnum
 from ..common.errors import CMBadExecutionMethodError, CMIDMismatchError
 from .functions import load_manifest_report, load_wms_reports
 from .script_handler import FunctionHandler, ScriptHandler
@@ -130,7 +132,10 @@ class BpsScriptHandler(ScriptHandler):
             workflow_config["custom_lsst_setup"] = data_dict["lsst_custom_setup"]
         workflow_config["pipelineYaml"] = os.path.expandvars(data_dict["pipeline_yaml"])
 
-        in_collection = ",".join(input_colls)
+        if isinstance(input_colls, list):
+            in_collection = ",".join(input_colls)
+        else:
+            in_collection = input_colls
 
         payload = {
             "payloadName": parent.c_.name,
@@ -210,6 +215,22 @@ class BpsScriptHandler(ScriptHandler):
                 pass
         return update_fields
 
+    async def _purge_products(
+        self,
+        script: Script,
+        to_status: StatusEnum,
+    ) -> None:
+        resolved_cols = await script.resolve_collections(session)
+        data_dict = await script.data_dict(session)
+        try:
+            run_coll = resolved_cols["run"]
+            butler_repo = data_dict["butler_repo"]
+        except KeyError as msg:
+            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+
+        if to_status.value <= StatusEnum.running.value:
+            remove_run_collections(butler_repo, run_coll)
+
 
 class BpsReportHandler(FunctionHandler):
     """Class to handle running BpsReport"""
@@ -236,7 +257,7 @@ class BpsReportHandler(FunctionHandler):
     def _get_wms_report(
         self,
         wms_workflow_id: int,
-    ) -> WmsRunReport:
+    ) -> WmRunReport:
         """Get the WmsRunReport for a job
 
         Paramters
@@ -275,10 +296,14 @@ class BpsReportHandler(FunctionHandler):
         """
         if wms_workflow_id is None:
             return None
-        wms_svc = self._get_wms_svc()
-        wms_run_report = wms_svc.report(wms_workflow_id=wms_workflow_id)[0][0]
-        status = WMS_TO_JOB_STATUS_MAP[wms_run_report.state]
-        _job = await load_wms_reports(session, job, wms_run_report)
+        try:
+            wms_svc = self._get_wms_svc()
+            wms_run_report = wms_svc.report(wms_workflow_id=wms_workflow_id)[0][0]
+            status = WMS_TO_JOB_STATUS_MAP[wms_run_report.state]
+            _job = await load_wms_reports(session, job, wms_run_report)
+        except Exception as msg:
+            print(f"Catching wms_svc.report failure: {msg}, continuing")
+            status = StatusEnum.failed
         return status
 
     async def _do_prepare(
@@ -311,6 +336,21 @@ class BpsReportHandler(FunctionHandler):
         if status != script.status:
             await script.update_values(session, status=status)
         return status
+
+    async def _reset_script(
+        self,
+        session: async_scoped_session,
+        script: Script,
+        to_status: StatusEnum,
+    ) -> dict[str, Any]:
+        update_fields = await ScriptHandler._reset_script(self, session, script, to_status)
+        parent = await script.get_parent(session)
+        if parent.level != LevelEnum.job:
+            raise CMBadParameterTypeError(f"Script parent is a {parent.level}, not a LevelEnum.job")
+        await session.refresh(parent, attribute_names=["wms_reports_"])
+        for wms_report_ in parent.wms_reports_:
+            await WmsTaskReport.delete_row(session, wms_report_.id)
+        return update_fields
 
 
 class PandaScriptHandler(BpsScriptHandler):
@@ -353,6 +393,9 @@ class ManifestReportScriptHandler(ScriptHandler):
             data_dict["manifest_script_template"],
         )
         prepend = manifest_script_template.data["text"].replace("{lsst_version}", lsst_version)
+        if "custom_lsst_setup" in data_dict:
+            custom_lsst_setup = data_dict[custom_lsst_setup]
+            prepend += f"\n{custom_lsst_setup}"
 
         command = f"pipetask report {butler_repo} {graph_url} {report_url}"
         await write_bash_script(script_url, command, prepend=prepend)
@@ -423,3 +466,18 @@ class ManifestReportLoadHandler(FunctionHandler):
             raise CMIDMismatchError(f"job.id {job.id} != check_job.id {check_job.id}")
 
         return StatusEnum.accepted
+
+    async def _reset_script(
+        self,
+        session: async_scoped_session,
+        script: Script,
+        to_status: StatusEnum,
+    ) -> dict[str, Any]:
+        update_fields = await ScriptHandler._reset_script(self, session, script, to_status)
+        parent = await script.get_parent(session)
+        if parent.level != LevelEnum.job:
+            raise CMBadParameterTypeError(f"Script parent is a {parent.level}, not a LevelEnum.job")
+        await session.refresh(parent, attribute_names=["tasks_"])
+        for task_ in parent.tasks_:
+            await TaskSet.delete_row(session, task_.id)
+        return update_fields

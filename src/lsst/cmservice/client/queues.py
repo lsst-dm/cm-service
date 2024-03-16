@@ -123,7 +123,7 @@ class CMQueueClient:
             delta_t = timedelta(seconds=wait_time)
             next_check = queue.time_updated + delta_t
         except Exception as msg:  # pylint: disable=broad-exception-caught
-            print(msg)
+            print(f"failed to compute next_check time, making best guess: {msg}")
             sleep_time = 300
             wait_time = 300
             delta_t = timedelta(seconds=sleep_time)
@@ -149,5 +149,10 @@ class CMQueueClient:
             self.pause_until_next_check(row_id)
             try:
                 can_continue = self.process(row_id)
-            except Exception:  # pylint: disable=broad-exception-caught
+            except Exception as msg:  # pylint: disable=broad-exception-caught
+                print(f"Caught exception in process: {msg}, continuing")
+                try:
+                    self.update(row_id, time_updated=datetime.now())
+                except Exception as msg2:  # pylint: disable=broad-exception-caught
+                    print(f"Failed to modify time_updated: {msg}, continuing")
                 can_continue = True
