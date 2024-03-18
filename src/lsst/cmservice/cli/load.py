@@ -4,7 +4,7 @@ from .. import db
 from ..client.client import CMClient
 from . import options
 from .commands import load
-from .wrappers import _output_pydantic_list, _output_pydantic_object
+from .wrappers import output_pydantic_list, output_pydantic_object
 
 
 @load.command()
@@ -19,7 +19,7 @@ def specification(
 ) -> None:
     """Load a Specification from a yaml file"""
     result = client.load.specification(**kwargs)
-    _output_pydantic_object(result, output, db.Specification.col_names_for_table)
+    output_pydantic_object(result, output, db.Specification.col_names_for_table)
 
 
 @load.command(name="campaign")
@@ -42,7 +42,7 @@ def campaign(
 ) -> None:
     """Load a Specification from a yaml file and make a Campaign"""
     result = client.load.campaign(**kwargs)
-    _output_pydantic_object(result, output, db.Campaign.col_names_for_table)
+    output_pydantic_object(result, output, db.Campaign.col_names_for_table)
 
 
 @load.command()
@@ -56,7 +56,7 @@ def error_types(
 ) -> None:
     """Load PipetaskErrorTypes from a yaml file"""
     result = client.load.error_types(**kwargs)
-    _output_pydantic_list(result, output, db.PipetaskErrorType.col_names_for_table)
+    output_pydantic_list(result, output, db.PipetaskErrorType.col_names_for_table)
 
 
 @load.command()
@@ -71,4 +71,4 @@ def manifest_report(
 ) -> None:
     """Load a manifest report from a yaml file"""
     result = client.load.manifest_report(**kwargs)
-    _output_pydantic_object(result, output, db.Job.col_names_for_table)
+    output_pydantic_object(result, output, db.Job.col_names_for_table)

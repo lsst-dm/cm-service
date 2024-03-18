@@ -20,7 +20,7 @@ def remove_run_collections(butler_repo: str, collection_name: str) -> None:
     )
     try:
         butler.registry.removeCollection(collection_name)
-    except Exception as msg:
+    except Exception as msg:  # pylint: disable=broad-exception-caught
         print(f"Caught exception {msg} when removing run collection")
 
 
@@ -41,7 +41,7 @@ def remove_non_run_collections(butler_repo: str, collection_name: str) -> None:
     )
     try:
         butler.registry.removeCollection(collection_name)
-    except Exception as msg:
+    except Exception as msg:  # pylint: disable=broad-exception-caught
         print(f"Caught exception {msg} when removing non-run collection")
 
 
