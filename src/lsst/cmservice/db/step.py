@@ -157,7 +157,6 @@ class Step(Base, ElementMixin):
     async def get_all_prereqs(
         self,
         session: async_scoped_session,
-        **kwargs: Any,
     ) -> list[Step]:
         all_prereqs: list[Step] = []
         await session.refresh(self, attribute_names=["prereqs_"])

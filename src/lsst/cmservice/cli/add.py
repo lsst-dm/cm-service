@@ -2,7 +2,7 @@ from .. import db
 from ..client.client import CMClient
 from . import options
 from .commands import add
-from .wrappers import _output_pydantic_list, _output_pydantic_object
+from .wrappers import output_pydantic_list, output_pydantic_object
 
 
 @add.command()
@@ -21,7 +21,7 @@ def groups(
         fullname=fullname,
         child_configs=child_configs,
     )
-    _output_pydantic_list(result, output, db.Group.col_names_for_table)
+    output_pydantic_list(result, output, db.Group.col_names_for_table)
 
 
 @add.command()
@@ -40,7 +40,7 @@ def steps(
         fullname=fullname,
         child_configs=child_configs,
     )
-    _output_pydantic_list(result, output, db.Step.col_names_for_table)
+    output_pydantic_list(result, output, db.Step.col_names_for_table)
 
 
 @add.command()
@@ -59,4 +59,4 @@ def campaign(
         fullname=fullname,
         **child_configs,
     )
-    _output_pydantic_object(result, output, db.Campaign.col_names_for_table)
+    output_pydantic_object(result, output, db.Campaign.col_names_for_table)
