@@ -1,0 +1,14 @@
+text: "#!/usr/bin/env -S -i CM_CONFIGS=\"${CM_CONFIGS}\" HOME=\"${HOME}\" bash\n
+
+# The shebang lines above are needed b/c setup lsst_distrib is putting\n
+# the lsst python _after_ the virtual env python in the PATH, which\n
+# is causing errors\n
+
+# This is needed to define butler aliases\n
+export DAF_BUTLER_REPOSITORY_INDEX=/sdf/group/rubin/shared/data-repos.yaml\n
+
+# setup LSST env.\n
+export WEEKLY='{lsst_version}'\n
+source /cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib/${WEEKLY}/loadLSST.bash\n
+setup lsst_distrib\n
+"

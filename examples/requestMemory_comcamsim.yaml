@@ -1,0 +1,7 @@
+pipetask:
+  makeVisitTable:
+    requestMemory: 32000
+  makeCcdVisitTable:
+    requestMemory: 32000
+  healSparsePropertyMaps:
+    requestMemory: 32000
