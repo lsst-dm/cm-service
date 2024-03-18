@@ -116,7 +116,7 @@ class BpsScriptHandler(ScriptHandler):
         submit_path = os.path.abspath(os.path.expandvars(f"{prod_area}/{parent.fullname}/submit"))
         try:
             os.rmdir(submit_path)
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             pass
 
         command = f"bps --log-file {json_url} --no-log-tty submit {os.path.abspath(config_url)} > {log_url}"
@@ -210,19 +210,16 @@ class BpsScriptHandler(ScriptHandler):
             )
             try:
                 os.unlink(json_url)
-            except Exception as msg:
+            except Exception as msg:  # pylint: disable=broad-exception-caught
                 print(f"Failed to unlink log file: {json_url}: {msg}, continuing")
-                pass
             try:
                 os.unlink(config_url)
-            except Exception as msg:
+            except Exception as msg:  # pylint: disable=broad-exception-caught
                 print(f"Failed to unlink configuration file: {config_url}: {msg}, continuing")
-                pass
             try:
                 os.rmdir(submit_path)
-            except Exception as msg:
+            except Exception as msg:  # pylint: disable=broad-exception-caught
                 print(f"Failed to remove submit dir: {submit_path}: {msg}, continuing")
-                pass
         return update_fields
 
     async def _purge_products(
@@ -312,7 +309,7 @@ class BpsReportHandler(FunctionHandler):
             wms_run_report = wms_svc.report(wms_workflow_id=wms_workflow_id)[0][0]
             status = WMS_TO_JOB_STATUS_MAP[wms_run_report.state]
             _job = await load_wms_reports(session, job, wms_run_report)
-        except Exception as msg:
+        except Exception as msg:  # pylint: disable=broad-exception-caught
             print(f"Catching wms_svc.report failure: {msg}, continuing")
             status = StatusEnum.failed
         return status

@@ -494,7 +494,7 @@ async def load_manifest_report(
                 n_failed=n_failed,
                 n_failed_upstream=n_failed_upstream,
             )
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             task_set = await TaskSet.get_row_by_fullname(session, f"{job_name}/{task_name_}")
             task_set = await TaskSet.update_row(
                 session,
@@ -522,7 +522,7 @@ async def load_manifest_report(
                     n_failed_upstream=counts_.get("missing_upsteam_failed", 0),
                     n_missing=counts_.get("missing_not_produced", 0),
                 )
-            except Exception:
+            except Exception:  # pylint: disable=broad-exception-caught
                 product_set = await ProductSet.get_row_by_fullname(
                     session,
                     f"{task_set.fullname}/{data_type_}",
@@ -595,7 +595,7 @@ async def load_wms_reports(
         try:
             report = await WmsTaskReport.get_row_by_fullname(session, fullname)
             await report.update_values(session, **wms_dict)
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             _report = await WmsTaskReport.create_row(
                 session,
                 job_id=job.id,
