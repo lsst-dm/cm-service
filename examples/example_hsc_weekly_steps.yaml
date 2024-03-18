@@ -1,0 +1,115 @@
+- SpecBlock:
+      name: hsc_weekly_step1
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step1"
+      child_config:
+          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+          split_dataset: raw
+          split_field: exposure
+- SpecBlock:
+      name: hsc_weekly_step2a
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step2a"
+      child_config:
+          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+          split_method: no_split
+- SpecBlock:
+      name: hsc_weekly_step2b
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step2b"
+      child_config:
+          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+          split_field: tract
+- SpecBlock:
+      name: hsc_weekly_step2cde
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step2cde"
+      child_config:
+          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+          split_method: no_split
+- SpecBlock:
+      name: hsc_weekly_step3
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step3"
+      child_config:
+          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+          split_field: tract
+- SpecBlock:
+      name: hsc_weekly_step4
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step4"
+      child_config:
+          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+          split_dataset: calexp
+          split_field: visit
+- SpecBlock:
+      name: hsc_weekly_step5
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step5"
+      child_config:
+          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+          split_field: tract
+- SpecBlock:
+      name: hsc_weekly_step6
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step6"
+      child_config:
+          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+          split_dataset: calexp
+          split_field: visit
+- SpecBlock:
+      name: hsc_weekly_step7
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step7"
+      child_config:
+          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+          split_method: no_split
+- SpecBlock:
+      name: hsc_weekly_step8
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step8"
+      child_config:
+          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+          split_method: no_split
+- SpecBlock:
+      name: hsc_weekly_plots
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#analysis_coadd_plots"
+      child_config:
+          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+          split_method: no_split
+- SpecBlock:
+      name: hsc_weekly_faro_visit
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#faro_visit"
+      child_config:
+          base_query: "instrument='HSC' and band != 'N921' and skymap='hsc_rings_v1'"
+          split_method: no_split
+- SpecBlock:
+      name: hsc_weekly_faro_matched
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#faro_matched"
+      child_config:
+          base_query: "instrument='HSC' and band != 'N921' and skymap='hsc_rings_v1'"
+          split_method: no_split
+- SpecBlock:
+      name: hsc_weekly_faro_tract
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#faro_tract"
+      child_config:
+          base_query: "instrument='HSC' and band != 'N921' and skymap='hsc_rings_v1' and band in ('g', 'r', 'i', 'z', 'y')"
+          split_method: no_split

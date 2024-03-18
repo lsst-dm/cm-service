@@ -2,6 +2,10 @@
 - ScriptTemplate:
       name: bps_panda_script_template
       file_path: ${CM_CONFIGS}/example_bps_panda_script_template.yaml
+# Template shell script for running ComCamSim under PANDA
+- ScriptTemplate:
+      name: panda_yaml_comcamsim_template
+      file_path: ${CM_CONFIGS}/example_panda_yaml_comcamsim_template.yaml
 # Template bps configuration file for running BPS under PANDA
 - ScriptTemplate:
       name: bps_panda_yaml_template

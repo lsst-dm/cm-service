@@ -234,6 +234,7 @@ class NodeMixin(RowMixin):
                         raise CMResolveCollectionsError(
                             f"Failed to resolve collection {name_} {f1} using: {name_dict!s}",
                         ) from msg
+                resolved_collections[name_] = ",".join(resolved_collections[name_])
             else:
                 try:
                     f1 = val_.format(**collection_dict)
@@ -286,6 +287,9 @@ class NodeMixin(RowMixin):
             ret_dict.update(spec_block.collections)
         if self.collections:
             ret_dict.update(self.collections)
+        for key, val in ret_dict.items():
+            if isinstance(val, list):
+                ret_dict[key] = ",".join(val)
         return ret_dict
 
     async def get_child_config(
@@ -561,7 +565,8 @@ class NodeMixin(RowMixin):
                 self.data = the_data
             else:
                 self.data = kwargs.copy()
-            await session.refresh(self)
+            await session.commit()
+            # await session.refresh(self)
         except IntegrityError as e:
             if TYPE_CHECKING:
                 assert e.orig  # for mypy

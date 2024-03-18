@@ -53,8 +53,6 @@ class QueueUpdate(QueueBase):
     interval: float = 300.0
     # Options based to process
     options: dict | str | None = None
-    # When this was added to Queue
-    time_created: datetime
     # Time last call to process finished
     time_updated: datetime
     # When processing of this element completed

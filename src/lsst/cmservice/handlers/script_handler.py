@@ -299,6 +299,14 @@ class BaseScriptHandler(Handler):
     ) -> dict[str, Any]:
         raise NotImplementedError(f"{type(self)}._reset_script()")
 
+    async def _purge_products(
+        self,
+        session: async_scoped_session,
+        script: Script,
+        to_status: StatusEnum,
+    ) -> None:
+        pass
+
 
 class ScriptHandler(BaseScriptHandler):
     """SubClass of Handler to deal with script operations using real scripts"""
@@ -537,6 +545,7 @@ class ScriptHandler(BaseScriptHandler):
             update_fields["script_url"] = None
             update_fields["log_url"] = None
         update_fields["status"] = to_status
+        await self._purge_products(session, script, to_status)
         return update_fields
 
 
@@ -687,4 +696,5 @@ class FunctionHandler(BaseScriptHandler):
     ) -> dict[str, Any]:
         update_fields = {}
         update_fields["status"] = to_status
+        await self._purge_products(session, script, to_status)
         return update_fields

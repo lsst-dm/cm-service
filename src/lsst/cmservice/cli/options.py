@@ -61,7 +61,7 @@ class DictParamType(click.ParamType):
     Validates and converts values from the command line string or Python into
     a Python dict.
         - All key-value pairs must be separated by one semicolon.
-        - Key and value must be separated by one equal sign.
+        - Key and value must be separated by one colon
         - Converts sequences separeted by dots into a list: list value items
               must be separated by commas.
         - Converts numbers to int.
@@ -71,11 +71,11 @@ class DictParamType(click.ParamType):
         ... def command(param):
         ...     ...
 
-        CLI: command --param='page=1; name=Items; rules=1, 2, three; extra=A,;'
+        CLI: command --param='page:1; name=Items; rules=1, 2, three; extra=A,;'
 
     Example
     -------
-        >>> param_value = 'page=1; name=Items; rules=1, 2, three; extra=A,;'
+        >>> param_value = 'page=1; name=Items; rules:1, 2, three; extra=A,;'
         >>> DictParamType().convert(param_value, None, None)
         {'page': 1, 'name': 'Items', 'rules': [1, 2, 'three'], 'extra': ['A']}`
 
@@ -114,25 +114,13 @@ class DictParamType(click.ParamType):
             keyvalue_pairs = value.rstrip(";").split(";")
             result_dict = {}
             for pair in keyvalue_pairs:
-                key, values = (item.strip() for item in pair.split("="))
-                converted_values = []
-                for value_ in values.split(","):
-                    value_ = value_.strip()
-                    if value_.isdigit():
-                        value_ = int(value_)
-                    converted_values.append(value_)
-
-                if len(converted_values) == 1:
-                    result_dict[key] = converted_values[0]
-                elif len(converted_values) > 1 and converted_values[-1] == "":
-                    result_dict[key] = converted_values[:-1]
-                else:
-                    result_dict[key] = converted_values
+                key, value = (item.strip() for item in pair.split(":"))
+                result_dict[key] = value
             return result_dict
         except ValueError:
             self.fail(
                 "All key-value pairs must be separated by one semicolon. "
-                "Key and value must be separated by one equal sign. "
+                "Key and value must be separated by one colon. "
                 "List value items must be separated by one comma. "
                 f"Key-value: {pair}.",
                 param,
