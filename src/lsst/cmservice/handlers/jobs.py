@@ -98,7 +98,6 @@ class BpsScriptHandler(ScriptHandler):
         butler_repo = data_dict["butler_repo"]
         lsst_version = data_dict["lsst_version"]
         rescue = data_dict.get("rescue", False)
-        skip_colls = data_dict.get("skip_colls", "")
         script_url = await self._set_script_files(session, script, prod_area)
         json_url = os.path.abspath(os.path.expandvars(f"{prod_area}/{script.fullname}_log.json"))
         config_url = os.path.abspath(os.path.expandvars(f"{prod_area}/{script.fullname}_bps_config.yaml"))
@@ -153,6 +152,15 @@ class BpsScriptHandler(ScriptHandler):
         if data_query:
             payload["dataQuery"] = data_query.strip()
         if rescue:
+            skip_colls = data_dict.get("skip_colls")
+            if skip_colls is None:
+                skip_colls = []
+                siblings = await parent.get_siblings(session)
+                assert isinstance(parent, Job)
+                for sib_ in siblings:
+                    if sib_.status.rescuable and not sib_.superseded:
+                        sib_colls = await sib_.resolve_collections(session)
+                        skip_colls.append(sib_colls["job_run"])
             payload["extra_args"] = f"--skip-existing-in {skip_colls}"  # FIXME, is this right
 
         workflow_config["payload"] = payload
