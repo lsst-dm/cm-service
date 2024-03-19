@@ -367,10 +367,22 @@ class PandaScriptHandler(BpsScriptHandler):
     wms_method = WmsMethodEnum.panda
 
 
+class HTCondorScriptHandler(BpsScriptHandler):
+    """Class to handle running Bps for ht_condor jobs"""
+
+    wms_method = WmsMethodEnum.ht_condor
+
+
 class PandaReportHandler(BpsReportHandler):
     """Class to handle running BpsReport for panda jobs"""
 
     wms_svc_class_name = "lsst.ctrl.bps.panda.PanDAService"
+
+
+class HTCondorReportHandler(BpsReportHandler):
+    """Class to handle running BpsReport for ht_condor jobs"""
+
+    wms_svc_class_name = "lsst.ctrl.bps.htcondor.HTCondorService"
 
 
 class ManifestReportScriptHandler(ScriptHandler):
