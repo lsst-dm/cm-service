@@ -13,7 +13,7 @@
 # Template shell script for running ComCamSim under HTCondor
 - ScriptTemplate:
       name: bps_htcondor_yaml_template
-      file_path: ${CM_CONFIGS}/example bps_htcondor_yaml_template.yaml
+      file_path: ${CM_CONFIGS}/example_bps_htcondor_yaml_template.yaml
 # Template bps configuration file for running BPS under PANDA
 - ScriptTemplate:
       name: bps_panda_yaml_template
