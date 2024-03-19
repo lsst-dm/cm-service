@@ -6,6 +6,14 @@
 - ScriptTemplate:
       name: panda_yaml_comcamsim_template
       file_path: ${CM_CONFIGS}/example_panda_yaml_comcamsim_template.yaml
+# Template shell script for running BPS under HTCondor
+- ScriptTemplate:
+      name: bps_htcondor_script_template
+      file_path: ${CM_CONFIGS}/example_bps_htcondor_script_template.yaml
+# Template shell script for running ComCamSim under HTCondor
+- ScriptTemplate:
+      name: bps_htcondor_yaml_template
+      file_path: ${CM_CONFIGS}/example bps_htcondor_yaml_template.yaml
 # Template bps configuration file for running BPS under PANDA
 - ScriptTemplate:
       name: bps_panda_yaml_template
@@ -57,12 +65,26 @@
       handler: lsst.cmservice.handlers.scripts.ValidateScriptHandler
 # Run a bps submit script
 - SpecBlock:
-      name: panda_submit_script
+      name: bps_submit_script
       handler: lsst.cmservice.handlers.jobs.PandaScriptHandler
+      data:
+          bps_script_template: bps_panda_script_template
+          bps_yaml_template: bps_panda_yaml_template
 # Run a bps report script
 - SpecBlock:
-      name: panda_report_script
+      name: bps_report_script
       handler: lsst.cmservice.handlers.jobs.PandaReportHandler
+# Run a htcondor submit script
+- SpecBlock:
+      name: bps_htcondor_submit_script
+      handler: lsst.cmservice.handlers.jobs.HTCondorScriptHandler
+      data:
+          bps_script_template: bps_htcondor_script_template
+          bps_yaml_template: bps_htcondor_yaml_template
+# Run a bps report script
+- SpecBlock:
+      name: bps_htcondor_report_script
+      handler: lsst.cmservice.handlers.jobs.HTCondorReportHandler
 # Run a manifest checker report script
 - SpecBlock:
       name: manifest_report_script
