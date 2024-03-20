@@ -11,13 +11,13 @@
       scripts:
           - Script:
                 name: bps_submit
-                spec_block: panda_submit_script
+                spec_block: bps_submit_script
                 collections:
                     run: "{job_run}"
                     inputs: ["{step_input}", "{campaign_input}", "{campaign_ancillary}"]
           - Script:
                 name: bps_report
-                spec_block: panda_report_script
+                spec_block: bps_report_script
                 prerequisites: ['bps_submit']
                 collections:
                     run: "{job_run}"

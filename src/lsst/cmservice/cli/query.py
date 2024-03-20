@@ -2,7 +2,7 @@ from .. import db
 from ..client.client import CMClient
 from . import options
 from .commands import get
-from .wrappers import _output_dict, _output_pydantic_list, _output_pydantic_object
+from .wrappers import output_dict, output_pydantic_list, output_pydantic_object
 
 
 @get.command()
@@ -14,7 +14,7 @@ def productions(
 ) -> None:
     """List the existing productions"""
     result = client.query.get_productions()
-    _output_pydantic_list(result, output, db.Production.col_names_for_table)
+    output_pydantic_list(result, output, db.Production.col_names_for_table)
 
 
 @get.command()
@@ -35,7 +35,7 @@ def campaigns(
     campaigns in the associated production
     """
     result = client.query.get_campaigns(parent_id, parent_name)
-    _output_pydantic_list(result, output, db.Campaign.col_names_for_table)
+    output_pydantic_list(result, output, db.Campaign.col_names_for_table)
 
 
 @get.command()
@@ -56,7 +56,7 @@ def steps(
     steps in the associated campaign
     """
     result = client.query.get_steps(parent_id, parent_name)
-    _output_pydantic_list(result, output, db.Step.col_names_for_table)
+    output_pydantic_list(result, output, db.Step.col_names_for_table)
 
 
 @get.command()
@@ -77,7 +77,7 @@ def groups(
     groups in the associated step
     """
     result = client.query.get_groups(parent_id, parent_name)
-    _output_pydantic_list(result, output, db.Group.col_names_for_table)
+    output_pydantic_list(result, output, db.Group.col_names_for_table)
 
 
 @get.command()
@@ -98,7 +98,7 @@ def jobs(
     groups in the associated step
     """
     result = client.query.get_jobs(parent_id, parent_name)
-    _output_pydantic_list(result, output, db.Job.col_names_for_table)
+    output_pydantic_list(result, output, db.Job.col_names_for_table)
 
 
 @get.command()
@@ -119,7 +119,7 @@ def scripts(
     groups in the associated element
     """
     result = client.query.get_scripts(parent_id, parent_name)
-    _output_pydantic_list(result, output, db.Script.col_names_for_table)
+    output_pydantic_list(result, output, db.Script.col_names_for_table)
 
 
 @get.command()
@@ -131,7 +131,7 @@ def specifications(
 ) -> None:
     """List the existing specifications"""
     result = client.query.get_specifications()
-    _output_pydantic_list(result, output, db.Specification.col_names_for_table)
+    output_pydantic_list(result, output, db.Specification.col_names_for_table)
 
 
 @get.command()
@@ -143,7 +143,7 @@ def spec_blocks(
 ) -> None:
     """List the existing spec blocks"""
     result = client.query.get_spec_blocks()
-    _output_pydantic_list(result, output, db.SpecBlock.col_names_for_table)
+    output_pydantic_list(result, output, db.SpecBlock.col_names_for_table)
 
 
 @get.command()
@@ -155,7 +155,7 @@ def script_templates(
 ) -> None:
     """List the existing script_templates"""
     result = client.query.get_script_templates()
-    _output_pydantic_list(result, output, db.ScriptTemplate.col_names_for_table)
+    output_pydantic_list(result, output, db.ScriptTemplate.col_names_for_table)
 
 
 @get.command()
@@ -167,7 +167,7 @@ def pipetask_error_types(
 ) -> None:
     """List the existing pipetask_error_types"""
     result = client.query.get_pipetask_error_types()
-    _output_pydantic_list(result, output, db.PipetaskErrorType.col_names_for_table)
+    output_pydantic_list(result, output, db.PipetaskErrorType.col_names_for_table)
 
 
 @get.command()
@@ -179,7 +179,7 @@ def pipetask_errors(
 ) -> None:
     """List the existing pipetask_errors"""
     result = client.query.get_pipetask_errors()
-    _output_pydantic_list(result, output, db.PipetaskError.col_names_for_table)
+    output_pydantic_list(result, output, db.PipetaskError.col_names_for_table)
 
 
 @get.command()
@@ -191,7 +191,7 @@ def script_errors(
 ) -> None:
     """List the existing script_errors"""
     result = client.query.get_script_errors()
-    _output_pydantic_list(result, output, db.ScriptError.col_names_for_table)
+    output_pydantic_list(result, output, db.ScriptError.col_names_for_table)
 
 
 @get.command()
@@ -203,7 +203,7 @@ def task_sets(
 ) -> None:
     """List the existing task_sets"""
     result = client.query.get_task_sets()
-    _output_pydantic_list(result, output, db.TaskSet.col_names_for_table)
+    output_pydantic_list(result, output, db.TaskSet.col_names_for_table)
 
 
 @get.command()
@@ -215,7 +215,7 @@ def product_sets(
 ) -> None:
     """List the existing product_sets"""
     result = client.query.get_product_sets()
-    _output_pydantic_list(result, output, db.ProductSet.col_names_for_table)
+    output_pydantic_list(result, output, db.ProductSet.col_names_for_table)
 
 
 @get.command()
@@ -227,7 +227,7 @@ def wms_task_reports(
 ) -> None:
     """List the existing task_reports"""
     result = client.query.get_wms_task_reports()
-    _output_pydantic_list(result, output, db.WmsTaskReport.col_names_for_table)
+    output_pydantic_list(result, output, db.WmsTaskReport.col_names_for_table)
 
 
 @get.command()
@@ -239,7 +239,7 @@ def queues(
 ) -> None:
     """List the existing queues"""
     result = client.query.get_queues()
-    _output_pydantic_list(result, output, db.Queue.col_names_for_table)
+    output_pydantic_list(result, output, db.Queue.col_names_for_table)
 
 
 @get.command()
@@ -251,7 +251,7 @@ def script_dependencies(
 ) -> None:
     """List the existing script_dependencies"""
     result = client.query.get_script_dependencies()
-    _output_pydantic_list(result, output, db.ScriptDependency.col_names_for_table)
+    output_pydantic_list(result, output, db.ScriptDependency.col_names_for_table)
 
 
 @get.command()
@@ -263,7 +263,7 @@ def step_dependencies(
 ) -> None:
     """List the existing step_dependencies"""
     result = client.query.get_step_dependencies()
-    _output_pydantic_list(result, output, db.StepDependency.col_names_for_table)
+    output_pydantic_list(result, output, db.StepDependency.col_names_for_table)
 
 
 @get.command()
@@ -277,7 +277,7 @@ def element(
 ) -> None:
     """Get a particular element"""
     result = client.query.get_element(fullname)
-    _output_pydantic_object(result, output, db.ElementMixin.col_names_for_table)
+    output_pydantic_object(result, output, db.ElementMixin.col_names_for_table)
 
 
 @get.command()
@@ -291,7 +291,7 @@ def script(
 ) -> None:
     """Get a particular script"""
     result = client.query.get_script(fullname)
-    _output_pydantic_object(result, output, db.Script.col_names_for_table)
+    output_pydantic_object(result, output, db.Script.col_names_for_table)
 
 
 @get.command()
@@ -305,7 +305,7 @@ def job(
 ) -> None:
     """Get a particular job"""
     result = client.query.get_job(fullname)
-    _output_pydantic_object(result, output, db.Job.col_names_for_table)
+    output_pydantic_object(result, output, db.Job.col_names_for_table)
 
 
 @get.command()
@@ -323,7 +323,7 @@ def obj_spec_block(
     table-type can be set to 'script'
     """
     result = client.query.get_spec_block(fullname)
-    _output_pydantic_object(result, output, db.SpecBlock.col_names_for_table)
+    output_pydantic_object(result, output, db.SpecBlock.col_names_for_table)
 
 
 @get.command()
@@ -341,7 +341,7 @@ def obj_specification(
     table-type can be set to 'script'
     """
     result = client.query.get_specification(fullname)
-    _output_pydantic_object(result, output, db.Specification.col_names_for_table)
+    output_pydantic_object(result, output, db.Specification.col_names_for_table)
 
 
 @get.command()
@@ -359,7 +359,7 @@ def obj_resolved_collections(
     table-type can be set to 'script'
     """
     result = client.query.get_resolved_collections(fullname)
-    _output_dict(result, output)
+    output_dict(result, output)
 
 
 @get.command()
@@ -377,7 +377,7 @@ def obj_collections(
     table-type can be set to 'script'
     """
     result = client.query.get_collections(fullname)
-    _output_dict(result, output)
+    output_dict(result, output)
 
 
 @get.command()
@@ -395,7 +395,7 @@ def obj_child_config(
     table-type can be set to 'script'
     """
     result = client.query.get_child_config(fullname)
-    _output_dict(result, output)
+    output_dict(result, output)
 
 
 @get.command()
@@ -413,7 +413,7 @@ def obj_data_dict(
     table-type can be set to 'script'
     """
     result = client.query.get_data_dict(fullname)
-    _output_dict(result, output)
+    output_dict(result, output)
 
 
 @get.command()
@@ -431,7 +431,7 @@ def obj_spec_aliases(
     table-type can be set to 'script'
     """
     result = client.query.get_spec_aliases(fullname)
-    _output_dict(result, output)
+    output_dict(result, output)
 
 
 @get.command()
@@ -449,7 +449,7 @@ def check_prerequisites(
     table-type can be set to 'script'
     """
     value = client.query.get_prerequisites(fullname)
-    _output_dict({"value": value}, output)
+    output_dict({"value": value}, output)
 
 
 @get.command()
@@ -465,7 +465,7 @@ def element_scripts(
 ) -> None:
     """Get the Scripts used by a partiuclar element"""
     result = client.query.get_element_scripts(fullname, script_name)
-    _output_pydantic_list(result, output, db.Script.col_names_for_table)
+    output_pydantic_list(result, output, db.Script.col_names_for_table)
 
 
 @get.command()
@@ -479,7 +479,7 @@ def element_all_scripts(
 ) -> None:
     """Get the Scripts used by a partiuclar element"""
     result = client.query.get_element_all_scripts(fullname)
-    _output_pydantic_list(result, output, db.Script.col_names_for_table)
+    output_pydantic_list(result, output, db.Script.col_names_for_table)
 
 
 @get.command()
@@ -493,7 +493,7 @@ def element_jobs(
 ) -> None:
     """Get the Jobs used by a partiuclar element"""
     result = client.query.get_element_jobs(fullname)
-    _output_pydantic_list(result, output, db.Job.col_names_for_table)
+    output_pydantic_list(result, output, db.Job.col_names_for_table)
 
 
 @get.command()
@@ -507,7 +507,7 @@ def element_sleep(
 ) -> None:
     """Get the Jobs used by a partiuclar element"""
     result = client.query.get_element_sleep(fullname)
-    _output_dict({"sleep": result}, output)
+    output_dict({"sleep": result}, output)
 
 
 @get.command()
@@ -521,7 +521,7 @@ def job_task_sets(
 ) -> None:
     """Get the TaskSets for a particular Job"""
     result = client.query.get_job_task_sets(fullname)
-    _output_pydantic_list(result, output, db.TaskSet.col_names_for_table)
+    output_pydantic_list(result, output, db.TaskSet.col_names_for_table)
 
 
 @get.command()
@@ -535,7 +535,7 @@ def job_wms_reports(
 ) -> None:
     """Get the WmsReports for a particular Job"""
     result = client.query.get_job_wms_reports(fullname)
-    _output_pydantic_list(result, output, db.WmsTaskReport.col_names_for_table)
+    output_pydantic_list(result, output, db.WmsTaskReport.col_names_for_table)
 
 
 @get.command()
@@ -549,7 +549,7 @@ def job_product_sets(
 ) -> None:
     """Get the ProductSets for a particular Job"""
     result = client.query.get_job_product_sets(fullname)
-    _output_pydantic_list(result, output, db.ProductSet.col_names_for_table)
+    output_pydantic_list(result, output, db.ProductSet.col_names_for_table)
 
 
 @get.command()
@@ -563,4 +563,4 @@ def job_errors(
 ) -> None:
     """Get the PipetaskErrors for a particular Job"""
     result = client.query.get_job_errors(fullname)
-    _output_pydantic_list(result, output, db.PipetaskError.col_names_for_table)
+    output_pydantic_list(result, output, db.PipetaskError.col_names_for_table)

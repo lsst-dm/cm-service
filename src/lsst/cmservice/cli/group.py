@@ -137,7 +137,7 @@ def rescue_job(
 ) -> None:
     """Create a rescue job"""
     result = client.group.rescue_job(row_id=row_id)
-    wrappers._output_pydantic_object(result, output, db.Job.col_names_for_table)
+    wrappers.output_pydantic_object(result, output, db.Job.col_names_for_table)
 
 
 @action_command(name="mark_rescued")
@@ -151,4 +151,4 @@ def mark_rescued(
 ) -> None:
     """Create a rescue job"""
     result = client.group.mark_rescued(row_id=row_id)
-    wrappers._output_pydantic_object(result, output, db.Job.col_names_for_table)
+    wrappers.output_pydantic_object(result, output, db.Job.col_names_for_table)

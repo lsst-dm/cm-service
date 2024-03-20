@@ -89,3 +89,10 @@
       script_templates: []
       spec_blocks:
           - SpecBlockAssociation: {spec_block_name: comcamsim_campaign, alias: campaign}
+- Specification:
+      name: comcamsim_htcondor
+      script_templates: []
+      spec_blocks:
+          - SpecBlockAssociation: {spec_block_name: comcamsim_campaign, alias: campaign}
+          - SpecBlockAssociation: {spec_block_name: bps_htcondor_submit_script, alias: bps_submit_script}
+          - SpecBlockAssociation: {spec_block_name: bps_htcondor_report_script, alias: bps_report_script}

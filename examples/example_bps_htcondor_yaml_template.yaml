@@ -1,0 +1,30 @@
+includeConfigs:
+  - ${DRP_PIPE_DIR}/bps/clustering/DRP-recalibrated.yaml
+  - ${DRP_PIPE_DIR}/bps/resources/LSSTCam-imSim/DRP-test-med-1.yaml
+  - ${CM_CONFIGS}/requestMemory_comcamsim.yaml
+
+# turn off the -o option in pipetask commands
+pipetaskOutput: ""
+
+executionButler:
+  requestMemory: 64000
+  queue: "SLAC_Rubin_Merge"
+  # turn off chaining in the execution butler because
+  # no output collection
+  command2: ""
+  command3: ""
+
+# computeSite:
+site:
+  s3df:
+    profile:
+      condor:
+        +Walltime: 7200
+
+# Uncomment to turn on memory multiplier
+# memoryMultiplier: 2.
+numberOfRetries: 5
+memoryLimit: 65536
+
+# Condor backend stuff
+wmsServiceClass: lsst.ctrl.bps.htcondor.HTCondorService
