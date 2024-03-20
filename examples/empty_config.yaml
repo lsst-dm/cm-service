@@ -34,9 +34,5 @@
           manifest_script_template: manifest_script_template
 - Specification:
       name: base
-      script_templates:
-          - ScriptTemplateAssociation: {script_template_name: bps_panda_script_template}
-          - ScriptTemplateAssociation: {script_template_name: bps_panda_yaml_template}
-          - ScriptTemplateAssociation: {script_template_name: stack_script_template}
       spec_blocks:
           - SpecBlockAssociation: {spec_block_name: campaign}
