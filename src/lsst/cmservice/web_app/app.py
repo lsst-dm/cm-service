@@ -106,14 +106,3 @@ async def search(
 @web_app.get("/layout/", response_class=HTMLResponse)
 async def test_layout(request: Request):
     return templates.TemplateResponse("mockup.html", {"request": request})
-
-
-# @web_app.get("/campaign-search/", response_class=HTMLResponse)
-# async def search(
-#     request: Request,
-#     session: async_scoped_session = Depends(db_session_dependency),
-#     search_term: str | None = None,
-# ):
-#     campaigns = await search_campaigns(session, search_term)
-#     print(campaigns)
-#     return templates.TemplateResponse("mockup.html", {"request": request})
