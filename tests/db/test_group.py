@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from lsst.cmservice import db
 from lsst.cmservice.config import config
 from lsst.cmservice.handlers import interface
+from lsst.cmservice.common.errors import CMTooFewAcceptedJobsError
 
 
 @pytest.mark.asyncio()
@@ -71,6 +72,7 @@ async def test_group_db(engine: AsyncEngine) -> None:
         ]
         assert len(groups1) == 5
 
+        # test that uniqueness is obeyed
         with pytest.raises(IntegrityError):
             await db.Group.create_row(
                 session,
@@ -78,6 +80,40 @@ async def test_group_db(engine: AsyncEngine) -> None:
                 parent_name=steps[0].fullname,
                 spec_block_name="group",
             )
+
+        # test we can retrieve properties entered
+        entry = groups0[0]
+        check = await db.Group.get_row(session, entry.id)
+        assert check.db_id.id == entry.db_id.id
+
+        # test that we can retrieve the campaign
+        check = await entry.get_campaign(session)
+        assert check.db_id.id == camp.db_id.id
+
+        # test null result on fetching downstream
+        check = await entry.children(session)
+        assert check is not None
+
+        check = await entry.get_tasks(session)
+        assert check is not None
+
+        check = await entry.get_wms_reports(session)
+        assert check is not None
+
+        check = await entry.get_products(session)
+        assert check is not None
+
+        # test null error in rescue_job
+        with pytest.raises(CMTooFewAcceptedJobsError):
+            await entry.rescue_job(session)
+
+        # test null error in mark_job_rescued
+        with pytest.raises(CMTooFewAcceptedJobsError):
+            await entry.mark_job_rescued(session)
+
+        # test key error in get_create_kwargs
+        with pytest.raises(KeyError):
+            await db.Group.get_create_kwargs(session, parent_name="foo", name="bar")
 
         # Finish clean up
         await db.Production.delete_row(session, prod.id)
