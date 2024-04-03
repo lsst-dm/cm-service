@@ -223,7 +223,6 @@ class Job(Base, ElementMixin):
     async def copy_job(
         self,
         session: async_scoped_session,
-        parent: ElementMixin,
     ) -> Job:
         """Copy a Job
 
