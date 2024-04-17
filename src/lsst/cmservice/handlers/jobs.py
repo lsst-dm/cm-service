@@ -417,7 +417,7 @@ class ManifestReportScriptHandler(ScriptHandler):
             custom_lsst_setup = data_dict["custom_lsst_setup"]
             prepend += f"\n{custom_lsst_setup}"
 
-        command = f"pipetask report {butler_repo} {graph_url} {report_url}"
+        command = f"pipetask report --full-output-filename {report_url} {butler_repo} {graph_url}"
         await write_bash_script(script_url, command, prepend=prepend)
 
         return StatusEnum.prepared
