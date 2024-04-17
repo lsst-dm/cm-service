@@ -1,4 +1,4 @@
-<div class="overflow-hidden px-4 py-5 shadow sm:p-6 bg-teal-50 relative h-300">
+<div class="overflow-hidden px-4 py-5 shadow sm:p-6 bg-teal-50 relative h-300" xmlns="http://www.w3.org/1999/html">
     <div class="flex items-center">
         {% if campaign.status == "COMPLETE" %} {% include "complete_icon.html" %}
         {% elif campaign.status == "IN_PROGRESS" %} {% include "inprogress_icon.html" %}
@@ -11,12 +11,59 @@
         <span class="font-semibold inline-flex pl-3 text-xs uppercase"> Last updated 6:42pm Mon 7 Feb </span>
     </div>
     <div class="mt-3 pb-3">
-        <p class="text-sm font-normal leading-6 text-gray-900 pl-3">
-<!--            <span class="inset-0" aria-hidden="true"></span>-->
+<!--        <p class="text-sm font-normal leading-6 text-gray-900 pl-3">-->
             <div class="block text-xs pl-3">LSST Version: {{campaign.lsst_version}}</div>
             <div class="block text-xs pl-3">root: {{campaign.root}}</div>
             <div class="block text-xs pl-3">source: {{campaign.source}}</div>
-        </p>
+<!--        </p>-->
+        <div class="block text-xs pt-2 pl-3 text-green-700">{{campaign.jobs_completed}}</div>
+        <div class="block text-xs pt-2 pl-3 text-green-700">{{campaign.scripts_completed}}</div>
+    </div>
+    <div>
+        <span class="absolute right-3 bottom-3 text-teal-600" aria-hidden="true">
+            <svg fill="none" stroke-width="2" class="w-6 h-6" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m12.75 15 3-3m0 0-3-3m3 3h-7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+        </span>
+    </div>
+    <button type="button" class="absolute right-3 top-6 text-teal-600" aria-expanded="false" aria-hidden="true" aria-haspopup="true" data-tooltip-target="tooltip-click" data-tooltip-trigger="click">
+        <!--                                <span class="absolute right-6 top-6 text-teal-400" aria-hidden="true">-->
+        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" stroke="currentColor">
+            <path d="M3 10a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM8.5 10a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM15.5 8.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" />
+        </svg>
+        <div id="tooltip-click" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm opacity-0 tooltip dark:bg-gray-700">
+            Tooltip content
+            <div class="tooltip-arrow" data-popper-arrow></div>
+        </div>
+    </button>
+</div>
+
+<div class="overflow-hidden px-4 py-5 shadow sm:p-6 bg-teal-50 relative h-300" xmlns="http://www.w3.org/1999/html">
+    <div class="flex items-center">
+        {% include "need_attention_icon.html" %}
+        <span class="text-large font-bold">{{campaign.name}}</span>
+    </div>
+    <div class="mt-2">
+        <span class="font-semibold inline-flex pl-3 text-xs uppercase"> Last updated 6:42pm Mon 7 Feb </span>
+    </div>
+    <div class="mt-3 pb-3">
+        <!--        <p class="text-sm font-normal leading-6 text-gray-900 pl-3">-->
+        <div class="block text-xs pl-3">LSST Version: {{campaign.lsst_version}}</div>
+        <div class="block text-xs pl-3">root: {{campaign.root}}</div>
+        <div class="block text-xs pl-3">source: {{campaign.source}}</div>
+        <!--        </p>-->
+        <div class="block text-xs pt-2 pl-3 text-green-700">30 of 32 jobs completed</div>
+        <div class="block text-xs pt-2 pl-3 text-green-700">1 of 4 scripts completed</div>
+        <div class="block text-xs pt-2 pl-3 text-red-400">
+            <a class="pr-2"href="#">group0/job_000</a>
+            <a class="pr-2" href="#">group2/job_000</a>
+        </div>
+        <div class="block text-xs pt-2 pl-3 text-red-400">
+            <a class="pr-2" href="#">tag_inputs</a>
+            <a class="pr-2" href="#">manifest_report_load</a>
+            <a class="pr-2" href="#">bps_report</a>
+        </div>
+
     </div>
     <div>
         <span class="absolute right-3 bottom-3 text-teal-600" aria-hidden="true">
