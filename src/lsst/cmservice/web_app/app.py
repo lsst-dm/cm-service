@@ -63,7 +63,17 @@ async def read_item(request: Request):
 async def get_campaigns(request: Request, session: async_scoped_session = Depends(db_session_dependency)):
     try:
         async with session.begin():
-            items = await db.Campaign.get_rows(session)
+            campaigns = await db.Campaign.get_rows(session)
+            campaigns_list = []
+            for campaign in campaigns:
+                collections = await campaign.resolve_collections(session)
+                campaigns_list.append(
+                    {
+                        "name": campaign.name,
+                        "lsst_version": campaign.data["lsst_version"],
+                        "root": collections["root"],
+                    },
+                )
             production_list = {}
             productions = await db.Production.get_rows(session)
             for p in productions:
@@ -74,8 +84,8 @@ async def get_campaigns(request: Request, session: async_scoped_session = Depend
             name="campaigns.html",
             request=request,
             context={
-                "recent_campaigns": items,
-                "productions": production_list,
+                "recent_campaigns": campaigns_list,
+                "productions": None,
             },
         )
     except Exception as e:
