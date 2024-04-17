@@ -72,6 +72,7 @@ async def get_campaigns(request: Request, session: async_scoped_session = Depend
                         "name": campaign.name,
                         "lsst_version": campaign.data["lsst_version"],
                         "root": collections["root"],
+                        "source": collections["campaign_source"],
                     },
                 )
             production_list = {}
