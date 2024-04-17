@@ -9,7 +9,7 @@ class SpecBlockBase(BaseModel):
     """Parameters that are in DB tables and also used to create new rows"""
 
     # Name for this
-    name: str
+    name: str | None = None
     # Class of associated Handler
     handler: str | None = None
     # General Parameters

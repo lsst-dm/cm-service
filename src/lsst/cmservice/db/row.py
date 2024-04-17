@@ -226,7 +226,13 @@ class RowMixin:
         async with session.begin_nested():
             try:
                 for var, value in kwargs.items():
-                    if value:
+                    if not value:
+                        continue
+                    if isinstance(value, dict):
+                        the_dict = getattr(row, var).copy()
+                        the_dict.update(**value)
+                        setattr(row, var, the_dict)
+                    else:
                         setattr(row, var, value)
             except IntegrityError as e:
                 await session.rollback()

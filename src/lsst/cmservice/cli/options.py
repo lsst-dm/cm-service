@@ -192,7 +192,7 @@ child_config = PartialOption(
 
 child_configs = PartialOption(
     "--child_configs",
-    type=dict,
+    type=DictParamType(),
     help="child_configurations",
 )
 
