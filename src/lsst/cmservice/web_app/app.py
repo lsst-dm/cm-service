@@ -18,6 +18,8 @@ from safir.logging import configure_logging, configure_uvicorn_logging
 
 from lsst.cmservice.config import config
 from lsst.cmservice.web_app.pages.campaigns import search_campaigns
+from lsst.cmservice.web_app.utils.utils import get_campaign_details
+
 
 configure_logging(profile=config.profile, log_level=config.log_level, name=config.logger_name)
 configure_uvicorn_logging(config.log_level)
@@ -66,27 +68,24 @@ async def get_campaigns(request: Request, session: async_scoped_session = Depend
             campaigns = await db.Campaign.get_rows(session)
             campaigns_list = []
             for campaign in campaigns:
-                collections = await campaign.resolve_collections(session)
-                campaigns_list.append(
-                    {
-                        "name": campaign.name,
-                        "lsst_version": campaign.data["lsst_version"],
-                        "root": collections["root"],
-                        "source": collections["campaign_source"],
-                    },
-                )
+                campaign_details = await get_campaign_details(session, campaign)
+                campaigns_list.append(campaign_details)
             production_list = {}
             productions = await db.Production.get_rows(session)
             for p in productions:
                 children = await p.children(session)
-                production_list[p.name] = children
+                production_campaigns = []
+                for c in children:
+                    campaign_details = await get_campaign_details(session, c)
+                    production_campaigns.append(campaign_details)
+                production_list[p.name] = production_campaigns
 
         return templates.TemplateResponse(
             name="campaigns.html",
             request=request,
             context={
                 "recent_campaigns": campaigns_list,
-                "productions": None,
+                "productions": production_list,
             },
         )
     except Exception as e:
