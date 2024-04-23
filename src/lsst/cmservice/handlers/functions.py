@@ -588,6 +588,8 @@ async def load_wms_reports(
     job : Job
         Associated Job
     """
+    if wms_run_report.job_summary is None:
+        return job
     for task_name, job_summary in wms_run_report.job_summary.items():
         fullname = f"{job.fullname}/{task_name}"
         wms_dict = {f"n_{wms_state_.name.lower()}": count_ for wms_state_, count_ in job_summary.items()}

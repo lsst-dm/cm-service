@@ -29,6 +29,7 @@ update_options = [
     options.child_config(),
     options.collections(),
     options.spec_aliases(),
+    options.wms_job_id(),
     options.handler(),
     options.output(),
 ]

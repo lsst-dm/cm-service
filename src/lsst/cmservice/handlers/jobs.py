@@ -174,8 +174,8 @@ class BpsScriptHandler(ScriptHandler):
         if slurm_status == StatusEnum.accepted:
             await script.update_values(session, status=StatusEnum.accepted)
             bps_dict = parse_bps_stdout(script.log_url)
-            panda_url = bps_dict["Run Id"].strip()
-            await parent.update_values(session, wms_job_id=panda_url)
+            wms_job_id = self._get_job_id(bps_dict)
+            await parent.update_values(session, wms_job_id=wms_job_id)
         return slurm_status
 
     async def launch(
@@ -193,6 +193,9 @@ class BpsScriptHandler(ScriptHandler):
         if status == StatusEnum.running:
             await parent.update_values(session, stamp_url=script.stamp_url)
         return status
+
+    def _get_job_id(self, bps_dict: dict) -> str:
+        raise NotImplementedError
 
     async def _reset_script(
         self,
@@ -338,7 +341,7 @@ class BpsReportHandler(FunctionHandler):
         if fake_status:
             status = fake_status
         else:
-            status = await self._load_wms_reports(session, parent, script.stamp_url)
+            status = await self._load_wms_reports(session, parent, parent.wms_job_id)
         if status is None:
             status = script.status
         if status != script.status:
@@ -366,11 +369,17 @@ class PandaScriptHandler(BpsScriptHandler):
 
     wms_method = WmsMethodEnum.panda
 
+    def _get_job_id(self, bps_dict: dict) -> str:
+        return bps_dict["Run Id"]
+
 
 class HTCondorScriptHandler(BpsScriptHandler):
     """Class to handle running Bps for ht_condor jobs"""
 
     wms_method = WmsMethodEnum.ht_condor
+
+    def _get_job_id(self, bps_dict: dict) -> str:
+        return bps_dict["Submit dir"]
 
 
 class PandaReportHandler(BpsReportHandler):
