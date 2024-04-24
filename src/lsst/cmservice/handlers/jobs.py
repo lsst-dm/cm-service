@@ -309,7 +309,7 @@ class BpsReportHandler(FunctionHandler):
             return None
         try:
             wms_svc = self._get_wms_svc()
-            wms_run_report = wms_svc.report(wms_workflow_id=wms_workflow_id)[0][0]
+            wms_run_report = wms_svc.report(wms_workflow_id=wms_workflow_id.strip())[0][0]
             status = WMS_TO_JOB_STATUS_MAP[wms_run_report.state]
             _job = await load_wms_reports(session, job, wms_run_report)
         except Exception as msg:  # pylint: disable=broad-exception-caught
