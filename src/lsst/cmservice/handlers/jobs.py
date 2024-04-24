@@ -267,13 +267,13 @@ class BpsReportHandler(FunctionHandler):
 
     def _get_wms_report(
         self,
-        wms_workflow_id: int,
+        wms_workflow_id: str,
     ) -> WmsRunReport:
         """Get the WmsRunReport for a job
 
         Paramters
         ---------
-        wms_workflow_id : int | None
+        wms_workflow_id : str | None
             WMS workflow id
 
         Returns
@@ -288,7 +288,7 @@ class BpsReportHandler(FunctionHandler):
         self,
         session: async_scoped_session,
         job: Job,
-        wms_workflow_id: int | None,
+        wms_workflow_id: str | None,
     ) -> StatusEnum | None:
         """Load the job processing info
 
@@ -297,7 +297,7 @@ class BpsReportHandler(FunctionHandler):
         job: Job
             Job in question
 
-        wms_workflow_id : int | None
+        wms_workflow_id : str | None
             WMS workflow id
 
         Returns
