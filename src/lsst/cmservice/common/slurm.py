@@ -54,7 +54,7 @@ async def submit_slurm_job(
     """
     try:
         with subprocess.Popen(
-            ["sbatch", "-o", log_url, "--mem", "16448", "-p", "roma", "--parsable", script_url],
+            ["sbatch", "-o", log_url, "--mem", "16448", "-p", "milano", "--parsable", script_url],
             stdout=subprocess.PIPE,
         ) as sbatch:
             assert sbatch.stdout

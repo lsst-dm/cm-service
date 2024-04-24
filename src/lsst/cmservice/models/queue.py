@@ -33,7 +33,7 @@ class Queue(QueueBase):
     # PrimaryKey
     id: int
 
-    # element_level: int  #FIXME
+    # element_level: int  #FIXME (for now this defaults to campaign)
     element_id: int
 
     # When this was added to Queue

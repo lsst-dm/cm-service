@@ -23,7 +23,7 @@ from ..db import Job, Script, SpecBlock, Specification
 from . import options
 
 
-def _output_pydantic_object(
+def output_pydantic_object(
     model: BaseModel,
     output: options.OutputEnum | None,
     col_names: list[str],
@@ -51,7 +51,7 @@ def _output_pydantic_object(
             click.echo(tabulate(the_table, headers=col_names, tablefmt="plain"))
 
 
-def _output_pydantic_list(
+def output_pydantic_list(
     models: Sequence[BaseModel],
     output: options.OutputEnum | None,
     col_names: list[str],
@@ -87,7 +87,7 @@ def _output_pydantic_list(
             click.echo(tabulate(the_table, headers=col_names, tablefmt="plain"))
 
 
-def _output_dict(
+def output_dict(
     the_dict: dict,
     output: options.OutputEnum | None,
 ) -> None:
@@ -149,7 +149,7 @@ def get_list_command(
         """List the existing rows"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_rows()
-        _output_pydantic_list(result, output, db_class.col_names_for_table)
+        output_pydantic_list(result, output, db_class.col_names_for_table)
 
     return get_rows
 
@@ -191,7 +191,7 @@ def get_row_command(
         """Get a single row"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_row(row_id)
-        _output_pydantic_object(result, output, db_class.col_names_for_table)
+        output_pydantic_object(result, output, db_class.col_names_for_table)
 
     return get_row
 
@@ -233,7 +233,7 @@ def get_create_command(
         """Create a new row"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.create(**kwargs)
-        _output_pydantic_object(result, output, db_class.col_names_for_table)
+        output_pydantic_object(result, output, db_class.col_names_for_table)
 
     for option_ in create_options:
         create = option_(create)
@@ -280,7 +280,7 @@ def get_update_command(
         """Update an existing row"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.update(row_id, **kwargs)
-        _output_pydantic_object(result, output, db_class.col_names_for_table)
+        output_pydantic_object(result, output, db_class.col_names_for_table)
 
     for option_ in update_options:
         update = option_(update)
@@ -357,7 +357,7 @@ def get_spec_block_command(
         """Get the SpecBlock associated to a Node"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_spec_block(row_id)
-        _output_pydantic_object(result, output, SpecBlock.col_names_for_table)
+        output_pydantic_object(result, output, SpecBlock.col_names_for_table)
 
     return get_spec_block
 
@@ -395,7 +395,7 @@ def get_specification_command(
         """Get the Specification associated to a Node"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_specification(row_id)
-        _output_pydantic_object(result, output, Specification.col_names_for_table)
+        output_pydantic_object(result, output, Specification.col_names_for_table)
 
     return get_specification
 
@@ -436,7 +436,7 @@ def get_resolved_collections_command(
         """Get the resovled collection for a partiuclar node"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_resolved_collections(row_id)
-        _output_dict(result, output)
+        output_dict(result, output)
 
     return get_resolved_collections
 
@@ -474,7 +474,7 @@ def get_collections_command(
         """Get the collection parameters for a partiuclar node"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_collections(row_id)
-        _output_dict(result, output)
+        output_dict(result, output)
 
     return get_collections
 
@@ -512,7 +512,7 @@ def get_child_config_command(
         """Get the child_config parameters for a partiuclar node"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_child_config(row_id)
-        _output_dict(result, output)
+        output_dict(result, output)
 
     return get_child_config
 
@@ -550,7 +550,7 @@ def get_data_dict_command(
         """Get the data_dict parameters for a partiuclar node"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_data_dict(row_id)
-        _output_dict(result, output)
+        output_dict(result, output)
 
     return get_data_dict
 
@@ -588,7 +588,7 @@ def get_spec_aliases_command(
         """Get the spec_aliases parameters for a partiuclar node"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_spec_aliases(row_id)
-        _output_dict(result, output)
+        output_dict(result, output)
 
     return get_spec_aliases
 
@@ -635,7 +635,7 @@ def get_update_status_command(
             row_id=row_id,
             status=status,
         )
-        _output_pydantic_object(result, output, db_class.col_names_for_table)
+        output_pydantic_object(result, output, db_class.col_names_for_table)
 
     return update_status
 
@@ -678,7 +678,7 @@ def get_update_collections_command(
             row_id=row_id,
             **kwargs,
         )
-        _output_dict(result, output)
+        output_dict(result, output)
 
     return update_collections
 
@@ -721,7 +721,7 @@ def get_update_child_config_command(
             row_id=row_id,
             **kwargs,
         )
-        _output_dict(result, output)
+        output_dict(result, output)
 
     return update_child_config
 
@@ -764,7 +764,7 @@ def get_update_data_dict_command(
             row_id=row_id,
             **kwargs,
         )
-        _output_dict(result.data, output)
+        output_dict(result.data, output)
 
     return update_data_dict
 
@@ -807,7 +807,7 @@ def get_update_spec_aliases_command(
             row_id=row_id,
             **kwargs,
         )
-        _output_dict(result, output)
+        output_dict(result, output)
 
     return update_spec_aliases
 
@@ -850,7 +850,7 @@ def get_action_process_command(
             row_id=row_id,
             fake_status=fake_status,
         )
-        _output_dict({"changed": changed, "status": status}, output)
+        output_dict({"changed": changed, "status": status}, output)
 
     return process
 
@@ -891,7 +891,7 @@ def get_action_run_check_command(
         """Check the status of a node"""
         sub_client = getattr(client, sub_client_name)
         changed, status = sub_client.run_check(row_id=row_id)
-        _output_dict({"changed": changed, "status": status}, output)
+        output_dict({"changed": changed, "status": status}, output)
 
     return run_check
 
@@ -933,7 +933,7 @@ def get_action_accept_command(
         """Mark a node as accepted"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.accept(row_id=row_id)
-        _output_pydantic_object(result, output, db_class.col_names_for_table)
+        output_pydantic_object(result, output, db_class.col_names_for_table)
 
     return accept
 
@@ -975,7 +975,7 @@ def get_action_reject_command(
         """Mark a node as rejected"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.reject(row_id=row_id)
-        _output_pydantic_object(result, output, db_class.col_names_for_table)
+        output_pydantic_object(result, output, db_class.col_names_for_table)
 
     return reject
 
@@ -1017,7 +1017,7 @@ def get_action_reset_command(
         """Reset the status of a node"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.reset(row_id=row_id)
-        _output_pydantic_object(result, output, db_class.col_names_for_table)
+        output_pydantic_object(result, output, db_class.col_names_for_table)
 
     return reset
 
@@ -1056,7 +1056,7 @@ def get_element_scripts_command(
         """Get the scripts assocaited to an element"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_scripts(row_id=row_id, script_name=script_name)
-        _output_pydantic_list(result, output, Script.col_names_for_table)
+        output_pydantic_list(result, output, Script.col_names_for_table)
 
     return scripts
 
@@ -1092,7 +1092,7 @@ def get_element_all_scripts_command(
         """Get the scripts assocaited to an element"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_all_scripts(row_id=row_id)
-        _output_pydantic_list(result, output, Script.col_names_for_table)
+        output_pydantic_list(result, output, Script.col_names_for_table)
 
     return all_scripts
 
@@ -1129,7 +1129,7 @@ def get_element_jobs_command(
         """Get the scripts assocaited to an element"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_jobs(row_id=row_id)
-        _output_pydantic_list(result, output, Job.col_names_for_table)
+        output_pydantic_list(result, output, Job.col_names_for_table)
 
     return jobs
 
@@ -1168,7 +1168,7 @@ def get_element_retry_script_command(
         """Get the scripts assocaited to an element"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.retry_script(row_id=row_id, script_name=script_name)
-        _output_pydantic_object(result, output, Script.col_names_for_table)
+        output_pydantic_object(result, output, Script.col_names_for_table)
 
     return retry_script
 
@@ -1205,7 +1205,7 @@ def get_element_estimate_sleep_time_command(
         """Estimates the sleep time before calling process"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.estimate_sleep_time(row_id=row_id)
-        _output_dict({"sleep_time": result}, output)
+        output_dict({"sleep_time": result}, output)
 
     return estimate_sleep_time
 
@@ -1257,7 +1257,7 @@ def get_element_wms_task_reports_command(
             "n_failed",
             "n_pruned",
         ]
-        _output_pydantic_list(list(result.reports.values()), output, col_names)
+        output_pydantic_list(list(result.reports.values()), output, col_names)
 
     return wms_task_reports
 
@@ -1295,7 +1295,7 @@ def get_element_tasks_command(
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_tasks(row_id=row_id)
         col_names = ["name", "n_expected", "n_done", "n_failed", "n_failed_upstream"]
-        _output_pydantic_list(list(result.reports.values()), output, col_names)
+        output_pydantic_list(list(result.reports.values()), output, col_names)
 
     return tasks
 
@@ -1333,6 +1333,6 @@ def get_element_products_command(
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_products(row_id=row_id)
         col_names = ["name", "n_expected", "n_done", "n_failed", "n_failed_upstream", "n_missing"]
-        _output_pydantic_list(list(result.reports.values()), output, col_names)
+        output_pydantic_list(list(result.reports.values()), output, col_names)
 
     return products

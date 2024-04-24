@@ -5,7 +5,7 @@ from ..client.client import CMClient
 from ..common.enums import StatusEnum
 from . import options
 from .commands import action
-from .wrappers import _output_dict, _output_pydantic_list, _output_pydantic_object
+from .wrappers import output_dict, output_pydantic_list, output_pydantic_object
 
 
 @action.command()
@@ -28,7 +28,7 @@ def process(
         fullname=fullname,
         fake_status=fake_status,
     )
-    _output_dict({"changed": changed, "status": status}, output)
+    output_dict({"changed": changed, "status": status}, output)
 
 
 @action.command()
@@ -51,7 +51,7 @@ def reset_script(
         fullname=fullname,
         status=status,
     )
-    _output_pydantic_object(result, output, db.Script.col_names_for_table)
+    output_pydantic_object(result, output, db.Script.col_names_for_table)
 
 
 @action.command()
@@ -74,7 +74,7 @@ def retry_script(
         fullname=fullname,
         script_name=script_name,
     )
-    _output_pydantic_object(result, output, db.Script.col_names_for_table)
+    output_pydantic_object(result, output, db.Script.col_names_for_table)
 
 
 @action.command()
@@ -96,7 +96,7 @@ def rescue_script(
         fullname=fullname,
         script_name=script_name,
     )
-    _output_pydantic_object(result, output, db.Script.col_names_for_table)
+    output_pydantic_object(result, output, db.Script.col_names_for_table)
 
 
 @action.command()
@@ -119,7 +119,7 @@ def mark_script_rescued(
         fullname=fullname,
         script_name=script_name,
     )
-    _output_pydantic_list(result, output, db.Script.col_names_for_table)
+    output_pydantic_list(result, output, db.Script.col_names_for_table)
 
 
 @action.command()
@@ -133,4 +133,4 @@ def rematch(
 ) -> None:
     """Rematch the errors"""
     result = client.action.rematch_errors(**kwargs)
-    _output_pydantic_list(result, output, db.PipetaskError.col_names_for_table)
+    output_pydantic_list(result, output, db.PipetaskError.col_names_for_table)

@@ -116,7 +116,7 @@ class BpsScriptHandler(ScriptHandler):
         submit_path = os.path.abspath(os.path.expandvars(f"{prod_area}/{parent.fullname}/submit"))
         try:
             os.rmdir(submit_path)
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             pass
 
         command = f"bps --log-file {json_url} --no-log-tty submit {os.path.abspath(config_url)} > {log_url}"
@@ -174,8 +174,8 @@ class BpsScriptHandler(ScriptHandler):
         if slurm_status == StatusEnum.accepted:
             await script.update_values(session, status=StatusEnum.accepted)
             bps_dict = parse_bps_stdout(script.log_url)
-            panda_url = bps_dict["Run Id"].strip()
-            await parent.update_values(session, wms_job_id=panda_url)
+            wms_job_id = self._get_job_id(bps_dict)
+            await parent.update_values(session, wms_job_id=wms_job_id)
         return slurm_status
 
     async def launch(
@@ -194,6 +194,9 @@ class BpsScriptHandler(ScriptHandler):
             await parent.update_values(session, stamp_url=script.stamp_url)
         return status
 
+    def _get_job_id(self, bps_dict: dict) -> str:
+        raise NotImplementedError
+
     async def _reset_script(
         self,
         session: async_scoped_session,
@@ -210,19 +213,16 @@ class BpsScriptHandler(ScriptHandler):
             )
             try:
                 os.unlink(json_url)
-            except Exception as msg:
+            except Exception as msg:  # pylint: disable=broad-exception-caught
                 print(f"Failed to unlink log file: {json_url}: {msg}, continuing")
-                pass
             try:
                 os.unlink(config_url)
-            except Exception as msg:
+            except Exception as msg:  # pylint: disable=broad-exception-caught
                 print(f"Failed to unlink configuration file: {config_url}: {msg}, continuing")
-                pass
             try:
                 os.rmdir(submit_path)
-            except Exception as msg:
+            except Exception as msg:  # pylint: disable=broad-exception-caught
                 print(f"Failed to remove submit dir: {submit_path}: {msg}, continuing")
-                pass
         return update_fields
 
     async def _purge_products(
@@ -267,13 +267,13 @@ class BpsReportHandler(FunctionHandler):
 
     def _get_wms_report(
         self,
-        wms_workflow_id: int,
+        wms_workflow_id: str,
     ) -> WmsRunReport:
         """Get the WmsRunReport for a job
 
         Paramters
         ---------
-        wms_workflow_id : int | None
+        wms_workflow_id : str | None
             WMS workflow id
 
         Returns
@@ -288,7 +288,7 @@ class BpsReportHandler(FunctionHandler):
         self,
         session: async_scoped_session,
         job: Job,
-        wms_workflow_id: int | None,
+        wms_workflow_id: str | None,
     ) -> StatusEnum | None:
         """Load the job processing info
 
@@ -297,7 +297,7 @@ class BpsReportHandler(FunctionHandler):
         job: Job
             Job in question
 
-        wms_workflow_id : int | None
+        wms_workflow_id : str | None
             WMS workflow id
 
         Returns
@@ -309,10 +309,10 @@ class BpsReportHandler(FunctionHandler):
             return None
         try:
             wms_svc = self._get_wms_svc()
-            wms_run_report = wms_svc.report(wms_workflow_id=wms_workflow_id)[0][0]
+            wms_run_report = wms_svc.report(wms_workflow_id=wms_workflow_id.strip())[0][0]
             status = WMS_TO_JOB_STATUS_MAP[wms_run_report.state]
             _job = await load_wms_reports(session, job, wms_run_report)
-        except Exception as msg:
+        except Exception as msg:  # pylint: disable=broad-exception-caught
             print(f"Catching wms_svc.report failure: {msg}, continuing")
             status = StatusEnum.failed
         return status
@@ -341,7 +341,7 @@ class BpsReportHandler(FunctionHandler):
         if fake_status:
             status = fake_status
         else:
-            status = await self._load_wms_reports(session, parent, script.stamp_url)
+            status = await self._load_wms_reports(session, parent, parent.wms_job_id)
         if status is None:
             status = script.status
         if status != script.status:
@@ -369,11 +369,29 @@ class PandaScriptHandler(BpsScriptHandler):
 
     wms_method = WmsMethodEnum.panda
 
+    def _get_job_id(self, bps_dict: dict) -> str:
+        return bps_dict["Run Id"]
+
+
+class HTCondorScriptHandler(BpsScriptHandler):
+    """Class to handle running Bps for ht_condor jobs"""
+
+    wms_method = WmsMethodEnum.ht_condor
+
+    def _get_job_id(self, bps_dict: dict) -> str:
+        return bps_dict["Submit dir"]
+
 
 class PandaReportHandler(BpsReportHandler):
     """Class to handle running BpsReport for panda jobs"""
 
     wms_svc_class_name = "lsst.ctrl.bps.panda.PanDAService"
+
+
+class HTCondorReportHandler(BpsReportHandler):
+    """Class to handle running BpsReport for ht_condor jobs"""
+
+    wms_svc_class_name = "lsst.ctrl.bps.htcondor.HTCondorService"
 
 
 class ManifestReportScriptHandler(ScriptHandler):
@@ -408,7 +426,7 @@ class ManifestReportScriptHandler(ScriptHandler):
             custom_lsst_setup = data_dict["custom_lsst_setup"]
             prepend += f"\n{custom_lsst_setup}"
 
-        command = f"pipetask report {butler_repo} {graph_url} {report_url}"
+        command = f"pipetask report --full-output-filename {report_url} {butler_repo} {graph_url}"
         await write_bash_script(script_url, command, prepend=prepend)
 
         return StatusEnum.prepared

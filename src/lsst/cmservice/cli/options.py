@@ -51,6 +51,7 @@ __all__ = [
     "task_id",
     "task_name",
     "update_dict",
+    "wms_job_id",
     "yaml_file",
 ]
 
@@ -192,7 +193,7 @@ child_config = PartialOption(
 
 child_configs = PartialOption(
     "--child_configs",
-    type=dict,
+    type=DictParamType(),
     help="child_configurations",
 )
 
@@ -454,6 +455,13 @@ update_dict = PartialOption(
     type=DictParamType(),
     help="Values to update",
 )
+
+wms_job_id = PartialOption(
+    "--wms_job_id",
+    type=str,
+    help="ID for job in Workflow management system",
+)
+
 
 yaml_file = PartialOption(
     "--yaml_file",
