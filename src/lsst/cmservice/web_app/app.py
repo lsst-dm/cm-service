@@ -17,8 +17,7 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 from safir.logging import configure_logging, configure_uvicorn_logging
 
 from lsst.cmservice.config import config
-from lsst.cmservice.web_app.pages.campaigns import search_campaigns
-from lsst.cmservice.web_app.utils.utils import get_campaign_details
+from lsst.cmservice.web_app.pages.campaigns import search_campaigns, get_campaign_details
 
 
 configure_logging(profile=config.profile, log_level=config.log_level, name=config.logger_name)
