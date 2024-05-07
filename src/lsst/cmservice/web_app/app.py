@@ -18,7 +18,7 @@ from safir.logging import configure_logging, configure_uvicorn_logging
 
 from lsst.cmservice.config import config
 from lsst.cmservice.web_app.pages.campaigns import search_campaigns, get_campaign_details
-
+from lsst.cmservice.web_app.pages.steps import get_campaign_steps
 
 configure_logging(profile=config.profile, log_level=config.log_level, name=config.logger_name)
 configure_uvicorn_logging(config.log_level)
@@ -105,6 +105,29 @@ async def search(
             context={
                 "request": request,
                 "search_results": results,
+            },
+        )
+    except Exception as e:
+        print(e)
+        traceback.print_tb()
+
+
+@web_app.get("/campaign/{campaign_id}/steps/", response_class=HTMLResponse)
+async def get_steps(
+    request: Request,
+    campaign_id: int,
+    session: async_scoped_session = Depends(db_session_dependency),
+):
+    try:
+        steps = await get_campaign_steps(session, campaign_id)
+        for step in steps:
+            print(f"Step {step.fullname}")
+        return templates.TemplateResponse(
+            name="steps.html",
+            request=request,
+            context={
+                "campaign_id": campaign_id,
+                "steps": steps,
             },
         )
     except Exception as e:

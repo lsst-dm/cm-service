@@ -22,6 +22,7 @@ async def get_campaign_details(session, campaign):
     # for s in steps:
     #     print(f"{s.id} - {s.name} - {s.status}")
     campaign_details = {
+        "id": campaign.id,
         "name": campaign.name,
         "lsst_version": campaign.data["lsst_version"],
         "root": collections["root"],

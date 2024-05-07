@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<b>{{campaign_id}}</b>
+<ul>
+    {% for step in steps %}
+    <li id="{{step.id}}">{{step.fullname}}</li>
+    {% endfor %}
+</ul>
+{% endblock %}
