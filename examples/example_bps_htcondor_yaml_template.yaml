@@ -21,8 +21,8 @@ site:
       condor:
         +Walltime: 7200
 
-# Uncomment to turn on memory multiplier
-# memoryMultiplier: 2.
+# Let's turn on the memory multiplier
+memoryMultiplier: 2.
 numberOfRetries: 5
 memoryLimit: 65536
 
