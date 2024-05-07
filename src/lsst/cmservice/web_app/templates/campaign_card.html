@@ -18,6 +18,11 @@
 <!--        </p>-->
         <div class="block text-xs pt-2 pl-3 text-green-700">{{campaign.scripts_completed}}</div>
         <div class="block text-xs pt-2 pl-3 text-green-700">{{campaign.groups_completed}}</div>
+        <div class="block text-xs pt-2 pl-3 text-red-400">
+            {% for group in campaign.need_attention_groups %}
+                <a class="pr-2" href="#">{{group.fullname}}</a>
+            {% endfor %}
+        </div>
     </div>
     <div>
         <span class="absolute right-3 bottom-3 text-teal-600" aria-hidden="true">
