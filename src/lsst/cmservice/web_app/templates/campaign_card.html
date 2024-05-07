@@ -23,6 +23,11 @@
                 <a class="pr-2" href="#">{{group.fullname}}</a>
             {% endfor %}
         </div>
+        <div class="block text-xs pt-2 pl-3 text-red-400">
+            {% for script in campaign.need_attention_scripts %}
+                <a class="pr-2" href="#">{{script.name}}</a>
+            {% endfor %}
+        </div>
     </div>
     <div>
         <span class="absolute right-3 bottom-3 text-teal-600" aria-hidden="true">

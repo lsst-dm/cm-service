@@ -14,6 +14,10 @@ async def get_campaign_details(session, campaign):
     )
     scripts = await campaign.get_scripts(session)
     no_scripts_completed = len([script for script in scripts if script.status == StatusEnum.accepted])
+    need_attention_scripts = filter(
+        lambda script: map_status(script.status) in ["NEED_ATTENTION", "FAILED"],
+        scripts,
+    )
     # steps = await campaign.children(session)
     # for s in steps:
     #     print(f"{s.id} - {s.name} - {s.status}")
@@ -26,6 +30,7 @@ async def get_campaign_details(session, campaign):
         "groups_completed": f"{no_groups_completed} of {len(groups)} groups completed",
         "scripts_completed": f"{no_scripts_completed} of {len(scripts)} scripts completed",
         "need_attention_groups": need_attention_groups,
+        "need_attention_scripts": need_attention_scripts,
     }
     return campaign_details
 
