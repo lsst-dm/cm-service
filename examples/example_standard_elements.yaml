@@ -119,6 +119,13 @@
                 collections:
                     inputs: []
                     output: "{campaign_output}"
+          - Script:
+                name: make_campaign_public_output
+                prerequisites: ['collect_steps']
+                spec_block: chain_create_script
+                collections:
+                    inputs: ["{campaign_output}", "{campaign_input}", "{campaign_ancillary}"]
+                    output: "{campaign_public_output}"
       data:
           bps_script_template: bps_panda_script_template
           bps_yaml_template: bps_panda_yaml_template
