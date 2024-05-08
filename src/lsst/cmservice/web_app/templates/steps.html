@@ -1,9 +1,24 @@
 {% extends "base.html" %}
 {% block content %}
-<b>{{campaign_id}}</b>
-<ul>
+<div class="text-base px-4 sm:px-6 lg:px-8">HSC_WEEKLY</div>
+<div class="text-2xl font-bold px-4 sm:px-6 lg:px-8">w_2024_10_test0</div>
+<div class="w-1/2 mt-5 grid grid-cols-1 gap-5 sm:grid-cols-1 px-4 sm:px-6 lg:px-8">
     {% for step in steps %}
-    <li id="{{step.id}}">{{step.fullname}}</li>
+    <div class="overflow-hidden px-4 py-5 shadow sm:p-6 relative h-300 mb-3" xmlns="http://www.w3.org/1999/html">
+        <div class="flex items-center">
+            <span class="text-large font-bold">{{step.name}}</span>
+        </div>
+        <div class="flex items-center">
+            <span class="text-sm font-normal">{{step.fullname}}</span>
+        </div>
+        <div class="flex pt-2">
+            <div class="bg-green-500 w-1/2 h-5"></div>
+            <div class="bg-yellow-300 w-1/4 h-5"></div>
+            <div class="bg-red-600 w-1/4" h-5></div>
+        </div>
+
+
+    </div>
     {% endfor %}
-</ul>
+</div>
 {% endblock %}

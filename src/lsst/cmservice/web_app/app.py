@@ -120,8 +120,7 @@ async def get_steps(
 ):
     try:
         steps = await get_campaign_steps(session, campaign_id)
-        for step in steps:
-            print(f"Step {step.fullname}")
+
         return templates.TemplateResponse(
             name="steps.html",
             request=request,
