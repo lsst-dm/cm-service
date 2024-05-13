@@ -11,14 +11,42 @@
         <div class="flex items-center">
             <span class="text-sm font-normal">{{step.fullname}}</span>
         </div>
-        <div class="flex pt-2">
-            <div class="bg-green-500 w-1/2 h-5"></div>
-            <div class="bg-yellow-300 w-1/4 h-5"></div>
-            <div class="bg-red-600 w-1/4" h-5></div>
+        <div class="flex items-center">
+            <span class="text-xs font-normal">{{ step.no_groups}} group(s)</span>
         </div>
 
-
+        <div class="flex pt-2">
+            {% if step.no_groups_completed == step.no_groups %}
+            <div class="bg-green-500 h-5 w-full"></div>
+            {% elif step.no_groups_need_attention == step.no_groups %}
+            <div class="bg-yellow-300 w-full h-5"></div>
+            {% elif step.no_groups_failed == step.no_groups %}
+            <div class="bg-red-600 w-full h-5"></div>
+            {% else %}
+            <div class="bg-green-500 h-5 w-{{(step.no_groups_completed * 12 / step.no_groups)|round|int}}/12"></div>
+            <div class="bg-yellow-300 w-{{(step.no_groups_need_attention * 12 / step.no_groups)|round|int}}/12 h-5"></div>
+            <div class="bg-red-600 w-{{(step.no_groups_failed * 12 / step.no_groups)|round|int}}/12 h-5"></div>
+            {% endif %}
+        </div>
+        <div class="flex items-center text-xs">{{step.no_groups_completed}} completed, {{step.no_groups_need_attention}} need attention, {{step.no_groups_failed}} failed</div>
+<!--        <div class="flex pt-2">-->
+<!--            <div class="bg-green-500 w-4/12 h-5"></div>-->
+<!--            <div class="bg-yellow-300 w-4/12 h-5"></div>-->
+<!--            <div class="bg-red-600 w-4/12" h-5></div>-->
+<!--        </div>-->
     </div>
     {% endfor %}
 </div>
+<script>
+    const getPercentageClass = (groups, total) => {
+        let ratioTo12 = Math.round(groups * 12 / total);
+            let percentageClass = "w-" + ratioTo12.toString() + "/12";
+            return percentageClass;
+        };
+    // var element = document.getElementById("completed");
+    // var myclass = getPercentageClass(800, 1000);
+    // console.log(myclass);
+    // element.classList.add("w-9/12");
+    // console.log("eman")
+</script>
 {% endblock %}

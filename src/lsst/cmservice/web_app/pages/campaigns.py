@@ -2,6 +2,7 @@ from sqlalchemy import select
 
 from lsst.cmservice.db import Campaign, Group
 from lsst.cmservice.common.enums import StatusEnum
+from lsst.cmservice.web_app.utils.utils import map_status
 
 
 async def get_campaign_details(session, campaign):
@@ -18,9 +19,6 @@ async def get_campaign_details(session, campaign):
         lambda script: map_status(script.status) in ["NEED_ATTENTION", "FAILED"],
         scripts,
     )
-    # steps = await campaign.children(session)
-    # for s in steps:
-    #     print(f"{s.id} - {s.name} - {s.status}")
     campaign_details = {
         "id": campaign.id,
         "name": campaign.name,
@@ -34,18 +32,6 @@ async def get_campaign_details(session, campaign):
         "need_attention_scripts": need_attention_scripts,
     }
     return campaign_details
-
-
-def map_status(status):
-    match status:
-        case StatusEnum.failed | StatusEnum.rejected:
-            return "FAILED"
-        case StatusEnum.paused:
-            return "NEED_ATTENTION"
-        case StatusEnum.running | StatusEnum.waiting | StatusEnum.ready:
-            return "IN_PROGRESS"
-        case StatusEnum.accepted | StatusEnum.reviewable:
-            return "COMPLETE"
 
 
 async def search_campaigns(session, search_term):
