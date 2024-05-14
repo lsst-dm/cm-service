@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block title %} Campaign Steps {% endblock %}
 {% block content %}
 <div class="text-base px-4 sm:px-6 lg:px-8">HSC_WEEKLY</div>
 <div class="text-2xl font-bold px-4 sm:px-6 lg:px-8">w_2024_10_test0</div>
@@ -6,13 +7,13 @@
     {% for step in steps %}
     <div class="overflow-hidden px-4 py-5 shadow sm:p-6 relative h-300 mb-3" xmlns="http://www.w3.org/1999/html">
         <div class="flex items-center">
-            <span class="text-large font-bold">{{step.name}}</span>
+            <a class="text-large font-bold hover:text-gray-500" href="{{ url_for('get_step', campaign_id=campaign_id, step_id=step.id) }}">{{step.name}}</a>
         </div>
         <div class="flex items-center">
             <span class="text-sm font-normal">{{step.fullname}}</span>
         </div>
-        <div class="flex items-center">
-            <span class="text-xs font-normal">{{ step.no_groups}} group(s)</span>
+        <div class="flex items-center pt-4">
+            <span class="text-xs font-normal">{{ step.no_groups}} Group(s)</span>
         </div>
 
         <div class="flex pt-2">
@@ -28,12 +29,7 @@
             <div class="bg-red-600 w-{{(step.no_groups_failed * 12 / step.no_groups)|round|int}}/12 h-5"></div>
             {% endif %}
         </div>
-        <div class="flex items-center text-xs">{{step.no_groups_completed}} completed, {{step.no_groups_need_attention}} need attention, {{step.no_groups_failed}} failed</div>
-<!--        <div class="flex pt-2">-->
-<!--            <div class="bg-green-500 w-4/12 h-5"></div>-->
-<!--            <div class="bg-yellow-300 w-4/12 h-5"></div>-->
-<!--            <div class="bg-red-600 w-4/12" h-5></div>-->
-<!--        </div>-->
+        <div class="flex items-center text-xs font-medium">{{step.no_groups_completed}} FINISHED, {{step.no_groups_need_attention}} NEED ATTENTION, {{step.no_groups_failed}} FAILED</div>
     </div>
     {% endfor %}
 </div>

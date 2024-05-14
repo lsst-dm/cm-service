@@ -138,6 +138,25 @@ async def get_steps(
         traceback.print_tb()
 
 
+@web_app.get("/campaign/{campaign_id}/{step_id}", response_class=HTMLResponse)
+async def get_step(
+    request: Request,
+    step_id: int,
+    session: async_scoped_session = Depends(db_session_dependency),
+):
+    try:
+        return templates.TemplateResponse(
+            name="step_details.html",
+            request=request,
+            context={
+                "step_id": step_id,
+            },
+        )
+    except Exception as e:
+        print(e)
+        traceback.print_tb()
+
+
 @web_app.get("/layout/", response_class=HTMLResponse)
 async def test_layout(request: Request):
     return templates.TemplateResponse("mockup.html", {"request": request})
