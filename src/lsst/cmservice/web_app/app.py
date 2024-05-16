@@ -149,7 +149,18 @@ async def get_step(
             name="step_details.html",
             request=request,
             context={
-                "step_id": step_id,
+                "step": {
+                    "id": step_id,
+                    "name": "Step Name",
+                    "fullname": "Step/full/name",
+                    "status": "COMPLETED",
+                    "no_groups": 3,
+                    "no_groups_completed": 3,
+                    "no_groups_need_attention": 0,
+                    "no_groups_failed": 0,
+                },
+                "scripts": None,
+                "groups": None,
             },
         )
     except Exception as e:
