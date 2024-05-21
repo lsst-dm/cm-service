@@ -49,24 +49,23 @@
             <span class="text-large font-bold">Groups</span>
         </div>
         <div class="items-center pt-4">
-            <div id="myGrid" class="ag-theme-quartz h-32"></div>
+            <div id="myGrid" class="ag-theme-quartz h-64"></div>
         </div>
     </div>
 </div>
 <script>
-    const step = {{step|tojson}};
-    console.log(step);
+    const my_groups = {{groups|tojson}};
     const gridOptions = {
-    rowData: [
-       { make: "Tesla", model: "Model Y", price: 64950, electric: true },
-       { make: "Ford", model: "F-Series", price: 33850, electric: false },
-       { make: "Toyota", model: "Corolla", price: 29600, electric: false },
-     ],
+    rowData: my_groups,
      columnDefs: [
-       { field: "name" },
-       { field: "id" },
-       { field: "price" },
-       { field: "electric" }
+       {field: "id"},
+       {field: "name"},
+       {field: "status"},
+       {field: "superseded"},
+         {field:"data"},
+         {field:"child_config"},
+         {field:"collections"},
+         {field:"spec_aliases"},
      ]
     };
     const myGridElement = document.getElementById("myGrid");

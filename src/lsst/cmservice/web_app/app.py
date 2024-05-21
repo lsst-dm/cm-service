@@ -18,7 +18,9 @@ from safir.logging import configure_logging, configure_uvicorn_logging
 
 from lsst.cmservice.config import config
 from lsst.cmservice.web_app.pages.campaigns import search_campaigns, get_campaign_details
-from lsst.cmservice.web_app.pages.steps import get_campaign_steps, get_step_details, get_step_details_by_id
+from lsst.cmservice.web_app.pages.steps import get_campaign_steps, get_step_details
+from lsst.cmservice.web_app.pages.step_details import get_step_details_by_id
+
 
 configure_logging(profile=config.profile, log_level=config.log_level, name=config.logger_name)
 configure_uvicorn_logging(config.log_level)
@@ -145,8 +147,7 @@ async def get_step(
     session: async_scoped_session = Depends(db_session_dependency),
 ):
     try:
-        step = await get_step_details_by_id(session, step_id)
-        print(step)
+        step, step_groups = await get_step_details_by_id(session, step_id)
         return templates.TemplateResponse(
             name="step_details.html",
             request=request,
@@ -162,7 +163,7 @@ async def get_step(
                         "id": 2,
                     },
                 ],
-                "groups": None,
+                "groups": step_groups,
             },
         )
     except Exception as e:

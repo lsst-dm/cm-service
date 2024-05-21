@@ -31,9 +31,3 @@ async def get_step_details(session, step):
         "no_groups_failed": no_groups_failed,
     }
     return step_details
-
-
-async def get_step_details_by_id(session, step_id):
-    step = await Step.get_row(session, step_id)
-    step_details = await get_step_details(session, step)
-    return step_details
