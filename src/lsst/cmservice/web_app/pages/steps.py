@@ -24,10 +24,16 @@ async def get_step_details(session, step):
         "id": step.id,
         "name": step.name,
         "fullname": step.fullname,
-        "status": step.status,
+        "status": map_status(step.status),
         "no_groups": no_groups,
         "no_groups_completed": no_groups_completed,
         "no_groups_need_attention": no_groups_need_attention,
         "no_groups_failed": no_groups_failed,
     }
+    return step_details
+
+
+async def get_step_details_by_id(session, step_id):
+    step = await Step.get_row(session, step_id)
+    step_details = await get_step_details(session, step)
     return step_details

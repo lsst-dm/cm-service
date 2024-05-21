@@ -1,0 +1,26 @@
+<div class="overflow-hidden px-4 py-5 shadow sm:p-6 relative h-300 mb-3" xmlns="http://www.w3.org/1999/html">
+    <div class="flex items-center">
+        <a class="text-large font-bold hover:text-gray-500" href="{{ url_for('get_step', campaign_id=campaign_id, step_id=step.id) }}">{{step.name}}</a>
+    </div>
+    <div class="flex items-center">
+        <span class="text-sm font-normal">{{step.fullname}}</span>
+    </div>
+    <div class="flex items-center pt-4">
+        <span class="text-xs font-normal">{{ step.no_groups}} Group(s)</span>
+    </div>
+
+    <div class="flex pt-2">
+        {% if step.no_groups_completed == step.no_groups %}
+        <div class="bg-green-500 h-5 w-full"></div>
+        {% elif step.no_groups_need_attention == step.no_groups %}
+        <div class="bg-yellow-300 w-full h-5"></div>
+        {% elif step.no_groups_failed == step.no_groups %}
+        <div class="bg-red-600 w-full h-5"></div>
+        {% else %}
+        <div class="bg-green-500 h-5 w-{{(step.no_groups_completed * 12 / step.no_groups)|round|int}}/12"></div>
+        <div class="bg-yellow-300 w-{{(step.no_groups_need_attention * 12 / step.no_groups)|round|int}}/12 h-5"></div>
+        <div class="bg-red-600 w-{{(step.no_groups_failed * 12 / step.no_groups)|round|int}}/12 h-5"></div>
+        {% endif %}
+    </div>
+    <div class="flex items-center text-xs font-medium">{{step.no_groups_completed}} FINISHED, {{step.no_groups_need_attention}} NEED ATTENTION, {{step.no_groups_failed}} FAILED</div>
+</div>
