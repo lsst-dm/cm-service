@@ -17,13 +17,14 @@ async def get_step_groups(session, step):
     groups = await step.children(session)
     step_groups = []
     for group in groups:
+        print(group.spec_aliases)
         step_groups.append(
             {
                 "id": group.id,
                 "name": group.name,
                 "superseded": group.superseded,
                 "status": map_status(group.status),
-                "data": group.data["data_query"],
+                "data": group.data,
                 "collections": group.collections,
                 "child_config": group.child_config,
                 "spec_aliases": group.spec_aliases,

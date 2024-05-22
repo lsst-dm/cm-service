@@ -162,6 +162,32 @@ async def get_step(
         traceback.print_tb()
 
 
+@web_app.get("/campaign/{step_name}/{group_name}/", response_class=HTMLResponse)
+async def get_group(
+    request: Request,
+    step_name: str,
+    group_name: str,
+    session: async_scoped_session = Depends(db_session_dependency),
+):
+    try:
+        return templates.TemplateResponse(
+            name="group_details.html",
+            request=request,
+            context={
+                "step_name": step_name,
+                "group": group_name,
+            },
+        )
+    except Exception as e:
+        print(e)
+        traceback.print_tb()
+
+
 @web_app.get("/layout/", response_class=HTMLResponse)
 async def test_layout(request: Request):
     return templates.TemplateResponse("mockup.html", {"request": request})
+
+
+@web_app.get("/test-ag-grid/", response_class=HTMLResponse)
+async def test_table(request: Request):
+    return templates.TemplateResponse("test_ag_grid.html", {"request": request})
