@@ -9,7 +9,8 @@ async def get_step_details_by_id(session, step_id):
     step = await Step.get_row(session, step_id)
     step_details = await get_step_details(session, step)
     groups = await get_step_groups(session, step)
-    return step_details, groups
+    scripts = await get_step_scripts(session, step)
+    return step_details, groups, scripts
 
 
 async def get_step_groups(session, step):
@@ -29,3 +30,26 @@ async def get_step_groups(session, step):
             },
         )
     return step_groups
+
+
+async def get_step_scripts(session, step):
+    scripts = await step.get_scripts(session)
+    step_scripts = []
+    for script in scripts:
+        step_scripts.append(
+            {
+                "id": script.id,
+                "name": script.name,
+                "superseded": script.superseded,
+                "status": map_status(script.status),
+                "attempt": script.attempt,
+                "handler": script.handler,
+                "data": script.data,
+                "collections": script.collections,
+                "child_config": script.child_config,
+                "script_url": script.script_url,
+                "stamp_url": script.stamp_url,
+                "log_url": script.log_url,
+            },
+        )
+    return step_scripts

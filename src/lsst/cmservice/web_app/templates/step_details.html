@@ -45,30 +45,53 @@
         <div class="flex items-center pt-4">
             <span class="text-large font-bold">Scripts</span>
         </div>
+        <div class="items-center pt-4">
+            <div id="scriptsGrid" class="ag-theme-quartz h-64"></div>
+        </div>
         <div class="flex items-center pt-4">
             <span class="text-large font-bold">Groups</span>
         </div>
         <div class="items-center pt-4">
-            <div id="myGrid" class="ag-theme-quartz h-64"></div>
+            <div id="groupsGrid" class="ag-theme-quartz h-64"></div>
         </div>
     </div>
 </div>
 <script>
-    const my_groups = {{groups|tojson}};
-    const gridOptions = {
-    rowData: my_groups,
+    // groups
+    const step_groups = {{groups|tojson}};
+    const groupsGridOptions = {
+    rowData: step_groups,
      columnDefs: [
-       {field: "id"},
-       {field: "name"},
-       {field: "status"},
-       {field: "superseded"},
-         {field:"data"},
-         {field:"child_config"},
-         {field:"collections"},
-         {field:"spec_aliases"},
+         // {field: "id"},
+         {field: "name", flex: 1},
+         {field: "status", flex: 1},
+         {field: "superseded", flex: 1},
+         {field:"data", flex: 2},
+         {field:"child_config", flex: 2},
+         {field:"collections", flex: 2},
+         {field:"spec_aliases", flex: 2},
+
      ]
     };
-    const myGridElement = document.getElementById("myGrid");
-    agGrid.createGrid(myGridElement, gridOptions);
+    const groupsGridElement = document.getElementById("groupsGrid");
+    agGrid.createGrid(groupsGridElement, groupsGridOptions);
+    // scripts
+    const stepScripts = {{scripts|tojson}};
+    const scriptsGridOptions = {
+    rowData: stepScripts,
+     columnDefs: [
+         // {field: "id"},
+         {field: "name", flex: 1},
+         {field: "status", flex: 1},
+         {field: "superseded", flex: 1 },
+         {field:"handler", flex: 1 },
+         {field:"attempt", flex: 1 },
+         {field:"script_url", flex: 2 },
+         {field:"log_url", flex: 2 },
+         {field:"stamp_url", flex: 2 }
+     ]
+    };
+    const scriptsGridElement = document.getElementById("scriptsGrid");
+    agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
 </script>
 {% endblock %}

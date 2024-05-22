@@ -147,22 +147,13 @@ async def get_step(
     session: async_scoped_session = Depends(db_session_dependency),
 ):
     try:
-        step, step_groups = await get_step_details_by_id(session, step_id)
+        step, step_groups, step_scripts = await get_step_details_by_id(session, step_id)
         return templates.TemplateResponse(
             name="step_details.html",
             request=request,
             context={
                 "step": step,
-                "scripts": [
-                    {
-                        "name": "script name 1",
-                        "id": 1,
-                    },
-                    {
-                        "name": "script name 2",
-                        "id": 2,
-                    },
-                ],
+                "scripts": step_scripts,
                 "groups": step_groups,
             },
         )
