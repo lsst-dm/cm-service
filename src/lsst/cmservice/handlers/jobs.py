@@ -90,27 +90,51 @@ class BpsScriptHandler(ScriptHandler):
     ) -> StatusEnum:
         specification = await script.get_specification(session)
         resolved_cols = await script.resolve_collections(session)
-        run_coll = resolved_cols["run"]
-        input_colls = resolved_cols["inputs"]
         data_dict = await script.data_dict(session)
-        prod_area = os.path.expandvars(data_dict["prod_area"])
+        try:
+            prod_area = os.path.expandvars(data_dict["prod_area"])
+            butler_repo = os.path.expandvars(data_dict["butler_repo"])
+            lsst_version = os.path.expandvars(data_dict["lsst_version"])
+            pipeline_yaml = os.path.expandvars(data_dict["pipeline_yaml"])
+            run_coll = resolved_cols["run"]
+            input_colls = resolved_cols["inputs"]
+            bps_core_yaml_template = data_dict["bps_core_yaml_template"]
+            bps_core_script_template = data_dict["bps_core_script_template"]
+            bps_wms_script_template = data_dict["bps_wms_script_template"]
+        except KeyError as msg:
+            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+
         script_url = await self._set_script_files(session, script, prod_area)
-        butler_repo = data_dict["butler_repo"]
-        lsst_version = data_dict["lsst_version"]
+
+        # optional stuff from data_dict
         rescue = data_dict.get("rescue", False)
         skip_colls = data_dict.get("skip_colls", "")
+        lsst_custom_setup = data_dict.get("lsst_custom_setup", None)
+        bps_wms_yaml_file = data_dict.get("bps_wms_yaml_file", None)
+        bps_wms_cluster_file = data_dict.get("bps_wms_cluster_file", None)
+        bps_wms_resources_file = data_dict.get("bps_wms_resources_file", None)
+        bps_wms_extra_files = data_dict.get("bps_wms_extra_files", [])
+        bps_extra_config = data_dict.get("bps_extra_config", None)
+        data_query = data_dict.get("data_query", None)
+
+        # Get the output file paths
         script_url = await self._set_script_files(session, script, prod_area)
         json_url = os.path.abspath(os.path.expandvars(f"{prod_area}/{script.fullname}_log.json"))
         config_url = os.path.abspath(os.path.expandvars(f"{prod_area}/{script.fullname}_bps_config.yaml"))
         log_url = os.path.abspath(os.path.expandvars(f"{prod_area}/{script.fullname}.log"))
 
-        bps_script_template = await specification.get_script_template(
+        # get the requested templates
+        bps_core_script_template_ = await specification.get_script_template(
             session,
-            data_dict["bps_script_template"],
+            bps_core_script_template,
         )
-        bps_yaml_template = await specification.get_script_template(
+        bps_core_yaml_template_ = await specification.get_script_template(
             session,
-            data_dict["bps_yaml_template"],
+            bps_core_yaml_template,
+        )
+        bps_wms_script_template_ = await specification.get_script_template(
+            session,
+            bps_wms_script_template,
         )
 
         submit_path = os.path.abspath(os.path.expandvars(f"{prod_area}/{parent.fullname}/submit"))
@@ -119,25 +143,34 @@ class BpsScriptHandler(ScriptHandler):
         except Exception:  # pylint: disable=broad-exception-caught
             pass
 
+        # build up the bps wrapper script
         command = f"bps --log-file {json_url} --no-log-tty submit {os.path.abspath(config_url)} > {log_url}"
 
-        prepend = bps_script_template.data["text"].replace("{lsst_version}", lsst_version)
+        prepend = bps_core_script_template_.data["text"].replace("{lsst_version}", lsst_version)
+        prepend += bps_wms_script_template_.data["text"]
 
         await write_bash_script(script_url, command, prepend=prepend)
 
-        workflow_config = bps_yaml_template.data.copy()
+        workflow_config = bps_core_yaml_template_.data.copy()
+
+        include_configs = []
+        for to_include_ in [bps_wms_yaml_file, bps_wms_cluster_file, bps_wms_resources_file]:
+            if to_include_:
+                include_configs.append(to_include_)
+        include_configs += bps_wms_extra_files
+
+        workflow_config["includeConfigs"] = include_configs
 
         await session.refresh(parent, attribute_names=["c_", "p_"])
         workflow_config["project"] = parent.p_.name
         workflow_config["campaign"] = parent.c_.name
 
-        data_query = data_dict.get("data_query", None)
         workflow_config["submitPath"] = submit_path
 
-        workflow_config["LSST_VERSION"] = os.path.expandvars(data_dict["lsst_version"])
-        if "custom_lsst_setup" in data_dict:
-            workflow_config["custom_lsst_setup"] = data_dict["lsst_custom_setup"]
-        workflow_config["pipelineYaml"] = os.path.expandvars(data_dict["pipeline_yaml"])
+        workflow_config["LSST_VERSION"] = os.path.expandvars(lsst_version)
+        if lsst_custom_setup:
+            workflow_config["custom_lsst_setup"] = lsst_custom_setup
+        workflow_config["pipelineYaml"] = pipeline_yaml
 
         if isinstance(input_colls, list):
             in_collection = ",".join(input_colls)
@@ -156,6 +189,10 @@ class BpsScriptHandler(ScriptHandler):
             payload["extra_args"] = f"--skip-existing-in {skip_colls}"  # FIXME, is this right
 
         workflow_config["payload"] = payload
+
+        if bps_extra_config:
+            workflow_config.update(**bps_extra_config)
+
         with contextlib.suppress(OSError):
             os.makedirs(os.path.dirname(script_url))
 

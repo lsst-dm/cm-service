@@ -127,6 +127,7 @@
                     inputs: ["{campaign_output}", "{campaign_input}", "{campaign_ancillary}"]
                     output: "{campaign_public_output}"
       data:
-          bps_script_template: bps_panda_script_template
-          bps_yaml_template: bps_panda_yaml_template
+          bps_core_script_template: bps_core_script_template
+          bps_core_yaml_template: bps_core_yaml_template
           manifest_script_template: stack_script_template
+          lsst_version: MUST_OVERRIDE

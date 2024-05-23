@@ -7,12 +7,6 @@ text: "#!/usr/bin/env -S -i CM_CONFIGS=\"${CM_CONFIGS}\" HOME=\"${HOME}\" bash\n
 # This is needed to define butler aliases\n
 export DAF_BUTLER_REPOSITORY_INDEX=/sdf/group/rubin/shared/data-repos.yaml\n
 
-# Setup for using condor on slac farm\n
-export _condor_SEC_CLIENT_AUTHENTICATION_METHODS=FS,FS_REMOTE\n
-export _condor_COLLECTOR_HOST=sdfrome001.sdf.slac.stanford.edu\n
-export _condor_SCHEDD_HOST=sdfrome001.sdf.slac.stanford.edu\n
-export _condor_DAGMAN_MANAGER_JOB_APPEND_GETENV=true\n
-
 # setup LSST env.\n
 export WEEKLY='{lsst_version}'\n
 source /cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib/${WEEKLY}/loadLSST.bash\n

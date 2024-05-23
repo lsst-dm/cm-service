@@ -1,7 +1,3 @@
-includeConfigs:
-- ${CTRL_BPS_PANDA_DIR}/config/bps_usdf.yaml
-- ${CM_CONFIGS}/requestMemory.yaml
-
 # turn off the -o option in pipetask commands
 pipetaskOutput: ""
 
@@ -12,5 +8,3 @@ executionButler:
   # no output collection
   command2: ""
   command3: ""
-
-numberOfRetries: 3

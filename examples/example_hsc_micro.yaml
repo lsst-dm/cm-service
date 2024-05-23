@@ -36,7 +36,16 @@
           data_query: "instrument = 'HSC' AND exposure in (30504, 30502) AND detector in (45, 46, 47, 48)"
           lsst_version: w_2023_46
 - Specification:
-      name: hsc_micro
+      name: hsc_micro_panda
       script_templates: []
       spec_blocks:
           - SpecBlockAssociation: {spec_block_name: hsc_micro_campaign, alias: campaign}
+          - SpecBlockAssociation: {spec_block_name: bps_panda_submit_script, alias: bps_submit_script}
+          - SpecBlockAssociation: {spec_block_name: bps_panda_report_script, alias: bps_report_script}
+- Specification:
+      name: hsc_micro_htcondor
+      script_templates: []
+      spec_blocks:
+          - SpecBlockAssociation: {spec_block_name: hsc_micro_campaign, alias: campaign}
+          - SpecBlockAssociation: {spec_block_name: bps_htcondor_submit_script, alias: bps_submit_script}
+          - SpecBlockAssociation: {spec_block_name: bps_htcondor_report_script, alias: bps_report_script}

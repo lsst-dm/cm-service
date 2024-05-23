@@ -1,27 +1,23 @@
-# Template shell script for running BPS under PANDA
+# Template shell script fragment for running BPS
+- ScriptTemplate:
+      name: bps_core_script_template
+      file_path: ${CM_CONFIGS}/templates/example_bps_core_script_template.yaml
+# Template shell script fragment for running BPS under PANDA
 - ScriptTemplate:
       name: bps_panda_script_template
-      file_path: ${CM_CONFIGS}/example_bps_panda_script_template.yaml
-# Template shell script for running ComCamSim under PANDA
-- ScriptTemplate:
-      name: panda_yaml_comcamsim_template
-      file_path: ${CM_CONFIGS}/example_panda_yaml_comcamsim_template.yaml
-# Template shell script for running BPS under HTCondor
+      file_path: ${CM_CONFIGS}/templates/example_bps_panda_script_template.yaml
+# Template shell script fragment for running BPS under HTCondor
 - ScriptTemplate:
       name: bps_htcondor_script_template
-      file_path: ${CM_CONFIGS}/example_bps_htcondor_script_template.yaml
-# Template shell script for running ComCamSim under HTCondor
-- ScriptTemplate:
-      name: bps_htcondor_yaml_template
-      file_path: ${CM_CONFIGS}/example_bps_htcondor_yaml_template.yaml
-# Template bps configuration file for running BPS under PANDA
-- ScriptTemplate:
-      name: bps_panda_yaml_template
-      file_path: ${CM_CONFIGS}/example_bps_panda_yaml_template.yaml
-# Template configuration file for using stack
+      file_path: ${CM_CONFIGS}/templates/example_bps_htcondor_script_template.yaml
+# Template shell script fragment for using stack
 - ScriptTemplate:
       name: stack_script_template
-      file_path: ${CM_CONFIGS}/example_stack_script_template.yaml
+      file_path: ${CM_CONFIGS}/templates/example_stack_script_template.yaml
+# Template yaml config for running bps
+- ScriptTemplate:
+      name: bps_core_yaml_template
+      file_path: ${CM_CONFIGS}/templates/example_bps_core_yaml_template.yaml
 # create an empty CHAINED collection
 - SpecBlock:
       name: chain_create_script
@@ -65,22 +61,22 @@
       handler: lsst.cmservice.handlers.scripts.ValidateScriptHandler
 # Run a bps submit script
 - SpecBlock:
-      name: bps_submit_script
+      name: bps_panda_submit_script
       handler: lsst.cmservice.handlers.jobs.PandaScriptHandler
       data:
-          bps_script_template: bps_panda_script_template
-          bps_yaml_template: bps_panda_yaml_template
+          bps_wms_yaml_file: “${CTRL_BPS_PANDA_DIR}/config/bps_usdf.yaml”
+          bps_wms_script_template: bps_panda_script_template
 # Run a bps report script
 - SpecBlock:
-      name: bps_report_script
+      name: bps_panda_report_script
       handler: lsst.cmservice.handlers.jobs.PandaReportHandler
 # Run a htcondor submit script
 - SpecBlock:
       name: bps_htcondor_submit_script
       handler: lsst.cmservice.handlers.jobs.HTCondorScriptHandler
       data:
-          bps_script_template: bps_htcondor_script_template
-          bps_yaml_template: bps_htcondor_yaml_template
+          bps_wms_yaml_file: “${CM_CONFIGS}/stack_files/bps_htcondor_usdf.yaml"
+          bps_wms_script_template: bps_htcondor_script_template
 # Run a bps report script
 - SpecBlock:
       name: bps_htcondor_report_script

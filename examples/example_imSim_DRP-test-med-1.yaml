@@ -1,12 +1,12 @@
 - Imports:
       - "${CM_CONFIGS}/example_standard_scripts.yaml"
       - "${CM_CONFIGS}/example_standard_elements.yaml"
-      - "${CM_CONFIGS}/example_dc2_steps.yaml"
+      - "${CM_CONFIGS}/example_imSim_DRP-test-med-1_steps.yaml"
 - SpecBlock:
-      name: dc2_test_campaign
+      name: imSim_DRP_test_med_1_campaign
       includes: ["base_campaign"]
       collections:
-          root: 'u/echarles/cm/dc2_test'
+          root: 'u/echarles/cm/imSim_DRP_test_med_1_campaign'
           campaign_source: /prod/raw/all
           campaign_ancilllary_inputs:
               - HSC/calib
@@ -17,21 +17,21 @@
       steps:
           - Step:
                 name: step1
-                spec_block: dc2_step1
+                spec_block: imSim_DRP_test_med_1_step1
                 child_config:
                     base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
                     split_method: split_by_query
                     split_min_groups: 4
           - Step:
                 name: step2
-                spec_block: dc2_step2
+                spec_block: imSim_DRP_test_med_1_step2
                 prerequisites: ['step1']
                 child_config:
                     base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
                     split_method: no_split
           - Step:
                 name: step3
-                spec_block: dc2_step3
+                spec_block: imSim_DRP_test_med_1_step3
                 prerequisites: ['step2']
                 child_config:
                     base_query: "instrument='LSSTCam-imSim' and skymap='DC2'"
@@ -41,7 +41,7 @@
                         - 3829
           - Step:
                 name: step4
-                spec_block: dc2_step4
+                spec_block: imSim_DRP_test_med_1_step4
                 prerequisites: ['step3']
                 child_config:
                     base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
@@ -49,7 +49,7 @@
                     split_min_groups: 4
           - Step:
                 name: step5
-                spec_block: dc2_step5
+                spec_block: imSim_DRP_test_med_1_step5
                 prerequisites: ['step4']
                 child_config:
                     base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
@@ -59,7 +59,7 @@
                         - 3829
           - Step:
                 name: step6
-                spec_block: dc2_step6
+                spec_block: imSim_DRP_test_med_1_step6
                 prerequisites: ['step4']
                 child_config:
                     base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
@@ -67,37 +67,37 @@
                     split_min_groups: 4
           - Step:
                 name: step7
-                spec_block: dc2_step7
+                spec_block: imSim_DRP_test_med_1_step7
                 prerequisites: ['step3']
                 child_config:
                     base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
           - Step:
                 name: step8
-                spec_block: dc2_step8
+                spec_block: imSim_DRP_test_med_1_step8
                 prerequisites: ['step3']
                 child_config:
                     base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
           - Step:
                 name: faro_visit
-                spec_block: dc2_faro_visit
+                spec_block: imSim_DRP_test_med_1_faro_visit
                 prerequisites: ['step6']
                 child_config:
                     base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
           - Step:
                 name: faro_matched
-                spec_block: dc2_faro_matched
+                spec_block: imSim_DRP_test_med_1_faro_matched
                 prerequisites: ['step6']
                 child_config:
                     base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
           - Step:
                 name: faro_tract
-                spec_block: dc2_faro_tract
+                spec_block: imSim_DRP_test_med_1_faro_tract
                 prerequisites: ['step3']
                 child_config:
                     base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
           - Step:
                 name: plots
-                spec_block: dc2_plots
+                spec_block: imSim_DRP_test_med_1_plots
                 prerequisites: ['step3']
                 child_config:
                     base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
@@ -105,9 +105,19 @@
           butler_repo: '/repo/dc2'
           prod_area: 'output/archive'
           data_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
-          lsst_version: w_2023_46
+          bps_wms_clustering_file: “${DRP_PIPE_DIR}/bps/clustering/DRP-recalibrated.yaml”
+          bps_wms_resources_file: “${DRP_PIPE_DIR}/bps/resources/LSSTCam-imSim/DRP-test-med-1.yaml”
 - Specification:
-      name: dc2_test
+      name: imSim_DRP_test_med_1_test_panda
       script_templates: []
       spec_blocks:
-          - SpecBlockAssociation: {spec_block_name: dc2_test_campaign, alias: campaign}
+          - SpecBlockAssociation: {spec_block_name: imSim_DRP_test_med_1_campaign, alias: campaign}
+          - SpecBlockAssociation: {spec_block_name: bps_panda_submit_script, alias: bps_submit_script}
+          - SpecBlockAssociation: {spec_block_name: bps_panda_report_script, alias: bps_report_script}
+- Specification:
+      name: imSim_DRP_test_med_1_test_condor
+      script_templates: []
+      spec_blocks:
+          - SpecBlockAssociation: {spec_block_name: imSim_DRP_test_med_1_campaign, alias: campaign}
+          - SpecBlockAssociation: {spec_block_name: bps_htcondor_submit_script, alias: bps_submit_script}
+          - SpecBlockAssociation: {spec_block_name: bps_htcondor_report_script, alias: bps_report_script}

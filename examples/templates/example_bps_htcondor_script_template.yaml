@@ -1,0 +1,8 @@
+text: "
+
+# Setup for using condor on slac farm\n
+export _condor_SEC_CLIENT_AUTHENTICATION_METHODS=FS,FS_REMOTE\n
+export _condor_COLLECTOR_HOST=sdfrome001.sdf.slac.stanford.edu\n
+export _condor_SCHEDD_HOST=sdfrome001.sdf.slac.stanford.edu\n
+export _condor_DAGMAN_MANAGER_JOB_APPEND_GETENV=true\n
+"
