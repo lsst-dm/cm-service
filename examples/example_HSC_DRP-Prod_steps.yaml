@@ -1,5 +1,5 @@
 - SpecBlock:
-      name: HSC_DRP_Prod_step1
+      name: HSC_DRP-Prod_step1
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-Prod.yaml#step1"
@@ -8,7 +8,7 @@
           split_dataset: raw
           split_field: exposure
 - SpecBlock:
-      name: HSC_DRP_Prod_step2a
+      name: HSC_DRP-Prod_step2a
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-Prod.yaml#step2a"
@@ -16,7 +16,7 @@
           base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
           split_method: no_split
 - SpecBlock:
-      name: HSC_DRP_Prod_step2b
+      name: HSC_DRP-Prod_step2b
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-Prod.yaml#step2b"
@@ -24,7 +24,7 @@
           base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
           split_field: tract
 - SpecBlock:
-      name: HSC_DRP_Prod_step2c
+      name: HSC_DRP-Prod_step2c
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-Prod.yaml#step2c"
@@ -32,7 +32,7 @@
           base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
           split_method: no_split
 - SpecBlock:
-      name: HSC_DRP_Prod_step2d
+      name: HSC_DRP-Prod_step2d
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-Prod.yaml#step2d"
@@ -40,7 +40,7 @@
           base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
           split_method: no_split
 - SpecBlock:
-      name: HSC_DRP_Prod_step2e
+      name: HSC_DRP-Prod_step2e
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-Prod.yaml#step2e"
@@ -48,7 +48,7 @@
           base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
           split_method: no_split
 - SpecBlock:
-      name: HSC_DRP_Prod_step3
+      name: HSC_DRP-Prod_step3
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-Prod.yaml#step3"
@@ -56,7 +56,7 @@
           base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
           split_field: tract
 - SpecBlock:
-      name: HSC_DRP_Prod_step4
+      name: HSC_DRP-Prod_step4
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-Prod.yaml#step4"
@@ -65,7 +65,7 @@
           split_dataset: calexp
           split_field: visit
 - SpecBlock:
-      name: HSC_DRP_Prod_step5
+      name: HSC_DRP-Prod_step5
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-Prod.yaml#step5"
@@ -73,7 +73,7 @@
           base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
           split_field: tract
 - SpecBlock:
-      name: HSC_DRP_Prod_step6
+      name: HSC_DRP-Prod_step6
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-Prod.yaml#step6"
@@ -82,7 +82,7 @@
           split_dataset: calexp
           split_field: visit
 - SpecBlock:
-      name: HSC_DRP_Prod_step7
+      name: HSC_DRP-Prod_step7
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-Prod.yaml#step7"
@@ -90,7 +90,7 @@
           base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
           split_method: no_split
 - SpecBlock:
-      name: HSC_DRP_Prod_step8
+      name: HSC_DRP-Prod_step8
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-Prod.yaml#step8"

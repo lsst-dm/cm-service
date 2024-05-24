@@ -1,5 +1,5 @@
 - SpecBlock:
-      name: HSC_DRP_RC2_step1
+      name: HSC_DRP-RC2_step1
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step1"
@@ -8,7 +8,7 @@
           split_dataset: raw
           split_field: exposure
 - SpecBlock:
-      name: HSC_DRP_RC2_step2a
+      name: HSC_DRP-RC2_step2a
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step2a"
@@ -16,7 +16,7 @@
           base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
           split_method: no_split
 - SpecBlock:
-      name: HSC_DRP_RC2_step2b
+      name: HSC_DRP-RC2_step2b
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step2b"
@@ -24,7 +24,7 @@
           base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
           split_field: tract
 - SpecBlock:
-      name: HSC_DRP_RC2_step2cde
+      name: HSC_DRP-RC2_step2cde
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step2cde"
@@ -32,7 +32,7 @@
           base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
           split_method: no_split
 - SpecBlock:
-      name: HSC_DRP_RC2_step3
+      name: HSC_DRP-RC2_step3
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step3"
@@ -40,7 +40,7 @@
           base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
           split_field: tract
 - SpecBlock:
-      name: HSC_DRP_RC2_step4
+      name: HSC_DRP-RC2_step4
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step4"
@@ -49,7 +49,7 @@
           split_dataset: calexp
           split_field: visit
 - SpecBlock:
-      name: HSC_DRP_RC2_step5
+      name: HSC_DRP-RC2_step5
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step5"
@@ -57,7 +57,7 @@
           base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
           split_field: tract
 - SpecBlock:
-      name: HSC_DRP_RC2_step6
+      name: HSC_DRP-RC2_step6
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step6"
@@ -66,7 +66,7 @@
           split_dataset: calexp
           split_field: visit
 - SpecBlock:
-      name: HSC_DRP_RC2_step7
+      name: HSC_DRP-RC2_step7
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step7"
@@ -74,7 +74,7 @@
           base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
           split_method: no_split
 - SpecBlock:
-      name: HSC_DRP_RC2_step8
+      name: HSC_DRP-RC2_step8
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step8"
@@ -82,7 +82,7 @@
           base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
           split_method: no_split
 - SpecBlock:
-      name: HSC_DRP_RC2_plots
+      name: HSC_DRP-RC2_plots
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#analysis_coadd_plots"
@@ -90,7 +90,7 @@
           base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
           split_method: no_split
 - SpecBlock:
-      name: HSC_DRP_RC2_faro_visit
+      name: HSC_DRP-RC2_faro_visit
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#faro_visit"
@@ -98,7 +98,7 @@
           base_query: "instrument='HSC' and band != 'N921' and skymap='hsc_rings_v1'"
           split_method: no_split
 - SpecBlock:
-      name: HSC_DRP_RC2_faro_matched
+      name: HSC_DRP-RC2_faro_matched
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#faro_matched"
@@ -106,7 +106,7 @@
           base_query: "instrument='HSC' and band != 'N921' and skymap='hsc_rings_v1'"
           split_method: no_split
 - SpecBlock:
-      name: HSC_DRP_RC2_faro_tract
+      name: HSC_DRP-RC2_faro_tract
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#faro_tract"
