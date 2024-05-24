@@ -1,0 +1,14 @@
+# computeSite:
+site:
+  s3df:
+    profile:
+      condor:
+        +Walltime: 7200
+
+# Let's turn on the memory multiplier
+memoryMultiplier: 4.
+numberOfRetries: 3
+memoryLimit: 400000
+
+# Condor backend stuff
+wmsServiceClass: lsst.ctrl.bps.htcondor.HTCondorService

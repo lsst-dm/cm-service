@@ -1,9 +1,9 @@
 - Imports:
       - "${CM_CONFIGS}/example_standard_scripts.yaml"
       - "${CM_CONFIGS}/example_standard_elements.yaml"
-      - "${CM_CONFIGS}/example_comcamsim_steps.yaml"
+      - "${CM_CONFIGS}/example_ComCamSim_DRP-ops-rehearsal-3_steps.yaml"
 - SpecBlock:
-      name: comcamsim_campaign
+      name: ComCamSim_DRP_ops-rehearsal-3_campaign
       includes: ["base_campaign"]
       collections:
           root: u/fritzm/cm/ops-rehearsal-3
@@ -15,66 +15,66 @@
       steps:
           - Step:
                 name: step1
-                spec_block: comcamsim_step1
+                spec_block: ComCamSim_DRP_ops-rehearsal-3_step1
                 child_config:
                     split_method: no_split
           - Step:
                 name: step2a
-                spec_block: comcamsim_step2a
+                spec_block: ComCamSim_DRP_ops-rehearsal-3_step2a
                 prerequisites: ['step1']
                 child_config:
                     split_method: no_split
           - Step:
                 name: step2b
-                spec_block: comcamsim_step2b
+                spec_block: ComCamSim_DRP_ops-rehearsal-3_step2b
                 prerequisites: ['step2a']
                 child_config:
                     split_method: no_split
           - Step:
                 name: step2c
-                spec_block: comcamsim_step2c
+                spec_block: ComCamSim_DRP_ops-rehearsal-3_step2c
                 prerequisites: ['step2b']
                 child_config:
                     split_method: no_split
           - Step:
                 name: step2d
-                spec_block: comcamsim_step2d
+                spec_block: ComCamSim_DRP_ops-rehearsal-3_step2d
                 prerequisites: ['step2c']
                 child_config:
                     split_method: no_split
           - Step:
                 name: step2e
-                spec_block: comcamsim_step2e
+                spec_block: ComCamSim_DRP_ops-rehearsal-3_step2e
                 prerequisites: ['step2d']
                 child_config:
                     split_method: no_split
           - Step:
                 name: step3
-                spec_block: comcamsim_step3
+                spec_block: ComCamSim_DRP_ops-rehearsal-3_step3
                 prerequisites: ['step2e']
                 child_config:
                     split_method: no_split
           - Step:
                 name: step4
-                spec_block: comcamsim_step4
+                spec_block: ComCamSim_DRP_ops-rehearsal-3_step4
                 prerequisites: ['step3']
                 child_config:
                     split_method: no_split
           - Step:
                 name: step5
-                spec_block: comcamsim_step5
+                spec_block: ComCamSim_DRP_ops-rehearsal-3_step5
                 prerequisites: ['step4']
                 child_config:
                     split_method: no_split
           - Step:
                 name: step6
-                spec_block: comcamsim_step6
+                spec_block: ComCamSim_DRP_ops-rehearsal-3_step6
                 prerequisites: ['step4']
                 child_config:
                     split_method: no_split
           - Step:
                 name: step7
-                spec_block: comcamsim_step7
+                spec_block: ComCamSim_DRP_ops-rehearsal-3_step7
                 prerequisites: ['step3']
                 child_config:
                     split_method: no_split
@@ -83,16 +83,19 @@
           prod_area: 'output/archive'
           data_query: "instrument='LSSTComCamSim' and skymap='DC2_cells_v1' and exposure in (7024033000793..7024040500918)"
           lsst_version: w_2024_10
-          bps_yaml_template: panda_yaml_comcamsim_template
+          bps_wms_clustering_file: “${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml  # FIXME}}}}
+          bps_wms_resources_file: “${DRP_PIPE_DIR}/bps/resources/HSC/DRP-RC2.yaml"  # FIXME
 - Specification:
-      name: comcamsim
+      name: ComCamSim_DRP_ops-rehearsal-3_panda
       script_templates: []
       spec_blocks:
-          - SpecBlockAssociation: {spec_block_name: comcamsim_campaign, alias: campaign}
+          - SpecBlockAssociation: {spec_block_name: ComCamSim_DRP_ops-rehearsal-3_campaign, alias: campaign}
+          - SpecBlockAssociation: {spec_block_name: bps_panda_submit_script, alias: bps_submit_script}
+          - SpecBlockAssociation: {spec_block_name: bps_panda_report_script, alias: bps_report_script}
 - Specification:
-      name: comcamsim_htcondor
+      name: ComCamSim_DRP_ops-rehearsal-3_htcondor
       script_templates: []
       spec_blocks:
-          - SpecBlockAssociation: {spec_block_name: comcamsim_campaign, alias: campaign}
+          - SpecBlockAssociation: {spec_block_name: ComCamSim_DRP_ops-rehearsal-3_campaign, alias: campaign}
           - SpecBlockAssociation: {spec_block_name: bps_htcondor_submit_script, alias: bps_submit_script}
           - SpecBlockAssociation: {spec_block_name: bps_htcondor_report_script, alias: bps_report_script}

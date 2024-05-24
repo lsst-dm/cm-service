@@ -1,0 +1,75 @@
+- SpecBlock:
+      name: LATISS_DRP_step1
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LATISS/DRP.yaml#step1"
+      child_config:
+          base_query: "instrument='LATISS' and skymap='hsc_rings_v1'"
+          split_dataset: raw
+          split_field: exposure
+- SpecBlock:
+      name: LATISS_DRP_step2a
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LATISS/DRP.yaml#step2a"
+      child_config:
+          base_query: "instrument='LATISS' and skymap='hsc_rings_v1'"
+          split_method: no_split
+- SpecBlock:
+      name: LATISS_DRP_step2bcde
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LATISS/DRP.yaml#step2bcde"
+      child_config:
+          base_query: "instrument='LATISS' and skymap='hsc_rings_v1'"
+          split_field: tract
+- SpecBlock:
+      name: LATISS_DRP_step3a
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LATISS/DRP.yaml#step3a"
+      child_config:
+          base_query: "instrument='LATISS' and skymap='hsc_rings_v1'"
+          split_field: tract
+- SpecBlock:
+      name: LATISS_DRP_step3b
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LATISS/DRP.yaml#step3b"
+      child_config:
+          base_query: "instrument='LATISS' and skymap='hsc_rings_v1'"
+          split_field: tract
+- SpecBlock:
+      name: LATISS_DRP_step3c
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LATISS/DRP.yaml#step3c"
+      child_config:
+          base_query: "instrument='LATISS' and skymap='hsc_rings_v1'"
+          split_field: tract
+- SpecBlock:
+      name: LATISS_DRP_step4
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LATISS/DRP.yaml#step4"
+      child_config:
+          base_query: "instrument='LATISS' and skymap='hsc_rings_v1'"
+          split_dataset: calexp
+          split_field: visit
+- SpecBlock:
+      name: LATISS_DRP_step5
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LATISS/DRP.yaml#step5"
+      child_config:
+          base_query: "instrument='LATISS' and skymap='hsc_rings_v1'"
+          split_field: tract
+- SpecBlock:
+      name: LATISS_DRP_step6
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LATISS/DRP.yaml#step6"
+      child_config:
+          base_query: "instrument='LATISS' and skymap='hsc_rings_v1'"
+          split_dataset: calexp
+          split_field: visit

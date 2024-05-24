@@ -15,6 +15,7 @@ asyncpg
 click
 pydantic
 pydantic-settings
+psycopg2-binary
 safir[db,arq]
 sqlalchemy[asyncio]
 structlog

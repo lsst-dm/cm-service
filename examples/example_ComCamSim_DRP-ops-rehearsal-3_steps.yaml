@@ -1,5 +1,5 @@
 - SpecBlock:
-      name: comcamsim_step1
+      name: ComCamSim_DRP_ops-rehearsal-3_step1
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTComCamSim/DRP-ops-rehearsal-3.yaml#step1"
@@ -7,7 +7,7 @@
           base_query: "instrument='LSSTComCamSim' and skymap='DC2_cells_v1'"
           split_method: no_split
 - SpecBlock:
-      name: comcamsim_step2a
+      name: ComCamSim_DRP_ops-rehearsal-3_step2a
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTComCamSim/DRP-ops-rehearsal-3.yaml#step2a"
@@ -15,7 +15,7 @@
           base_query: "instrument='LSSTComCamSim' and skymap='DC2_cells_v1'"
           split_method: no_split
 - SpecBlock:
-      name: comcamsim_step2b
+      name: ComCamSim_DRP_ops-rehearsal-3_step2b
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTComCamSim/DRP-ops-rehearsal-3.yaml#step2b"
@@ -23,7 +23,7 @@
           base_query: "instrument='LSSTComCamSim' and skymap='DC2_cells_v1'"
           split_method: no_split
 - SpecBlock:
-      name: comcamsim_step2c
+      name: ComCamSim_DRP_ops-rehearsal-3_step2c
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTComCamSim/DRP-ops-rehearsal-3.yaml#step2c"
@@ -31,7 +31,7 @@
           base_query: "instrument='LSSTComCamSim' and skymap='DC2_cells_v1'"
           split_method: no_split
 - SpecBlock:
-      name: comcamsim_step2d
+      name: ComCamSim_DRP_ops-rehearsal-3_step2d
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTComCamSim/DRP-ops-rehearsal-3.yaml#step2d"
@@ -39,7 +39,7 @@
           base_query: "instrument='LSSTComCamSim' and skymap='DC2_cells_v1'"
           split_method: no_split
 - SpecBlock:
-      name: comcamsim_step2e
+      name: ComCamSim_DRP_ops-rehearsal-3_step2e
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTComCamSim/DRP-ops-rehearsal-3.yaml#step2e"
@@ -47,7 +47,7 @@
           base_query: "instrument='LSSTComCamSim' and skymap='DC2_cells_v1'"
           split_method: no_split
 - SpecBlock:
-      name: comcamsim_step3
+      name: ComCamSim_DRP_ops-rehearsal-3_step3
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTComCamSim/DRP-ops-rehearsal-3.yaml#step3"
@@ -55,7 +55,7 @@
           base_query: "instrument='LSSTComCamSim' and skymap='DC2_cells_v1'"
           split_method: no_split
 - SpecBlock:
-      name: comcamsim_step4
+      name: ComCamSim_DRP_ops-rehearsal-3_step4
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTComCamSim/DRP-ops-rehearsal-3.yaml#step4"
@@ -63,7 +63,7 @@
           base_query: "instrument='LSSTComCamSim' and skymap='DC2_cells_v1'"
           split_method: no_split
 - SpecBlock:
-      name: comcamsim_step5
+      name: ComCamSim_DRP_ops-rehearsal-3_step5
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTComCamSim/DRP-ops-rehearsal-3.yaml#step5"
@@ -71,7 +71,7 @@
           base_query: "instrument='LSSTComCamSim' and skymap='DC2_cells_v1'"
           split_method: no_split
 - SpecBlock:
-      name: comcamsim_step6
+      name: ComCamSim_DRP_ops-rehearsal-3_step6
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTComCamSim/DRP-ops-rehearsal-3.yaml#step6"
@@ -79,7 +79,7 @@
           base_query: "instrument='LSSTComCamSim' and skymap='DC2_cells_v1'"
           split_method: no_split
 - SpecBlock:
-      name: comcamsim_step7
+      name: ComCamSim_DRP_ops-rehearsal-3_step7
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTComCamSim/DRP-ops-rehearsal-3.yaml#step7"
