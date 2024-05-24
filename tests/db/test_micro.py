@@ -27,15 +27,15 @@ async def test_micro(engine: AsyncEngine) -> None:
 
         await interface.load_and_create_campaign(
             session,
-            "examples/example_hsc_micro.yaml",
-            "hsc_micro",
+            "examples/example_HSC_micro.yaml",
+            "hsc_micro_panda",
             "w_2023_41",
-            "hsc_micro#campaign",
+            "hsc_micro_panda#campaign",
         )
 
         changed, status = await interface.process(
             session,
-            "hsc_micro/w_2023_41",
+            "hsc_micro_panda/w_2023_41",
             fake_status=StatusEnum.accepted,
         )
 
@@ -45,7 +45,7 @@ async def test_micro(engine: AsyncEngine) -> None:
         # now we clean up
         await db.Production.delete_row(session, 1)
 
-        this_spec = await db.Specification.get_row_by_fullname(session, "hsc_micro")
+        this_spec = await db.Specification.get_row_by_fullname(session, "hsc_micro_panda")
         await db.Specification.delete_row(session, this_spec.id)
 
         # make sure we cleaned up
