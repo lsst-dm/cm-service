@@ -156,7 +156,7 @@ class BpsScriptHandler(ScriptHandler):
         include_configs = []
         for to_include_ in [bps_wms_yaml_file, bps_wms_cluster_file, bps_wms_resources_file]:
             if to_include_:
-                include_configs.append(to_include_)
+                include_configs.append(os.path.expandvars(to_include_))
         include_configs += bps_wms_extra_files
 
         workflow_config["includeConfigs"] = include_configs

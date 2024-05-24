@@ -35,6 +35,8 @@
           prod_area: 'output/archive'
           data_query: "instrument = 'HSC' AND exposure in (30504, 30502) AND detector in (45, 46, 47, 48)"
           lsst_version: w_2023_46
+          bps_wms_clustering_file: "${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml"
+          bps_wms_resources_file: "${DRP_PIPE_DIR}/bps/resources/HSC/DRP-RC2.yaml"
 - Specification:
       name: hsc_micro_panda
       script_templates: []

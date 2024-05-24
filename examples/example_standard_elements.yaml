@@ -53,7 +53,7 @@
       handler: lsst.cmservice.handlers.element_handler.ElementHandler
       collections:
           step_input: "{root}/{campaign}/{step}/input"
-          step_output: "{root}/{campaign}/{step}_ouput"
+          step_output: "{root}/{campaign}/{step}_output"
           step_public_output: "{root}/{campaign}/{step}"
           step_validation: "{root}/{campaign}/{step}/validate"
       scripts:

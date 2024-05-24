@@ -1,23 +1,14 @@
 #!/usr/bin/env python
 
-import os
+# import os
 
 prod_dict = {
-    "ComCamSim_DRP-ops-rehearsal-3": "ComCamSim_DRP_ops_rehearsal_3",
-    "HSC_DRP-Prod": "HSC_DRP_Prod",
-    "HSC_DRP-RC2_subset": "HSC_DRP_RC2_subset",
-    "HSC_micro": "hsc_micro",
+    "ComCamSim_DRP-ops-rehearsal-3": "ComCamSim_DRP-ops-rehearsal_3",
+    "HSC_DRP-Prod": "HSC_DRP-Prod",
+    "HSC_DRP-RC2_subset": "HSC_DRP-RC2_subset",
+    "hsc_micro": "hsc_micro",
     "LATISS_DRP": "LATISS_DRP",
-    "imSim_DRP-test-med-1": "imSim_DRP_test_med_1_test",
-}
-
-prod_dict = {
-    "ComCamSim_DRP-ops-rehearsal-3": "ComCamSim_DRP_ops_rehearsal_3",
-    "HSC_DRP-Prod": "HSC_DRP_Prod",
-    "HSC_DRP-RC2_subset": "HSC_DRP_RC2_subset",
-    "HSC_micro": "hsc_micro",
-    "LATISS_DRP": "LATISS_DRP",
-    "imSim_DRP-test-med-1": "imSim_DRP_test_med_1_test",
+    "imSim_DRP-test-med-1": "imSim_DRP-test-med-1_test",
 }
 
 
@@ -29,10 +20,10 @@ for wms in ["panda", "htcondor"]:
         com1 += f"--yaml_file examples/example_{key}.yaml --parent_name {key} "
         com1 += f"--name {weekly_name}_{wms} --data lsst_version:{weekly_name} --spec_name {val}_{wms}"
         print(com1)
-        os.system(com1)
+        # os.system(com1)
 
         com2 = f"cm-client action process --fullname {key}/{weekly_name}_{wms} --fake_status accepted"
         print(com2)
-        os.system(com2)
+        # os.system(com2)
 
-        os.system("sleep 30")
+        # os.system("sleep 30")
