@@ -27,7 +27,7 @@ async def test_micro(engine: AsyncEngine) -> None:
 
         await interface.load_and_create_campaign(
             session,
-            "examples/example_HSC_micro.yaml",
+            "examples/example_hsc_micro.yaml",
             "hsc_micro_panda",
             "w_2023_41",
             "hsc_micro_panda#campaign",
