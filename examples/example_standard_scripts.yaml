@@ -64,7 +64,7 @@
       name: bps_panda_submit_script
       handler: lsst.cmservice.handlers.jobs.PandaScriptHandler
       data:
-          bps_wms_yaml_file: “${CTRL_BPS_PANDA_DIR}/config/bps_usdf.yaml”
+          bps_wms_yaml_file: "${CTRL_BPS_PANDA_DIR}/config/bps_usdf.yaml"
           bps_wms_script_template: bps_panda_script_template
 # Run a bps report script
 - SpecBlock:
@@ -75,7 +75,7 @@
       name: bps_htcondor_submit_script
       handler: lsst.cmservice.handlers.jobs.HTCondorScriptHandler
       data:
-          bps_wms_yaml_file: “${CM_CONFIGS}/stack_files/bps_htcondor_usdf.yaml"
+          bps_wms_yaml_file: "${CM_CONFIGS}/stack_files/bps_htcondor_usdf.yaml"
           bps_wms_script_template: bps_htcondor_script_template
 # Run a bps report script
 - SpecBlock:
