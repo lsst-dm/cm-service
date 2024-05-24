@@ -1,14 +1,14 @@
 - Imports:
       - "${CM_CONFIGS}/example_standard_scripts.yaml"
       - "${CM_CONFIGS}/example_standard_elements.yaml"
-      - "${CM_CONFIGS}/example_DRP-RC2_steps.yaml"
+      - "${CM_CONFIGS}/example_HSC_DRP-RC2_steps.yaml"
 - SpecBlock:
       name: HSC_DRP-RC2_campaign
-      includes: ["base_campaign"]
+      includes: ["base_campaign"]  # I am a base campaign
       collections:
-          root: 'u/echarles/cm/hsc'
+          root: HSC/runs/RC2
           campaign_source: HSC/raw/RC2
-          campaign_ancilllary_inputs:
+          campaign_ancillary_inputs:
               - HSC/calib
               - HSC/masks
               - HSC/fgcmcal/lut/RC2
@@ -17,7 +17,7 @@
       steps:
           - Step:
                 name: step1
-                spec_block: HSC_DRP-RC2_step1
+                spec_block: HSC_DRP-RC2_step1  # matches SpecBlocks from HSC_... anythign with spec_* is matching something
                 child_config:
                     split_method: split_by_query
                     split_min_groups: 5
@@ -72,8 +72,8 @@
                         - 9813
           - Step:
                 name: step6
-                spec_block: HSC_DRP-RC2_step5
-                prerequisites: ['step5']
+                spec_block: HSC_DRP-RC2_step6
+                prerequisites: ['step4']
                 child_config:
                     split_method: split_by_query
                     split_min_groups: 5
@@ -116,12 +116,12 @@
                 child_config:
                     split_method: no_split
       data:
-          butler_repo: '/repo/main'
-          prod_area: 'output/archive'
+          butler_repo: '/repo/main+sasquatch_dev'
+          prod_area: 'output/archive'  # Change this to /sdf/group/shared/campaigns
           data_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1'"
           bps_wms_clustering_file: “${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml
           bps_wms_resources_file: “${DRP_PIPE_DIR}/bps/resources/HSC/DRP-RC2.yaml"
-- Specification:
+- Specification:   # This is just a look up table.
       name: HSC_DRP-RC2_panda
       script_templates: []
       spec_blocks:

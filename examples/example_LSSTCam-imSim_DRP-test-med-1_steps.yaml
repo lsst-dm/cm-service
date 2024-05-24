@@ -1,5 +1,5 @@
 - SpecBlock:
-      name: imSim_DRP-test-med-1_step1
+      name: LSSTCam-imSim_DRP-test-med-1_step1
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam-imSim/DRP-test-med-1.yaml#step1"
@@ -8,7 +8,7 @@
           split_dataset: raw
           split_field: exposure
 - SpecBlock:
-      name: imSim_DRP-test-med-1_step2
+      name: LSSTCam-imSim_DRP-test-med-1_step2
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam-imSim/DRP-test-med-1.yaml#step2"
@@ -16,7 +16,7 @@
           base_query: "instrument='LSSTCam-imSim' and skymap='DC2'"
           split_method: no_split
 - SpecBlock:
-      name: imSim_DRP-test-med-1_step3
+      name: LSSTCam-imSim_DRP-test-med-1_step3
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam-imSim/DRP-test-med-1.yaml#step3"
@@ -24,7 +24,7 @@
           base_query: "instrument='LSSTCam-imSim' and skymap='DC2'"
           split_field: tract
 - SpecBlock:
-      name: imSim_DRP-test-med-1_step4
+      name: LSSTCam-imSim_DRP-test-med-1_step4
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam-imSim/DRP-test-med-1.yaml#step4"
@@ -33,7 +33,7 @@
           split_dataset: calexp
           split_field: visit
 - SpecBlock:
-      name: imSim_DRP-test-med-1_step5
+      name: LSSTCam-imSim_DRP-test-med-1_step5
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam-imSim/DRP-test-med-1.yaml#step5"
@@ -41,7 +41,7 @@
           base_query: "instrument='LSSTCam-imSim' and skymap='DC2'"
           split_field: tract
 - SpecBlock:
-      name: imSim_DRP-test-med-1_step6
+      name: LSSTCam-imSim_DRP-test-med-1_step6
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam-imSim/DRP-test-med-1.yaml#step6"
@@ -50,7 +50,7 @@
           split_dataset: calexp
           split_field: visit
 - SpecBlock:
-      name: imSim_DRP-test-med-1_step7
+      name: LSSTCam-imSim_DRP-test-med-1_step7
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam-imSim/DRP-test-med-1.yaml#step7"
@@ -58,7 +58,7 @@
           base_query: "instrument='LSSTCam-imSim' and skymap='DC2'"
           split_method: no_split
 - SpecBlock:
-      name: imSim_DRP-test-med-1_step8
+      name: LSSTCam-imSim_DRP-test-med-1_step8
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam-imSim/DRP-test-med-1.yaml#step8"
@@ -66,7 +66,7 @@
           base_query: "instrument='LSSTCam-imSim' and skymap='DC2'"
           split_method: no_split
 - SpecBlock:
-      name: imSim_DRP-test-med-1_faro_visit
+      name: LSSTCam-imSim_DRP-test-med-1_faro_visit
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam-imSim/DRP-test-med-1.yaml#faro_visit"
@@ -74,7 +74,7 @@
           base_query: "instrument='LSSTCam-imSim' and skymap='DC2'"
           split_method: no_split
 - SpecBlock:
-      name: imSim_DRP-test-med-1_faro_matched
+      name: LSSTCam-imSim_DRP-test-med-1_faro_matched
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam-imSim/DRP-test-med-1.yaml#faro_matched"
@@ -82,7 +82,7 @@
           base_query: "instrument='LSSTCam-imSim' and skymap='DC2'"
           split_method: no_split
 - SpecBlock:
-      name: imSim_DRP-test-med-1_faro_tract
+      name: LSSTCam-imSim_DRP-test-med-1_faro_tract
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam-imSim/DRP-test-med-1.yaml#faro_tract"
@@ -90,7 +90,7 @@
           base_query: "instrument='LSSTCam-imSim' and skymap='DC2'"
           split_method: no_split
 - SpecBlock:
-      name: imSim_DRP-test-med-1_plots
+      name: LSSTCam-imSim_DRP-test-med-1_plots
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam-imSim/DRP-test-med-1.yaml#analysis_coadd_plots"

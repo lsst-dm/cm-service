@@ -3,16 +3,21 @@
 # import os
 
 prod_dict = {
-    "ComCamSim_DRP-ops-rehearsal-3": "ComCamSim_DRP-ops-rehearsal_3",
-    "HSC_DRP-Prod": "HSC_DRP-Prod",
-    "HSC_DRP-RC2_subset": "HSC_DRP-RC2_subset",
-    "hsc_micro": "hsc_micro",
+    "LSSTCam-imSim_DRP-test-med-1": "LSSTCam-imSim_DRP-test-med-1_test",  # httpcore.ReadTimeout: timed out
+    "LSSTComCamSim_DRP": "LSSTComCamSim_DRP",  #  httpcore.ReadTimeout: timed out
+    "LSSTComCamSim_nightly-validation": "LSSTComCamSim_nightly-validation",  # success
+    "hsc_micro": "hsc_micro",  # success
+    "HSC_DRP-RC2": "HSC_DRP-RC2",  # httpcore.ReadTimeout: timed out
+    "HSC_DRP-RC2_subset": "HSC_DRP-RC2_subset",  # httpcore.ReadTimeout: timed out
+    "HSC_DRP-Prod": "HSC_DRP-Prod",  # httpcore.ReadTimeout: timed out
     "LATISS_DRP": "LATISS_DRP",
-    "imSim_DRP-test-med-1": "imSim_DRP-test-med-1_test",
 }
 
+prod_dict = {
+    "LATISS_DRP": "LATISS_DRP",
+}
 
-weekly_name = "w_2024_20"
+weekly_name = "w_2024_21"
 
 for wms in ["panda", "htcondor"]:
     for key, val in prod_dict.items():

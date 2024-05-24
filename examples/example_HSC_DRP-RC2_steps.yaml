@@ -12,9 +12,9 @@
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step2a"
-      child_config:
+      child_config:  # Config for how to make children.
           base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
-          split_method: no_split
+          split_method: no_split  # split_values #split_by_query
 - SpecBlock:
       name: HSC_DRP-RC2_step2b
       includes: ['step']
