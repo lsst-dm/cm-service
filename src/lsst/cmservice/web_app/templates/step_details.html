@@ -100,20 +100,12 @@
     const scriptsGridOptions = {
     rowData: stepScripts,
      columnDefs: [
-         // {field: "id"},
          {
              field: "name",
              flex: 1,
-             filter: true,
-             floatingFilter: true,
          },
          {field: "status", flex: 1},
-         {field: "superseded", flex: 1},
-         {field: "handler", flex: 1},
-         {field: "attempt", flex: 1},
-         {field: "script_url", flex: 2},
-         {field: "log_url", flex: 2},
-         {field: "stamp_url", flex: 2}
+         {field: "superseded", flex: 1}
      ]
     };
     const scriptsGridElement = document.getElementById("scriptsGrid");
@@ -124,7 +116,6 @@
     const groupsGridOptions = {
         rowData: stepGroups,
         columnDefs: [
-            // {field: "id", flex: 1},
             {field: "name", flex: 1, filter: true, cellRenderer: GroupNameRenderer},
             {field: "status", flex: 1},
             {field: "superseded", flex: 1},

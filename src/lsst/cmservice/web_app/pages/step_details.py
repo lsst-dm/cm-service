@@ -48,14 +48,6 @@ async def get_step_scripts(session, step):
                 "name": script.name,
                 "superseded": script.superseded,
                 "status": map_status(script.status),
-                "attempt": script.attempt,
-                "handler": script.handler,
-                "data": script.data,
-                "collections": script.collections,
-                "child_config": script.child_config,
-                "script_url": script.script_url,
-                "stamp_url": script.stamp_url,
-                "log_url": script.log_url,
             },
         )
     return step_scripts
