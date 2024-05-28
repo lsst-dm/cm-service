@@ -7,7 +7,12 @@ from lsst.cmservice.web_app.utils.utils import map_status
 
 async def get_step_details_by_id(session, step_id):
     step = await Step.get_row(session, step_id)
+    collections = await step.resolve_collections(session)
     step_details = await get_step_details(session, step)
+    # get step dicts
+    step_details["collections"] = collections
+    step_details["data"] = step.data
+    step_details["child_config"] = step.child_config
     groups = await get_step_groups(session, step)
     scripts = await get_step_scripts(session, step)
     return step_details, groups, scripts
