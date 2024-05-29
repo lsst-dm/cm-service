@@ -58,12 +58,15 @@ web_app.mount("/static", StaticFiles(directory=str(Path(BASE_DIR, "static"))), n
 
 
 @web_app.get("/", response_class=HTMLResponse)
-async def read_item(request: Request):
+async def read_item(request: Request) -> templates.TemplateResponse:
     return templates.TemplateResponse("index.html", {"request": request})
 
 
 @web_app.get("/campaigns/", response_class=HTMLResponse)
-async def get_campaigns(request: Request, session: async_scoped_session = Depends(db_session_dependency)):
+async def get_campaigns(
+    request: Request,
+    session: async_scoped_session = Depends(db_session_dependency),
+) -> templates.TemplateResponse:
     try:
         async with session.begin():
             campaigns = await db.Campaign.get_rows(session)
@@ -97,11 +100,11 @@ async def get_campaigns(request: Request, session: async_scoped_session = Depend
 @web_app.post("/campaigns/", response_class=HTMLResponse)
 async def search(
     request: Request,
-    search: Annotated[str, Form()],
+    search_term: Annotated[str, Form()],
     session: async_scoped_session = Depends(db_session_dependency),
-):
+) -> templates.TemplateResponse:
     try:
-        results = await search_campaigns(session, search)
+        results = await search_campaigns(session, search_term)
         return templates.TemplateResponse(
             "campaign_search_results.html",
             context={
@@ -119,7 +122,7 @@ async def get_steps(
     request: Request,
     campaign_id: int,
     session: async_scoped_session = Depends(db_session_dependency),
-):
+) -> templates.TemplateResponse:
     try:
         steps = await get_campaign_steps(session, campaign_id)
         campaign_steps = []
@@ -145,7 +148,7 @@ async def get_step(
     request: Request,
     step_id: int,
     session: async_scoped_session = Depends(db_session_dependency),
-):
+) -> templates.TemplateResponse:
     try:
         step, step_groups, step_scripts = await get_step_details_by_id(session, step_id)
         return templates.TemplateResponse(
@@ -168,7 +171,7 @@ async def get_group(
     step_name: str,
     group_name: str,
     session: async_scoped_session = Depends(db_session_dependency),
-):
+) -> templates.TemplateResponse:
     try:
         return templates.TemplateResponse(
             name="group_details.html",
@@ -184,10 +187,10 @@ async def get_group(
 
 
 @web_app.get("/layout/", response_class=HTMLResponse)
-async def test_layout(request: Request):
+async def test_layout(request: Request) -> templates.TemplateResponse:
     return templates.TemplateResponse("mockup.html", {"request": request})
 
 
 @web_app.get("/test-ag-grid/", response_class=HTMLResponse)
-async def test_table(request: Request):
+async def test_table(request: Request) -> templates.TemplateResponse:
     return templates.TemplateResponse("test_ag_grid.html", {"request": request})

@@ -1,11 +1,14 @@
+from collections.abc import Sequence
+
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import async_scoped_session
 
 from lsst.cmservice.db import Campaign, Group
 from lsst.cmservice.common.enums import StatusEnum
 from lsst.cmservice.web_app.utils.utils import map_status
 
 
-async def get_campaign_details(session, campaign):
+async def get_campaign_details(session: async_scoped_session, campaign: Campaign) -> dict:
     collections = await campaign.resolve_collections(session)
     groups = await get_campaign_groups(session, campaign)
     no_groups_completed = len([group for group in groups if group.status == StatusEnum.accepted])
@@ -34,14 +37,14 @@ async def get_campaign_details(session, campaign):
     return campaign_details
 
 
-async def search_campaigns(session, search_term):
+async def search_campaigns(session: async_scoped_session, search_term: str) -> Sequence:
     q = select(Campaign).where(Campaign.name.contains(search_term))
     async with session.begin_nested():
         results = await session.scalars(q)
         return results.all()
 
 
-async def get_campaign_groups(session, campaign):
+async def get_campaign_groups(session: async_scoped_session, campaign: Campaign) -> Sequence:
     q = select(Group).where(Group.c_ == campaign)
     async with session.begin_nested():
         results = await session.scalars(q)

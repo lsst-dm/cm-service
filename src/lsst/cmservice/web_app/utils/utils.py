@@ -1,7 +1,7 @@
 from lsst.cmservice.common.enums import StatusEnum
 
 
-def map_status(status):
+def map_status(status: StatusEnum) -> str:
     match status:
         case StatusEnum.failed | StatusEnum.rejected:
             return "FAILED"
