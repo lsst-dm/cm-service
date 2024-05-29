@@ -1,11 +1,15 @@
 from sqlalchemy.ext.asyncio import async_scoped_session
+from typing import Any
 
 from lsst.cmservice.db import Step
 from lsst.cmservice.web_app.pages.steps import get_step_details
 from lsst.cmservice.web_app.utils.utils import map_status
 
 
-async def get_step_details_by_id(session: async_scoped_session, step_id: int) -> (dict, dict, dict):
+async def get_step_details_by_id(
+    session: async_scoped_session,
+    step_id: int,
+) -> tuple[Any, list[dict[Any, Any]], list[dict[Any, Any]]]:
     step = await Step.get_row(session, step_id)
     collections = await step.resolve_collections(session)
     step_details = await get_step_details(session, step)
@@ -18,7 +22,7 @@ async def get_step_details_by_id(session: async_scoped_session, step_id: int) ->
     return step_details, groups, scripts
 
 
-async def get_step_groups(session: async_scoped_session, step: Step) -> [dict]:
+async def get_step_groups(session: async_scoped_session, step: Step) -> list[dict]:
     groups = await step.children(session)
     step_groups = []
     for group in groups:
@@ -38,7 +42,7 @@ async def get_step_groups(session: async_scoped_session, step: Step) -> [dict]:
     return step_groups
 
 
-async def get_step_scripts(session: async_scoped_session, step: Step) -> [dict]:
+async def get_step_scripts(session: async_scoped_session, step: Step) -> list[dict]:
     scripts = await step.get_scripts(session)
     step_scripts = []
     for script in scripts:
