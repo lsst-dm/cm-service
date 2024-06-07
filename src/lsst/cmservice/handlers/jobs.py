@@ -116,6 +116,7 @@ class BpsScriptHandler(ScriptHandler):
         bps_wms_extra_files = data_dict.get("bps_wms_extra_files", [])
         bps_extra_config = data_dict.get("bps_extra_config", None)
         data_query = data_dict.get("data_query", None)
+        extra_qgraph_options = data_dict.get("extra_qgraph_options", None)
 
         # Get the output file paths
         script_url = await self._set_script_files(session, script, prod_area)
@@ -171,6 +172,9 @@ class BpsScriptHandler(ScriptHandler):
         if lsst_custom_setup:
             workflow_config["custom_lsst_setup"] = lsst_custom_setup
         workflow_config["pipelineYaml"] = pipeline_yaml
+
+        if extra_qgraph_options:
+            workflow_config["extraQgraphOptions"] = extra_qgraph_options
 
         if isinstance(input_colls, list):
             in_collection = ",".join(input_colls)

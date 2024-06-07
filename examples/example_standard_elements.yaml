@@ -106,7 +106,7 @@
                 name: ancillary
                 spec_block: chain_create_script
                 collections:
-                    inputs: "{campaign_ancilllary_inputs}"
+                    inputs: "{campaign_ancillary_inputs}"
                     output: "{campaign_ancillary}"
           - Script:
                 name: run

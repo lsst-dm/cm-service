@@ -1,0 +1,57 @@
+- Imports:
+      - "${CM_CONFIGS}/example_standard_scripts.yaml"
+      - "${CM_CONFIGS}/example_standard_elements.yaml"
+      - "${CM_CONFIGS}/example_LSSTComCamSim_nightly-validation-steps.yaml"
+- SpecBlock:
+      name: LSSTComCamSim_nightly-validation_DRP_campaign
+      includes: ["base_campaign"]
+      collections:
+          root: LSSTComCamSim/runs/nightlyvalidation
+          campaign_source: LSSTComCamSim/quickLook/24
+          campaign_ancillary_inputs:
+              - LSSTComCamSim/templates
+              - LSSTComCamSim/defaults
+      steps:
+          - Step:
+                name: step2
+                spec_block: LSSTComCamSim_nightly-validation_step2
+                # first step run in batch mode
+                # Assumes step2a outputs are in campaign_source
+                child_config:
+                    split_method: no_split
+          - Step:
+                name: step3
+                spec_block: LSSTComCamSim_nightly-validation_step3
+                prerequisites: ['step2']
+                child_config:
+                    split_method: no_split
+          - Step:
+                name: step7
+                spec_block: LSSTComCamSim_nightly-validation_step7
+                prerequisites: ['step3']
+                child_config:
+                    split_method: no_split
+      extra_qgraph_options: |
+        -c parameters:sasquatch_dataset_identifier=nightlyvalidation
+        -c parameters:sasquatch_timestamp_version=run_timestamp
+      data:
+          butler_repo: '/repo/embargo+sasquatch_dev'
+          prod_area: 'output/archive'
+          data_query: instrument='LSSTComCamSim' AND skymap='ops_rehersal_prep_2k_v1' AND visit IN (7024040400000..7024040500000)
+          lsst_version: w_2024_10
+          bps_wms_clustering_file: ${DRP_PIPE_DIR}/bps/clustering/DRP-recalibrated.yaml
+          bps_wms_resources_file: ${DRP_PIPE_DIR}/bps/resources/LSSTComCamSim/DRP-ops-rehearsals.yaml
+- Specification:
+      name: LSSTComCamSim_nightly-validation_DRP_panda
+      script_templates: []
+      spec_blocks:
+          - SpecBlockAssociation: {spec_block_name: LSSTComCamSim_nightly-validation_DRP_campaign, alias: campaign}
+          - SpecBlockAssociation: {spec_block_name: bps_panda_submit_script, alias: bps_submit_script}
+          - SpecBlockAssociation: {spec_block_name: bps_panda_report_script, alias: bps_report_script}
+- Specification:
+      name: LSSTComCamSim_nightly-validation_DRP_htcondor
+      script_templates: []
+      spec_blocks:
+          - SpecBlockAssociation: {spec_block_name: LSSTComCamSim_nightly-validation_DRP_campaign, alias: campaign}
+          - SpecBlockAssociation: {spec_block_name: bps_htcondor_submit_script, alias: bps_submit_script}
+          - SpecBlockAssociation: {spec_block_name: bps_htcondor_report_script, alias: bps_report_script}
