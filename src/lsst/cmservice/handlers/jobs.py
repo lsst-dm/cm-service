@@ -112,7 +112,7 @@ class BpsScriptHandler(ScriptHandler):
         skip_colls = data_dict.get("skip_colls", "")
         lsst_custom_setup = data_dict.get("lsst_custom_setup", None)
         bps_wms_yaml_file = data_dict.get("bps_wms_yaml_file", None)
-        bps_wms_cluster_file = data_dict.get("bps_wms_cluster_file", None)
+        bps_wms_clustering_file = data_dict.get("bps_wms_clustering_file", None)
         bps_wms_resources_file = data_dict.get("bps_wms_resources_file", None)
         bps_wms_extra_files = data_dict.get("bps_wms_extra_files", [])
         bps_extra_config = data_dict.get("bps_extra_config", None)
@@ -157,7 +157,7 @@ class BpsScriptHandler(ScriptHandler):
         workflow_config = bps_core_yaml_template_.data.copy()
 
         include_configs = []
-        for to_include_ in [bps_wms_yaml_file, bps_wms_cluster_file, bps_wms_resources_file]:
+        for to_include_ in [bps_wms_yaml_file, bps_wms_clustering_file, bps_wms_resources_file]:
             if to_include_:
                 include_configs.append(os.path.expandvars(to_include_))
         include_configs += bps_wms_extra_files
