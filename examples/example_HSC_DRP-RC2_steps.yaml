@@ -111,5 +111,5 @@
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#faro_tract"
       child_config:
-          base_query: "instrument='HSC' and band != 'N921' and skymap='hsc_rings_v1' and band in ('g', 'r', 'i', 'z', 'y')"
+          base_query: "instrument='HSC' and skymap='hsc_rings_v1' and band in ('g', 'r', 'i', 'z', 'y')"
           split_method: no_split
