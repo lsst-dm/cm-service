@@ -6,21 +6,16 @@
       name: HSC_DRP-RC2_subset_campaign
       includes: ["base_campaign"]
       collections:
-          root: 'u/echarles/cm/hsc'
-          campaign_source: HSC/raw/RC2
-          campaign_ancilllary_inputs:
-              - HSC/calib
-              - HSC/masks
-              - HSC/fgcmcal/lut/RC2
-              - refcats
-              - skymaps
+          root: 'HSC/runs/RC2_subset'  # campaign = d_2024_05_23
+          campaign_source: HSC/RC2_subset/defaults
+          campaign_ancillary_inputs: []
       steps:
           - Step:
                 name: step1
                 spec_block: HSC_DRP-RC2_subset_step1
                 child_config:
-                    split_method: split_by_query
-                    split_min_groups: 5
+                    base_query: ""
+                    split_method: no_split
           - Step:
                 name: step2a
                 spec_block: HSC_DRP-RC2_subset_step2a
@@ -32,8 +27,7 @@
                 spec_block: HSC_DRP-RC2_subset_step2b
                 prerequisites: ['step2a']
                 child_config:
-                    split_method: split_by_query
-                    split_min_groups: 5
+                    split_field: tract
           - Step:
                 name: step2c
                 spec_block: HSC_DRP-RC2_subset_step2c
@@ -51,28 +45,19 @@
                 spec_block: HSC_DRP-RC2_subset_step3
                 prerequisites: ['step2d']
                 child_config:
-                    split_method: split_by_vals
-                    split_vals:
-                        - 9615
-                        - 9697
-                        - 9813
+                    split_method: no_split
           - Step:
                 name: step4
                 spec_block: HSC_DRP-RC2_subset_step4
                 prerequisites: ['step3']
                 child_config:
-                    split_method: split_by_query
-                    split_min_groups: 5
+                    split_method: no_split
           - Step:
                 name: step5
                 spec_block: HSC_DRP-RC2_subset_step5
                 prerequisites: ['step4']
                 child_config:
-                    split_method: split_by_vals
-                    split_vals:
-                        - 9615
-                        - 9697
-                        - 9813
+                    split_method: no_split
           - Step:
                 name: step8
                 spec_block: HSC_DRP-RC2_subset_step8

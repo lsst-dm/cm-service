@@ -1,0 +1,51 @@
+- SpecBlock:
+      # step1 not normally run in nightly validation 10am batch
+      name: LSSTComCamSim_nightly-validation_step1
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTComCamSim/DRP.yaml#step1"
+      child_config:
+          base_query: "instrument='LSSTComCamSim'"
+          split_method: no_split
+- SpecBlock:
+      # step2a not normally run in nightly validation 10am batch
+      name: LSSTComCamSim_nightly-validation_step2a
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTComCamSim/DRP.yaml#step2a"
+      child_config:
+          base_query: "instrument='LSSTComCamSim' and skymap='ops_rehersal_prep_2k_v1'"
+          split_method: no_split
+- SpecBlock:
+      # nightlyRollup not normally run in nightly validation 10am batch
+      name: LSSTComCamSim_nightly-validation_nightlyRollup
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTComCamSim/DRP.yaml#nightlyRollup"
+      child_config:
+          base_query: "instrument='LSSTComCamSim' and skymap='ops_rehersal_prep_2k_v1'"
+          split_method: no_split
+- SpecBlock:
+      name: LSSTComCamSim_nightly-validation_step2
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTComCamSim/DRP.yaml#step2b,step2d,step2e"
+      child_config:
+          base_query: "instrument='LSSTComCamSim' and skymap='ops_rehersal_prep_2k_v1'"
+          split_method: no_split
+- SpecBlock:
+      name: LSSTComCamSim_nightly-validation_step3
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTComCamSim/DRP.yaml#step3"
+      child_config:
+          base_query: "instrument='LSSTComCamSim' and skymap='ops_rehersal_prep_2k_v1'"
+          split_method: no_split
+- SpecBlock:
+      name: LSSTComCamSim_nightly-validation_step7
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTComCamSim/DRP.yaml#step7"
+      child_config:
+          base_query: "instrument='LSSTComCamSim' and skymap='ops_rehersal_prep_2k_v1'"
+          split_method: no_split

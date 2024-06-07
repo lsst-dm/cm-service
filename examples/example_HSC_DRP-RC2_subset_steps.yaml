@@ -4,16 +4,15 @@
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#nightlyStep1"
       child_config:
-          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
-          split_dataset: raw
-          split_field: exposure
+          base_query: ""
+          split_method: no_split
 - SpecBlock:
       name: HSC_DRP-RC2_subset_step2a
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#nightlyStep2a"
       child_config:
-          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+          base_query: ""
           split_method: no_split
 - SpecBlock:
       name: HSC_DRP-RC2_subset_step2b
@@ -21,15 +20,15 @@
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#nightlyStep2b"
       child_config:
-          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
-          split_field: tract
+          base_query: "instrument='HSC' and skymap='hsc_rings_v1' AND tract = 9813"
+          split_method: no_split
 - SpecBlock:
       name: HSC_DRP-RC2_subset_step2c
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#nightlyStep2c"
       child_config:
-          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+          base_query: ""
           split_method: no_split
 - SpecBlock:
       name: HSC_DRP-RC2_subset_step2d
@@ -37,7 +36,7 @@
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#nightlyStep2d"
       child_config:
-          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+          base_query: ""
           split_method: no_split
 - SpecBlock:
       name: HSC_DRP-RC2_subset_step3
@@ -45,25 +44,24 @@
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#nightlyStep3"
       child_config:
-          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
-          split_field: tract
+          base_query: "instrument='HSC' and skymap='hsc_rings_v1' AND tract=9813 AND patch=40"
+          split_method: no_split
 - SpecBlock:
       name: HSC_DRP-RC2_subset_step4
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#nightlyStep4"
       child_config:
-          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
-          split_dataset: calexp
-          split_field: visit
+          base_query: "skymap = 'hsc_rings_v1' AND tract=9813 AND patch=40"
+          split_method: no_split
 - SpecBlock:
       name: HSC_DRP-RC2_subset_step5
       includes: ['step']
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#nightlyStep5"
       child_config:
-          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
-          split_field: tract
+          base_query: "skymap = 'hsc_rings_v1' AND tract=9813 AND patch=40 AND band in ('g', 'r', 'i', 'z', 'y')"
+          split_method: no_split
 - SpecBlock:
       name: HSC_DRP-RC2_subset_step8
       includes: ['step']
