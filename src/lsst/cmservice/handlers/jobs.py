@@ -26,22 +26,8 @@ from ..common.errors import (
     CMMissingScriptInputError,
     CMBadParameterTypeError,
 )
-from .functions import load_manifest_report, load_wms_reports
+from .functions import load_manifest_report, load_wms_reports, status_from_bps_report, compute_job_status
 from .script_handler import FunctionHandler, ScriptHandler
-
-WMS_TO_JOB_STATUS_MAP = {
-    WmsStates.UNKNOWN: None,
-    WmsStates.MISFIT: None,
-    WmsStates.UNREADY: StatusEnum.waiting,
-    WmsStates.READY: StatusEnum.ready,
-    WmsStates.PENDING: StatusEnum.prepared,
-    WmsStates.RUNNING: StatusEnum.running,
-    WmsStates.DELETED: StatusEnum.failed,
-    WmsStates.HELD: StatusEnum.running,
-    WmsStates.SUCCEEDED: StatusEnum.accepted,
-    WmsStates.FAILED: StatusEnum.failed,
-    WmsStates.PRUNED: StatusEnum.failed,
-}
 
 
 WMS_TO_TASK_STATUS_MAP = {
@@ -353,8 +339,8 @@ class BpsReportHandler(FunctionHandler):
         try:
             wms_svc = self._get_wms_svc()
             wms_run_report = wms_svc.report(wms_workflow_id=wms_workflow_id.strip())[0][0]
-            status = WMS_TO_JOB_STATUS_MAP[wms_run_report.state]
             _job = await load_wms_reports(session, job, wms_run_report)
+            status = status_from_bps_report(wms_run_report)
         except Exception as msg:  # pylint: disable=broad-exception-caught
             print(f"Catching wms_svc.report failure: {msg}, continuing")
             status = StatusEnum.failed
@@ -539,7 +525,8 @@ class ManifestReportLoadHandler(FunctionHandler):
         if not job.id == check_job.id:
             raise CMIDMismatchError(f"job.id {job.id} != check_job.id {check_job.id}")
 
-        return StatusEnum.accepted
+        status = compute_job_status(session, job)
+        return status
 
     async def _reset_script(
         self,
