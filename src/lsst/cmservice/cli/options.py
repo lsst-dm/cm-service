@@ -14,6 +14,7 @@ __all__ = [
     "output",
     "OutputEnum",
     "alias",
+    "allow_update",
     "collections",
     "child_config",
     "child_configs",
@@ -176,6 +177,14 @@ alias = PartialOption(
     type=str,
     default=None,
     help="Alias for a ScriptTemplate or SpecBlock association",
+)
+
+
+allow_update = PartialOption(
+    "--allow_update",
+    is_flag=True,
+    default=False,
+    help="Allow updates when loading yaml files",
 )
 
 

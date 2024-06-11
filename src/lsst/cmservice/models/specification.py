@@ -31,3 +31,6 @@ class SpecificationLoad(BaseModel):
 
     # Name of the file to load
     yaml_file: str = "examples/example_config.yaml"
+
+    # Allow updating existing specifications
+    allow_update: bool = False

@@ -1325,6 +1325,8 @@ async def create_campaign(
 async def load_specification(
     session: async_scoped_session,
     yaml_file: str,
+    *,
+    allow_update: bool = False,
 ) -> db.Specification:
     """Load a Specification from a yaml file
 
@@ -1336,12 +1338,15 @@ async def load_specification(
     yaml_file: str,
         Path to the yaml file
 
+    allow_update: bool
+        Allow updating existing items
+
     Returns
     -------
     specification : `Specification`
         Newly created `Specification`
     """
-    result = await functions.load_specification(session, yaml_file)
+    result = await functions.load_specification(session, yaml_file, {}, allow_update=allow_update)
     assert result  # for mypy
     return result
 
@@ -1378,7 +1383,8 @@ async def load_and_create_campaign(  # pylint: disable=too-many-arguments
     campaign : `Campaign`
         Newly created `Campaign`
     """
-    specification = await functions.load_specification(session, yaml_file)
+    allow_update = kwargs.get("allow_update", False)
+    specification = await functions.load_specification(session, yaml_file, allow_update=allow_update)
     assert specification  # for mypy
 
     try:
