@@ -82,3 +82,33 @@ class ScriptTemplate(Base, RowMixin):
             data = yaml.safe_load(fin)
 
         return await cls.create_row(session, name=name, data=data)
+
+    async def update_from_file(
+        self,
+        session: async_scoped_session,
+        name: str,
+        file_path: str,
+    ) -> ScriptTemplate:
+        """Update a ScriptTemplate from a file
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        name: str,
+            Name for the ScriptTemplate
+
+        file_path
+            Path to the file
+
+        Returns
+        -------
+        script_template : `ScriptTemplate`
+            Newly updated `ScriptTemplate`
+        """
+        full_file_path = os.path.abspath(os.path.expandvars(file_path))
+        with open(full_file_path, encoding="utf-8") as fin:
+            data = yaml.safe_load(fin)
+
+        return await self.update_values(session, name=name, data=data)
