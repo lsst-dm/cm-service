@@ -121,6 +121,38 @@ class RowMixin:
         return result
 
     @classmethod
+    async def get_row_by_name(
+        cls: type[T],
+        session: async_scoped_session,
+        name: str,
+    ) -> T:
+        """Get a single row, with row.name == name
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        name : str
+            name of the row to return
+
+        Returns
+        -------
+        result: T
+            Matching row
+        """
+        # This is a stupid workaround to fool mypy
+        cls_copy = cls
+        if TYPE_CHECKING:
+            assert issubclass(cls_copy, RowMixin)  # for mypy
+        query = select(cls).where(cls_copy.name == name)
+        rows = await session.scalars(query)
+        row = rows.first()
+        if row is None:
+            raise CMMissingFullnameError(f"{cls} {name} not found")
+        return row
+
+    @classmethod
     async def get_row_by_fullname(
         cls: type[T],
         session: async_scoped_session,

@@ -62,15 +62,15 @@ class CMQueryClient:
 
     get_queues = wrappers.get_rows_no_parent_function(models.Queue, "queue/list")
 
-    get_element = wrappers.get_object_by_fullname_function(models.Element, "get/element")
+    get_element = wrappers.get_row_by_fullname_function(models.Element, "get/element")
 
-    get_script = wrappers.get_object_by_fullname_function(models.Script, "get/script")
+    get_script = wrappers.get_row_by_fullname_function(models.Script, "get/script")
 
-    get_job = wrappers.get_object_by_fullname_function(models.Job, "get/job")
+    get_job = wrappers.get_row_by_fullname_function(models.Job, "get/job")
 
-    get_spec_block = wrappers.get_object_by_fullname_function(models.SpecBlock, "get/spec_block")
+    get_spec_block = wrappers.get_row_by_name_function(models.SpecBlock, "get/spec_block")
 
-    get_specification = wrappers.get_object_by_fullname_function(models.Specification, "get/specification")
+    get_specification = wrappers.get_row_by_name_function(models.Specification, "get/specification")
 
     get_resolved_collections = wrappers.get_node_property_by_fullname_function(
         dict,
