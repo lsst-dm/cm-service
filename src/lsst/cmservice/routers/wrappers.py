@@ -741,7 +741,7 @@ def update_node_status_function(
             async with session.begin():
                 the_node = await db_class.get_row(session, row_id)
                 await the_node.update_values(session, status=query.status)
-            return the_node.status
+            return the_node
         except CMMissingIDError as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
         except Exception as msg:
