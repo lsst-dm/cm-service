@@ -116,6 +116,8 @@ class LoadAndCreateCampaign(YamlFileQuery):
     spec_aliases: dict | str | None = None
     # Override for Callback handler class
     handler: str | None = None
+    # Allow updating existing specifications
+    allow_update: bool = False
 
 
 class LoadManifestReport(YamlFileQuery, FullnameQuery):

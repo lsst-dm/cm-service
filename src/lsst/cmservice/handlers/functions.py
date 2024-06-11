@@ -47,12 +47,16 @@ def update_include_dict(
             orig_dict[key] = val
 
 
-async def create_spec_block(
+async def upsert_spec_block(
     session: async_scoped_session,
     config_values: dict,
     loaded_specs: dict,
+    *,
+    allow_update: bool = False,
 ) -> SpecBlock | None:
-    """Create and return a SpecBlock
+    """Upsert and return a SpecBlock
+
+    This will create a new SpecBlock, or update an existing one
 
     Parameters
     ----------
@@ -65,17 +69,20 @@ async def create_spec_block(
     loaded_specs: dict
         Already loaded SpecBlocks, used for include statments
 
+    allow_update: bool
+        Allow updating existing blocks
+
     Returns
     -------
     spec_block: SpecBlock
-        Newly created SpecBlock
+        Newly created or updated SpecBlock
     """
     key = config_values.pop("name")
     loaded_specs[key] = config_values
     spec_block_q = select(SpecBlock).where(SpecBlock.fullname == key)
     spec_block_result = await session.scalars(spec_block_q)
     spec_block = spec_block_result.first()
-    if spec_block:
+    if spec_block and not allow_update:
         print(f"SpecBlock {key} already defined, skipping it")
         return None
     includes = config_values.pop("includes", [])
@@ -106,7 +113,18 @@ async def create_spec_block(
             block_data[include_key] = include_val
 
     handler = block_data.pop("handler", None)
-    return await SpecBlock.create_row(
+    if spec_block is None:
+        return await SpecBlock.create_row(
+            session,
+            name=key,
+            handler=handler,
+            data=block_data.get("data"),
+            collections=block_data.get("collections"),
+            child_config=block_data.get("child_config"),
+            scripts=block_data.get("scripts"),
+            steps=block_data.get("steps"),
+        )
+    return await spec_block.update_values(
         session,
         name=key,
         handler=handler,
@@ -118,11 +136,15 @@ async def create_spec_block(
     )
 
 
-async def create_script_template(
+async def upsert_script_template(
     session: async_scoped_session,
     config_values: dict,
+    *,
+    allow_update: bool = False,
 ) -> ScriptTemplate | None:
-    """Create and return a ScriptTemplate
+    """Upsert and return a ScriptTemplate
+
+    This will create a new ScriptTemplate, or update an existing one
 
     Parameters
     ----------
@@ -132,30 +154,43 @@ async def create_script_template(
     config_values: dict
         Values for the ScriptTemplate
 
+    allow_update: bool
+        Allow updating existing templates
+
     Returns
     -------
     script_template: ScriptTemplate
-        Newly created ScriptTemplate
+        Newly created or updated ScriptTemplate
     """
     key = config_values.pop("name")
     script_template_q = select(ScriptTemplate).where(ScriptTemplate.fullname == key)
     script_template_result = await session.scalars(script_template_q)
     script_template = script_template_result.first()
-    if script_template:
+    if script_template and not allow_update:
         print(f"ScriptTemplate {key} already defined, skipping it")
         return None
-    return await ScriptTemplate.load(
-        session,
-        name=key,
-        file_path=config_values["file_path"],
-    )
+    if script_template is None:
+        return await ScriptTemplate.load(
+            session,
+            name=key,
+            file_path=config_values["file_path"],
+        )
+    full_file_path = os.path.abspath(os.path.expandvars(config_values["file_path"]))
+    with open(full_file_path, encoding="utf-8") as fin:
+        data = yaml.safe_load(fin)
+
+    return await script_template.update_values(session, name=key, data=data)
 
 
-async def create_specification(
+async def upsert_specification(
     session: async_scoped_session,
     config_values: dict,
+    *,
+    allow_update: bool = False,
 ) -> Specification | None:
-    """Create and return a Specification
+    """Upsert and return a Specification
+
+    This will create a new Specification, or update an existing one
 
     Parameters
     ----------
@@ -165,10 +200,13 @@ async def create_specification(
     config_values: dict
         Values for the ScriptTemplate
 
+    allow_update: bool
+        Allow updating existing templates
+
     Returns
     -------
     specification: Specification
-        Newly created Specification
+        Newly created or updated Specification
     """
     spec_name = config_values["name"]
     script_templates = config_values.get("script_templates", [])
@@ -219,6 +257,8 @@ async def load_specification(
     session: async_scoped_session,
     yaml_file: str,
     loaded_specs: dict | None = None,
+    *,
+    allow_update: bool = False,
 ) -> Specification | None:
     """Read a yaml file and create Specification objects
 
@@ -232,6 +272,9 @@ async def load_specification(
 
     loaded_specs: dict
         Already loaded SpecBlocks, used for include statments
+
+    allow_update: bool
+        Allow updating existing items
 
     Returns
     -------
@@ -254,22 +297,26 @@ async def load_specification(
                     session,
                     os.path.abspath(os.path.expandvars(import_)),
                     loaded_specs,
+                    allow_update=allow_update,
                 )
         elif "SpecBlock" in config_item:
-            await create_spec_block(
+            await upsert_spec_block(
                 session,
                 config_item["SpecBlock"],
                 loaded_specs,
+                allow_update=allow_update,
             )
         elif "ScriptTemplate" in config_item:
-            await create_script_template(
+            await upsert_script_template(
                 session,
                 config_item["ScriptTemplate"],
+                allow_update=allow_update,
             )
         elif "Specification" in config_item:
-            specification = await create_specification(
+            specification = await upsert_specification(
                 session,
                 config_item["Specification"],
+                allow_update=allow_update,
             )
         else:
             good_keys = "ScriptTemplate | SpecBlock | Specification | Imports"

@@ -10,8 +10,8 @@ from .wrappers import output_pydantic_list, output_pydantic_object
 @load.command()
 @options.cmclient()
 @options.output()
-@options.spec_name()
 @options.yaml_file()
+@options.allow_update()
 def specification(
     client: CMClient,
     output: options.OutputEnum | None,
@@ -35,6 +35,7 @@ def specification(
 @options.child_config()
 @options.collections()
 @options.spec_aliases()
+@options.allow_update()
 def campaign(
     client: CMClient,
     output: options.OutputEnum | None,
