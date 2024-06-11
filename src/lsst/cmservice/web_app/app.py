@@ -106,11 +106,17 @@ async def search(
 ) -> HTMLResponse:
     try:
         results = await search_campaigns(session, search_term)
+        campaigns_list = []
+        for campaign in results:
+            campaign_details = await get_campaign_details(session, campaign)
+            campaigns_list.append(campaign_details)
+
         return templates.TemplateResponse(
             "campaign_search_results.html",
             context={
+                "search_term": search_term,
                 "request": request,
-                "search_results": results,
+                "search_results": campaigns_list,
             },
         )
     except Exception as e:
