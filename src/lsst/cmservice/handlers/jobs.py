@@ -525,7 +525,7 @@ class ManifestReportLoadHandler(FunctionHandler):
         if not job.id == check_job.id:
             raise CMIDMismatchError(f"job.id {job.id} != check_job.id {check_job.id}")
 
-        status = compute_job_status(session, job)
+        status = await compute_job_status(session, job)
         return status
 
     async def _reset_script(

@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-from lsst.ctrl.bps.wms_service import WmsStates, WmsRunReport
+from lsst.ctrl.bps.wms_service import WmsJobReport, WmsStates, WmsRunReport
 from lsst.ctrl.bps.bps_reports import compile_job_summary
 
 from ..common.enums import StatusEnum
@@ -654,10 +654,14 @@ def status_from_bps_report(
     # Ok, now we should investigate what happened.
 
     # First, did final job run successfully.
-    final_job = None
+    final_job: WmsJobReport | None = None
     for job_ in wms_run_report.jobs:
         if job_.name == "finalJob":
             final_job = job_
+
+    # No final job, we bail and ask for help
+    if final_job is None:
+        return StatusEnum.reviewable
 
     # If the final job did succeed, we want to accept this script
     # b/c we want pipetask report to run
