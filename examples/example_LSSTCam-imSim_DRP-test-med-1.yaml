@@ -6,7 +6,6 @@
       name: LSSTCam-imSim_DRP-test-med-1_campaign
       includes: ["base_campaign"]
       collections:
-          root: '2.2i/runs/test-med-1'
           campaign_source: 2.2i/defaults/test-med-1
           # Note refcats and other inputs are in 2.2i/defaults/test-med-1
           # but duplicating it as an input does no harm

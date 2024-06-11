@@ -6,7 +6,6 @@
       name: HSC_DRP-RC2_campaign
       includes: ["base_campaign"]  # I am a base campaign
       collections:
-          root: HSC/runs/RC2
           campaign_source: HSC/raw/RC2
           campaign_ancillary_inputs:
               - HSC/calib
