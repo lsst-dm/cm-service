@@ -18,12 +18,12 @@
       name: campaign
       handler: lsst.cmservice.handlers.element_handler.ElementHandler
       collections:
-          root: 'cm/hsc_rc2_micro'
+          out: 'cm/hsc_rc2_micro'
           campaign_source: HSC/raw/RC2
-          campaign_input: "{root}/{campaign}/input"
-          campaign_output: "{root}/{campaign}"
-          campaign_ancillary: "{root}/{campaign}/ancillary"
-          campaign_validation: "{root}/{campaign}/validate"
+          campaign_input: "{out}/input"
+          campaign_output: "{out}"
+          campaign_ancillary: "{out}/ancillary"
+          campaign_validation: "{out}/validate"
       data:
           butler_repo: '/repo/main'
           prod_area: 'output/archive'

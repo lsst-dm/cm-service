@@ -6,7 +6,6 @@
       name: HSC_DRP-Prod_campaign
       includes: ["base_campaign"]
       collections:
-          root: 'HSC/runs/PDR2'
           campaign_source: HSC/raw/PDR2/WIDE,HSC/raw/PDR2/DEEP,HSC/raw/PDR2/UDEEP
           # Figure out how to remove veto list from these
           campaign_ancillary_inputs:

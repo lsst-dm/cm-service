@@ -218,7 +218,7 @@ class NodeMixin(RowMixin):
         my_collections = await NodeMixin.get_collections(self, session)
         collection_dict = await self.get_collections(session)
         name_dict = self._split_fullname(self.fullname)
-        name_dict["root"] = collection_dict.pop("root")
+        name_dict["out"] = collection_dict.pop("out")
         resolved_collections: dict = {}
         for name_, val_ in my_collections.items():
             if isinstance(val_, list):

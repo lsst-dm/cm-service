@@ -7,7 +7,7 @@
       handler: lsst.cmservice.handlers.job_handler.JobHandler
       collections:
           # This is that RUN collection produced by bps
-          job_run: "{root}/{campaign}/{step}/{group}/{job}"
+          job_run: "{out}/{step}/{group}/{job}"
       scripts:
           - Script:
                 name: bps_submit
@@ -38,8 +38,8 @@
       name: group
       handler: lsst.cmservice.handlers.element_handler.ElementHandler
       collections:
-          group_output: "{root}/{campaign}/{step}/{group}"
-          group_validation: "{root}/{campaign}/{step}/{group}/validate"
+          group_output: "{out}/{step}/{group}"
+          group_validation: "{out}/{step}/{group}/validate"
       scripts:
           - Script:
                 name: run
@@ -52,10 +52,10 @@
       name: step
       handler: lsst.cmservice.handlers.element_handler.ElementHandler
       collections:
-          step_input: "{root}/{campaign}/{step}/input"
-          step_output: "{root}/{campaign}/{step}_output"
-          step_public_output: "{root}/{campaign}/{step}"
-          step_validation: "{root}/{campaign}/{step}/validate"
+          step_input: "{out}/{step}/input"
+          step_output: "{out}/{step}_ouput"
+          step_public_output: "{out}/{step}"
+          step_validation: "{out}/{step}/validate"
       scripts:
           - Script:
                 name: prepare
@@ -90,11 +90,12 @@
       name: base_campaign
       handler: lsst.cmservice.handlers.element_handler.ElementHandler
       collections:
-          campaign_input: "{root}/{campaign}/input"
-          campaign_output: "{root}/{campaign}/output"
-          campaign_public_output: "{root}/{campaign}"
-          campaign_ancillary: "{root}/{campaign}/ancillary"
-          campaign_validation: "{root}/{campaign}/validate"
+          out: MUST_OVERRIDE
+          campaign_input: "{out}/input"
+          campaign_output: "{out}/output"
+          campaign_public_output: "{out}"
+          campaign_ancillary: "{out}/ancillary"
+          campaign_validation: "{out}/validate"
       scripts:
           - Script:
                 name: tag_inputs
