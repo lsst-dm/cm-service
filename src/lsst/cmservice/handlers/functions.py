@@ -175,11 +175,12 @@ async def upsert_script_template(
             name=key,
             file_path=config_values["file_path"],
         )
-    full_file_path = os.path.abspath(os.path.expandvars(config_values["file_path"]))
-    with open(full_file_path, encoding="utf-8") as fin:
-        data = yaml.safe_load(fin)
 
-    return await script_template.update_values(session, name=key, data=data)
+    return await script_template.update_from_file(
+        session,
+        name=key,
+        file_path=config_values["file_path"],
+    )
 
 
 async def upsert_specification(
