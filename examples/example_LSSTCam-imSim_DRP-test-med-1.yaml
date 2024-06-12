@@ -10,9 +10,15 @@
           # Note refcats and other inputs are in 2.2i/defaults/test-med-1
           # but duplicating it as an input does no harm
           campaign_ancillary_inputs: ["refcats"]
-      extra_qgraph_options: |
-        -c parameters:sasquatch_dataset_identifier=DC2/TestMed1
-        -c parameters:sasquatch_timestamp_version=reference_package_timestamp
+      data:
+          butler_repo: '/repo/dc2+sasquatch_dev'
+          prod_area: /sdf/group/rubin/shared/campaigns/DC2-test-med-1/output/archive
+          data_query:
+          bps_wms_clustering_file: "${DRP_PIPE_DIR}/bps/clustering/DRP-recalibrated.yaml"
+          bps_wms_resources_file: "${DRP_PIPE_DIR}/bps/resources/LSSTCam-imSim/DRP-test-med-1.yaml"
+          extra_qgraph_options: |
+            -c parameters:sasquatch_dataset_identifier=DC2/TestMed1
+            -c parameters:sasquatch_timestamp_version=reference_package_timestamp
       steps:
           - Step:
                 name: step1
@@ -20,7 +26,7 @@
                 child_config:
                     base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
                     split_method: split_by_query
-                    split_min_groups: 4
+                    split_min_groups: 2
           - Step:
                 name: step2
                 spec_block: LSSTCam-imSim_DRP-test-med-1_step2
@@ -43,9 +49,14 @@
                 spec_block: LSSTCam-imSim_DRP-test-med-1_step4
                 prerequisites: ['step3']
                 child_config:
-                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2'"
                     split_method: split_by_query
-                    split_min_groups: 4
+                    split_min_groups: 2
+                data:
+                    extra_qgraph_options: |
+                        -c parameters:sasquatch_dataset_identifier=DC2/TestMed1
+                        -c parameters:sasquatch_timestamp_version=reference_package_timestamp
+                        --dataset-query-constraint finalVisitSummary
           - Step:
                 name: step5
                 spec_block: LSSTCam-imSim_DRP-test-med-1_step5
@@ -61,9 +72,9 @@
                 spec_block: LSSTCam-imSim_DRP-test-med-1_step6
                 prerequisites: ['step4']
                 child_config:
-                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2'"
                     split_method: split_by_query
-                    split_min_groups: 4
+                    split_min_groups: 2
           - Step:
                 name: step7
                 spec_block: LSSTCam-imSim_DRP-test-med-1_step7
@@ -102,12 +113,6 @@
                 prerequisites: ['step3']
                 child_config:
                     base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
-      data:
-          butler_repo: '/repo/dc2+sasquatch_dev'
-          prod_area: /sdf/group/rubin/shared/campaigns/DC2-test-med-1/output/archive
-          data_query:
-          bps_wms_clustering_file: "${DRP_PIPE_DIR}/bps/clustering/DRP-recalibrated.yaml"
-          bps_wms_resources_file: "${DRP_PIPE_DIR}/bps/resources/LSSTCam-imSim/DRP-test-med-1.yaml"
 - Specification:
       name: LSSTCam-imSim_DRP-test-med-1_test_panda
       script_templates: []
