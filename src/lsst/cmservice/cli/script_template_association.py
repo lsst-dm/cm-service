@@ -22,6 +22,14 @@ group_command = cli_group.command
 sub_client = DbClass.class_string
 
 
+@cli_group.group()
+def get() -> None:
+    """Get an attribute"""
+
+
+get_command = get.command
+
+
 # Add functions to the router
 get_rows = wrappers.get_list_command(group_command, sub_client, DbClass)
 
@@ -29,4 +37,6 @@ create = wrappers.get_create_command(group_command, sub_client, DbClass, create_
 
 delete = wrappers.get_delete_command(group_command, sub_client)
 
-get_row = wrappers.get_row_command(group_command, sub_client, DbClass)
+get_row = wrappers.get_row_command(get_command, sub_client, DbClass)
+
+get_row_by_fullname = wrappers.get_row_by_fullname_command(get_command, sub_client, DbClass)

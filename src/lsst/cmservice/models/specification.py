@@ -34,3 +34,9 @@ class SpecificationLoad(BaseModel):
 
     # Allow updating existing specifications
     allow_update: bool = False
+
+
+class SpecificationUpdate(SpecificationBase):
+    """Parameters that can be udpated"""
+
+    model_config = ConfigDict(from_attributes=True)

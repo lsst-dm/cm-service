@@ -36,10 +36,10 @@ from .row import RowData, RowQuery
 from .script import Script, ScriptCreate, ScriptUpdate
 from .script_error import ScriptError, ScriptErrorCreate, ScriptErrorUpdate
 from .script_template import ScriptTemplate, ScriptTemplateCreate, ScriptTemplateUpdate
-from .script_template_association import ScriptTemplateAssociation, ScriptTemplateAssociationCreate
+from .script_template_association import ScriptTemplateAssociation, ScriptTemplateAssociationCreate, ScriptTemplateAssociationUpdate
 from .spec_block import SpecBlock, SpecBlockCreate, SpecBlockUpdate
-from .spec_block_association import SpecBlockAssociation, SpecBlockAssociationCreate
-from .specification import Specification, SpecificationCreate, SpecificationLoad
+from .spec_block_association import SpecBlockAssociation, SpecBlockAssociationCreate, SpecBlockAssociationUpdate
+from .specification import Specification, SpecificationCreate, SpecificationLoad, SpecificationUpdate
 from .step import Step, StepCreate, StepUpdate
 from .task_set import TaskSet, TaskSetCreate, TaskSetUpdate
 from .wms_task_report import WmsTaskReport, WmsTaskReportCreate, WmsTaskReportUpdate
@@ -60,8 +60,10 @@ __all__ = [
     "Specification",
     "SpecificationCreate",
     "SpecificationLoad",
+    "SpecificationUpdate",
     "SpecBlockAssociation",
     "SpecBlockAssociationCreate",
+    "SpecBlockAssociationUpdate",
     "SpecBlock",
     "SpecBlockCreate",
     "SpecBlockUpdate",
@@ -81,6 +83,7 @@ __all__ = [
     "ScriptErrorUpdate",
     "ScriptTemplateAssociation",
     "ScriptTemplateAssociationCreate",
+    "ScriptTemplateAssociationUpdate",
     "ScriptTemplate",
     "ScriptTemplateCreate",
     "ScriptTemplateUpdate",

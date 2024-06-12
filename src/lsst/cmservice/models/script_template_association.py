@@ -39,3 +39,15 @@ class ScriptTemplateAssociation(ScriptTemplateAssociationBase):
 
     # Foreign Key in ScriptTemplate Table
     script_template_id: int
+
+
+class ScriptTemplateAssociationUpdate(ScriptTemplateAssociationBase):
+    """Parameters that can be updated"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    # Foreign Key into Specification table
+    spec_id: int
+
+    # Foreign Key in ScriptTemplate Table
+    script_template_id: int

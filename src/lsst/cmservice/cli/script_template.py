@@ -29,6 +29,14 @@ sub_client = DbClass.class_string
 
 
 @cli_group.group()
+def get() -> None:
+    """Get an attribute"""
+
+
+get_command = get.command
+
+
+@cli_group.group()
 def update() -> None:
     """Update an attribute"""
 
@@ -43,6 +51,8 @@ create = wrappers.get_create_command(group_command, sub_client, DbClass, create_
 
 delete = wrappers.get_delete_command(group_command, sub_client)
 
-get_row = wrappers.get_row_command(group_command, sub_client, DbClass)
-
 update_row = wrappers.get_update_command(update_command, sub_client, DbClass, update_options)
+
+get_row = wrappers.get_row_command(get_command, sub_client, DbClass)
+
+get_row_by_name = wrappers.get_row_by_name_command(get_command, sub_client, DbClass)

@@ -42,6 +42,7 @@ class CMLoadClient:
 
     def __init__(self, parent: CMClient) -> None:
         """Return the httpx.Client"""
+        self._parent = parent
         self._client = parent.client
 
     @property
@@ -79,7 +80,7 @@ class CMLoadClient:
         key = config_values.pop("name")
         loaded_specs[key] = config_values
 
-        spec_block = self._client.spec_block.get_row_by_name(key)
+        spec_block = self._parent.spec_block.get_row_by_name(key)
         if spec_block and not allow_update:
             print(f"SpecBlock {key} already defined, skipping it")
             return None
@@ -90,7 +91,7 @@ class CMLoadClient:
             if include_ in loaded_specs:
                 update_include_dict(include_data, loaded_specs[include_])
             else:
-                spec_block_ = self._client.spec_block.get_row_by_name(include_)
+                spec_block_ = self._parent.spec_block.get_row_by_name(include_)
                 update_include_dict(
                     include_data,
                     {
@@ -112,7 +113,7 @@ class CMLoadClient:
 
         handler = block_data.pop("handler", None)
         if spec_block is None:
-            return self._client.spec_block.create(
+            return self._parent.spec_block.create(
                 name=key,
                 handler=handler,
                 data=block_data.get("data"),
@@ -122,7 +123,8 @@ class CMLoadClient:
                 steps=block_data.get("steps"),
             )
 
-        return self._client.spec_block.update(
+        return self._parent.spec_block.update(
+            row_id=spec_block.id,
             name=key,
             handler=handler,
             data=block_data.get("data"),
@@ -156,7 +158,7 @@ class CMLoadClient:
             Newly created or updated ScriptTemplate
         """
         key = config_values.pop("name")
-        script_template = self._client.script_template.get_row_by_name(key)
+        script_template = self._parent.script_template.get_row_by_name(key)
         if script_template and not allow_update:
             print(f"ScriptTemplate {key} already defined, skipping it")
             return None
@@ -167,12 +169,13 @@ class CMLoadClient:
             data = yaml.safe_load(fin)
 
         if script_template is None:
-            return self._client.script_template.create(
+            return self._parent.script_template.create(
                 name=key,
                 data=data,
             )
 
-        return self._client.script_template.update(
+        return self._parent.script_template.update(
+            row_id=script_template.id,
             name=key,
             data=data,
         )
@@ -182,7 +185,7 @@ class CMLoadClient:
         config_values: dict,
         *,
         allow_update: bool = False,
-    ) -> models.Specification | None:
+    ) -> dict:
         """Upsert and return a Specification
 
         This will create a new Specification, or update an existing one
@@ -197,16 +200,23 @@ class CMLoadClient:
 
         Returns
         -------
-        specification: Specification
-            Newly created or updated Specification
+        out_dict: dict
+            The updated and loaded objects
         """
+        out_dict: dict[str, list[BaseModel]] = dict(
+            Specification=[],
+            SpecBlockAssocication=[],
+            ScriptTemplateAssociation=[],
+        )
+
         spec_name = config_values["name"]
         script_templates = config_values.get("script_templates", [])
         spec_blocks = config_values.get("spec_blocks", [])
 
-        specification = self._client.specification.get_row_by_name(spec_name)
+        specification = self._parent.specification.get_row_by_name(spec_name)
+        new_spec = False
         if specification is None:
-            specification = self._client.specification.create(name=spec_name)
+            specification = self._parent.specification.create(name=spec_name)
 
         for script_list_item_ in script_templates:
             try:
@@ -220,7 +230,7 @@ class CMLoadClient:
             alias = script_template_config_.get("alias", script_template_name)
 
             fullname = f"{spec_name}#{alias}"
-            script_template_assoc = self._client.script_template_association.get_row_by_fullname(
+            script_template_assoc = self._parent.script_template_association.get_row_by_fullname(
                 fullname=fullname,
             )
             if script_template_assoc and not allow_update:
@@ -228,16 +238,20 @@ class CMLoadClient:
                 continue
 
             if script_template_assoc is None:
-                script_template_assoc = self._client.script_template_association.create(
+                script_template_assoc = self._parent.script_template_association.create(
                     spec_name=spec_name,
                     **script_template_config_,
                 )
+                out_dict["ScriptTemplateAssociation"].append(script_template_assoc)
                 continue
 
-            script_template_assoc = self._client.script_template_association.update(
-                spec_name=spec_name,
-                **script_template_config_,
-            )
+            # FIXME
+            # script_template_assoc =
+            # self._parent.script_template_association.update(
+            #    row_id=script_template_assoc.id,
+            #    spec_name=spec_name,
+            #    **script_template_config_,
+            # )
 
         for spec_block_list_item_ in spec_blocks:
             try:
@@ -251,24 +265,30 @@ class CMLoadClient:
             alias = spec_block_config_.get("alias", spec_block_name)
             fullname = f"{spec_name}#{alias}"
 
-            spec_block_assoc = self._client.spec_block_association.get_row_by_fullname(fullname=fullname)
+            spec_block_assoc = self._parent.spec_block_association.get_row_by_fullname(fullname=fullname)
             if spec_block_assoc and not allow_update:
                 print(f"ScriptTemplateAssociation {fullname} already defined, skipping it")
                 continue
 
             if spec_block_assoc is None:
-                spec_block_assoc = self._client.spec_block_association.create(
+                spec_block_assoc = self._parent.spec_block_association.create(
                     spec_name=spec_name,
                     **spec_block_config_,
                 )
+                out_dict["SpecBlockAssocication"].append(spec_block_assoc)
                 continue
 
-            spec_block_assoc = self._client.spec_block_association.update(
-                spec_name=spec_name,
-                **spec_block_config_,
-            )
+            # FIXME
+            # spec_block_assoc = self._parent.spec_block_association.update(
+            #    row_id=spec_block_assoc.id,
+            #    spec_name=spec_name,
+            #    **spec_block_config_,
+            # )
 
-        return specification
+        if new_spec or allow_update:
+            out_dict["Specification"].append(specification)
+
+        return out_dict
 
     def specification_cl(
         self,
@@ -298,14 +318,15 @@ class CMLoadClient:
         if loaded_specs is None:
             loaded_specs = {}
 
-        specification = None
         with open(yaml_file, encoding="utf-8") as fin:
             spec_data = yaml.safe_load(fin)
 
         out_dict: dict[str, list[BaseModel]] = dict(
+            Specification=[],
+            SpecBlockAssocication=[],
+            ScriptTemplateAssociation=[],
             SpecBlock=[],
             ScriptTemplate=[],
-            Specification=[],
         )
 
         for config_item in spec_data:
@@ -317,8 +338,8 @@ class CMLoadClient:
                         loaded_specs,
                         allow_update=allow_update,
                     )
-                for key, val in imported_.items():
-                    out_dict[key] += val
+                    for key, val in imported_.items():
+                        out_dict[key] += val
             elif "SpecBlock" in config_item:
                 spec_block = self._upsert_spec_block(
                     config_item["SpecBlock"],
@@ -335,15 +356,16 @@ class CMLoadClient:
                 if script_template:
                     out_dict["ScriptTemplate"].append(script_template)
             elif "Specification" in config_item:
-                specification = self._upsert_specification(
+                extra_dict = self._upsert_specification(
                     config_item["Specification"],
                     allow_update=allow_update,
                 )
-                if specification:
-                    out_dict["Specification"].append(specification)
+                for key, val in extra_dict.items():
+                    out_dict[key] += val
             else:
                 good_keys = "ScriptTemplate | SpecBlock | Specification | Imports"
                 raise CMYamlParseError(f"Expecting one of {good_keys} not: {spec_data.keys()})")
+
         return out_dict
 
     specification = wrappers.get_general_post_function(

@@ -258,6 +258,8 @@ def get_row_by_fullname_function(
             fullname=fullname,
         )
         results = obj.client.get(f"{query}", params=params.model_dump()).json()
+        if "detail" in results:
+            return None
         try:
             return parse_obj_as(response_model_class, results)
         except ValidationError as msg:
@@ -294,10 +296,9 @@ def get_row_by_name_function(
         params = models.NameQuery(
             name=name,
         )
-        results = obj.client.get(f"{query}", params=params.model_dump())
-        if results is None:
+        results = obj.client.get(f"{query}", params=params.model_dump()).json()
+        if "detail" in results:
             return None
-        results = results.json()
         try:
             return parse_obj_as(response_model_class, results)
         except ValidationError as msg:

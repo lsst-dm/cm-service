@@ -200,7 +200,7 @@ def get_row_by_fullname_function(
     """
 
     @router.get(
-        "/get",
+        "/get_row_by_fullname",
         response_model=response_model_class,
         summary=f"Retrieve a {db_class.class_string} by name",
     )

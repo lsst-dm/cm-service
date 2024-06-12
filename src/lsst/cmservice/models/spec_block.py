@@ -40,7 +40,7 @@ class SpecBlock(SpecBlockBase):
 
 
 class SpecBlockUpdate(SpecBlockBase):
-    """Parameters that can be udpated"""
+    """Parameters that can be updated"""
 
     model_config = ConfigDict(from_attributes=True)
 

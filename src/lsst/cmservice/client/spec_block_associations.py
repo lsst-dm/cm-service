@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 ResponseModelClass = models.SpecBlockAssociation
 # Specify the pydantic model from making new SpecBlockAssociations
 CreateModelClass = models.SpecBlockAssociationCreate
+# Specify the pydantic model from updating rows
+UpdateModelClass = models.SpecBlockAssociationUpdate
 # Specify the associated database table
 DbClass = db.SpecBlockAssociation
 
@@ -41,7 +43,10 @@ class CMSpecBlockAssociationClient:
 
     get_row = wrappers.get_row_function(ResponseModelClass, f"{router_string}/get")
 
-    # get_row_by_fullname =
+    get_row_by_fullname = wrappers.get_row_by_fullname_function(
+        ResponseModelClass,
+        f"{router_string}/get_row_by_fullname",
+    )
 
     create = wrappers.create_row_function(
         ResponseModelClass,
@@ -51,6 +56,7 @@ class CMSpecBlockAssociationClient:
 
     update = wrappers.update_row_function(
         ResponseModelClass,
+        UpdateModelClass,
         f"{router_string}/update",
     )
 
