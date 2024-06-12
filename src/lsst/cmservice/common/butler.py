@@ -14,10 +14,7 @@ def remove_run_collections(butler_repo: str, collection_name: str) -> None:
     collection_name: str
         Collection to remove
     """
-    butler = Butler.from_config(
-        butler_repo,
-        collections=[collection_name],
-    )
+    butler = Butler.from_config(butler_repo, collections=[collection_name], without_datastore=True)
     try:
         butler.registry.removeCollection(collection_name)
     except Exception as msg:  # pylint: disable=broad-exception-caught
@@ -35,10 +32,7 @@ def remove_non_run_collections(butler_repo: str, collection_name: str) -> None:
     collection_name: str
         Collection to remove
     """
-    butler = Butler.from_config(
-        butler_repo,
-        collections=[collection_name],
-    )
+    butler = Butler.from_config(butler_repo, collections=[collection_name], without_datastore=True)
     try:
         butler.registry.removeCollection(collection_name)
     except Exception as msg:  # pylint: disable=broad-exception-caught

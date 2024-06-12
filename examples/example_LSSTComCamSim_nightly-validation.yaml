@@ -31,9 +31,6 @@
                 prerequisites: ['step3']
                 child_config:
                     split_method: no_split
-      extra_qgraph_options: |
-        -c parameters:sasquatch_dataset_identifier=nightlyvalidation
-        -c parameters:sasquatch_timestamp_version=run_timestamp
       data:
           butler_repo: '/repo/embargo+sasquatch_dev'
           prod_area: 'output/archive'
@@ -41,6 +38,10 @@
           lsst_version: w_2024_10
           bps_wms_clustering_file: ${DRP_PIPE_DIR}/bps/clustering/DRP-recalibrated.yaml
           bps_wms_resources_file: ${DRP_PIPE_DIR}/bps/resources/LSSTComCamSim/DRP-ops-rehearsals.yaml
+          extra_qgraph_options: >
+            -c parameters:sasquatch_dataset_identifier=nightlyvalidation
+            -c parameters:sasquatch_timestamp_version=run_timestamp
+
 - Specification:
       name: LSSTComCamSim_nightly-validation_DRP_panda
       script_templates: []

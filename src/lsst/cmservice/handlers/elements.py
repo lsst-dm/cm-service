@@ -247,6 +247,7 @@ class SplitByQuery(Splitter):
             butler = Butler.from_config(
                 butler_repo,
                 collections=[input_coll, campaign_input_coll, campaign_ancil_coll],
+                without_datastore=True,
             )
             itr = butler.registry.queryDataIds([split_field], datasets=split_dataset).subset(unique=True)
             sorted_field_values = np.sort(np.array([x_[split_field] for x_ in itr]))

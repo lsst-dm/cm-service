@@ -176,7 +176,7 @@ class BpsScriptHandler(ScriptHandler):
         workflow_config["pipelineYaml"] = pipeline_yaml
 
         if extra_qgraph_options:
-            workflow_config["extraQgraphOptions"] = extra_qgraph_options
+            workflow_config["extraQgraphOptions"] = extra_qgraph_options.replace("\n", " ").strip()
 
         if isinstance(input_colls, list):
             in_collection = ",".join(input_colls)
@@ -190,7 +190,7 @@ class BpsScriptHandler(ScriptHandler):
             "inCollection": in_collection,
         }
         if data_query:
-            payload["dataQuery"] = data_query.strip()
+            payload["dataQuery"] = data_query.replace("\n", " ").strip()
         if rescue:
             payload["extra_args"] = f"--skip-existing-in {skip_colls}"  # FIXME, is this right
 
