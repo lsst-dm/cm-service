@@ -26,7 +26,7 @@ async def get_step_groups(session: async_scoped_session, step: Step) -> list[dic
     groups = await step.children(session)
     step_groups = []
     for group in groups:
-        print(group.spec_aliases)
+        # print(group.spec_aliases)
         step_groups.append(
             {
                 "id": group.id,

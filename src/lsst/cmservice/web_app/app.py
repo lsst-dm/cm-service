@@ -20,6 +20,7 @@ from lsst.cmservice.config import config
 from lsst.cmservice.web_app.pages.campaigns import search_campaigns, get_campaign_details
 from lsst.cmservice.web_app.pages.steps import get_campaign_steps, get_step_details
 from lsst.cmservice.web_app.pages.step_details import get_step_details_by_id
+from lsst.cmservice.web_app.pages.group_details import get_group_by_id
 
 
 configure_logging(profile=config.profile, log_level=config.log_level, name=config.logger_name)
@@ -175,20 +176,27 @@ async def get_step(
         return templates.TemplateResponse(f"Something went wrong {e}")
 
 
-@web_app.get("/campaign/{step_name}/{group_name}/", response_class=HTMLResponse)
+@web_app.get("/campaign/{step_name}/{group_id}/", response_class=HTMLResponse)
 async def get_group(
     request: Request,
     step_name: str,
-    group_name: str,
+    # group_name: str,
+    group_id: int,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> HTMLResponse:
     try:
+        group_details, jobs, scripts = await get_group_by_id(session, group_id)
+        # print(group)
+        # group_details = await get_group_details(session, group)
+        # print(group_details)
         return templates.TemplateResponse(
             name="group_details.html",
             request=request,
             context={
                 "step_name": step_name,
-                "group": group_name,
+                "group": group_details,
+                "jobs": jobs,
+                "scripts": scripts,
             },
         )
     except Exception as e:
