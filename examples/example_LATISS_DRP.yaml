@@ -6,7 +6,6 @@
       name: LATISS_DRP_campaign
       includes: ["base_campaign"]
       collections:
-          root: 'u/echarles/cm/hsc'
           campaign_source: LATISS/defaults
           campaign_ancillary_inputs: []
       data:
