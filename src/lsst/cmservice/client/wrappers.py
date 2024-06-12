@@ -289,12 +289,15 @@ def get_row_by_name_function(
 
     def get_row_by_name(
         obj: CMClient,
-        fullname: str,
-    ) -> response_model_class:
+        name: str,
+    ) -> response_model_class | None:
         params = models.NameQuery(
             name=name,
         )
-        results = obj.client.get(f"{query}", params=params.model_dump()).json()
+        results = obj.client.get(f"{query}", params=params.model_dump())
+        if results is None:
+            return None
+        results = results.json()
         try:
             return parse_obj_as(response_model_class, results)
         except ValidationError as msg:
@@ -413,7 +416,10 @@ def get_node_post_query_function(
         **kwargs: Any,
     ) -> response_model_class:
         params = query_class(**kwargs)
-        results = obj.client.post(f"{query}/{row_id}/{query_suffix}", content=params.json()).json()
+        results = obj.client.post(
+            f"{query}/{row_id}/{query_suffix}",
+            content=params.json(),
+        ).json()
         try:
             return parse_obj_as(response_model_class, results)
         except ValidationError as msg:
@@ -578,7 +584,10 @@ def get_general_query_function(
         **kwargs: Any,
     ) -> response_model_class:
         params = query_class(**kwargs)
-        results = obj.client.get(f"{query}/{row_id}/{query_suffix}", params=params.model_dump()).json()
+        results = obj.client.get(
+            f"{query}/{row_id}/{query_suffix}",
+            params=params.model_dump(),
+        ).json()
         try:
             if results_key is None:
                 return parse_obj_as(response_model_class, results)
