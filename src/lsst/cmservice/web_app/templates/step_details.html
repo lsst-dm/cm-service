@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %} Step Details {% endblock %}
+{% block content %}
+<nav class="flex px-2 sm:px-4 lg:px-4" aria-label="Breadcrumb">
+  <ol role="list" class="flex items-center space-x-2">
+    <li>
+      <div class="flex items-center">
+        <a href="#" class="ml-2 text-sm font-medium text-gray-500 hover:text-gray-700">HSC_WEEKLY</a>
+      </div>
+    </li>
+    <li>
+      <div class="flex items-center">
+        <svg class="h-5 w-5 flex-shrink-0 text-gray-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
+        </svg>
+        <a href="#" class="ml-2 text-sm font-medium text-gray-500 hover:text-gray-700" aria-current="page">w_2024_10_test0</a>
+      </div>
+    </li>
+  </ol>
+</nav>
+<div class="w-full">
+    <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2" xmlns="http://www.w3.org/1999/html">
+        <div class="flex items-center">
+            <span class="text-2xl font-bold">{{step.name}}</span>
+        </div>
+        <div class="flex items-center">
+            <span class="text-sm font-normal">{{step.fullname}}</span>
+        </div>
+        <div class="block items-center pt-2">
+            <span class="text-sm font-bold">Collections</span>
+            {% for key, value in step.collections|items %}
+            <div class="block text-sm">{{key}}: {{value}}</div>
+            {% endfor %}
+        </div>
+        <div class="block items-center pt-2">
+            <span class="text-sm font-bold">Data</span>
+            {% for key, value in step.data|items %}
+            <div class="block text-sm">{{key}}: {{value}}</div>
+            {% endfor %}
+        </div>
+        <div class="block items-center pt-2">
+            <span class="text-sm font-bold">Child Config</span>
+            {% for key, value in step.child_config|items %}
+            <div class="block text-sm">{{key}}: {{value}}</div>
+            {% endfor %}
+        </div>
+        <div class="flex pt-2">
+            {% if step.no_groups_completed == step.no_groups %}
+            <div class="bg-green-500 h-5 w-full"></div>
+            {% elif step.no_groups_need_attention == step.no_groups %}
+            <div class="bg-yellow-300 w-full h-5"></div>
+            {% elif step.no_groups_failed == step.no_groups %}
+            <div class="bg-red-600 w-full h-5"></div>
+            {% else %}
+            <div class="bg-green-500 h-5 w-{{(step.no_groups_completed * 12 / step.no_groups)|round|int}}/12"></div>
+            <div class="bg-yellow-300 w-{{(step.no_groups_need_attention * 12 / step.no_groups)|round|int}}/12 h-5"></div>
+            <div class="bg-red-600 w-{{(step.no_groups_failed * 12 / step.no_groups)|round|int}}/12 h-5"></div>
+            {% endif %}
+        </div>
+        <div class="flex items-center text-xs font-normal">{{step.no_groups}} Groups ({{step.no_groups_completed}} FINISHED, {{step.no_groups_need_attention}} NEED ATTENTION, {{step.no_groups_failed}} FAILED)</div>
+    </div>
+    <div class="w-full px-4 py-5 sm:p-6">
+        <div class="flex items-center">
+            <span class="text-large font-bold">Scripts</span>
+        </div>
+        <div class="items-center pt-4">
+            <div id="scriptsGrid" class="ag-theme-alpine h-64"></div>
+        </div>
+        <div class="flex items-center pt-4">
+            <span class="text-large font-bold">Groups</span>
+        </div>
+        <div class="items-center pt-4">
+            <div id="groupsGrid" class="ag-theme-alpine h-64"></div>
+        </div>
+    </div>
+</div>
+<script>
+    class GroupNameRenderer {
+        eGui;
+
+     init(params) {
+       let groupName = document.createElement('a');
+       groupName.textContent = params.data.name;
+       groupName.href = `{{url_for("get_group", step_name=step.name ,group_name="${params.data.name}")}}`;
+       groupName.setAttribute('class', 'font-bold hover:text-gray-500');
+       this.eGui = document.createElement('span');
+       this.eGui.appendChild(groupName)
+     }
+
+     getGui() {
+       return this.eGui;
+     }
+
+     refresh(params) {
+         return false
+     }
+    }
+    // scripts
+    const stepScripts = {{scripts|tojson}};
+    const scriptsGridOptions = {
+    rowData: stepScripts,
+     columnDefs: [
+         {
+             field: "name",
+             flex: 1,
+         },
+         {field: "status", flex: 1},
+         {field: "superseded", flex: 1}
+     ]
+    };
+    const scriptsGridElement = document.getElementById("scriptsGrid");
+    agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
+
+    // groups
+    const stepGroups = {{groups|tojson}};
+    const groupsGridOptions = {
+        rowData: stepGroups,
+        columnDefs: [
+            {field: "name", flex: 1, filter: true, cellRenderer: GroupNameRenderer},
+            {field: "status", flex: 1},
+            {field: "superseded", flex: 1},
+            {field: "data", flex: 2, valueFormatter: (params) => params.data.data["data_query"] },
+            {field: "child_config", flex: 2},
+            {field: "collections", flex: 2},
+            {field: "spec_aliases", flex: 2},
+        ]
+    };
+    const groupsGridElement = document.getElementById("groupsGrid");
+    agGrid.createGrid(groupsGridElement, groupsGridOptions);
+</script>
+{% endblock %}
