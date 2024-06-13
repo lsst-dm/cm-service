@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 ResponseModelClass = models.Specification
 # Specify the pydantic model from making new Specifications
 CreateModelClass = models.SpecificationCreate
+# Specify the pydantic model from updating rows
+UpdateModelClass = models.SpecBlockUpdate
 # Specify the associated database table
 DbClass = db.Specification
 
@@ -41,7 +43,10 @@ class CMSpecificationClient:
 
     get_row = wrappers.get_row_function(ResponseModelClass, f"{router_string}/get")
 
-    # get_row_by_fullname =
+    get_row_by_name = wrappers.get_row_by_name_function(
+        ResponseModelClass,
+        f"{router_string}/get_row_by_name",
+    )
 
     create = wrappers.create_row_function(
         ResponseModelClass,
@@ -51,6 +56,7 @@ class CMSpecificationClient:
 
     update = wrappers.update_row_function(
         ResponseModelClass,
+        UpdateModelClass,
         f"{router_string}/update",
     )
 

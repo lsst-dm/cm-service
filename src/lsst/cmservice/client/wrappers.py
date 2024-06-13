@@ -229,7 +229,48 @@ def delete_row_function(
     return row_delete
 
 
-def get_object_by_fullname_function(
+def get_row_by_fullname_function(
+    response_model_class: TypeAlias = BaseModel,
+    query: str = "",
+) -> Callable:
+    """Return a function that gets a single row from a table (by fullname)
+    and attaches that function to a client.
+
+    Parameters
+    ----------
+    response_model_class: TypeAlias = BaseModel,
+        Pydantic class used to serialize the return value
+
+    query: str
+        http query
+
+    Returns
+    -------
+    the_function: Callable
+        Function that returns a single row from a table by fullname
+    """
+
+    def get_row_by_fullname(
+        obj: CMClient,
+        fullname: str,
+    ) -> response_model_class:
+        params = models.FullnameQuery(
+            fullname=fullname,
+        )
+        results = obj.client.get(f"{query}", params=params.model_dump()).json()
+        # I need to figure out a better way how to check if the request bombed.
+        # For now this works.
+        if "detail" in results:
+            return None
+        try:
+            return parse_obj_as(response_model_class, results)
+        except ValidationError as msg:
+            raise ValueError(f"Bad response: {results}") from msg
+
+    return get_row_by_fullname
+
+
+def get_row_by_name_function(
     response_model_class: TypeAlias = BaseModel,
     query: str = "",
 ) -> Callable:
@@ -250,20 +291,24 @@ def get_object_by_fullname_function(
         Function that returns a single row from a table by name
     """
 
-    def get_obj_by_fullname(
+    def get_row_by_name(
         obj: CMClient,
-        fullname: str,
-    ) -> response_model_class:
-        params = models.FullnameQuery(
-            fullname=fullname,
+        name: str,
+    ) -> response_model_class | None:
+        params = models.NameQuery(
+            name=name,
         )
         results = obj.client.get(f"{query}", params=params.model_dump()).json()
+        # I need to figure out a better way how to check if the request bombed.
+        # For now this works.
+        if "detail" in results:
+            return None
         try:
             return parse_obj_as(response_model_class, results)
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 
-    return get_obj_by_fullname
+    return get_row_by_name
 
 
 def get_node_property_function(
@@ -376,7 +421,10 @@ def get_node_post_query_function(
         **kwargs: Any,
     ) -> response_model_class:
         params = query_class(**kwargs)
-        results = obj.client.post(f"{query}/{row_id}/{query_suffix}", content=params.json()).json()
+        results = obj.client.post(
+            f"{query}/{row_id}/{query_suffix}",
+            content=params.json(),
+        ).json()
         try:
             return parse_obj_as(response_model_class, results)
         except ValidationError as msg:
@@ -541,7 +589,10 @@ def get_general_query_function(
         **kwargs: Any,
     ) -> response_model_class:
         params = query_class(**kwargs)
-        results = obj.client.get(f"{query}/{row_id}/{query_suffix}", params=params.model_dump()).json()
+        results = obj.client.get(
+            f"{query}/{row_id}/{query_suffix}",
+            params=params.model_dump(),
+        ).json()
         try:
             if results_key is None:
                 return parse_obj_as(response_model_class, results)

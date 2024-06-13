@@ -17,6 +17,13 @@ class FullnameQuery(BaseModel):
     fullname: str | None = None
 
 
+class NameQuery(BaseModel):
+    """Parameters needed to run query by name"""
+
+    # Name of Node
+    name: str | None = None
+
+
 class NodeQuery(BaseModel):
     """Parameters needed to run query for Node"""
 

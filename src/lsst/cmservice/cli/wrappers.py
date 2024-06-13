@@ -196,6 +196,90 @@ def get_row_command(
     return get_row
 
 
+def get_row_by_name_command(
+    group_command: Callable,
+    sub_client_name: str,
+    db_class: TypeAlias,
+) -> Callable:
+    """Return a function that gets a row from a table
+    and attaches that function to the cli.
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that returns the row for the table in question
+    """
+
+    @group_command(name="by_name")
+    @options.cmclient()
+    @options.name()
+    @options.output()
+    def get_row_by_name(
+        client: CMClient,
+        name: str,
+        output: options.OutputEnum | None,
+    ) -> None:
+        """Get a single row"""
+        sub_client = getattr(client, sub_client_name)
+        result = sub_client.get_row_by_name(name)
+        output_pydantic_object(result, output, db_class.col_names_for_table)
+
+    return get_row_by_name
+
+
+def get_row_by_fullname_command(
+    group_command: Callable,
+    sub_client_name: str,
+    db_class: TypeAlias,
+) -> Callable:
+    """Return a function that gets a row from a table
+    and attaches that function to the cli.
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that returns the row for the table in question
+    """
+
+    @group_command(name="by_fullname")
+    @options.cmclient()
+    @options.fullname()
+    @options.output()
+    def get_row_by_fullname(
+        client: CMClient,
+        fullname: str,
+        output: options.OutputEnum | None,
+    ) -> None:
+        """Get a single row"""
+        sub_client = getattr(client, sub_client_name)
+        result = sub_client.get_row_by_fullname(fullname)
+        output_pydantic_object(result, output, db_class.col_names_for_table)
+
+    return get_row_by_fullname
+
+
 def get_create_command(
     group_command: Callable,
     sub_client_name: str,

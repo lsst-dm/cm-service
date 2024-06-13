@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 ResponseModelClass = models.ScriptTemplateAssociation
 # Specify the pydantic model from making new GroupsScriptTemplateAssociations
 CreateModelClass = models.ScriptTemplateAssociationCreate
+# Specify the pydantic model from updating rows
+UpdateModelClass = models.ScriptTemplateAssociationUpdate
 # Specify the associated database table
 DbClass = db.ScriptTemplateAssociation
 
@@ -41,7 +43,7 @@ class CMScriptTemplateAssociationClient:
 
     get_row = wrappers.get_row_function(ResponseModelClass, f"{router_string}/get")
 
-    # get_row_by_fullname =
+    get_row_by_fullname = wrappers.get_row_by_fullname_function(ResponseModelClass, f"{router_string}/get")
 
     create = wrappers.create_row_function(
         ResponseModelClass,
@@ -51,6 +53,7 @@ class CMScriptTemplateAssociationClient:
 
     update = wrappers.update_row_function(
         ResponseModelClass,
+        UpdateModelClass,
         f"{router_string}/update",
     )
 

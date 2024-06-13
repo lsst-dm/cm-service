@@ -39,3 +39,15 @@ class SpecBlockAssociation(SpecBlockAssociationBase):
 
     # Foreign Key in SpecBlock Table
     spec_block_id: int
+
+
+class SpecBlockAssociationUpdate(SpecBlockAssociationBase):
+    """Parameters that can be updated"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    # Foreign Key into Specification table
+    spec_id: int
+
+    # Foreign Key in SpecBlock Table
+    spec_block_id: int

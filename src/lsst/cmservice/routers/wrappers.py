@@ -179,6 +179,52 @@ def get_row_by_fullname_function(
     response_model_class: TypeAlias = BaseModel,
     db_class: TypeAlias = db.RowMixin,
 ) -> Callable:
+    """Return a function that gets a single row from a table (by fullname)
+    and attaches that function to a router.
+
+    Parameters
+    ----------
+    router: APIRouter
+        Router to attach the function to
+
+    response_model_class: TypeAlias = BaseModel,
+        Pydantic class used to serialize the return value
+
+    db_class: TypeAlias = db.RowMixin
+        Underlying database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that returns a single row from a table by fullname
+    """
+
+    @router.get(
+        "/get_row_by_fullname",
+        response_model=response_model_class,
+        summary=f"Retrieve a {db_class.class_string} by name",
+    )
+    async def get_row_by_fullname(
+        fullname: str,
+        session: async_scoped_session = Depends(db_session_dependency),
+    ) -> response_model_class:
+        try:
+            async with session.begin():
+                the_row = await db_class.get_row_by_fullname(session, fullname)
+            return the_row
+        except CMMissingFullnameError as msg:
+            raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+        except Exception as msg:
+            raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
+
+    return get_row_by_fullname
+
+
+def get_row_by_name_function(
+    router: APIRouter,
+    response_model_class: TypeAlias = BaseModel,
+    db_class: TypeAlias = db.RowMixin,
+) -> Callable:
     """Return a function that gets a single row from a table (by name)
     and attaches that function to a router.
 
@@ -200,24 +246,24 @@ def get_row_by_fullname_function(
     """
 
     @router.get(
-        "/get",
+        "/get_row_by_name",
         response_model=response_model_class,
         summary=f"Retrieve a {db_class.class_string} by name",
     )
-    async def get_row_by_fullname(
-        fullname: str,
+    async def get_row_by_name(
+        name: str,
         session: async_scoped_session = Depends(db_session_dependency),
-    ) -> response_model_class:
+    ) -> response_model_class | None:
         try:
             async with session.begin():
-                the_row = await db_class.get_row_by_fullname(session, fullname)
+                the_row = await db_class.get_row_by_name(session, name)
             return the_row
         except CMMissingFullnameError as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
         except Exception as msg:
             raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
-    return get_row_by_fullname
+    return get_row_by_name
 
 
 def post_row_function(
