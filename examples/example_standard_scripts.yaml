@@ -54,7 +54,7 @@
       name: prepare_step_script
       handler: lsst.cmservice.handlers.scripts.PrepareStepScriptHandler
       collections:
-          global_inputs: ["{campaign_input}", "{campaign_ancillary}"]
+          global_inputs: ["{campaign_input}"]
 # Run a validation script (probably a query into sasquatch)
 - SpecBlock:
       name: validate_script

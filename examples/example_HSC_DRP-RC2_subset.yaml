@@ -4,10 +4,9 @@
       - "${CM_CONFIGS}/example_HSC_DRP-RC2_subset_steps.yaml"
 - SpecBlock:
       name: HSC_DRP-RC2_subset_campaign
-      includes: ["base_campaign"]
+      includes: ["base_campaign_fixed_input"]
       collections:
-          campaign_source: HSC/RC2_subset/defaults
-          campaign_ancillary_inputs: []
+          campaign_input: HSC/RC2_subset/defaults
       steps:
           - Step:
                 name: step1

@@ -1,0 +1,22 @@
+name: MUST_OVERRIDE
+parent_name: HSC_DRP-RC2_subset
+spec_name: HSC_DRP-RC2_subset_htcondor
+collection:
+    out: MUST_OVERRIDE
+#   campaign_input: HSC/RC2_subset/defaults
+data:
+    prod_area: MUST_OVERRIDE
+    lsst_version: MUST_OVERRIDE
+#   butler_repo: '/repo/main'
+#   data_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1'"
+#   bps_wms_clustering_file: ${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml
+#   bps_wms_resources_file: ${DRP_PIPE_DIR}/bps/resources/HSC/DRP-RC2.yaml
+#
+# Examples of how to override step specific stuff
+# child_config:
+#    step1:
+#        data:
+#            extra_qraph_options: "something"
+#    step5:
+#        child_config:
+#            split_min_groups: 5

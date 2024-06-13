@@ -4,12 +4,9 @@
       - "${CM_CONFIGS}/example_LSSTCam-imSim_DRP-test-med-1_steps.yaml"
 - SpecBlock:
       name: LSSTCam-imSim_DRP-test-med-1_campaign
-      includes: ["base_campaign"]
+      includes: ["base_campaign_fixed_input"]
       collections:
-          campaign_source: 2.2i/defaults/test-med-1
-          # Note refcats and other inputs are in 2.2i/defaults/test-med-1
-          # but duplicating it as an input does no harm
-          campaign_ancillary_inputs: ["refcats"]
+          campaign_input: 2.2i/defaults/test-med-1
       data:
           butler_repo: '/repo/dc2+sasquatch_dev'
           prod_area: /sdf/group/rubin/shared/campaigns/DC2-test-med-1/output/archive
