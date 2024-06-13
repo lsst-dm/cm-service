@@ -7,8 +7,10 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-from lsst.ctrl.bps.wms_service import WmsRunReport
+from lsst.ctrl.bps.wms_service import WmsJobReport, WmsStates, WmsRunReport
+from lsst.ctrl.bps.bps_reports import compile_job_summary
 
+from ..common.enums import StatusEnum
 from ..common.errors import CMYamlParseError
 from ..db.campaign import Campaign
 from ..db.group import Group
@@ -613,6 +615,63 @@ async def load_manifest_report(
     return job
 
 
+def status_from_bps_report(
+    wms_run_report: WmsRunReport,
+) -> StatusEnum:
+    """Decide the status for a workflow for a bps report
+
+    Parameters
+    ----------
+    wms_run_report: WmsRunReport,
+        bps report return object
+
+    Returns
+    -------
+    status: StatusEnum
+        The status to set for the bps_report script
+    """
+    the_state = wms_run_report.state
+    # We treat RUNNING as running from the CM point of view,
+    if the_state == WmsStates.RUNNING:
+        return StatusEnum.running
+    # If the workflow is succeeded we can mark the script as accepted
+    if the_state == WmsStates.SUCCEEDED:
+        return StatusEnum.accepted
+    # These status either should not happen.  We will mark the script as failed
+    if the_state in [
+        WmsStates.UNKNOWN,
+        WmsStates.MISFIT,
+        WmsStates.PRUNED,
+        WmsStates.UNREADY,
+        WmsStates.READY,
+        WmsStates.HELD,
+        WmsStates.PENDING,
+    ]:
+        return StatusEnum.failed
+    # If we get here, the job should be in WmsStates.FAILED or
+    # WmsStates.DELETED
+    assert the_state in [WmsStates.FAILED, WmsStates.DELETED]
+    # Ok, now we should investigate what happened.
+
+    # First, did final job run successfully.
+    final_job: WmsJobReport | None = None
+    for job_ in wms_run_report.jobs:
+        if job_.name == "finalJob":
+            final_job = job_
+
+    # No final job, we bail and ask for help
+    if final_job is None:
+        return StatusEnum.reviewable
+
+    # If the final job did succeed, we want to accept this script
+    # b/c we want pipetask report to run
+    if final_job.state == WmsStates.SUCCEEDED:
+        return StatusEnum.accepted
+
+    # If the final job did not succeed, we bail and ask for help
+    return StatusEnum.reviewable
+
+
 async def load_wms_reports(
     session: async_scoped_session,
     job: Job,
@@ -637,7 +696,7 @@ async def load_wms_reports(
         Associated Job
     """
     if wms_run_report.job_summary is None:
-        return job
+        wms_run_report.job_summary = compile_job_summary(wms_run_report.jobs)
     for task_name, job_summary in wms_run_report.job_summary.items():
         fullname = f"{job.fullname}/{task_name}"
         wms_dict = {f"n_{wms_state_.name.lower()}": count_ for wms_state_, count_ in job_summary.items()}
@@ -689,3 +748,18 @@ async def load_error_types(
         ret_list.append(new_error_type)
 
     return ret_list
+
+
+async def compute_job_status(
+    session: async_scoped_session,
+    job: Job,
+) -> StatusEnum:
+    await session.refresh(
+        job,
+        attribute_names=["wms_reports_", "errors_", "tasks_", "products_"],
+    )
+
+    if job.errors_:
+        return StatusEnum.reviewable
+
+    return StatusEnum.accepted
