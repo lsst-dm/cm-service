@@ -258,6 +258,8 @@ def get_row_by_fullname_function(
             fullname=fullname,
         )
         results = obj.client.get(f"{query}", params=params.model_dump()).json()
+        # I need to figure out a better way how to check if the request bombed.
+        # For now this works.
         if "detail" in results:
             return None
         try:
@@ -297,6 +299,8 @@ def get_row_by_name_function(
             name=name,
         )
         results = obj.client.get(f"{query}", params=params.model_dump()).json()
+        # I need to figure out a better way how to check if the request bombed.
+        # For now this works.
         if "detail" in results:
             return None
         try:

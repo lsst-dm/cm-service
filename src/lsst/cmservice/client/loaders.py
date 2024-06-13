@@ -246,6 +246,12 @@ class CMLoadClient:
                 continue
 
             # FIXME
+            # I was too lazy to redo the association stuff for the update case
+            # mostly b/c we should probably just ditch the whole
+            # SpecBlockAssociation and ScriptTemplateAssociation thing. It is
+            # doing the same thing as the spec_aliases and that fits better
+            # into how we do everything else.
+            #
             # script_template_assoc =
             # self._parent.script_template_association.update(
             #    row_id=script_template_assoc.id,
@@ -279,6 +285,12 @@ class CMLoadClient:
                 continue
 
             # FIXME
+            # I was too lazy to redo the association stuff for the update case
+            # mostly b/c we should probably just ditch the whole
+            # SpecBlockAssociation and ScriptTemplateAssociation thing. It is
+            # doing the same thing as the spec_aliases and that fits better
+            # into how we do everything else.
+            #
             # spec_block_assoc = self._parent.spec_block_association.update(
             #    row_id=spec_block_assoc.id,
             #    spec_name=spec_name,
