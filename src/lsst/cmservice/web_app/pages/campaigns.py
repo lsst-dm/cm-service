@@ -26,7 +26,7 @@ async def get_campaign_details(session: async_scoped_session, campaign: Campaign
         "id": campaign.id,
         "name": campaign.name,
         "lsst_version": campaign.data["lsst_version"],
-        "root": collections["root"],
+        "out": collections["out"],
         "source": collections["campaign_source"],
         "status": map_status(campaign.status),
         "groups_completed": f"{no_groups_completed} of {len(groups)} groups completed",
