@@ -6,7 +6,6 @@
       name: LSSTComCamSim_DRP_campaign
       includes: ["base_campaign"]
       collections:
-          root: u/fritzm/cm/ops-rehearsal-3
           campaign_source: LSSTComCamSim/raw/test-or3-2
           campaign_ancillary_inputs:
               - LSSTComCamSim/calib
