@@ -529,7 +529,7 @@ async def load_manifest_report(
         n_expected = task_data_.get("n_expected", 0)
         n_failed = len(failed_quanta)
         n_failed_upstream = task_data_.get("n_quanta_blocked", 0)
-        n_done = n_expected - n_failed - n_failed_upstream
+        n_done = task_data_.get("succeded", 0)
 
         try:
             task_set = await TaskSet.create_row(
@@ -566,9 +566,9 @@ async def load_manifest_report(
                     fullname=f"{task_set.fullname}/{data_type_}",
                     n_expected=counts_.get("expected", 0),
                     n_done=counts_.get("produced", 0),
-                    n_failed=counts_.get("missing_failed", 0),
-                    n_failed_upstream=counts_.get("missing_upsteam_failed", 0),
-                    n_missing=counts_.get("missing_not_produced", 0),
+                    n_failed=counts_.get("failed", 0),
+                    n_failed_upstream=counts_.get("blocked", 0),
+                    n_missing=counts_.get("not_produced", 0),
                 )
             except Exception:  # pylint: disable=broad-exception-caught
                 product_set = await ProductSet.get_row_by_fullname(
@@ -584,9 +584,9 @@ async def load_manifest_report(
                     fullname=f"{task_set.fullname}/{data_type_}",
                     n_expected=counts_.get("expected", 0),
                     n_done=counts_.get("produced", 0),
-                    n_failed=counts_.get("missing_failed", 0),
-                    n_failed_upstream=counts_.get("missing_upsteam_failed", 0),
-                    n_missing=counts_.get("missing_not_produced", 0),
+                    n_failed=counts_.get("failed", 0),
+                    n_failed_upstream=counts_.get("blocked", 0),
+                    n_missing=counts_.get("not_produced", 0),
                 )
 
         for failed_quanta_uuid_, failed_quanta_data_ in failed_quanta.items():
