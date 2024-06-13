@@ -13,6 +13,15 @@ async def get_group_by_id(
     async with session.begin_nested():
         results = await session.scalars(q)
         group = results.first()
+        print(f"group id: {group.id}")
+        reports = await group.get_wms_reports(session)
+        wms_report = []
+        for report in reports:
+            tasks = report[1]
+            for task in tasks:
+                print(f"TASK {task}: {tasks[task].n_succeeded}")
+                wms_report.append(f"{task} - succeeded: {tasks[task].n_succeeded}")
+            # print(reports[report].n_succeeded)
         collections = await group.resolve_collections(session)
         jobs = await get_group_jobs(session, group)
         scripts = await get_group_scripts(session, group)
@@ -25,6 +34,7 @@ async def get_group_by_id(
             "data": group.data,
             "collections": collections,
             "child_config": group.child_config,
+            "wms_report": wms_report,
         }
 
         return group_details, jobs, scripts
@@ -34,6 +44,9 @@ async def get_group_jobs(session: async_scoped_session, group: Group) -> list[di
     jobs = await group.children(session)
     group_jobs = []
     for job in jobs:
+        # print(f"job id: {job.id}")
+        # reports = await job.get_wms_reports(session)
+        # print(reports)
         group_jobs.append(
             {
                 "id": job.id,

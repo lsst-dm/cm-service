@@ -52,6 +52,12 @@
             <div class="block text-sm">{{key}}: {{value}}</div>
             {% endfor %}
         </div>
+        <div class="block items-center pt-2">
+            <span class="text-sm font-bold">WMS Task Report</span>
+            {% for task in group.wms_report %}
+            <div class="block text-sm">{{task}}</div>
+            {% endfor %}
+        </div>
     </div>
     <div class="w-full px-4 py-5 sm:p-6">
         <div class="flex items-center">

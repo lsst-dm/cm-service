@@ -186,9 +186,6 @@ async def get_group(
 ) -> HTMLResponse:
     try:
         group_details, jobs, scripts = await get_group_by_id(session, group_id)
-        # print(group)
-        # group_details = await get_group_details(session, group)
-        # print(group_details)
         return templates.TemplateResponse(
             name="group_details.html",
             request=request,
