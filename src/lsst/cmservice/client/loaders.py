@@ -386,6 +386,91 @@ class CMLoadClient:
         "load/specification",
     )
 
+    def campaign_cl(
+        self,
+        campaign_yaml: str,
+        yaml_file: str | None = None,
+        *,
+        allow_update: bool = False,
+        **kwargs: Any,
+    ) -> models.Campaign:
+        """Read a yaml file and create campaign
+
+        Parameters
+        ----------
+        campaign_yaml: str
+            Yaml file with campaign overrides
+
+        yaml_file: str
+            Optional yaml file with specifications
+
+        allow_update: bool
+            Allow updating existing specification items
+
+        Note
+        ----
+        The keywords optionally override values from the config_file
+
+        Keywords
+        --------
+        name: str | None
+            Name for the campaign
+
+        parent_name: str | None
+            Name for the production
+
+        spec_name: str | None
+            Name of the specification to use
+
+        handler: str | None
+            Name of the callback Handler to use
+
+        data: dict | None
+            Overrides for the campaign data parameter dict
+
+        child_config: dict | None
+            Overrides for the campaign child_config dict
+
+        collections: dict | None
+            Overrides for the campaign collection dict
+
+        spec_aliases: dict | None
+            Overrides for the campaign spec_aliases dict
+
+        Returns
+        -------
+        campaign : `Campaign`
+            Newly created `Campaign`
+        """
+        if yaml_file is not None:
+            self.specification_cl(yaml_file, allow_update=allow_update)
+
+        with open(campaign_yaml, encoding="utf-8") as fin:
+            config_data = yaml.safe_load(fin)
+
+        # flush out config_data with kwarg overrides
+        for key in ["name", "parent_name", "spec_name", "handler"]:
+            val = kwargs.get(key, None)
+            if val:
+                config_data[key] = val
+
+        for key in ["data", "child_config", "collections", "spec_aliases"]:
+            config_data.setdefault(key, {})
+            val = kwargs.get(key, None)
+            if val:
+                config_data[key].update(val)
+
+        parent_name = config_data["parent_name"]
+
+        production = self._parent.production.get_row_by_name(parent_name)
+        if not production:
+            self._parent.production.create(name=parent_name)
+
+        spec_name = config_data["spec_name"]
+        config_data["spec_block_assoc_name"] = f"{spec_name}#campaign"
+        campaign = self._parent.campaign.create(**config_data)
+        return campaign
+
     campaign = wrappers.get_general_post_function(
         models.LoadAndCreateCampaign,
         models.Campaign,

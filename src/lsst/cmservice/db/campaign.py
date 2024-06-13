@@ -168,11 +168,11 @@ class Campaign(Base, ElementMixin):
         if not spec_block_assoc_name:
             try:
                 spec_name = kwargs["spec_name"]
-                spec_block_name = kwargs["spec_block_name"]
+                spec_block_name = kwargs.get("spec_block_name", "campaign")
                 spec_block_assoc_name = f"{spec_name}#{spec_block_name}"
             except KeyError as msg:
                 raise CMMissingRowCreateInputError(
-                    "Either spec_block_assoc_name or (spec_name and spec_block_name) required",
+                    "Either spec_block_assoc_name or spec_name required",
                 ) from msg
         spec_block_assoc = await SpecBlockAssociation.get_row_by_fullname(
             session,

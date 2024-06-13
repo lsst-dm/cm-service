@@ -52,6 +52,7 @@ def specification(
 @load.command(name="campaign")
 @options.cmclient()
 @options.output()
+@options.campaign_yaml()
 @options.yaml_file()
 @options.name()
 @options.parent_name()
@@ -69,7 +70,7 @@ def campaign(
     **kwargs: Any,
 ) -> None:
     """Load a Specification from a yaml file and make a Campaign"""
-    result = client.load.campaign(**kwargs)
+    result = client.load.campaign_cl(**kwargs)
     output_pydantic_object(result, output, db.Campaign.col_names_for_table)
 
 
