@@ -16,7 +16,7 @@
           data_query:
           bps_wms_clustering_file: "${DRP_PIPE_DIR}/bps/clustering/DRP-recalibrated.yaml"
           bps_wms_resources_file: "${DRP_PIPE_DIR}/bps/resources/LSSTCam-imSim/DRP-test-med-1.yaml"
-          extra_qgraph_options: |
+          extra_qgraph_options: >
             -c parameters:sasquatch_dataset_identifier=DC2/TestMed1
             -c parameters:sasquatch_timestamp_version=reference_package_timestamp
       steps:
@@ -53,7 +53,7 @@
                     split_method: split_by_query
                     split_min_groups: 2
                 data:
-                    extra_qgraph_options: |
+                    extra_qgraph_options: >
                         -c parameters:sasquatch_dataset_identifier=DC2/TestMed1
                         -c parameters:sasquatch_timestamp_version=reference_package_timestamp
                         --dataset-query-constraint finalVisitSummary
@@ -104,7 +104,7 @@
                 spec_block: LSSTCam-imSim_DRP-test-med-1_faro_tract
                 prerequisites: ['step3']
                 child_config:
-                    base_query: |
+                    base_query: >
                       instrument='LSSTCam-imSim' AND skymap='DC2' AND tract IN (3828, 3829) AND
                       band IN ('u', 'g', 'r', 'i', 'z', 'y')
           - Step:
