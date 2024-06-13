@@ -750,7 +750,7 @@ async def load_error_types(
     return ret_list
 
 
-def compute_job_status(
+async def compute_job_status(
     session: async_scoped_session,
     job: Job,
 ) -> StatusEnum:
