@@ -383,6 +383,8 @@ async def add_steps(
     spec_aliases = await campaign.get_spec_aliases(session)
 
     current_steps = await campaign.children(session)
+    child_config = await campaign.get_child_config(session)
+
     step_ids_dict = {step_.name: step_.id for step_ in current_steps}
 
     prereq_pairs = []
@@ -398,6 +400,8 @@ async def add_steps(
                 f"Step {child_name_} of {campaign.fullname} does contain 'spec_block'",
             )
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
+        update_include_dict(step_config_, child_config.get(child_name_, {}))
+
         new_step = await Step.create_row(
             session,
             name=child_name_,

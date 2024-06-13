@@ -16,6 +16,7 @@ __all__ = [
     "alias",
     "allow_update",
     "collections",
+    "campaign_yaml",
     "child_config",
     "child_configs",
     "data",
@@ -177,6 +178,13 @@ alias = PartialOption(
     type=str,
     default=None,
     help="Alias for a ScriptTemplate or SpecBlock association",
+)
+
+
+campaign_yaml = PartialOption(
+    "--campaign_yaml",
+    type=str,
+    help="Path to campaign yaml file",
 )
 
 
