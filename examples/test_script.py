@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
-# import os
+import os
+
+dry_run = False
 
 prod_dict = {
-    "ComCamSim_DRP-ops-rehearsal-3": "ComCamSim_DRP-ops-rehearsal_3",
     "HSC_DRP-Prod": "HSC_DRP-Prod",
     "HSC_DRP-RC2": "HSC_DRP-RC2",
     "HSC_DRP-RC2_subset": "HSC_DRP-RC2_subset",
@@ -28,13 +29,19 @@ for wms in ["panda", "htcondor"]:
         com1 += f"--campaign_yaml examples/example_{key}_start.yaml "
         com1 += f"--parent_name {key} "
         com1 += f"--name {test_name}_{wms} "
-        com1 += f'--data "lsst_version:{weekly_name}; prod_area:output_archive;" '
-        com1 + -f"--collections out:{key}/{weekly_name}_test"
+        com1 += f"--spec_name {key}_{wms} "
+        com1 += f'--data "lsst_version:{weekly_name}; prod_area:output/archive;" '
+        com1 += f"--collections out:{key}/{weekly_name}_test"
         print(com1)
-        # os.system(com1)
+        if not dry_run:
+            os.system(com1)
 
+
+for wms in ["panda", "htcondor"]:
+    for key, val in prod_dict.items():
         com2 = f"cm-client action process --fullname {key}/{test_name}_{wms} --fake_status accepted"
         print(com2)
-        # os.system(com2)
-
-        # os.system("sleep 30")
+        if not dry_run:
+            pass
+            # os.system(com2)
+            # os.system("sleep 30")

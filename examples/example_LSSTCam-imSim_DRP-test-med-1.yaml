@@ -7,6 +7,7 @@
       includes: ["base_campaign_fixed_input"]
       collections:
           campaign_input: 2.2i/defaults/test-med-1
+          campaign_ancillary: "{out}/ancillary"
       data:
           butler_repo: '/repo/dc2+sasquatch_dev'
           prod_area: /sdf/group/rubin/shared/campaigns/DC2-test-med-1/output/archive
