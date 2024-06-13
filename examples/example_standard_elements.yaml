@@ -131,3 +131,4 @@
           bps_core_yaml_template: bps_core_yaml_template
           manifest_script_template: stack_script_template
           lsst_version: MUST_OVERRIDE
+          lsst_distrib_dir: /cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib

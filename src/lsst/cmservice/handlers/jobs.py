@@ -95,6 +95,7 @@ class BpsScriptHandler(ScriptHandler):
             prod_area = os.path.expandvars(data_dict["prod_area"])
             butler_repo = os.path.expandvars(data_dict["butler_repo"])
             lsst_version = os.path.expandvars(data_dict["lsst_version"])
+            lsst_distrib_dir = os.path.expandvars(data_dict["lsst_distrib_dir"])
             pipeline_yaml = os.path.expandvars(data_dict["pipeline_yaml"])
             run_coll = resolved_cols["run"]
             input_colls = resolved_cols["inputs"]
@@ -148,6 +149,7 @@ class BpsScriptHandler(ScriptHandler):
         command = f"bps --log-file {json_url} --no-log-tty submit {os.path.abspath(config_url)} > {log_url}"
 
         prepend = bps_core_script_template_.data["text"].replace("{lsst_version}", lsst_version)
+        prepend = prepend.replace("{lsst_distrib_dir}", lsst_distrib_dir)
         prepend += bps_wms_script_template_.data["text"]
 
         await write_bash_script(script_url, command, prepend=prepend)
@@ -451,6 +453,7 @@ class ManifestReportScriptHandler(ScriptHandler):
         prod_area = os.path.expandvars(data_dict["prod_area"])
         script_url = await self._set_script_files(session, script, prod_area)
         butler_repo = data_dict["butler_repo"]
+        lsst_distrib_dir = data_dict["lsst_distrib_dir"]
         lsst_version = data_dict["lsst_version"]
         job_run_coll = resolved_cols["job_run"]
         qgraph_file = f"{job_run_coll}.qgraph".replace("/", "_")
@@ -463,6 +466,7 @@ class ManifestReportScriptHandler(ScriptHandler):
             data_dict["manifest_script_template"],
         )
         prepend = manifest_script_template.data["text"].replace("{lsst_version}", lsst_version)
+        prepend = prepend.replace("{lsst_distrib_dir}", lsst_distrib_dir)
         if "custom_lsst_setup" in data_dict:
             custom_lsst_setup = data_dict["custom_lsst_setup"]
             prepend += f"\n{custom_lsst_setup}"
