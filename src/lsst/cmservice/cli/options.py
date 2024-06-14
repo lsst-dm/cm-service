@@ -400,7 +400,7 @@ script_name = PartialOption(
 spec_block_assoc_name = PartialOption(
     "--spec_block_assoc_name",
     type=str,
-    help="Name of the SpecBlockAssociation",
+    help="Combined name of Specification and SpecBlock",
 )
 
 
@@ -422,20 +422,6 @@ spec_aliases = PartialOption(
     "--spec_aliases",
     type=DictParamType(),
     help="Spec aliases to update",
-)
-
-
-spec_block_name = PartialOption(
-    "--spec_block_name",
-    type=str,
-    help="Name of the SpecBlock",
-)
-
-
-spec_block_assoc_name = PartialOption(
-    "--spec_block_assoc_name",
-    type=str,
-    help="Name of the SpecBlockAssociation",
 )
 
 

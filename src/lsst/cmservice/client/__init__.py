@@ -33,10 +33,8 @@ from .queries import CMQueryClient
 from .queues import CMQueueClient
 from .script_dependencies import CMScriptDependencyClient
 from .script_errors import CMScriptErrorClient
-from .script_template_associations import CMScriptTemplateAssociationClient
 from .script_templates import CMScriptTemplateClient
 from .scripts import CMScriptClient
-from .spec_block_associations import CMSpecBlockAssociationClient
 from .spec_blocks import CMSpecBlockClient
 from .specifications import CMSpecificationClient
 from .step_dependencies import CMStepDependencyClient
@@ -60,10 +58,8 @@ __all__ = [
     "CMQueueClient",
     "CMScriptDependencyClient",
     "CMScriptErrorClient",
-    "CMScriptTemplateAssociationClient",
     "CMScriptTemplateClient",
     "CMScriptClient",
-    "CMSpecBlockAssociationClient",
     "CMSpecBlockClient",
     "CMSpecificationClient",
     "CMStepDependencyClient",

@@ -113,15 +113,13 @@
                     base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
 - Specification:
       name: LSSTCam-imSim_DRP-test-med-1_panda
-      script_templates: []
-      spec_blocks:
-          - SpecBlockAssociation: {spec_block_name: LSSTCam-imSim_DRP-test-med-1_campaign, alias: campaign}
-          - SpecBlockAssociation: {spec_block_name: bps_panda_submit_script, alias: bps_submit_script}
-          - SpecBlockAssociation: {spec_block_name: bps_panda_report_script, alias: bps_report_script}
+      spec_aliases:
+          campaign: LSSTCam-imSim_DRP-test-med-1_campaign
+          bps_submit_script: bps_panda_submit_script
+          bps_report_script: bps_panda_report_script
 - Specification:
       name: LSSTCam-imSim_DRP-test-med-1_htcondor
-      script_templates: []
-      spec_blocks:
-          - SpecBlockAssociation: {spec_block_name: LSSTCam-imSim_DRP-test-med-1_campaign, alias: campaign}
-          - SpecBlockAssociation: {spec_block_name: bps_htcondor_submit_script, alias: bps_submit_script}
-          - SpecBlockAssociation: {spec_block_name: bps_htcondor_report_script, alias: bps_report_script}
+      spec_aliases:
+          campaign: LSSTCam-imSim_DRP-test-med-1_campaign
+          bps_submit_script: bps_htcondor_submit_script
+          bps_report_script: bps_htcondor_report_script

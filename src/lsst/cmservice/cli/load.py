@@ -23,8 +23,6 @@ def specification(
     specifications = result.get("Specification", [])
     spec_blocks = result.get("SpecBlock", [])
     script_templates = result.get("ScriptTemplate", [])
-    spec_block_assocs = result.get("SpecBlockAssociation", [])
-    script_template_assocs = result.get("ScriptTemplateAssociation", [])
 
     do_print = output not in [options.OutputEnum.json, options.OutputEnum.yaml]
     if specifications:
@@ -39,14 +37,6 @@ def specification(
         if do_print:
             print("ScriptTemplates: -----")
         output_pydantic_list(script_templates, output, db.ScriptTemplate.col_names_for_table)
-    if spec_block_assocs:
-        if do_print:
-            print("SpecBlockAssociations: -----")
-        output_pydantic_list(spec_block_assocs, output, db.SpecBlockAssociation.col_names_for_table)
-    if script_template_assocs:
-        if do_print:
-            print("ScriptTemplateAssociations: -----")
-        output_pydantic_list(script_template_assocs, output, db.ScriptTemplateAssociation.col_names_for_table)
 
 
 @load.command(name="campaign")

@@ -12,6 +12,18 @@ class SpecificationBase(BaseModel):
     # Unique name for this
     name: str
 
+    # Parameter Overrides
+    data: dict | str | None = None
+
+    # Overrides for configuring child nodes
+    child_config: dict | str | None = None
+
+    # Overrides for making collection names
+    collections: dict | str | None = None
+
+    # Overrides for which SpecBlocks to use in constructing child Nodes
+    spec_aliases: dict | str | None = None
+
 
 class SpecificationCreate(SpecificationBase):
     """Parameters that are used to create new rows but not in DB tables"""

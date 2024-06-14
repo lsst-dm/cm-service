@@ -17,10 +17,8 @@ from .queries import CMQueryClient
 from .queues import CMQueueClient
 from .script_dependencies import CMScriptDependencyClient
 from .script_errors import CMScriptErrorClient
-from .script_template_associations import CMScriptTemplateAssociationClient
 from .script_templates import CMScriptTemplateClient
 from .scripts import CMScriptClient
-from .spec_block_associations import CMSpecBlockAssociationClient
 from .spec_blocks import CMSpecBlockClient
 from .specifications import CMSpecificationClient
 from .step_dependencies import CMStepDependencyClient
@@ -56,8 +54,6 @@ class CMClient:  # pylint: disable=too-many-instance-attributes
         self.task_set = CMTaskSetClient(self)
         self.wms_task_report = CMWmsTaskReportClient(self)
 
-        self.script_template_association = CMScriptTemplateAssociationClient(self)
-        self.spec_block_association = CMSpecBlockAssociationClient(self)
         self.script_dependency = CMScriptDependencyClient(self)
         self.step_dependency = CMStepDependencyClient(self)
 

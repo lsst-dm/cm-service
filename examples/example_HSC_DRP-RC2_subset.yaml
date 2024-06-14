@@ -70,15 +70,13 @@
           bps_wms_resources_file: "${DRP_PIPE_DIR}/bps/resources/HSC/DRP-RC2.yaml"
 - Specification:
       name: HSC_DRP-RC2_subset_panda
-      script_templates: []
-      spec_blocks:
-          - SpecBlockAssociation: {spec_block_name: HSC_DRP-RC2_subset_campaign, alias: campaign}
-          - SpecBlockAssociation: {spec_block_name: bps_panda_submit_script, alias: bps_submit_script}
-          - SpecBlockAssociation: {spec_block_name: bps_panda_report_script, alias: bps_report_script}
+      spec_aliases:
+          campaign: HSC_DRP-RC2_subset_campaign
+          bps_submit_script: bps_panda_submit_script
+          bps_report_script: bps_panda_report_script
 - Specification:
       name: HSC_DRP-RC2_subset_htcondor
-      script_templates: []
-      spec_blocks:
-          - SpecBlockAssociation: {spec_block_name: HSC_DRP-RC2_subset_campaign, alias: campaign}
-          - SpecBlockAssociation: {spec_block_name: bps_htcondor_submit_script, alias: bps_submit_script}
-          - SpecBlockAssociation: {spec_block_name: bps_htcondor_report_script, alias: bps_report_script}
+      spec_aliases:
+          campaign: HSC_DRP-RC2_subset_campaign
+          bps_submit_script: bps_htcondor_submit_script
+          bps_report_script: bps_htcondor_report_script

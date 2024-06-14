@@ -4,7 +4,6 @@ from typing import Any
 
 import yaml
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from lsst.ctrl.bps.wms_service import WmsJobReport, WmsStates, WmsRunReport
@@ -19,9 +18,7 @@ from ..db.pipetask_error import PipetaskError
 from ..db.pipetask_error_type import PipetaskErrorType
 from ..db.product_set import ProductSet
 from ..db.script_template import ScriptTemplate
-from ..db.script_template_association import ScriptTemplateAssociation
 from ..db.spec_block import SpecBlock
-from ..db.spec_block_association import SpecBlockAssociation
 from ..db.specification import Specification
 from ..db.step import Step
 from ..db.step_dependency import StepDependency
@@ -212,48 +209,17 @@ async def upsert_specification(
         Newly created or updated Specification
     """
     spec_name = config_values["name"]
-    script_templates = config_values.get("script_templates", [])
-    spec_blocks = config_values.get("spec_blocks", [])
 
     spec_q = select(Specification).where(Specification.name == spec_name)
     spec_result = await session.scalars(spec_q)
     specification = spec_result.first()
+    if specification is None and not allow_update:
+        print(f"Specification {spec_name} already defined, skipping it")
+        return None
+
     if specification is None:
-        specification = Specification(name=spec_name)
-        session.add(specification)
-
-    for script_list_item_ in script_templates:
-        try:
-            script_template_config_ = script_list_item_["ScriptTemplateAssociation"]
-        except KeyError as msg:
-            raise CMYamlParseError(
-                f"Expected ScriptTemplateAssociation not {list(script_list_item_.keys())}",
-            ) from msg
-        try:
-            _new_script_template_assoc = await ScriptTemplateAssociation.create_row(
-                session,
-                spec_name=spec_name,
-                **script_template_config_,
-            )
-        except IntegrityError:
-            print("ScriptTemplateAssociation already defined, skipping it")
-
-    for spec_block_list_item_ in spec_blocks:
-        try:
-            spec_block_config_ = spec_block_list_item_["SpecBlockAssociation"]
-        except KeyError as msg:
-            raise CMYamlParseError(
-                f"Expected SpecBlockAssociation not {list(spec_block_list_item_.keys())}",
-            ) from msg
-        try:
-            _new_spec_block_assoc = await SpecBlockAssociation.create_row(
-                session,
-                spec_name=spec_name,
-                **spec_block_config_,
-            )
-        except IntegrityError:
-            print("SpecBlockAssociation already defined, skipping it")
-    return specification
+        return await Specification.create_row(session, **config_values)
+    return await specification.update_values(session, **config_values)
 
 
 async def load_specification(
