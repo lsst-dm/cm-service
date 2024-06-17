@@ -14,7 +14,7 @@
           butler_repo: '/repo/dc2+sasquatch_dev'
           prod_area: /sdf/group/rubin/shared/campaigns/DC2-test-med-1/output/archive
           data_query:
-          bps_wms_clustering_file: "${DRP_PIPE_DIR}/bps/clustering/DRP-recalibrated.yaml"
+          bps_wms_clustering_file: "${DRP_PIPE_DIR}/bps/clustering/LSSTCam-imSim/DRP-DC2-clustering.yaml"
           bps_wms_resources_file: "${DRP_PIPE_DIR}/bps/resources/LSSTCam-imSim/DRP-test-med-1.yaml"
           extra_qgraph_options: >
             -c parameters:sasquatch_dataset_identifier=DC2/TestMed1
@@ -114,14 +114,14 @@
                 child_config:
                     base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
 - Specification:
-      name: LSSTCam-imSim_DRP-test-med-1_test_panda
+      name: LSSTCam-imSim_DRP-test-med-1_panda
       script_templates: []
       spec_blocks:
           - SpecBlockAssociation: {spec_block_name: LSSTCam-imSim_DRP-test-med-1_campaign, alias: campaign}
           - SpecBlockAssociation: {spec_block_name: bps_panda_submit_script, alias: bps_submit_script}
           - SpecBlockAssociation: {spec_block_name: bps_panda_report_script, alias: bps_report_script}
 - Specification:
-      name: LSSTCam-imSim_DRP-test-med-1_test_condor
+      name: LSSTCam-imSim_DRP-test-med-1_htcondor
       script_templates: []
       spec_blocks:
           - SpecBlockAssociation: {spec_block_name: LSSTCam-imSim_DRP-test-med-1_campaign, alias: campaign}
