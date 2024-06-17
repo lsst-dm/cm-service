@@ -112,38 +112,3 @@ async def reset_script(
     except Exception as msg:
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
     return result
-
-
-@router.put(
-    "/action/{row_id}/copy",
-    response_model=models.Script,
-    summary=f"Make a copy of a {DbClass.class_string}",
-)
-async def copy(
-    row_id: int,
-    session: async_scoped_session = Depends(db_session_dependency),
-) -> db.Script:
-    """Create and return a cope of a script
-
-    Parameters
-    ----------
-    row_id: int
-        ID of the script in question
-
-    session: async_scoped_session
-        DB session manager
-
-    Returns
-    -------
-    new_script: Script
-        Newly copied Script
-    """
-    try:
-        async with session.begin():
-            script = await DbClass.get_row(session, row_id)
-            result = await script.copy_script(session)
-    except CMMissingIDError as msg:
-        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-    except Exception as msg:
-        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
-    return result
