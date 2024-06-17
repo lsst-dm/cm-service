@@ -434,5 +434,7 @@ class CampaignHandler(ElementHandler):
 
         spec_block = await element.get_spec_block(session)
         child_configs = spec_block.steps
+        if TYPE_CHECKING:
+            assert isinstance(child_configs, list)
         await add_steps(session, element, child_configs)
         return await ElementHandler.prepare(self, session, element)
