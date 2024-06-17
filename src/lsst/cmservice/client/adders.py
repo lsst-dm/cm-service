@@ -24,6 +24,6 @@ class CMAddClient:
 
     groups = wrappers.get_general_post_function(models.AddGroups, list[models.Group], "add/groups")
 
-    steps = wrappers.get_general_post_function(models.AddSteps, list[models.Step], "add/steps")
+    steps = wrappers.get_general_post_function(models.AddSteps, models.Campaign, "add/steps")
 
     campaign = wrappers.get_general_post_function(models.CampaignCreate, models.Campaign, "add/campaign")

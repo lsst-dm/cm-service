@@ -1,0 +1,30 @@
+- Production:
+      name: LSSTComCamSim_DRP
+- Campaign:
+      name: MUST_OVERRIDE
+      spec_name: LSSTComCamSim_DRP_htcondor
+      collections:
+          out: MUST_OVERRIDE
+          # campaign_source: LSSTComCamSim/raw/test-or3-2
+          # campaign_ancillary_inputs:
+          #     - LSSTComCamSim/calib
+          #     - refcats
+          #     - skymaps
+      data:
+          lsst_version: MUST_OVERRIDE
+          prod_area: MUST_OVERRIDE
+#             lsst_version: w_2024_22
+#             prod_area: 'output/archive'
+#             butler_repo: '/repo/ops-rehearsal-3-prep'
+#             data_query: "instrument='LSSTComCamSim' and skymap='ops_rehersal_prep_2k_v1'"
+#             bps_wms_clustering_file: ${DRP_PIPE_DIR}/bps/clustering/DRP-recalibrated.yaml
+#             bps_wms_resources_file: ${DRP_PIPE_DIR}/bps/resources/LSSTComCamSim/DRP-ops-rehearsals.yaml
+#
+# Examples of how to override step specific stuff
+#     child_config:
+#         step1:
+#             data:
+#                 extra_qraph_options: "something"
+#         step5:
+#             child_config:
+#                 split_min_groups: 5
