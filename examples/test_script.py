@@ -23,7 +23,7 @@ for wms in ["panda", "htcondor"]:
     for key, val in prod_dict.items():
         com1 = "cm-client load campaign "
         com1 += f"--yaml_file examples/example_{key}.yaml "
-        com1 += f"--campaign_yaml examples/example_{key}_start.yaml "
+        com1 += f"--campaign_yaml examples/start_{key}.yaml "
         com1 += f"--parent_name {key} "
         com1 += f"--name {test_name}_{wms} "
         com1 += f"--spec_name {key}_{wms} "

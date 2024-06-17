@@ -1,8 +1,8 @@
 - Production:
-      name:LSSTComCamSim_nightly-validation_DRP
+      name: LSSTComCamSim_nightly-validation
 - Campaign:
       name: MUST_OVERRIDE
-      spec_name: LSSTComCamSim_nightly-validation_DRP_htcondor
+      spec_name: LSSTComCamSim_nightly-validation_htcondor
       collection:
           out: MUST_OVERRIDE
           # campaign_source: LSSTComCamSim/quickLook/24

@@ -1,8 +1,8 @@
 - Production:
-      name: LSSTCam-imSim_DRP-test-med-1_test
+      name: LSSTCam-imSim_DRP-test-med-1
 - Campaign:
       name: MUST_OVERRIDE
-      spec_name: LSSTCam-imSim_DRP-test-med-1_test_condor
+      spec_name: LSSTCam-imSim_DRP-test-med-1_htcondor
       collections:
           out: MUST_OVERRIDE
           # campaign_input: 2.2i/defaults/test-med-1

@@ -1,5 +1,5 @@
 - Production:
-      name: HSC_DRP-RC2_htcondor
+      name: HSC_DRP-RC2
 - Campaign:
       name: MUST_OVERRIDE
       spec_name: HSC_DRP-RC2_htcondor
