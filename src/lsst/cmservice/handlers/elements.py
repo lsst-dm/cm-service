@@ -16,7 +16,6 @@ from lsst.daf.butler import Butler
 from ..common.enums import StatusEnum
 from ..common.errors import CMBadExecutionMethodError, CMMissingScriptInputError
 from ..common.slurm import check_slurm_job
-from .functions import add_steps
 from .script_handler import FunctionHandler
 
 
@@ -343,9 +342,6 @@ class RunStepsScriptHandler(RunElementScriptHandler):
     ) -> StatusEnum:
         if not isinstance(parent, Campaign):
             raise CMBadExecutionMethodError(f"Can not run script {script} on {parent}")
-        spec_block = await parent.get_spec_block(session)
-        child_configs = spec_block.steps
-        await add_steps(session, parent, child_configs)
         status = StatusEnum.prepared
         await script.update_values(session, status=status)
         return status
