@@ -1,6 +1,7 @@
 import re
 from typing import TYPE_CHECKING
 
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..common.enums import ErrorActionEnum, ErrorFlavorEnum, ErrorSourceEnum
@@ -26,6 +27,10 @@ class PipetaskErrorType(Base, RowMixin):
     diagnostic_message: Mapped[str] = mapped_column(unique=True)
 
     errors_: Mapped[list["PipetaskError"]] = relationship("PipetaskError", viewonly=True)
+
+    @hybrid_property
+    def fullname(self) -> str:
+        return f"{self.task_name}#{self.diagnostic_message}".strip()
 
     col_names_for_table = [
         "id",
