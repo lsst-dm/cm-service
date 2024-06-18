@@ -14,7 +14,7 @@
                 spec_block: bps_submit_script
                 collections:
                     run: "{job_run}"
-                    inputs: ["{step_input}", "{campaign_input}", "{campaign_ancillary}"]
+                    inputs: ["{step_input}", "{campaign_input}"]
           - Script:
                 name: bps_report
                 spec_block: bps_report_script
@@ -79,7 +79,7 @@
                 prerequisites: ['collect_groups']
                 spec_block: chain_create_script
                 collections:
-                    inputs: ["{step_output}", "{campaign_input}", "{campaign_ancillary}"]
+                    inputs: ["{step_output}", "{campaign_input}"]
                     output: "{step_public_output}"
       child_config:
           spec_block: group
@@ -91,6 +91,8 @@
       handler: lsst.cmservice.handlers.element_handler.ElementHandler
       collections:
           out: MUST_OVERRIDE
+          campaign_source: MUST_OVERRIDE
+          campaign_tagged_input: "{out}/tagged_input"
           campaign_input: "{out}/input"
           campaign_output: "{out}/output"
           campaign_public_output: "{out}"
@@ -102,7 +104,7 @@
                 spec_block: tag_inputs_script
                 collections:
                     input: "{campaign_source}"
-                    output: "{campaign_input}"
+                    output: "{campaign_tagged_input}"
           - Script:
                 name: ancillary
                 spec_block: chain_create_script
@@ -110,9 +112,16 @@
                     inputs: "{campaign_ancillary_inputs}"
                     output: "{campaign_ancillary}"
           - Script:
+                name: chain_input
+                spec_block: chain_create_script
+                prerequisites: ['tag_inputs', 'ancillary']
+                collections:
+                    inputs: ["{campaign_tagged_input}", "{campaign_ancillary}"]
+                    output: "{campaign_input}"
+          - Script:
                 name: run
                 spec_block: run_steps
-                prerequisites: ['tag_inputs', 'ancillary']
+                prerequisites: ['chain_input']
           - Script:
                 name: collect_steps
                 prerequisites: ['run']
@@ -125,7 +134,43 @@
                 prerequisites: ['collect_steps']
                 spec_block: chain_create_script
                 collections:
-                    inputs: ["{campaign_output}", "{campaign_input}", "{campaign_ancillary}"]
+                    inputs: ["{campaign_output}", "{campaign_input}"]
+                    output: "{campaign_public_output}"
+      data:
+          bps_core_script_template: bps_core_script_template
+          bps_core_yaml_template: bps_core_yaml_template
+          manifest_script_template: stack_script_template
+          lsst_version: MUST_OVERRIDE
+          lsst_distrib_dir: /cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib
+# Campagin Template for fixed inputs
+# This assumes that the input data is already set, it will run the steps and then collect the outputs
+# Note that the steps are not defined here.
+- SpecBlock:
+      name: base_campaign_fixed_input
+      handler: lsst.cmservice.handlers.element_handler.ElementHandler
+      collections:
+          out: MUST_OVERRIDE
+          campaign_input: MUST_OVERRIDE
+          campaign_output: "{out}/output"
+          campaign_public_output: "{out}"
+          campaign_validation: "{out}/validate"
+      scripts:
+          - Script:
+                name: run
+                spec_block: run_steps
+          - Script:
+                name: collect_steps
+                prerequisites: ['run']
+                spec_block: chain_collect_steps_script
+                collections:
+                    inputs: []
+                    output: "{campaign_output}"
+          - Script:
+                name: make_campaign_public_output
+                prerequisites: ['collect_steps']
+                spec_block: chain_create_script
+                collections:
+                    inputs: ["{campaign_output}", "{campaign_input}"]
                     output: "{campaign_public_output}"
       data:
           bps_core_script_template: bps_core_script_template

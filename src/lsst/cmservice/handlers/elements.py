@@ -236,7 +236,6 @@ class SplitByQuery(Splitter):
         butler_repo = data["butler_repo"]
         input_coll = collections["step_input"]
         campaign_input_coll = collections["campaign_input"]
-        campaign_ancil_coll = collections["campaign_ancillary"]
         base_query = kwargs["base_query"]
         split_field = kwargs["split_field"]
         split_dataset = kwargs["split_dataset"]
@@ -246,7 +245,7 @@ class SplitByQuery(Splitter):
         if not fake_status:
             butler = Butler.from_config(
                 butler_repo,
-                collections=[input_coll, campaign_input_coll, campaign_ancil_coll],
+                collections=[input_coll, campaign_input_coll],
                 without_datastore=True,
             )
             itr = butler.registry.queryDataIds([split_field], datasets=split_dataset).subset(unique=True)

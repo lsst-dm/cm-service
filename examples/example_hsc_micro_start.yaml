@@ -1,0 +1,25 @@
+name: MUST_OVERRIDE
+parent_name: hsc_micro
+spec_name: hsc_micro_htcondor
+collections:
+    out: MUST_OVERRIDE
+#   campaign_source: HSC/raw/RC2
+#   campaign_ancillary_inputs: "HSC/calib,HSC/masks,HSC/fgcmcal/lut/RC2,refcats,skymaps"
+data:
+    lsst_version: MUST_OVERRIDE
+    prod_area: MUST_OVERRIDE
+#   lsst_version: w_2024_22
+#   prod_area: 'output/archive'
+#   butler_repo: '/repo/main'
+#   data_query: "instrument = 'HSC' AND exposure in (30504, 30502) AND detector in (45, 46, 47, 48)"
+#   bps_wms_clustering_file: "${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml"
+#   bps_wms_resources_file: "${DRP_PIPE_DIR}/bps/resources/HSC/DRP-RC2.yaml"
+#
+# Examples of how to override step specific stuff
+# child_config:
+#    step1:
+#        data:
+#            extra_qraph_options: "something"
+#    step5:
+#        child_config:
+#            split_min_groups: 5

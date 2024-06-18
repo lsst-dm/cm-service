@@ -4,10 +4,9 @@
       - "${CM_CONFIGS}/example_LATISS_DRP_steps.yaml"
 - SpecBlock:
       name: LATISS_DRP_campaign
-      includes: ["base_campaign"]
+      includes: ["base_campaign_fixed_input"]
       collections:
-          campaign_source: LATISS/defaults
-          campaign_ancillary_inputs: []
+          campaign_input: LATISS/defaults
       data:
           butler_repo: '/repo/embargo'
           prod_area: 'output/archive'

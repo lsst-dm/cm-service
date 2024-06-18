@@ -3,7 +3,7 @@
       - "${CM_CONFIGS}/example_standard_elements.yaml"
       - "${CM_CONFIGS}/example_LSSTComCamSim_nightly-validation-steps.yaml"
 - SpecBlock:
-      name: LSSTComCamSim_nightly-validation_DRP_campaign
+      name: LSSTComCamSim_nightly-validation_campaign
       includes: ["base_campaign"]
       collections:
           root: LSSTComCamSim/runs/nightlyvalidation
@@ -43,16 +43,16 @@
             -c parameters:sasquatch_timestamp_version=run_timestamp
 
 - Specification:
-      name: LSSTComCamSim_nightly-validation_DRP_panda
+      name: LSSTComCamSim_nightly-validation_panda
       script_templates: []
       spec_blocks:
-          - SpecBlockAssociation: {spec_block_name: LSSTComCamSim_nightly-validation_DRP_campaign, alias: campaign}
+          - SpecBlockAssociation: {spec_block_name: LSSTComCamSim_nightly-validation_campaign, alias: campaign}
           - SpecBlockAssociation: {spec_block_name: bps_panda_submit_script, alias: bps_submit_script}
           - SpecBlockAssociation: {spec_block_name: bps_panda_report_script, alias: bps_report_script}
 - Specification:
-      name: LSSTComCamSim_nightly-validation_DRP_htcondor
+      name: LSSTComCamSim_nightly-validation_htcondor
       script_templates: []
       spec_blocks:
-          - SpecBlockAssociation: {spec_block_name: LSSTComCamSim_nightly-validation_DRP_campaign, alias: campaign}
+          - SpecBlockAssociation: {spec_block_name: LSSTComCamSim_nightly-validation_campaign, alias: campaign}
           - SpecBlockAssociation: {spec_block_name: bps_htcondor_submit_script, alias: bps_submit_script}
           - SpecBlockAssociation: {spec_block_name: bps_htcondor_report_script, alias: bps_report_script}
