@@ -233,47 +233,6 @@ class Script(Base, NodeMixin):
 
         return ret_dict
 
-    async def copy_script(
-        self,
-        session: async_scoped_session,
-    ) -> Script:
-        """Copy a script `Script`
-
-        Parameters
-        ----------
-        session : async_scoped_session
-            DB session manager
-
-        Returns
-        -------
-        new_script: Script
-            Newly created script
-        """
-        the_dict = self.__dict__
-        sibs = await self.get_siblings(session)
-        if sibs:
-            the_dict["attempt"] = len(sibs) + 1
-        else:
-            the_dict["attempt"] = 1
-        new_script = Script(**the_dict)
-        session.add(new_script)
-        await session.refresh(new_script)
-
-        await session.refresh(self, attribute_names=["prereqs_", "depends_"])
-        for prereq_ in self.prereqs_:
-            _new_prereq = await ScriptDependency.create_row(
-                session,
-                depend_id=new_script.id,
-                prereq_id=prereq_.prereq_id,
-            )
-        for depend_ in self.depends_:
-            _new_depend = await ScriptDependency.create_row(
-                session,
-                depend_id=depend_.depend_id,
-                prereq_id=new_script.id,
-            )
-        return new_script
-
     async def reset_script(
         self,
         session: async_scoped_session,
