@@ -20,7 +20,6 @@ from .element import ElementMixin
 from .enums import SqlStatusEnum
 from .production import Production
 from .spec_block import SpecBlock
-from .spec_block_association import SpecBlockAssociation
 from .specification import Specification
 
 if TYPE_CHECKING:
@@ -48,8 +47,12 @@ class Campaign(Base, ElementMixin):
     class_string = "campaign"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    spec_block_assoc_id: Mapped[int] = mapped_column(
-        ForeignKey("spec_block_association.id", ondelete="CASCADE"),
+    spec_id: Mapped[int] = mapped_column(
+        ForeignKey("specification.id", ondelete="CASCADE"),
+        index=True,
+    )
+    spec_block_id: Mapped[int] = mapped_column(
+        ForeignKey("spec_block.id", ondelete="CASCADE"),
         index=True,
     )
     parent_id: Mapped[int] = mapped_column(ForeignKey("production.id", ondelete="CASCADE"), index=True)
@@ -63,19 +66,14 @@ class Campaign(Base, ElementMixin):
     collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
     spec_aliases: Mapped[dict | list | None] = mapped_column(type_=JSON)
 
-    spec_block_assoc_: Mapped[SpecBlockAssociation] = relationship("SpecBlockAssociation", viewonly=True)
     spec_: Mapped[Specification] = relationship(
         "Specification",
-        primaryjoin="SpecBlockAssociation.id==Campaign.spec_block_assoc_id",
-        secondary="join(SpecBlockAssociation, Specification)",
-        secondaryjoin="SpecBlockAssociation.spec_id==Specification.id",
+        primaryjoin="Specification.id==Campaign.spec_id",
         viewonly=True,
     )
     spec_block_: Mapped[SpecBlock] = relationship(
         "SpecBlock",
-        primaryjoin="SpecBlockAssociation.id==Campaign.spec_block_assoc_id",
-        secondary="join(SpecBlockAssociation, SpecBlock)",
-        secondaryjoin="SpecBlockAssociation.spec_block_id==SpecBlock.id",
+        primaryjoin="SpecBlock.id==Campaign.spec_block_id",
         viewonly=True,
     )
 
@@ -90,7 +88,7 @@ class Campaign(Base, ElementMixin):
         viewonly=True,
     )
 
-    col_names_for_table = ["id", "fullname", "spec_block_assoc_id", "handler", "status", "superseded"]
+    col_names_for_table = ["id", "fullname", "spec_id", "spec_block_id", "handler", "status", "superseded"]
 
     @hybrid_property
     def db_id(self) -> DbId:
@@ -169,23 +167,61 @@ class Campaign(Base, ElementMixin):
             try:
                 spec_name = kwargs["spec_name"]
                 spec_block_name = kwargs.get("spec_block_name", "campaign")
-                spec_block_assoc_name = f"{spec_name}#{spec_block_name}"
             except KeyError as msg:
                 raise CMMissingRowCreateInputError(
                     "Either spec_block_assoc_name or spec_name required",
                 ) from msg
-        spec_block_assoc = await SpecBlockAssociation.get_row_by_fullname(
+        else:
+            tokens = spec_block_assoc_name.split("#")
+            if len(tokens) != 2:
+                raise ValueError(
+                    f"spec_block_assoc_name not in format spec_name#campaign: {spec_block_assoc_name}",
+                )
+            spec_name = tokens[0]
+            spec_block_name = tokens[1]
+
+        specification = await Specification.get_row_by_fullname(
             session,
-            spec_block_assoc_name,
+            spec_name,
         )
+
+        data = kwargs.get("data", {})
+        child_config = kwargs.get("child_config", {})
+        collections = kwargs.get("collections", {})
+        spec_aliases = kwargs.get("spec_aliases", {})
+
+        await session.refresh(
+            specification,
+            attribute_names=["spec_aliases", "data", "child_config", "collections"],
+        )
+        if specification.data:
+            assert isinstance(specification.data, dict)
+            data.update(**specification.data)
+        if specification.child_config:
+            assert isinstance(specification.child_config, dict)
+            child_config.update(**specification.child_config)
+        if specification.collections:
+            assert isinstance(specification.collections, dict)
+            collections.update(**specification.collections)
+
+        assert isinstance(specification.spec_aliases, dict)
+        spec_aliases.update(**specification.spec_aliases)
+        spec_block_resolved_name = spec_aliases[spec_block_name]
+
+        spec_block = await SpecBlock.get_row_by_fullname(
+            session,
+            spec_block_resolved_name,
+        )
+
         return {
-            "spec_block_assoc_id": spec_block_assoc.id,
+            "spec_id": specification.id,
+            "spec_block_id": spec_block.id,
             "parent_id": production.id,
             "name": name,
             "fullname": f"{production.fullname}/{name}",
             "handler": kwargs.get("handler"),
-            "data": kwargs.get("data", {}),
-            "child_config": kwargs.get("child_config", {}),
-            "collections": kwargs.get("collections", {}),
-            "spec_aliases": kwargs.get("spec_aliases", {}),
+            "data": data,
+            "child_config": child_config,
+            "collections": collections,
+            "spec_aliases": spec_aliases,
         }

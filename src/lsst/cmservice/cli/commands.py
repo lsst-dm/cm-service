@@ -148,16 +148,6 @@ def wms_task_report_group() -> None:
     """Manage WmsTaskReport table"""
 
 
-@client_top.group(name="script_template_association")
-def script_template_association_group() -> None:
-    """Manage ScriptTemplateAssociation table"""
-
-
-@client_top.group(name="spec_block_association")
-def spec_block_association_group() -> None:
-    """Manage SpecBlockAssociation table"""
-
-
 @client_top.group(name="script_dependency")
 def script_dependency_group() -> None:
     """Manage ScriptDependency table"""

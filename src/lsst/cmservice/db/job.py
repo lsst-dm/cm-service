@@ -19,7 +19,6 @@ from .dbid import DbId
 from .element import ElementMixin
 from .enums import SqlStatusEnum
 from .group import Group
-from .spec_block_association import SpecBlockAssociation
 from .step import Step
 
 if TYPE_CHECKING:
@@ -28,6 +27,7 @@ if TYPE_CHECKING:
     from .product_set import ProductSet
     from .production import Production
     from .script import Script
+    from .spec_block import SpecBlock
     from .task_set import TaskSet
     from .wms_task_report import WmsTaskReport
 
@@ -65,7 +65,7 @@ class Job(Base, ElementMixin):
     wms_job_id: Mapped[str | None] = mapped_column()
     stamp_url: Mapped[str | None] = mapped_column()
 
-    spec_block_: Mapped[SpecBlockAssociation] = relationship("SpecBlock", viewonly=True)
+    spec_block_: Mapped[SpecBlock] = relationship("SpecBlock", viewonly=True)
     s_: Mapped[Step] = relationship(
         "Step",
         primaryjoin="Job.parent_id==Group.id",
@@ -205,6 +205,10 @@ class Job(Base, ElementMixin):
             raise CMMissingRowCreateInputError(f"Missing input to create Job: {msg}") from msg
         attempt = kwargs.get("attempt", 0)
         parent = await Group.get_row_by_fullname(session, parent_name)
+        spec_aliases = await parent.get_spec_aliases(session)
+        if spec_aliases:
+            assert isinstance(spec_aliases, dict)
+            spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
         specification = await parent.get_specification(session)
         spec_block = await specification.get_block(session, spec_block_name)
         return {

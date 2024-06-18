@@ -228,6 +228,10 @@ class Script(Base, NodeMixin):
         ret_dict["parent_id"] = element.id
 
         specification = await element.get_specification(session)
+        spec_aliases = await element.get_spec_aliases(session)
+        if spec_aliases:
+            assert isinstance(spec_aliases, dict)
+            spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
         spec_block = await specification.get_block(session, spec_block_name)
         ret_dict["spec_block_id"] = spec_block.id
 

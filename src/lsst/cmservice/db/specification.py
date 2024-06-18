@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 
+from sqlalchemy import JSON
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 
 from ..common.errors import CMSpecficiationError
 from .base import Base
@@ -12,18 +12,10 @@ from .row import RowMixin
 from .script_template import ScriptTemplate
 from .spec_block import SpecBlock
 
-if TYPE_CHECKING:
-    from .script_template_association import ScriptTemplateAssociation
-    from .spec_block_association import SpecBlockAssociation
-
 
 class Specification(Base, RowMixin):
     """Database table to manage mapping and grouping of SpecBlock
     and ScriptTemplate by associating them to a Specification
-
-    The alias field in SpecBlockAssociation and ScriptTemplateAssociation
-    can be used to re-define how those are called out within the
-    context of a Specification
     """
 
     __tablename__ = "specification"
@@ -31,27 +23,10 @@ class Specification(Base, RowMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(index=True)
-
-    block_assocs_: Mapped[list[SpecBlockAssociation]] = relationship("SpecBlockAssociation", viewonly=True)
-    script_template_assocs_: Mapped[list[ScriptTemplateAssociation]] = relationship(
-        "ScriptTemplateAssociation",
-        viewonly=True,
-    )
-
-    blocks_: Mapped[list[SpecBlock]] = relationship(
-        "SpecBlock",
-        primaryjoin="SpecBlockAssociation.spec_id==Specification.id",
-        secondary="join(SpecBlockAssociation, SpecBlock)",
-        secondaryjoin="SpecBlock.id==SpecBlockAssociation.spec_block_id",
-        viewonly=True,
-    )
-    script_templates_: Mapped[list[ScriptTemplate]] = relationship(
-        "ScriptTemplate",
-        primaryjoin="ScriptTemplateAssociation.spec_id==Specification.id",
-        secondary="join(ScriptTemplateAssociation, ScriptTemplate)",
-        secondaryjoin="ScriptTemplate.id==ScriptTemplateAssociation.script_template_id",
-        viewonly=True,
-    )
+    data: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    spec_aliases: Mapped[dict | list | None] = mapped_column(type_=JSON)
 
     col_names_for_table = ["id", "name"]
 
@@ -83,12 +58,6 @@ class Specification(Base, RowMixin):
         spec_block: SpecBlock
             Requested SpecBlock
         """
-        await session.refresh(self, attribute_names=["block_assocs_"])
-        for block_assoc_ in self.block_assocs_:
-            if block_assoc_.alias == spec_block_name:
-                await session.refresh(block_assoc_, attribute_names=["spec_block_"])
-                return block_assoc_.spec_block_
-            # No overrides defined locally, just use the main table
         try:
             spec_block = await SpecBlock.get_row_by_fullname(session, spec_block_name)
             return spec_block
@@ -115,12 +84,6 @@ class Specification(Base, RowMixin):
         script_template: ScriptTemplate
             Requested ScriptTemplate
         """
-        await session.refresh(self, attribute_names=["script_template_assocs_"])
-        for script_template_assoc_ in self.script_template_assocs_:
-            if script_template_assoc_.alias == script_template_name:
-                await session.refresh(script_template_assoc_, attribute_names=["script_template_"])
-                return script_template_assoc_.script_template_
-            # No overrides defined locally, just use the main table
         try:
             script_template = await ScriptTemplate.get_row_by_fullname(session, script_template_name)
             return script_template

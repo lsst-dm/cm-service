@@ -1376,7 +1376,7 @@ async def load_and_create_campaign(  # pylint: disable=too-many-arguments
         Name for the `Campaign` and default value for spec_block_name
 
     spec_block_assoc_name: str | None=None,
-        Name for the `SpecBlockAssociation` to use to build `Campaign`
+        Combined name of Specification and SpecBlock
 
     Returns
     -------

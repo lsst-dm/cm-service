@@ -27,10 +27,8 @@ from .routers import (
     row,
     script_dependencies,
     script_errors,
-    script_template_associations,
     script_templates,
     scripts,
-    spec_block_associations,
     spec_blocks,
     specifications,
     step_dependencies,
@@ -133,11 +131,6 @@ tags_metadata = [
     {"name": "Specifications", "description": "Operations with `specification` table."},
     {"name": "SpecBlocks", "description": "Operations with `spec_block` table."},
     {"name": "ScriptTemplates", "description": "Operations with `script_template` table."},
-    {"name": "SpecBlockAssociations", "description": "Operations with `spec_block_association` table."},
-    {
-        "name": "ScriptTemplateAssociations",
-        "description": "Operations with `script_template_association` table.",
-    },
 ]
 
 
@@ -188,8 +181,6 @@ app.include_router(scripts.router, prefix=config.prefix)
 app.include_router(specifications.router, prefix=config.prefix)
 app.include_router(spec_blocks.router, prefix=config.prefix)
 app.include_router(script_templates.router, prefix=config.prefix)
-app.include_router(spec_block_associations.router, prefix=config.prefix)
-app.include_router(script_template_associations.router, prefix=config.prefix)
 
 app.include_router(pipetask_error_types.router, prefix=config.prefix)
 app.include_router(pipetask_errors.router, prefix=config.prefix)

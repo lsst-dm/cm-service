@@ -111,7 +111,8 @@ class LoadAndCreateCampaign(YamlFileQuery):
     name: str
     # Name of the associated production
     parent_name: str
-    # Name of the SpecBlockAssociation.  If empty use {spec_name}#campaign
+    # Combined name of Specification and SpecBlock
+    # If empty use {spec_name}#campaign
     spec_block_assoc_name: str | None = None
     # Parameter Overrides
     data: dict | str | None = None

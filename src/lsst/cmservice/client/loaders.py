@@ -186,7 +186,7 @@ class CMLoadClient:
         config_values: dict,
         *,
         allow_update: bool = False,
-    ) -> dict:
+    ) -> models.Specification | None:
         """Upsert and return a Specification
 
         This will create a new Specification, or update an existing one
@@ -204,104 +204,21 @@ class CMLoadClient:
         out_dict: dict
             The updated and loaded objects
         """
-        out_dict: dict[str, list[BaseModel]] = dict(
-            Specification=[],
-            SpecBlockAssocication=[],
-            ScriptTemplateAssociation=[],
-        )
-
         spec_name = config_values["name"]
-        script_templates = config_values.get("script_templates", [])
-        spec_blocks = config_values.get("spec_blocks", [])
 
         specification = self._parent.specification.get_row_by_name(spec_name)
-        new_spec = False
+        if specification is not None and not allow_update:
+            print(f"Specification {spec_name} already defined, skipping it")
+            return None
+
         if specification is None:
-            specification = self._parent.specification.create(name=spec_name)
+            specification = self._parent.specification.create(**config_values)
+            return specification
 
-        for script_list_item_ in script_templates:
-            try:
-                script_template_config_ = script_list_item_["ScriptTemplateAssociation"]
-            except KeyError as msg:
-                raise CMYamlParseError(
-                    f"Expected ScriptTemplateAssociation not {list(script_list_item_.keys())}",
-                ) from msg
-
-            script_template_name = script_template_config_["script_template_name"]
-            alias = script_template_config_.get("alias", script_template_name)
-
-            fullname = f"{spec_name}#{alias}"
-            script_template_assoc = self._parent.script_template_association.get_row_by_fullname(
-                fullname=fullname,
-            )
-            if script_template_assoc and not allow_update:
-                print(f"ScriptTemplateAssociation {fullname} already defined, skipping it")
-                continue
-
-            if script_template_assoc is None:
-                script_template_assoc = self._parent.script_template_association.create(
-                    spec_name=spec_name,
-                    **script_template_config_,
-                )
-                out_dict["ScriptTemplateAssociation"].append(script_template_assoc)
-                continue
-
-            # FIXME
-            # I was too lazy to redo the association stuff for the update case
-            # mostly b/c we should probably just ditch the whole
-            # SpecBlockAssociation and ScriptTemplateAssociation thing. It is
-            # doing the same thing as the spec_aliases and that fits better
-            # into how we do everything else.
-            #
-            # script_template_assoc =
-            # self._parent.script_template_association.update(
-            #    row_id=script_template_assoc.id,
-            #    spec_name=spec_name,
-            #    **script_template_config_,
-            # )
-
-        for spec_block_list_item_ in spec_blocks:
-            try:
-                spec_block_config_ = spec_block_list_item_["SpecBlockAssociation"]
-            except KeyError as msg:
-                raise CMYamlParseError(
-                    f"Expected SpecBlockAssociation not {list(spec_block_list_item_.keys())}",
-                ) from msg
-
-            spec_block_name = spec_block_config_["spec_block_name"]
-            alias = spec_block_config_.get("alias", spec_block_name)
-            fullname = f"{spec_name}#{alias}"
-
-            spec_block_assoc = self._parent.spec_block_association.get_row_by_fullname(fullname=fullname)
-            if spec_block_assoc and not allow_update:
-                print(f"ScriptTemplateAssociation {fullname} already defined, skipping it")
-                continue
-
-            if spec_block_assoc is None:
-                spec_block_assoc = self._parent.spec_block_association.create(
-                    spec_name=spec_name,
-                    **spec_block_config_,
-                )
-                out_dict["SpecBlockAssocication"].append(spec_block_assoc)
-                continue
-
-            # FIXME
-            # I was too lazy to redo the association stuff for the update case
-            # mostly b/c we should probably just ditch the whole
-            # SpecBlockAssociation and ScriptTemplateAssociation thing. It is
-            # doing the same thing as the spec_aliases and that fits better
-            # into how we do everything else.
-            #
-            # spec_block_assoc = self._parent.spec_block_association.update(
-            #    row_id=spec_block_assoc.id,
-            #    spec_name=spec_name,
-            #    **spec_block_config_,
-            # )
-
-        if new_spec or allow_update:
-            out_dict["Specification"].append(specification)
-
-        return out_dict
+        return self._parent.specification.update(
+            row_id=specification.id,
+            **config_values,
+        )
 
     def specification_cl(
         self,
@@ -336,8 +253,6 @@ class CMLoadClient:
 
         out_dict: dict[str, list[BaseModel]] = dict(
             Specification=[],
-            SpecBlockAssocication=[],
-            ScriptTemplateAssociation=[],
             SpecBlock=[],
             ScriptTemplate=[],
         )
@@ -369,12 +284,12 @@ class CMLoadClient:
                 if script_template:
                     out_dict["ScriptTemplate"].append(script_template)
             elif "Specification" in config_item:
-                extra_dict = self._upsert_specification(
+                specification = self._upsert_specification(
                     config_item["Specification"],
                     allow_update=allow_update,
                 )
-                for key, val in extra_dict.items():
-                    out_dict[key] += val
+                if specification:
+                    out_dict["Specification"].append(specification)
             else:
                 good_keys = "ScriptTemplate | SpecBlock | Specification | Imports"
                 raise CMYamlParseError(f"Expecting one of {good_keys} not: {spec_data.keys()})")
