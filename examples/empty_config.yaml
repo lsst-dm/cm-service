@@ -16,7 +16,7 @@
           split_min_groups: 2
 - SpecBlock:
       name: campaign
-      handler: lsst.cmservice.handlers.element_handler.ElementHandler
+      handler: lsst.cmservice.handlers.element_handler.CampaignHandler
       collections:
           out: 'cm/hsc_rc2_micro'
           campaign_source: HSC/raw/RC2
@@ -34,5 +34,5 @@
           manifest_script_template: manifest_script_template
 - Specification:
       name: base
-      spec_blocks:
-          - SpecBlockAssociation: {spec_block_name: campaign}
+      spec_aliases:
+          campaign: campaign

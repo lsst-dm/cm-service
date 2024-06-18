@@ -21,9 +21,7 @@ async def test_step_db(engine: AsyncEngine) -> None:
         session = await create_async_session(engine, logger)
         os.environ["CM_CONFIGS"] = "examples"
         specification = await interface.load_specification(session, "examples/empty_config.yaml")
-        check = await db.SpecBlockAssociation.get_row_by_fullname(session, "base#campaign")
         check2 = await specification.get_block(session, "campaign")
-        assert check.fullname == "base#campaign"
         assert check2.name == "campaign"
 
         pname = str(uuid1())
