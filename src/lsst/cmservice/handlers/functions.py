@@ -213,10 +213,9 @@ async def upsert_specification(
     spec_q = select(Specification).where(Specification.name == spec_name)
     spec_result = await session.scalars(spec_q)
     specification = spec_result.first()
-    if specification is None and not allow_update:
+    if specification and not allow_update:
         print(f"Specification {spec_name} already defined, skipping it")
         return None
-
     if specification is None:
         return await Specification.create_row(session, **config_values)
     return await specification.update_values(session, **config_values)
@@ -254,7 +253,6 @@ async def load_specification(
         loaded_specs = {}
 
     specification = None
-
     with open(yaml_file, encoding="utf-8") as fin:
         spec_data = yaml.safe_load(fin)
 
@@ -290,6 +288,7 @@ async def load_specification(
         else:
             good_keys = "ScriptTemplate | SpecBlock | Specification | Imports"
             raise CMYamlParseError(f"Expecting one of {good_keys} not: {spec_data.keys()})")
+
     return specification
 
 
