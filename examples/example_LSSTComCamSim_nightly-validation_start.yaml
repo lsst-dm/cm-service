@@ -1,7 +1,7 @@
 name: MUST_OVERRIDE
 parent_name: LSSTComCamSim_nightly-validation_DRP
 spec_name: LSSTComCamSim_nightly-validation_DRP_htcondor
-collection:
+collections:
     out: MUST_OVERRIDE
 #   campaign_source: LSSTComCamSim/quickLook/24
 #   campaign_ancillary_inputs:

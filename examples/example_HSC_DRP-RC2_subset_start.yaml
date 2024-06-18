@@ -1,7 +1,7 @@
 name: MUST_OVERRIDE
 parent_name: HSC_DRP-RC2_subset
 spec_name: HSC_DRP-RC2_subset_htcondor
-collection:
+collections:
     out: MUST_OVERRIDE
 #   campaign_input: HSC/RC2_subset/defaults
 data:

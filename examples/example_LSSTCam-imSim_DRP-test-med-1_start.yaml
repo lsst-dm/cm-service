@@ -1,7 +1,7 @@
 name: MUST_OVERRIDE
 parent_name: LSSTCam-imSim_DRP-test-med-1_test
 spec_name: LSSTCam-imSim_DRP-test-med-1_test_condor
-collection:
+collections:
     out: MUST_OVERRIDE
 #   campaign_input: 2.2i/defaults/test-med-1
 data:

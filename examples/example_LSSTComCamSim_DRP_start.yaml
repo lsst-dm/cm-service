@@ -1,7 +1,7 @@
 name: MUST_OVERRIDE
 parent_name: LSSTComCamSim_DRP
 spec_name: LSSTComCamSim_DRP_htcondor
-collection:
+collections:
     out: MUST_OVERRIDE
 #   campaign_source: LSSTComCamSim/raw/test-or3-2
 #   campaign_ancillary_inputs:

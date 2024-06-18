@@ -1,7 +1,7 @@
 name: MUST_OVERRIDE
 parent_name: HSC_DRP-Prod
 spec_name: HSC_DRP-Prod_htcondor
-collection:
+collections:
     out: MUST_OVERRIDE
 #   campaign_source: HSC/raw/PDR2/WIDE,HSC/raw/PDR2/DEEP,HSC/raw/PDR2/UDEEP
 data:

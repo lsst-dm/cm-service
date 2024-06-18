@@ -1,7 +1,7 @@
 name: MUST_OVERRIDE
 parent_name: hsc_micro
 spec_name: hsc_micro_htcondor
-collection:
+collections:
     out: MUST_OVERRIDE
 #   campaign_source: HSC/raw/RC2
 #   campaign_ancillary_inputs: "HSC/calib,HSC/masks,HSC/fgcmcal/lut/RC2,refcats,skymaps"

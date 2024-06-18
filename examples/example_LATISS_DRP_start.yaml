@@ -1,7 +1,7 @@
 name: MUST_OVERRIDE
 parent_name: LATISS_DRP
 spec_name: LATISS_DRP_htcondor
-collection:
+collections:
     out: MUST_OVERRIDE
 #   campaign_input: LATISS/defaults
 data:
