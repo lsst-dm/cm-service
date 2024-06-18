@@ -96,7 +96,7 @@ class BpsScriptHandler(ScriptHandler):
         # optional stuff from data_dict
         rescue = data_dict.get("rescue", False)
         skip_colls = data_dict.get("skip_colls", "")
-        lsst_custom_setup = data_dict.get("lsst_custom_setup", None)
+        custom_lsst_setup = data_dict.get("custom_lsst_setup", None)
         bps_wms_yaml_file = data_dict.get("bps_wms_yaml_file", None)
         bps_wms_clustering_file = data_dict.get("bps_wms_clustering_file", None)
         bps_wms_resources_file = data_dict.get("bps_wms_resources_file", None)
@@ -136,6 +136,10 @@ class BpsScriptHandler(ScriptHandler):
 
         prepend = bps_core_script_template_.data["text"].replace("{lsst_version}", lsst_version)
         prepend = prepend.replace("{lsst_distrib_dir}", lsst_distrib_dir)
+        # Add custom_lsst_setup to the bps submit script
+        # in case it is a change to bps itself
+        if custom_lsst_setup:
+            prepend += f"\n{custom_lsst_setup}\n"
         prepend += bps_wms_script_template_.data["text"]
 
         await write_bash_script(script_url, command, prepend=prepend)
@@ -157,8 +161,8 @@ class BpsScriptHandler(ScriptHandler):
         workflow_config["submitPath"] = submit_path
 
         workflow_config["LSST_VERSION"] = os.path.expandvars(lsst_version)
-        if lsst_custom_setup:
-            workflow_config["custom_lsst_setup"] = lsst_custom_setup
+        if custom_lsst_setup:
+            workflow_config["custom_lsst_setup"] = custom_lsst_setup
         workflow_config["pipelineYaml"] = pipeline_yaml
 
         if extra_qgraph_options:
