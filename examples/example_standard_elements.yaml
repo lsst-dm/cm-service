@@ -88,7 +88,7 @@
 # Note that the steps are not defined here.
 - SpecBlock:
       name: base_campaign
-      handler: lsst.cmservice.handlers.element_handler.ElementHandler
+      handler: lsst.cmservice.handlers.element_handler.CampaignHandler
       collections:
           out: MUST_OVERRIDE
           campaign_source: MUST_OVERRIDE
@@ -147,7 +147,7 @@
 # Note that the steps are not defined here.
 - SpecBlock:
       name: base_campaign_fixed_input
-      handler: lsst.cmservice.handlers.element_handler.ElementHandler
+      handler: lsst.cmservice.handlers.element_handler.CampaignHandler
       collections:
           out: MUST_OVERRIDE
           campaign_input: MUST_OVERRIDE

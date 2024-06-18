@@ -6,11 +6,14 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 
 from ..common.enums import StatusEnum
 from ..common.errors import CMYamlParseError
+from ..db.campaign import Campaign
 from ..db.element import ElementMixin
 from ..db.handler import Handler
 from ..db.node import NodeMixin
 from ..db.script import Script
 from ..db.script_dependency import ScriptDependency
+
+from .functions import add_steps
 
 
 class ElementHandler(Handler):
@@ -416,3 +419,22 @@ class ElementHandler(Handler):
             Status of the processing
         """
         return StatusEnum.accepted
+
+
+class CampaignHandler(ElementHandler):
+    """SubClass of Handler to deal with Campaign operations,"""
+
+    async def prepare(
+        self,
+        session: async_scoped_session,
+        element: ElementMixin,
+    ) -> tuple[bool, StatusEnum]:
+        if TYPE_CHECKING:
+            assert isinstance(element, Campaign)  # for mypy
+
+        spec_block = await element.get_spec_block(session)
+        child_configs = spec_block.steps
+        if TYPE_CHECKING:
+            assert isinstance(child_configs, list)
+        await add_steps(session, element, child_configs)
+        return await ElementHandler.prepare(self, session, element)
