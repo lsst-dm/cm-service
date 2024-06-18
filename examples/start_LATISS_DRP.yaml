@@ -1,27 +1,27 @@
-- Production:
-      name: LATISS_DRP
-- Campaign:
-      name: MUST_OVERRIDE
-      spec_name: LATISS_DRP_htcondor
-      collections:
-          out: MUST_OVERRIDE
-          # campaign_input: LATISS/defaults
-      data:
-          prod_area: MUST_OVERRIDE
-          lsst_version: MUST_OVERRIDE
-#         butler_repo: '/repo/embargo'
-#         data_query: >
-#             instrument='LATISS' AND detector=0 AND (exposure.day_obs>=20230509 and exposure.day_obs<20230914)
-#             AND exposure.observation_type='science' AND (exposure.science_program='AUXTEL_PHOTO_IMAGING'
-#             OR exposure.science_program='AUXTEL_DRP_IMAGING')
-#         bps_wms_clustering_file: “${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml
-#         bps_wms_resources_file: “${DRP_PIPE_DIR}/bps/resources/HSC/DRP-RC2.yaml"
+Production:
+    name: LATISS_DRP
+Campaign:
+    name: MUST_OVERRIDE
+    spec_name: LATISS_DRP_htcondor
+    collections:
+        out: MUST_OVERRIDE
+        # campaign_input: LATISS/defaults
+    data:
+        prod_area: MUST_OVERRIDE
+        lsst_version: MUST_OVERRIDE
+#       butler_repo: '/repo/embargo'
+#       data_query: >
+#           instrument='LATISS' AND detector=0 AND (exposure.day_obs>=20230509 and exposure.day_obs<20230914)
+#           AND exposure.observation_type='science' AND (exposure.science_program='AUXTEL_PHOTO_IMAGING'
+#           OR exposure.science_program='AUXTEL_DRP_IMAGING')
+#       bps_wms_clustering_file: “${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml
+#       bps_wms_resources_file: “${DRP_PIPE_DIR}/bps/resources/HSC/DRP-RC2.yaml"
 #
 # Examples of how to override step specific stuff
-#     child_config:
-#         step1:
-#             data:
-#                 extra_qraph_options: "something"
-#         step5:
-#             child_config:
-#                 split_min_groups: 5
+#   child_config:
+#       step1:
+#           data:
+#               extra_qraph_options: "something"
+#       step5:
+#           child_config:
+#               split_min_groups: 5

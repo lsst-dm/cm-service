@@ -364,18 +364,27 @@ class CMLoadClient:
         with open(campaign_yaml, encoding="utf-8") as fin:
             config_data = yaml.safe_load(fin)
 
-        parent_name: str | None = None
-        camp_config: dict | None = None
+        try:
+            prod_config = config_data["Production"]
+        except KeyError as msg:
+            raise CMYamlParseError(
+                f"Could not find 'Production' tag in {campaign_yaml}",
+            ) from msg
+        try:
+            parent_name = prod_config["name"]
+        except KeyError as msg:
+            raise CMYamlParseError(
+                f"Could not find 'name' tag in {campaign_yaml}#Production",
+            ) from msg
 
-        for config_item in config_data:
-            if "Production" in config_item:
-                if parent_name:
-                    raise CMYamlParseError(f"Multiple 'Production' tags in {campaign_yaml}")
-                parent_name = config_item["Production"]["name"]
-            if "Campaign" in config_item:
-                if camp_config:
-                    raise CMYamlParseError(f"Multiple 'Campaign' tags in {campaign_yaml}")
-                camp_config = config_item["Campaign"]
+        try:
+            camp_config = config_data["Campaign"]
+        except KeyError as msg:
+            raise CMYamlParseError(
+                f"Could not find 'Campaign' tag in {campaign_yaml}",
+            ) from msg
+
+        assert isinstance(camp_config, dict)
 
         # flush out config_data with kwarg overrides
         for key in ["name", "parent_name", "spec_name", "handler"]:
