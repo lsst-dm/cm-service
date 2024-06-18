@@ -43,7 +43,10 @@ class CMPipetaskErrorTypeClient:
 
     get_row = wrappers.get_row_function(ResponseModelClass, f"{router_string}/get")
 
-    # get_row_by_fullname =
+    get_row_by_fullname = wrappers.get_row_by_fullname_function(
+        ResponseModelClass,
+        f"{router_string}/get_row_by_fullname",
+    )
 
     create = wrappers.create_row_function(
         ResponseModelClass,

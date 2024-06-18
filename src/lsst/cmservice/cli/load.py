@@ -78,13 +78,14 @@ def campaign(
 @options.cmclient()
 @options.output()
 @options.yaml_file()
+@options.allow_update()
 def error_types(
     client: CMClient,
     output: options.OutputEnum | None,
     **kwargs: Any,
 ) -> None:
     """Load PipetaskErrorTypes from a yaml file"""
-    result = client.load.error_types(**kwargs)
+    result = client.load.error_types_cl(**kwargs)
     output_pydantic_list(result, output, db.PipetaskErrorType.col_names_for_table)
 
 

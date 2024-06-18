@@ -8,6 +8,7 @@ from collections.abc import Mapping
 
 import httpx
 
+from ..common.enums import ErrorActionEnum, ErrorFlavorEnum, ErrorSourceEnum
 from ..common.errors import CMYamlParseError
 from .. import models
 from . import wrappers
@@ -476,6 +477,88 @@ class CMLoadClient:
         models.Campaign,
         "load/campaign",
     )
+
+    def _upsert_error_type(
+        self,
+        config_values: dict,
+        *,
+        allow_update: bool = False,
+    ) -> models.PipetaskErrorType | None:
+        """Upsert and return a PipetaskErrorType
+
+        This will create a new PipetaskErrorType, or update an existing one
+
+        Parameters
+        ----------
+        config_values: dict
+            Values for the PipetaskErrorType
+
+        allow_update: bool
+             Allow updating existing PipetaskErrorType
+
+        Returns
+        -------
+        error_type: PipetaskErrorType
+            Newly created or updated PipetaskErrorType
+        """
+        task_name = config_values["task_name"]
+        diag_message = config_values["diagnostic_message"]
+        fullname = f"{task_name}#{diag_message}".strip()
+        error_type = self._parent.pipetask_error_type.get_row_by_fullname(fullname)
+        if error_type and not allow_update:
+            print(f"PipetaskErrorType {diag_message} already defined, skipping it")
+            return None
+
+        if error_type is None:
+            return self._parent.pipetask_error_type.create(**config_values)
+
+        return self._parent.pipetask_error_type.update(
+            row_id=error_type.id,
+            **config_values,
+        )
+
+    def error_types_cl(
+        self,
+        yaml_file: str,
+        *,
+        allow_update: bool = False,
+    ) -> list[models.PipetaskErrorType]:
+        """Read a yaml file and create PipetaskErrorType objects
+
+        Parameters
+        ----------
+        yaml_file: str
+            Optional yaml file with PipetaskErrorType definitinos
+
+        allow_update: bool
+            Allow updating existing PipetaskErrorType items
+
+        Returns
+        -------
+        error_types: list[models.PipetaskErrorType]
+            Newly created or updated PipetaskErrorType objects
+        """
+        with open(yaml_file, encoding="utf-8") as fin:
+            error_types = yaml.safe_load(fin)
+
+        ret_list: list[models.PipetaskErrorType] = []
+        for error_type_ in error_types:
+            try:
+                val = error_type_["PipetaskErrorType"]
+            except KeyError as msg:
+                raise CMYamlParseError(
+                    f"Expecting PipetaskErrorType items not: {error_type_.keys()})",
+                ) from msg
+
+            val["error_source"] = ErrorSourceEnum[val["source"]]
+            val["error_action"] = ErrorActionEnum[val["action"]]
+            val["error_flavor"] = ErrorFlavorEnum[val["flavor"]]
+
+            new_error_type = self._upsert_error_type(val, allow_update=allow_update)
+            if new_error_type:
+                ret_list.append(new_error_type)
+
+        return ret_list
 
     error_types = wrappers.get_general_post_function(
         models.YamlFileQuery,
