@@ -94,7 +94,7 @@ class AddSteps(FullnameQuery):
     """Parameters needed to add steps to an existing campaign"""
 
     # Configurations for new steps
-    child_configs: dict
+    child_configs: list
 
 
 class YamlFileQuery(BaseModel):

@@ -1,0 +1,32 @@
+Production:
+    name: LSSTComCamSim_nightly-validation
+Campaign:
+    name: MUST_OVERRIDE
+    spec_name: LSSTComCamSim_nightly-validation_htcondor
+    collection:
+        out: MUST_OVERRIDE
+        # campaign_source: LSSTComCamSim/quickLook/24
+        # campaign_ancillary_inputs:
+        #     - LSSTComCamSim/templates
+        #     - LSSTComCamSim/defaults
+    data:
+        lsst_version: MUST_OVERRIDE
+        prod_area: MUST_OVERRIDE
+#       butler_repo: '/repo/embargo+sasquatch_dev'
+#       prod_area: 'output/archive'
+#       data_query: instrument='LSSTComCamSim' AND skymap='ops_rehersal_prep_2k_v1' AND visit IN (7024040400000..7024040500000)
+#       lsst_version: w_2024_10
+#       bps_wms_clustering_file: ${DRP_PIPE_DIR}/bps/clustering/DRP-recalibrated.yaml
+#       bps_wms_resources_file: ${DRP_PIPE_DIR}/bps/resources/LSSTComCamSim/DRP-ops-rehearsals.yaml
+#       extra_qgraph_options: >
+#          -c parameters:sasquatch_dataset_identifier=nightlyvalidation
+#          -c parameters:sasquatch_timestamp_version=run_timestamp
+#
+# Examples of how to override step specific stuff
+#   child_config:
+#       step1:
+#           data:
+#               extra_qraph_options: "something"
+#       step5:
+#           child_config:
+#               split_min_groups: 5

@@ -1268,7 +1268,7 @@ async def add_groups(
 async def add_steps(
     session: async_scoped_session,
     fullname: str,
-    step_config_list: list[dict[str, Any]],
+    child_configs: list[dict[str, Any]],
 ) -> db.Campaign:
     """Add Steps to a `Campaign`
 
@@ -1280,7 +1280,7 @@ async def add_steps(
     fullname: str
         Full unique name for the parent `Campaign`
 
-    step_config_list: list[dict[str, Any]]
+    child_configs: list[dict[str, Any]]
         Configurations for the `Step`s to be created
 
     Returns
@@ -1295,7 +1295,7 @@ async def add_steps(
     CMMissingFullnameError : Could not find Element
     """
     campaign = await db.Campaign.get_row_by_fullname(session, fullname)
-    result = await functions.add_steps(session, campaign, step_config_list)
+    result = await functions.add_steps(session, campaign, child_configs)
     return result
 
 

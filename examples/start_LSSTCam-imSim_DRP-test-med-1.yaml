@@ -1,0 +1,27 @@
+Production:
+    name: LSSTCam-imSim_DRP-test-med-1
+Campaign:
+    name: MUST_OVERRIDE
+    spec_name: LSSTCam-imSim_DRP-test-med-1_htcondor
+    collections:
+        out: MUST_OVERRIDE
+        # campaign_input: 2.2i/defaults/test-med-1
+    data:
+        lsst_version: MUST_OVERRIDE
+#       butler_repo: '/repo/dc2+sasquatch_dev'
+#       prod_area: /sdf/group/rubin/shared/campaigns/DC2-test-med-1/output/archive
+#       data_query:
+#       bps_wms_clustering_file: "${DRP_PIPE_DIR}/bps/clustering/DRP-recalibrated.yaml"
+#       bps_wms_resources_file: "${DRP_PIPE_DIR}/bps/resources/LSSTCam-imSim/DRP-test-med-1.yaml"
+#       extra_qgraph_options: >
+#          -c parameters:sasquatch_dataset_identifier=DC2/TestMed1
+#          -c parameters:sasquatch_timestamp_version=reference_package_timestamp
+#
+# Examples of how to override step specific stuff
+#   child_config:
+#       step1:
+#           data:
+#               extra_qraph_options: "something"
+#       step5:
+#           child_config:
+#               split_min_groups: 5

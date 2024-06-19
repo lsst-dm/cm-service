@@ -364,27 +364,53 @@ class CMLoadClient:
         with open(campaign_yaml, encoding="utf-8") as fin:
             config_data = yaml.safe_load(fin)
 
+        try:
+            prod_config = config_data["Production"]
+        except KeyError as msg:
+            raise CMYamlParseError(
+                f"Could not find 'Production' tag in {campaign_yaml}",
+            ) from msg
+        try:
+            parent_name = prod_config["name"]
+        except KeyError as msg:
+            raise CMYamlParseError(
+                f"Could not find 'name' tag in {campaign_yaml}#Production",
+            ) from msg
+
+        try:
+            camp_config = config_data["Campaign"]
+        except KeyError as msg:
+            raise CMYamlParseError(
+                f"Could not find 'Campaign' tag in {campaign_yaml}",
+            ) from msg
+
+        assert isinstance(camp_config, dict)
+
         # flush out config_data with kwarg overrides
         for key in ["name", "parent_name", "spec_name", "handler"]:
             val = kwargs.get(key, None)
             if val:
-                config_data[key] = val
+                camp_config[key] = val
 
         for key in ["data", "child_config", "collections", "spec_aliases"]:
-            config_data.setdefault(key, {})
+            camp_config.setdefault(key, {})
             val = kwargs.get(key, None)
             if val:
-                config_data[key].update(val)
-
-        parent_name = config_data["parent_name"]
+                camp_config[key].update(val)
 
         production = self._parent.production.get_row_by_name(parent_name)
         if not production:
             self._parent.production.create(name=parent_name)
 
-        spec_name = config_data["spec_name"]
-        config_data["spec_block_assoc_name"] = f"{spec_name}#campaign"
-        campaign = self._parent.campaign.create(**config_data)
+        spec_name = camp_config["spec_name"]
+        camp_config["spec_block_assoc_name"] = f"{spec_name}#campaign"
+
+        step_configs = camp_config.pop("steps", [])
+        campaign = self._parent.campaign.create(**camp_config)
+
+        if step_configs:
+            self._parent.add.steps(fullname=campaign.fullname, child_configs=step_configs)
+
         return campaign
 
     campaign = wrappers.get_general_post_function(
