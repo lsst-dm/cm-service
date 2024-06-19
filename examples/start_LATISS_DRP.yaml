@@ -14,8 +14,8 @@ Campaign:
 #           instrument='LATISS' AND detector=0 AND (exposure.day_obs>=20230509 and exposure.day_obs<20230914)
 #           AND exposure.observation_type='science' AND (exposure.science_program='AUXTEL_PHOTO_IMAGING'
 #           OR exposure.science_program='AUXTEL_DRP_IMAGING')
-#       bps_wms_clustering_file: “${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml
-#       bps_wms_resources_file: “${DRP_PIPE_DIR}/bps/resources/HSC/DRP-RC2.yaml"
+#       bps_wms_clustering_file: "${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml"
+#       bps_wms_resources_file: "${DRP_PIPE_DIR}/bps/resources/HSC/DRP-RC2.yaml"
 #
 # Examples of how to override step specific stuff
 #   child_config:

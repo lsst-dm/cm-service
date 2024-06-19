@@ -118,8 +118,8 @@
           butler_repo: '/repo/main+sasquatch_dev'
           prod_area: 'output/archive'  # Change this to /sdf/group/shared/campaigns
           data_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1'"
-          bps_wms_clustering_file: “${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml
-          bps_wms_resources_file: “${DRP_PIPE_DIR}/bps/resources/HSC/DRP-RC2.yaml"
+          bps_wms_clustering_file: "${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml"
+          bps_wms_resources_file: "${DRP_PIPE_DIR}/bps/resources/HSC/DRP-RC2.yaml"
 - Specification:   # This is just a look up table.
       name: HSC_DRP-RC2_panda
       spec_aliases:
