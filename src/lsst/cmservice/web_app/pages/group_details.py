@@ -13,15 +13,22 @@ async def get_group_by_id(
     async with session.begin_nested():
         results = await session.scalars(q)
         group = results.first()
-        print(f"group id: {group.id}")
+        # print(f"group id: {group.id}")
         reports = await group.get_wms_reports(session)
+        # print(reports)
         wms_report = []
-        for report in reports:
-            tasks = report[1]
-            for task in tasks:
-                print(f"TASK {task}: {tasks[task].n_succeeded}")
-                wms_report.append(f"{task} - succeeded: {tasks[task].n_succeeded}")
-            # print(reports[report].n_succeeded)
+        wms_report = [y.__dict__ for y in reports.reports.values()]
+
+        # wms_aggregated_report = {}
+        # for report in reports:
+        #     tasks = report[1]
+        #     for task in tasks:
+        #         print(tasks[task].__dict__)
+        #         # print(f"TASK {task}: {tasks[task].n_succeeded}")
+        #         wms_report.append(
+        #         f"{task} - succeeded: {tasks[task].n_succeeded}")
+        #     # print(reports[report].n_succeeded)
+        print(wms_report)
         collections = await group.resolve_collections(session)
         jobs = await get_group_jobs(session, group)
         scripts = await get_group_scripts(session, group)
@@ -54,6 +61,9 @@ async def get_group_jobs(session: async_scoped_session, group: Group) -> list[di
                 "superseded": job.superseded,
                 "status": map_status(job.status),
                 "data": job.data,
+                "submit_status": "Submitted" if job.wms_job_id is not None else "",
+                "submit_url": job.wms_job_id if not job.wms_job_id.isnumeric() else "",
+                "stamp_url": job.stamp_url,
             },
         )
     return group_jobs

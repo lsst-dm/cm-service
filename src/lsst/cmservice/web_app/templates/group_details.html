@@ -52,12 +52,12 @@
             <div class="block text-sm">{{key}}: {{value}}</div>
             {% endfor %}
         </div>
-        <div class="block items-center pt-2">
-            <span class="text-sm font-bold">WMS Task Report</span>
-            {% for task in group.wms_report %}
-            <div class="block text-sm">{{task}}</div>
-            {% endfor %}
-        </div>
+<!--        <div class="block items-center pt-2">-->
+<!--            <span class="text-sm font-bold">WMS Task Report</span>-->
+<!--            {% for task in group.wms_report %}-->
+<!--            <div class="block text-sm">{{task}}</div>-->
+<!--            {% endfor %}-->
+<!--        </div>-->
     </div>
     <div class="w-full px-4 py-5 sm:p-6">
         <div class="flex items-center">
@@ -71,6 +71,12 @@
         </div>
         <div class="items-center pt-4">
             <div id="jobsGrid" class="ag-theme-alpine h-64"></div>
+        </div>
+        <div class="flex items-center pt-4">
+            <span class="text-large font-bold">WMS Task Report</span>
+        </div>
+        <div class="items-center pt-4">
+            <div id="wmsReportGrid" class="ag-theme-alpine h-64"></div>
         </div>
     </div>
 </div>
@@ -98,10 +104,40 @@
             {field: "name", flex: 1},
             {field: "status", flex: 1},
             {field: "superseded", flex: 1},
-            {field: "data", flex: 2, valueFormatter: (params) => params.data.data["data_query"] },
+            {field: "submit_status", headerName: "Submit Status"},
+            {field: "submit_url", flex: 2, headerName: "Submit URL"},
+            {field: "stamp_url", flex: 2, headerName: "Stamp URL"},
         ]
     };
     const jobsGridElement = document.getElementById("jobsGrid");
     agGrid.createGrid(jobsGridElement, jobsGridOptions);
+
+    // wms task report
+    const formatWMSColumn = (params) => params.value === 0 ? "" : params.value;
+    const wmsReport = {{group.wms_report|tojson}};
+    const wmsReportOptions = {
+        rowData: wmsReport,
+        defaultColDef: {
+            resizable: false,
+            width: 100,
+        },
+        columnDefs: [
+            {field: "name", headerName: "Name", width: 350,},
+            {field: "n_expected", headerName: "Expected", valueFormatter: formatWMSColumn},
+            {field: "n_unknown", headerName: "Unknown", valueFormatter: formatWMSColumn},
+            {field: "n_misfit", headerName: "Misfit", valueFormatter: formatWMSColumn},
+            {field: "n_unready", headerName: "Unready", valueFormatter: formatWMSColumn},
+            {field: "n_ready", headerName: "Ready", valueFormatter: formatWMSColumn},
+            {field: "n_pending", headerName: "Pending", valueFormatter: formatWMSColumn},
+            {field: "n_running", headerName: "Running", valueFormatter: formatWMSColumn},
+            {field: "n_deleted", headerName: "Deleted", valueFormatter: formatWMSColumn},
+            {field: "n_held", headerName: "Held", valueFormatter: formatWMSColumn},
+            {field: "n_succeeded", headerName: "Succeeded", valueFormatter: formatWMSColumn},
+            {field: "n_failed", headerName: "Failed", valueFormatter: formatWMSColumn},
+            {field: "n_pruned", headerName: "Pruned", valueFormatter: formatWMSColumn},
+        ]
+    };
+    const wmsReportGridElement = document.getElementById("wmsReportGrid");
+    agGrid.createGrid(wmsReportGridElement, wmsReportOptions);
 </script>
 {% endblock %}
