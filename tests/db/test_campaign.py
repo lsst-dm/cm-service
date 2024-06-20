@@ -9,12 +9,15 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from lsst.cmservice import db
 from lsst.cmservice.common.errors import CMMissingRowCreateInputError, CMSpecficiationError
+from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
 from lsst.cmservice.handlers import interface
 
+from util_functions import create_tree, delete_all_productions
+
 
 @pytest.mark.asyncio()
-async def test_campaign_db(engine: AsyncEngine) -> None:
+async def bob_campaign_db(engine: AsyncEngine) -> None:
     """Test `campaign` db table."""
 
     logger = structlog.get_logger(config.logger_name)
@@ -122,4 +125,25 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
 
         # Finish clean up
         await db.Production.delete_row(session, prods[1].id)
+        await session.remove()
+
+
+@pytest.mark.asyncio()
+async def test_campaign_db_v2(engine: AsyncEngine) -> None:
+    """Test `campaign` db table."""
+
+    logger = structlog.get_logger(config.logger_name)
+    async with engine.begin():
+        session = await create_async_session(engine, logger)
+        os.environ["CM_CONFIGS"] = "examples"
+
+        create_tree(session, LevelEnum.step)
+
+        delete_all_productions(session)
+
+        productions = await db.Production.get_rows(
+            session,
+        )
+
+        assert len(productions) == 0
         await session.remove()
