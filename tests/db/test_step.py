@@ -8,6 +8,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from lsst.cmservice import db
+from lsst.cmservice.common.enums import LevelEnum
+from lsst.cmservice.common.errors import CMMissingRowCreateInputError
 from lsst.cmservice.config import config
 from lsst.cmservice.handlers import interface
 
@@ -51,6 +53,13 @@ async def test_step_db(engine: AsyncEngine) -> None:
         ]
         assert len(steps0) == 5
 
+        with pytest.raises(CMMissingRowCreateInputError):
+            await db.Step.create_row(
+                session,
+                name="bad",
+                parent_name=camps[0].fullname,
+            )
+
         steps1 = [
             await db.Step.create_row(
                 session,
@@ -61,6 +70,57 @@ async def test_step_db(engine: AsyncEngine) -> None:
             for sname_ in snames
         ]
         assert len(steps1) == 5
+
+        for i in range(4):
+            await db.StepDependency.create_row(
+                session,
+                prereq_id=steps1[i].id,
+                depend_id=steps1[i + 1].id,
+            )
+
+        prereqs = await steps1[4].get_all_prereqs(session)
+        assert len(prereqs) == 4
+        assert prereqs[0].id == steps1[3].id
+
+        await session.refresh(steps1[4], attribute_names=["prereqs_"])
+        assert steps1[4].prereqs_[0].prereq_db_id.id == steps1[3].id
+        assert steps1[4].prereqs_[0].depend_db_id.id == steps1[4].id
+        assert not await steps1[4].prereqs_[0].is_done(session)
+
+        entry = steps1[4]
+
+        # test that we can retrieve the campaign
+        check_camp = await entry.get_campaign(session)
+        assert check_camp.db_id.id == camps[1].db_id.id
+
+        # test null result on fetching downstream
+        check = await check_camp.children(session)
+        assert check is not None
+
+        check = await check_camp.get_tasks(session)
+        assert check is not None
+
+        check = await check_camp.get_wms_reports(session)
+        assert check is not None
+
+        check = await check_camp.get_products(session)
+        assert check is not None
+
+        # test null result on fetching downstream
+        assert entry.db_id.level == LevelEnum.step
+        assert entry.db_id.id == entry.id
+
+        check = await entry.children(session)
+        assert check is not None
+
+        check = await entry.get_tasks(session)
+        assert check is not None
+
+        check = await entry.get_wms_reports(session)
+        assert check is not None
+
+        check = await entry.get_products(session)
+        assert check is not None
 
         with pytest.raises(IntegrityError):
             await db.Step.create_row(

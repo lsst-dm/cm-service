@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from lsst.cmservice import db
+from lsst.cmservice.common.errors import CMMissingRowCreateInputError, CMSpecficiationError
 from lsst.cmservice.config import config
 from lsst.cmservice.handlers import interface
 
@@ -21,6 +22,12 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
         session = await create_async_session(engine, logger)
         os.environ["CM_CONFIGS"] = "examples"
         specification = await interface.load_specification(session, "examples/empty_config.yaml")
+
+        with pytest.raises(CMSpecficiationError):
+            await specification.get_block(session, "does_not_exist")
+        with pytest.raises(CMSpecficiationError):
+            await specification.get_script_template(session, "does_not_exist")
+
         check2 = await specification.get_block(session, "campaign")
         assert check2.name == "campaign"
 
@@ -43,7 +50,7 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
             await db.Campaign.create_row(
                 session,
                 name=cname_,
-                spec_block_assoc_name="base#campaign",
+                spec_name="base",
                 parent_name=pnames[1],
             )
             for cname_ in cnames
@@ -58,6 +65,21 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
                 spec_block_assoc_name="base#campaign",
             )
 
+        with pytest.raises(CMMissingRowCreateInputError):
+            await db.Campaign.create_row(
+                session,
+                name=cnames[0],
+                parent_name=pnames[0],
+            )
+
+        with pytest.raises(ValueError):
+            await db.Campaign.create_row(
+                session,
+                name=cnames[0],
+                parent_name=pnames[0],
+                spec_block_assoc_name="base#campaign#bad",
+            )
+
         await db.Production.delete_row(session, prods[0].id)
 
         check_gone = await db.Campaign.get_rows(session, parent_id=prods[0].id, parent_class=db.Production)
@@ -70,6 +92,33 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
 
         check_here = await db.Campaign.get_rows(session, parent_id=prods[1].id, parent_class=db.Production)
         assert len(check_here) == 4
+
+        check_get = await db.Campaign.get_row(session, check_here[0].id)
+        assert check_get.id == check_here[0].id
+
+        check_get_by_fullname = await db.Campaign.get_row_by_fullname(session, check_here[0].fullname)
+        assert check_get_by_fullname.id == check_here[0].id
+
+        check_update = await db.Campaign.update_row(session, check_here[0].id, data=dict(foo="bar"))
+        assert check_update.data["foo"] == "bar"
+
+        check_update2 = await check_update.update_values(session, data=dict(bar="foo"))
+        assert check_update2.data["bar"] == "foo"
+
+        entry = check_here[0]
+
+        # test null result on fetching downstream
+        check = await entry.children(session)
+        assert check is not None
+
+        check = await entry.get_tasks(session)
+        assert check is not None
+
+        check = await entry.get_wms_reports(session)
+        assert check is not None
+
+        check = await entry.get_products(session)
+        assert check is not None
 
         # Finish clean up
         await db.Production.delete_row(session, prods[1].id)

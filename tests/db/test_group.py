@@ -84,9 +84,42 @@ async def test_group_db(engine: AsyncEngine) -> None:
         check = await db.Group.get_row(session, entry.id)
         assert check.db_id.id == entry.db_id.id
 
+        await db.Group.delete_row(session, groups0[0].id)
+
+        check_here = await db.Group.get_rows(session, parent_id=steps[0].id, parent_class=db.Step)
+        assert len(check_here) == 4
+
+        check_get = await db.Group.get_row(session, check_here[0].id)
+        assert check_get.id == check_here[0].id
+
+        check_get_by_fullname = await db.Group.get_row_by_fullname(session, check_here[0].fullname)
+        assert check_get_by_fullname.id == check_here[0].id
+
+        check_update = await db.Group.update_row(session, check_here[0].id, data=dict(foo="bar"))
+        assert check_update.data["foo"] == "bar"
+
+        check_update2 = await check_update.update_values(session, data=dict(bar="foo"))
+        assert check_update2.data["bar"] == "foo"
+
+        #
+        entry = check_here[0]
+
         # test that we can retrieve the campaign
-        check = await entry.get_campaign(session)
-        assert check.db_id.id == camp.db_id.id
+        check_camp = await entry.get_campaign(session)
+        assert check_camp.db_id.id == camp.db_id.id
+
+        # test null result on fetching downstream
+        check = await check_camp.children(session)
+        assert check is not None
+
+        check = await check_camp.get_tasks(session)
+        assert check is not None
+
+        check = await check_camp.get_wms_reports(session)
+        assert check is not None
+
+        check = await check_camp.get_products(session)
+        assert check is not None
 
         # test null result on fetching downstream
         check = await entry.children(session)
