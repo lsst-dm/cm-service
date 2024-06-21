@@ -500,7 +500,7 @@ async def load_manifest_report(
         n_expected = task_data_.get("n_expected", 0)
         n_failed = len(failed_quanta)
         n_failed_upstream = task_data_.get("n_quanta_blocked", 0)
-        n_done = task_data_.get("succeded", 0)
+        n_done = task_data_.get("n_succeeded", 0)
 
         try:
             task_set = await TaskSet.create_row(
