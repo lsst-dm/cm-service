@@ -1,7 +1,6 @@
 # Run Redis and PostgreSQL for testing with a local development server.
 # This is used by make run, which starts cm-service in the foreground.
 
-version: "3"
 name: "${USER}-cm-service"
 services:
   redis:
