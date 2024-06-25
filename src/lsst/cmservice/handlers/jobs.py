@@ -564,3 +564,47 @@ class ManifestReportLoadHandler(FunctionHandler):
         for task_ in parent.tasks_:
             await TaskSet.delete_row(session, task_.id)
         return update_fields
+
+
+class ResourceUsageScriptHandler(ScriptHandler):
+    """WIP but the docstring will go here! Edited from the Manifest Report
+    _write_script -- more functions to come."""
+
+    async def _write_script(
+        self,
+        session: async_scoped_session,
+        script: Script,
+        parent: ElementMixin,
+        **kwargs: Any,
+    ) -> StatusEnum:
+        # breakpoint()
+        specification = await script.get_specification(session)
+        resolved_cols = await script.resolve_collections(session)
+        data_dict = await script.data_dict(session)
+        prod_area = os.path.expandvars(data_dict["prod_area"])
+        script_url = await self._set_script_files(session, script, prod_area)
+        butler_repo = data_dict["butler_repo"]
+        lsst_distrib_dir = data_dict["lsst_distrib_dir"]
+        lsst_version = data_dict["lsst_version"]
+        usage_graph_url = os.path.expandvars(f"{prod_area}/{parent.fullname}.qgraph")
+
+        resource_usage_script_template = await specification.get_script_template(
+            session,
+            data_dict["resource_usage_script_template"],
+        )
+        prepend = resource_usage_script_template.data["text"].replace(
+            "{lsst_version}",
+            lsst_version,
+        )
+        prepend = prepend.replace("{lsst_distrib_dir}", lsst_distrib_dir)
+        if "custom_lsst_setup" in data_dict:
+            custom_lsst_setup = data_dict["custom_lsst_setup"]
+            prepend += f"\n{custom_lsst_setup}"
+
+        command = f"build-gather-resource-usage-qg {butler_repo} {usage_graph_url} {resolved_cols['out']} "
+        f"--output {resolved_cols['campaign_resource_usage']};pipetask run -b {butler_repo} -g "
+        f"{usage_graph_url} -o {resolved_cols['campaign_resource_usage']} --register-dataset-types -j 16"
+
+        await write_bash_script(script_url, command, prepend=prepend)
+
+        return StatusEnum.prepared

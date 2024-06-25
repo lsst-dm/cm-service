@@ -2,17 +2,17 @@
 
 import os
 
-dry_run = False
+dry_run = True
 
 prod_dict = {
-    "HSC_DRP-Prod": "HSC_DRP-Prod",
+    # "HSC_DRP-Prod": "HSC_DRP-Prod",
     "HSC_DRP-RC2": "HSC_DRP-RC2",
-    "HSC_DRP-RC2_subset": "HSC_DRP-RC2_subset",
-    "hsc_micro": "hsc_micro",
-    "LATISS_DRP": "LATISS_DRP",
-    "LSSTCam-imSim_DRP-test-med-1": "LSSTCam-imSim_DRP-test-med-1",
-    "LSSTComCamSim_DRP": "LSSTComCamSim_DRP",
-    "LSSTComCamSim_nightly-validation": "LSSTComCamSim_nightly-validation",
+    # "HSC_DRP-RC2_subset": "HSC_DRP-RC2_subset",
+    # "hsc_micro": "hsc_micro",
+    # "LATISS_DRP": "LATISS_DRP",
+    # "LSSTCam-imSim_DRP-test-med-1": "LSSTCam-imSim_DRP-test-med-1",
+    # "LSSTComCamSim_DRP": "LSSTComCamSim_DRP",
+    # "LSSTComCamSim_nightly-validation": "LSSTComCamSim_nightly-validation",
 }
 
 

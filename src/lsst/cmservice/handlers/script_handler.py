@@ -37,6 +37,9 @@ class BaseScriptHandler(Handler):
         **kwargs: Any,
     ) -> tuple[bool, StatusEnum]:
         # Need this so mypy doesn't think we are passing in Element
+        # if node.fullname.find("usage") > 0:
+        #     print(node.fullname)
+        #     breakpoint()
         if TYPE_CHECKING:
             assert isinstance(node, Script)  # for mypy
         orig_status = node.status

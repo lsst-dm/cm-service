@@ -98,6 +98,7 @@
           campaign_public_output: "{out}"
           campaign_ancillary: "{out}/ancillary"
           campaign_validation: "{out}/validate"
+          campaign_resource_usage: "{out}/resource_usage"
       scripts:
           - Script:
                 name: tag_inputs
@@ -130,16 +131,24 @@
                     inputs: []
                     output: "{campaign_output}"
           - Script:
+                name: resource_usage
+                prerequisites: ["collect_steps"]
+                spec_block: resource_usage_script
+                collections:
+                    inputs: "{campaign_output}"
+                    output: "{campaign_resource_usage}"
+          - Script:
                 name: make_campaign_public_output
-                prerequisites: ['collect_steps']
+                prerequisites: ['resource_usage']
                 spec_block: chain_create_script
                 collections:
-                    inputs: ["{campaign_output}", "{campaign_input}"]
+                    inputs: ["{campaign_output}", "{campaign_input}", "{campaign_resource_usage}"]
                     output: "{campaign_public_output}"
       data:
           bps_core_script_template: bps_core_script_template
           bps_core_yaml_template: bps_core_yaml_template
           manifest_script_template: stack_script_template
+          resource_usage_script_template: stack_script_template
           lsst_version: MUST_OVERRIDE
           lsst_distrib_dir: /cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib
 # Campagin Template for fixed inputs
@@ -166,6 +175,13 @@
                     inputs: []
                     output: "{campaign_output}"
           - Script:
+                name: resource_usage
+                prerequisites: ["collect_steps"]
+                spec_block: resource_usage_script
+                collections:
+                    inputs: "{campaign_output}"
+                    output: "{campaign_resource_usage}"
+          - Script:
                 name: make_campaign_public_output
                 prerequisites: ['collect_steps']
                 spec_block: chain_create_script
@@ -176,5 +192,6 @@
           bps_core_script_template: bps_core_script_template
           bps_core_yaml_template: bps_core_yaml_template
           manifest_script_template: stack_script_template
+          resource_usage_script_template: stack_script_template
           lsst_version: MUST_OVERRIDE
           lsst_distrib_dir: /cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib
