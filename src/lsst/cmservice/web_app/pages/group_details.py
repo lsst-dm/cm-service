@@ -16,7 +16,7 @@ async def get_group_by_id(
         wms_reports_dict = await group.get_wms_reports(session)
         wms_report = [y.__dict__ for y in wms_reports_dict.reports.values()]
 
-        aggregated_report_dict = {"running": 30, "succeeded": 13, "failed": 7, "pending": 5, "other": 20}
+        aggregated_report_dict = {"running": 0, "succeeded": 0, "failed": 0, "pending": 10, "other": 0}
         # for task in wms_report:
         #     aggregated_report_dict['succeeded'] += task['n_succeeded']
         #     aggregated_report_dict['failed'] += task['n_failed']
