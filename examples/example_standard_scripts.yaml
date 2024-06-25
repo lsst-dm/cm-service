@@ -101,3 +101,7 @@
 - SpecBlock:
       name: run_steps
       handler: lsst.cmservice.handlers.elements.RunStepsScriptHandler
+# Run a manifest checker report script
+- SpecBlock:
+      name: resource_usage_script
+      handler: lsst.cmservice.handlers.jobs.ResourceUsageScriptHandler

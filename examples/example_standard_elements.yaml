@@ -98,6 +98,7 @@
           campaign_public_output: "{out}"
           campaign_ancillary: "{out}/ancillary"
           campaign_validation: "{out}/validate"
+          campaign_resource_usage: "{out}/resource_usage"
       scripts:
           - Script:
                 name: tag_inputs
@@ -130,11 +131,18 @@
                     inputs: []
                     output: "{campaign_output}"
           - Script:
+                name: resource_usage
+                prerequisites: ["collect_steps"]
+                spec_block: resource_usage_script
+                collections:
+                    inputs: "{campaign_output}"
+                    output: "{campaign_resource_usage}"
+          - Script:
                 name: make_campaign_public_output
-                prerequisites: ['collect_steps']
+                prerequisites: ['resource_usage']
                 spec_block: chain_create_script
                 collections:
-                    inputs: ["{campaign_output}", "{campaign_input}"]
+                    inputs: ["{campaign_output}", "{campaign_input}", "{campaign_resource_usage}"]
                     output: "{campaign_public_output}"
       data:
           bps_core_script_template: bps_core_script_template

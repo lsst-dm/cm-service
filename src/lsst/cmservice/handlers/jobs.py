@@ -546,3 +546,44 @@ class ManifestReportLoadHandler(FunctionHandler):
         for task_ in parent.tasks_:
             await TaskSet.delete_row(session, task_.id)
         return update_fields
+
+
+class ResourceScriptHandler(ScriptHandler):
+    """THIS AS JUST A COPY PASTE OF THE MANIFEST REPORT SCRIPT HANDLER
+    EDIT TO DO  MAKE A RESOURCE USAGE SCRIPT"""
+
+    async def _write_script(
+        self,
+        session: async_scoped_session,
+        script: Script,
+        parent: ElementMixin,
+        **kwargs: Any,
+    ) -> StatusEnum:
+        specification = await script.get_specification(session)
+        resolved_cols = await script.resolve_collections(session)
+        data_dict = await script.data_dict(session)
+        prod_area = os.path.expandvars(data_dict["prod_area"])
+        script_url = await self._set_script_files(session, script, prod_area)
+        butler_repo = data_dict["butler_repo"]
+        lsst_distrib_dir = data_dict["lsst_distrib_dir"]
+        lsst_version = data_dict["lsst_version"]
+        job_run_coll = resolved_cols["job_run"]
+        qgraph_file = f"{job_run_coll}.qgraph".replace("/", "_")
+
+        graph_url = os.path.expandvars(f"{prod_area}/{parent.fullname}/submit/{qgraph_file}")
+        report_url = os.path.expandvars(f"{prod_area}/{parent.fullname}/submit/manifest_report.yaml")
+
+        manifest_script_template = await specification.get_script_template(
+            session,
+            data_dict["manifest_script_template"],
+        )
+        prepend = manifest_script_template.data["text"].replace("{lsst_version}", lsst_version)
+        prepend = prepend.replace("{lsst_distrib_dir}", lsst_distrib_dir)
+        if "custom_lsst_setup" in data_dict:
+            custom_lsst_setup = data_dict["custom_lsst_setup"]
+            prepend += f"\n{custom_lsst_setup}"
+
+        command = f"pipetask report --full-output-filename {report_url} {butler_repo} {graph_url}"
+        await write_bash_script(script_url, command, prepend=prepend)
+
+        return StatusEnum.prepared
