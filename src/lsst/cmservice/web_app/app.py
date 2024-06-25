@@ -14,17 +14,12 @@ from safir.dependencies.arq import arq_dependency
 from safir.dependencies.db_session import db_session_dependency
 from safir.dependencies.http_client import http_client_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
-from safir.logging import configure_logging, configure_uvicorn_logging
-
 from lsst.cmservice.config import config
+
 from lsst.cmservice.web_app.pages.campaigns import search_campaigns, get_campaign_details
 from lsst.cmservice.web_app.pages.steps import get_campaign_steps, get_step_details
 from lsst.cmservice.web_app.pages.step_details import get_step_details_by_id
 from lsst.cmservice.web_app.pages.group_details import get_group_by_id
-
-
-configure_logging(profile=config.profile, log_level=config.log_level, name=config.logger_name)
-configure_uvicorn_logging(config.log_level)
 
 
 @asynccontextmanager
