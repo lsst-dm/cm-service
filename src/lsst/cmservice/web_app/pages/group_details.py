@@ -1,3 +1,4 @@
+from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
 
@@ -8,47 +9,53 @@ from lsst.cmservice.web_app.utils.utils import map_status
 async def get_group_by_id(
     session: async_scoped_session,
     group_id: int,
-):
+) -> tuple[dict[str, Any] | None, list[dict[Any, Any]] | None, list[dict[Any, Any]] | None]:
     q = select(Group).where(Group.id == group_id)
     async with session.begin_nested():
         results = await session.scalars(q)
         group = results.first()
-        wms_reports_dict = await group.get_wms_reports(session)
-        wms_report = [y.__dict__ for y in wms_reports_dict.reports.values()]
 
-        aggregated_report_dict = {"running": 0, "succeeded": 0, "failed": 0, "pending": 0, "other": 0}
-        for task in wms_report:
-            aggregated_report_dict["succeeded"] += task["n_succeeded"]
-            aggregated_report_dict["failed"] += task["n_failed"]
-            aggregated_report_dict["running"] += task["n_running"]
-            aggregated_report_dict["pending"] += task["n_pending"] + task["n_ready"]
-            aggregated_report_dict["other"] += (
-                task["n_unknown"]
-                + task["n_misfit"]
-                + task["n_unready"]
-                + task["n_deleted"]
-                + task["n_pruned"]
-                + task["n_held"]
-            )
+        group_details = None
+        jobs = None
+        scripts = None
 
-        aggregated_report_dict["expected"] = sum(aggregated_report_dict.values())
-        print(aggregated_report_dict)
+        if group is not None:
+            wms_reports_dict = await group.get_wms_reports(session)
+            wms_report = [y.__dict__ for y in wms_reports_dict.reports.values()]
 
-        collections = await group.resolve_collections(session)
-        jobs = await get_group_jobs(session, group)
-        scripts = await get_group_scripts(session, group)
-        group_details = {
-            "id": group.id,
-            "name": group.name,
-            "fullname": group.fullname,
-            "superseded": group.superseded,
-            "status": map_status(group.status),
-            "data": group.data,
-            "collections": collections,
-            "child_config": group.child_config,
-            "wms_report": wms_report,
-            "aggregated_wms_report": aggregated_report_dict,
-        }
+            aggregated_report_dict = {"running": 0, "succeeded": 0, "failed": 0, "pending": 0, "other": 0}
+            for task in wms_report:
+                aggregated_report_dict["succeeded"] += task["n_succeeded"]
+                aggregated_report_dict["failed"] += task["n_failed"]
+                aggregated_report_dict["running"] += task["n_running"]
+                aggregated_report_dict["pending"] += task["n_pending"] + task["n_ready"]
+                aggregated_report_dict["other"] += (
+                    task["n_unknown"]
+                    + task["n_misfit"]
+                    + task["n_unready"]
+                    + task["n_deleted"]
+                    + task["n_pruned"]
+                    + task["n_held"]
+                )
+
+            aggregated_report_dict["expected"] = sum(aggregated_report_dict.values())
+            print(aggregated_report_dict)
+
+            collections = await group.resolve_collections(session)
+            jobs = await get_group_jobs(session, group)
+            scripts = await get_group_scripts(session, group)
+            group_details = {
+                "id": group.id,
+                "name": group.name,
+                "fullname": group.fullname,
+                "superseded": group.superseded,
+                "status": map_status(group.status),
+                "data": group.data,
+                "collections": collections,
+                "child_config": group.child_config,
+                "wms_report": wms_report,
+                "aggregated_wms_report": aggregated_report_dict,
+            }
 
         return group_details, jobs, scripts
 
