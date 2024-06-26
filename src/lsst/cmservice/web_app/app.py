@@ -175,7 +175,6 @@ async def get_step(
 async def get_group(
     request: Request,
     step_name: str,
-    # group_name: str,
     group_id: int,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> HTMLResponse:
