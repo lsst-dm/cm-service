@@ -23,23 +23,30 @@ async def get_group_by_id(
             wms_reports_dict = await group.get_wms_reports(session)
             wms_report = [y.__dict__ for y in wms_reports_dict.reports.values()]
 
-            aggregated_report_dict = {"running": 0, "succeeded": 0, "failed": 0, "pending": 0, "other": 0}
-            for task in wms_report:
-                aggregated_report_dict["succeeded"] += task["n_succeeded"]
-                aggregated_report_dict["failed"] = task["n_failed"]
-                aggregated_report_dict["running"] = task["n_running"]
-                aggregated_report_dict["pending"] = task["n_pending"] + task["n_ready"]
-                aggregated_report_dict["other"] += (
-                    task["n_unknown"]
-                    + task["n_misfit"]
-                    + task["n_unready"]
-                    + task["n_deleted"]
-                    + task["n_pruned"]
-                    + task["n_held"]
+            aggregated_report_dict = {
+                "running": 0,
+                "succeeded": 0,
+                "failed": 0,
+                "pending": 0,
+                "other": 0,
+                "expected": 0,
+            }
+
+            if len(wms_report) > 0:
+                aggregated_report_dict["succeeded"] = sum(task["n_succeeded"] for task in wms_report)
+                aggregated_report_dict["failed"] = wms_report[-1]["n_failed"]
+                aggregated_report_dict["running"] = wms_report[-1]["n_running"]
+                aggregated_report_dict["pending"] = wms_report[-1]["n_pending"] + wms_report[-1]["n_ready"]
+                aggregated_report_dict["other"] = (
+                    wms_report[-1]["n_unknown"]
+                    + wms_report[-1]["n_misfit"]
+                    + wms_report[-1]["n_unready"]
+                    + wms_report[-1]["n_deleted"]
+                    + wms_report[-1]["n_pruned"]
+                    + wms_report[-1]["n_held"]
                 )
 
-            aggregated_report_dict["expected"] = sum(aggregated_report_dict.values())
-            print(aggregated_report_dict)
+                aggregated_report_dict["expected"] = sum(aggregated_report_dict.values())
 
             collections = await group.resolve_collections(session)
             jobs = await get_group_jobs(session, group)
