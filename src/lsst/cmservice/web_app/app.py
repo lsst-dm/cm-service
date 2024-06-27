@@ -66,6 +66,7 @@ async def get_campaigns(
     try:
         async with session.begin():
             campaigns = await db.Campaign.get_rows(session)
+            # campaigns = await get_campaign_list(session)
             campaigns_list = []
             for campaign in campaigns:
                 campaign_details = await get_campaign_details(session, campaign)
@@ -188,6 +189,29 @@ async def get_group(
                 "group": group_details,
                 "jobs": jobs,
                 "scripts": scripts,
+            },
+        )
+    except Exception as e:
+        print(e)
+        traceback.print_tb(e.__traceback__)
+        return templates.TemplateResponse(f"Something went wrong {e}")
+
+
+@web_app.get("/campaign/{step_name}/{group_name}/{job_id}/", response_class=HTMLResponse)
+async def get_job(
+    request: Request,
+    step_name: str,
+    group_name: str,
+    job_id: int,
+) -> HTMLResponse:
+    try:
+        return templates.TemplateResponse(
+            name="job_details.html",
+            request=request,
+            context={
+                "step_name": step_name,
+                "group_name": group_name,
+                "job_id": job_id,
             },
         )
     except Exception as e:

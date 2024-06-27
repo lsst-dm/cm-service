@@ -112,6 +112,26 @@
     </div>
 </div>
 <script>
+    class JobNameRenderer {
+        eGui;
+
+     init(params) {
+       let jobName = document.createElement('a');
+       jobName.textContent = params.data.name;
+       jobName.href = `{{url_for("get_job", step_name=step_name, group_name=group.name, job_id="${params.data.id}")}}`;
+       jobName.setAttribute('class', 'font-bold hover:text-gray-500');
+       this.eGui = document.createElement('span');
+       this.eGui.appendChild(jobName)
+     }
+
+     getGui() {
+       return this.eGui;
+     }
+
+     refresh(params) {
+         return false
+     }
+    }
     const groupScripts = {{scripts|tojson}};
     const scriptsGridOptions = {
     rowData: groupScripts,
@@ -132,7 +152,7 @@
     const jobsGridOptions = {
         rowData: groupJobs,
         columnDefs: [
-            {field: "name", flex: 1},
+            {field: "name", flex: 1, cellRenderer: JobNameRenderer},
             {field: "status", flex: 1},
             {field: "superseded", flex: 1},
             {field: "submit_status", headerName: "Submit Status"},

@@ -774,10 +774,6 @@ video {
   width: 2rem;
 }
 
-.w-9\/12 {
-  width: 75%;
-}
-
 .w-auto {
   width: auto;
 }
@@ -983,11 +979,6 @@ video {
 
 .border-transparent {
   border-color: transparent;
-}
-
-.bg-cyan-400 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(34 211 238 / var(--tw-bg-opacity));
 }
 
 .bg-gray-100 {
