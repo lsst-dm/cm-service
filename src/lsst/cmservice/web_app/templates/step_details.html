@@ -19,7 +19,7 @@
   </ol>
 </nav>
 <div class="w-full">
-    <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2" xmlns="http://www.w3.org/1999/html">
+    <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
         <div class="flex items-center">
             <span class="text-2xl font-bold">{{step.name}}</span>
         </div>
@@ -81,7 +81,7 @@
      init(params) {
        let groupName = document.createElement('a');
        groupName.textContent = params.data.name;
-       groupName.href = `{{url_for("get_group", step_name=step.name ,group_name="${params.data.name}")}}`;
+       groupName.href = `{{url_for("get_group", step_name=step.name, group_id="${params.data.id}")}}`;
        groupName.setAttribute('class', 'font-bold hover:text-gray-500');
        this.eGui = document.createElement('span');
        this.eGui.appendChild(groupName)

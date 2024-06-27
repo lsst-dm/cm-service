@@ -27,10 +27,148 @@
   </ol>
 </nav>
 <div class="w-full">
-    <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/4" xmlns="http://www.w3.org/1999/html">
+    <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
         <div class="flex items-center">
-            <span class="text-2xl font-bold">{{group}}</span>
+            <span class="text-2xl font-bold">{{group.name}}</span>
+        </div>
+        <div class="flex items-center">
+            <span class="text-sm font-normal">{{group.fullname}}</span>
+        </div>
+        <div class="block items-center pt-2">
+            <span class="text-sm font-bold">Collections</span>
+            {% for key, value in group.collections|items %}
+            <div class="block text-sm">{{key}}: {{value}}</div>
+            {% endfor %}
+        </div>
+        <div class="block items-center pt-2">
+            <span class="text-sm font-bold">Data</span>
+            {% for key, value in group.data|items %}
+            <div class="block text-sm">{{key}}: {{value}}</div>
+            {% endfor %}
+        </div>
+        <div class="block items-center pt-2">
+            <span class="text-sm font-bold">Child Config</span>
+            {% for key, value in group.child_config|items %}
+            <div class="block text-sm">{{key}}: {{value}}</div>
+            {% endfor %}
+        </div>
+        <div class="items-center pt-2">
+            <span class="text-sm font-bold">WMS Task Report</span>
+            {% if group.aggregated_wms_report.expected != 0 %}
+            <div class="flex pt-2 w-full">
+                <div class="has-tooltip bg-teal-700 h-5
+                    {% if group.aggregated_wms_report.running == 0 %}hidden{%endif%}"
+                     style="width: {{ '{:.0%}'.format(group.aggregated_wms_report.running/group.aggregated_wms_report.expected) }}">
+                    <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Running</span>
+                    <span class="text-xs">{{group.aggregated_wms_report.running}}</span>
+                </div>
+                <div class="has-tooltip bg-green-500 h-5
+                    {% if group.aggregated_wms_report.succeeded == 0 %}hidden{%endif%}"
+                     style="width: {{ '{:.0%}'.format(group.aggregated_wms_report.succeeded/group.aggregated_wms_report.expected) }}">
+                    <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Succeeded</span>
+                    <span class="text-xs">{{group.aggregated_wms_report.succeeded}}</span>
+                </div>
+                <div class="has-tooltip bg-yellow-300 h-5
+                    {% if group.aggregated_wms_report.pending == 0 %}hidden{%endif%}"
+                     style="width: {{ '{:.0%}'.format(group.aggregated_wms_report.pending/group.aggregated_wms_report.expected) }}">
+                    <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Pending</span>
+                    <span class="text-xs">{{group.aggregated_wms_report.pending}}</span>
+                </div>
+                <div class="has-tooltip bg-red-600 h-5
+                    {% if group.aggregated_wms_report.failed == 0 %}hidden{%endif%}"
+                     style="width: {{ '{:.0%}'.format(group.aggregated_wms_report.failed/group.aggregated_wms_report.expected) }}">
+                    <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Failed</span>
+                    <span class="text-xs">{{group.aggregated_wms_report.failed}}</span>
+                </div>
+                <div class="has-tooltip bg-gray-300 h-5
+                    {% if group.aggregated_wms_report.other == 0 %}hidden{%endif%}"
+                     style="width: {{ '{:.0%}'.format(group.aggregated_wms_report.other/group.aggregated_wms_report.expected) }}">
+                    <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Other</span>
+                    <span class="text-xs">{{group.aggregated_wms_report.other}}</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="w-full px-4 py-5 sm:p-6">
+        <div class="flex items-center">
+            <span class="text-large font-bold">Scripts</span>
+        </div>
+        <div class="items-center pt-4">
+            <div id="scriptsGrid" class="ag-theme-alpine h-64"></div>
+        </div>
+        <div class="flex items-center pt-4">
+            <span class="text-large font-bold">Jobs</span>
+        </div>
+        <div class="items-center pt-4">
+            <div id="jobsGrid" class="ag-theme-alpine h-64"></div>
+        </div>
+        <div class="flex items-center pt-4">
+            <span class="text-large font-bold">WMS Task Report</span>
+        </div>
+        <div class="items-center pt-4">
+            <div id="wmsReportGrid" class="ag-theme-alpine h-64"></div>
         </div>
     </div>
 </div>
+<script>
+    const groupScripts = {{scripts|tojson}};
+    const scriptsGridOptions = {
+    rowData: groupScripts,
+     columnDefs: [
+         {
+             field: "name",
+             flex: 1,
+         },
+         {field: "status", flex: 1},
+         {field: "superseded", flex: 1}
+     ]
+    };
+    const scriptsGridElement = document.getElementById("scriptsGrid");
+    agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
+
+    // jobs
+    const groupJobs = {{jobs|tojson}};
+    const jobsGridOptions = {
+        rowData: groupJobs,
+        columnDefs: [
+            {field: "name", flex: 1},
+            {field: "status", flex: 1},
+            {field: "superseded", flex: 1},
+            {field: "submit_status", headerName: "Submit Status"},
+            {field: "submit_url", flex: 2, headerName: "Submit URL"},
+            {field: "stamp_url", flex: 2, headerName: "Stamp URL"},
+        ]
+    };
+    const jobsGridElement = document.getElementById("jobsGrid");
+    agGrid.createGrid(jobsGridElement, jobsGridOptions);
+
+    // wms task report
+    const formatWMSColumn = (params) => params.value === 0 ? "" : params.value;
+    const wmsReport = {{group.wms_report|tojson}};
+    const wmsReportOptions = {
+        rowData: wmsReport,
+        defaultColDef: {
+            resizable: false,
+            width: 100,
+        },
+        columnDefs: [
+            {field: "name", headerName: "Name", width: 350,},
+            {field: "n_expected", headerName: "Expected", valueFormatter: formatWMSColumn},
+            {field: "n_unknown", headerName: "Unknown", valueFormatter: formatWMSColumn},
+            {field: "n_misfit", headerName: "Misfit", valueFormatter: formatWMSColumn},
+            {field: "n_unready", headerName: "Unready", valueFormatter: formatWMSColumn},
+            {field: "n_ready", headerName: "Ready", valueFormatter: formatWMSColumn},
+            {field: "n_pending", headerName: "Pending", valueFormatter: formatWMSColumn},
+            {field: "n_running", headerName: "Running", valueFormatter: formatWMSColumn},
+            {field: "n_deleted", headerName: "Deleted", valueFormatter: formatWMSColumn},
+            {field: "n_held", headerName: "Held", valueFormatter: formatWMSColumn},
+            {field: "n_succeeded", headerName: "Succeeded", valueFormatter: formatWMSColumn},
+            {field: "n_failed", headerName: "Failed", valueFormatter: formatWMSColumn},
+            {field: "n_pruned", headerName: "Pruned", valueFormatter: formatWMSColumn},
+        ]
+    };
+    const wmsReportGridElement = document.getElementById("wmsReportGrid");
+    agGrid.createGrid(wmsReportGridElement, wmsReportOptions);
+</script>
 {% endblock %}

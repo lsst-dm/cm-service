@@ -14,16 +14,12 @@ from safir.dependencies.arq import arq_dependency
 from safir.dependencies.db_session import db_session_dependency
 from safir.dependencies.http_client import http_client_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
-from safir.logging import configure_logging, configure_uvicorn_logging
-
 from lsst.cmservice.config import config
+
 from lsst.cmservice.web_app.pages.campaigns import search_campaigns, get_campaign_details
 from lsst.cmservice.web_app.pages.steps import get_campaign_steps, get_step_details
 from lsst.cmservice.web_app.pages.step_details import get_step_details_by_id
-
-
-configure_logging(profile=config.profile, log_level=config.log_level, name=config.logger_name)
-configure_uvicorn_logging(config.log_level)
+from lsst.cmservice.web_app.pages.group_details import get_group_by_id
 
 
 @asynccontextmanager
@@ -106,11 +102,17 @@ async def search(
 ) -> HTMLResponse:
     try:
         results = await search_campaigns(session, search_term)
+        campaigns_list = []
+        for campaign in results:
+            campaign_details = await get_campaign_details(session, campaign)
+            campaigns_list.append(campaign_details)
+
         return templates.TemplateResponse(
             "campaign_search_results.html",
             context={
+                "search_term": search_term,
                 "request": request,
-                "search_results": results,
+                "search_results": campaigns_list,
             },
         )
     except Exception as e:
@@ -169,20 +171,23 @@ async def get_step(
         return templates.TemplateResponse(f"Something went wrong {e}")
 
 
-@web_app.get("/campaign/{step_name}/{group_name}/", response_class=HTMLResponse)
+@web_app.get("/campaign/{step_name}/{group_id}/", response_class=HTMLResponse)
 async def get_group(
     request: Request,
     step_name: str,
-    group_name: str,
+    group_id: int,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> HTMLResponse:
     try:
+        group_details, jobs, scripts = await get_group_by_id(session, group_id)
         return templates.TemplateResponse(
             name="group_details.html",
             request=request,
             context={
                 "step_name": step_name,
-                "group": group_name,
+                "group": group_details,
+                "jobs": jobs,
+                "scripts": scripts,
             },
         )
     except Exception as e:

@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block title %} Campaign Steps {% endblock %}
 {% block content %}
-<!--<div class="text-base px-4 sm:px-6 lg:px-8">HSC_WEEKLY</div>-->
 <nav class="flex px-2 sm:px-4 lg:px-6" aria-label="Breadcrumb">
   <ol role="list" class="flex items-center space-x-2">
     <li>
@@ -17,16 +16,4 @@
     {% include "step_card.html" %}
     {% endfor %}
 </div>
-<script>
-    const getPercentageClass = (groups, total) => {
-        let ratioTo12 = Math.round(groups * 12 / total);
-            let percentageClass = "w-" + ratioTo12.toString() + "/12";
-            return percentageClass;
-        };
-    // var element = document.getElementById("completed");
-    // var myclass = getPercentageClass(800, 1000);
-    // console.log(myclass);
-    // element.classList.add("w-9/12");
-    // console.log("eman")
-</script>
 {% endblock %}
