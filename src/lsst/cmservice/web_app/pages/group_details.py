@@ -26,9 +26,9 @@ async def get_group_by_id(
             aggregated_report_dict = {"running": 0, "succeeded": 0, "failed": 0, "pending": 0, "other": 0}
             for task in wms_report:
                 aggregated_report_dict["succeeded"] += task["n_succeeded"]
-                aggregated_report_dict["failed"] += task["n_failed"]
-                aggregated_report_dict["running"] += task["n_running"]
-                aggregated_report_dict["pending"] += task["n_pending"] + task["n_ready"]
+                aggregated_report_dict["failed"] = task["n_failed"]
+                aggregated_report_dict["running"] = task["n_running"]
+                aggregated_report_dict["pending"] = task["n_pending"] + task["n_ready"]
                 aggregated_report_dict["other"] += (
                     task["n_unknown"]
                     + task["n_misfit"]
@@ -72,7 +72,9 @@ async def get_group_jobs(session: async_scoped_session, group: Group) -> list[di
                 "status": map_status(job.status),
                 "data": job.data,
                 "submit_status": "Submitted" if job.wms_job_id is not None else "",
-                "submit_url": job.wms_job_id if not job.wms_job_id.isnumeric() else "",
+                "submit_url": job.wms_job_id
+                if (job.wms_job_id is not None and not job.wms_job_id.isnumeric())
+                else "",
                 "stamp_url": job.stamp_url,
             },
         )
