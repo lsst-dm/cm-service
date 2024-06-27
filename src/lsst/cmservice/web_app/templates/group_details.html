@@ -54,6 +54,7 @@
         </div>
         <div class="items-center pt-2">
             <span class="text-sm font-bold">WMS Task Report</span>
+            {% if group.aggregated_wms_report.expected != 0 %}
             <div class="flex pt-2 w-full">
                 <div class="has-tooltip bg-teal-700 h-5
                     {% if group.aggregated_wms_report.running == 0 %}hidden{%endif%}"
@@ -86,6 +87,7 @@
                     <span class="text-xs">{{group.aggregated_wms_report.other}}</span>
                 </div>
             </div>
+            {% endif %}
         </div>
     </div>
     <div class="w-full px-4 py-5 sm:p-6">
