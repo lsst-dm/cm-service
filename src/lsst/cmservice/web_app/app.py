@@ -20,6 +20,7 @@ from lsst.cmservice.web_app.pages.campaigns import search_campaigns, get_campaig
 from lsst.cmservice.web_app.pages.steps import get_campaign_steps, get_step_details
 from lsst.cmservice.web_app.pages.step_details import get_step_details_by_id
 from lsst.cmservice.web_app.pages.group_details import get_group_by_id
+from lsst.cmservice.web_app.pages.job_details import get_job_by_id
 
 
 @asynccontextmanager
@@ -203,15 +204,17 @@ async def get_job(
     step_name: str,
     group_name: str,
     job_id: int,
+    session: async_scoped_session = Depends(db_session_dependency),
 ) -> HTMLResponse:
     try:
+        job_details = await get_job_by_id(session, job_id)
         return templates.TemplateResponse(
             name="job_details.html",
             request=request,
             context={
                 "step_name": step_name,
                 "group_name": group_name,
-                "job_id": job_id,
+                "job": job_details,
             },
         )
     except Exception as e:
