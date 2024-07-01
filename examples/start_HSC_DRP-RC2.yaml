@@ -11,8 +11,8 @@ Campaign:
         lsst_version: MUST_OVERRIDE
 #       butler_repo: '/repo/main+sasquatch_dev'
 #       data_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1'"
-#       bps_wms_clustering_file: ${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml
-#       bps_wms_resources_file: ${DRP_PIPE_DIR}/bps/resources/HSC/DRP-RC2.yaml
+#       bps_wms_clustering_file: "${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml"
+#       bps_wms_resources_file: "${DRP_PIPE_DIR}/bps/resources/HSC/DRP-RC2.yaml"
 #
 # Examples of how to override step specific stuff
 #   child_config:

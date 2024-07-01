@@ -379,6 +379,7 @@ class CMLoadClient:
 
         try:
             camp_config = config_data["Campaign"]
+            camp_config["parent_name"] = parent_name
         except KeyError as msg:
             raise CMYamlParseError(
                 f"Could not find 'Campaign' tag in {campaign_yaml}",
