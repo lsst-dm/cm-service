@@ -89,11 +89,3 @@
       child_config:
           base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
           split_method: no_split
-- SpecBlock:
-      name: HSC_DRP-Prod_step8
-      includes: ['step']
-      data:
-          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-Prod.yaml#step8"
-      child_config:
-          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
-          split_method: no_split
