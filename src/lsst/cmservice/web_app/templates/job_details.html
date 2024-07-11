@@ -61,5 +61,29 @@
             {% endfor %}
         </div>
     </div>
+    <div class="w-full px-4 py-5 sm:p-6">
+        <div class="flex items-center">
+            <span class="text-large font-bold">Scripts</span>
+        </div>
+        <div class="items-center pt-4">
+            <div id="scriptsGrid" class="ag-theme-alpine h-64"></div>
+        </div>
+    </div>
 </div>
+<script>
+    const jobScripts = {{scripts|tojson}};
+    const scriptsGridOptions = {
+    rowData: jobScripts,
+     columnDefs: [
+         {
+             field: "name",
+             flex: 1,
+         },
+         {field: "status", flex: 1},
+         {field: "superseded", flex: 1}
+     ]
+    };
+    const scriptsGridElement = document.getElementById("scriptsGrid");
+    agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
+</script>
 {% endblock %}
