@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-from lsst.cmservice.db import Step
+from lsst.cmservice.db import Step, Campaign
 from lsst.cmservice.common.enums import StatusEnum
 from lsst.cmservice.web_app.utils.utils import map_status
 
@@ -34,3 +34,11 @@ async def get_step_details(session: async_scoped_session, step: Step) -> dict:
         "no_groups_failed": no_groups_failed,
     }
     return step_details
+
+
+async def get_campaign_by_id(session: async_scoped_session, campaign_id: int) -> Campaign:
+    q = select(Campaign).where(Campaign.id == campaign_id)
+    async with session.begin_nested():
+        results = await session.scalars(q)
+        campaign = results.first()
+        return campaign
