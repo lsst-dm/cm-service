@@ -23,6 +23,31 @@ async def get_job_by_id(
             wms_reports_dict = await job.get_wms_reports(session)
             wms_report = [y.__dict__ for y in wms_reports_dict.reports.values()]
 
+            aggregated_report_dict = {
+                "running": 0,
+                "succeeded": 0,
+                "failed": 0,
+                "pending": 0,
+                "other": 0,
+                "expected": 0,
+            }
+
+            if len(wms_report) > 0:
+                aggregated_report_dict["succeeded"] = sum(task["n_succeeded"] for task in wms_report)
+                aggregated_report_dict["failed"] = wms_report[-1]["n_failed"]
+                aggregated_report_dict["running"] = wms_report[-1]["n_running"]
+                aggregated_report_dict["pending"] = wms_report[-1]["n_pending"] + wms_report[-1]["n_ready"]
+                aggregated_report_dict["other"] = (
+                    wms_report[-1]["n_unknown"]
+                    + wms_report[-1]["n_misfit"]
+                    + wms_report[-1]["n_unready"]
+                    + wms_report[-1]["n_deleted"]
+                    + wms_report[-1]["n_pruned"]
+                    + wms_report[-1]["n_held"]
+                )
+
+                aggregated_report_dict["expected"] = sum(aggregated_report_dict.values())
+
             products_dict = await job.get_products(session)
             products = [y.__dict__ for y in products_dict.reports.values()]
 
@@ -38,6 +63,7 @@ async def get_job_by_id(
                 "collections": collections,
                 "child_config": job.child_config,
                 "wms_report": wms_report,
+                "aggregated_wms_report": aggregated_report_dict,
                 "products": products,
             }
 
