@@ -9,7 +9,7 @@ from lsst.cmservice.web_app.utils.utils import map_status
 async def get_job_by_id(
     session: async_scoped_session,
     job_id: int,
-) -> tuple[dict[str, Any] | None, list[dict[Any, Any]] | None]:
+) -> tuple[dict[str, Any] | None, list[dict[Any, Any]] | None, list[dict[Any, Any]] | None]:
     q = select(Job).where(Job.id == job_id)
     async with session.begin_nested():
         results = await session.scalars(q)
@@ -17,6 +17,7 @@ async def get_job_by_id(
 
         job_details = None
         scripts = None
+        products = None
 
         if job is not None:
             wms_reports_dict = await job.get_wms_reports(session)
@@ -24,7 +25,6 @@ async def get_job_by_id(
 
             collections = await job.resolve_collections(session)
             scripts = await get_job_scripts(session, job)
-            print(scripts)
             job_details = {
                 "id": job.id,
                 "name": job.name,
@@ -36,7 +36,12 @@ async def get_job_by_id(
                 "child_config": job.child_config,
                 "wms_report": wms_report,
             }
-        return job_details, scripts
+
+            products_dict = await job.get_products(session)
+            products = [y.__dict__ for y in products_dict.reports.values()]
+            print(products)
+
+        return job_details, scripts, products
 
 
 async def get_job_scripts(session: async_scoped_session, job: Job) -> list[dict]:
