@@ -111,6 +111,12 @@
         <div class="items-center pt-4">
             <div id="productsGrid" class="ag-theme-alpine h-64"></div>
         </div>
+        <div class="flex items-center pt-4">
+            <span class="text-large font-bold">WMS Task Report</span>
+        </div>
+        <div class="items-center pt-4">
+            <div id="wmsReportGrid" class="ag-theme-alpine h-64"></div>
+        </div>
     </div>
 </div>
 <script>
@@ -147,5 +153,32 @@
 
     const productsGridElement = document.getElementById("productsGrid");
     agGrid.createGrid(productsGridElement, productsGridOptions);
+
+    // WMS task report
+    const wmsReport = {{job.wms_report|tojson}};
+    const wmsReportOptions = {
+        rowData: wmsReport,
+        defaultColDef: {
+            resizable: false,
+            width: 100,
+        },
+        columnDefs: [
+            {field: "name", headerName: "Name", width: 350,},
+            {field: "n_expected", headerName: "Expected", valueFormatter: formatWMSColumn},
+            {field: "n_unknown", headerName: "Unknown", valueFormatter: formatWMSColumn},
+            {field: "n_misfit", headerName: "Misfit", valueFormatter: formatWMSColumn},
+            {field: "n_unready", headerName: "Unready", valueFormatter: formatWMSColumn},
+            {field: "n_ready", headerName: "Ready", valueFormatter: formatWMSColumn},
+            {field: "n_pending", headerName: "Pending", valueFormatter: formatWMSColumn},
+            {field: "n_running", headerName: "Running", valueFormatter: formatWMSColumn},
+            {field: "n_deleted", headerName: "Deleted", valueFormatter: formatWMSColumn},
+            {field: "n_held", headerName: "Held", valueFormatter: formatWMSColumn},
+            {field: "n_succeeded", headerName: "Succeeded", valueFormatter: formatWMSColumn},
+            {field: "n_failed", headerName: "Failed", valueFormatter: formatWMSColumn},
+            {field: "n_pruned", headerName: "Pruned", valueFormatter: formatWMSColumn},
+        ]
+    };
+    const wmsReportGridElement = document.getElementById("wmsReportGrid");
+    agGrid.createGrid(wmsReportGridElement, wmsReportOptions);
 </script>
 {% endblock %}
