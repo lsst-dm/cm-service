@@ -23,6 +23,9 @@ async def get_job_by_id(
             wms_reports_dict = await job.get_wms_reports(session)
             wms_report = [y.__dict__ for y in wms_reports_dict.reports.values()]
 
+            products_dict = await job.get_products(session)
+            products = [y.__dict__ for y in products_dict.reports.values()]
+
             collections = await job.resolve_collections(session)
             scripts = await get_job_scripts(session, job)
             job_details = {
@@ -35,13 +38,10 @@ async def get_job_by_id(
                 "collections": collections,
                 "child_config": job.child_config,
                 "wms_report": wms_report,
+                "products": products,
             }
 
-            products_dict = await job.get_products(session)
-            products = [y.__dict__ for y in products_dict.reports.values()]
-            print(products)
-
-        return job_details, scripts, products
+        return job_details, scripts
 
 
 async def get_job_scripts(session: async_scoped_session, job: Job) -> list[dict]:

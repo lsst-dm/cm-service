@@ -207,7 +207,7 @@ async def get_job(
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> HTMLResponse:
     try:
-        job_details, scripts, products = await get_job_by_id(session, job_id)
+        job_details, scripts = await get_job_by_id(session, job_id)
         return templates.TemplateResponse(
             name="job_details.html",
             request=request,
@@ -216,7 +216,6 @@ async def get_job(
                 "group_name": group_name,
                 "job": job_details,
                 "scripts": scripts,
-                "products": products,
             },
         )
     except Exception as e:

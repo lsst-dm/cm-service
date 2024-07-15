@@ -94,18 +94,20 @@
 
 
     // products
-    const jobProducts = {{products|tojson}};
+    const formatWMSColumn = (params) => params.value === 0 ? "" : params.value;
+    const jobProducts = {{job.products|tojson}};
     const productsGridOptions = {
     rowData: jobProducts,
-     columnDefs: [
-         {
-             field: "name",
-             flex: 1,
-         },
-         {field: "status", flex: 1},
-         {field: "superseded", flex: 1}
-     ]
+        columnDefs: [
+            {field: "name", headerName: "Name", flex: 2,},
+            {field: "n_expected", headerName: "Expected", valueFormatter: formatWMSColumn},
+            {field: "n_done", headerName: "Done", valueFormatter: formatWMSColumn},
+            {field: "n_failed", headerName: "Failed", valueFormatter: formatWMSColumn},
+            {field: "n_failed_upstream", headerName: "Failed Upstream", valueFormatter: formatWMSColumn},
+            {field: "n_missing", headerName: "Missing", valueFormatter: formatWMSColumn},
+        ]
     };
+
     const productsGridElement = document.getElementById("productsGrid");
     agGrid.createGrid(productsGridElement, productsGridOptions);
 </script>
