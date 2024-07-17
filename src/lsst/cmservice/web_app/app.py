@@ -66,9 +66,13 @@ async def get_campaigns(
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> HTMLResponse:
     try:
+        # request.state.campaign_id = None
+        # request.state.step_id = None
+        # request.state.group_id = None
+        # request.state.job_id = None
+        # request.state.script_id = None
         async with session.begin():
             campaigns = await db.Campaign.get_rows(session)
-            # campaigns = await get_campaign_list(session)
             campaigns_list = []
             for campaign in campaigns:
                 campaign_details = await get_campaign_details(session, campaign)
@@ -232,20 +236,19 @@ async def get_job(
         return templates.TemplateResponse(f"Something went wrong {e}")
 
 
-@web_app.get("/script/{campaign_id}/{script_id}/", response_class=HTMLResponse)
+@web_app.get("/campaign/script/{script_id}/", response_class=HTMLResponse)
 async def get_script(
     request: Request,
-    campaign_id: int,
     script_id: int,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> HTMLResponse:
     try:
         script_details = await get_script_by_id(session, script_id)
+
         return templates.TemplateResponse(
             name="script_details.html",
             request=request,
             context={
-                "campaign_id": campaign_id,
                 "script": script_details,
             },
         )

@@ -1,6 +1,22 @@
 {% extends "base.html" %}
 {% block title %} Group Details {% endblock %}
 {% block content %}
+{% set fullname = script.fullname.split('/') %}
+<nav class="flex px-2 sm:px-4 lg:px-4" aria-label="Breadcrumb">
+  <ol role="list" class="flex items-center space-x-2">
+      {% for i in range(fullname|length - 1) %}
+    <li>
+      <div class="flex items-center">
+          <a href="#" class="ml-2 mr-2 text-sm font-medium text-gray-500 hover:text-gray-700">{{ fullname[i] }}</a>
+          {% if not loop.last %}
+          <svg class="h-5 w-5 flex-shrink-0 text-gray-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
+          </svg>
+          {% endif %}
+      </div>
+    </li>
+      {% endfor %}
+  </ol>
 </nav>
 <div class="w-full">
     <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
