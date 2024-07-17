@@ -236,10 +236,18 @@ async def get_job(
         return templates.TemplateResponse(f"Something went wrong {e}")
 
 
-@web_app.get("/campaign/script/{script_id}/", response_class=HTMLResponse)
+# @web_app.get("/script/{script_id}/", response_class=HTMLResponse)
+@web_app.get("/script/{campaign_id}/{script_id}/", response_class=HTMLResponse)
+@web_app.get("/script/{campaign_id}/{step_id}/{script_id}/", response_class=HTMLResponse)
+@web_app.get("/script/{campaign_id}/{step_id}/{group_id}/{script_id}/", response_class=HTMLResponse)
+@web_app.get("/script/{campaign_id}/{step_id}/{group_id}/{job_id}/{script_id}/", response_class=HTMLResponse)
 async def get_script(
     request: Request,
     script_id: int,
+    campaign_id: int,
+    step_id: int | None = None,
+    group_id: int | None = None,
+    job_id: int | None = None,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> HTMLResponse:
     try:
@@ -250,6 +258,10 @@ async def get_script(
             request=request,
             context={
                 "script": script_details,
+                "campaign_id": campaign_id,
+                "step_id": step_id,
+                "group_id": group_id,
+                "job_id": job_id,
             },
         )
     except Exception as e:
