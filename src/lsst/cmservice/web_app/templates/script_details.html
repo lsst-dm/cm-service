@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %} Group Details {% endblock %}
+{% block content %}
+</nav>
+<div class="w-full">
+    <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
+        <div class="flex items-center">
+            <span class="text-2xl font-bold">{{script.name}}</span>
+        </div>
+        <div class="flex items-center">
+            <span class="text-sm font-normal">{{script.fullname}}</span>
+        </div>
+        <div class="block items-center pt-2">
+            <span class="text-sm font-bold">Collections</span>
+            {% for key, value in script.collections|items %}
+            <div class="block text-sm">{{key}}: {{value}}</div>
+            {% endfor %}
+        </div>
+        <div class="block items-center pt-2">
+            <span class="text-sm font-bold">Data</span>
+            {% for key, value in script.data|items %}
+            <div class="block text-sm">{{key}}: {{value}}</div>
+            {% endfor %}
+        </div>
+        <div class="block items-center pt-2">
+            <span class="text-sm font-bold">Child Config</span>
+            {% for key, value in script.child_config|items %}
+            <div class="block text-sm">{{key}}: {{value}}</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

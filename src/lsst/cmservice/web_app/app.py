@@ -21,6 +21,7 @@ from lsst.cmservice.web_app.pages.steps import get_campaign_steps, get_step_deta
 from lsst.cmservice.web_app.pages.step_details import get_step_details_by_id
 from lsst.cmservice.web_app.pages.group_details import get_group_by_id
 from lsst.cmservice.web_app.pages.job_details import get_job_by_id
+from lsst.cmservice.web_app.pages.script_details import get_script_by_id
 
 
 @asynccontextmanager
@@ -223,6 +224,29 @@ async def get_job(
                 "group_id": group_id,
                 "job": job_details,
                 "scripts": scripts,
+            },
+        )
+    except Exception as e:
+        print(e)
+        traceback.print_tb(e.__traceback__)
+        return templates.TemplateResponse(f"Something went wrong {e}")
+
+
+@web_app.get("/script/{campaign_id}/{script_id}/", response_class=HTMLResponse)
+async def get_script(
+    request: Request,
+    campaign_id: int,
+    script_id: int,
+    session: async_scoped_session = Depends(db_session_dependency),
+) -> HTMLResponse:
+    try:
+        script_details = await get_script_by_id(session, script_id)
+        return templates.TemplateResponse(
+            name="script_details.html",
+            request=request,
+            context={
+                "campaign_id": campaign_id,
+                "script": script_details,
             },
         )
     except Exception as e:
