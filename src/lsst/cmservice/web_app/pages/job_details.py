@@ -9,7 +9,7 @@ from lsst.cmservice.web_app.utils.utils import map_status
 async def get_job_by_id(
     session: async_scoped_session,
     job_id: int,
-) -> tuple[dict[str, Any] | None, list[dict[Any, Any]] | None, list[dict[Any, Any]] | None]:
+) -> tuple[dict[str, Any] | None, list[dict[Any, Any]] | None]:
     q = select(Job).where(Job.id == job_id)
     async with session.begin_nested():
         results = await session.scalars(q)
