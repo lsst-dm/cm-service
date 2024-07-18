@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-from lsst.cmservice.db import Campaign, Group, Script
+from lsst.cmservice.db import Campaign, Group
 from lsst.cmservice.common.enums import StatusEnum
 from lsst.cmservice.web_app.utils.utils import map_status
 
@@ -16,8 +16,7 @@ async def get_campaign_details(session: async_scoped_session, campaign: Campaign
         lambda group: map_status(group.status) in ["NEED_ATTENTION", "FAILED"],
         groups,
     )
-    # scripts = await campaign.get_scripts(session)
-    scripts = await get_campaign_scripts(session, campaign)
+    scripts = await campaign.get_all_scripts(session)
     no_scripts_completed = len([script for script in scripts if script.status == StatusEnum.accepted])
     need_attention_scripts = filter(
         lambda script: map_status(script.status) in ["NEED_ATTENTION", "FAILED"],
@@ -47,13 +46,6 @@ async def search_campaigns(session: async_scoped_session, search_term: str) -> S
 
 async def get_campaign_groups(session: async_scoped_session, campaign: Campaign) -> Sequence:
     q = select(Group).where(Group.c_ == campaign)
-    async with session.begin_nested():
-        results = await session.scalars(q)
-        return results.all()
-
-
-async def get_campaign_scripts(session: async_scoped_session, campaign: Campaign) -> Sequence:
-    q = select(Script).where(Script.c_ == campaign)
     async with session.begin_nested():
         results = await session.scalars(q)
         return results.all()
