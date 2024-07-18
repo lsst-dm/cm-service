@@ -66,11 +66,6 @@ async def get_campaigns(
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> HTMLResponse:
     try:
-        # request.state.campaign_id = None
-        # request.state.step_id = None
-        # request.state.group_id = None
-        # request.state.job_id = None
-        # request.state.script_id = None
         async with session.begin():
             campaigns = await db.Campaign.get_rows(session)
             campaigns_list = []
