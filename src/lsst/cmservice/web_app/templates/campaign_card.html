@@ -18,12 +18,12 @@
         <div class="block text-xs pt-2 pl-3 text-green-700">{{campaign.groups_completed}}</div>
         <div class="block text-xs pt-2 pl-3 text-red-400">
             {% for group in campaign.need_attention_groups %}
-                <a class="pr-2" href="{{ url_for('get_group', campaign_id=campaign.id, step_id=group.parent_id) }}">{{group.fullname}}</a>
+                <a class="pr-2" href="{{ url_for('get_group', campaign_id=campaign.id, step_id=group.parent_id, group_id=group.id) }}">{{group.fullname}}</a>
             {% endfor %}
         </div>
         <div class="block text-xs pt-2 pl-3 text-red-400">
             {% for script in campaign.need_attention_scripts %}
-                <a class="pr-2" href="{{ url_for('get_script', campaign_id=campaign.id) }}">{{script.name}}</a>
+                <a class="pr-2" href="{{ url_for('get_script', campaign_id=campaign.id, script_id=script.id) }}">{{script.name}}</a>
             {% endfor %}
         </div>
     </div>
