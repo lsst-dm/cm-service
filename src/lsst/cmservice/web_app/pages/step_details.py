@@ -14,7 +14,7 @@ async def get_step_details_by_id(
     collections = await step.resolve_collections(session)
     step_details = await get_step_details(session, step)
     # get step dicts
-    step_details["collections"] = collections
+    step_details["collections"] = {key: collections[key] for key in collections if key.startswith("step_")}
     step_details["data"] = step.data
     step_details["child_config"] = step.child_config
     groups = await get_step_groups(session, step)

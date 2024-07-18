@@ -26,7 +26,7 @@ async def get_script_by_id(
                 "superseded": script.superseded,
                 "status": map_status(script.status),
                 "data": script.data,
-                "collections": collections,
+                "collections": {"run": collections["run"]},
                 "child_config": script.child_config,
             }
 

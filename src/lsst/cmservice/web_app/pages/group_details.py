@@ -58,7 +58,7 @@ async def get_group_by_id(
                 "superseded": group.superseded,
                 "status": map_status(group.status),
                 "data": group.data,
-                "collections": collections,
+                "collections": {key: collections[key] for key in collections if key.startswith("group_")},
                 "child_config": group.child_config,
                 "wms_report": wms_report,
                 "aggregated_wms_report": aggregated_report_dict,
