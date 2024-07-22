@@ -176,12 +176,13 @@ async def get_step(
         return templates.TemplateResponse(f"Something went wrong {e}")
 
 
-@web_app.get("/campaign/{campaign_id}/{step_id}/{group_id}/", response_class=HTMLResponse)
+@web_app.get("/group/{group_id}/", response_class=HTMLResponse)
+@web_app.get("/group/{campaign_id}/{step_id}/{group_id}/", response_class=HTMLResponse)
 async def get_group(
     request: Request,
-    campaign_id: int,
-    step_id: int,
     group_id: int,
+    campaign_id: int | None = None,
+    step_id: int | None = None,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> HTMLResponse:
     try:
@@ -190,8 +191,8 @@ async def get_group(
             name="group_details.html",
             request=request,
             context={
-                "campaign_id": campaign_id,
-                "step_id": step_id,
+                # "campaign_id": campaign_id,
+                # "step_id": step_id,
                 "group": group_details,
                 "jobs": jobs,
                 "scripts": scripts,
@@ -231,7 +232,6 @@ async def get_job(
         return templates.TemplateResponse(f"Something went wrong {e}")
 
 
-# @web_app.get("/script/{script_id}/", response_class=HTMLResponse)
 @web_app.get("/script/{campaign_id}/{script_id}/", response_class=HTMLResponse)
 @web_app.get("/script/{campaign_id}/{step_id}/{script_id}/", response_class=HTMLResponse)
 @web_app.get("/script/{campaign_id}/{step_id}/{group_id}/{script_id}/", response_class=HTMLResponse)
