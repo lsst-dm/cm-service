@@ -21,13 +21,11 @@ from lsst.cmservice.web_app.pages.steps import (
     get_campaign_steps,
     get_step_details,
     get_campaign_by_id,
-    get_campaign_by_fullname,
 )
 from lsst.cmservice.web_app.pages.step_details import get_step_details_by_id
 from lsst.cmservice.web_app.pages.group_details import get_group_by_id
 from lsst.cmservice.web_app.pages.job_details import get_job_by_id
 from lsst.cmservice.web_app.pages.script_details import get_script_by_id
-from lsst.cmservice.web_app.pages.script_details_by_name import get_script_by_fullname
 
 
 @asynccontextmanager
@@ -253,8 +251,6 @@ async def get_script(
 ) -> HTMLResponse:
     try:
         script_details = await get_script_by_id(session, script_id)
-        print(f"url: {request.url}")
-        print(request.url.path.split("/"))
         return templates.TemplateResponse(
             name="script_details.html",
             request=request,
@@ -280,58 +276,3 @@ async def test_layout(request: Request) -> HTMLResponse:
 @web_app.get("/test-ag-grid/", response_class=HTMLResponse)
 async def test_table(request: Request) -> HTMLResponse:
     return templates.TemplateResponse("test_ag_grid.html", {"request": request})
-
-
-@web_app.get("/campaign/script/{production}/{campaign}/{script}/", response_class=HTMLResponse)
-@web_app.get("/campaign/script/{production}/{campaign}/{step}/{script}/", response_class=HTMLResponse)
-@web_app.get("/campaign/script/{production}/{campaign}/{step}/{group}/{script}/", response_class=HTMLResponse)
-@web_app.get(
-    "/campaign/script/{production}/{campaign}/{step}/{group}/{job}/{script}/",
-    response_class=HTMLResponse,
-)
-async def get_script_by_name(
-    request: Request,
-    session: async_scoped_session = Depends(db_session_dependency),
-) -> HTMLResponse:
-    url_path = request.url.path.split("/")[4:-1]
-    script_fullname = "/".join(url_path)
-    print(f"script name: {script_fullname}")
-    script_details = await get_script_by_fullname(session, script_fullname)
-    return templates.TemplateResponse(
-        name="script_details_by_name.html",
-        request=request,
-        context={
-            "script": script_details,
-        },
-    )
-
-
-@web_app.get("/campaign/steps/{production}/{campaign}/", response_class=HTMLResponse)
-async def get_steps_by_name(
-    request: Request,
-    production: str,
-    campaign: str,
-    session: async_scoped_session = Depends(db_session_dependency),
-) -> HTMLResponse:
-    try:
-        campaign_fullname = "/".join([production, campaign])
-        print(f"campaign: {campaign_fullname}")
-        campaign = await get_campaign_by_fullname(session, campaign_fullname)
-        steps = await get_campaign_steps(session, campaign.id)
-        campaign_steps = []
-        for step in steps:
-            step_details = await get_step_details(session, step)
-            campaign_steps.append(step_details)
-
-        return templates.TemplateResponse(
-            name="steps.html",
-            request=request,
-            context={
-                "campaign": campaign,
-                "steps": campaign_steps,
-            },
-        )
-    except Exception as e:
-        print(e)
-        traceback.print_tb(e.__traceback__)
-        return templates.TemplateResponse(f"Something went wrong {e}")

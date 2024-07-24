@@ -42,11 +42,3 @@ async def get_campaign_by_id(session: async_scoped_session, campaign_id: int) ->
         results = await session.scalars(q)
         campaign = results.first()
         return campaign
-
-
-async def get_campaign_by_fullname(session: async_scoped_session, campaign_fullname: str) -> Campaign:
-    q = select(Campaign).where(Campaign.fullname == campaign_fullname)
-    async with session.begin_nested():
-        results = await session.scalars(q)
-        campaign = results.first()
-        return campaign
