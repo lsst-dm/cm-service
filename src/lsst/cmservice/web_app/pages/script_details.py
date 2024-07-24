@@ -7,7 +7,7 @@ from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.web_app.utils.utils import map_status
 
 
-def is_script_collection(collection) -> bool:
+def is_script_collection(collection: tuple[str, str]) -> bool:
     key, value = collection
     return not (
         key.startswith("campaign_")
