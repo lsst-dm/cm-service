@@ -130,17 +130,42 @@
     agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
 
     // groups
+    class DictRenderer {
+        eGui;
+
+     init(params) {
+       let dictElement = document.createElement('div');
+       let my_dict = params.value;
+       for (const key in my_dict){
+           let itemElement = document.createElement('p');
+           itemElement.textContent = `${key}: ${my_dict[key]}`
+           dictElement.appendChild(itemElement);
+       }
+       // dictElement.setAttribute('class', 'font-bold hover:text-teal-500 h-64');
+       this.eGui = document.createElement('span');
+       this.eGui.appendChild(dictElement)
+     }
+
+     getGui() {
+       return this.eGui;
+     }
+
+     refresh(params) {
+         return false
+     }
+    }
     const stepGroups = {{groups|tojson}};
     const groupsGridOptions = {
         rowData: stepGroups,
+        rowHeight: 120,
         columnDefs: [
             {field: "name", flex: 1, filter: true, cellRenderer: GroupNameRenderer},
             {field: "status", flex: 1},
             {field: "superseded", flex: 1},
-            {field: "data", flex: 2, valueFormatter: (params) => params.data.data["data_query"] },
-            {field: "child_config", flex: 2},
-            {field: "collections", flex: 2},
-            {field: "spec_aliases", flex: 2},
+            {field: "data", flex: 2, wrapText: true, valueFormatter: (params) => params.data.data["data_query"] },
+            {field: "child_config", flex: 2, cellRenderer: DictRenderer},
+            {field: "collections", flex: 2, cellRenderer: DictRenderer},
+            {field: "spec_aliases", flex: 2, cellRenderer: DictRenderer},
         ]
     };
     const groupsGridElement = document.getElementById("groupsGrid");
