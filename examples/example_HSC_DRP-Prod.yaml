@@ -78,6 +78,9 @@
                     split_max_group_size: 500
                     split_dataset: calexp
                     split_field: visit
+                data:
+                    extra_qgraph_options: >
+                        --dataset-query-constraint finalVisitSummary
           - Step:
                 name: step5
                 spec_block: HSC_DRP-Prod_step5
