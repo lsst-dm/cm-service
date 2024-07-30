@@ -1,14 +1,17 @@
 Production:
     name: HSC_DRP-RC2
 Campaign:
-    name: MUST_OVERRIDE
-    spec_name: HSC_DRP-RC2_htcondor
+    name: w_2024_26_DM-45061
+    spec_name: HSC_DRP-RC2_panda
     collections:
-        out: MUST_OVERRIDE
-        # campaign_source: HSC/raw/RC2
+        out: HSC/runs/RC2/w_2024_26/DM-45061
+        campaign_source: HSC/raw/RC2
     data:
-        prod_area: MUST_OVERRIDE
-        lsst_version: MUST_OVERRIDE
+        lsst_version: w_2024_26
+        prod_area: /sdf/group/rubin/shared/campaigns/HSC-RC2/output/archive
+
+#       custom_lsst_setup: setup -j -r /sdf/group/rubin/u/yusra/lsst_devel/ctrl_bps
+#
 #       butler_repo: '/repo/main+sasquatch_dev'
 #       data_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1'"
 #       bps_wms_clustering_file: "${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml"
