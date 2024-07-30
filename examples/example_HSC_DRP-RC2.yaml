@@ -59,6 +59,12 @@
                 child_config:
                     split_method: split_by_query
                     split_min_groups: 5
+                data:
+                    extra_qgraph_options: >
+                        -c parameters:sasquatch_dataset_identifier=HSC/RC2
+                        -c parameters:sasquatch_timestamp_version=reference_package_timestamp
+                        --dataset-query-constraint finalVisitSummary
+
           - Step:
                 name: step5
                 spec_block: HSC_DRP-RC2_step5
@@ -90,6 +96,9 @@
                 prerequisites: ['step6']
                 child_config:
                     split_method: no_split
+                data:
+                    data_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1' and tract in (9615, 9697, 9813)"
+
           - Step:
                 name: plots
                 spec_block: HSC_DRP-RC2_plots
