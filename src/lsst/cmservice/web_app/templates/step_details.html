@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 {% block title %} Step Details {% endblock %}
 {% block content %}
+{% set fullname = step.fullname.split('/') %}
 <nav class="flex px-2 sm:px-4 lg:px-4" aria-label="Breadcrumb">
   <ol role="list" class="flex items-center space-x-2">
     <li>
       <div class="flex items-center">
-        <a href="#" class="ml-2 text-sm font-medium text-gray-500 hover:text-gray-700">HSC_WEEKLY</a>
+        <a href="{{ url_for('get_campaigns')}}" class="ml-2 text-sm font-medium text-gray-500 hover:text-gray-700">{{ fullname[0] }}</a>
       </div>
     </li>
     <li>
@@ -13,7 +14,7 @@
         <svg class="h-5 w-5 flex-shrink-0 text-gray-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
           <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
         </svg>
-        <a href="#" class="ml-2 text-sm font-medium text-gray-500 hover:text-gray-700" aria-current="page">w_2024_10_test0</a>
+        <a href="{{ url_for('get_steps', campaign_id=campaign_id) }}" class="ml-2 text-sm font-medium text-gray-500 hover:text-gray-700" aria-current="page">{{ fullname[1] }}</a>
       </div>
     </li>
   </ol>
@@ -81,7 +82,7 @@
      init(params) {
        let groupName = document.createElement('a');
        groupName.textContent = params.data.name;
-       groupName.href = `{{url_for("get_group", step_name=step.name, group_id="${params.data.id}")}}`;
+       groupName.href = `{{url_for("get_group", campaign_id=campaign_id, step_id=step.id, group_id="${params.data.id}")}}`;
        groupName.setAttribute('class', 'font-bold hover:text-gray-500');
        this.eGui = document.createElement('span');
        this.eGui.appendChild(groupName)
