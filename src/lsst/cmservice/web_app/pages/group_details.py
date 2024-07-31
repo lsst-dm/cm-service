@@ -9,6 +9,8 @@ from lsst.cmservice.web_app.utils.utils import map_status
 async def get_group_by_id(
     session: async_scoped_session,
     group_id: int,
+    campaign_id: int | None = None,
+    step_id: int | None = None,
 ) -> tuple[dict[str, Any] | None, list[dict[Any, Any]] | None, list[dict[Any, Any]] | None]:
     q = select(Group).where(Group.id == group_id)
     async with session.begin_nested():
@@ -20,6 +22,11 @@ async def get_group_by_id(
         scripts = None
 
         if group is not None:
+            if campaign_id is None:
+                campaign = await group.get_campaign(session)
+                c_id = campaign.id
+            s_id = group.parent_id if step_id is None else step_id
+
             wms_reports_dict = await group.get_wms_reports(session)
             wms_report = [y.__dict__ for y in wms_reports_dict.reports.values()]
 
@@ -58,10 +65,12 @@ async def get_group_by_id(
                 "superseded": group.superseded,
                 "status": map_status(group.status),
                 "data": group.data,
-                "collections": collections,
+                "collections": {key: collections[key] for key in collections if key.startswith("group_")},
                 "child_config": group.child_config,
                 "wms_report": wms_report,
                 "aggregated_wms_report": aggregated_report_dict,
+                "step_id": s_id,
+                "campaign_id": c_id,
             }
 
         return group_details, jobs, scripts

@@ -17,10 +17,15 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 from lsst.cmservice.config import config
 
 from lsst.cmservice.web_app.pages.campaigns import search_campaigns, get_campaign_details
-from lsst.cmservice.web_app.pages.steps import get_campaign_steps, get_step_details, get_campaign_by_id
+from lsst.cmservice.web_app.pages.steps import (
+    get_campaign_steps,
+    get_step_details,
+    get_campaign_by_id,
+)
 from lsst.cmservice.web_app.pages.step_details import get_step_details_by_id
 from lsst.cmservice.web_app.pages.group_details import get_group_by_id
 from lsst.cmservice.web_app.pages.job_details import get_job_by_id
+from lsst.cmservice.web_app.pages.script_details import get_script_by_id
 
 
 @asynccontextmanager
@@ -67,7 +72,6 @@ async def get_campaigns(
     try:
         async with session.begin():
             campaigns = await db.Campaign.get_rows(session)
-            # campaigns = await get_campaign_list(session)
             campaigns_list = []
             for campaign in campaigns:
                 campaign_details = await get_campaign_details(session, campaign)
@@ -176,12 +180,13 @@ async def get_step(
         return templates.TemplateResponse(f"Something went wrong {e}")
 
 
-@web_app.get("/campaign/{campaign_id}/{step_id}/{group_id}/", response_class=HTMLResponse)
+@web_app.get("/group/{group_id}/", response_class=HTMLResponse)
+@web_app.get("/group/{campaign_id}/{step_id}/{group_id}/", response_class=HTMLResponse)
 async def get_group(
     request: Request,
-    campaign_id: int,
-    step_id: int,
     group_id: int,
+    campaign_id: int | None = None,
+    step_id: int | None = None,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> HTMLResponse:
     try:
@@ -190,8 +195,8 @@ async def get_group(
             name="group_details.html",
             request=request,
             context={
-                "campaign_id": campaign_id,
-                "step_id": step_id,
+                # "campaign_id": campaign_id,
+                # "step_id": step_id,
                 "group": group_details,
                 "jobs": jobs,
                 "scripts": scripts,
@@ -223,6 +228,38 @@ async def get_job(
                 "group_id": group_id,
                 "job": job_details,
                 "scripts": scripts,
+            },
+        )
+    except Exception as e:
+        print(e)
+        traceback.print_tb(e.__traceback__)
+        return templates.TemplateResponse(f"Something went wrong {e}")
+
+
+@web_app.get("/script/{campaign_id}/{script_id}/", response_class=HTMLResponse)
+@web_app.get("/script/{campaign_id}/{step_id}/{script_id}/", response_class=HTMLResponse)
+@web_app.get("/script/{campaign_id}/{step_id}/{group_id}/{script_id}/", response_class=HTMLResponse)
+@web_app.get("/script/{campaign_id}/{step_id}/{group_id}/{job_id}/{script_id}/", response_class=HTMLResponse)
+async def get_script(
+    request: Request,
+    script_id: int,
+    campaign_id: int | None = None,
+    step_id: int | None = None,
+    group_id: int | None = None,
+    job_id: int | None = None,
+    session: async_scoped_session = Depends(db_session_dependency),
+) -> HTMLResponse:
+    try:
+        script_details = await get_script_by_id(session, script_id)
+        return templates.TemplateResponse(
+            name="script_details.html",
+            request=request,
+            context={
+                "script": script_details,
+                "campaign_id": campaign_id,
+                "step_id": step_id,
+                "group_id": group_id,
+                "job_id": job_id,
             },
         )
     except Exception as e:

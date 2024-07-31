@@ -60,7 +60,7 @@ async def get_job_by_id(
                 "superseded": job.superseded,
                 "status": map_status(job.status),
                 "data": job.data,
-                "collections": collections,
+                "collections": {key: collections[key] for key in collections if key.startswith("job_")},
                 "child_config": job.child_config,
                 "wms_report": wms_report,
                 "aggregated_wms_report": aggregated_report_dict,

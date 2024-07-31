@@ -14,7 +14,7 @@
         <svg class="h-5 w-5 flex-shrink-0 text-gray-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
           <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
         </svg>
-        <a href="{{ url_for('get_steps', campaign_id=campaign_id) }}" class="ml-2 text-sm font-medium text-gray-500 hover:text-gray-700" aria-current="page">{{ fullname[1] }}</a>
+        <a href="{{ url_for('get_steps', campaign_id=group.campaign_id) }}" class="ml-2 text-sm font-medium text-gray-500 hover:text-gray-700" aria-current="page">{{ fullname[1] }}</a>
       </div>
     </li>
       <li>
@@ -22,7 +22,7 @@
         <svg class="h-5 w-5 flex-shrink-0 text-gray-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
           <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
         </svg>
-        <a href="{{ url_for('get_step', campaign_id=campaign_id, step_id=step_id) }}" class="ml-2 text-sm font-medium text-gray-500 hover:text-gray-700" aria-current="page">{{ fullname[2] }}</a>
+        <a href="{{ url_for('get_step', campaign_id=group.campaign_id, step_id=group.step_id) }}" class="ml-2 text-sm font-medium text-gray-500 hover:text-gray-700" aria-current="page">{{ fullname[2] }}</a>
       </div>
     </li>
   </ol>
@@ -119,10 +119,30 @@
      init(params) {
        let jobName = document.createElement('a');
        jobName.textContent = params.data.name;
-       jobName.href = `{{url_for("get_job", campaign_id=campaign_id, step_id=step_id, group_id=group.id, job_id="${params.data.id}")}}`;
+       jobName.href = `{{url_for("get_job", campaign_id=group.campaign_id, step_id=group.step_id, group_id=group.id, job_id="${params.data.id}")}}`;
        jobName.setAttribute('class', 'font-bold hover:text-gray-500');
        this.eGui = document.createElement('span');
        this.eGui.appendChild(jobName)
+     }
+
+     getGui() {
+       return this.eGui;
+     }
+
+     refresh(params) {
+         return false
+     }
+    }
+    class ScriptNameRenderer {
+        eGui;
+
+     init(params) {
+       let scriptName = document.createElement('a');
+       scriptName.textContent = params.data.name;
+       scriptName.href = `{{url_for("get_script", campaign_id=group.campaign_id, step_id=group.step_id, group_id=group.id, script_id="${params.data.id}")}}`;
+       scriptName.setAttribute('class', 'font-bold hover:text-gray-500');
+       this.eGui = document.createElement('span');
+       this.eGui.appendChild(scriptName)
      }
 
      getGui() {
@@ -137,10 +157,7 @@
     const scriptsGridOptions = {
     rowData: groupScripts,
      columnDefs: [
-         {
-             field: "name",
-             flex: 1,
-         },
+         {field: "name", flex: 1, cellRenderer: ScriptNameRenderer,},
          {field: "status", flex: 1},
          {field: "superseded", flex: 1}
      ]

@@ -11,21 +11,19 @@
         <span class="font-semibold inline-flex pl-3 text-xs uppercase"> Last updated 6:42pm Mon 7 Feb </span>
     </div>
     <div class="mt-3 pb-3">
-<!--        <p class="text-sm font-normal leading-6 text-gray-900 pl-3">-->
             <div class="block text-xs pl-3">LSST Version: {{campaign.lsst_version}}</div>
             <div class="block text-xs pl-3">out: {{campaign.out}}</div>
             <div class="block text-xs pl-3">source: {{campaign.source}}</div>
-<!--        </p>-->
         <div class="block text-xs pt-2 pl-3 text-green-700">{{campaign.scripts_completed}}</div>
         <div class="block text-xs pt-2 pl-3 text-green-700">{{campaign.groups_completed}}</div>
         <div class="block text-xs pt-2 pl-3 text-red-400">
             {% for group in campaign.need_attention_groups %}
-                <a class="pr-2" href="#">{{group.fullname}}</a>
+                <a class="pr-2" href="{{ url_for('get_group', campaign_id=campaign.id, step_id=group.parent_id, group_id=group.id) }}">{{group.fullname}}</a>
             {% endfor %}
         </div>
         <div class="block text-xs pt-2 pl-3 text-red-400">
             {% for script in campaign.need_attention_scripts %}
-                <a class="pr-2" href="#">{{script.name}}</a>
+                <a class="pr-2" href="{{ url_for('get_script', campaign_id=campaign.id, script_id=script.id) }}">{{script.name}}</a>
             {% endfor %}
         </div>
     </div>
@@ -37,7 +35,6 @@
         </span></a>
     </div>
     <button type="button" class="absolute right-3 top-6 text-teal-600" aria-expanded="false" aria-hidden="true" aria-haspopup="true">
-        <!--                                <span class="absolute right-6 top-6 text-teal-400" aria-hidden="true">-->
         <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" stroke="currentColor">
             <path d="M3 10a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM8.5 10a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM15.5 8.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" />
         </svg>

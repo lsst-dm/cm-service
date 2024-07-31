@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %} Script Details {% endblock %}
+{% block content %}
+{% set fullname = script.fullname.split('/') %}
+<nav class="flex px-2 sm:px-4 lg:px-4" aria-label="Breadcrumb">
+  <ol role="list" class="flex items-center space-x-2">
+      {% for i in range(fullname|length - 1) %}
+    <li>
+      <div class="flex items-center">
+          {% if i == 0 %}
+          {% set parent_link = url_for('get_campaigns') %}
+          {% elif i == 1 %}
+          {% set parent_link = url_for('get_steps', campaign_id=campaign_id) %}
+          {% elif i == 2 %}
+          {% set parent_link = url_for('get_step', campaign_id=campaign_id, step_id=step_id) %}
+          {% elif i == 3 %}
+          {% set parent_link = url_for('get_group', campaign_id=campaign_id, step_id=step_id, group_id=group_id) %}
+          {% else %}
+          {% set parent_link = url_for('get_job', campaign_id=campaign_id, step_id=step_id, group_id=group_id, job_id=job_id) %}
+          {% endif %}
+          <a href="{{ parent_link }}" class="ml-2 mr-2 text-sm font-medium text-gray-500 hover:text-gray-700">{{ fullname[i] }}</a>
+
+          {% if not loop.last %}
+          <svg class="h-5 w-5 flex-shrink-0 text-gray-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
+          </svg>
+          {% endif %}
+      </div>
+    </li>
+      {% endfor %}
+  </ol>
+</nav>
+<div class="w-full">
+    <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
+        <div class="flex items-center">
+            <span class="text-2xl font-bold">{{script.name}}</span>
+        </div>
+        <div class="flex items-center">
+            <span class="text-sm font-normal">{{script.fullname}}</span>
+        </div>
+        <div class="block items-center pt-2">
+            <span class="text-sm font-bold">Collections</span>
+            {% for key, value in script.collections|items %}
+            <div class="block text-sm">{{key}}: {{value}}</div>
+            {% endfor %}
+        </div>
+        <div class="block items-center pt-2">
+            <span class="text-sm font-bold">Data</span>
+            {% for key, value in script.data|items %}
+            <div class="block text-sm">{{key}}: {{value}}</div>
+            {% endfor %}
+        </div>
+        <div class="block items-center pt-2">
+            <span class="text-sm font-bold">Child Config</span>
+            {% for key, value in script.child_config|items %}
+            <div class="block text-sm">{{key}}: {{value}}</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

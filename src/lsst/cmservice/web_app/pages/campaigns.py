@@ -16,7 +16,7 @@ async def get_campaign_details(session: async_scoped_session, campaign: Campaign
         lambda group: map_status(group.status) in ["NEED_ATTENTION", "FAILED"],
         groups,
     )
-    scripts = await campaign.get_scripts(session)
+    scripts = await campaign.get_all_scripts(session)
     no_scripts_completed = len([script for script in scripts if script.status == StatusEnum.accepted])
     need_attention_scripts = filter(
         lambda script: map_status(script.status) in ["NEED_ATTENTION", "FAILED"],
