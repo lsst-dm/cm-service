@@ -1,0 +1,49 @@
+ARG  BASE_TAG=7-stackbase-devtoolset-6
+FROM lsstsqre/centos:${BASE_TAG}
+
+ARG NEW_DIR=/opt/lsst/software/stack
+ARG NEWINSTALL_URL=https://raw.githubusercontent.com/lsst/lsst/master/scripts/newinstall.sh
+ARG LSST_EUPS_PKGROOT_BASE_URL=https://eups.lsst.codes/stack
+
+USER root
+
+RUN yum update -y && yum install slurm -y && yum clean all -y
+
+RUN groupadd --gid 1126 gu
+RUN groupadd --gid 4085 rubin-users
+RUN groupadd --gid 2218 lsst
+RUN groupadd --gid 3967 lsstsvc1
+RUN useradd lsstsvc1 --uid 17951 --no-user-group --gid gu --groups rubin-users,lsst,lsstsvc1 \
+    --create-home --shell /bin/bash
+
+VOLUME /home/lsstsvc1
+
+RUN mkdir -p "$NEW_DIR"
+RUN chown "lsstsvc1:gu" "$NEW_DIR"
+WORKDIR $NEW_DIR
+
+USER lsstsvc1
+
+SHELL ["/bin/bash", "-o", "pipefail", "-lc"]
+RUN curl -sSL "$NEWINSTALL_URL" | bash -s -- -cbtS
+
+ARG EUPS_TAG=w_2024_24
+ARG EUPS_PRODUCTS=lsst_distrib
+ARG SHEBANGTRON_URL=https://raw.githubusercontent.com/lsst/shebangtron/master/shebangtron
+
+SHELL ["/bin/bash", "-o", "pipefail", "-lc"]
+
+RUN source ./loadLSST.bash; for prod in $EUPS_PRODUCTS; do eups distrib install --no-server-tags -vvv "$prod" -t "$EUPS_TAG"; done \
+  && ( find stack -exec strip --strip-unneeded --preserve-dates {} + \
+       > /dev/null 2>&1 || true ) \
+  && ( find stack -maxdepth 5 -name tests -type d -exec rm -rf {} + \
+       > /dev/null 2>&1 || true ) \
+  && ( find stack -maxdepth 6 \( -path "*doc/html" -o -path "*doc/xml" \) -type d -exec rm -rf {} + \
+       > /dev/null 2>&1 || true ) \
+  && ( find stack/ -maxdepth 5 -name src -type d -exec rm -rf {} + \
+       > /dev/null 2>&1 || true )
+
+RUN source ./loadLSST.bash; curl -sSL "$SHEBANGTRON_URL" | python
+
+SHELL ["/bin/bash", "-lc"]
+CMD ["/bin/tail", "-f", "/dev/null"]
