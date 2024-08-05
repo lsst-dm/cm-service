@@ -137,13 +137,50 @@ async def test_campaign_db_v2(engine: AsyncEngine) -> None:
         session = await create_async_session(engine, logger)
         os.environ["CM_CONFIGS"] = "examples"
 
-        create_tree(session, LevelEnum.step)
+        # intialize a tree down to one level lower
+        await create_tree(session, LevelEnum.step)
 
-        delete_all_productions(session)
+        # run row mixin method tests
+        check_getall = await db.Campaign.get_rows(session, parent_name="prod0", parent_class=db.Production)
+        assert len(check_getall) == 1, "length should be 1"
 
+        entry = check_getall[0]
+
+        check_get = await db.Campaign.get_row(session, entry.id)
+        assert check_get.id == entry.id, "pulled row should be identical"
+
+        check_get_by_name = await db.Campaign.get_row_by_name(session, name="camp0")
+        assert check_get_by_name.id == entry.id, "pulled row should be identical"
+
+        check_get_by_fullname = await db.Campaign.get_row_by_fullname(session, entry.fullname)
+        assert check_get_by_fullname.id == entry.id, "pulled row should be identical"
+
+        check_update = await db.Campaign.update_row(session, entry.id, data=dict(foo="bar"))
+        assert check_update.data["foo"] == "bar", "foo value should be bar"
+
+        check_update2 = await check_update.update_values(session, data=dict(bar="foo"))
+        assert check_update2.data["bar"] == "foo", "bar value should be foo"
+
+        # run campaign specific method tests
+        # TODO: make proper asserts on this.
+        check = await entry.children(session)
+        assert check is not None
+
+        check = await entry.get_tasks(session)
+        assert check is not None
+
+        check = await entry.get_wms_reports(session)
+        assert check is not None
+
+        check = await entry.get_products(session)
+        assert check is not None
+
+        # delete everything we just made in the session
+        await delete_all_productions(session)
+
+        # confirm cleanup
         productions = await db.Production.get_rows(
             session,
         )
-
         assert len(productions) == 0
         await session.remove()
