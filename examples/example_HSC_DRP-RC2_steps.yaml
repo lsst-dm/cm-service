@@ -79,7 +79,7 @@
       data:
           pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step8"
       child_config:
-          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+          base_query: "instrument='HSC' and skymap='hsc_rings_v1' and tract in (9615, 9697, 9813)"
           split_method: no_split
 - SpecBlock:
       name: HSC_DRP-RC2_plots

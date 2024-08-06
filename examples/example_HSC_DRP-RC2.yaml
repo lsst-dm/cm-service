@@ -20,6 +20,7 @@
                 child_config:
                     split_method: split_by_query
                     split_min_groups: 5
+
           - Step:
                 name: step2a
                 spec_block: HSC_DRP-RC2_step2a
@@ -96,8 +97,6 @@
                 prerequisites: ['step6']
                 child_config:
                     split_method: no_split
-                data:
-                    data_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1' and tract in (9615, 9697, 9813)"
 
           - Step:
                 name: plots
@@ -126,7 +125,7 @@
       data:
           butler_repo: '/repo/main+sasquatch_dev'
           prod_area: 'output/archive'  # Change this to /sdf/group/shared/campaigns
-          data_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1'"
+          data_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1' and band in ('g', 'r', 'i', 'z', 'y')"
           bps_wms_clustering_file: "${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml"
           bps_wms_resources_file: "${DRP_PIPE_DIR}/bps/resources/HSC/DRP-RC2.yaml"
           extra_qgraph_options: >
