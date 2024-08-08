@@ -1,7 +1,4 @@
-import os
-
-from safir.database import create_async_session
-from sqlalchemy.ext.asyncio import AsyncEngine, async_scoped_session
+from sqlalchemy.ext.asyncio import async_scoped_session
 
 from lsst.cmservice import db
 from lsst.cmservice.handlers import interface
@@ -13,10 +10,11 @@ async def create_tree(
     level: LevelEnum,
 ) -> None:
     specification = await interface.load_specification(session, "examples/empty_config.yaml")
-    check2 = await specification.get_block(session, "campaign")
+    _ = await specification.get_block(session, "campaign")
 
     pname = "prod0"
-    prod = await db.Production.create_row(session, name=pname)
+    _ = await db.Production.create_row(session, name=pname)
+
     cname = "camp0"
     camp = await db.Campaign.create_row(
         session,
@@ -56,7 +54,7 @@ async def create_tree(
     if level.value <= LevelEnum.group.value:
         return
 
-    jobs = [
+    _ = [
         await db.Job.create_row(
             session,
             name="job",
