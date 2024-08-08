@@ -1,16 +1,15 @@
 Production:
     name: HSC_DRP-RC2
 Campaign:
-    name: MUST_OVERRIDE
+    name: w_2024_30_DM-45425c
     spec_name: HSC_DRP-RC2_panda
     collections:
-        out: MUST_OVERRIDE
+        out: HSC/runs/RC2/w_2024_30/DM-45425c
         campaign_source: HSC/raw/RC2
     data:
-        lsst_version: MUST_OVERRIDE
-        prod_area: MUST_OVERRIDE
-
-#       custom_lsst_setup: setup -j -r /sdf/group/rubin/u/yusra/lsst_devel/ctrl_bps
+        lsst_version: w_2024_30
+        prod_area: /sdf/group/rubin/shared/campaigns/HSC-RC2/output/archive
+        custom_lsst_setup: setup -j -r /sdf/group/rubin/u/yanny/cloneit/drp_tasks;
 #
 #       butler_repo: '/repo/main+sasquatch_dev'
 #       data_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1'"
@@ -18,8 +17,13 @@ Campaign:
 #       bps_wms_resources_file: "${DRP_PIPE_DIR}/bps/resources/HSC/DRP-RC2.yaml"
 #
 # Examples of how to override step specific stuff
-#   child_config:
-#       step1:
+# Please note that 2 groups is too few for HSC-RC2 since merge finalJob blows memory
+# therefore 5 groups is used
+# this example shows proper tabbing for this config option
+    child_config:
+        step1:
+            child_config:
+                split_min_groups: 5
 #           data:
 #               extra_qraph_options: "something"
 #       step5:
