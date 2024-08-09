@@ -2,6 +2,7 @@ import os
 
 import pytest
 import structlog
+import uuid
 from safir.database import create_async_session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -18,24 +19,30 @@ from util_functions import create_tree, delete_all_productions
 async def test_campaign_db(engine: AsyncEngine) -> None:
     """Test `campaign` db table."""
 
+    # generate a uuid to avoid collisions
+    uuid_int = uuid.uuid1().int
     logger = structlog.get_logger(config.logger_name)
     async with engine.begin():
         session = await create_async_session(engine, logger)
         os.environ["CM_CONFIGS"] = "examples"
 
         # intialize a tree down to one level lower
-        await create_tree(session, LevelEnum.step)
+        await create_tree(session, LevelEnum.step, uuid_int)
 
         with pytest.raises(IntegrityError):
             await db.Campaign.create_row(
                 session,
-                name="camp0",
+                name=f"camp0_{uuid_int}",
                 spec_block_assoc_name="base#campaign",
-                parent_name="prod0",
+                parent_name=f"prod0_{uuid_int}",
             )
 
         # run row mixin method tests
-        check_getall = await db.Campaign.get_rows(session, parent_name="prod0", parent_class=db.Production)
+        check_getall = await db.Campaign.get_rows(
+            session,
+            parent_name=f"prod0_{uuid_int}",
+            parent_class=db.Production,
+        )
         assert len(check_getall) == 1, "length should be 1"
 
         entry = check_getall[0]  # defining single unit for later
@@ -56,7 +63,7 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
                 -99,
             )
 
-        check_get_by_name = await db.Campaign.get_row_by_name(session, name="camp0")
+        check_get_by_name = await db.Campaign.get_row_by_name(session, name=f"camp0_{uuid_int}")
         assert check_get_by_name.id == entry.id, "pulled row should be identical"
 
         with pytest.raises(errors.CMMissingFullnameError):

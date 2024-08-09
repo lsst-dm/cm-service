@@ -8,14 +8,15 @@ from lsst.cmservice.common.enums import LevelEnum
 async def create_tree(
     session: async_scoped_session,
     level: LevelEnum,
+    uuid_int: int,
 ) -> None:
     specification = await interface.load_specification(session, "examples/empty_config.yaml")
     _ = await specification.get_block(session, "campaign")
 
-    pname = "prod0"
+    pname = f"prod0_{uuid_int}"
     _ = await db.Production.create_row(session, name=pname)
 
-    cname = "camp0"
+    cname = f"camp0_{uuid_int}"
     camp = await db.Campaign.create_row(
         session,
         name=cname,
@@ -26,7 +27,7 @@ async def create_tree(
     if level.value <= LevelEnum.campaign.value:
         return
 
-    snames = [f"step{i}" for i in range(2)]
+    snames = [f"step{i}_{uuid_int}" for i in range(2)]
     steps = [
         await db.Step.create_row(
             session,
@@ -40,7 +41,7 @@ async def create_tree(
     if level.value <= LevelEnum.step.value:
         return
 
-    gnames = [f"group{i}" for i in range(5)]
+    gnames = [f"group{i}_{uuid_int}" for i in range(5)]
     groups = [
         await db.Group.create_row(
             session,
