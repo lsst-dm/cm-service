@@ -1,0 +1,46 @@
+FROM ghcr.io/lsst-dm/docker-scipipe:9-latest
+
+RUN <<EOF
+  yum update -y
+  yum install epel-release -y
+  yum install slurm -y
+  yum clean all -y
+EOF
+
+RUN <<EOF
+  groupadd --gid 1126 gu
+  groupadd --gid 4085 rubin-users
+  groupadd --gid 2218 lsst
+  groupadd --gid 3967 lsstsvc1
+  useradd lsstsvc1 --uid 17951 --no-user-group --gid gu --groups rubin-users,lsst,lsstsvc1 \
+    --create-home --shell /bin/bash
+EOF
+
+VOLUME /home/lsstsvc1
+
+RUN <<EOF
+  mkdir -p "/opt/lsst/software/stack"
+  chown "lsstsvc1:gu" "/opt/lsst/software/stack"
+EOF
+
+WORKDIR /opt/lsst/software/stack
+
+USER lsstsvc1
+
+SHELL ["/bin/bash", "-o", "pipefail", "-lc"]
+RUN <<EOF
+  curl -sSL "https://ls.st/lsstinstall" | bash -s -- -S -v 9.0.0
+  source ./loadLSST.sh
+  conda clean -a -y
+  mamba clean -a -y
+  eups distrib install --no-server-tags -vvv "ctrl_bps" -t "latest"
+  eups distrib install --no-server-tags -vvv "lsst_bps_plugins" -t "latest"
+  find "stack" -exec strip --strip-unneeded --preserve-dates {} + > /dev/null 2>&1 || true
+  find "stack" -maxdepth 5 -name tests -type d -exec rm -rf {} + > /dev/null 2>&1 || true
+  find "stack" -maxdepth 6 \( -path "*doc/html" -o -path "*doc/xml" \) -type d -exec rm -rf {} + > /dev/null 2>&1 || true
+  find "stack" -maxdepth 5 -name src -type d -exec rm -rf {} + > /dev/null 2>&1 || true
+  curl -sSL "https://raw.githubusercontent.com/lsst/shebangtron/master/shebangtron" | python
+EOF
+SHELL ["/bin/bash", "-lc"]
+
+CMD ["/bin/tail", "-f", "/dev/null"]
