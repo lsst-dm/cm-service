@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This script installs additional packages used by the dependency image but
+# This script installs additional packages used by the build image but
 # not needed by the runtime image, such as additional packages required to
 # build Python dependencies.
 #
@@ -22,7 +22,7 @@ export DEBIAN_FRONTEND=noninteractive
 # Update the package listing, so we know what packages exist.
 apt-get update
 
-# Install various dependencies that may be required to install vo-cutouts:
+# Install various dependencies that may be required to install the frontend:
 #
 # build-essential: sometimes needed to build Python modules
 # git: required by setuptools_scm
@@ -32,3 +32,12 @@ apt-get -y install --no-install-recommends build-essential git libffi-dev
 # Delete cached files we don't need anymore:
 apt-get clean
 rm -rf /var/lib/apt/lists/*
+
+# Create and activate a venv for the frontend
+python -m venv /opt/venv
+. /opt/venv/bin/activate
+
+# Upgrade pip, setuptools, wheel; install deps; install app
+pip install --upgrade --no-cache-dir pip setuptools wheel
+pip install --quiet --no-cache-dir -r /workdir/requirements/main.txt
+pip install --no-cache-dir /workdir
