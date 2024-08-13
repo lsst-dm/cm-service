@@ -191,18 +191,18 @@ class CMGroupClient:
         "jobs",
     )
 
-    rescue_job = wrappers.get_general_post_function(
-        models.NodeQuery,
+    rescue_job = wrappers.get_node_post_query_function(
         models.Job,
+        models.NodeQuery,
         f"{router_string}/action",
-        "retry_script",
+        "rescue_job",
     )
 
-    mark_rescued = wrappers.get_general_post_function(
-        models.NodeQuery,
+    mark_rescued = wrappers.get_node_post_query_function(
         list[models.Job],
+        models.NodeQuery,
         f"{router_string}/action",
-        "retry_script",
+        "mark_rescued",
     )
 
     get_wms_task_reports = wrappers.get_node_property_function(

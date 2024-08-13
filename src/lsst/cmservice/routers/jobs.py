@@ -1,7 +1,12 @@
 """http routers for managing Job tables"""
-from fastapi import APIRouter
+from collections.abc import Sequence
+
+from fastapi import APIRouter, Depends, HTTPException
+from safir.dependencies.db_session import db_session_dependency
+from sqlalchemy.ext.asyncio import async_scoped_session
 
 from .. import db, models
+from ..common.errors import CMMissingIDError
 from . import wrappers
 
 # Template specialization
@@ -79,3 +84,24 @@ estimate_sleep_time = wrappers.get_element_estimate_sleep_time_function(router, 
 get_wms_task_reports = wrappers.get_element_wms_task_reports_function(router, DbClass)
 get_tasks = wrappers.get_element_tasks_function(router, DbClass)
 get_products = wrappers.get_element_products_function(router, DbClass)
+
+
+@router.get(
+    "/get/{row_id}/errors",
+    status_code=201,
+    response_model=Sequence[models.PipetaskError],
+    summary="Get the errors associated to a job",
+)
+async def get_errors(
+    row_id: int,
+    session: async_scoped_session = Depends(db_session_dependency),
+) -> Sequence[db.PipetaskError]:
+    try:
+        async with session.begin():
+            the_job = await DbClass.get_row(session, row_id)
+            the_errors = await the_job.get_errors(session)
+            return the_errors
+    except CMMissingIDError as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+    except Exception as msg:
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg

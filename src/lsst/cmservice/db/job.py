@@ -4,13 +4,14 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON, and_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
 from ..common.enums import LevelEnum, StatusEnum
-from ..common.errors import CMBadParameterTypeError, CMMissingRowCreateInputError
+from ..common.errors import CMBadParameterTypeError, CMIntegrityError, CMMissingRowCreateInputError
 from ..models.merged_product_set import MergedProductSet, MergedProductSetDict
 from ..models.merged_task_set import MergedTaskSet, MergedTaskSetDict
 from ..models.merged_wms_task_report import MergedWmsTaskReport, MergedWmsTaskReportDict
@@ -188,6 +189,14 @@ class Job(Base, ElementMixin):
         reports = {product_.name: MergedProductSet.from_orm(product_) for product_ in self.products_}
         return MergedProductSetDict(reports=reports)
 
+    async def get_errors(
+        self,
+        session: async_scoped_session,
+        **kwargs: Any,
+    ) -> Sequence[PipetaskError]:
+        await session.refresh(self, attribute_names=["errors_"])
+        return self.errors_
+
     def __repr__(self) -> str:
         return f"Job {self.fullname} {self.id} {self.status.name}"
 
@@ -246,7 +255,7 @@ class Job(Base, ElementMixin):
         """
         siblings = await self.get_siblings(session)
         skip_colls = []
-        attempt = 2
+        attempt = 1
         for sib_ in siblings:
             attempt += 1
             if sib_.status.rescuable and not sib_.superseded:
@@ -282,6 +291,14 @@ class Job(Base, ElementMixin):
             wms_job_id=None,
             stamp_url=None,
         )
-        session.add(new_job)
+        async with session.begin_nested():
+            try:
+                session.add(new_job)
+            except IntegrityError as e:
+                await session.rollback()
+                if TYPE_CHECKING:
+                    assert e.orig  # for mypy
+                raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
+
         await session.refresh(new_job)
         return new_job

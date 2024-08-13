@@ -90,7 +90,7 @@ get_products = wrappers.get_element_products_function(router, DbClass)
     response_model=models.Job,
     summary="Rescue a job from this group",
 )
-async def resuce_job(
+async def rescue_job(
     row_id: int,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Job:
