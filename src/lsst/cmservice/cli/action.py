@@ -63,9 +63,9 @@ def rescue_job(
     fullname: options.PartialOption,
     output: options.OutputEnum | None,
 ) -> None:
-    """Create a new version of a script to rescue it
+    """Create a new version of a job to rescue it
 
-    This can only be run on rescuable scripts.
+    This can only be run on rescuable jobs.
     """
     result = client.action.rescue_job(
         fullname=fullname,
@@ -82,10 +82,10 @@ def mark_job_rescued(
     fullname: options.PartialOption,
     output: options.OutputEnum | None,
 ) -> None:
-    """Mark a script as rescued
+    """Mark a job as rescued
 
     This is usually done automatically when
-    the script is accepted
+    the job is accepted
     """
     result = client.action.mark_job_rescued(
         fullname=fullname,
