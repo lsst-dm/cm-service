@@ -57,32 +57,8 @@ def reset_script(
 @action.command()
 @options.cmclient()
 @options.fullname()
-@options.script_name()
 @options.output()
-def retry_script(
-    client: CMClient,
-    fullname: options.PartialOption,
-    script_name: options.PartialOption,
-    output: options.OutputEnum | None,
-) -> None:
-    """Create a new version of a script to retry it
-
-    This will mark the current version as superseded.
-    This can only be run on failed/rejected scripts.
-    """
-    result = client.action.retry_script(
-        fullname=fullname,
-        script_name=script_name,
-    )
-    output_pydantic_object(result, output, db.Script.col_names_for_table)
-
-
-@action.command()
-@options.cmclient()
-@options.fullname()
-@options.script_name()
-@options.output()
-def rescue_script(
+def rescue_job(
     client: CMClient,
     fullname: options.PartialOption,
     script_name: options.PartialOption,
@@ -92,17 +68,16 @@ def rescue_script(
 
     This can only be run on rescuable scripts.
     """
-    result = client.action.rescue_script(
+    result = client.action.rescue_job(
         fullname=fullname,
         script_name=script_name,
     )
-    output_pydantic_object(result, output, db.Script.col_names_for_table)
+    output_pydantic_object(result, output, db.Job.col_names_for_table)
 
 
 @action.command()
 @options.cmclient()
 @options.fullname()
-@options.script_name()
 @options.output()
 def mark_script_rescued(
     client: CMClient,
@@ -115,11 +90,10 @@ def mark_script_rescued(
     This is usually done automatically when
     the script is accepted
     """
-    result = client.action.mark_script_rescued(
+    result = client.action.mark_job_rescued(
         fullname=fullname,
-        script_name=script_name,
     )
-    output_pydantic_list(result, output, db.Script.col_names_for_table)
+    output_pydantic_list(result, output, db.Job.col_names_for_table)
 
 
 @action.command()

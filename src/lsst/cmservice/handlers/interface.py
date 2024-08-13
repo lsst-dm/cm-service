@@ -851,41 +851,6 @@ async def process_script(
     return changed, result
 
 
-async def process_job(
-    session: async_scoped_session,
-    fullname: str,
-    fake_status: StatusEnum | None = None,
-) -> tuple[bool, StatusEnum]:
-    """Process a Job
-
-    Parameters
-    ----------
-    session : async_scoped_session
-        DB session manager
-
-    fullname: str
-        Full unique name for the `Job`
-
-    fake_status: StatusEnum | None
-        If not none, will set the status of running scripts to this value
-
-    Returns
-    -------
-    changed : bool
-        True if anything changed
-    status : StatusEnum
-       Processing status
-
-    Raises
-    ------
-    CMMissingFullnameError : Could not find Job
-    """
-    job = await db.Job.get_row_by_fullname(session, fullname)
-    changed, result = await job.process(session, fake_status=fake_status)
-    await session.commit()
-    return changed, result
-
-
 async def process_element(
     session: async_scoped_session,
     fullname: str,
@@ -1004,52 +969,6 @@ async def reset_script(
     script = await db.Script.get_row_by_fullname(session, fullname)
     _result = await script.reset_script(session, status)
     return script
-
-
-async def retry_script(
-    session: async_scoped_session,
-    fullname: str,
-    script_name: str,
-) -> db.Script:
-    """Run a retry on a `Script`
-
-    Notes
-    -----
-    This can only be run on failed/rejected scripts
-
-    This will mark the current version of the
-    script as superseded and create a new version
-    of the Script
-
-    Parameters
-    ----------
-    session : async_scoped_session
-        DB session manager
-
-    fullname: str
-        Full unique name for the parent `Element`
-
-    script_name: str
-        Name of the `Script`
-
-    Returns
-    -------
-    script : Script
-        Processing status
-
-    Raises
-    ------
-    CMBadFullnameError : could not parse fullname to determine table
-
-    CMBadStateTransitionError : Script was not in failed/rejected status
-
-    ValueError : More that one active script matching request
-
-    CMMissingFullnameError : Could not find Node
-    """
-    element = await get_element_by_fullname(session, fullname)
-    result = await element.retry_script(session, script_name)
-    return result
 
 
 async def rescue_job(
