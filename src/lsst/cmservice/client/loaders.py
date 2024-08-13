@@ -106,11 +106,8 @@ class CMLoadClient:
                     },
                 )
 
-        for include_key, include_val in include_data.items():
-            if include_key in block_data and isinstance(include_val, Mapping):
-                block_data[include_key].update(include_val)
-            else:
-                block_data[include_key] = include_val
+        block_data = include_data.copy()
+        update_include_dict(block_data, config_values.copy())
 
         handler = block_data.pop("handler", None)
         if spec_block is None:
@@ -397,7 +394,7 @@ class CMLoadClient:
             camp_config.setdefault(key, {})
             val = kwargs.get(key, None)
             if val:
-                camp_config[key].update(val)
+                update_include_dict(camp_config[key], val)
 
         production = self._parent.production.get_row_by_name(parent_name)
         if not production:
