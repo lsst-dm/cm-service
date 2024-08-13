@@ -61,7 +61,6 @@ def reset_script(
 def rescue_job(
     client: CMClient,
     fullname: options.PartialOption,
-    script_name: options.PartialOption,
     output: options.OutputEnum | None,
 ) -> None:
     """Create a new version of a script to rescue it
@@ -70,7 +69,6 @@ def rescue_job(
     """
     result = client.action.rescue_job(
         fullname=fullname,
-        script_name=script_name,
     )
     output_pydantic_object(result, output, db.Job.col_names_for_table)
 
@@ -79,10 +77,9 @@ def rescue_job(
 @options.cmclient()
 @options.fullname()
 @options.output()
-def mark_script_rescued(
+def mark_job_rescued(
     client: CMClient,
     fullname: options.PartialOption,
-    script_name: options.PartialOption,
     output: options.OutputEnum | None,
 ) -> None:
     """Mark a script as rescued
