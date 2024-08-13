@@ -35,22 +35,16 @@ class CMActionClient:
         "actions/reset_script",
     )
 
-    retry_script = wrappers.get_general_post_function(
-        models.ScriptQueryBase,
-        models.Script,
-        "actions/retry_script",
+    rescue_job = wrappers.get_general_post_function(
+        models.NodeQuery,
+        models.Job,
+        "actions/rescue_job",
     )
 
-    rescue_script = wrappers.get_general_post_function(
-        models.ScriptQueryBase,
-        models.Script,
-        "actions/rescue_script",
-    )
-
-    mark_script_rescued = wrappers.get_general_post_function(
-        models.ScriptQueryBase,
-        list[models.Script],
-        "actions/mark_script_rescued",
+    mark_job_rescued = wrappers.get_general_post_function(
+        models.NodeQuery,
+        list[models.Job],
+        "actions/mark_job_rescued",
     )
 
     rematch_errors = wrappers.get_general_post_function(

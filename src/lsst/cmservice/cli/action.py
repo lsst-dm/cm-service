@@ -57,69 +57,40 @@ def reset_script(
 @action.command()
 @options.cmclient()
 @options.fullname()
-@options.script_name()
 @options.output()
-def retry_script(
+def rescue_job(
     client: CMClient,
     fullname: options.PartialOption,
-    script_name: options.PartialOption,
     output: options.OutputEnum | None,
 ) -> None:
-    """Create a new version of a script to retry it
+    """Create a new version of a job to rescue it
 
-    This will mark the current version as superseded.
-    This can only be run on failed/rejected scripts.
+    This can only be run on rescuable jobs.
     """
-    result = client.action.retry_script(
+    result = client.action.rescue_job(
         fullname=fullname,
-        script_name=script_name,
     )
-    output_pydantic_object(result, output, db.Script.col_names_for_table)
+    output_pydantic_object(result, output, db.Job.col_names_for_table)
 
 
 @action.command()
 @options.cmclient()
 @options.fullname()
-@options.script_name()
 @options.output()
-def rescue_script(
+def mark_job_rescued(
     client: CMClient,
     fullname: options.PartialOption,
-    script_name: options.PartialOption,
     output: options.OutputEnum | None,
 ) -> None:
-    """Create a new version of a script to rescue it
-
-    This can only be run on rescuable scripts.
-    """
-    result = client.action.rescue_script(
-        fullname=fullname,
-        script_name=script_name,
-    )
-    output_pydantic_object(result, output, db.Script.col_names_for_table)
-
-
-@action.command()
-@options.cmclient()
-@options.fullname()
-@options.script_name()
-@options.output()
-def mark_script_rescued(
-    client: CMClient,
-    fullname: options.PartialOption,
-    script_name: options.PartialOption,
-    output: options.OutputEnum | None,
-) -> None:
-    """Mark a script as rescued
+    """Mark a job as rescued
 
     This is usually done automatically when
-    the script is accepted
+    the job is accepted
     """
-    result = client.action.mark_script_rescued(
+    result = client.action.mark_job_rescued(
         fullname=fullname,
-        script_name=script_name,
     )
-    output_pydantic_list(result, output, db.Script.col_names_for_table)
+    output_pydantic_list(result, output, db.Job.col_names_for_table)
 
 
 @action.command()

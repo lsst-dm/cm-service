@@ -13,72 +13,6 @@ router = APIRouter(
 
 
 @router.post(
-    "/process_script",
-    status_code=201,
-    response_model=tuple[bool, StatusEnum],
-    summary="Process a script",
-)
-async def process_script(
-    query: models.ProcessQuery,
-    session: async_scoped_session = Depends(db_session_dependency),
-) -> tuple[bool, StatusEnum]:
-    """Invoke the interface.process_script function"""
-    params = query.model_dump()
-    if params.get("fake_status"):
-        params["fake_status"] = StatusEnum(params["fake_status"])
-    try:
-        async with session.begin():
-            ret_val = await interface.process_script(session, **params)
-        return ret_val
-    except Exception as msg:
-        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
-
-
-@router.post(
-    "/process_job",
-    status_code=201,
-    response_model=tuple[bool, StatusEnum],
-    summary="Process a job",
-)
-async def process_job(
-    query: models.ProcessQuery,
-    session: async_scoped_session = Depends(db_session_dependency),
-) -> tuple[bool, StatusEnum]:
-    """Invoke the interface.process_job function"""
-    params = query.model_dump()
-    if params.get("fake_status"):
-        params["fake_status"] = StatusEnum(params["fake_status"])
-    try:
-        async with session.begin():
-            ret_val = await interface.process_job(session, **params)
-        return ret_val
-    except Exception as msg:
-        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
-
-
-@router.post(
-    "/process_element",
-    status_code=201,
-    response_model=tuple[bool, StatusEnum],
-    summary="Process an Element",
-)
-async def process_element(
-    query: models.ProcessQuery,
-    session: async_scoped_session = Depends(db_session_dependency),
-) -> tuple[bool, StatusEnum]:
-    """Invoke the interface.process_element function"""
-    params = query.model_dump()
-    if params.get("fake_status"):
-        params["fake_status"] = StatusEnum(params["fake_status"])
-    try:
-        async with session.begin():
-            ret_val = await interface.process_element(session, **params)
-        return ret_val
-    except Exception as msg:
-        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
-
-
-@router.post(
     "/process",
     status_code=201,
     response_model=tuple[bool, StatusEnum],
@@ -121,26 +55,6 @@ async def reset_script(
 
 
 @router.post(
-    "/retry_script",
-    status_code=201,
-    response_model=models.Script,
-    summary="Run a retry on a `Script`",
-)
-async def retry_script(
-    query: models.ScriptQueryBase,
-    session: async_scoped_session = Depends(db_session_dependency),
-) -> db.Script:
-    """Invoke the interface.retry_script function"""
-    params = query.model_dump()
-    try:
-        async with session.begin():
-            ret_val = await interface.retry_script(session, **params)
-        return ret_val
-    except Exception as msg:
-        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
-
-
-@router.post(
     "/rescue_job",
     status_code=201,
     response_model=models.Job,
@@ -161,7 +75,7 @@ async def rescue_job(
 
 
 @router.post(
-    "/mark_script_rescued",
+    "/mark_job_rescued",
     status_code=201,
     response_model=list[models.Job],
     summary="Mark a `Job` as rescued",
