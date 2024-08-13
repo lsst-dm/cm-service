@@ -188,6 +188,14 @@ class Job(Base, ElementMixin):
         reports = {product_.name: MergedProductSet.from_orm(product_) for product_ in self.products_}
         return MergedProductSetDict(reports=reports)
 
+    async def get_errors(
+        self,
+        session: async_scoped_session,
+        **kwargs: Any,
+    ) -> Sequence[PipetaskError]:
+        await session.refresh(self, attribute_names=["errors_"])
+        return self.errors_
+
     def __repr__(self) -> str:
         return f"Job {self.fullname} {self.id} {self.status.name}"
 

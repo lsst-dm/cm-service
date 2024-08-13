@@ -1,4 +1,5 @@
 """CLI to manage Job table"""
+from ..client.client import CMClient
 from .. import db
 from . import options, wrappers
 from .commands import job_group
@@ -121,3 +122,16 @@ get_wms_task_reports = wrappers.get_element_wms_task_reports_command(get_command
 get_tasks = wrappers.get_element_tasks_command(get_command, sub_client)
 
 get_products = wrappers.get_element_products_command(get_command, sub_client)
+
+
+@get_command(name="errors")
+@options.cmclient()
+@options.row_id()
+@options.output()
+def get_errors(
+    client: CMClient,
+    row_id: int,
+    output: options.OutputEnum | None,
+) -> None:
+    result = client.job.get_errors(row_id=row_id)
+    wrappers.output_pydantic_list(result, output, db.PipetaskError.col_names_for_table)

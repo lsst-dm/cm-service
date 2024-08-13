@@ -1,6 +1,7 @@
 """python for client API for managing Job tables"""
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import httpx
@@ -88,6 +89,12 @@ class CMJobClient:
     get_data_dict = wrappers.get_node_property_function(dict, f"{router_string}/get", "data_dict")
 
     get_spec_aliases = wrappers.get_node_property_function(dict, f"{router_string}/get", "spec_aliases")
+
+    get_errors = wrappers.get_node_property_function(
+        Sequence[models.PipetaskError],
+        f"{router_string}/get",
+        "errors",
+    )
 
     update_status = wrappers.get_node_post_query_function(
         ResponseModelClass,
@@ -178,7 +185,7 @@ class CMJobClient:
     estimate_sleep_time = wrappers.get_node_property_function(
         int,
         f"{router_string}/get",
-        "jobs",
+        "sleep_time",
     )
 
     get_wms_task_reports = wrappers.get_node_property_function(
