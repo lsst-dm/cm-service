@@ -106,16 +106,23 @@ def test_campaigns_page() -> None:
         context = my_browser.new_context()
         # context.tracing.start(screenshots=True, snapshots=True, sources=True)
         page = context.new_page()
+        # load campaigns page
         page.goto("http://0.0.0.0:8080/web_app/campaigns/")
+        # check number of campaigns with name 'test_panda'
         expect(page.get_by_title("test_panda")).to_have_count(8)
+        # check number of campaigns with name 'test_htcondor'
         expect(page.get_by_title("test_htcondor")).to_have_count(8)
+        # check number of campaigns in the page
         expect(page.locator(".campaign-card")).to_have_count(16)
+        # check page title
         expect(page).to_have_title(re.compile("Campaigns"))
+        # check first campaign to be completed
         expect(
             page.locator(".campaign-card").first.filter(
                 has=page.locator(".text-green-400"),
             ),
         ).to_have_count(1)
+        # check second campaign to be in progress
         expect(
             page.locator(".campaign-card")
             .nth(1)
@@ -123,21 +130,34 @@ def test_campaigns_page() -> None:
                 has=page.locator(".text-cyan-400"),
             ),
         ).to_have_count(1)
+        # check second campaign (using a different locator) to be in progress
         expect(
             page.locator(".campaign-card")
             .filter(has=page.get_by_text("test_htcondor"))
             .first.filter(has=page.locator(".text-cyan-400")),
         ).to_have_count(1)
+        # click the first campaign details link
         page.get_by_title("test_panda").first.click(force=True)
+        # check navigation to step list page
         expect(page).to_have_url("http://0.0.0.0:8080/web_app/campaign/1/steps/")
+        # check correct campaign name
         expect(page.get_by_text("test_panda", exact=True)).not_to_be_empty()
+        # check production name
         expect(page.get_by_role("link", name="HSC_DRP-Prod")).not_to_be_empty()
+        # click breadcrumbs
         page.get_by_role("link", name="HSC_DRP-Prod").click()
+        # make sure it goes back to campaigns page
         expect(page).to_have_url("http://0.0.0.0:8080/web_app/campaigns/")
+        # check production 'HSC_DRP-Prod' exists
         expect(page.get_by_role("heading", name="HSC_DRP-Prod")).not_to_be_empty()
+        # search campaigns for 'test_panda'
         page.get_by_placeholder("Search Campaigns").fill("test_panda")
         page.get_by_placeholder("Search Campaigns").press("Enter")
+        # display search term in search results page
         page.get_by_role("heading", name="Search results for: test_panda")
+        # check search results count
+        expect(page.get_by_title("test_panda")).to_have_count(8)
+        # make sure clicking the logo navigates to campaigns page
         page.get_by_role("link", name="Rubin").click()
         expect(page).to_have_url("http://0.0.0.0:8080/web_app/campaigns/")
         # context.tracing.stop(path="trace2.zip")
