@@ -686,7 +686,7 @@ def get_node_data_dict_function(
 
     @router.get(
         "/get/{row_id}/data_dict",
-        response_model=dict[str, str],
+        response_model=dict[str, Any],
         summary=f"Get the data_dict associated to a {db_class.class_string}",
     )
     async def get_node_data_dict(
