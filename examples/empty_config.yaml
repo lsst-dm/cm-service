@@ -36,3 +36,9 @@
       name: base
       spec_aliases:
           campaign: campaign
+      data:
+          var: dummy
+      collections:
+          coll: dummy
+      child_config:
+          child: dummy
