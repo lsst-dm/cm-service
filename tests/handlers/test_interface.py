@@ -79,6 +79,9 @@ async def test_step_db(engine: AsyncEngine) -> None:
         check = await interface.get_element_by_fullname(session, entry.fullname)
         assert check == entry
 
+        check = await interface.get_node_by_fullname(session, entry.fullname)
+        assert check == entry
+
         # Finish clean up
         await db.Production.delete_row(session, prod.id)
         await session.remove()
