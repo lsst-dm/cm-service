@@ -12,16 +12,15 @@ async def get_campaign_details(session: async_scoped_session, campaign: Campaign
     collections = await campaign.resolve_collections(session)
     groups = await get_campaign_groups(session, campaign)
     no_groups_completed = len([group for group in groups if group.status == StatusEnum.accepted])
-    need_attention_groups = filter(
-        lambda group: map_status(group.status) in ["NEED_ATTENTION", "FAILED"],
-        groups,
-    )
+    need_attention_groups = [
+        group for group in groups if map_status(group.status) in ["NEED_ATTENTION", "FAILED"]
+    ]
     scripts = await campaign.get_all_scripts(session)
     no_scripts_completed = len([script for script in scripts if script.status == StatusEnum.accepted])
-    need_attention_scripts = filter(
-        lambda script: map_status(script.status) in ["NEED_ATTENTION", "FAILED"],
-        scripts,
-    )
+    need_attention_scripts = [
+        script for script in scripts if map_status(script.status) in ["NEED_ATTENTION", "FAILED"]
+    ]
+
     campaign_details = {
         "id": campaign.id,
         "name": campaign.name,
@@ -46,6 +45,13 @@ async def search_campaigns(session: async_scoped_session, search_term: str) -> S
 
 async def get_campaign_groups(session: async_scoped_session, campaign: Campaign) -> Sequence:
     q = select(Group).where(Group.c_ == campaign)
+    async with session.begin_nested():
+        results = await session.scalars(q)
+        return results.all()
+
+
+async def get_all_campaigns(session: async_scoped_session):
+    q = select(Campaign)
     async with session.begin_nested():
         results = await session.scalars(q)
         return results.all()

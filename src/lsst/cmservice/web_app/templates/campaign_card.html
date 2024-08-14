@@ -1,4 +1,4 @@
-<div class="overflow-hidden px-4 py-5 shadow sm:p-6 bg-teal-50 relative h-300" xmlns="http://www.w3.org/1999/html">
+<div class="campaign-card overflow-hidden px-4 py-5 shadow sm:p-6 bg-teal-50 relative h-300" xmlns="http://www.w3.org/1999/html">
     <div class="flex items-center">
         {% if campaign.status == "COMPLETE" %} {% include "complete_icon.html" %}
         {% elif campaign.status == "IN_PROGRESS" %} {% include "inprogress_icon.html" %}
@@ -28,7 +28,7 @@
         </div>
     </div>
     <div>
-        <a href="{{ url_for('get_steps', campaign_id=campaign.id) }}"><span class="absolute right-3 bottom-3 text-teal-600" aria-hidden="true">
+        <a title="{{campaign.name}}" href="{{ url_for('get_steps', campaign_id=campaign.id) }}"><span class="absolute right-3 bottom-3 text-teal-600" aria-hidden="true">
             <svg fill="none" stroke-width="2" class="w-6 h-6" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="m12.75 15 3-3m0 0-3-3m3 3h-7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
             </svg>
