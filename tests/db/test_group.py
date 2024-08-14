@@ -1,5 +1,5 @@
 import os
-from uuid import uuid1
+import uuid
 
 import pytest
 import structlog
@@ -9,110 +9,122 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from lsst.cmservice import db
 from lsst.cmservice.config import config
-from lsst.cmservice.handlers import interface
-from lsst.cmservice.common.errors import CMTooFewAcceptedJobsError
+from lsst.cmservice.common.enums import LevelEnum
+import lsst.cmservice.common.errors as errors
+
+from util_functions import create_tree, delete_all_productions
 
 
 @pytest.mark.asyncio()
 async def test_group_db(engine: AsyncEngine) -> None:
-    """Test the Group db table interface"""
+    """Test `step` db table."""
 
+    # generate a uuid to avoid collisions
+    uuid_int = uuid.uuid1().int
     logger = structlog.get_logger(config.logger_name)
     async with engine.begin():
         session = await create_async_session(engine, logger)
         os.environ["CM_CONFIGS"] = "examples"
-        specification = await interface.load_specification(session, "examples/empty_config.yaml")
-        check2 = await specification.get_block(session, "campaign")
-        assert check2.name == "campaign"
 
-        pname = str(uuid1())
-        prod = await db.Production.create_row(session, name=pname)
-        cname = str(uuid1())
-        camp = await db.Campaign.create_row(
-            session,
-            name=cname,
-            spec_block_assoc_name="base#campaign",
-            parent_name=pname,
-        )
-        snames = [str(uuid1()) for n in range(2)]
+        # intialize a tree down to one level lower
+        await create_tree(session, LevelEnum.job, uuid_int)
 
-        steps = [
-            await db.Step.create_row(
-                session,
-                name=sname_,
-                spec_block_name="basic_step",
-                parent_name=camp.fullname,
-            )
-            for sname_ in snames
-        ]
-
-        gnames = [str(uuid1()) for n in range(5)]
-
-        groups0 = [
-            await db.Group.create_row(
-                session,
-                name=gname_,
-                spec_block_name="group",
-                parent_name=steps[0].fullname,
-            )
-            for gname_ in gnames
-        ]
-        assert len(groups0) == 5
-
-        groups1 = [
-            await db.Group.create_row(
-                session,
-                name=gname_,
-                spec_block_name="group",
-                parent_name=steps[1].fullname,
-            )
-            for gname_ in gnames
-        ]
-        assert len(groups1) == 5
-
-        # test that uniqueness is obeyed
         with pytest.raises(IntegrityError):
             await db.Group.create_row(
                 session,
-                name=gnames[0],
-                parent_name=steps[0].fullname,
+                name=f"group0_{uuid_int}",
                 spec_block_name="group",
+                parent_name=f"prod0_{uuid_int}/camp0_{uuid_int}/step0_{uuid_int}",
             )
 
-        # test we can retrieve properties entered
-        entry = groups0[0]
-        check = await db.Group.get_row(session, entry.id)
-        assert check.db_id.id == entry.db_id.id
+        # run row mixin method tests
+        check_getall = await db.Group.get_rows(
+            session,
+            parent_name=f"prod0_{uuid_int}/camp0_{uuid_int}/step0_{uuid_int}",
+            parent_class=db.Step,
+        )
+        assert len(check_getall) == 5, "length should be 5"
 
-        # test that we can retrieve the campaign
+        with pytest.raises(errors.CMMissingRowCreateInputError):
+            await db.Group.create_row(
+                session,
+                name="foo",
+                parent_name=f"step0_{uuid_int}",
+            )
+
+        entry = check_getall[0]  # defining single unit for later
+
+        check_getall_nonefound = await db.Group.get_rows(
+            session,
+            parent_name="foo",
+            parent_class=db.Step,
+        )
+        assert len(check_getall_nonefound) == 0, "length should be 0"
+
+        check_get = await db.Group.get_row(session, entry.id)
+        assert check_get.id == entry.id, "pulled row should be identical"
+
+        with pytest.raises(errors.CMMissingIDError):
+            await db.Group.get_row(
+                session,
+                -99,
+            )
+        check_get_by_name = await db.Group.get_row_by_name(session, name=f"group0_{uuid_int}")
+        assert check_get_by_name.id == entry.id, "pulled row should be identical"
+
+        with pytest.raises(errors.CMMissingFullnameError):
+            await db.Group.get_row_by_name(session, name="foo")
+
+        check_get_by_fullname = await db.Group.get_row_by_fullname(session, entry.fullname)
+        assert check_get_by_fullname.id == entry.id, "pulled row should be identical"
+
+        with pytest.raises(errors.CMMissingFullnameError):
+            await db.Group.get_row_by_fullname(session, "foo")
+
+        check_update = await db.Group.update_row(session, entry.id, data=dict(foo="bar"))
+        assert check_update.data["foo"] == "bar", "foo value should be bar"
+
+        check_update2 = await check_update.update_values(session, data=dict(bar="foo"))
+        assert check_update2.data["bar"] == "foo", "bar value should be foo"
+
+        await db.Group.delete_row(session, -99)
+
+        # run campaign specific method tests
         check = await entry.get_campaign(session)
-        assert check.db_id.id == camp.db_id.id
+        assert check.name == f"camp0_{uuid_int}", "should return same name as camp0"
 
-        # test null result on fetching downstream
         check = await entry.children(session)
-        assert check is not None
+        assert len([c for c in check]) == 1, "length of children should be 1"
 
         check = await entry.get_tasks(session)
-        assert check is not None
+        assert len(check.reports) == 0, "length of tasks should be 0"
 
         check = await entry.get_wms_reports(session)
-        assert check is not None
+        assert len(check.reports) == 0, "length of reports should be 0"
 
         check = await entry.get_products(session)
-        assert check is not None
+        assert len(check.reports) == 0, "length of products should be 0"
 
-        # test null error in rescue_job
-        with pytest.raises(CMTooFewAcceptedJobsError):
+        assert entry.db_id.level == LevelEnum.group, "enum should match group"
+
+        # test bad state error in rescue_job
+        with pytest.raises(errors.CMBadStateTransitionError):
             await entry.rescue_job(session)
 
         # test null error in mark_job_rescued
-        with pytest.raises(CMTooFewAcceptedJobsError):
+        with pytest.raises(errors.CMBadStateTransitionError):
             await entry.mark_job_rescued(session)
 
         # test key error in get_create_kwargs
         with pytest.raises(KeyError):
             await db.Group.get_create_kwargs(session, parent_name="foo", name="bar")
 
-        # Finish clean up
-        await db.Production.delete_row(session, prod.id)
+        # delete everything we just made in the session
+        await delete_all_productions(session)
+
+        # confirm cleanup
+        productions = await db.Production.get_rows(
+            session,
+        )
+        assert len(productions) == 0
         await session.remove()
