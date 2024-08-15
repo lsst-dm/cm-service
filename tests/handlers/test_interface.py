@@ -11,50 +11,30 @@ from lsst.cmservice.config import config
 from lsst.cmservice.handlers import interface
 from lsst.cmservice.common.enums import LevelEnum, NodeTypeEnum, TableEnum
 import lsst.cmservice.common.errors as errors
+from temp_utils import create_tree, delete_all_productions
 
 
 @pytest.mark.asyncio()
 async def test_step_db(engine: AsyncEngine) -> None:
     """Test the Step db table interface"""
 
+    uuid_int = uuid1().int
     logger = structlog.get_logger(config.logger_name)
     async with engine.begin():
         session = await create_async_session(engine, logger)
         os.environ["CM_CONFIGS"] = "examples"
-        specification = await interface.load_specification(session, "examples/empty_config.yaml")
-        check2 = await specification.get_block(session, "campaign")
-        assert check2.name == "campaign"
 
-        pname = str(uuid1())
-        prod = await db.Production.create_row(session, name=pname)
-        cnames = [str(uuid1()) for n in range(2)]
-        camps = [
-            await db.Campaign.create_row(
-                session,
-                name=cname_,
-                spec_block_assoc_name="base#campaign",
-                parent_name=pname,
-            )
-            for cname_ in cnames
-        ]
-        assert len(camps) == 2
+        await create_tree(session, LevelEnum.job, uuid_int)
 
-        snames = [str(uuid1()) for n in range(5)]
+        # pull something at the job level for testing
+        check = await db.Job.get_rows(
+            session,
+            parent_name=f"prod0_{uuid_int}/camp0_{uuid_int}/step0_{uuid_int}/group0_{uuid_int}",
+            parent_class=db.Group,
+        )
+        entry = check[0]
 
-        steps0 = [
-            await db.Step.create_row(
-                session,
-                name=sname_,
-                spec_block_name="basic_step",
-                parent_name=camps[0].fullname,
-            )
-            for sname_ in snames
-        ]
-        assert len(steps0) == 5
-
-        entry = steps0[0]
-
-        check = await interface.get_row_by_table_and_id(session, entry.id, TableEnum.step)
+        check = await interface.get_row_by_table_and_id(session, entry.id, TableEnum.job)
         assert check == entry, "pulled row should match entry"
 
         # TODO: raises different error if bad key (e.g. TableEnum.foo)
@@ -62,16 +42,16 @@ async def test_step_db(engine: AsyncEngine) -> None:
             await interface.get_row_by_table_and_id(session, entry.id, 99)
 
         with pytest.raises(errors.CMMissingFullnameError):
-            await interface.get_row_by_table_and_id(session, -99, TableEnum.step)
+            await interface.get_row_by_table_and_id(session, -99, TableEnum.job)
 
-        check = await interface.get_node_by_level_and_id(session, entry.id, LevelEnum.step)
+        check = await interface.get_node_by_level_and_id(session, entry.id, LevelEnum.job)
         assert check == entry, "pulled node should match entry"
 
         with pytest.raises(errors.CMBadEnumError):
             await interface.get_node_by_level_and_id(session, entry.id, 99)
 
         with pytest.raises(errors.CMMissingFullnameError):
-            await interface.get_node_by_level_and_id(session, -99, LevelEnum.step)
+            await interface.get_node_by_level_and_id(session, -99, LevelEnum.job)
 
         check = interface.get_node_type_by_fullname(entry.fullname)
         assert check == NodeTypeEnum.element, "should find node type is element"
@@ -79,9 +59,15 @@ async def test_step_db(engine: AsyncEngine) -> None:
         check = await interface.get_element_by_fullname(session, entry.fullname)
         assert check == entry
 
+        with pytest.raises(errors.CMBadFullnameError):
+            await interface.get_element_by_fullname(session, "foo")
+
         check = await interface.get_node_by_fullname(session, entry.fullname)
         assert check == entry
 
+        check = await interface.get_spec_block(session, entry.fullname)
+        assert check.name == "job"
+
         # Finish clean up
-        await db.Production.delete_row(session, prod.id)
+        await delete_all_productions(session)
         await session.remove()
