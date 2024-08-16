@@ -15,8 +15,8 @@ from temp_utils import create_tree, delete_all_productions
 
 
 @pytest.mark.asyncio()
-async def test_step_db(engine: AsyncEngine) -> None:
-    """Test the Step db table interface"""
+async def test_handlers_interface(engine: AsyncEngine) -> None:
+    """Test the interface handler"""
 
     uuid_int = uuid1().int
     logger = structlog.get_logger(config.logger_name)
@@ -65,8 +65,26 @@ async def test_step_db(engine: AsyncEngine) -> None:
         check = await interface.get_node_by_fullname(session, entry.fullname)
         assert check == entry
 
+        # tests for coverage, unit tests elsewhere
+        # mostly just making sure nothing breaks on
+        # the passthrough
         check = await interface.get_spec_block(session, entry.fullname)
         assert check.name == "job"
+
+        check = await interface.get_specification(session, entry.fullname)
+        assert check.name == "base"
+
+        check = await interface.get_resolved_collections(session, entry.fullname)
+        assert len(check) == 14
+
+        check = await interface.get_collections(session, entry.fullname)
+        assert len(check) == 14
+
+        check = await interface.get_child_config(session, entry.fullname)
+        assert len(check) == 0
+
+        check = await interface.get_data_dict(session, entry.fullname)
+        assert len(check) == 9
 
         # Finish clean up
         await delete_all_productions(session)
