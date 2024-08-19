@@ -26,7 +26,7 @@ def server() -> None:
 async def init(*, reset: bool) -> None:  # pragma: no cover
     """Initialize the service database."""
     logger = structlog.get_logger(config.logger_name)
-    engine = create_database_engine(config.database_url, config.database_password)
+    engine = create_database_engine(config.database_url, None)
     await initialize_database(engine, logger, schema=db.Base.metadata, reset=reset)
     await engine.dispose()
 

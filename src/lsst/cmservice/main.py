@@ -137,7 +137,7 @@ tags_metadata = [
 async def lifespan(_: FastAPI) -> AsyncGenerator:
     """Hook FastAPI init/cleanups."""
     # Dependency inits before app starts running
-    await db_session_dependency.initialize(config.database_url, config.database_password)
+    await db_session_dependency.initialize(config.database_url, None)
     assert db_session_dependency._engine is not None  # pylint: disable=protected-access
     db_session_dependency._engine.echo = config.database_echo  # pylint: disable=protected-access
 

@@ -5,6 +5,13 @@ from safir.logging import LogLevel, Profile
 __all__ = ["Configuration", "config"]
 
 
+#if not os.environ.get("CM_DATABASE_PASSWORD"):
+#    os.environ["CM_DATABASE_PASSWORD"] = "dummy"
+
+if not os.environ.get("CM_ARQ_REDIS_PASSWORD"):
+    os.environ["CM_ARQ_REDIS_PASSWORD"] = "dummy"
+
+
 class Configuration(BaseSettings):
     """Configuration for cm-service."""
 
