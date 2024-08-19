@@ -118,6 +118,19 @@ class Job(Base, ElementMixin):
         "superseded",
     ]
 
+    def __init__(self, name, fullname, spec_block_id, handler, status=StatusEnum.waiting, spec_aliases=None, collections=None, data=None):
+        self.name = name
+        self.fullname = fullname
+        self.spec_block_id = spec_block_id
+        self.handler = handler
+        self.status = status
+        if spec_aliases:
+            self.spec_aliases = spec_aliases
+        if collections:
+            self.collections = collections
+        if data:
+            self.data = data
+
     @hybrid_property
     def db_id(self) -> DbId:
         """Returns DbId"""

@@ -256,6 +256,15 @@ async def load_specification(
     with open(yaml_file, encoding="utf-8") as fin:
         spec_data = yaml.safe_load(fin)
 
+    # CTS: Apparently some uses of this function don't need to load a
+    # Specification, but other uses depend on it loading a specification and
+    # returning it?
+    #
+    #if("Specification" not in [list(item.keys())[0] for item in spec_data]):
+    #    print(f"Error in file {yaml_file}")
+    #    print([list(item.keys())[0] for item in spec_data])
+    #    raise CMYamlParseError(f"specification file must contain a Specification element.")
+
     for config_item in spec_data:
         if "Imports" in config_item:
             imports = config_item["Imports"]

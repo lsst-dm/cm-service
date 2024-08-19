@@ -1,5 +1,4 @@
 import os
-import uuid
 
 import pytest
 import structlog
@@ -7,112 +6,73 @@ from safir.database import create_async_session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-import lsst.cmservice.common.errors as errors
 from lsst.cmservice import db
-from lsst.cmservice.common.enums import LevelEnum
+from lsst.cmservice.db.spec_block import SpecBlock
+from lsst.cmservice.db.script_template import ScriptTemplate
+from lsst.cmservice.db.handler import Handler
+from lsst.cmservice.common.enums import StatusEnum
 from lsst.cmservice.config import config
-
-from .util_functions import create_tree, delete_all_productions
-
+from lsst.cmservice.handlers import interface
+from lsst.cmservice.common.errors import CMTooFewAcceptedJobsError
 
 @pytest.mark.asyncio()
-async def test_step_job(engine: AsyncEngine) -> None:
-    """Test `step` db table."""
+async def test_job(engine: AsyncEngine) -> None:
+    """Test the Job object"""
 
-    # generate a uuid to avoid collisions
-    uuid_int = uuid.uuid1().int
     logger = structlog.get_logger(config.logger_name)
     async with engine.begin():
         session = await create_async_session(engine, logger)
         os.environ["CM_CONFIGS"] = "examples"
 
-        # intialize a tree down to one level lower
-        await create_tree(session, LevelEnum.job, uuid_int)
+        specification = await interface.load_specification(session, "examples/example_standard_elements.yaml")
+        _ = await interface.load_specification(session, "examples/example_standard_scripts.yaml")
 
-        with pytest.raises(IntegrityError):
-            await db.Job.create_row(
-                session,
-                name=f"job_{uuid_int}",
-                spec_block_name="job",
-                parent_name=f"prod0_{uuid_int}/camp0_{uuid_int}/step0_{uuid_int}/group0_{uuid_int}",
-            )
+        spec_block_name = "job"
+        spec_block = await SpecBlock.get_row_by_fullname(session, spec_block_name)
+        #spec_block = await specification.get_block(session, spec_block_name)
+        handler = "lsst.cmservice.handlers.job_handler.JobHandler"
 
-        # run row mixin method tests
-        check_getall = await db.Job.get_rows(
-            session,
-            parent_name=f"prod0_{uuid_int}/camp0_{uuid_int}/step0_{uuid_int}/group0_{uuid_int}",
-            parent_class=db.Group,
-        )
-        assert len(check_getall) == 1, "length should be 2"
+        CM_CONFIGS = "examples"
+        bps_core_yaml_template = await ScriptTemplate.load(session, "bps_core_yaml_template", f"{CM_CONFIGS}/templates/example_bps_core_yaml_template.yaml")
+        bps_core_script_template = await ScriptTemplate.load(session, "bps_core_script_template", f"{CM_CONFIGS}/templates/example_bps_core_script_template.yaml")
+        bps_wms_script_template = await ScriptTemplate.load(session, "bps_wms_script_template", f"{CM_CONFIGS}/templates/example_bps_htcondor_script_template.yaml")
 
-        with pytest.raises(errors.CMMissingRowCreateInputError):
-            await db.Job.create_row(
-                session,
-                name="foo",
-                parent_name=f"prod0_{uuid_int}/camp0_{uuid_int}/step0_{uuid_int}/group0_{uuid_int}",
-            )
+        job = db.Job("job1", "campaign/production/step/group/job1", spec_block.id, handler,
+                spec_aliases={"bps_submit_script": "bps_htcondor_submit_script",
+                    "bps_report_script": "bps_htcondor_report_script"},
+                collections={"root": "u/ctslater/test_cm/",
+                    "campaign_input": "u/ctslater/test_cm/input",
+                    "campaign_ancillary": "u/ctslater/test_cm/ancillary",
+                    "step_input": "u/ctslater/test_cm/campaign1",
+                    },
+                data={"prod_area": "./",
+                      "butler_repo": "/repo/main",
+                      "lsst_version": "w_2024_36",
+                      "lsst_distrib_dir": "/cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib",
+                      "pipeline_yaml": "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#isr",
+                      "bps_core_yaml_template": "bps_core_yaml_template",
+                      "bps_core_script_template": "bps_core_script_template",
+                      "bps_wms_script_template": "bps_wms_script_template",
+                      }
+                )
+        session.add(job)
+        await session.commit()
 
-        entry = check_getall[0]  # defining single unit for later
+        handler = Handler.get_handler(spec_block.id, handler)
+        await handler.process(session, job)
 
-        check_getall_nonefound = await db.Job.get_rows(
-            session,
-            parent_name="foo",
-            parent_class=db.Campaign,
-        )
-        assert len(check_getall_nonefound) == 0, "length should be 0"
+        assert job.status == StatusEnum.running
+        print(job)
+        await session.refresh(job, attribute_names=["scripts_"])
+        for script in job.scripts_:
+            await session.refresh(script, attribute_names=["errors_"])
+            print(script)
+            if(script.status == StatusEnum.failed):
+                print(script.errors_)
 
-        check_get = await db.Job.get_row(session, entry.id)
-        assert check_get.id == entry.id, "pulled row should be identical"
 
-        with pytest.raises(errors.CMMissingIDError):
-            await db.Job.get_row(
-                session,
-                -99,
-            )
-        check_get_by_name = await db.Job.get_row_by_name(session, name=f"job_{uuid_int}")
-        assert check_get_by_name.id == entry.id, "pulled row should be identical"
+        # This runs at USDF but I get:
+        # /var/spool/slurmd/job54155741/slurm_script: line 21: bps: command not found
+        # in the slurm log.
+        assert(job.scripts_[0].status == StatusEnum.running)
 
-        with pytest.raises(errors.CMMissingFullnameError):
-            await db.Job.get_row_by_name(session, name="foo")
-
-        check_get_by_fullname = await db.Job.get_row_by_fullname(session, entry.fullname)
-        assert check_get_by_fullname.id == entry.id, "pulled row should be identical"
-
-        with pytest.raises(errors.CMMissingFullnameError):
-            await db.Job.get_row_by_fullname(session, "foo")
-
-        check_update = await db.Job.update_row(session, entry.id, data=dict(foo="bar"))
-        assert check_update.data["foo"] == "bar", "foo value should be bar"
-
-        check_update2 = await check_update.update_values(session, data=dict(bar="foo"))
-        assert check_update2.data["bar"] == "foo", "bar value should be foo"
-
-        await db.Step.delete_row(session, -99)
-
-        # run campaign specific method tests
-        check = await entry.get_campaign(session)
-        assert check.name == f"camp0_{uuid_int}", "should return same name as camp0"
-
-        check = await entry.get_siblings(session)
-        assert len([c for c in check]) == 0, "length of siblings should be 0"
-
-        check = await entry.get_tasks(session)
-        assert len(check.reports) == 0, "length of tasks should be 0"
-
-        check = await entry.get_wms_reports(session)
-        assert len(check.reports) == 0, "length of reports should be 0"
-
-        check = await entry.get_products(session)
-        assert len(check.reports) == 0, "length of products should be 0"
-
-        assert entry.db_id.level == LevelEnum.job, "enum should match job"
-
-        # delete everything we just made in the session
-        await delete_all_productions(session)
-
-        # confirm cleanup
-        productions = await db.Production.get_rows(
-            session,
-        )
-        assert len(productions) == 0
-        await session.remove()
