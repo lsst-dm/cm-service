@@ -185,8 +185,6 @@ async def get_step(
 async def get_group(
     request: Request,
     group_id: int,
-    campaign_id: int | None = None,
-    step_id: int | None = None,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> HTMLResponse:
     try:
@@ -195,8 +193,6 @@ async def get_group(
             name="group_details.html",
             request=request,
             context={
-                # "campaign_id": campaign_id,
-                # "step_id": step_id,
                 "group": group_details,
                 "jobs": jobs,
                 "scripts": scripts,
@@ -258,7 +254,6 @@ async def get_script(
             group_id=group_id,
             job_id=job_id,
         )
-        print(script_details)
         return templates.TemplateResponse(
             name="script_details.html",
             request=request,
