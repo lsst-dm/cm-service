@@ -75,7 +75,7 @@ async def get_script_by_id(
         return script_details
 
 
-async def get_step_id_by_fullname(session, fullname):
+async def get_step_id_by_fullname(session: async_scoped_session, fullname: str) -> int | None:
     print(f"step_fullname: {fullname}")
     q = select(Step.id).where(Step.fullname == fullname)
     async with session.begin_nested():
@@ -83,19 +83,17 @@ async def get_step_id_by_fullname(session, fullname):
         return results.one_or_none()
 
 
-async def get_group_id_by_fullname(session, fullname):
+async def get_group_id_by_fullname(session: async_scoped_session, fullname: str) -> int | None:
     print(f"group_fullname: {fullname}")
     q = select(Group.id).where(Group.fullname == fullname)
     async with session.begin_nested():
         results = await session.scalars(q)
-        id = results.one()
-        return id
+        return results.one_or_none()
 
 
-async def get_job_id_by_fullname(session, fullname):
+async def get_job_id_by_fullname(session: async_scoped_session, fullname: str) -> int | None:
     print(f"job_fullname: {fullname}")
     q = select(Job.id).where(Job.fullname == fullname)
     async with session.begin_nested():
         results = await session.scalars(q)
-        id = results.one()
-        return id
+        return results.one_or_none()
