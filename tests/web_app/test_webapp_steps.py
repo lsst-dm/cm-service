@@ -30,9 +30,9 @@ def mock_step():
 def mock_groups():
     yield [
         db.Group(id=1, name="first_group", status=StatusEnum.accepted),
-        db.Group(id=1, name="second_group", status=StatusEnum.paused),
-        db.Group(id=1, name="second_group", status=StatusEnum.failed),
-        db.Group(id=1, name="second_group", status=StatusEnum.rejected),
+        db.Group(id=2, name="second_group", status=StatusEnum.paused),
+        db.Group(id=3, name="third_group", status=StatusEnum.failed),
+        db.Group(id=4, name="fourth_group", status=StatusEnum.rejected),
     ]
 
 
