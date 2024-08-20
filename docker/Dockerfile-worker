@@ -1,11 +1,11 @@
 FROM ghcr.io/lsst-dm/docker-scipipe:9-latest
 
-RUN <<EOF
-  yum update -y
-  yum install epel-release -y
-  yum install slurm -y
-  yum clean all -y
-EOF
+# RUN <<EOF
+#   yum update -y
+#   yum install epel-release -y
+#   yum install slurm -y
+#   yum clean all -y
+# EOF
 
 RUN <<EOF
   groupadd --gid 1126 gu
