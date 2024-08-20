@@ -185,8 +185,6 @@ async def get_step(
 async def get_group(
     request: Request,
     group_id: int,
-    campaign_id: int | None = None,
-    step_id: int | None = None,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> HTMLResponse:
     try:
@@ -195,8 +193,6 @@ async def get_group(
             name="group_details.html",
             request=request,
             context={
-                # "campaign_id": campaign_id,
-                # "step_id": step_id,
                 "group": group_details,
                 "jobs": jobs,
                 "scripts": scripts,
@@ -250,16 +246,19 @@ async def get_script(
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> HTMLResponse:
     try:
-        script_details = await get_script_by_id(session, script_id)
+        script_details = await get_script_by_id(
+            session,
+            script_id=script_id,
+            campaign_id=campaign_id,
+            step_id=step_id,
+            group_id=group_id,
+            job_id=job_id,
+        )
         return templates.TemplateResponse(
             name="script_details.html",
             request=request,
             context={
                 "script": script_details,
-                "campaign_id": campaign_id,
-                "step_id": step_id,
-                "group_id": group_id,
-                "job_id": job_id,
             },
         )
     except Exception as e:

@@ -2,8 +2,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-from lsst.cmservice.db import Script
-from lsst.cmservice.common.enums import LevelEnum
+from lsst.cmservice.db import Script, Job, Group, Step
 from lsst.cmservice.web_app.utils.utils import map_status
 
 
@@ -32,23 +31,25 @@ async def get_script_by_id(
         results = await session.scalars(q)
         script = results.one()
         script_details = None
-        c_id = None
         s_id = None
         g_id = None
         j_id = None
 
         if script is not None:
-            if campaign_id is None:
-                campaign = await script.get_campaign(session)
-                c_id = campaign.id
-            parent = await script.get_parent(session)
-            if not parent.level == LevelEnum.campaign:
-                if parent.level == LevelEnum.step:
-                    s_id = script.parent_id if step_id is None else step_id
-                elif parent.level == LevelEnum.group:
-                    g_id = script.parent_id if step_id is None else group_id
-                elif parent.level == LevelEnum.job:
-                    j_id = script.parent_id if step_id is None else job_id
+            fullname = script.fullname.split("/")
+            for i in range(2, len(fullname) - 1):
+                match i:
+                    case 2:
+                        if step_id is None:
+                            s_id = await get_step_id_by_fullname(session, "/".join(fullname[:3]))
+                    case 3:
+                        if group_id is None:
+                            g_id = await get_group_id_by_fullname(session, "/".join(fullname[:4]))
+                    case 4:
+                        print("getting job id")
+                        if job_id is None:
+                            j_id = await get_job_id_by_fullname(session, "/".join(fullname[:5]))
+
             collections = await script.resolve_collections(session)
             filtered_collections = dict(
                 filter(
@@ -59,7 +60,7 @@ async def get_script_by_id(
             script_details = {
                 "id": script.id,
                 "name": script.name,
-                "campaign_id": c_id,
+                "campaign_id": campaign_id,
                 "step_id": s_id,
                 "group_id": g_id,
                 "job_id": j_id,
@@ -72,3 +73,24 @@ async def get_script_by_id(
             }
 
         return script_details
+
+
+async def get_step_id_by_fullname(session: async_scoped_session, fullname: str) -> int | None:
+    q = select(Step.id).where(Step.fullname == fullname)
+    async with session.begin_nested():
+        results = await session.scalars(q)
+        return results.one_or_none()
+
+
+async def get_group_id_by_fullname(session: async_scoped_session, fullname: str) -> int | None:
+    q = select(Group.id).where(Group.fullname == fullname)
+    async with session.begin_nested():
+        results = await session.scalars(q)
+        return results.one_or_none()
+
+
+async def get_job_id_by_fullname(session: async_scoped_session, fullname: str) -> int | None:
+    q = select(Job.id).where(Job.fullname == fullname)
+    async with session.begin_nested():
+        results = await session.scalars(q)
+        return results.one_or_none()

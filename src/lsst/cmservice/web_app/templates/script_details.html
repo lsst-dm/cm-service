@@ -10,13 +10,13 @@
           {% if i == 0 %}
           {% set parent_link = url_for('get_campaigns') %}
           {% elif i == 1 %}
-          {% set parent_link = url_for('get_steps', campaign_id=campaign_id) %}
+          {% set parent_link = url_for('get_steps', campaign_id=script.campaign_id) %}
           {% elif i == 2 %}
-          {% set parent_link = url_for('get_step', campaign_id=campaign_id, step_id=step_id) %}
+          {% set parent_link = url_for('get_step', campaign_id=script.campaign_id, step_id=script.step_id) %}
           {% elif i == 3 %}
-          {% set parent_link = url_for('get_group', campaign_id=campaign_id, step_id=step_id, group_id=group_id) %}
+          {% set parent_link = url_for('get_group', campaign_id=script.campaign_id, step_id=script.step_id, group_id=script.group_id) %}
           {% else %}
-          {% set parent_link = url_for('get_job', campaign_id=campaign_id, step_id=step_id, group_id=group_id, job_id=job_id) %}
+          {% set parent_link = url_for('get_job', campaign_id=script.campaign_id, step_id=script.step_id, group_id=script.group_id, job_id=script.job_id) %}
           {% endif %}
           <a href="{{ parent_link }}" class="ml-2 mr-2 text-sm font-medium text-gray-500 hover:text-gray-700">{{ fullname[i] }}</a>
 
