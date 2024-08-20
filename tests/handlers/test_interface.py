@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from lsst.cmservice import db
 from lsst.cmservice.config import config
 from lsst.cmservice.handlers import interface
-from lsst.cmservice.common.enums import LevelEnum, NodeTypeEnum, TableEnum
+from lsst.cmservice.common.enums import LevelEnum, NodeTypeEnum, TableEnum, StatusEnum
 import lsst.cmservice.common.errors as errors
 from temp_utils import create_tree, delete_all_productions
 
@@ -85,6 +85,28 @@ async def test_handlers_interface(engine: AsyncEngine) -> None:
 
         check = await interface.get_data_dict(session, entry.fullname)
         assert len(check) == 9
+
+        check = await interface.get_spec_aliases(session, entry.fullname)
+        assert check["campaign"] == "campaign"
+
+        check = await interface.update_status(session, entry.fullname, StatusEnum.reviewable)
+        assert check.status == StatusEnum.reviewable
+
+        check = await interface.update_status(session, entry.fullname, StatusEnum.waiting)
+        assert check.status == StatusEnum.waiting
+
+        check = await interface.update_child_config(session, entry.fullname)
+        assert check is not None
+
+        check = await interface.update_collections(session, entry.fullname)
+        assert check is not None
+
+        # apparently breaks other tests???
+        check = await interface.update_data_dict(session, entry.fullname)
+        assert check.data == {}
+
+        check = await interface.update_spec_aliases(session, entry.fullname)
+        assert check is not None
 
         # Finish clean up
         await delete_all_productions(session)

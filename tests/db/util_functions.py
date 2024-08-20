@@ -76,3 +76,5 @@ async def delete_all_productions(
 
     for prod_ in productions:
         await db.Production.delete_row(session, prod_.id)
+
+    await session.commit()
