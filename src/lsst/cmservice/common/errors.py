@@ -68,7 +68,7 @@ class CMSlurmSubmitError(KeyError):
     """Raised when slurm submisison fails"""
 
 
-class CMSpecficationError(KeyError):
+class CMSpecificationError(KeyError):
     """Raised when Specification calls out an non-existing fragement"""
 
 
