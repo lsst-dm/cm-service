@@ -31,9 +31,6 @@ async def get_script_by_id(
         results = await session.scalars(q)
         script = results.one()
         script_details = None
-        s_id = None
-        g_id = None
-        j_id = None
 
         if script is not None:
             fullname = script.fullname.split("/")
@@ -41,14 +38,14 @@ async def get_script_by_id(
                 match i:
                     case 2:
                         if step_id is None:
-                            s_id = await get_step_id_by_fullname(session, "/".join(fullname[:3]))
+                            step_id = await get_step_id_by_fullname(session, "/".join(fullname[:3]))
                     case 3:
                         if group_id is None:
-                            g_id = await get_group_id_by_fullname(session, "/".join(fullname[:4]))
+                            group_id = await get_group_id_by_fullname(session, "/".join(fullname[:4]))
                     case 4:
                         print("getting job id")
                         if job_id is None:
-                            j_id = await get_job_id_by_fullname(session, "/".join(fullname[:5]))
+                            job_id = await get_job_id_by_fullname(session, "/".join(fullname[:5]))
 
             collections = await script.resolve_collections(session)
             filtered_collections = dict(
@@ -61,9 +58,9 @@ async def get_script_by_id(
                 "id": script.id,
                 "name": script.name,
                 "campaign_id": campaign_id,
-                "step_id": s_id,
-                "group_id": g_id,
-                "job_id": j_id,
+                "step_id": step_id,
+                "group_id": group_id,
+                "job_id": job_id,
                 "fullname": script.fullname,
                 "superseded": script.superseded,
                 "status": map_status(script.status),
