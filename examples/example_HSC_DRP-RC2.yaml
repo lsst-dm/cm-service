@@ -4,7 +4,7 @@
       - "${CM_CONFIGS}/example_HSC_DRP-RC2_steps.yaml"
 - SpecBlock:
       name: HSC_DRP-RC2_campaign
-      includes: ["base_campaign"]  # I am a base campaign
+      includes: ["base_campaign"]
       collections:
           campaign_source: HSC/raw/RC2
           campaign_ancillary_inputs:
