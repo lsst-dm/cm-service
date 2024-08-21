@@ -91,6 +91,19 @@ def test_group_details_page() -> None:
         page = context.new_page()
         # open group details page
         page.goto("http://0.0.0.0:8080/web_app/group/17/171/95/")
+        # check breadcrumbs
+        expect(page.get_by_role("link", name="step1")).to_have_attribute(
+            "href",
+            "http://0.0.0.0:8080/web_app/campaign/17/171/",
+        )
+        expect(page.get_by_role("link", name="w_2024_30_DM-45425c")).to_have_attribute(
+            "href",
+            "http://0.0.0.0:8080/web_app/campaign/17/steps/",
+        )
+        expect(page.get_by_role("link", name="HSC_DRP-RC2")).to_have_attribute(
+            "href",
+            "http://0.0.0.0:8080/web_app/campaigns/",
+        )
         # check group name is correct
         expect(page.get_by_text("group0", exact=True)).not_to_be_empty()
         # check group fullname is correct
@@ -118,5 +131,42 @@ def test_group_details_page() -> None:
         expect(page.locator(".bg-green-500")).to_have_attribute("style", "width: 1%")
         expect(page.locator(".bg-green-500")).to_have_text("Succeeded 1")
         expect(page.locator(".bg-green-500").locator(".tooltip")).to_contain_text("Succeeded")
+        # check wms tasks grid exists
+        expect(page.locator("#wmsReportGrid")).to_be_visible()
+        # check number of wms tasks (2 tasks + 1 header row)
+        expect(page.locator("#wmsReportGrid").get_by_role("row")).to_have_count(3)
+        expect(
+            page.locator("#wmsReportGrid").get_by_role("gridcell", name="01_pipetaskInit_01"),
+        ).to_have_count(1)
+        expect(
+            page.locator("#wmsReportGrid").get_by_role("gridcell", name="02_visit_detector_01"),
+        ).to_have_count(1)
+        expect(page.locator("#wmsReportGrid")).to_contain_text("8858")
+        # check scripts grid exists
+        expect(page.locator("#scriptsGrid")).to_be_visible()
+        # check number of step scripts (1 script + 1 header row)
+        expect(page.locator("#scriptsGrid").get_by_role("row")).to_have_count(2)
+        # click on "run" script
+        page.get_by_role("link", name="run").click()
+        # check that script details page is open and has the correct values
+        expect(page).to_have_url("http://0.0.0.0:8080/web_app/script/17/171/95/722/")
+        expect(page.get_by_text("run", exact=True)).to_be_visible()
+        expect(
+            page.get_by_text("HSC_DRP-RC2/w_2024_30_DM-45425c/step1/group0/run_000"),
+        ).to_be_visible()
+        # back to group details page
+        page.get_by_role("link", name="group0").click()
+        expect(page).to_have_url("http://0.0.0.0:8080/web_app/group/17/171/95/")
+        # check jobs grid exists
+        expect(page.locator("#jobsGrid")).to_be_visible()
+        # check number of group jobs (1 job + 1 header row)
+        expect(page.locator("#jobsGrid").get_by_role("row")).to_have_count(2)
+        # click "job"
+        page.get_by_role("link", name="job").click()
+        # check job details page is open and correct values displayed
+        expect(page).to_have_url("http://0.0.0.0:8080/web_app/campaign/17/171/95/95/")
+        expect(page.get_by_text("job", exact=True)).to_be_visible()
+        expect(page.get_by_text("HSC_DRP-RC2/w_2024_30_DM-45425c/step1/group0/job_000")).to_be_visible()
+
         context.close()
         browser.close()
