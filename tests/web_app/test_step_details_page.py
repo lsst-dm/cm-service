@@ -1,4 +1,120 @@
+import os
+import uuid
+
+import pytest
+import structlog
 from playwright.sync_api import sync_playwright, expect
+from safir.database import create_async_session
+from sqlalchemy.ext.asyncio import AsyncEngine
+
+from lsst.cmservice import db
+from lsst.cmservice.common.enums import LevelEnum
+from lsst.cmservice.config import config
+from lsst.cmservice.web_app.pages.step_details import get_step_details_by_id
+from tests.db.util_functions import create_tree, delete_all_productions
+
+
+@pytest.mark.asyncio()
+async def test_get_step_details_by_id(engine: AsyncEngine) -> None:
+    """Test `web_app.pages.step_details.get_step_details_by_id`
+    function."""
+
+    # generate a uuid to avoid collisions
+    uuid_int = uuid.uuid1().int
+    logger = structlog.get_logger(config.logger_name)
+    async with engine.begin():
+        session = await create_async_session(engine, logger)
+        os.environ["CM_CONFIGS"] = "examples"
+
+        # intialize a tree down to one level lower
+        await create_tree(session, LevelEnum.group, uuid_int)
+
+        step, step_groups, step_scripts = await get_step_details_by_id(session, 1)
+        assert len(step_scripts) == 0
+        assert len(step_groups) == 5
+
+        assert step == {
+            "id": 1,
+            "name": f"step0_{uuid_int}",
+            "fullname": f"prod0_{uuid_int}/camp0_{uuid_int}/step0_{uuid_int}",
+            "status": "IN_PROGRESS",
+            "no_groups": 5,
+            "no_groups_completed": 0,
+            "no_groups_need_attention": 0,
+            "no_groups_failed": 0,
+            "child_config": {},
+            "collections": {
+                "step_input": f"cm/hsc_rc2_micro/step0_{uuid_int}/input",
+                "step_output": f"cm/hsc_rc2_micro/step0_{uuid_int}_ouput",
+                "step_public_output": f"cm/hsc_rc2_micro/step0_{uuid_int}",
+                "step_validation": f"cm/hsc_rc2_micro/step0_{uuid_int}/validate",
+            },
+            "data": {},
+        }
+
+        assert step_groups == [
+            {
+                "id": 1,
+                "name": f"group0_{uuid_int}",
+                "superseded": False,
+                "status": "IN_PROGRESS",
+                "data": {},
+                "collections": {},
+                "child_config": {},
+                "spec_aliases": {},
+            },
+            {
+                "id": 2,
+                "name": f"group1_{uuid_int}",
+                "superseded": False,
+                "status": "IN_PROGRESS",
+                "data": {},
+                "collections": {},
+                "child_config": {},
+                "spec_aliases": {},
+            },
+            {
+                "id": 3,
+                "name": f"group2_{uuid_int}",
+                "superseded": False,
+                "status": "IN_PROGRESS",
+                "data": {},
+                "collections": {},
+                "child_config": {},
+                "spec_aliases": {},
+            },
+            {
+                "id": 4,
+                "name": f"group3_{uuid_int}",
+                "superseded": False,
+                "status": "IN_PROGRESS",
+                "data": {},
+                "collections": {},
+                "child_config": {},
+                "spec_aliases": {},
+            },
+            {
+                "id": 5,
+                "name": f"group4_{uuid_int}",
+                "superseded": False,
+                "status": "IN_PROGRESS",
+                "data": {},
+                "collections": {},
+                "child_config": {},
+                "spec_aliases": {},
+            },
+        ]
+
+        # delete everything we just made in the session
+        await delete_all_productions(session)
+
+        # confirm cleanup
+        productions = await db.Production.get_rows(
+            session,
+        )
+        assert len(productions) == 0
+        await session.close()
+        await session.remove()
 
 
 def test_step_details_page() -> None:
