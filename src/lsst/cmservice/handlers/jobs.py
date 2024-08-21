@@ -567,8 +567,7 @@ class ManifestReportLoadHandler(FunctionHandler):
 
 
 class ResourceUsageScriptHandler(ScriptHandler):
-    """WIP but the docstring will go here! Edited from the Manifest Report
-    _write_script -- more functions to come."""
+    """Write the script to compute resource usage metrics for a campaign."""
 
     async def _write_script(
         self,
@@ -608,3 +607,27 @@ class ResourceUsageScriptHandler(ScriptHandler):
         await write_bash_script(script_url, command, prepend=prepend)
 
         return StatusEnum.prepared
+
+    async def _reset_script(
+        self,
+        session: async_scoped_session,
+        script: Script,
+        to_status: StatusEnum,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """This should do some sort of butler remove-collections and then set
+        the script back to prepared."""
+        update_fields = await FunctionHandler._reset_script(self, session, script, to_status)
+        parent = await script.get_parent(session)
+        resolved_cols = await script.resolve_collections(session)
+        data_dict = await script.data_dict(session)
+        if parent.level != LevelEnum.campaign:
+            raise CMBadParameterTypeError(f"Script parent is a {parent.level}, not a LevelEnum.campaign")
+        try:
+            resource_coll = resolved_cols["campaign_resource_usage"]
+            butler_repo = data_dict["butler_repo"]
+        except KeyError as msg:
+            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        if to_status.value < StatusEnum.running.value:
+            remove_run_collections(butler_repo, resource_coll)
+        return update_fields
