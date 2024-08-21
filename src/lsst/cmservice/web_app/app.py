@@ -71,11 +71,12 @@ async def get_campaigns(
 ) -> HTMLResponse:
     try:
         async with session.begin():
-            campaigns = await db.Campaign.get_rows(session)
-            campaigns_list = []
-            for campaign in campaigns:
-                campaign_details = await get_campaign_details(session, campaign)
-                campaigns_list.append(campaign_details)
+            # campaigns = await db.Campaign.get_rows(session)
+            # campaigns_list = []
+            # for campaign in campaigns:
+            #     campaign_details =
+            #     await get_campaign_details(session, campaign)
+            #     campaigns_list.append(campaign_details)
             production_list = {}
             productions = await db.Production.get_rows(session)
             for p in productions:
@@ -90,7 +91,7 @@ async def get_campaigns(
             name="campaigns.html",
             request=request,
             context={
-                "recent_campaigns": campaigns_list,
+                "recent_campaigns": None,
                 "productions": production_list,
             },
         )
