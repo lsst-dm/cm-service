@@ -3,6 +3,7 @@ import uuid
 
 import pytest
 import structlog
+from playwright.sync_api import sync_playwright, expect
 from safir.database import create_async_session
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -79,3 +80,43 @@ async def test_get_group_details_by_id(engine: AsyncEngine) -> None:
         assert len(productions) == 0
         await session.close()
         await session.remove()
+
+
+def test_group_details_page() -> None:
+    """Test `group_details` page."""
+
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(headless=False)
+        context = browser.new_context()
+        page = context.new_page()
+        # open group details page
+        page.goto("http://0.0.0.0:8080/web_app/group/17/171/95/")
+        # check group name is correct
+        expect(page.get_by_text("group0", exact=True)).not_to_be_empty()
+        # check group fullname is correct
+        expect(page.get_by_text("HSC_DRP-RC2/w_2024_30_DM-45425c/step1/group0")).not_to_be_empty()
+        # check collections section
+        expect(page.get_by_text("Collections").first).not_to_be_empty()
+        # check collections are correct
+        expect(
+            page.get_by_text("group_output: HSC/runs/RC2/w_2024_30/DM-45425c/step1/group0"),
+        ).not_to_be_empty()
+        expect(
+            page.get_by_text("group_validation: HSC/runs/RC2/w_2024_30/DM-45425c/step1/group0/validate"),
+        ).not_to_be_empty()
+        # check data values are correct
+        expect(
+            page.get_by_text(
+                "data_query: instrument='HSC' and skymap='hsc_rings_v1' "
+                "AND (318 <= exposure) and (exposure < 1308)",
+            ),
+        ).not_to_be_empty()
+        # check wms task progress
+        expect(page.locator(".bg-teal-700").nth(1)).to_have_attribute("style", "width: 101%")
+        expect(page.locator(".bg-teal-700").nth(1)).to_have_text("Running 8858")
+        expect(page.locator(".bg-teal-700").nth(1).locator(".tooltip")).to_contain_text("Running")
+        expect(page.locator(".bg-green-500")).to_have_attribute("style", "width: 1%")
+        expect(page.locator(".bg-green-500")).to_have_text("Succeeded 1")
+        expect(page.locator(".bg-green-500").locator(".tooltip")).to_contain_text("Succeeded")
+        context.close()
+        browser.close()
