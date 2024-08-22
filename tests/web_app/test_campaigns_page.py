@@ -100,7 +100,7 @@ async def test_get_campaign_details(first_campaign, monkeypatch, mock_session, m
     }
 
 
-def test_campaigns_page() -> None:
+def test_campaigns_page_old() -> None:
     with sync_playwright() as playwright:
         my_browser = playwright.chromium.launch(headless=False)
         context = my_browser.new_context()
@@ -161,6 +161,78 @@ def test_campaigns_page() -> None:
         page.get_by_role("link", name="Rubin").click()
         expect(page).to_have_url("http://0.0.0.0:8080/web_app/campaigns/")
         # context.tracing.stop(path="trace2.zip")
+        context.close()
+        my_browser.close()
+
+
+def test_campaigns_page() -> None:
+    with sync_playwright() as playwright:
+        my_browser = playwright.chromium.launch(headless=False)
+        context = my_browser.new_context()
+        # context.tracing.start(screenshots=True, snapshots=True, sources=True)
+        page = context.new_page()
+        # load campaigns page
+        page.goto("http://0.0.0.0:8080/web_app/campaigns/")
+        # check number of campaigns in the page
+        expect(page.locator(".campaign-card")).to_have_count(13)
+        # check page title
+        expect(page).to_have_title(re.compile("Campaigns"))
+        # check fourth campaign to be completed
+        expect(
+            page.locator(".campaign-card").nth(3).locator(".text-green-400"),
+        ).to_have_count(1)
+        # click the first campaign details link
+        page.get_by_title("w_2024_26_DM-45061", exact=True).click(force=True)
+        # check navigation to step list page
+        expect(page).to_have_url("http://0.0.0.0:8080/web_app/campaign/4/steps/")
+        # check correct campaign name
+        expect(page.get_by_text("w_2024_26_DM-45061", exact=True)).not_to_be_empty()
+        # check production name
+        expect(page.get_by_role("link", name="HSC_DRP-RC2")).not_to_be_empty()
+        # click breadcrumbs
+        page.get_by_role("link", name="HSC_DRP-RC2").click()
+        # make sure it goes back to campaigns page
+        expect(page).to_have_url("http://0.0.0.0:8080/web_app/campaigns/")
+        # check production 'HSC_DRP-RC2' exists
+        expect(page.get_by_role("heading", name="HSC_DRP-RC2")).not_to_be_empty()
+        # search campaigns for 'test_panda'
+        page.get_by_placeholder("Search Campaigns").fill("w_2024_30_DM-45425")
+        page.get_by_placeholder("Search Campaigns").press("Enter")
+        # display search term in search results page
+        expect(page.get_by_role("heading", name="Search results for: w_2024_30_DM-45425")).not_to_be_empty()
+        # check search results count
+        expect(page.locator(".campaign-card")).to_have_count(4)
+        # check failing script link
+        expect(page.get_by_role("link", name="manifest_report")).to_have_attribute(
+            "href",
+            "http://0.0.0.0:8080/web_app/script/16/710/",
+        )
+        # click failing script link
+        page.get_by_role("link", name="manifest_report").click()
+        # check breadcrumbs are correct
+        expect(page.get_by_role("link", name="job_000")).to_have_attribute(
+            "href",
+            "http://0.0.0.0:8080/web_app/campaign/16/157/94/94/",
+        )
+        expect(page.get_by_role("link", name="group1")).to_have_attribute(
+            "href",
+            "http://0.0.0.0:8080/web_app/group/16/157/94/",
+        )
+        expect(page.get_by_role("link", name="step1")).to_have_attribute(
+            "href",
+            "http://0.0.0.0:8080/web_app/campaign/16/157/",
+        )
+        expect(page.get_by_role("link", name="w_2024_30_DM-45425b")).to_have_attribute(
+            "href",
+            "http://0.0.0.0:8080/web_app/campaign/16/steps/",
+        )
+        expect(page.get_by_role("link", name="HSC_DRP-RC2")).to_have_attribute(
+            "href",
+            "http://0.0.0.0:8080/web_app/campaigns/",
+        )
+        # make sure clicking the logo navigates to campaigns page
+        page.get_by_role("link", name="Rubin").click()
+        expect(page).to_have_url("http://0.0.0.0:8080/web_app/campaigns/")
         context.close()
         my_browser.close()
 
