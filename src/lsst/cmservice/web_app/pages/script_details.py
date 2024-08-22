@@ -34,7 +34,7 @@ async def get_script_by_id(
 
         if script is not None:
             fullname = script.fullname.split("/")
-            for i in range(2, len(fullname) - 2):
+            for i in range(2, len(fullname) - 1):
                 match i:
                     case 2:
                         if step_id is None:
