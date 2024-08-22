@@ -1,6 +1,8 @@
+import typing
 from unittest.mock import Mock
 
 import pytest
+from _pytest.monkeypatch import MonkeyPatch
 from playwright.sync_api import sync_playwright, expect
 
 from lsst.cmservice import db
@@ -10,12 +12,12 @@ from lsst.cmservice.web_app.pages.steps import get_step_details
 
 
 @pytest.fixture()
-def mock_session():
+def mock_session() -> typing.Generator:
     yield Mock()
 
 
 @pytest.fixture()
-def mock_step():
+def mock_step() -> Step:
     step = Step(
         id=1,
         name="first_step",
@@ -27,7 +29,7 @@ def mock_step():
 
 
 @pytest.fixture()
-def mock_groups():
+def mock_groups() -> typing.Generator:
     yield [
         db.Group(id=1, name="first_group", status=StatusEnum.accepted),
         db.Group(id=2, name="second_group", status=StatusEnum.paused),
@@ -37,8 +39,13 @@ def mock_groups():
 
 
 @pytest.mark.asyncio
-async def test_get_step_details(mock_step, monkeypatch, mock_session, mock_groups):
-    async def mock_children(mock_session):
+async def test_get_step_details(
+    mock_step: Step,
+    monkeypatch: MonkeyPatch,
+    mock_session: Mock,
+    mock_groups: list,
+) -> None:
+    async def mock_children(mock_session: Mock) -> list:
         return mock_groups
 
     monkeypatch.setattr(mock_step, "children", mock_children)

@@ -50,7 +50,7 @@ async def get_campaign_groups(session: async_scoped_session, campaign: Campaign)
         return results.all()
 
 
-async def get_all_campaigns(session: async_scoped_session):
+async def get_all_campaigns(session: async_scoped_session) -> Sequence:
     q = select(Campaign)
     async with session.begin_nested():
         results = await session.scalars(q)

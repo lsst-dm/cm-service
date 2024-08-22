@@ -1,7 +1,10 @@
 import re
+import typing
+
 import pytest
 from unittest.mock import Mock
 
+from _pytest.monkeypatch import MonkeyPatch
 from playwright.sync_api import expect, sync_playwright
 
 from lsst.cmservice import db
@@ -11,12 +14,12 @@ from lsst.cmservice.web_app.pages.campaigns import get_campaign_details
 
 
 @pytest.fixture()
-def mock_session():
+def mock_session() -> typing.Generator:
     yield Mock()
 
 
 @pytest.fixture()
-def first_production():
+def first_production() -> Production:
     return Production(
         id=1,
         name="first_production",
@@ -24,7 +27,7 @@ def first_production():
 
 
 @pytest.fixture()
-def mock_collections():
+def mock_collections() -> dict:
     return {
         "collection_1": "collection 1",
         "collection_2": "collection 2",
@@ -34,7 +37,7 @@ def mock_collections():
 
 
 @pytest.fixture()
-def mock_scripts():
+def mock_scripts() -> list:
     return [
         db.Script(id=1, name="first_script", status=StatusEnum.accepted),
         db.Script(id=2, name="second_script", status=StatusEnum.accepted),
@@ -42,7 +45,12 @@ def mock_scripts():
 
 
 @pytest.fixture()
-def first_campaign(monkeypatch, mock_collections, mock_scripts, mock_session):
+def first_campaign(
+    monkeypatch: MonkeyPatch,
+    mock_collections: dict,
+    mock_scripts: list,
+    mock_session: Mock,
+) -> Campaign:
     campaign = Campaign(
         id=1,
         name="first_campaign",
@@ -54,10 +62,10 @@ def first_campaign(monkeypatch, mock_collections, mock_scripts, mock_session):
         status=StatusEnum.accepted,
     )
 
-    async def mock_resolve_collections(mock_session):
+    async def mock_resolve_collections(mock_session: Mock) -> dict:
         return mock_collections
 
-    async def mock_get_all_scripts(mock_session):
+    async def mock_get_all_scripts(mock_session: Mock) -> list:
         return mock_scripts
 
     monkeypatch.setattr(campaign, "resolve_collections", mock_resolve_collections)
@@ -66,7 +74,7 @@ def first_campaign(monkeypatch, mock_collections, mock_scripts, mock_session):
 
 
 @pytest.fixture()
-def mock_groups():
+def mock_groups() -> typing.Generator:
     yield [
         db.Group(id=1, name="first_group", status=StatusEnum.accepted),
         db.Group(id=1, name="second_group", status=StatusEnum.accepted),
@@ -74,15 +82,24 @@ def mock_groups():
 
 
 @pytest.fixture()
-def mock_campaign_groups(mock_session, first_campaign, mock_groups):
-    async def mock_get_all_groups(mock_session, first_campaign):
+def mock_campaign_groups(
+    mock_session: Mock,
+    first_campaign: Campaign,
+    mock_groups: typing.Callable,
+) -> typing.Callable:
+    async def mock_get_all_groups(mock_session: Mock, first_campaign: Campaign) -> typing.Callable:
         return mock_groups
 
     return mock_get_all_groups
 
 
 @pytest.mark.asyncio
-async def test_get_campaign_details(first_campaign, monkeypatch, mock_session, mock_campaign_groups):
+async def test_get_campaign_details(
+    first_campaign: Campaign,
+    monkeypatch: MonkeyPatch,
+    mock_session: Mock,
+    mock_campaign_groups: typing.Callable,
+) -> None:
     monkeypatch.setattr("lsst.cmservice.web_app.pages.campaigns.get_campaign_groups", mock_campaign_groups)
     campaign_details = await get_campaign_details(mock_session, first_campaign)
     assert isinstance(campaign_details, dict)
