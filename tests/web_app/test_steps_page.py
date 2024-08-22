@@ -56,6 +56,7 @@ async def test_get_step_details(mock_step, monkeypatch, mock_session, mock_group
     }
 
 
+@pytest.mark.playwright
 def test_steps_page() -> None:
     with sync_playwright() as playwright:
         my_browser = playwright.chromium.launch(headless=False)

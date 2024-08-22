@@ -100,6 +100,7 @@ async def test_get_campaign_details(first_campaign, monkeypatch, mock_session, m
     }
 
 
+@pytest.mark.playwright
 def test_campaigns_page() -> None:
     with sync_playwright() as playwright:
         my_browser = playwright.chromium.launch(headless=False)

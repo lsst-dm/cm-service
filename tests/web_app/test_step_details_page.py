@@ -117,6 +117,7 @@ async def test_get_step_details_by_id(engine: AsyncEngine) -> None:
         await session.remove()
 
 
+@pytest.mark.playwright
 def test_step_details_page() -> None:
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=False)

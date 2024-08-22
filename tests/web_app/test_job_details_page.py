@@ -67,6 +67,7 @@ async def test_get_group_details_by_id(engine: AsyncEngine) -> None:
         await session.remove()
 
 
+@pytest.mark.playwright
 def test_group_details_page() -> None:
     """Test `job_details` page."""
 
