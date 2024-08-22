@@ -1,4 +1,70 @@
+import os
+import uuid
+
+import pytest
+import structlog
 from playwright.sync_api import sync_playwright, expect
+from safir.database import create_async_session
+from sqlalchemy.ext.asyncio import AsyncEngine
+
+from lsst.cmservice import db
+from lsst.cmservice.common.enums import LevelEnum
+from lsst.cmservice.config import config
+from lsst.cmservice.web_app.pages.job_details import get_job_by_id
+from tests.db.util_functions import create_tree, delete_all_productions
+
+
+@pytest.mark.asyncio()
+async def test_get_group_details_by_id(engine: AsyncEngine) -> None:
+    """Test `web_app.pages.group_details.get_group_by_id` function."""
+
+    # generate a uuid to avoid collisions
+    uuid_int = uuid.uuid1().int
+    logger = structlog.get_logger(config.logger_name)
+    async with engine.begin():
+        session = await create_async_session(engine, logger)
+        os.environ["CM_CONFIGS"] = "examples"
+
+        # intialize a tree down to one level lower
+        await create_tree(session, LevelEnum.job, uuid_int)
+
+        job, job_scripts = await get_job_by_id(session, 1)
+        assert len(job_scripts) == 0
+
+        assert job == {
+            "id": 1,
+            "name": f"job_{uuid_int}",
+            "fullname": f"prod0_{uuid_int}/camp0_{uuid_int}/step0_{uuid_int}/"
+            "group0_{uuid_int}/job_{uuid_int}_000",
+            "status": "IN_PROGRESS",
+            "superseded": False,
+            "child_config": {},
+            "collections": {
+                "job_run": f"cm/hsc_rc2_micro/step0_{uuid_int}/group0_{uuid_int}/job_{uuid_int}_000",
+            },
+            "data": {},
+            "wms_report": [],
+            "aggregated_wms_report": {
+                "running": 0,
+                "succeeded": 0,
+                "failed": 0,
+                "pending": 0,
+                "other": 0,
+                "expected": 0,
+            },
+            "products": [],
+        }
+
+        # delete everything we just made in the session
+        await delete_all_productions(session)
+
+        # confirm cleanup
+        productions = await db.Production.get_rows(
+            session,
+        )
+        assert len(productions) == 0
+        await session.close()
+        await session.remove()
 
 
 def test_group_details_page() -> None:
