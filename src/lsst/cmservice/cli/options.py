@@ -152,7 +152,7 @@ class PartialOption:
     """Wrap partially specified click.option decorator for convenient reuse."""
 
     def __init__(self: "PartialOption", *param_decls: str, **attrs: Any) -> None:
-        self._partial = partial(click.option, *param_decls, cls=partial(click.Option), **attrs)
+        self._partial = partial(click.option, *param_decls, cls=click.Option, **attrs)
 
     def __call__(self: "PartialOption", *param_decls: str, **attrs: Any) -> Callable[[FC], FC]:
         return self._partial(*param_decls, **attrs)
