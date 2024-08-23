@@ -7,22 +7,24 @@
 
 # These dependencies are for fastapi including some optional features.
 fastapi
+python-multipart
 starlette
 uvicorn[standard]
 
 # Other dependencies.
 asyncpg
 click
-pydantic
-pydantic-settings
-psycopg2-binary
-safir[db,arq]
-sqlalchemy[asyncio]
-structlog
-pause
-numpy
-tabulate
-lsst-daf-butler
-lsst-pipe-base
+jinja2
 lsst-ctrl-bps
 lsst-ctrl-bps-panda
+lsst-daf-butler
+lsst-pipe-base
+numpy
+pause
+psycopg2-binary
+pydantic
+pydantic-settings
+safir[db]
+sqlalchemy[asyncio]
+structlog
+tabulate
