@@ -101,12 +101,92 @@ async def test_handlers_interface(engine: AsyncEngine) -> None:
         check = await interface.update_collections(session, entry.fullname)
         assert check is not None
 
-        # apparently breaks other tests???
         check = await interface.update_data_dict(session, entry.fullname)
         assert check.data == {}
 
         check = await interface.update_spec_aliases(session, entry.fullname)
         assert check is not None
+
+        check = await interface.get_scripts(session, entry.fullname, "job")
+        assert len(check) == 0
+
+        check = await interface.get_all_scripts(session, entry.fullname)
+        assert len(check) == 0
+
+        with pytest.raises(errors.CMSpecificationError):
+            await interface.process_element(session, entry.fullname)
+
+        with pytest.raises(errors.CMSpecificationError):
+            await interface.process(session, entry.fullname)
+
+        with pytest.raises(errors.CMBadExecutionMethodError):
+            await interface.rescue_job(session, entry.fullname)
+
+        with pytest.raises(errors.CMBadExecutionMethodError):
+            await interface.mark_job_rescued(session, entry.fullname)
+
+        check = await interface.get_task_sets_for_job(session, entry.fullname)
+        assert check == [], "should be empty list"
+
+        check = await interface.get_wms_reports_for_job(session, entry.fullname)
+        assert check == [], "should be empty list"
+
+        check = await interface.get_product_sets_for_job(session, entry.fullname)
+        assert check == [], "should be empty list"
+
+        check = await interface.get_errors_for_job(session, entry.fullname)
+        assert check == [], "should be empty list"
+
+        # pull something at the step level for testing
+        check = await db.Step.get_rows(
+            session,
+            parent_name=f"prod0_{uuid_int}/camp0_{uuid_int}",
+            parent_class=db.Campaign,
+        )
+        entry = check[0]
+
+        check = await interface.check_prerequisites(session, entry.fullname)
+        assert check is True, "should be true since no prereqs exist"
+
+        check = await interface.add_groups(session, entry.fullname, dict())
+        assert check is not None
+
+        # pull something at the group level for testing
+        check = await db.Group.get_rows(
+            session,
+            parent_name=f"prod0_{uuid_int}/camp0_{uuid_int}/step0_{uuid_int}",
+            parent_class=db.Step,
+        )
+        entry = check[0]
+
+        check = await interface.get_jobs(session, entry.fullname)
+        assert len(check) == 1, "should only find one job"
+
+        check = await interface.estimate_sleep(session, entry.fullname)
+        assert check == 10, "estimate sleep is 10"
+
+        with pytest.raises(errors.CMBadStateTransitionError):
+            check = await interface.rescue_job(session, entry.fullname)
+
+        with pytest.raises(errors.CMBadStateTransitionError):
+            check = await interface.mark_job_rescued(session, entry.fullname)
+
+        # create script for testing
+        check = await db.Script.create_row(
+            session,
+            parent_level=entry.level,
+            spec_block_name="group",
+            parent_name=entry.fullname,
+            name=f"script_{uuid_int}",
+        )
+        assert check is not None
+        script_entry = check
+
+        with pytest.raises(NotImplementedError):
+            await interface.process_script(session, script_entry.fullname, StatusEnum.waiting)
+
+        with pytest.raises(NotImplementedError):
+            await interface.reset_script(session, script_entry.fullname, StatusEnum.waiting)
 
         # Finish clean up
         await delete_all_productions(session)
