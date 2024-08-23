@@ -3,7 +3,6 @@ from contextlib import asynccontextmanager
 from importlib.metadata import metadata, version
 
 from fastapi import FastAPI
-from safir.dependencies.arq import arq_dependency
 from safir.dependencies.db_session import db_session_dependency
 from safir.dependencies.http_client import http_client_dependency
 from safir.logging import configure_logging, configure_uvicorn_logging
@@ -141,7 +140,6 @@ async def lifespan(_: FastAPI) -> AsyncGenerator:
     await db_session_dependency.initialize(config.database_url, config.database_password)
     assert db_session_dependency._engine is not None  # pylint: disable=protected-access
     db_session_dependency._engine.echo = config.database_echo  # pylint: disable=protected-access
-    await arq_dependency.initialize(mode=config.arq_mode, redis_settings=config.arq_redis_settings)
 
     # App runs here...
     yield

@@ -1,31 +1,29 @@
-from pathlib import Path
-from typing import Annotated
 import traceback
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import Annotated
 
-from fastapi import APIRouter, FastAPI, Request, Depends, Form
+from fastapi import APIRouter, Depends, FastAPI, Form, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-
-from lsst.cmservice import db
-from safir.dependencies.arq import arq_dependency
 from safir.dependencies.db_session import db_session_dependency
 from safir.dependencies.http_client import http_client_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
-from lsst.cmservice.config import config
 
-from lsst.cmservice.web_app.pages.campaigns import search_campaigns, get_campaign_details
-from lsst.cmservice.web_app.pages.steps import (
-    get_campaign_steps,
-    get_step_details,
-    get_campaign_by_id,
-)
-from lsst.cmservice.web_app.pages.step_details import get_step_details_by_id
+from lsst.cmservice import db
+from lsst.cmservice.config import config
+from lsst.cmservice.web_app.pages.campaigns import get_campaign_details, search_campaigns
 from lsst.cmservice.web_app.pages.group_details import get_group_by_id
 from lsst.cmservice.web_app.pages.job_details import get_job_by_id
 from lsst.cmservice.web_app.pages.script_details import get_script_by_id
+from lsst.cmservice.web_app.pages.step_details import get_step_details_by_id
+from lsst.cmservice.web_app.pages.steps import (
+    get_campaign_by_id,
+    get_campaign_steps,
+    get_step_details,
+)
 
 
 @asynccontextmanager
@@ -35,7 +33,6 @@ async def lifespan(_: FastAPI) -> AsyncGenerator:
     await db_session_dependency.initialize(config.database_url, config.database_password)
     assert db_session_dependency._engine is not None  # pylint: disable=protected-access
     db_session_dependency._engine.echo = config.database_echo  # pylint: disable=protected-access
-    await arq_dependency.initialize(mode=config.arq_mode, redis_settings=config.arq_redis_settings)
 
     # App runs here...
     yield
