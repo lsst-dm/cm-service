@@ -13,7 +13,7 @@ import lsst.cmservice.common.errors as errors
 
 from lsst.cmservice.config import config
 
-from util_functions import create_tree, delete_all_productions
+from .util_functions import create_tree, delete_all_productions
 
 
 @pytest.mark.asyncio()

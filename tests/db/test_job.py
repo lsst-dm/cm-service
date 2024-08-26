@@ -12,7 +12,7 @@ from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
 import lsst.cmservice.common.errors as errors
 
-from util_functions import create_tree, delete_all_productions
+from .util_functions import create_tree, delete_all_productions
 
 
 @pytest.mark.asyncio()
