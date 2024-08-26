@@ -15,7 +15,7 @@ from tests.db.util_functions import create_tree, delete_all_productions
 
 
 @pytest.mark.asyncio()
-async def test_get_group_details_by_id(engine: AsyncEngine) -> None:
+async def test_get_job_by_id(engine: AsyncEngine) -> None:
     """Test `web_app.pages.group_details.get_group_by_id` function."""
 
     # generate a uuid to avoid collisions
@@ -35,7 +35,7 @@ async def test_get_group_details_by_id(engine: AsyncEngine) -> None:
             "id": 1,
             "name": f"job_{uuid_int}",
             "fullname": f"prod0_{uuid_int}/camp0_{uuid_int}/step0_{uuid_int}/"
-            "group0_{uuid_int}/job_{uuid_int}_000",
+            f"group0_{uuid_int}/job_{uuid_int}_000",
             "status": "IN_PROGRESS",
             "superseded": False,
             "child_config": {},
@@ -68,7 +68,7 @@ async def test_get_group_details_by_id(engine: AsyncEngine) -> None:
 
 
 @pytest.mark.playwright
-def test_group_details_page() -> None:
+def test_job_details_page() -> None:
     """Test `job_details` page."""
 
     with sync_playwright() as playwright:
