@@ -1,4 +1,5 @@
 """CLI to manage Script table"""
+
 from .. import db
 from . import options, wrappers
 from .commands import script_group

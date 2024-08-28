@@ -1,4 +1,5 @@
 """CLI to manage Step table"""
+
 from .. import db
 from . import options, wrappers
 from .commands import step_group

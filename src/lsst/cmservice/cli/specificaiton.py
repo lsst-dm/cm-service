@@ -1,4 +1,5 @@
 """CLI to manage Specification table"""
+
 from .. import db
 from . import options, wrappers
 from .commands import specification_group

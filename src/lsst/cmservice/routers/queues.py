@@ -1,10 +1,11 @@
 """http routers for managing Queue tables"""
+
 from fastapi import APIRouter, Depends, HTTPException
 from safir.dependencies.db_session import db_session_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-from ..common.errors import CMMissingIDError
 from .. import db, models
+from ..common.errors import CMMissingIDError
 from . import wrappers
 
 # Template specialization

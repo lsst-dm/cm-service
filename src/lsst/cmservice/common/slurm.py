@@ -1,4 +1,5 @@
 """Utility functions for working with slurm jobs"""
+
 import subprocess
 
 from .enums import StatusEnum

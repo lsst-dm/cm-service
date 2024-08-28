@@ -1,4 +1,5 @@
 """CLI to manage Group table"""
+
 from .. import db
 from ..client.client import CMClient
 from . import options, wrappers

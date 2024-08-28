@@ -1,4 +1,5 @@
 """python for client API for managing SpecBlock tables"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

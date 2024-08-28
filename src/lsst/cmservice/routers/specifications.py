@@ -1,4 +1,5 @@
 """http routers for managing Specification tables"""
+
 from fastapi import APIRouter
 
 from .. import db, models

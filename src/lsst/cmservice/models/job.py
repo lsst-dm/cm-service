@@ -3,6 +3,7 @@
 These tables have a few columns beyond the
 standard Element columns
 """
+
 from .element import ElementBase, ElementCreateMixin, ElementMixin, ElementUpdate
 
 

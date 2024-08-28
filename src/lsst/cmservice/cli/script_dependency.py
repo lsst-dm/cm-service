@@ -1,4 +1,5 @@
 """CLI to manage ScriptDependency table"""
+
 from .. import db
 from . import options, wrappers
 from .commands import script_dependency_group

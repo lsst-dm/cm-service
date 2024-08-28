@@ -1,4 +1,5 @@
 """CLI to manage PipetaskErrorType table"""
+
 from .. import db
 from . import options, wrappers
 from .commands import pipetask_error_type_group

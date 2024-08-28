@@ -1,4 +1,5 @@
 """python for client API for managing PipetaskErrorType tables"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

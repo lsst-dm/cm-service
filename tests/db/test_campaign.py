@@ -1,14 +1,14 @@
 import os
+import uuid
 
 import pytest
 import structlog
-import uuid
 from safir.database import create_async_session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from lsst.cmservice import db
 import lsst.cmservice.common.errors as errors
+from lsst.cmservice import db
 from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
 

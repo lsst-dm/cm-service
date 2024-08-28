@@ -1,5 +1,6 @@
-from sqlalchemy.ext.asyncio import async_scoped_session
 from typing import Any
+
+from sqlalchemy.ext.asyncio import async_scoped_session
 
 from lsst.cmservice.db import Step
 from lsst.cmservice.web_app.pages.steps import get_step_details

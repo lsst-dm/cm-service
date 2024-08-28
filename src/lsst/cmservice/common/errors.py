@@ -1,6 +1,5 @@
 """cm-service specific error types"""
 
-
 from sqlalchemy.exc import IntegrityError
 
 

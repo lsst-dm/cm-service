@@ -1,4 +1,5 @@
 """CLI to manage Production table"""
+
 from .. import db
 from . import options, wrappers
 from .commands import production_group

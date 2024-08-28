@@ -9,10 +9,10 @@ from lsst.cmservice.db.script import Script
 
 from ..common.bash import write_bash_script
 from ..common.butler import (
-    remove_run_collections,
-    remove_non_run_collections,
     remove_collection_from_chain,
     remove_datasets_from_collections,
+    remove_non_run_collections,
+    remove_run_collections,
 )
 from ..common.enums import StatusEnum
 from ..common.errors import CMBadExecutionMethodError, CMMissingScriptInputError

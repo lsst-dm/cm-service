@@ -1,4 +1,5 @@
 """CLI to manage TaskSet table"""
+
 from .. import db
 from . import options, wrappers
 from .commands import task_set_group

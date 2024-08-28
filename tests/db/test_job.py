@@ -4,13 +4,13 @@ import uuid
 import pytest
 import structlog
 from safir.database import create_async_session
-from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncEngine
 
+import lsst.cmservice.common.errors as errors
 from lsst.cmservice import db
 from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
-import lsst.cmservice.common.errors as errors
 
 from .util_functions import create_tree, delete_all_productions
 

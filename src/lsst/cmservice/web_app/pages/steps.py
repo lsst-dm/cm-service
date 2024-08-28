@@ -3,8 +3,8 @@ from collections.abc import Sequence
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-from lsst.cmservice.db import Step, Campaign
 from lsst.cmservice.common.enums import StatusEnum
+from lsst.cmservice.db import Campaign, Step
 from lsst.cmservice.web_app.utils.utils import map_status
 
 

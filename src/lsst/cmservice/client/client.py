@@ -1,4 +1,5 @@
 """Top level for python client API"""
+
 from __future__ import annotations
 
 import httpx

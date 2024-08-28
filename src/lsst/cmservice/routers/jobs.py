@@ -1,4 +1,5 @@
 """http routers for managing Job tables"""
+
 from collections.abc import Sequence
 
 from fastapi import APIRouter, Depends, HTTPException

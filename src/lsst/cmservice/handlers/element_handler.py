@@ -12,7 +12,6 @@ from ..db.handler import Handler
 from ..db.node import NodeMixin
 from ..db.script import Script
 from ..db.script_dependency import ScriptDependency
-
 from .functions import add_steps
 
 

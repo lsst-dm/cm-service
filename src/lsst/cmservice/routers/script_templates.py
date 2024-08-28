@@ -1,4 +1,5 @@
 """http routers for managing ScriptTemplate tables"""
+
 from fastapi import APIRouter
 
 from .. import db, models
