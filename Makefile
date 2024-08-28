@@ -45,22 +45,16 @@ psql-usdf-dev:
 
 .PHONY: test
 test: CM_DATABASE_PORT=$(shell docker compose port postgresql 5432 | cut -d: -f2)
-test: CM_ARQ_REDIS_PORT=$(shell docker compose port redis 6379 | cut -d: -f2)
 test: export CM_DATABASE_URL=postgresql://cm-service@localhost:${CM_DATABASE_PORT}/cm-service
-test: export CM_ARQ_REDIS_URL=redis://localhost:${CM_ARQ_REDIS_PORT}/1
 test: export CM_DATABASE_PASSWORD=INSECURE-PASSWORD
-test: export CM_ARQ_REDIS_PASSWORD=INSECURE-PASSWORD
 test: export CM_DATABASE_SCHEMA=cm_service_test
 test: run-compose
 	pytest -vvv --cov=lsst.cmservice --cov-branch --cov-report=term --cov-report=html ${PYTEST_ARGS}
 
 .PHONY: test-usdf-dev
 test-usdf-dev: CM_DATABASE_HOST=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get svc/cm-pg-lb -o jsonpath='{..ingress[0].ip}')
-test-usdf-dev: CM_ARQ_REDIS_HOST=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get svc/cm-redis-lb -o jsonpath='{..ingress[0].ip}')
 test-usdf-dev: export CM_DATABASE_URL=postgresql://cm-service@${CM_DATABASE_HOST}:5432/cm-service
-test-usdf-dev: export CM_ARQ_REDIS_URL=redis://${CM_ARQ_REDIS_HOST}:6379/1
 test-usdf-dev: export CM_DATABASE_PASSWORD=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get secret/cm-pg-app -o jsonpath='{.data.password}' | base64 --decode)
-test-usdf-dev: export CM_ARQ_REDIS_PASSWORD=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get secret/cm-redis-app -o jsonpath='{.data.password}' | base64 --decode)
 test-usdf-dev: export CM_DATABASE_SCHEMA=cm_service_test
 test-usdf-dev:
 	pytest -vvv --cov=lsst.cmservice --cov-branch --cov-report=term --cov-report=html ${PYTEST_ARGS}
@@ -71,11 +65,8 @@ run-compose:
 
 .PHONY: run
 run: CM_DATABASE_PORT=$(shell docker compose port postgresql 5432 | cut -d: -f2)
-run: CM_ARQ_REDIS_PORT=$(shell docker compose port redis 6379 | cut -d: -f2)
 run: export CM_DATABASE_URL=postgresql://cm-service@localhost:${CM_DATABASE_PORT}/cm-service
-run: export CM_ARQ_REDIS_URL=redis://localhost:${CM_ARQ_REDIS_PORT}/1
 run: export CM_DATABASE_PASSWORD=INSECURE-PASSWORD
-run: export CM_ARQ_REDIS_PASSWORD=INSECURE-PASSWORD
 run: export CM_DATABASE_ECHO=true
 run: run-compose
 	cm-service init
@@ -83,11 +74,8 @@ run: run-compose
 
 .PHONY: run-usdf-dev
 run-usdf-dev: CM_DATABASE_HOST=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get svc/cm-pg-lb -o jsonpath='{..ingress[0].ip}')
-run-usdf-dev: CM_ARQ_REDIS_HOST=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get svc/cm-redis-lb -o jsonpath='{..ingress[0].ip}')
 run-usdf-dev: export CM_DATABASE_URL=postgresql://cm-service@${CM_DATABASE_HOST}:5432/cm-service
-run-usdf-dev: export CM_ARQ_REDIS_URL=redis://${CM_ARQ_REDIS_HOST}:6379/1
 run-usdf-dev: export CM_DATABASE_PASSWORD=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get secret/cm-pg-app -o jsonpath='{.data.password}' | base64 --decode)
-run-usdf-dev: export CM_ARQ_REDIS_PASSWORD=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get secret/cm-redis-app -o jsonpath='{.data.password}' | base64 --decode)
 run-usdf-dev: export CM_DATABASE_ECHO=true
 run-usdf-dev:
 	cm-service init

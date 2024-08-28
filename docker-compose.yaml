@@ -1,15 +1,8 @@
-# Run Redis and PostgreSQL for testing with a local development server.
+# Run PostgreSQL for testing with a local development server.
 # This is used by make run, which starts cm-service in the foreground.
 
 name: "${USER}-cm-service"
 services:
-  redis:
-    image: "redis:latest"
-    hostname: "redis"
-    command: >-
-      redis-server --requirepass INSECURE-PASSWORD
-    ports:
-      - "6379"
   postgresql:
     image: "postgres:latest"
     hostname: "postgresql"
