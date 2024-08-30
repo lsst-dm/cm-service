@@ -6,15 +6,11 @@ default:
 .secrets/pg: .secrets
 	mkdir -p -m 700 .secrets/pg
 
-.secrets/redis: .secrets
-	mkdir -p -m 700 .secrets/redis
-
 .PHONY: fetch-vault-secrets
 fetch-vault-secrets: export VAULT_ADDR=https://vault.slac.stanford.edu
-fetch-vault-secrets: .secrets/pg .secrets/redis
+fetch-vault-secrets: .secrets/pg
 	vault kv get -mount=secret -field=username rubin/usdf-cm-dev/postgres > .secrets/pg/username
 	vault kv get -mount=secret -field=password rubin/usdf-cm-dev/postgres > .secrets/pg/password
-	vault kv get -mount=secret -field=password rubin/usdf-cm-dev/redis > .secrets/redis/password
 
 .PHONY: remove-vault-secrets
 remove-vault-secrets:

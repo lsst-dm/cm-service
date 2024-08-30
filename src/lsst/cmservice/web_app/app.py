@@ -10,7 +10,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from lsst.cmservice import db
-from safir.dependencies.arq import arq_dependency
 from safir.dependencies.db_session import db_session_dependency
 from safir.dependencies.http_client import http_client_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -35,7 +34,6 @@ async def lifespan(_: FastAPI) -> AsyncGenerator:
     await db_session_dependency.initialize(config.database_url, config.database_password)
     assert db_session_dependency._engine is not None  # pylint: disable=protected-access
     db_session_dependency._engine.echo = config.database_echo  # pylint: disable=protected-access
-    await arq_dependency.initialize(mode=config.arq_mode, redis_settings=config.arq_redis_settings)
 
     # App runs here...
     yield

@@ -1,8 +1,7 @@
 import os
-from arq.connections import RedisSettings
-from pydantic import Field, RedisDsn
+
+from pydantic import Field
 from pydantic_settings import BaseSettings
-from safir.arq import ArqMode
 from safir.logging import LogLevel, Profile
 
 __all__ = ["Configuration", "config"]
@@ -10,9 +9,6 @@ __all__ = ["Configuration", "config"]
 
 if not os.environ.get("CM_DATABASE_PASSWORD"):
     os.environ["CM_DATABASE_PASSWORD"] = "dummy"
-
-if not os.environ.get("CM_ARQ_REDIS_PASSWORD"):
-    os.environ["CM_ARQ_REDIS_PASSWORD"] = "dummy"
 
 
 class Configuration(BaseSettings):
@@ -64,31 +60,6 @@ class Configuration(BaseSettings):
         title="Log level of the application's logger",
         validation_alias="CM_LOG_LEVEL",
     )
-
-    arq_mode: ArqMode = Field(
-        ArqMode.production,
-    )
-
-    arq_redis_url: RedisDsn = Field(
-        default=RedisDsn("redis://localhost:6379/1"),
-        title="The URL for the cm-service arq redis database",
-        validation_alias="CM_ARQ_REDIS_URL",
-    )
-
-    arq_redis_password: str | None = Field(
-        title="The password for the cm-service arq redis database",
-        validation_alias="CM_ARQ_REDIS_PASSWORD",
-    )
-
-    @property
-    def arq_redis_settings(self: "Configuration") -> RedisSettings:
-        """Create a Redis settings instance for arq."""
-        return RedisSettings(
-            host=self.arq_redis_url.host or "localhost",
-            port=int(self.arq_redis_url.port or 6379),
-            password=self.arq_redis_password,
-            database=int(self.arq_redis_url.path.lstrip("/")) if self.arq_redis_url.path else 0,
-        )
 
 
 config = Configuration()
