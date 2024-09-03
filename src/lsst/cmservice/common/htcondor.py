@@ -62,7 +62,7 @@ async def write_htcondor_script(
 
 async def submit_htcondor_job(
     htcondor_script: str,
-) -> str:
+) -> None:
     """Submit a  `Script` to htcondor
 
     Parameters
@@ -107,11 +107,11 @@ async def check_htcondor_job(
         assert len(lines) == 1
         tokens = lines[0].split()
         assert len(tokens) == 2
-        htcondor_status = tokens[0]
+        htcondor_status = int(tokens[0])
         exit_code = tokens[1]
         status = htcondor_status_map[htcondor_status]
         if status == StatusEnum.reviewable:
-            if exit_code == 0:
+            if int(exit_code) == 0:
                 status = StatusEnum.accepted
             else:
                 status = StatusEnum.failed
