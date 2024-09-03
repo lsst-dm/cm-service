@@ -11,44 +11,18 @@ from ..common.errors import (
     CMBadExecutionMethodError,
     CMBadStateTransitionError,
     CMBashSubmitError,
+    CMHTCondorSubmitError,
     CMMissingNodeUrlError,
     CMMissingScriptInputError,
     CMSlurmSubmitError,
 )
+from ..common.htcondor import check_htcondor_job, submit_htcondor_job, write_htcondor_script
 from ..common.slurm import check_slurm_job, submit_slurm_job
 from ..db.element import ElementMixin
 from ..db.handler import Handler
 from ..db.node import NodeMixin
 from ..db.script import Script
 from ..db.script_error import ScriptError
-
-slurm_status_map = {
-    "BOOT_FAIL": StatusEnum.failed,
-    "CANCELLED": StatusEnum.failed,
-    "COMPLETED": StatusEnum.accepted,
-    "CONFIGURING": StatusEnum.running,
-    "COMPLETING": StatusEnum.running,
-    "DEADLINE": StatusEnum.failed,
-    "FAILED": StatusEnum.failed,
-    "NODE_FAIL": StatusEnum.failed,
-    "NOT_SUBMITTED": StatusEnum.prepared,
-    "OUT_OF_MEMORY": StatusEnum.failed,
-    "PENDING": StatusEnum.running,
-    "PREEMPTED": StatusEnum.running,
-    "RUNNING": StatusEnum.running,
-    "RESV_DEL_HOLD": StatusEnum.running,
-    "REQUEUE_FED": StatusEnum.running,
-    "REQUEUE_HOLD": StatusEnum.running,
-    "REQUEUED": StatusEnum.running,
-    "RESIZING": StatusEnum.running,
-    "REVOKED": StatusEnum.failed,
-    "SIGNALING": StatusEnum.running,
-    "SPECIAL_EXIT": StatusEnum.failed,
-    "STAGE_OUT": StatusEnum.running,
-    "STOPPED": StatusEnum.running,
-    "SUSPENDED": StatusEnum.running,
-    "TIMEOUT": StatusEnum.failed,
-}
 
 
 class BaseScriptHandler(Handler):
@@ -88,6 +62,7 @@ class BaseScriptHandler(Handler):
             except (
                 CMBadExecutionMethodError,
                 CMMissingNodeUrlError,
+                CMHTCondorSubmitError,
                 CMSlurmSubmitError,
                 CMBashSubmitError,
             ) as msg:
@@ -384,6 +359,42 @@ class ScriptHandler(BaseScriptHandler):
             await script.update_values(session, status=status)
         return status
 
+    async def _check_htcondor_job(  # pylint: disable=unused-argument
+        self,
+        session: async_scoped_session,
+        htcondor_id: str | None,
+        script: Script,
+        parent: ElementMixin,
+    ) -> StatusEnum:
+        """Check the status of a `Script` sent to htcondor
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        htcondor_id : str
+            HTCondor job id
+
+        script: Script
+            The `Script` in question
+
+        parent: ElementMixin
+            Parent Element of the `Script` in question
+
+        Returns
+        -------
+        status : StatusEnum
+            The status of the processing
+        """
+        status = await check_htcondor_job(htcondor_id)
+        print(f"Getting status for {script.fullname} {status}")
+        if status is None:
+            status = StatusEnum.running
+        if status != script.status:
+            await script.update_values(session, status=status)
+        return status
+
     async def prepare(
         self,
         session: async_scoped_session,
@@ -401,6 +412,8 @@ class ScriptHandler(BaseScriptHandler):
         if script_method == ScriptMethodEnum.bash:
             status = await self._write_script(session, script, parent, **kwargs)
         elif script_method == ScriptMethodEnum.slurm:  # pragma: no cover
+            status = await self._write_script(session, script, parent, **kwargs)
+        elif script_method == ScriptMethodEnum.htcondor:  # pragma: no cover
             status = await self._write_script(session, script, parent, **kwargs)
         if status != script.status:
             await script.update_values(session, status=status)
@@ -438,6 +451,18 @@ class ScriptHandler(BaseScriptHandler):
             job_id = await submit_slurm_job(script.script_url, script.log_url)
             status = StatusEnum.running
             await script.update_values(session, stamp_url=job_id, status=status)
+        elif script_method == ScriptMethodEnum.htcondor:  # pragma: no cover
+            if not script.script_url:
+                raise CMMissingNodeUrlError(f"script_url is not set for {script}")
+            if not script.log_url:
+                raise CMMissingNodeUrlError(f"log_url is not set for {script}")
+            job_id_base = os.path.abspath(os.path.splitext(script.script_url)[0])
+            htcondor_script = f"{job_id_base}.sub"
+            htcondor_log = f"{job_id_base}.condorlog"
+            await write_htcondor_script(htcondor_script, htcondor_log, script.script_url, script.log_url)
+            await submit_htcondor_job(htcondor_script)
+            status = StatusEnum.running
+            await script.update_values(session, stamp_url=htcondor_log, status=status)
         else:
             raise CMBadExecutionMethodError(f"Method {script_method} not valid for {script}")
         if status != orig_status:
@@ -468,6 +493,10 @@ class ScriptHandler(BaseScriptHandler):
             if not script.stamp_url:
                 raise CMMissingNodeUrlError(f"stamp_url is not set for {script}")
             status = await self._check_slurm_job(session, script.stamp_url, script, parent)
+        elif script_method == ScriptMethodEnum.htcondor:  # pragma: no cover
+            if not script.stamp_url:
+                raise CMMissingNodeUrlError(f"stamp_url is not set for {script}")
+            status = await self._check_htcondor_job(session, script.stamp_url, script, parent)
         if status == StatusEnum.failed:
             if not script.log_url:
                 raise CMMissingNodeUrlError(f"log_url is not set for {script}")
