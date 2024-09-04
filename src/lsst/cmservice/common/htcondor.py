@@ -101,11 +101,14 @@ async def check_htcondor_job(
     """
     if htcondor_id is None:
         return None
-    with subprocess.Popen(["condor_q", "-userlog", htcondor_id, "-af", "JobStatus", "ExitCode"]) as condor_q:
+    with subprocess.Popen(
+        ["condor_q", "-userlog", htcondor_id, "-af", "JobStatus", "ExitCode"],
+        stdout=subprocess.PIPE,
+    ) as condor_q:
         assert condor_q.stdout
         lines = condor_q.stdout.read().decode().split("\n")
-        assert len(lines) == 1
-        tokens = lines[0].split()
+        # condor_q puts an extra newline, so we use the second to the last line
+        tokens = lines[-2].split()
         assert len(tokens) == 2
         htcondor_status = int(tokens[0])
         exit_code = tokens[1]
