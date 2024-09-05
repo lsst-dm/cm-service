@@ -214,6 +214,20 @@ class BpsScriptHandler(ScriptHandler):
             await parent.update_values(session, wms_job_id=wms_job_id)
         return slurm_status
 
+    async def _check_htcondor_job(
+        self,
+        session: async_scoped_session,
+        htcondor_id: str | None,
+        script: Script,
+        parent: ElementMixin,
+    ) -> StatusEnum:
+        htcondor_status = await ScriptHandler._check_htcondor_job(self, session, htcondor_id, script, parent)
+        if htcondor_status == StatusEnum.accepted:
+            await script.update_values(session, status=StatusEnum.accepted)
+            wms_job_id = os.path.join(os.path.dirname(script.log_url, "submit"))
+            await parent.update_values(session, wms_job_id=wms_job_id)
+        return htcondor_status
+
     async def launch(
         self,
         session: async_scoped_session,
@@ -451,8 +465,8 @@ class ManifestReportScriptHandler(ScriptHandler):
         job_run_coll = resolved_cols["job_run"]
         qgraph_file = f"{job_run_coll}.qgraph".replace("/", "_")
 
-        graph_url = os.path.expandvars(f"{prod_area}/{parent.fullname}/submit/{qgraph_file}")
-        report_url = os.path.expandvars(f"{prod_area}/{parent.fullname}/submit/manifest_report.yaml")
+        graph_url = os.path.abspath(f"{prod_area}/{parent.fullname}/submit/{qgraph_file}")
+        report_url = os.path.abspath(f"{prod_area}/{parent.fullname}/submit/manifest_report.yaml")
 
         manifest_script_template = await specification.get_script_template(
             session,
