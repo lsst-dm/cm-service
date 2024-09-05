@@ -43,6 +43,7 @@ async def write_htcondor_script(
     options = dict(
         should_transfer_files="Yes",
         when_to_transfer_output="ON_EXIT",
+        get_env=True,
         request_cpus=1,
         request_memory="512M",
         request_disk="1G",
@@ -50,7 +51,7 @@ async def write_htcondor_script(
     options.update(**kwargs)
 
     with open(htcondor_script, "w") as fout:
-        fout.write(f"executable = {htcondor_script}\n")
+        fout.write(f"executable = {script_url}\n")
         fout.write(f"log = {htcondor_log}\n")
         fout.write(f"output = {log_url}\n")
         fout.write(f"error = {log_url}\n")

@@ -286,7 +286,7 @@ class BaseScriptHandler(Handler):
 class ScriptHandler(BaseScriptHandler):
     """SubClass of Handler to deal with script operations using real scripts"""
 
-    default_method = ScriptMethodEnum.slurm
+    default_method = ScriptMethodEnum.htcondor
 
     @staticmethod
     async def _check_stamp_file(  # pylint: disable=unused-argument
@@ -459,7 +459,12 @@ class ScriptHandler(BaseScriptHandler):
             job_id_base = os.path.abspath(os.path.splitext(script.script_url)[0])
             htcondor_script = f"{job_id_base}.sub"
             htcondor_log = f"{job_id_base}.condorlog"
-            await write_htcondor_script(htcondor_script, htcondor_log, script.script_url, script.log_url)
+            await write_htcondor_script(
+                htcondor_script,
+                htcondor_log,
+                os.path.abspath(script.script_url),
+                os.path.abspath(script.log_url),
+            )
             await submit_htcondor_job(htcondor_script)
             status = StatusEnum.running
             await script.update_values(session, stamp_url=htcondor_log, status=status)
