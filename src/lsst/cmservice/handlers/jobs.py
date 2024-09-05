@@ -123,7 +123,7 @@ class BpsScriptHandler(ScriptHandler):
             bps_wms_script_template,
         )
 
-        submit_path = os.path.abspath(os.path.expandvars(f"{prod_area}/{parent.fullname}/submit"))
+        submit_path = os.path.abspath(f"{prod_area}/{parent.fullname}/submit")
         try:
             os.rmdir(submit_path)
         except Exception:  # pylint: disable=broad-exception-caught
@@ -224,7 +224,7 @@ class BpsScriptHandler(ScriptHandler):
         htcondor_status = await ScriptHandler._check_htcondor_job(self, session, htcondor_id, script, parent)
         if htcondor_status == StatusEnum.accepted:
             await script.update_values(session, status=StatusEnum.accepted)
-            wms_job_id = os.path.join(os.path.dirname(script.log_url, "submit"))
+            wms_job_id = os.path.join(os.path.dirname(script.log_url), "submit")
             await parent.update_values(session, wms_job_id=wms_job_id)
         return htcondor_status
 
