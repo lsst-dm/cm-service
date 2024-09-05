@@ -80,12 +80,6 @@
                 child_config:
                     base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
           - Step:
-                name: step8
-                spec_block: LSSTCam-imSim_DRP-test-med-1_step8
-                prerequisites: ['step3']
-                child_config:
-                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
-          - Step:
                 name: faro_visit
                 spec_block: LSSTCam-imSim_DRP-test-med-1_faro_visit
                 prerequisites: ['step2']
