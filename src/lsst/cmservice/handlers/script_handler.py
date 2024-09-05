@@ -522,7 +522,9 @@ class ScriptHandler(BaseScriptHandler):
     ) -> str:
         with open(log_url, encoding="utf-8") as fin:
             lines = fin.readlines()
-            return lines[-1]
+            if lines:
+                return lines[-1]
+            return "Empty log file"
 
     async def _write_script(
         self,
