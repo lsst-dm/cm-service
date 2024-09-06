@@ -218,6 +218,9 @@ class ScriptMethodEnum(enum.Enum):
     slurm = 2
         Use slurm to submit the script
 
+    htcondor = 3
+        Use htcondoir to submit the script
+
     More methods to come...
     """
 
@@ -225,6 +228,7 @@ class ScriptMethodEnum(enum.Enum):
     no_script = 0
     bash = 1
     slurm = 2
+    htcondor = 3
 
 
 class WmsMethodEnum(enum.Enum):
