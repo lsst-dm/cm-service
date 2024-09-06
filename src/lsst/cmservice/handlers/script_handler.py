@@ -362,7 +362,7 @@ class ScriptHandler(BaseScriptHandler):
     async def _check_htcondor_job(  # pylint: disable=unused-argument
         self,
         session: async_scoped_session,
-        htcondor_id: str | None,
+        htcondor_id: str,
         script: Script,
         parent: ElementMixin,
     ) -> StatusEnum:

@@ -86,8 +86,8 @@ async def submit_htcondor_job(
 
 
 async def check_htcondor_job(
-    htcondor_id: str | None,
-) -> StatusEnum | None:
+    htcondor_id: str,
+) -> StatusEnum:
     """Check the status of a `HTConddor` job
 
     Parameters
