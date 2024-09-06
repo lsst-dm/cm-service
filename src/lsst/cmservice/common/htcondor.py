@@ -97,11 +97,9 @@ async def check_htcondor_job(
 
     Returns
     -------
-    status: StatusEnum | None
-        HTCondor job status, None implies job not found in htcondor
+    status: StatusEnum
+        HTCondor job status
     """
-    if htcondor_id is None:
-        return None
     with subprocess.Popen(
         ["condor_q", "-userlog", htcondor_id, "-af", "JobStatus", "ExitCode"],
         stdout=subprocess.PIPE,
