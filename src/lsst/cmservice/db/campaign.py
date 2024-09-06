@@ -186,9 +186,17 @@ class Campaign(Base, ElementMixin):
         )
 
         data = kwargs.get("data", {})
+        if data is None:
+            data = {}
         child_config = kwargs.get("child_config", {})
+        if child_config is None:
+            child_config = {}
         collections = kwargs.get("collections", {})
+        if collections is None:
+            collections = {}
         spec_aliases = kwargs.get("spec_aliases", {})
+        if spec_aliases is None:
+            spec_aliases = {}
 
         await session.refresh(
             specification,
