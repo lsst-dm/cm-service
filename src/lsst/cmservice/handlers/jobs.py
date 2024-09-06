@@ -25,6 +25,7 @@ from ..common.errors import (
     CMIDMismatchError,
     CMMissingScriptInputError,
     CMBadParameterTypeError,
+    CMBpsReportGenericError,
 )
 from .functions import load_manifest_report, load_wms_reports, status_from_bps_report, compute_job_status
 from .script_handler import FunctionHandler, ScriptHandler
@@ -374,7 +375,10 @@ class BpsReportHandler(FunctionHandler):
         if fake_status:
             status = fake_status
         else:
-            status = await self._load_wms_reports(session, parent, parent.wms_job_id)
+            try:
+                status = await self._load_wms_reports(session, parent, parent.wms_job_id)
+            except Exception as msg:
+                raise CMBpsReportGenericError(f"bps report failed: {msg}") from msg
         if status is None:
             status = script.status
         if status != script.status:

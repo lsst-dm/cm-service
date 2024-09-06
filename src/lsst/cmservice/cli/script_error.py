@@ -13,6 +13,7 @@ DbClass = db.ScriptError
 create_options = [
     options.cmclient(),
     options.script_id(),
+    options.attempt(),
     options.error_source(),
     options.diagnostic_message(),
     options.output(),
@@ -20,7 +21,6 @@ create_options = [
 # Specify the options for the update command
 update_options = [
     options.cmclient(),
-    options.script_id(),
     options.error_source(),
     options.diagnostic_message(),
     options.output(),

@@ -16,6 +16,7 @@ class ScriptError(Base, RowMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     script_id: Mapped[int | None] = mapped_column(ForeignKey("script.id", ondelete="CASCADE"), index=True)
+    attempt: Mapped[int] = mapped_column(default=0)
     source: Mapped[ErrorSourceEnum] = mapped_column(type_=SqlErrorSourceEnum)
     diagnostic_message: Mapped[str] = mapped_column()
 

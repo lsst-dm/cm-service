@@ -15,6 +15,7 @@ __all__ = [
     "OutputEnum",
     "alias",
     "allow_update",
+    "attempt",
     "collections",
     "campaign_yaml",
     "child_config",
@@ -186,6 +187,14 @@ campaign_yaml = PartialOption(
     "--campaign_yaml",
     type=str,
     help="Path to campaign yaml file",
+)
+
+
+attempt = PartialOption(
+    "--attempt",
+    type=int,
+    default=0,
+    help="Attempt number for scripts",
 )
 
 
