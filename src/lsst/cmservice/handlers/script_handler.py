@@ -107,6 +107,7 @@ class BaseScriptHandler(Handler):
                     source=ErrorSourceEnum.bps_report,
                     diagnostic_message=msg,
                 )
+                status = StatusEnum.failed
         if status == StatusEnum.reviewable:
             status = await self.review(session, node, parent)
         if status != orig_status:
@@ -126,7 +127,26 @@ class BaseScriptHandler(Handler):
         parent = await node.get_parent(session)
         orig_status = node.status
         changed = False
-        status = await self.check(session, node, parent, **kwargs)
+        try:
+            status = await self.check(session, node, parent, **kwargs)
+        except (CMBadExecutionMethodError, CMMissingNodeUrlError) as msg:
+            _new_error = await ScriptError.create_row(
+                session,
+                script_id=node.id,
+                attempt=node.attempt,
+                source=ErrorSourceEnum.cmservice,
+                diagnostic_message=msg,
+            )
+            status = StatusEnum.failed
+        except CMBpsReportGenericError as msg:
+            _new_error = await ScriptError.create_row(
+                session,
+                script_id=node.id,
+                attempt=node.attempt,
+                source=ErrorSourceEnum.bps_report,
+                diagnostic_message=msg,
+            )
+            status = StatusEnum.failed
         if orig_status != status:
             changed = True
         return (changed, status)
@@ -280,8 +300,7 @@ class BaseScriptHandler(Handler):
 
         if node.status.value >= StatusEnum.running.value:
             raise CMBadStateTransitionError(
-                f"Can not use script.reset on script in {node.status}.  "
-                "Use script.rollback or script.retry instead",
+                f"Can not use script.reset on script in {node.status}.  " "Use script.rollback instead",
             )
 
         update_fields = await self._reset_script(session, node, to_status)
@@ -432,11 +451,7 @@ class ScriptHandler(BaseScriptHandler):
         status = script.status
         if script_method == ScriptMethodEnum.no_script:  # pragma: no cover
             raise CMBadExecutionMethodError("ScriptMethodEnum.no_script can not be set for ScriptHandler")
-        if script_method == ScriptMethodEnum.bash:
-            status = await self._write_script(session, script, parent, **kwargs)
-        elif script_method == ScriptMethodEnum.slurm:  # pragma: no cover
-            status = await self._write_script(session, script, parent, **kwargs)
-        elif script_method == ScriptMethodEnum.htcondor:  # pragma: no cover
+        if script_method in [ScriptMethodEnum.bash, ScriptMethodEnum.slurm, ScriptMethodEnum.htcondor]:
             status = await self._write_script(session, script, parent, **kwargs)
         if status != script.status:
             await script.update_values(session, status=status)
@@ -576,8 +591,8 @@ class ScriptHandler(BaseScriptHandler):
         script: Script,
         prod_area: str,
     ) -> str:
-        script_url = f"{prod_area}/{script.fullname}.sh"
-        log_url = f"{prod_area}/{script.fullname}.log"
+        script_url = f"{prod_area}/{script.fullname}_{script.attempt:03}.sh"
+        log_url = f"{prod_area}/{script.fullname}_{script.attempt:03}.log"
         await script.update_values(session, script_url=script_url, log_url=log_url)
         return script_url
 
@@ -590,11 +605,7 @@ class ScriptHandler(BaseScriptHandler):
         update_fields: dict[str, Any] = {}
         if to_status.value <= StatusEnum.prepared.value:
             update_fields["stamp_url"] = None
-            if script.log_url:
-                os.unlink(script.log_url)
         if to_status.value <= StatusEnum.ready.value:
-            if script.script_url:
-                os.unlink(script.script_url)
             update_fields["script_url"] = None
             update_fields["log_url"] = None
         update_fields["status"] = to_status

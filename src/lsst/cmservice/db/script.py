@@ -203,7 +203,7 @@ class Script(Base, NodeMixin):
             "parent_level": parent_level,
             "name": name,
             "attempt": attempt,
-            "fullname": f"{parent_name}/{name}_{attempt:03}",
+            "fullname": f"{parent_name}/{name}",
             "method": ScriptMethodEnum[kwargs.get("method", "default")],
             "handler": kwargs.get("handler"),
             "data": kwargs.get("data", {}),
