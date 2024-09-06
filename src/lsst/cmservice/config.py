@@ -1,5 +1,3 @@
-import os
-
 from pydantic import Field
 from pydantic_settings import BaseSettings
 from safir.logging import LogLevel, Profile
@@ -7,7 +5,7 @@ from safir.logging import LogLevel, Profile
 __all__ = ["Configuration", "config"]
 
 
-#if not os.environ.get("CM_DATABASE_PASSWORD"):
+# if not os.environ.get("CM_DATABASE_PASSWORD"):
 #    os.environ["CM_DATABASE_PASSWORD"] = "dummy"
 
 
