@@ -84,7 +84,8 @@ run-usdf-dev:
 
 .PHONY: run-mysql
 run-mysql: export CM_DATABASE_URL=sqlite+aiosqlite://///test_cm.db
-run-mysql: export CM_DATABASE_PASSWORD=INSECURE-PASSWORD
+#run-mysql: export CM_DATABASE_SCHEMA=${USER}
+#run-mysql: export CM_DATABASE_PASSWORD=INSECURE-PASSWORD
 run-mysql: export CM_DATABASE_ECHO=true
 run-mysql:
 	cm-service init
