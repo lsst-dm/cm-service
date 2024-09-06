@@ -41,6 +41,7 @@ __all__ = [
     "quanta",
     "rematch",
     "row_id",
+    "script_id",
     "script_template_name",
     "script_name",
     "scripts",
@@ -387,6 +388,13 @@ scripts = PartialOption(
     "--scripts",
     type=DictParamType(),
     help="Description of scripts associated to a Node",
+)
+
+
+script_id = PartialOption(
+    "--script_id",
+    type=int,
+    help="ID of the associated script",
 )
 
 
