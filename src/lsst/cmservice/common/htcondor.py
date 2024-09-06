@@ -82,7 +82,7 @@ async def submit_htcondor_job(
         ) as sbatch:
             assert sbatch.stdout
     except TypeError as msg:
-        raise CMHTCondorSubmitError(f"Bad slurm submit: {msg}") from msg
+        raise CMHTCondorSubmitError(f"Bad htcondor submit: {msg}") from msg
 
 
 async def check_htcondor_job(
