@@ -179,8 +179,9 @@ class ErrorSourceEnum(enum.Enum):
 
     cmservice = 0
     local_script = 1
-    htc_workflow = 1
-    manifest = 2
+    htc_workflow = 2
+    manifest = 3
+    bps_report = 4
 
 
 class ErrorFlavorEnum(enum.Enum):

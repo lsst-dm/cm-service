@@ -86,3 +86,7 @@ class CMTooManyActiveScriptsError(KeyError):
 
 class CMYamlParseError(KeyError):
     """Raised when parsing a yaml file fails"""
+
+
+class CMBpsReportGenericError(RuntimeError):
+    """Raised when bps report fails"""

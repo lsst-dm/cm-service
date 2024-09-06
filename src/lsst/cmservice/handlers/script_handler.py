@@ -11,6 +11,8 @@ from ..common.errors import (
     CMBadExecutionMethodError,
     CMBadStateTransitionError,
     CMBashSubmitError,
+    CMBpsReportGenericError,
+    CMHTCondorSubmitError,
     CMMissingNodeUrlError,
     CMMissingScriptInputError,
     CMSlurmSubmitError,
@@ -78,6 +80,7 @@ class BaseScriptHandler(Handler):
                 _new_error = await ScriptError.create_row(
                     session,
                     script_id=node.id,
+                    attempt=node.attempt,
                     source=ErrorSourceEnum.cmservice,
                     diagnostic_message=msg,
                 )
@@ -88,16 +91,29 @@ class BaseScriptHandler(Handler):
             except (
                 CMBadExecutionMethodError,
                 CMMissingNodeUrlError,
+            ) as msg:
+                _new_error = await ScriptError.create_row(
+                    session,
+                    script_id=node.id,
+                    attempt=node.attempt,
+                    source=ErrorSourceEnum.cmservice,
+                    diagnostic_message=msg,
+                )
+                status = StatusEnum.failed
+            except (
+                CMHTCondorSubmitError,
                 CMSlurmSubmitError,
                 CMBashSubmitError,
             ) as msg:
                 _new_error = await ScriptError.create_row(
                     session,
                     script_id=node.id,
-                    source=ErrorSourceEnum.cmservice,
+                    attempt=node.attempt,
+                    source=ErrorSourceEnum.local_script,
                     diagnostic_message=msg,
                 )
                 status = StatusEnum.failed
+
         if status == StatusEnum.running:
             try:
                 status = await self.check(session, node, parent, **kwargs)
@@ -105,10 +121,19 @@ class BaseScriptHandler(Handler):
                 _new_error = await ScriptError.create_row(
                     session,
                     script_id=node.id,
+                    attempt=node.attempt,
                     source=ErrorSourceEnum.cmservice,
                     diagnostic_message=msg,
                 )
                 status = StatusEnum.failed
+            except CMBpsReportGenericError as msg:
+                _new_error = await ScriptError.create_row(
+                    session,
+                    script_id=node.id,
+                    attempt=node.attempt,
+                    source=ErrorSourceEnum.bps_report,
+                    diagnostic_message=msg,
+                )
         if status == StatusEnum.reviewable:
             status = await self.review(session, node, parent)
         if status != orig_status:
@@ -287,8 +312,8 @@ class BaseScriptHandler(Handler):
             )
 
         update_fields = await self._reset_script(session, node, to_status)
-        await node.update_values(session, **update_fields)
-        await session.refresh(node, attribute_names=["status"])
+        await node.update_values(session, attempt=node.attempt + 1, **update_fields)
+        await session.refresh(node, attribute_names=["status", "attempt"])
         return node.status
 
     async def _reset_script(
@@ -475,6 +500,7 @@ class ScriptHandler(BaseScriptHandler):
             _new_error = await ScriptError.create_row(
                 session,
                 script_id=script.id,
+                attempt=script.attempt,
                 source=ErrorSourceEnum.local_script,
                 diagnostic_message=diagnostic_message,
             )
