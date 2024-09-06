@@ -389,8 +389,6 @@ class ScriptHandler(BaseScriptHandler):
         """
         status = await check_htcondor_job(htcondor_id)
         print(f"Getting status for {script.fullname} {status}")
-        if status is None:
-            status = StatusEnum.running
         if status != script.status:
             await script.update_values(session, status=status)
         return status
