@@ -16,7 +16,43 @@ Campaign:
 #       extra_qgraph_options: >
 #          -c parameters:sasquatch_dataset_identifier=DC2/TestMed1
 #          -c parameters:sasquatch_timestamp_version=reference_package_timestamp
-#
+    child_config:
+        step1:
+            child_config:
+                base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1' and tract in (3828, 3829)"
+        step2:
+            child_config:
+                base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1' and tract in (3828, 3829)"
+        step3:
+            child_config:
+                base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1'"
+        step4:
+            child_config:
+                base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1'"
+        step5:
+            child_config:
+                base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1' and tract in (3828, 3829)"
+        step6:
+            child_config:
+                base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1'"
+        step7:
+            child_config:
+                base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1' and tract in (3828, 3829)"
+        faro_visit:
+            child_config:
+                base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1' and tract in (3828, 3829)"
+        faro_matched:
+            child_config:
+                base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1' and tract in (3828, 3829)"
+        faro_tract:
+            child_config:
+                base_query: >
+                    instrument='LSSTCam-imSim' AND skymap='DC2_cells_v1' AND tract IN (3828, 3829) AND
+                    band IN ('u', 'g', 'r', 'i', 'z', 'y')
+        plots:
+            child_config:
+                base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1' and tract in (3828, 3829)"
+
 # Examples of how to override step specific stuff
 #   child_config:
 #       step1:
