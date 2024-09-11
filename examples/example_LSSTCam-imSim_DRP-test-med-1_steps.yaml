@@ -58,14 +58,6 @@
           base_query: "instrument='LSSTCam-imSim' and skymap='DC2'"
           split_method: no_split
 - SpecBlock:
-      name: LSSTCam-imSim_DRP-test-med-1_step8
-      includes: ['step']
-      data:
-          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam-imSim/DRP-test-med-1.yaml#step8"
-      child_config:
-          base_query: "instrument='LSSTCam-imSim' and skymap='DC2'"
-          split_method: no_split
-- SpecBlock:
       name: LSSTCam-imSim_DRP-test-med-1_faro_visit
       includes: ['step']
       data:
