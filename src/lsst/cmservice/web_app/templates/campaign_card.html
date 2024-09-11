@@ -1,4 +1,5 @@
 <div class="campaign-card overflow-hidden px-4 py-5 shadow sm:p-6 bg-teal-50 relative h-300" xmlns="http://www.w3.org/1999/html">
+    <a href="{{ url_for('get_steps', campaign_id=campaign.id) }}">
     <div class="flex items-center">
         {% if campaign.status == "COMPLETE" %} {% include "complete_icon.html" %}
         {% elif campaign.status == "IN_PROGRESS" %} {% include "inprogress_icon.html" %}
@@ -39,4 +40,5 @@
             <path d="M3 10a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM8.5 10a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM15.5 8.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" />
         </svg>
     </button>
+    </a>
 </div>
