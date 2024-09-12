@@ -15,7 +15,11 @@
         </form>
     </div>
     {% if recent_campaigns %}
+    <div class="px-4 sm:px-6 lg:px-8">
+        <h1 class="text-sm font-bold leading-tight tracking-tight text-gray-400 pb-3 font-mono uppercase pt-8">most recent campaigns</h1>
+    </div>
     <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-5 px-4 sm:px-6 lg:px-8">
+
         <!-- Campaign Cards -->
         {% for campaign in recent_campaigns %}
         {% include "campaign_card.html" %}

@@ -18,8 +18,10 @@ follows:
   will launch a subsidiary Postgres instance locally in a Docker container via Docker Compose. The foreground
   debug service instance will log to stdout and will dynamically reload as you edit and save source files.
 
-* Exit your debug instance with `^C`.  The subsidiary Postgres container launched under Docker Compose will
-  remain active, and will be re-used on any subsequent `make run`.
+* Access the monitoring web application at http://0.0.0.0:8080/web_app/campaigns/
+
+* Exit your debug instance with `^C`.  The subsidiary Postgres and Redis containers launched under Docker
+  Compose will remain active, and will be re-used on any subsequent `make run`
 
 * Shut down the subsidiary Postgres container if/when desired with `docker compose down`.  Database state will
   be maintained in local Docker volumes and re-used on the next run.  If you wish to clear the database state
@@ -33,6 +35,8 @@ Additional developer conveniences:
 * Run the pytest test suite at any point with `make test`.  This will launch subsidiary containers if
   necessary via Docker Compose, or will make use of any that may already be running.  Tests are performed in
   their own Postgres schema, so as not interfere with debugging state in a running debug service instance.
+
+* To run the playwright tests, add `--run-playwright` to the pytest arguments
 
 * Run the pre-commit hooks to lint and reformat your code via `make lint`.
 

@@ -1,5 +1,7 @@
+import typing
 from collections.abc import AsyncIterator
 
+import pytest
 import pytest_asyncio
 import structlog
 from asgi_lifespan import LifespanManager
@@ -52,3 +54,26 @@ async def uvicorn_fixture(tmp_path_factory: TempPathFactory) -> AsyncIterator[Uv
     )
     yield my_uvicorn
     my_uvicorn.process.terminate()
+
+
+def pytest_addoption(parser: typing.Any) -> None:
+    parser.addoption(
+        "--run-playwright",
+        action="store_true",
+        default=False,
+        help="run playwright tests",
+    )
+
+
+def pytest_configure(config: typing.Any) -> None:
+    config.addinivalue_line("markers", "playwright: mark test as a playwright test")
+
+
+def pytest_collection_modifyitems(config: typing.Any, items: typing.Iterator) -> None:
+    if config.getoption("--run-playwright"):
+        # --run-playwright given in cli: do not skip playwright
+        return
+    skip_playwright = pytest.mark.skip(reason="need --run-playwright option to run")
+    for item in items:
+        if "playwright" in item.keywords:
+            item.add_marker(skip_playwright)

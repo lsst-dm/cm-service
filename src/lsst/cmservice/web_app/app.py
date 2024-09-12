@@ -148,7 +148,7 @@ async def get_steps(
         return templates.TemplateResponse(f"Something went wrong {e}")
 
 
-@web_app.get("/campaign/{campaign_id}/{step_id}", response_class=HTMLResponse)
+@web_app.get("/campaign/{campaign_id}/{step_id}/", response_class=HTMLResponse)
 async def get_step(
     request: Request,
     campaign_id: int,
