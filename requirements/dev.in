@@ -21,4 +21,4 @@ ruff
 sqlalchemy[mypy]
 types-pyyaml
 types-tabulate
-playwright
+pytest-playwright
