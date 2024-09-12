@@ -17,6 +17,7 @@ update-deps-no-hashes:
 init:
 	pip install --editable .
 	pip install --upgrade -r requirements/main.txt -r requirements/dev.txt
+	playwright install
 	pip install --upgrade pre-commit
 	pre-commit install
 
