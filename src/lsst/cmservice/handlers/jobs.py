@@ -223,7 +223,6 @@ class BpsScriptHandler(ScriptHandler):
     ) -> StatusEnum:
         htcondor_status = await ScriptHandler._check_htcondor_job(self, session, htcondor_id, script, parent)
         if htcondor_status == StatusEnum.accepted:
-            await script.update_values(session, status=StatusEnum.accepted)
             wms_job_id = os.path.join(os.path.dirname(script.log_url), "submit")
             await parent.update_values(session, wms_job_id=wms_job_id)
         return htcondor_status
