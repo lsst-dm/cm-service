@@ -218,7 +218,7 @@ class ScriptMethodEnum(enum.Enum):
         Use slurm to submit the script
 
     htcondor = 3
-        Use htcondoir to submit the script
+        Use htcondor to submit the script
 
     More methods to come...
     """
