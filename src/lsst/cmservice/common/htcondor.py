@@ -24,7 +24,7 @@ async def write_htcondor_script(
     log_url: str,
     **kwargs: Any,
 ) -> str:
-    """Write a submit wrappeer script for htcondor
+    """Write a submit wrapper script for htcondor
 
     Parameters
     ----------
