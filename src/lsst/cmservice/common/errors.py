@@ -68,7 +68,7 @@ class CMSlurmSubmitError(KeyError):
 
 
 class CMHTCondorSubmitError(KeyError):
-    """Raised when htcondor submisison fails"""
+    """Raised when htcondor submission fails"""
 
 
 class CMSpecficiationError(KeyError):
