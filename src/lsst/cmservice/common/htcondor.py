@@ -39,6 +39,11 @@ async def write_htcondor_script(
 
     log_url: str
         Location of job log file to write
+
+    Returns
+    -------
+    htcondor_log: str
+        Path to the log wrapper log
     """
     options = dict(
         should_transfer_files="Yes",
