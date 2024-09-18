@@ -3,7 +3,7 @@
 import subprocess
 
 from .enums import StatusEnum
-from .errors import CMSlurmSubmitError
+from .errors import CMSlurmCheckError, CMSlurmSubmitError
 
 slurm_status_map = {
     "BOOT_FAIL": StatusEnum.failed,
@@ -34,7 +34,7 @@ slurm_status_map = {
 }
 
 
-async def submit_slurm_job(
+def submit_slurm_job(
     script_url: str,
     log_url: str,
 ) -> str:
@@ -69,7 +69,13 @@ async def submit_slurm_job(
                 script_url,
             ],
             stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         ) as sbatch:
+            sbatch.wait()
+            if sbatch.returncode != 0:
+                assert sbatch.stderr
+                msg = sbatch.stderr.read().decode()
+                raise CMSlurmSubmitError(f"Bad slurm submit: {msg}")
             assert sbatch.stdout
             line = sbatch.stdout.read().decode().strip()
             return line.split("|")[0]
@@ -77,7 +83,7 @@ async def submit_slurm_job(
         raise CMSlurmSubmitError(f"Bad slurm submit: {msg}") from msg
 
 
-async def check_slurm_job(
+def check_slurm_job(
     slurm_id: str | None,
 ) -> StatusEnum | None:
     """Check the status of a `Slurm` job
@@ -95,12 +101,20 @@ async def check_slurm_job(
     if slurm_id is None:
         return None
     with subprocess.Popen(["sacct", "--parsable", "-b", "-j", slurm_id], stdout=subprocess.PIPE) as sacct:
-        assert sacct.stdout
-        lines = sacct.stdout.read().decode().split("\n")
-        if len(lines) < 2:
-            return slurm_status_map["PENDING"]
-        tokens = lines[1].split("|")
-        if len(tokens) < 2:
-            return slurm_status_map["PENDING"]
-        slurm_status = tokens[1]
+        sacct.wait()
+        if sacct.returncode != 0:
+            assert sacct.stderr
+            msg = sacct.stderr.read().decode()
+            raise CMSlurmCheckError(f"Bad slurm check: {msg}")
+        try:
+            assert sacct.stdout
+            lines = sacct.stdout.read().decode().split("\n")
+            if len(lines) < 2:
+                return slurm_status_map["PENDING"]
+            tokens = lines[1].split("|")
+            if len(tokens) < 2:
+                return slurm_status_map["PENDING"]
+            slurm_status = tokens[1]
+        except Exception as msg:
+            raise CMSlurmCheckError(f"Badly formatted slurm check: {msg}")
         return slurm_status_map[slurm_status]

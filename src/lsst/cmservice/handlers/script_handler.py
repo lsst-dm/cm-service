@@ -11,9 +11,11 @@ from ..common.errors import (
     CMBadExecutionMethodError,
     CMBadStateTransitionError,
     CMBashSubmitError,
+    CMHTCondorCheckError,
     CMHTCondorSubmitError,
     CMMissingNodeUrlError,
     CMMissingScriptInputError,
+    CMSlurmCheckError,
     CMSlurmSubmitError,
 )
 from ..common.htcondor import check_htcondor_job, submit_htcondor_job, write_htcondor_script
@@ -62,6 +64,15 @@ class BaseScriptHandler(Handler):
             except (
                 CMBadExecutionMethodError,
                 CMMissingNodeUrlError,
+            ) as msg:
+                _new_error = await ScriptError.create_row(
+                    session,
+                    script_id=node.id,
+                    source=ErrorSourceEnum.cmservice,
+                    diagnostic_message=msg,
+                )
+                status = StatusEnum.failed
+            except (
                 CMHTCondorSubmitError,
                 CMSlurmSubmitError,
                 CMBashSubmitError,
@@ -69,7 +80,7 @@ class BaseScriptHandler(Handler):
                 _new_error = await ScriptError.create_row(
                     session,
                     script_id=node.id,
-                    source=ErrorSourceEnum.cmservice,
+                    source=ErrorSourceEnum.local_script,
                     diagnostic_message=msg,
                 )
                 status = StatusEnum.failed
@@ -84,6 +95,18 @@ class BaseScriptHandler(Handler):
                     diagnostic_message=msg,
                 )
                 status = StatusEnum.failed
+            except (
+                CMHTCondorCheckError,
+                CMSlurmCheckError,
+            ) as msg:
+                _new_error = await ScriptError.create_row(
+                    session,
+                    script_id=node.id,
+                    source=ErrorSourceEnum.local_script,
+                    diagnostic_message=msg,
+                )
+                status = StatusEnum.failed
+
         if status == StatusEnum.reviewable:
             status = await self.review(session, node, parent)
         if status != orig_status:
@@ -351,7 +374,7 @@ class ScriptHandler(BaseScriptHandler):
         status : StatusEnum
             The status of the processing
         """
-        status = await check_slurm_job(slurm_id)
+        status = check_slurm_job(slurm_id)
         print(f"Getting status for {script.fullname} {status}")
         if status is None:
             status = StatusEnum.running
@@ -387,7 +410,7 @@ class ScriptHandler(BaseScriptHandler):
         status : StatusEnum
             The status of the processing
         """
-        status = await check_htcondor_job(htcondor_id)
+        status = check_htcondor_job(htcondor_id)
         print(f"Getting status for {script.fullname} {status}")
         if status != script.status:
             await script.update_values(session, status=status)
@@ -446,7 +469,7 @@ class ScriptHandler(BaseScriptHandler):
                 raise CMMissingNodeUrlError(f"script_url is not set for {script}")
             if not script.log_url:
                 raise CMMissingNodeUrlError(f"log_url is not set for {script}")
-            job_id = await submit_slurm_job(script.script_url, script.log_url)
+            job_id = submit_slurm_job(script.script_url, script.log_url)
             status = StatusEnum.running
             await script.update_values(session, stamp_url=job_id, status=status)
         elif script_method == ScriptMethodEnum.htcondor:  # pragma: no cover
@@ -457,13 +480,13 @@ class ScriptHandler(BaseScriptHandler):
             job_id_base = os.path.abspath(os.path.splitext(script.script_url)[0])
             htcondor_script = f"{job_id_base}.sub"
             htcondor_log = f"{job_id_base}.condorlog"
-            await write_htcondor_script(
+            write_htcondor_script(
                 htcondor_script,
                 htcondor_log,
                 os.path.abspath(script.script_url),
                 os.path.abspath(script.log_url),
             )
-            await submit_htcondor_job(htcondor_script)
+            submit_htcondor_job(htcondor_script)
             status = StatusEnum.running
             await script.update_values(session, stamp_url=htcondor_log, status=status)
         else:

@@ -4,7 +4,7 @@ import subprocess
 from typing import Any
 
 from .enums import StatusEnum
-from .errors import CMHTCondorSubmitError
+from .errors import CMHTCondorCheckError, CMHTCondorSubmitError
 
 htcondor_status_map = {
     1: StatusEnum.running,
@@ -17,7 +17,7 @@ htcondor_status_map = {
 }
 
 
-async def write_htcondor_script(
+def write_htcondor_script(
     htcondor_script: str,
     htcondor_log: str,
     script_url: str,
@@ -66,7 +66,7 @@ async def write_htcondor_script(
     return htcondor_log
 
 
-async def submit_htcondor_job(
+def submit_htcondor_job(
     htcondor_script: str,
 ) -> None:
     """Submit a  `Script` to htcondor
@@ -84,13 +84,18 @@ async def submit_htcondor_job(
                 htcondor_script,
             ],
             stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         ) as sbatch:
-            assert sbatch.stdout
+            sbatch.wait()
+            if sbatch.returncode != 0:
+                assert sbatch.stderr
+                msg = sbatch.stderr.read().decode()
+                raise CMHTCondorSubmitError(f"Bad htcondor submit: {msg}")
     except TypeError as msg:
         raise CMHTCondorSubmitError(f"Bad htcondor submit: {msg}") from msg
 
 
-async def check_htcondor_job(
+def check_htcondor_job(
     htcondor_id: str,
 ) -> StatusEnum:
     """Check the status of a `HTCondor` job
@@ -108,14 +113,23 @@ async def check_htcondor_job(
     with subprocess.Popen(
         ["condor_q", "-userlog", htcondor_id, "-af", "JobStatus", "ExitCode"],
         stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
     ) as condor_q:
-        assert condor_q.stdout
-        lines = condor_q.stdout.read().decode().split("\n")
-        # condor_q puts an extra newline, so we use the second to the last line
-        tokens = lines[-2].split()
-        assert len(tokens) == 2
-        htcondor_status = int(tokens[0])
-        exit_code = tokens[1]
+        condor_q.wait()
+        if condor_q.returncode != 0:
+            assert condor_q.stderr
+            msg = condor_q.stderr.read().decode()
+            raise CMHTCondorCheckError(f"Bad htcondor check: {msg}")
+        try:
+            assert condor_q.stdout
+            lines = condor_q.stdout.read().decode().split("\n")
+            # condor_q puts an extra newline, we use second to the last line
+            tokens = lines[-2].split()
+            assert len(tokens) == 2
+            htcondor_status = int(tokens[0])
+            exit_code = tokens[1]
+        except Exception as msg:
+            raise CMHTCondorCheckError(f"Badly formatted htcondor check: {msg}")
         status = htcondor_status_map[htcondor_status]
         if status == StatusEnum.reviewable:
             if int(exit_code) == 0:
