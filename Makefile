@@ -81,3 +81,10 @@ run-usdf-dev: export CM_DATABASE_ECHO=true
 run-usdf-dev:
 	cm-service init
 	cm-service run
+
+.PHONY: run-mysql
+run-mysql: export CM_DATABASE_URL=sqlite+aiosqlite://///test_cm.db
+run-mysql: export CM_DATABASE_ECHO=true
+run-mysql:
+	cm-service init
+	cm-service run

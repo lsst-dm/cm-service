@@ -6,7 +6,7 @@
 #     make update-deps
 
 -c main.txt
-
+aiosqlite
 asgi-lifespan
 coverage[toml]
 httpx
