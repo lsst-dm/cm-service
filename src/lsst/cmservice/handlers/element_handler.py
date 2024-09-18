@@ -398,7 +398,7 @@ class ElementHandler(Handler):
             jobs = []
         for job_ in jobs:
             if job_.status.value <= StatusEnum.accepted.value:
-                status = StatusEnum.running  # FIXME
+                status = StatusEnum.running  # FIXME, revisit someday
                 await element.update_values(session, status=status)
                 return (changed, status)
 
