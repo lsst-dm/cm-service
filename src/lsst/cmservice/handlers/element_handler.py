@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-from ..common.enums import StatusEnum
+from ..common.enums import LevelEnum, StatusEnum
 from ..common.errors import CMYamlParseError
 from ..db.campaign import Campaign
 from ..db.element import ElementMixin
@@ -389,6 +389,16 @@ class ElementHandler(Handler):
         for script_ in scripts:
             if script_.status.value <= StatusEnum.accepted.value:
                 status = StatusEnum.running  # FIXME
+                await element.update_values(session, status=status)
+                return (changed, status)
+
+        if element.level != LevelEnum.job:
+            jobs = await element.get_jobs(session, remaining_only=True)
+        else:
+            jobs = []
+        for job_ in jobs:
+            if job_.status.value <= StatusEnum.accepted.value:
+                status = StatusEnum.running  # FIXME, revisit someday
                 await element.update_values(session, status=status)
                 return (changed, status)
 
