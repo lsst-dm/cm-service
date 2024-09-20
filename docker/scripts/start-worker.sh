@@ -1,7 +1,13 @@
 #!/bin/bash
 set -eo pipefail
 
-source ./stack/loadLSST.bash
+# The venv at /home/lsstsvc1/venv (with lsst.cmservice installed within), is
+# already active at this point (arranged during container build)
 
-echo "Splice worker task here..."
+# Setup partial Rubin stack
+source ./stack/loadLSST.bash
+setup ctrl_bps
+setup lsst_bps_plugins
+
+echo "Splice Python worker task invocation here..."
 tail -f /dev/null
