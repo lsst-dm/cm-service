@@ -74,7 +74,7 @@ def submit_htcondor_job(
     Parameters
     ----------
     htcondor_script_path: str
-        Path tho the script to submit
+        Path to the script to submit
 
     """
     try:
