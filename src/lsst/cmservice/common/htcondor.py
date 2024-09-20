@@ -18,7 +18,7 @@ htcondor_status_map = {
 
 
 def write_htcondor_script(
-    htcondor_script: str,
+    htcondor_script_path: str,
     htcondor_log: str,
     script_url: str,
     log_url: str,
@@ -28,8 +28,8 @@ def write_htcondor_script(
 
     Parameters
     ----------
-    htcondor_script: str
-        Path for the wrapper file
+    htcondor_script_path: str
+        Path for the wrapper file written by this function
 
     htcondor_log: str
         Path for the wrapper log
@@ -55,7 +55,7 @@ def write_htcondor_script(
     )
     options.update(**kwargs)
 
-    with open(htcondor_script, "w") as fout:
+    with open(htcondor_script_path, "w") as fout:
         fout.write(f"executable = {script_url}\n")
         fout.write(f"log = {htcondor_log}\n")
         fout.write(f"output = {log_url}\n")
@@ -67,21 +67,21 @@ def write_htcondor_script(
 
 
 def submit_htcondor_job(
-    htcondor_script: str,
+    htcondor_script_path: str,
 ) -> None:
     """Submit a  `Script` to htcondor
 
     Parameters
     ----------
-    htcondor_script: str
-        Script to submit
+    htcondor_script_path: str
+        Path tho the script to submit
 
     """
     try:
         with subprocess.Popen(
             [
                 "condor_submit",
-                htcondor_script,
+                htcondor_script_path,
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -103,7 +103,7 @@ def check_htcondor_job(
     Parameters
     ----------
     htcondor_id : str
-        htcondor job id
+        htcondor job id, in this case the log file from the wrapper script
 
     Returns
     -------
