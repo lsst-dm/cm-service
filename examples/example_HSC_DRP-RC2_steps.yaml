@@ -73,11 +73,3 @@
       child_config:
           base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
           split_method: no_split
-- SpecBlock:
-      name: HSC_DRP-RC2_plots
-      includes: ['step']
-      data:
-          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#analysis_coadd_plots"
-      child_config:
-          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
-          split_method: no_split
