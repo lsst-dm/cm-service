@@ -66,30 +66,6 @@
           base_query: "instrument='LSSTCam-imSim' and skymap='DC2'"
           split_method: no_split
 - SpecBlock:
-      name: LSSTCam-imSim_DRP-test-med-1_faro_visit
-      includes: ['step']
-      data:
-          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam-imSim/DRP-test-med-1.yaml#faro_visit"
-      child_config:
-          base_query: "instrument='LSSTCam-imSim' and skymap='DC2'"
-          split_method: no_split
-- SpecBlock:
-      name: LSSTCam-imSim_DRP-test-med-1_faro_matched
-      includes: ['step']
-      data:
-          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam-imSim/DRP-test-med-1.yaml#faro_matched"
-      child_config:
-          base_query: "instrument='LSSTCam-imSim' and skymap='DC2'"
-          split_method: no_split
-- SpecBlock:
-      name: LSSTCam-imSim_DRP-test-med-1_faro_tract
-      includes: ['step']
-      data:
-          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam-imSim/DRP-test-med-1.yaml#faro_tract"
-      child_config:
-          base_query: "instrument='LSSTCam-imSim' and skymap='DC2'"
-          split_method: no_split
-- SpecBlock:
       name: LSSTCam-imSim_DRP-test-med-1_plots
       includes: ['step']
       data:
