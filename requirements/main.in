@@ -14,6 +14,7 @@ uvicorn[standard]
 # Other dependencies.
 asyncpg
 click
+greenlet==3.0.3  # Pin back to allow playwright 1.47
 jinja2
 lsst-ctrl-bps
 lsst-ctrl-bps-panda

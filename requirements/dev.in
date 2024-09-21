@@ -9,6 +9,7 @@
 aiosqlite
 asgi-lifespan
 coverage[toml]
+greenlet==3.0.3  # Pin back to allow playwright 1.47
 httpx
 mypy
 pre-commit
@@ -16,9 +17,9 @@ pylint
 pytest
 pytest-asyncio
 pytest-cov
+pytest-playwright
 pytest-timeout
 ruff
 sqlalchemy[mypy]
 types-pyyaml
 types-tabulate
-pytest-playwright
