@@ -1,4 +1,5 @@
 """CLI to manage SpecBlock table"""
+
 from .. import db
 from . import options, wrappers
 from .commands import spec_block_group

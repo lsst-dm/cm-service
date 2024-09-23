@@ -1,5 +1,5 @@
-"""Pydantic model for the Production tables
-"""
+"""Pydantic model for the Production tables"""
+
 from pydantic import BaseModel, ConfigDict
 
 

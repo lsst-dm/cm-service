@@ -62,7 +62,12 @@ exclude_lines = [
 exclude = [
     "__init__.py",
 ]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
 ignore = [
+    "COM812",
     "N802",
     "N803",
     "N806",
@@ -71,7 +76,6 @@ ignore = [
     "N815",
     "N816",
 ]
-line-length = 110
 select = [
     "E",  # pycodestyle
     "F",  # pyflakes
@@ -81,7 +85,6 @@ select = [
     "FBT", # flake8-boolean-trap
     "UP", # pyupgrade
 ]
-target-version = "py311"
 extend-select = [
     "RUF100", # Warn about unused noqa
 ]
@@ -89,10 +92,10 @@ extend-select = [
 [tool.ruff.lint.isort]
 known-first-party = ["lsst", "tests"]
 
-[tool.ruff.pycodestyle]
+[tool.ruff.lint.pycodestyle]
 max-doc-length = 79
 
-[tool.ruff.pydocstyle]
+[tool.ruff.lint.pydocstyle]
 convention = "numpy"
 
 [tool.pytest.ini_options]

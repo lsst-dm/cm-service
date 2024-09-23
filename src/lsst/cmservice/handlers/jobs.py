@@ -8,27 +8,25 @@ from typing import Any
 import yaml
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-
 from lsst.cmservice.common.bash import write_bash_script
 from lsst.cmservice.db.element import ElementMixin
 from lsst.cmservice.db.job import Job
 from lsst.cmservice.db.script import Script
 from lsst.cmservice.db.task_set import TaskSet
 from lsst.cmservice.db.wms_task_report import WmsTaskReport
-from lsst.ctrl.bps import BaseWmsService, WmsStates, WmsRunReport
+from lsst.ctrl.bps import BaseWmsService, WmsRunReport, WmsStates
 from lsst.utils import doImport
 
 from ..common.butler import remove_run_collections
 from ..common.enums import LevelEnum, StatusEnum, TaskStatusEnum, WmsMethodEnum
 from ..common.errors import (
     CMBadExecutionMethodError,
+    CMBadParameterTypeError,
     CMIDMismatchError,
     CMMissingScriptInputError,
-    CMBadParameterTypeError,
 )
-from .functions import load_manifest_report, load_wms_reports, status_from_bps_report, compute_job_status
+from .functions import compute_job_status, load_manifest_report, load_wms_reports, status_from_bps_report
 from .script_handler import FunctionHandler, ScriptHandler
-
 
 WMS_TO_TASK_STATUS_MAP = {
     WmsStates.UNKNOWN: TaskStatusEnum.missing,

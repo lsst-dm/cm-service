@@ -1,4 +1,5 @@
 """CLI to manage WmsTaskReport table"""
+
 from .. import db
 from . import options, wrappers
 from .commands import wms_task_report_group

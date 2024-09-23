@@ -6,8 +6,8 @@ import yaml
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-from lsst.ctrl.bps.wms_service import WmsJobReport, WmsStates, WmsRunReport
 from lsst.ctrl.bps.bps_reports import compile_job_summary
+from lsst.ctrl.bps.wms_service import WmsJobReport, WmsRunReport, WmsStates
 
 from ..common.enums import StatusEnum
 from ..common.errors import CMYamlParseError

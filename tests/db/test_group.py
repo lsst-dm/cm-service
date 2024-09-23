@@ -7,10 +7,10 @@ from safir.database import create_async_session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from lsst.cmservice import db
-from lsst.cmservice.config import config
-from lsst.cmservice.common.enums import LevelEnum
 import lsst.cmservice.common.errors as errors
+from lsst.cmservice import db
+from lsst.cmservice.common.enums import LevelEnum
+from lsst.cmservice.config import config
 
 from .util_functions import create_tree, delete_all_productions
 

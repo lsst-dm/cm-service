@@ -1,4 +1,5 @@
 """http routers for managing ScriptDependency tables"""
+
 from fastapi import APIRouter
 
 from .. import db, models

@@ -1,4 +1,5 @@
 """http routers for managing Group tables"""
+
 from fastapi import APIRouter, Depends
 from safir.dependencies.db_session import db_session_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session

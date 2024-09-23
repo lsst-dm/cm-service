@@ -1,21 +1,21 @@
 from __future__ import annotations
 
 import os
-import yaml
-
-from typing import Any, TYPE_CHECKING
 from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 import httpx
+import yaml
 
+from .. import models
 from ..common.enums import ErrorActionEnum, ErrorFlavorEnum, ErrorSourceEnum
 from ..common.errors import CMYamlParseError
-from .. import models
 from . import wrappers
 
 if TYPE_CHECKING:
-    from .client import CMClient
     from pydantic import BaseModel
+
+    from .client import CMClient
 
 
 def update_include_dict(

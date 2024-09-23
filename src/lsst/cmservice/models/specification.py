@@ -3,6 +3,7 @@
 These tables group templates for building processing Nodes into
 sets that can be used to define a Campaign
 """
+
 from pydantic import BaseModel, ConfigDict
 
 

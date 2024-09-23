@@ -1,4 +1,5 @@
 """CLI to manage Group table"""
+
 from .. import db
 from . import options, wrappers
 from .commands import step_dependency_group

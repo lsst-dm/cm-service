@@ -1,9 +1,8 @@
 import re
 import typing
-
-import pytest
 from unittest.mock import Mock
 
+import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from playwright.sync_api import expect, sync_playwright
 

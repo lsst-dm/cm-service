@@ -1,6 +1,7 @@
 """CLI to manage Job table"""
-from ..client.client import CMClient
+
 from .. import db
+from ..client.client import CMClient
 from . import options, wrappers
 from .commands import job_group
 

@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from lsst.cmservice import db
-from lsst.cmservice.handlers import interface
 from lsst.cmservice.common.enums import LevelEnum
+from lsst.cmservice.handlers import interface
 
 
 async def create_tree(

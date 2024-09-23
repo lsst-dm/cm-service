@@ -1,8 +1,9 @@
 from typing import Any
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-from lsst.cmservice.db import Script, Job, Group, Step
+from lsst.cmservice.db import Group, Job, Script, Step
 from lsst.cmservice.web_app.utils.utils import map_status
 
 

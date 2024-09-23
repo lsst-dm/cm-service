@@ -1,4 +1,5 @@
 """CLI to manage ScriptTemplate table"""
+
 from .. import db
 from . import options, wrappers
 from .commands import script_template_group

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 from sqlalchemy import JSON
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.ext.hybrid import hybrid_property
