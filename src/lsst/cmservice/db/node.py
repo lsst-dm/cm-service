@@ -246,6 +246,12 @@ class NodeMixin(RowMixin):
                     raise CMResolveCollectionsError(
                         f"Failed to resolve collection {name_}, {f1} using: {name_dict!s}",
                     ) from msg
+        for key, value in resolved_collections:
+            if "MUST_OVERRIDE" in value:
+                raise CMResolveCollectionsError(
+                    f"Attempts to resolve {key} collection includes MUST_OVERRIDE. Make sure to provide"
+                    "necessary collection names."
+                )
         return resolved_collections
 
     async def get_collections(
@@ -434,7 +440,7 @@ class NodeMixin(RowMixin):
                 self.child_config = the_child_config
             else:
                 self.child_config = kwargs.copy()
-            await session.refresh(self)
+            await session.commit()
         except IntegrityError as e:
             if TYPE_CHECKING:
                 assert e.orig  # for mypy
@@ -478,7 +484,7 @@ class NodeMixin(RowMixin):
                 self.collections = the_collections
             else:
                 self.collections = kwargs.copy()
-            await session.refresh(self)
+            await session.commit()
         except IntegrityError as e:
             if TYPE_CHECKING:
                 assert e.orig  # for mypy
