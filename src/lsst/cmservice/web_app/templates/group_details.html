@@ -120,7 +120,7 @@
        let jobName = document.createElement('a');
        jobName.textContent = params.data.name;
        jobName.href = `{{url_for("get_job", campaign_id=group.campaign_id, step_id=group.step_id, group_id=group.id, job_id="${params.data.id}")}}`;
-       jobName.setAttribute('class', 'font-bold hover:text-gray-500');
+       jobName.setAttribute('class', 'font-bold text-teal-700 underline underline-offset-4 decoration-2 hover:text-gray-500');
        this.eGui = document.createElement('span');
        this.eGui.appendChild(jobName)
      }
@@ -140,7 +140,7 @@
        let scriptName = document.createElement('a');
        scriptName.textContent = params.data.name;
        scriptName.href = `{{url_for("get_script", campaign_id=group.campaign_id, step_id=group.step_id, group_id=group.id, script_id="${params.data.id}")}}`;
-       scriptName.setAttribute('class', 'font-bold hover:text-gray-500');
+       scriptName.setAttribute('class', 'font-bold text-teal-700 underline underline-offset-4 decoration-2 hover:text-gray-500');
        this.eGui = document.createElement('span');
        this.eGui.appendChild(scriptName)
      }
