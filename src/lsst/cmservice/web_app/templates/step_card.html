@@ -9,9 +9,8 @@
         <div class="flex items-center pt-4">
             <span class="text-xs font-normal">{{ step.no_groups}} Group(s)</span>
         </div>
-
-        <div class="items-center pt-2">
-            {% if step.no_groups != 0 %}
+        {% if step.no_groups != 0 %}
+        <div class="flex items-center pt-2">
             <div class="has-tooltip bg-green-500 h-5
                 {% if step.no_groups_completed == 0 %}hidden{%endif%}"
                  style="width: {{ '{:.0%}'.format((step.no_groups_completed/step.no_groups) + 0.01) }}">
@@ -30,8 +29,13 @@
                 <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Failed</span>
                 <span class="text-xs">{{step.no_groups_failed}}</span>
             </div>
-            <div class="flex items-center text-xs font-medium">{{step.no_groups_completed}} FINISHED, {{step.no_groups_need_attention}} NEED ATTENTION, {{step.no_groups_failed}} FAILED</div>
-            {% endif %}
+            {% set no_status_groups = step.no_groups - step.no_groups_failed - step.no_groups_need_attention - step.no_groups_completed %}
+            <div class="bg-gray-100 h-5
+                {% if no_status_groups == 0 %}hidden{%endif%}"
+                 style="width: {{ '{:.0%}'.format((no_status_groups/step.no_groups) + 0.01) }}">
+            </div>
         </div>
+        <div class="items-center text-xs font-medium">{{step.no_groups_completed}} FINISHED, {{step.no_groups_need_attention}} NEED ATTENTION, {{step.no_groups_failed}} FAILED</div>
+        {% endif %}
     </a>
 </div>
