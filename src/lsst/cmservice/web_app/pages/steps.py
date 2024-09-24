@@ -9,7 +9,7 @@ from lsst.cmservice.web_app.utils.utils import map_status
 
 
 async def get_campaign_steps(session: async_scoped_session, campaign_id: int) -> Sequence:
-    q = select(Step).where(Step.parent_id == campaign_id)
+    q = select(Step).where(Step.parent_id == campaign_id).order_by(Step.id)
     async with session.begin_nested():
         results = await session.scalars(q)
         return results.all()
