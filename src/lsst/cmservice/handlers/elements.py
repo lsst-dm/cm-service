@@ -115,7 +115,7 @@ class RunJobsScriptHandler(RunElementScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        slurm_status = await check_slurm_job(slurm_id)
+        slurm_status = check_slurm_job(slurm_id)
         if slurm_status is None:
             slurm_status = StatusEnum.running
         if slurm_status == StatusEnum.accepted:

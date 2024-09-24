@@ -67,6 +67,18 @@ class CMSlurmSubmitError(KeyError):
     """Raised when slurm submisison fails"""
 
 
+class CMSlurmCheckError(KeyError):
+    """Raised when slurm checking fails"""
+
+
+class CMHTCondorSubmitError(KeyError):
+    """Raised when htcondor submission fails"""
+
+
+class CMHTCondorCheckError(KeyError):
+    """Raised when htcondor checking fails"""
+
+
 class CMSpecficiationError(KeyError):
     """Raised when Specification calls out an non-existing fragement"""
 

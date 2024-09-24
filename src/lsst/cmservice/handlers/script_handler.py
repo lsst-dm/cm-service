@@ -11,44 +11,20 @@ from ..common.errors import (
     CMBadExecutionMethodError,
     CMBadStateTransitionError,
     CMBashSubmitError,
+    CMHTCondorCheckError,
+    CMHTCondorSubmitError,
     CMMissingNodeUrlError,
     CMMissingScriptInputError,
+    CMSlurmCheckError,
     CMSlurmSubmitError,
 )
+from ..common.htcondor import check_htcondor_job, submit_htcondor_job, write_htcondor_script
 from ..common.slurm import check_slurm_job, submit_slurm_job
 from ..db.element import ElementMixin
 from ..db.handler import Handler
 from ..db.node import NodeMixin
 from ..db.script import Script
 from ..db.script_error import ScriptError
-
-slurm_status_map = {
-    "BOOT_FAIL": StatusEnum.failed,
-    "CANCELLED": StatusEnum.failed,
-    "COMPLETED": StatusEnum.accepted,
-    "CONFIGURING": StatusEnum.running,
-    "COMPLETING": StatusEnum.running,
-    "DEADLINE": StatusEnum.failed,
-    "FAILED": StatusEnum.failed,
-    "NODE_FAIL": StatusEnum.failed,
-    "NOT_SUBMITTED": StatusEnum.prepared,
-    "OUT_OF_MEMORY": StatusEnum.failed,
-    "PENDING": StatusEnum.running,
-    "PREEMPTED": StatusEnum.running,
-    "RUNNING": StatusEnum.running,
-    "RESV_DEL_HOLD": StatusEnum.running,
-    "REQUEUE_FED": StatusEnum.running,
-    "REQUEUE_HOLD": StatusEnum.running,
-    "REQUEUED": StatusEnum.running,
-    "RESIZING": StatusEnum.running,
-    "REVOKED": StatusEnum.failed,
-    "SIGNALING": StatusEnum.running,
-    "SPECIAL_EXIT": StatusEnum.failed,
-    "STAGE_OUT": StatusEnum.running,
-    "STOPPED": StatusEnum.running,
-    "SUSPENDED": StatusEnum.running,
-    "TIMEOUT": StatusEnum.failed,
-}
 
 
 class BaseScriptHandler(Handler):
@@ -88,13 +64,23 @@ class BaseScriptHandler(Handler):
             except (
                 CMBadExecutionMethodError,
                 CMMissingNodeUrlError,
+            ) as msg:
+                _new_error = await ScriptError.create_row(
+                    session,
+                    script_id=node.id,
+                    source=ErrorSourceEnum.cmservice,
+                    diagnostic_message=msg,
+                )
+                status = StatusEnum.failed
+            except (
+                CMHTCondorSubmitError,
                 CMSlurmSubmitError,
                 CMBashSubmitError,
             ) as msg:
                 _new_error = await ScriptError.create_row(
                     session,
                     script_id=node.id,
-                    source=ErrorSourceEnum.cmservice,
+                    source=ErrorSourceEnum.local_script,
                     diagnostic_message=msg,
                 )
                 status = StatusEnum.failed
@@ -109,6 +95,18 @@ class BaseScriptHandler(Handler):
                     diagnostic_message=msg,
                 )
                 status = StatusEnum.failed
+            except (
+                CMHTCondorCheckError,
+                CMSlurmCheckError,
+            ) as msg:
+                _new_error = await ScriptError.create_row(
+                    session,
+                    script_id=node.id,
+                    source=ErrorSourceEnum.local_script,
+                    diagnostic_message=msg,
+                )
+                status = StatusEnum.failed
+
         if status == StatusEnum.reviewable:
             status = await self.review(session, node, parent)
         if status != orig_status:
@@ -311,7 +309,7 @@ class BaseScriptHandler(Handler):
 class ScriptHandler(BaseScriptHandler):
     """SubClass of Handler to deal with script operations using real scripts"""
 
-    default_method = ScriptMethodEnum.slurm
+    default_method = ScriptMethodEnum.htcondor
 
     @staticmethod
     async def _check_stamp_file(  # pylint: disable=unused-argument
@@ -376,10 +374,44 @@ class ScriptHandler(BaseScriptHandler):
         status : StatusEnum
             The status of the processing
         """
-        status = await check_slurm_job(slurm_id)
+        status = check_slurm_job(slurm_id)
         print(f"Getting status for {script.fullname} {status}")
         if status is None:
             status = StatusEnum.running
+        if status != script.status:
+            await script.update_values(session, status=status)
+        return status
+
+    async def _check_htcondor_job(  # pylint: disable=unused-argument
+        self,
+        session: async_scoped_session,
+        htcondor_id: str,
+        script: Script,
+        parent: ElementMixin,
+    ) -> StatusEnum:
+        """Check the status of a `Script` sent to htcondor
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        htcondor_id : str
+            HTCondor job id, in this case the lob from the submission script
+
+        script: Script
+            The `Script` in question
+
+        parent: ElementMixin
+            Parent Element of the `Script` in question
+
+        Returns
+        -------
+        status : StatusEnum
+            The status of the processing
+        """
+        status = check_htcondor_job(htcondor_id)
+        print(f"Getting status for {script.fullname} {status}")
         if status != script.status:
             await script.update_values(session, status=status)
         return status
@@ -401,6 +433,8 @@ class ScriptHandler(BaseScriptHandler):
         if script_method == ScriptMethodEnum.bash:
             status = await self._write_script(session, script, parent, **kwargs)
         elif script_method == ScriptMethodEnum.slurm:  # pragma: no cover
+            status = await self._write_script(session, script, parent, **kwargs)
+        elif script_method == ScriptMethodEnum.htcondor:  # pragma: no cover
             status = await self._write_script(session, script, parent, **kwargs)
         if status != script.status:
             await script.update_values(session, status=status)
@@ -435,9 +469,26 @@ class ScriptHandler(BaseScriptHandler):
                 raise CMMissingNodeUrlError(f"script_url is not set for {script}")
             if not script.log_url:
                 raise CMMissingNodeUrlError(f"log_url is not set for {script}")
-            job_id = await submit_slurm_job(script.script_url, script.log_url)
+            job_id = submit_slurm_job(script.script_url, script.log_url)
             status = StatusEnum.running
             await script.update_values(session, stamp_url=job_id, status=status)
+        elif script_method == ScriptMethodEnum.htcondor:  # pragma: no cover
+            if not script.script_url:
+                raise CMMissingNodeUrlError(f"script_url is not set for {script}")
+            if not script.log_url:
+                raise CMMissingNodeUrlError(f"log_url is not set for {script}")
+            job_id_base = os.path.abspath(os.path.splitext(script.script_url)[0])
+            htcondor_script_path = f"{job_id_base}.sub"
+            htcondor_log = f"{job_id_base}.condorlog"
+            write_htcondor_script(
+                htcondor_script_path,
+                htcondor_log,
+                os.path.abspath(script.script_url),
+                os.path.abspath(script.log_url),
+            )
+            submit_htcondor_job(htcondor_script_path)
+            status = StatusEnum.running
+            await script.update_values(session, stamp_url=htcondor_log, status=status)
         else:
             raise CMBadExecutionMethodError(f"Method {script_method} not valid for {script}")
         if status != orig_status:
@@ -468,6 +519,10 @@ class ScriptHandler(BaseScriptHandler):
             if not script.stamp_url:
                 raise CMMissingNodeUrlError(f"stamp_url is not set for {script}")
             status = await self._check_slurm_job(session, script.stamp_url, script, parent)
+        elif script_method == ScriptMethodEnum.htcondor:  # pragma: no cover
+            if not script.stamp_url:
+                raise CMMissingNodeUrlError(f"stamp_url is not set for {script}")
+            status = await self._check_htcondor_job(session, script.stamp_url, script, parent)
         if status == StatusEnum.failed:
             if not script.log_url:
                 raise CMMissingNodeUrlError(f"log_url is not set for {script}")
@@ -488,7 +543,9 @@ class ScriptHandler(BaseScriptHandler):
     ) -> str:
         with open(log_url, encoding="utf-8") as fin:
             lines = fin.readlines()
-            return lines[-1]
+            if lines:
+                return lines[-1]
+            return "Empty log file"
 
     async def _write_script(
         self,

@@ -123,7 +123,7 @@ class BpsScriptHandler(ScriptHandler):
             bps_wms_script_template,
         )
 
-        submit_path = os.path.abspath(os.path.expandvars(f"{prod_area}/{parent.fullname}/submit"))
+        submit_path = os.path.abspath(f"{prod_area}/{parent.fullname}/submit")
         try:
             os.rmdir(submit_path)
         except Exception:  # pylint: disable=broad-exception-caught
@@ -147,7 +147,12 @@ class BpsScriptHandler(ScriptHandler):
         include_configs = []
         for to_include_ in [bps_wms_yaml_file, bps_wms_clustering_file, bps_wms_resources_file]:
             if to_include_:
-                include_configs.append(os.path.expandvars(to_include_))
+                # We want abspaths, but we need to be careful about
+                # envvars that are not yet expanded
+                to_include_ = os.path.expandvars(to_include_)
+                if "$" not in to_include_:
+                    to_include_ = os.path.abspath(to_include_)
+                include_configs.append(to_include_)
         include_configs += bps_wms_extra_files
 
         workflow_config["includeConfigs"] = include_configs
@@ -208,6 +213,19 @@ class BpsScriptHandler(ScriptHandler):
             wms_job_id = self._get_job_id(bps_dict)
             await parent.update_values(session, wms_job_id=wms_job_id)
         return slurm_status
+
+    async def _check_htcondor_job(
+        self,
+        session: async_scoped_session,
+        htcondor_id: str,
+        script: Script,
+        parent: ElementMixin,
+    ) -> StatusEnum:
+        htcondor_status = await ScriptHandler._check_htcondor_job(self, session, htcondor_id, script, parent)
+        if htcondor_status == StatusEnum.accepted:
+            wms_job_id = os.path.join(os.path.dirname(script.log_url), "submit")
+            await parent.update_values(session, wms_job_id=wms_job_id)
+        return htcondor_status
 
     async def launch(
         self,
@@ -446,8 +464,8 @@ class ManifestReportScriptHandler(ScriptHandler):
         job_run_coll = resolved_cols["job_run"]
         qgraph_file = f"{job_run_coll}.qgraph".replace("/", "_")
 
-        graph_url = os.path.expandvars(f"{prod_area}/{parent.fullname}/submit/{qgraph_file}")
-        report_url = os.path.expandvars(f"{prod_area}/{parent.fullname}/submit/manifest_report.yaml")
+        graph_url = os.path.abspath(f"{prod_area}/{parent.fullname}/submit/{qgraph_file}")
+        report_url = os.path.abspath(f"{prod_area}/{parent.fullname}/submit/manifest_report.yaml")
 
         manifest_script_template = await specification.get_script_template(
             session,
