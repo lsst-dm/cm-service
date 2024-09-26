@@ -1,0 +1,27 @@
+Production:
+    name: PDR2-ApPipe
+Campaign:
+    name: MUST_OVERRIDE
+    spec_name: PDR2-ApPipe_panda
+    collections:
+        out: MUST_OVERRIDE
+        campaign_source: <NEEDTOFILL>
+    data:
+        lsst_version: MUST_OVERRIDE
+        prod_area: MUST_OVERRIDE
+
+#       custom_lsst_setup: setup -j -r /sdf/group/rubin/u/yusra/lsst_devel/ctrl_bps
+#
+#       butler_repo: '/repo/main+sasquatch_dev'
+#       data_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1'"
+#       bps_wms_clustering_file: "${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml"
+#       bps_wms_resources_file: "${DRP_PIPE_DIR}/bps/resources/HSC/DRP-RC2.yaml"
+#
+# Examples of how to override step specific stuff
+#   child_config:
+#       step1:
+#           data:
+#               extra_qraph_options: "something"
+#       step5:
+#           child_config:
+#               split_min_groups: 5

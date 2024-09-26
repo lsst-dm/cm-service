@@ -1,0 +1,45 @@
+- Imports:
+      - "${CM_CONFIGS}/example_standard_scripts.yaml"
+      - "${CM_CONFIGS}/example_standard_elements.yaml"
+      - "${CM_CONFIGS}/example_PDR2-ApPipe_steps.yaml"
+- SpecBlock:
+      name: PDR2-ApPipe_campaign
+      includes: ["base_campaign"]
+      collections:
+          campaign_source: HSC/runs/PDR2/DEEP/v24_1_0_rc2/DM-39132
+          campaign_ancillary_inputs:
+              - HSC/calib
+              - HSC/masks
+              - HSC/fgcmcal/lut/PDR2/DM-39549
+              - refcats
+              - skymaps
+      steps:
+          - Step:
+                name: step1
+                spec_block: PDR2-ApPipe_step1
+                child_config:
+                    split_method: split_by_query
+                    split_min_groups: 10
+      data:
+          butler_repo: '/repo/main+sasquatch_dev'
+          prod_area: '/sdf/group/shared/campaigns'
+          data_query: >
+            instrument = 'HSC' and skymap = 'hsc_rings_v1' and detector != 9
+            and detector < 104 and band in ('g', 'r', 'i', 'z', 'y')
+          bps_wms_clustering_file: "${AP_PIPE_DIR}/bps/clustering/clustering_ApPipe.yaml"
+          bps_wms_resources_file: "${AP_PIPE_DIR}/pipelines/HSC/ApPipe.yaml"
+          extra_qgraph_options: > # check if true
+            -c parameters:sasquatch_dataset_identifier=HSC/PDR2
+            -c parameters:sasquatch_timestamp_version=reference_package_timestamp
+- Specification:   # This is just a look up table.
+      name: PDR2-ApPipe_panda
+      spec_aliases:
+          campaign: PDR2-ApPipe_campaign
+          bps_submit_script: bps_panda_submit_script
+          bps_report_script: bps_panda_report_script
+- Specification:
+      name: PDR2-ApPipe_htcondor
+      spec_aliases:
+          campaign: PDR2-ApPipe_campaign
+          bps_submit_script: bps_htcondor_submit_script
+          bps_report_script: bps_htcondor_report_script
