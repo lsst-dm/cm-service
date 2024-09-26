@@ -91,30 +91,6 @@
                 prerequisites: ['step3']
                 child_config:
                     split_method: no_split
-          - Step:
-                name: plots
-                spec_block: HSC_DRP-RC2_plots
-                prerequisites: ['step3']
-                child_config:
-                    split_method: no_split
-          - Step:
-                name: faro_visit
-                spec_block: HSC_DRP-RC2_faro_visit
-                prerequisites: ['step2cde']
-                child_config:
-                    split_method: no_split
-          - Step:
-                name: faro_matched
-                spec_block: HSC_DRP-RC2_faro_matched
-                prerequisites: ['step2cde']
-                child_config:
-                    split_method: no_split
-          - Step:
-                name: faro_tract
-                spec_block: HSC_DRP-RC2_faro_tract
-                prerequisites: ['step3']
-                child_config:
-                    split_method: no_split
       data:
           butler_repo: '/repo/main+sasquatch_dev'
           prod_area: 'output/archive'  # Change this to /sdf/group/shared/campaigns

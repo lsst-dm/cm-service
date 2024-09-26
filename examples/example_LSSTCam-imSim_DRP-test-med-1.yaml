@@ -79,32 +79,6 @@
                 prerequisites: ['step3']
                 child_config:
                     base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
-          - Step:
-                name: faro_visit
-                spec_block: LSSTCam-imSim_DRP-test-med-1_faro_visit
-                prerequisites: ['step2']
-                child_config:
-                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
-          - Step:
-                name: faro_matched
-                spec_block: LSSTCam-imSim_DRP-test-med-1_faro_matched
-                prerequisites: ['step2']
-                child_config:
-                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
-          - Step:
-                name: faro_tract
-                spec_block: LSSTCam-imSim_DRP-test-med-1_faro_tract
-                prerequisites: ['step3']
-                child_config:
-                    base_query: >
-                      instrument='LSSTCam-imSim' AND skymap='DC2' AND tract IN (3828, 3829) AND
-                      band IN ('u', 'g', 'r', 'i', 'z', 'y')
-          - Step:
-                name: plots
-                spec_block: LSSTCam-imSim_DRP-test-med-1_plots
-                prerequisites: ['step3']
-                child_config:
-                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
 - Specification:
       name: LSSTCam-imSim_DRP-test-med-1_panda
       spec_aliases:
