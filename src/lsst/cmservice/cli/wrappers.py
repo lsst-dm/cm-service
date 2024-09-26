@@ -762,7 +762,7 @@ def get_update_collections_command(
             row_id=row_id,
             **kwargs,
         )
-        output_dict(result, output)
+        output_dict(result.collections, output)
 
     return update_collections
 
@@ -805,7 +805,7 @@ def get_update_child_config_command(
             row_id=row_id,
             **kwargs,
         )
-        output_dict(result, output)
+        output_dict(result.child_config, output)
 
     return update_child_config
 
