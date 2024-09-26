@@ -249,7 +249,7 @@ class NodeMixin(RowMixin):
         for key, value in resolved_collections.items():
             if "MUST_OVERRIDE" in value:
                 raise CMResolveCollectionsError(
-                    f"Attempts to resolve {key} collection includes MUST_OVERRIDE. Make sure to provide"
+                    f"Attempts to resolve {key} collection includes MUST_OVERRIDE. Make sure to provide "
                     "necessary collection names."
                 )
         return resolved_collections
@@ -527,7 +527,7 @@ class NodeMixin(RowMixin):
                 self.spec_aliases = the_data
             else:
                 self.spec_aliases = kwargs.copy()
-            await session.refresh(self)
+            await session.commit()
         except IntegrityError as e:
             if TYPE_CHECKING:
                 assert e.orig  # for mypy

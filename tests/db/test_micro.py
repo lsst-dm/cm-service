@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import pytest
 import structlog
@@ -12,7 +13,7 @@ from lsst.cmservice.handlers import interface
 
 
 @pytest.mark.asyncio()
-async def test_micro(engine: AsyncEngine) -> None:
+async def test_micro(engine: AsyncEngine, tmp_path: Path) -> None:
     """Test fake end to end run using example/example_micro.yaml"""
 
     logger = structlog.get_logger(config.logger_name)
@@ -34,11 +35,13 @@ async def test_micro(engine: AsyncEngine) -> None:
         await campaign.update_collections(
             session,
             out="tests/micro_test",
+            campaign_source="HSC/raw/RC2",
         )
 
+        temp_dir = str(tmp_path / "archive")
         await campaign.update_data_dict(
             session,
-            prod_area="output_test/archive",
+            prod_area=temp_dir,
         )
 
         changed, status = await interface.process(
@@ -74,5 +77,4 @@ async def test_micro(engine: AsyncEngine) -> None:
         assert n_step_dependencies == 0
         assert n_script_dependencies == 0
 
-        os.system("\rm -rf output_test/archive")
         await session.remove()
