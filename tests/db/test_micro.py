@@ -23,12 +23,22 @@ async def test_micro(engine: AsyncEngine) -> None:
         check2 = await specification.get_block(session, "campaign")
         assert check2.name == "campaign"
 
-        await interface.load_and_create_campaign(
+        campaign = await interface.load_and_create_campaign(
             session,
             "examples/example_hsc_micro.yaml",
             "hsc_micro_panda",
             "w_2023_41",
             "hsc_micro_panda#campaign",
+        )
+
+        await campaign.update_collections(
+            session,
+            out="tests/micro_test",
+        )
+
+        await campaign.update_data_dict(
+            session,
+            prod_area="output_test/archive",
         )
 
         changed, status = await interface.process(
@@ -64,4 +74,5 @@ async def test_micro(engine: AsyncEngine) -> None:
         assert n_step_dependencies == 0
         assert n_script_dependencies == 0
 
+        os.system("\rm -rf output_test/archive")
         await session.remove()

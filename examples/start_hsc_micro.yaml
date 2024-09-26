@@ -9,7 +9,7 @@ Campaign:
         campaign_ancillary_inputs: "HSC/calib,HSC/masks,HSC/fgcmcal/lut/RC2,refcats,skymaps"
     data:
         lsst_version: w_2024_38
-        prod_area: output/archive
+        prod_area: MUST_OVERRIDE
         butler_repo: '/repo/main'
         data_query: "instrument = 'HSC' AND exposure in (30504, 30502) AND detector in (45, 46, 47, 48)"
 #       bps_wms_clustering_file: "${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml"

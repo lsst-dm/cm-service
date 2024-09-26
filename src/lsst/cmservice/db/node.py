@@ -246,7 +246,7 @@ class NodeMixin(RowMixin):
                     raise CMResolveCollectionsError(
                         f"Failed to resolve collection {name_}, {f1} using: {name_dict!s}",
                     ) from msg
-        for key, value in resolved_collections:
+        for key, value in resolved_collections.items():
             if "MUST_OVERRIDE" in value:
                 raise CMResolveCollectionsError(
                     f"Attempts to resolve {key} collection includes MUST_OVERRIDE. Make sure to provide"
