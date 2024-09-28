@@ -21,6 +21,30 @@ from ..db.step import Step
 from .script_handler import ScriptHandler
 
 
+class NullScriptHandler(ScriptHandler):
+    """A no-op script, mostly for testing"""
+
+    async def _write_script(
+        self,
+        session: async_scoped_session,
+        script: Script,
+        parent: ElementMixin,
+        **kwargs: Any,
+    ) -> StatusEnum:
+        _resolved_cols = await script.resolve_collections(session)
+        _data_dict = await script.data_dict(session)
+        return StatusEnum.prepared
+
+    async def _purge_products(
+        self,
+        session: async_scoped_session,
+        script: Script,
+        to_status: StatusEnum,
+    ) -> None:
+        _resolved_cols = await script.resolve_collections(session)
+        _data_dict = await script.data_dict(session)
+
+
 class ChainCreateScriptHandler(ScriptHandler):
     """Write a script to chain together collections
 

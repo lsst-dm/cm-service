@@ -18,6 +18,10 @@
 - ScriptTemplate:
       name: bps_core_yaml_template
       file_path: ${CM_CONFIGS}/templates/example_bps_core_yaml_template.yaml
+# define the null Script
+- SpecBlock:
+      name: null_script
+      handler: lsst.cmservice.handlers.scripts.NullScriptHandler
 # create an empty CHAINED collection
 - SpecBlock:
       name: chain_create_script

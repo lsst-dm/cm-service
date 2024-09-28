@@ -12,7 +12,12 @@ from lsst.cmservice import db
 from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
 
-from .util_functions import create_tree, delete_all_productions
+from .util_functions import (
+    check_scripts,
+    check_update_methods,
+    create_tree,
+    delete_all_productions,
+)
 
 
 @pytest.mark.asyncio()
@@ -37,10 +42,64 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
                 parent_name=f"prod0_{uuid_int}",
             )
 
+        # explict tests of get_create_kwargs parsing
+        with pytest.raises(errors.CMMissingRowCreateInputError):
+            await db.Campaign.get_create_kwargs(
+                session,
+                parent_name=f"prod0_{uuid_int}",
+                name=f"camp0_{uuid_int}",
+            )
+
+        await db.Campaign.get_create_kwargs(
+            session,
+            parent_name=f"prod0_{uuid_int}",
+            name=f"camp0_{uuid_int}",
+            spec_name="base",
+        )
+
+        with pytest.raises(ValueError):
+            await db.Campaign.get_create_kwargs(
+                session,
+                parent_name=f"prod0_{uuid_int}",
+                name=f"camp0_{uuid_int}",
+                spec_block_assoc_name="bad",
+            )
+
+        await db.Campaign.get_create_kwargs(
+            session,
+            parent_name=f"prod0_{uuid_int}",
+            name=f"camp0_{uuid_int}",
+            spec_block_assoc_name="base#campaign",
+            data=None,
+            child_config=None,
+            collections=None,
+            spec_aliases=None,
+        )
+
         # run row mixin method tests
         check_getall = await db.Campaign.get_rows(
             session,
             parent_name=f"prod0_{uuid_int}",
+            parent_class=db.Production,
+        )
+        assert len(check_getall) == 1, "length should be 1"
+
+        check_getall = await db.Campaign.get_rows(
+            session,
+            parent_class=db.Production,
+            parent_id=-99,
+        )
+        assert len(check_getall) == 0, "length should be 0"
+
+        check_getall = await db.Campaign.get_rows(
+            session,
+            parent_class=db.Production,
+            parent_id=1,
+        )
+        assert len(check_getall) == 1, "length should be 1"
+
+        check_getall = await db.Campaign.get_rows(
+            session,
             parent_class=db.Production,
         )
         assert len(check_getall) == 1, "length should be 1"
@@ -56,6 +115,8 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
 
         check_get = await db.Campaign.get_row(session, entry.id)
         assert check_get.id == entry.id, "pulled row should be identical"
+        assert check_get.db_id.level == entry.db_id.level, "pulled row db_id should be identical"
+        assert check_get.db_id.id == entry.db_id.id, "pulled row db_id should be identical"
 
         with pytest.raises(errors.CMMissingIDError):
             await db.Campaign.get_row(
@@ -96,6 +157,32 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
         check = await entry.get_products(session)
         assert len(check.reports) == 0, "length of products should be 0"
 
+        sleep_time = await entry.estimate_sleep_time(session)
+        assert sleep_time == 10, "Wrong sleep time"
+
+        # check update methods
+        await check_update_methods(session, entry)
+
+        # check scripts
+        await check_scripts(session, entry)
+
+        # make and test queue object
+        queue = await db.Queue.create_row(session, fullname=entry.fullname)
+
+        assert queue.element_db_id.level == entry.level
+        check_elem = await queue.get_element(session)
+        assert check_elem.id == entry.id
+
+        check_queue = await db.Queue.get_queue_item(session, fullname=entry.fullname)
+        assert check_queue.element_id == entry.id
+
+        queue.waiting()
+
+        sleep_time = await queue.element_sleep_time(session)
+        assert sleep_time == 10
+
+        await db.Queue.delete_row(session, entry.id)
+
         # delete everything we just made in the session
         await delete_all_productions(session)
 
@@ -104,4 +191,5 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
             session,
         )
         assert len(productions) == 0
+        await session.commit()
         await session.remove()

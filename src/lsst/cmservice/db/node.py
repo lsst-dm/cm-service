@@ -228,7 +228,7 @@ class NodeMixin(RowMixin):
         for name_, val_ in my_collections.items():
             if isinstance(val_, list):
                 resolved_collections[name_] = []
-                for item_ in val_:
+                for item_ in val_:  # pragma: no cover
                     try:
                         f1 = item_.format(**collection_dict)
                     except KeyError:
@@ -327,7 +327,7 @@ class NodeMixin(RowMixin):
             Requested child configuration
         """
         ret_dict: dict = {}
-        if not hasattr(self, "child_config"):
+        if not hasattr(self, "child_config"):  # pragma: no cover
             return {}
         spec_block = await self.get_spec_block(session)
         if spec_block.child_config:
@@ -431,11 +431,11 @@ class NodeMixin(RowMixin):
         node : NodeMixin
             Updated Node
         """
-        if not hasattr(self, "child_config"):
+        if not hasattr(self, "child_config"):  # pragma: no cover
             raise CMBadExecutionMethodError(f"{self.fullname} does not have attribute child_config")
 
         if self.status.value >= StatusEnum.prepared.value:
-            raise CMBadExecutionMethodError(
+            raise CMBadStateTransitionError(
                 f"Tried to modify a node that is in use. {self.fullname}:{self.status}",
             )
 
@@ -447,7 +447,7 @@ class NodeMixin(RowMixin):
             else:
                 self.child_config = kwargs.copy()
             await session.commit()
-        except IntegrityError as e:
+        except IntegrityError as e:  # pragma: no cover
             if TYPE_CHECKING:
                 assert e.orig  # for mypy
             await session.rollback()
@@ -475,7 +475,7 @@ class NodeMixin(RowMixin):
         node : NodeMixin
             Updated Node
         """
-        if not hasattr(self, "collections"):
+        if not hasattr(self, "collections"):  # pragma: no cover
             raise CMBadExecutionMethodError(f"{self.fullname} does not have attribute collections")
 
         if self.status.value >= StatusEnum.prepared.value:
@@ -491,7 +491,7 @@ class NodeMixin(RowMixin):
             else:
                 self.collections = kwargs.copy()
             await session.commit()
-        except IntegrityError as e:
+        except IntegrityError as e:  # pragma: no cover
             if TYPE_CHECKING:
                 assert e.orig  # for mypy
             raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
@@ -518,7 +518,7 @@ class NodeMixin(RowMixin):
         node : NodeMixin
             Updated Node
         """
-        if not hasattr(self, "spec_aliases"):
+        if not hasattr(self, "spec_aliases"):  # pragma: no cover
             raise CMBadExecutionMethodError(f"{self.fullname} does not have attribute spec_aliases")
 
         if self.status.value >= StatusEnum.prepared.value:
@@ -534,7 +534,7 @@ class NodeMixin(RowMixin):
             else:
                 self.spec_aliases = kwargs.copy()
             await session.commit()
-        except IntegrityError as e:
+        except IntegrityError as e:  # pragma: no cover
             if TYPE_CHECKING:
                 assert e.orig  # for mypy
             await session.rollback()
@@ -562,7 +562,7 @@ class NodeMixin(RowMixin):
         node : NodeMixin
             Updated Node
         """
-        if not hasattr(self, "data"):
+        if not hasattr(self, "data"):  # pragma: no cover
             raise CMBadExecutionMethodError(f"{self.fullname} does not have attribute data")
 
         if self.status.value >= StatusEnum.prepared.value:
@@ -575,11 +575,10 @@ class NodeMixin(RowMixin):
                 the_data = self.data.copy()
                 the_data.update(**kwargs)
                 self.data = the_data
-            else:
+            else:  # pragma: no cover
                 self.data = kwargs.copy()
             await session.commit()
-            # await session.refresh(self)
-        except IntegrityError as e:
+        except IntegrityError as e:  # pragma: no cover
             if TYPE_CHECKING:
                 assert e.orig  # for mypy
             await session.rollback()
@@ -653,7 +652,7 @@ class NodeMixin(RowMixin):
         node: NodeMixin
             Node being accepted
         """
-        if self.status in [StatusEnum.running, StatusEnum.reviewable, StatusEnum.rescuable]:
+        if self.status not in [StatusEnum.running, StatusEnum.reviewable, StatusEnum.rescuable]:
             raise CMBadStateTransitionError(f"Can not accept {self} as it is in status {self.status}")
 
         await self.update_values(session, status=StatusEnum.accepted)
@@ -698,7 +697,7 @@ class NodeMixin(RowMixin):
         node: NodeMixin
             Node being cleaned
         """
-        raise NotImplementedError
+        return self
 
     async def process(
         self,

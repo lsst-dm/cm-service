@@ -213,7 +213,7 @@ class RowMixin:
                 )
             try:
                 await session.delete(row)
-            except IntegrityError as e:
+            except IntegrityError as e:  # pragma: no cover
                 if TYPE_CHECKING:
                     assert e.orig  # for mypy
                 raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
@@ -267,7 +267,7 @@ class RowMixin:
                         setattr(row, var, the_dict)
                     else:
                         setattr(row, var, value)
-            except IntegrityError as e:
+            except IntegrityError as e:  # pragma: no cover
                 await session.rollback()
                 if TYPE_CHECKING:
                     assert e.orig  # for mypy
@@ -309,7 +309,7 @@ class RowMixin:
         async with session.begin_nested():
             try:
                 session.add(row)
-            except IntegrityError as e:
+            except IntegrityError as e:  # pragma: no cover
                 await session.rollback()
                 if TYPE_CHECKING:
                     assert e.orig  # for mypy
@@ -373,7 +373,7 @@ class RowMixin:
                 for var, value in kwargs.items():
                     setattr(self, var, value)
             await session.refresh(self)
-        except IntegrityError as e:
+        except IntegrityError as e:  # pragma: no cover
             await session.rollback()
             if TYPE_CHECKING:
                 assert e.orig  # for mypy

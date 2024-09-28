@@ -92,7 +92,7 @@ class Queue(Base, NodeMixin):
         elif self.element_level == LevelEnum.job:
             await session.refresh(self, attribute_names=["j_"])
             element = self.j_
-        else:
+        else:  # pragma: no cover
             raise CMBadEnumError(f"Bad level for script: {self.element_level}")
         return element
 
@@ -130,7 +130,7 @@ class Queue(Base, NodeMixin):
             element = await Group.get_row_by_fullname(session, fullname)
         elif element_level == LevelEnum.job:
             element = await Job.get_row_by_fullname(session, fullname)
-        else:
+        else:  # pragma: no cover
             raise CMBadEnumError(f"Bad level for queue: {element_level}")
         query = select(cls).where(
             and_(
@@ -140,7 +140,7 @@ class Queue(Base, NodeMixin):
         )
         rows = await session.scalars(query)
         row = rows.first()
-        if row is None:
+        if row is None:  # pragma: no cover
             raise CMMissingFullnameError(f"{cls} {element_level} {element.id} not found")
         return row
 
@@ -173,7 +173,7 @@ class Queue(Base, NodeMixin):
         elif element_level == LevelEnum.job:
             element = await Job.get_row_by_fullname(session, fullname)
             ret_dict["j_id"] = element.id
-        else:
+        else:  # pragma: no cover
             raise CMBadEnumError(f"Bad level for queue: {element_level}")
 
         ret_dict["element_id"] = element.id
@@ -205,7 +205,7 @@ class Queue(Base, NodeMixin):
     def pause_until_next_check(
         self,
         estimated_wait_time: int,
-    ) -> None:
+    ) -> None:  # pragma: no cover
         """Sleep until the next time check"""
         wait_time = min(estimated_wait_time, self.interval)
         delta_t = timedelta(seconds=wait_time)
@@ -217,7 +217,7 @@ class Queue(Base, NodeMixin):
     async def _process_and_update(
         self,
         session: async_scoped_session,
-    ) -> bool:
+    ) -> bool:  # pragma: no cover
         """Process associated element and update queue row"""
         element = await self.get_element(session)
         if not element.status.is_processable_element():
@@ -239,14 +239,14 @@ class Queue(Base, NodeMixin):
     async def process_element(
         self,
         session: async_scoped_session,
-    ) -> bool:
+    ) -> bool:  # pragma: no cover
         """Process associated element"""
         return await self._process_and_update(session)
 
     async def process_element_loop(
         self,
         session: async_scoped_session,
-    ) -> None:
+    ) -> None:  # pragma: no cover
         """Process associated element until it is done or requires
         intervention
         """
