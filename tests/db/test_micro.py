@@ -40,7 +40,7 @@ async def test_micro(engine: AsyncEngine, tmp_path: Path) -> None:
             "examples/templates/example_bps_core_script_template.yaml",
         )
 
-        await interface.load_and_create_campaign(
+        campaign = await interface.load_and_create_campaign(
             session,
             "examples/example_hsc_micro.yaml",
             "hsc_micro_panda",
