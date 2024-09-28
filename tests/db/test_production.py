@@ -89,4 +89,5 @@ async def test_production_db(engine: AsyncEngine) -> None:
             session,
         )
         assert len(productions) == 0
+        await session.commit()
         await session.remove()

@@ -29,18 +29,18 @@ async def test_get_job_by_id(engine: AsyncEngine) -> None:
         await create_tree(session, LevelEnum.job, uuid_int)
 
         job, job_scripts = await get_job_by_id(session, 1)
-        assert len(job_scripts) == 0
+        assert len(job_scripts) == 2
 
         assert job == {
             "id": 1,
             "name": f"job_{uuid_int}",
-            "fullname": f"prod0_{uuid_int}/camp0_{uuid_int}/step0_{uuid_int}/"
+            "fullname": f"prod0_{uuid_int}/camp0_{uuid_int}/step1_{uuid_int}/"
             f"group0_{uuid_int}/job_{uuid_int}_000",
             "status": "IN_PROGRESS",
             "superseded": False,
             "child_config": {},
             "collections": {
-                "job_run": f"cm/hsc_rc2_micro/step0_{uuid_int}/group0_{uuid_int}/job_{uuid_int}_000",
+                "job_run": f"cm/hsc_rc2_micro/step1_{uuid_int}/group0_{uuid_int}/job_{uuid_int}_000",
             },
             "data": {},
             "wms_report": [],

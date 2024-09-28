@@ -12,12 +12,17 @@ from lsst.cmservice import db
 from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
 
-from .util_functions import create_tree, delete_all_productions
+from .util_functions import (
+    check_scripts,
+    check_update_methods,
+    create_tree,
+    delete_all_productions,
+)
 
 
 @pytest.mark.asyncio()
 async def test_group_db(engine: AsyncEngine) -> None:
-    """Test `step` db table."""
+    """Test `group` db table."""
 
     # generate a uuid to avoid collisions
     uuid_int = uuid.uuid1().int
@@ -34,13 +39,13 @@ async def test_group_db(engine: AsyncEngine) -> None:
                 session,
                 name=f"group0_{uuid_int}",
                 spec_block_name="group",
-                parent_name=f"prod0_{uuid_int}/camp0_{uuid_int}/step0_{uuid_int}",
+                parent_name=f"prod0_{uuid_int}/camp0_{uuid_int}/step1_{uuid_int}",
             )
 
         # run row mixin method tests
         check_getall = await db.Group.get_rows(
             session,
-            parent_name=f"prod0_{uuid_int}/camp0_{uuid_int}/step0_{uuid_int}",
+            parent_name=f"prod0_{uuid_int}/camp0_{uuid_int}/step1_{uuid_int}",
             parent_class=db.Step,
         )
         assert len(check_getall) == 5, "length should be 5"
@@ -49,7 +54,7 @@ async def test_group_db(engine: AsyncEngine) -> None:
             await db.Group.create_row(
                 session,
                 name="foo",
-                parent_name=f"step0_{uuid_int}",
+                parent_name=f"step1_{uuid_int}",
             )
 
         entry = check_getall[0]  # defining single unit for later
@@ -89,7 +94,7 @@ async def test_group_db(engine: AsyncEngine) -> None:
 
         await db.Group.delete_row(session, -99)
 
-        # run campaign specific method tests
+        # run group specific method tests
         check = await entry.get_campaign(session)
         assert check.name == f"camp0_{uuid_int}", "should return same name as camp0"
 
@@ -105,10 +110,19 @@ async def test_group_db(engine: AsyncEngine) -> None:
         check = await entry.get_products(session)
         assert len(check.reports) == 0, "length of products should be 0"
 
+        sleep_time = await entry.estimate_sleep_time(session)
+        assert sleep_time == 10, "Wrong sleep time"
+
         assert entry.db_id.level == LevelEnum.group, "enum should match group"
 
+        # check update methods
+        await check_update_methods(session, entry)
+
+        # check scripts
+        await check_scripts(session, entry)
+
         # test bad state error in rescue_job
-        with pytest.raises(errors.CMBadStateTransitionError):
+        with pytest.raises(errors.CMTooFewAcceptedJobsError):
             await entry.rescue_job(session)
 
         # test null error in mark_job_rescued
@@ -119,6 +133,16 @@ async def test_group_db(engine: AsyncEngine) -> None:
         with pytest.raises(KeyError):
             await db.Group.get_create_kwargs(session, parent_name="foo", name="bar")
 
+        # make and test queue object
+        queue = await db.Queue.create_row(session, fullname=entry.fullname)
+
+        assert queue.element_db_id.level == entry.level
+        check_elem = await queue.get_element(session)
+        assert check_elem.id == entry.id
+
+        check_queue = await db.Queue.get_queue_item(session, fullname=entry.fullname)
+        assert check_queue.element_id == entry.id
+
         # delete everything we just made in the session
         await delete_all_productions(session)
 
@@ -127,4 +151,5 @@ async def test_group_db(engine: AsyncEngine) -> None:
             session,
         )
         assert len(productions) == 0
+        await session.commit()
         await session.remove()

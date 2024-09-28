@@ -6,6 +6,7 @@ import structlog
 from safir.database import create_async_session
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+import lsst.cmservice.common.errors as errors
 from lsst.cmservice import db
 from lsst.cmservice.common.enums import StatusEnum
 from lsst.cmservice.config import config
@@ -24,7 +25,22 @@ async def test_micro(engine: AsyncEngine, tmp_path: Path) -> None:
         check2 = await specification.get_block(session, "campaign")
         assert check2.name == "campaign"
 
-        campaign = await interface.load_and_create_campaign(
+        with pytest.raises(errors.CMSpecficiationError):
+            await specification.get_block(session, "bad")
+
+        with pytest.raises(errors.CMSpecficiationError):
+            await specification.get_script_template(session, "bad")
+
+        script_template = await specification.get_script_template(session, "bps_core_script_template")
+        assert script_template.name == "bps_core_script_template", "Script template name mismatch"
+
+        await script_template.update_from_file(
+            session,
+            script_template.name,
+            "examples/templates/example_bps_core_script_template.yaml",
+        )
+
+        await interface.load_and_create_campaign(
             session,
             "examples/example_hsc_micro.yaml",
             "hsc_micro_panda",
