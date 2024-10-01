@@ -19,13 +19,13 @@
                 spec_block: PDR2-ApPipe_step1
                 child_config:
                     split_method: split_by_query
-                    split_min_groups: 10
+                    split_min_groups: 1
       data:
           butler_repo: '/repo/main+sasquatch_dev'
-          prod_area: '/sdf/group/shared/campaigns'
+          prod_area: 'output/archive'
           data_query: >
             instrument = 'HSC' and skymap = 'hsc_rings_v1' and detector != 9
-            and detector < 104 and band in ('g', 'r', 'i', 'z', 'y')
+            and detector < 104 and band in ('g', 'r', 'i', 'z', 'y') and exposure=13304
           bps_wms_clustering_file: "${AP_PIPE_DIR}/bps/clustering/clustering_ApPipe.yaml"
           bps_wms_resources_file: "${AP_PIPE_DIR}/pipelines/HSC/ApPipe.yaml"
           extra_qgraph_options: > # check if true
