@@ -22,7 +22,7 @@
                 name: step1
                 spec_block: LSSTCam-imSim_DRP-test-med-1_step1
                 child_config:
-                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1' and tract in (3828, 3829)"
                     split_method: split_by_query
                     split_min_groups: 2
           - Step:
@@ -30,14 +30,14 @@
                 spec_block: LSSTCam-imSim_DRP-test-med-1_step2
                 prerequisites: ['step1']
                 child_config:
-                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1' and tract in (3828, 3829)"
                     split_method: no_split
           - Step:
                 name: step3
                 spec_block: LSSTCam-imSim_DRP-test-med-1_step3
                 prerequisites: ['step2']
                 child_config:
-                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2'"
+                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1'"
                     split_method: split_by_vals
                     split_vals:
                         - 3828
@@ -47,7 +47,7 @@
                 spec_block: LSSTCam-imSim_DRP-test-med-1_step4
                 prerequisites: ['step3']
                 child_config:
-                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2'"
+                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1'"
                     split_method: split_by_query
                     split_min_groups: 2
                 data:
@@ -60,7 +60,7 @@
                 spec_block: LSSTCam-imSim_DRP-test-med-1_step5
                 prerequisites: ['step4']
                 child_config:
-                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1' and tract in (3828, 3829)"
                     split_method: split_by_vals
                     split_vals:
                         - 3828
@@ -70,7 +70,7 @@
                 spec_block: LSSTCam-imSim_DRP-test-med-1_step6
                 prerequisites: ['step4']
                 child_config:
-                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2'"
+                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1'"
                     split_method: split_by_query
                     split_min_groups: 2
           - Step:
@@ -78,7 +78,7 @@
                 spec_block: LSSTCam-imSim_DRP-test-med-1_step7
                 prerequisites: ['step3']
                 child_config:
-                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2' and tract in (3828, 3829)"
+                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1' and tract in (3828, 3829)"
 - Specification:
       name: LSSTCam-imSim_DRP-test-med-1_panda
       spec_aliases:

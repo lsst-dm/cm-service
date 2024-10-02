@@ -19,7 +19,7 @@
                 spec_block: HSC_DRP-RC2_step1
                 child_config:
                     split_method: split_by_query
-                    split_min_groups: 5
+                    split_min_groups: 3
 
           - Step:
                 name: step2a
@@ -59,7 +59,7 @@
                 prerequisites: ['step3']
                 child_config:
                     split_method: split_by_query
-                    split_min_groups: 5
+                    split_min_groups: 3
                 data:
                     extra_qgraph_options: >
                         -c parameters:sasquatch_dataset_identifier=HSC/RC2
@@ -82,7 +82,7 @@
                 prerequisites: ['step4']
                 child_config:
                     split_method: split_by_query
-                    split_min_groups: 5
+                    split_min_groups: 3
                     split_dataset: calexp
                     split_field: visit
           - Step:
