@@ -10,7 +10,7 @@ import yaml
 from .enums import StatusEnum
 
 
-async def run_bash_job(
+def run_bash_job(
     script_url: str,
     log_url: str,
 ) -> None:
@@ -27,7 +27,7 @@ async def run_bash_job(
     subprocess.run(["/bin/bash", script_url, ">", log_url], check=False)
 
 
-async def check_stamp_file(
+def check_stamp_file(
     stamp_file: str,
 ) -> StatusEnum | None:
     """Check a 'stamp' file for a status code
@@ -49,7 +49,7 @@ async def check_stamp_file(
         return StatusEnum[fields["status"]]
 
 
-async def write_bash_script(
+def write_bash_script(
     script_url: str,
     command: str,
     **kwargs: Any,
