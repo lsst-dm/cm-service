@@ -18,7 +18,7 @@ from ..common.butler import (
 from ..common.enums import LevelEnum, StatusEnum
 from ..common.errors import CMBadExecutionMethodError, CMBadParameterTypeError, CMMissingScriptInputError
 from ..db.step import Step
-from .script_handler import FunctionHandler, ScriptHandler
+from .script_handler import ScriptHandler
 
 
 class ChainCreateScriptHandler(ScriptHandler):
@@ -469,19 +469,14 @@ class ResourceUsageScriptHandler(ScriptHandler):
 
         return StatusEnum.prepared
 
-    async def _reset_script(
-        self,
-        session: async_scoped_session,
-        script: Script,
-        to_status: StatusEnum,
-        **kwargs: Any,
-    ) -> dict[str, Any]:
-        """This should do some sort of butler remove-collections and then set
-        the script back to prepared."""
-        update_fields = await FunctionHandler._reset_script(self, session, script, to_status)
-        parent = await script.get_parent(session)
+    async def _purge_products(
+        self, session: async_scoped_session, script: Script, to_status: StatusEnum
+    ) -> None:
+        """When the script is reset or the campaign is deleted, cleanup
+        resource usage products."""
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
+        parent = await script.get_parent(session)
         if parent.level != LevelEnum.campaign:
             raise CMBadParameterTypeError(f"Script parent is a {parent.level}, not a LevelEnum.campaign")
         try:
@@ -491,7 +486,7 @@ class ResourceUsageScriptHandler(ScriptHandler):
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         if to_status.value < StatusEnum.running.value:
             remove_run_collections(butler_repo, resource_coll)
-        return update_fields
+        return await super()._purge_products(session, script, to_status)
 
 
 class ValidateScriptHandler(ScriptHandler):
