@@ -104,4 +104,4 @@
 # Run a campaign resource usage script
 - SpecBlock:
       name: resource_usage_script
-      handler: lsst.cmservice.handlers.jobs.ResourceUsageScriptHandler
+      handler: lsst.cmservice.handlers.scripts.ResourceUsageScriptHandler

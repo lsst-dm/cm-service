@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -14,10 +15,10 @@ from ..common.butler import (
     remove_non_run_collections,
     remove_run_collections,
 )
-from ..common.enums import StatusEnum
-from ..common.errors import CMBadExecutionMethodError, CMMissingScriptInputError
+from ..common.enums import LevelEnum, StatusEnum
+from ..common.errors import CMBadExecutionMethodError, CMBadParameterTypeError, CMMissingScriptInputError
 from ..db.step import Step
-from .script_handler import ScriptHandler
+from .script_handler import FunctionHandler, ScriptHandler
 
 
 class ChainCreateScriptHandler(ScriptHandler):
@@ -424,6 +425,73 @@ class PrepareStepScriptHandler(ScriptHandler):
 
         if to_status.value <= StatusEnum.running.value:
             remove_non_run_collections(butler_repo, output_coll)
+
+
+class ResourceUsageScriptHandler(ScriptHandler):
+    """Write the script to compute resource usage metrics for a campaign."""
+
+    async def _write_script(
+        self,
+        session: async_scoped_session,
+        script: Script,
+        parent: ElementMixin,
+        **kwargs: Any,
+    ) -> StatusEnum:
+        # breakpoint()
+        specification = await script.get_specification(session)
+        resolved_cols = await script.resolve_collections(session)
+        data_dict = await script.data_dict(session)
+        prod_area = os.path.expandvars(data_dict["prod_area"])
+        script_url = await self._set_script_files(session, script, prod_area)
+        butler_repo = data_dict["butler_repo"]
+        lsst_distrib_dir = data_dict["lsst_distrib_dir"]
+        lsst_version = data_dict["lsst_version"]
+        usage_graph_url = os.path.expandvars(f"{prod_area}/{parent.fullname}.qgraph")
+
+        resource_usage_script_template = await specification.get_script_template(
+            session,
+            data_dict["resource_usage_script_template"],
+        )
+        prepend = resource_usage_script_template.data["text"].replace(
+            "{lsst_version}",
+            lsst_version,
+        )
+        prepend = prepend.replace("{lsst_distrib_dir}", lsst_distrib_dir)
+        if "custom_lsst_setup" in data_dict:
+            custom_lsst_setup = data_dict["custom_lsst_setup"]
+            prepend += f"\n{custom_lsst_setup}"
+
+        command = f"build-gather-resource-usage-qg {butler_repo} {usage_graph_url} {resolved_cols['out']} "
+        f"--output {resolved_cols['campaign_resource_usage']};pipetask run -b {butler_repo} -g "
+        f"{usage_graph_url} -o {resolved_cols['campaign_resource_usage']} --register-dataset-types -j 16"
+
+        await write_bash_script(script_url, command, prepend=prepend)
+
+        return StatusEnum.prepared
+
+    async def _reset_script(
+        self,
+        session: async_scoped_session,
+        script: Script,
+        to_status: StatusEnum,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """This should do some sort of butler remove-collections and then set
+        the script back to prepared."""
+        update_fields = await FunctionHandler._reset_script(self, session, script, to_status)
+        parent = await script.get_parent(session)
+        resolved_cols = await script.resolve_collections(session)
+        data_dict = await script.data_dict(session)
+        if parent.level != LevelEnum.campaign:
+            raise CMBadParameterTypeError(f"Script parent is a {parent.level}, not a LevelEnum.campaign")
+        try:
+            resource_coll = resolved_cols["campaign_resource_usage"]
+            butler_repo = data_dict["butler_repo"]
+        except KeyError as msg:
+            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        if to_status.value < StatusEnum.running.value:
+            remove_run_collections(butler_repo, resource_coll)
+        return update_fields
 
 
 class ValidateScriptHandler(ScriptHandler):
