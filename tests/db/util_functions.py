@@ -1,3 +1,5 @@
+from typing import TypeAlias
+
 import pytest
 from sqlalchemy.ext.asyncio import async_scoped_session
 
@@ -135,6 +137,7 @@ async def delete_all_productions(
 async def check_update_methods(
     session: async_scoped_session,
     entry: db.NodeMixin,
+    entry_class: TypeAlias = db.ElementMixin,
 ) -> None:
     check = await entry.update_data_dict(
         session,
@@ -233,6 +236,12 @@ async def check_update_methods(
 
     await entry.update_row(session, row_id=entry.id, dummy=None)
 
+    check_update = await entry_class.update_row(session, entry.id, data=dict(foo="bar"))
+    assert check_update.data["foo"] == "bar", "foo value should be bar"
+
+    check_update2 = await check_update.update_values(session, data=dict(bar="foo"))
+    assert check_update2.data["bar"] == "foo", "bar value should be foo"
+
 
 async def check_scripts(
     session: async_scoped_session,
@@ -281,3 +290,62 @@ async def check_scripts(
 
     check = await entry.retry_script(session, "prepare")
     assert check.status == StatusEnum.waiting, "Failed to retry script"
+
+
+async def check_get_methods(
+    session: async_scoped_session,
+    entry: db.ElementMixin,
+    entry_class: TypeAlias = db.ElementMixin,
+    parent_class: TypeAlias = db.ElementMixin,
+) -> None:
+    check_getall_nonefound = await entry_class.get_rows(
+        session,
+        parent_name="bad",
+        parent_class=parent_class,
+    )
+    assert len(check_getall_nonefound) == 0, "length should be 0"
+
+    check_get = await entry_class.get_row(session, entry.id)
+    assert check_get.id == entry.id, "pulled row should be identical"
+    assert check_get.db_id.level == entry.db_id.level, "pulled row db_id should be identical"
+    assert check_get.db_id.id == entry.db_id.id, "pulled row db_id should be identical"
+
+    with pytest.raises(errors.CMMissingIDError):
+        await entry_class.get_row(
+            session,
+            -99,
+        )
+
+    check_get_by_name = await entry_class.get_row_by_name(session, name=entry.name)
+    assert check_get_by_name.id == entry.id, "pulled row should be identical"
+
+    with pytest.raises(errors.CMMissingFullnameError):
+        await entry_class.get_row_by_name(session, name="foo")
+
+    check_get_by_fullname = await entry_class.get_row_by_fullname(session, entry.fullname)
+    assert check_get_by_fullname.id == entry.id, "pulled row should be identical"
+
+    with pytest.raises(errors.CMMissingFullnameError):
+        await entry_class.get_row_by_fullname(session, "foo")
+
+
+async def check_queue(
+    session: async_scoped_session,
+    entry: db.ElementMixin,
+) -> None:
+    # make and test queue object
+    queue = await db.Queue.create_row(session, fullname=entry.fullname)
+
+    assert queue.element_db_id.level == entry.level
+    check_elem = await queue.get_element(session)
+    assert check_elem.id == entry.id
+
+    check_queue = await db.Queue.get_queue_item(session, fullname=entry.fullname)
+    assert check_queue.element_id == entry.id
+
+    queue.waiting()
+
+    sleep_time = await queue.element_sleep_time(session)
+    assert sleep_time == 10
+
+    await db.Queue.delete_row(session, queue.id)
