@@ -6,8 +6,9 @@
       name: PDR2-ApPipe_campaign
       includes: ["base_campaign"]
       collections:
-          campaign_source: HSC/runs/PDR2/DEEP/v24_1_0_rc2/DM-39132
+          campaign_source: HSC/raw/PDR2/DEEP,HSC/raw/PDR2/UDEEP,HSC/raw/PDR2/WIDE
           campaign_ancillary_inputs:
+              - u/sierrav/DM-46140/templates
               - HSC/calib
               - HSC/masks
               - HSC/fgcmcal/lut/PDR2/DM-39549
@@ -24,8 +25,8 @@
           butler_repo: '/repo/main+sasquatch_dev'
           prod_area: 'output/archive'
           data_query: >
-            instrument = 'HSC' and skymap = 'hsc_rings_v1' and detector != 9
-            and detector < 104 and band in ('g', 'r', 'i', 'z', 'y') and exposure=13304
+            "instrument = 'HSC' and skymap = 'hsc_rings_v1' and detector != 9
+            and detector < 104 and band in ('g', 'r', 'i', 'z', 'y') and exposure=13304"
           bps_wms_clustering_file: "${AP_PIPE_DIR}/bps/clustering/clustering_ApPipe.yaml"
           bps_wms_resources_file: "${AP_PIPE_DIR}/pipelines/HSC/ApPipe.yaml"
           extra_qgraph_options: > # check if true
