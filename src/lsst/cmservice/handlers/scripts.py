@@ -461,9 +461,10 @@ class ResourceUsageScriptHandler(ScriptHandler):
             custom_lsst_setup = data_dict["custom_lsst_setup"]
             prepend += f"\n{custom_lsst_setup}"
 
-        command = f"build-gather-resource-usage-qg {butler_repo} {usage_graph_url} {resolved_cols['out']} "
-        f"--output {resolved_cols['campaign_resource_usage']};pipetask run -b {butler_repo} -g "
-        f"{usage_graph_url} -o {resolved_cols['campaign_resource_usage']} --register-dataset-types -j 16"
+        command = f"build-gather-resource-usage-qg {butler_repo} {usage_graph_url} "
+        command += f"{resolved_cols['campaign_output']} --output {resolved_cols['campaign_resource_usage']};"
+        command += f"pipetask run -b {butler_repo} -g {usage_graph_url} "
+        command += f"-o {resolved_cols['campaign_resource_usage']} --register-dataset-types -j 16"
 
         await write_bash_script(script_url, command, prepend=prepend)
 
