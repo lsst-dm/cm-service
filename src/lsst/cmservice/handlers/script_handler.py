@@ -480,11 +480,12 @@ class ScriptHandler(BaseScriptHandler):
             job_id_base = os.path.abspath(os.path.splitext(script.script_url)[0])
             htcondor_script_path = f"{job_id_base}.sub"
             htcondor_log = f"{job_id_base}.condorlog"
+            htcondor_sublog = f"{job_id_base}_condorsub.log"
             write_htcondor_script(
                 htcondor_script_path,
                 htcondor_log,
                 os.path.abspath(script.script_url),
-                os.path.abspath(script.log_url),
+                os.path.abspath(htcondor_sublog),
             )
             submit_htcondor_job(htcondor_script_path)
             status = StatusEnum.running
