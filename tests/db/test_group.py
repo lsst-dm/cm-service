@@ -13,6 +13,8 @@ from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
 
 from .util_functions import (
+    check_get_methods,
+    check_queue,
     check_scripts,
     check_update_methods,
     create_tree,
@@ -59,38 +61,7 @@ async def test_group_db(engine: AsyncEngine) -> None:
 
         entry = check_getall[0]  # defining single unit for later
 
-        check_getall_nonefound = await db.Group.get_rows(
-            session,
-            parent_name="foo",
-            parent_class=db.Step,
-        )
-        assert len(check_getall_nonefound) == 0, "length should be 0"
-
-        check_get = await db.Group.get_row(session, entry.id)
-        assert check_get.id == entry.id, "pulled row should be identical"
-
-        with pytest.raises(errors.CMMissingIDError):
-            await db.Group.get_row(
-                session,
-                -99,
-            )
-        check_get_by_name = await db.Group.get_row_by_name(session, name=f"group0_{uuid_int}")
-        assert check_get_by_name.id == entry.id, "pulled row should be identical"
-
-        with pytest.raises(errors.CMMissingFullnameError):
-            await db.Group.get_row_by_name(session, name="foo")
-
-        check_get_by_fullname = await db.Group.get_row_by_fullname(session, entry.fullname)
-        assert check_get_by_fullname.id == entry.id, "pulled row should be identical"
-
-        with pytest.raises(errors.CMMissingFullnameError):
-            await db.Group.get_row_by_fullname(session, "foo")
-
-        check_update = await db.Group.update_row(session, entry.id, data=dict(foo="bar"))
-        assert check_update.data["foo"] == "bar", "foo value should be bar"
-
-        check_update2 = await check_update.update_values(session, data=dict(bar="foo"))
-        assert check_update2.data["bar"] == "foo", "bar value should be foo"
+        await check_get_methods(session, entry, db.Group, db.Step)
 
         await db.Group.delete_row(session, -99)
 
@@ -116,7 +87,7 @@ async def test_group_db(engine: AsyncEngine) -> None:
         assert entry.db_id.level == LevelEnum.group, "enum should match group"
 
         # check update methods
-        await check_update_methods(session, entry)
+        await check_update_methods(session, entry, db.Group)
 
         # check scripts
         await check_scripts(session, entry)
@@ -134,14 +105,7 @@ async def test_group_db(engine: AsyncEngine) -> None:
             await db.Group.get_create_kwargs(session, parent_name="foo", name="bar")
 
         # make and test queue object
-        queue = await db.Queue.create_row(session, fullname=entry.fullname)
-
-        assert queue.element_db_id.level == entry.level
-        check_elem = await queue.get_element(session)
-        assert check_elem.id == entry.id
-
-        check_queue = await db.Queue.get_queue_item(session, fullname=entry.fullname)
-        assert check_queue.element_id == entry.id
+        await check_queue(session, entry)
 
         # delete everything we just made in the session
         await delete_all_productions(session)

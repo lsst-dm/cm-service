@@ -13,6 +13,8 @@ from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
 
 from .util_functions import (
+    check_get_methods,
+    check_queue,
     check_scripts,
     check_update_methods,
     create_tree,
@@ -106,41 +108,7 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
 
         entry = check_getall[0]  # defining single unit for later
 
-        check_getall_nonefound = await db.Campaign.get_rows(
-            session,
-            parent_name="prod0_bad",
-            parent_class=db.Production,
-        )
-        assert len(check_getall_nonefound) == 0, "length should be 0"
-
-        check_get = await db.Campaign.get_row(session, entry.id)
-        assert check_get.id == entry.id, "pulled row should be identical"
-        assert check_get.db_id.level == entry.db_id.level, "pulled row db_id should be identical"
-        assert check_get.db_id.id == entry.db_id.id, "pulled row db_id should be identical"
-
-        with pytest.raises(errors.CMMissingIDError):
-            await db.Campaign.get_row(
-                session,
-                -99,
-            )
-
-        check_get_by_name = await db.Campaign.get_row_by_name(session, name=f"camp0_{uuid_int}")
-        assert check_get_by_name.id == entry.id, "pulled row should be identical"
-
-        with pytest.raises(errors.CMMissingFullnameError):
-            await db.Campaign.get_row_by_name(session, name="foo")
-
-        check_get_by_fullname = await db.Campaign.get_row_by_fullname(session, entry.fullname)
-        assert check_get_by_fullname.id == entry.id, "pulled row should be identical"
-
-        with pytest.raises(errors.CMMissingFullnameError):
-            await db.Campaign.get_row_by_fullname(session, "foo")
-
-        check_update = await db.Campaign.update_row(session, entry.id, data=dict(foo="bar"))
-        assert check_update.data["foo"] == "bar", "foo value should be bar"
-
-        check_update2 = await check_update.update_values(session, data=dict(bar="foo"))
-        assert check_update2.data["bar"] == "foo", "bar value should be foo"
+        await check_get_methods(session, entry, db.Campaign, db.Production)
 
         await db.Campaign.delete_row(session, -99)
 
@@ -161,27 +129,13 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
         assert sleep_time == 10, "Wrong sleep time"
 
         # check update methods
-        await check_update_methods(session, entry)
+        await check_update_methods(session, entry, db.Campaign)
 
         # check scripts
         await check_scripts(session, entry)
 
         # make and test queue object
-        queue = await db.Queue.create_row(session, fullname=entry.fullname)
-
-        assert queue.element_db_id.level == entry.level
-        check_elem = await queue.get_element(session)
-        assert check_elem.id == entry.id
-
-        check_queue = await db.Queue.get_queue_item(session, fullname=entry.fullname)
-        assert check_queue.element_id == entry.id
-
-        queue.waiting()
-
-        sleep_time = await queue.element_sleep_time(session)
-        assert sleep_time == 10
-
-        await db.Queue.delete_row(session, entry.id)
+        await check_queue(session, entry)
 
         # delete everything we just made in the session
         await delete_all_productions(session)
