@@ -16,7 +16,7 @@ from ..common.butler import (
     remove_run_collections,
 )
 from ..common.enums import LevelEnum, StatusEnum
-from ..common.errors import CMBadExecutionMethodError, CMBadParameterTypeError, CMMissingScriptInputError
+from ..common.errors import CMBadExecutionMethodError, CMMissingScriptInputError
 from ..db.step import Step
 from .script_handler import ScriptHandler
 
@@ -479,7 +479,7 @@ class ResourceUsageScriptHandler(ScriptHandler):
         data_dict = await script.data_dict(session)
         parent = await script.get_parent(session)
         if parent.level != LevelEnum.campaign:
-            raise CMBadParameterTypeError(f"Script parent is a {parent.level}, not a LevelEnum.campaign")
+            raise CMBadExecutionMethodError(f"Script parent is a {parent.level}, not a LevelEnum.campaign")
         try:
             resource_coll = resolved_cols["campaign_resource_usage"]
             butler_repo = data_dict["butler_repo"]
