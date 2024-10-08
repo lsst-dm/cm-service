@@ -21,6 +21,30 @@ from ..db.step import Step
 from .script_handler import ScriptHandler
 
 
+class NullScriptHandler(ScriptHandler):
+    """A no-op script, mostly for testing"""
+
+    async def _write_script(
+        self,
+        session: async_scoped_session,
+        script: Script,
+        parent: ElementMixin,
+        **kwargs: Any,
+    ) -> StatusEnum:
+        _resolved_cols = await script.resolve_collections(session)
+        _data_dict = await script.data_dict(session)
+        return StatusEnum.prepared
+
+    async def _purge_products(
+        self,
+        session: async_scoped_session,
+        script: Script,
+        to_status: StatusEnum,
+    ) -> None:
+        _resolved_cols = await script.resolve_collections(session)
+        _data_dict = await script.data_dict(session)
+
+
 class ChainCreateScriptHandler(ScriptHandler):
     """Write a script to chain together collections
 
@@ -55,7 +79,7 @@ class ChainCreateScriptHandler(ScriptHandler):
                 command += f" {input_coll}"
         else:
             command += f" {input_colls}"
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
+        write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -106,7 +130,7 @@ class ChainPrependScriptHandler(ScriptHandler):
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"butler collection-chain {butler_repo} {output_coll} --mode prepend {input_coll}"
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
+        write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -178,7 +202,7 @@ class ChainCollectScriptHandler(ScriptHandler):
             command += f" {collect_coll_}"
         for input_coll_ in input_colls:
             command += f" {input_coll_}"
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
+        write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -233,7 +257,7 @@ class TagInputsScriptHandler(ScriptHandler):
         command += f" --collections {input_coll}"
         if data_query:
             command += f' --where "{data_query}"'
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
+        write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -279,7 +303,7 @@ class TagCreateScriptHandler(ScriptHandler):
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"butler associate {butler_repo} {output_coll}"
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
+        write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -329,7 +353,7 @@ class TagAssociateScriptHandler(ScriptHandler):
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"butler associate {butler_repo} {output_coll}"
         command += f" --collections {input_coll}"
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
+        write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -405,7 +429,7 @@ class PrepareStepScriptHandler(ScriptHandler):
                 command += f" {prereq_coll_}"
         else:
             command += f" {input_colls}"
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
+        write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -466,7 +490,7 @@ class ResourceUsageScriptHandler(ScriptHandler):
         command += f"pipetask run -b {butler_repo} -g {usage_graph_url} "
         command += f"-o {resolved_cols['campaign_resource_usage']} --register-dataset-types -j 16"
 
-        await write_bash_script(script_url, command, prepend=prepend)
+        write_bash_script(script_url, command, prepend=prepend)
 
         return StatusEnum.prepared
 
@@ -516,7 +540,7 @@ class ValidateScriptHandler(ScriptHandler):
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"pipetask FIXME {butler_repo} {input_coll} {output_coll}"
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
+        write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 

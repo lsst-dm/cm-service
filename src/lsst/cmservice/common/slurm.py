@@ -79,7 +79,7 @@ def submit_slurm_job(
             assert sbatch.stdout
             line = sbatch.stdout.read().decode().strip()
             return line.split("|")[0]
-    except TypeError as msg:
+    except Exception as msg:
         raise CMSlurmSubmitError(f"Bad slurm submit: {msg}") from msg
 
 
@@ -100,21 +100,24 @@ def check_slurm_job(
     """
     if slurm_id is None:
         return None
-    with subprocess.Popen(["sacct", "--parsable", "-b", "-j", slurm_id], stdout=subprocess.PIPE) as sacct:
-        sacct.wait()
-        if sacct.returncode != 0:
-            assert sacct.stderr
-            msg = sacct.stderr.read().decode()
-            raise CMSlurmCheckError(f"Bad slurm check: {msg}")
-        try:
-            assert sacct.stdout
-            lines = sacct.stdout.read().decode().split("\n")
-            if len(lines) < 2:
-                return slurm_status_map["PENDING"]
-            tokens = lines[1].split("|")
-            if len(tokens) < 2:
-                return slurm_status_map["PENDING"]
-            slurm_status = tokens[1]
-        except Exception as msg:
-            raise CMSlurmCheckError(f"Badly formatted slurm check: {msg}")
-        return slurm_status_map[slurm_status]
+    try:
+        with subprocess.Popen(["sacct", "--parsable", "-b", "-j", slurm_id], stdout=subprocess.PIPE) as sacct:
+            sacct.wait()
+            if sacct.returncode != 0:
+                assert sacct.stderr
+                msg = sacct.stderr.read().decode()
+                raise CMSlurmCheckError(f"Bad slurm check: {msg}")
+            try:
+                assert sacct.stdout
+                lines = sacct.stdout.read().decode().split("\n")
+                if len(lines) < 2:
+                    return slurm_status_map["PENDING"]
+                tokens = lines[1].split("|")
+                if len(tokens) < 2:
+                    return slurm_status_map["PENDING"]
+                slurm_status = tokens[1]
+            except Exception as msg:
+                raise CMSlurmCheckError(f"Badly formatted slurm check: {msg}")
+    except Exception as msg:
+        raise CMSlurmCheckError(f"Bad slurm check: {msg}")
+    return slurm_status_map[slurm_status]

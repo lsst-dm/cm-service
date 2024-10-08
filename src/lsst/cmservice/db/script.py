@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import JSON, and_, select
+from sqlalchemy import JSON
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -153,36 +152,9 @@ class Script(Base, NodeMixin):
         elif self.parent_level == LevelEnum.job:
             await session.refresh(self, attribute_names=["j_"])
             element = self.j_
-        else:
+        else:  # pragma: no cover
             raise CMBadEnumError(f"Bad level for script: {self.parent_level}")
         return element
-
-    async def get_siblings(
-        self,
-        session: async_scoped_session,
-    ) -> Sequence[Script]:
-        """Get the sibling scripts
-
-        Parameters
-        ----------
-        session : async_scoped_session
-            DB session manager
-
-        Returns
-        -------
-        siblings : List['Script']
-            Requested siblings
-        """
-        q = select(Script).where(
-            and_(
-                Script.parent_id == self.parent_id,
-                Script.parent_level == self.parent_level,
-                Script.name == self.name,
-                Script.id != self.id,
-            ),
-        )
-        rows = await session.scalars(q)
-        return rows.all()
 
     @classmethod
     async def get_create_kwargs(
@@ -223,7 +195,7 @@ class Script(Base, NodeMixin):
         elif parent_level == LevelEnum.job:
             element = await Job.get_row_by_fullname(session, parent_name)
             ret_dict["j_id"] = element.id
-        else:
+        else:  # pragma: no cover
             raise CMBadEnumError(f"Bad level for script: {parent_level}")
         ret_dict["parent_id"] = element.id
 

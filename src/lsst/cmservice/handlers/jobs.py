@@ -140,7 +140,7 @@ class BpsScriptHandler(ScriptHandler):
             prepend += f"\n{custom_lsst_setup}\n"
         prepend += bps_wms_script_template_.data["text"]
 
-        await write_bash_script(script_url, command, prepend=prepend)
+        write_bash_script(script_url, command, prepend=prepend)
 
         workflow_config = bps_core_yaml_template_.data.copy()
 
@@ -480,7 +480,7 @@ class ManifestReportScriptHandler(ScriptHandler):
             prepend += f"\n{custom_lsst_setup}"
 
         command = f"pipetask report --full-output-filename {report_url} {butler_repo} {graph_url}"
-        await write_bash_script(script_url, command, prepend=prepend)
+        write_bash_script(script_url, command, prepend=prepend)
 
         return StatusEnum.prepared
 
