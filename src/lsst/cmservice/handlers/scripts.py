@@ -490,7 +490,7 @@ class ResourceUsageScriptHandler(ScriptHandler):
         command += f"pipetask run -b {butler_repo} -g {usage_graph_url} "
         command += f"-o {resolved_cols['campaign_resource_usage']} --register-dataset-types -j 16"
 
-        await write_bash_script(script_url, command, prepend=prepend)
+        write_bash_script(script_url, command, prepend=prepend)
 
         return StatusEnum.prepared
 
