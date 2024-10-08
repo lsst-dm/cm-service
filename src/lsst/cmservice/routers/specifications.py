@@ -10,6 +10,8 @@ from . import wrappers
 ResponseModelClass = models.Specification
 # Specify the pydantic model from making new rows
 CreateModelClass = models.SpecificationCreate
+# Specify the pydantic model from updating rows
+UpdateModelClass = models.SpecificationUpdate
 # Specify the associated database table
 DbClass = db.Specification
 # Specify the tag in the router documentation
@@ -34,3 +36,4 @@ post_row = wrappers.post_row_function(
     DbClass,
 )
 delete_row = wrappers.delete_row_function(router, DbClass)
+update_row = wrappers.put_row_function(router, ResponseModelClass, UpdateModelClass, DbClass)
