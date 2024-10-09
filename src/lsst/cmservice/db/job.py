@@ -20,6 +20,7 @@ from .dbid import DbId
 from .element import ElementMixin
 from .enums import SqlStatusEnum
 from .group import Group
+from .spec_block import SpecBlock
 from .step import Step
 
 if TYPE_CHECKING:
@@ -28,7 +29,6 @@ if TYPE_CHECKING:
     from .product_set import ProductSet
     from .production import Production
     from .script import Script
-    from .spec_block import SpecBlock
     from .task_set import TaskSet
     from .wms_task_report import WmsTaskReport
 
@@ -52,9 +52,11 @@ class Job(Base, ElementMixin):
         ForeignKey("spec_block.id", ondelete="CASCADE"),
         index=True,
     )
-    parent_id: Mapped[int] = mapped_column(ForeignKey("group.id", ondelete="CASCADE"), index=True)
+    parent_id: Mapped[int] = mapped_column(
+        ForeignKey("group.id", ondelete="CASCADE"), index=True, nullable=True
+    )
     name: Mapped[str] = mapped_column(index=True)
-    attempt: Mapped[int] = mapped_column()
+    attempt: Mapped[int] = mapped_column(default=0)
     fullname: Mapped[str] = mapped_column(unique=True)
     status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting, type_=SqlStatusEnum)
     superseded: Mapped[bool] = mapped_column(default=False)
@@ -213,16 +215,23 @@ class Job(Base, ElementMixin):
         except KeyError as msg:
             raise CMMissingRowCreateInputError(f"Missing input to create Job: {msg}") from msg
         attempt = kwargs.get("attempt", 0)
+
+        spec_aliases = {}
+        if "spec_alises" in kwargs:
+            spec_aliases.update(kwargs["spec_aliases"])
+
         parent = await Group.get_row_by_fullname(session, parent_name)
-        spec_aliases = await parent.get_spec_aliases(session)
-        if spec_aliases:
-            assert isinstance(spec_aliases, dict)
-            spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
-        specification = await parent.get_specification(session)
-        spec_block = await specification.get_block(session, spec_block_name)
+        if parent:
+            parent_spec_aliases = await parent.get_spec_aliases(session)
+            if parent_spec_aliases:
+                spec_aliases.update(parent_spec_aliases)
+
+        spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
+        spec_block = await SpecBlock.get_row_by_fullname(session, spec_block_name)
+
         return {
             "spec_block_id": spec_block.id,
-            "parent_id": parent.id,
+            "parent_id": parent.id if parent else None,
             "name": name,
             "attempt": attempt,
             "fullname": f"{parent_name}/{name}_{attempt:03}",
@@ -230,7 +239,7 @@ class Job(Base, ElementMixin):
             "data": kwargs.get("data", {}),
             "child_config": kwargs.get("child_config", {}),
             "collections": kwargs.get("collections", {}),
-            "spec_aliases": kwargs.get("spec_aliases", {}),
+            "spec_aliases": spec_aliases,
         }
 
     async def copy_job(

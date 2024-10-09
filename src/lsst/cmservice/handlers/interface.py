@@ -1241,6 +1241,28 @@ async def create_campaign(
     return result
 
 
+async def load_yaml(
+    session: async_scoped_session,
+    yaml_file: str,
+    *,
+    allow_update: bool = False,
+) -> None:
+    """Load a yaml file containing SpecBlocks, Templates, and Specifications
+
+    Parameters
+    ----------
+    session : async_scoped_session
+        DB session manager
+
+    yaml_file: str,
+        Path to the yaml file
+
+    allow_update: bool
+        Allow updating existing items
+    """
+    await functions.load_yaml(session, yaml_file, allow_update=allow_update)
+
+
 async def load_specification(
     session: async_scoped_session,
     yaml_file: str,
@@ -1266,7 +1288,6 @@ async def load_specification(
         Newly created `Specification`
     """
     result = await functions.load_specification(session, yaml_file, {}, allow_update=allow_update)
-    assert result  # for mypy
     return result
 
 
@@ -1304,7 +1325,6 @@ async def load_and_create_campaign(  # pylint: disable=too-many-arguments
     """
     allow_update = kwargs.get("allow_update", False)
     specification = await functions.load_specification(session, yaml_file, allow_update=allow_update)
-    assert specification  # for mypy
 
     try:
         await db.Production.create_row(session, name=parent_name)
