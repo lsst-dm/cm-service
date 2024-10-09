@@ -13,6 +13,7 @@ from ..common.errors import (
     CMBadStateTransitionError,
     CMIntegrityError,
     CMResolveCollectionsError,
+    CMSpecficiationError,
 )
 from .handler import Handler
 from .row import RowMixin
@@ -282,12 +283,14 @@ class NodeMixin(RowMixin):
 
         if self.level == LevelEnum.script:
             parent_ = await self.get_parent(session)
-            parent_colls = await parent_.get_collections(session)
-            ret_dict.update(parent_colls)
+            if parent_:
+                parent_colls = await parent_.get_collections(session)
+                ret_dict.update(parent_colls)
         elif self.level.value > LevelEnum.campaign.value:
             parent = await self.get_parent(session)
-            parent_colls = await parent.get_collections(session)
-            ret_dict.update(parent_colls)
+            if parent:
+                parent_colls = await parent.get_collections(session)
+                ret_dict.update(parent_colls)
         spec_block = await self.get_spec_block(session)
         if spec_block.collections:
             ret_dict.update(spec_block.collections)
@@ -355,12 +358,14 @@ class NodeMixin(RowMixin):
         ret_dict = {}
         if self.level == LevelEnum.script:
             parent_ = await self.get_parent(session)
-            parent_data = await parent_.data_dict(session)
-            ret_dict.update(parent_data)
+            if parent_:
+                parent_data = await parent_.data_dict(session)
+                ret_dict.update(parent_data)
         elif self.level.value > LevelEnum.campaign.value:
             parent = await self.get_parent(session)
-            parent_data = await parent.data_dict(session)
-            ret_dict.update(parent_data)
+            if parent:
+                parent_data = await parent.data_dict(session)
+                ret_dict.update(parent_data)
         spec_block = await self.get_spec_block(session)
         if spec_block.data:
             ret_dict.update(spec_block.data)
@@ -395,14 +400,45 @@ class NodeMixin(RowMixin):
             raise NotImplementedError
         if self.level.value > LevelEnum.campaign.value:
             parent = await self.get_parent(session)
-            parent_data = await parent.get_spec_aliases(session)
-            ret_dict.update(parent_data)
+            if parent:
+                parent_data = await parent.get_spec_aliases(session)
+                ret_dict.update(parent_data)
         spec_block = await self.get_spec_block(session)
         if spec_block.spec_aliases:
             ret_dict.update(spec_block.spec_aliases)
         if self.spec_aliases:
             ret_dict.update(self.spec_aliases)
         return ret_dict
+
+    async def get_aliased_block(
+        self,
+        session: async_scoped_session,
+        spec_block_name: str,
+    ) -> SpecBlock:
+        """Return a SpecBlock after evaluating any aliases.
+
+        Parameters
+        ----------
+        session: async_scoped_session
+            DB session manager
+
+        spec_block_name: str
+            Name or alias of the SpecBlock to return
+
+        Returns
+        -------
+        spec_block: SpecBlock
+            Requested SpecBlock
+        """
+
+        try:
+            resolved_name = self.spec_aliases.get(spec_block_name, spec_block_name)
+
+            spec_block = await SpecBlock.get_row_by_fullname(session, resolved_name)
+            return spec_block
+
+        except KeyError as msg:
+            raise CMSpecficiationError(f"Could not find spec_block {spec_block_name} in {self}") from msg
 
     async def update_child_config(
         self,
@@ -602,7 +638,6 @@ class NodeMixin(RowMixin):
             await session.refresh(self, attribute_names=["prereqs_"])
         except Exception:  # pylint: disable=broad-exception-caught
             return True
-        print(f"N prereq {len(self.prereqs_)}")
         for prereq_ in self.prereqs_:
             is_done = await prereq_.is_done(session)
             if not is_done:
