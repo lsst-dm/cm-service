@@ -65,8 +65,9 @@ async def test_micro(
             campaign_source="HSC/raw/RC2",
         )
 
-        # temp_dir = str(tmp_path / "archive")
-        temp_dir = f"output_test/{script_method.name}/archive"
+        temp_dir = str(tmp_path / "archive")
+        # use this line if you want to be able to inspect the outputs
+        # temp_dir = f"output_test/{script_method.name}/archive"
         await campaign.update_data_dict(
             session,
             prod_area=temp_dir,
