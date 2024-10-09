@@ -12,6 +12,7 @@ from lsst.cmservice.common.bash import write_bash_script
 from lsst.cmservice.db.element import ElementMixin
 from lsst.cmservice.db.job import Job
 from lsst.cmservice.db.script import Script
+from lsst.cmservice.db.script_template import ScriptTemplate
 from lsst.cmservice.db.task_set import TaskSet
 from lsst.cmservice.db.wms_task_report import WmsTaskReport
 from lsst.ctrl.bps import BaseWmsService, WmsRunReport, WmsStates
@@ -72,7 +73,6 @@ class BpsScriptHandler(ScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        specification = await script.get_specification(session)
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
         try:
@@ -110,15 +110,15 @@ class BpsScriptHandler(ScriptHandler):
         log_url = os.path.abspath(os.path.expandvars(f"{prod_area}/{script.fullname}.log"))
 
         # get the requested templates
-        bps_core_script_template_ = await specification.get_script_template(
+        bps_core_script_template_ = await ScriptTemplate.get_row_by_fullname(
             session,
             bps_core_script_template,
         )
-        bps_core_yaml_template_ = await specification.get_script_template(
+        bps_core_yaml_template_ = await ScriptTemplate.get_row_by_fullname(
             session,
             bps_core_yaml_template,
         )
-        bps_wms_script_template_ = await specification.get_script_template(
+        bps_wms_script_template_ = await ScriptTemplate.get_row_by_fullname(
             session,
             bps_wms_script_template,
         )
@@ -158,8 +158,8 @@ class BpsScriptHandler(ScriptHandler):
         workflow_config["includeConfigs"] = include_configs
 
         await session.refresh(parent, attribute_names=["c_", "p_"])
-        workflow_config["project"] = parent.p_.name
-        workflow_config["campaign"] = parent.c_.name
+        workflow_config["project"] = parent.p_.name if parent and parent.p_ else ""
+        workflow_config["campaign"] = parent.c_.name if parent and parent.c_ else ""
 
         workflow_config["submitPath"] = submit_path
 
@@ -177,7 +177,7 @@ class BpsScriptHandler(ScriptHandler):
             in_collection = input_colls
 
         payload = {
-            "payloadName": parent.c_.name,
+            "payloadName": parent.c_.name if parent and parent.c_ else "",
             "butlerConfig": butler_repo,
             "outputRun": run_coll,
             "inCollection": in_collection,
@@ -477,7 +477,6 @@ class ManifestReportScriptHandler(ScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        specification = await script.get_specification(session)
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
         prod_area = os.path.expandvars(data_dict["prod_area"])
@@ -491,7 +490,7 @@ class ManifestReportScriptHandler(ScriptHandler):
         graph_url = os.path.abspath(f"{prod_area}/{parent.fullname}/submit/{qgraph_file}")
         report_url = os.path.abspath(f"{prod_area}/{parent.fullname}/submit/manifest_report.yaml")
 
-        manifest_script_template = await specification.get_script_template(
+        manifest_script_template = await ScriptTemplate.get_row_by_fullname(
             session,
             data_dict["manifest_script_template"],
         )
