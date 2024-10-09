@@ -227,12 +227,17 @@ class Script(Base, NodeMixin):
             raise CMBadEnumError(f"Bad level for script: {parent_level}")
         ret_dict["parent_id"] = element.id
 
-        specification = await element.get_specification(session)
-        spec_aliases = await element.get_spec_aliases(session)
-        if spec_aliases:
-            assert isinstance(spec_aliases, dict)
-            spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
-        spec_block = await specification.get_block(session, spec_block_name)
+        spec_aliases = {}
+        if element:
+            element_spec_aliases = await element.get_spec_aliases(session)
+            if element_spec_aliases:
+                spec_aliases.update(element_spec_aliases)
+
+        spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
+        spec_block = await SpecBlock.get_row_by_fullname(session, spec_block_name)
+        if not spec_block:
+            raise CMMissingRowCreateInputError(f"Spec block {spec_block_name} not found")
+
         ret_dict["spec_block_id"] = spec_block.id
 
         return ret_dict
@@ -264,3 +269,6 @@ class Script(Base, NodeMixin):
         """
         handler = await self.get_handler(session)
         return await handler.reset_script(session, self, to_status)
+
+    def __repr__(self) -> str:
+        return f"Script {self.fullname} {self.id} {self.status.name}"
