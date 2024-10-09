@@ -295,3 +295,12 @@ class Job(Base, ElementMixin):
 
         await session.refresh(new_job)
         return new_job
+
+    async def get_jobs(
+        self,
+        session: async_scoped_session,
+        *,
+        remaining_only: bool = False,
+        skip_superseded: bool = True,
+    ) -> list[Job]:
+        return [self]
