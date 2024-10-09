@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-from ..common.enums import NodeTypeEnum, StatusEnum
+from ..common.enums import LevelEnum, NodeTypeEnum, StatusEnum
 from ..common.errors import CMBadStateTransitionError, CMTooManyActiveScriptsError
 from ..models.merged_product_set import MergedProductSetDict
 from ..models.merged_task_set import MergedTaskSetDict
@@ -217,7 +217,10 @@ class ElementMixin(NodeMixin):
             Time to sleep in seconds
         """
         sleep_time = 10
-        all_jobs = await self.get_jobs(session)
+        if self.level == LevelEnum.job:
+            all_jobs = []
+        else:
+            all_jobs = await self.get_jobs(session)
         for job_ in all_jobs:
             if job_.status == StatusEnum.running:
                 sleep_time = max(job_sleep, sleep_time)

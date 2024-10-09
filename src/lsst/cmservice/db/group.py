@@ -200,8 +200,6 @@ class Group(Base, ElementMixin):
         for job_ in jobs:
             if job_.status == StatusEnum.rescuable:
                 rescuable_jobs.append(job_)
-            else:
-                raise CMBadStateTransitionError(f"Found unrescuable job: {job_.fullname}")
         if not rescuable_jobs:
             raise CMTooFewAcceptedJobsError(f"Expected at least one rescuable job for {self.fullname}, got 0")
         latest_resuable_job = rescuable_jobs[-1]

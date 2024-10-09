@@ -257,6 +257,9 @@ class ElementHandler(Handler):
         status : StatusEnum
             Status of the processing
         """
+        fake_status = kwargs.get("fake_status", None)
+        if fake_status is not None:
+            return (False, fake_status)
         return (False, element.status)
 
     async def _run_script_checks(
@@ -292,10 +295,7 @@ class ElementHandler(Handler):
         fake_status = kwargs.get("fake_status", None)
         changed = False
         for script_ in scripts:
-            if fake_status and script_.status.value >= StatusEnum.prepared.value:
-                await script_.update_values(session, status=fake_status)
-                changed = True
-            script_changed, _script_status = await script_.run_check(session)
+            script_changed, _script_status = await script_.run_check(session, fake_status=fake_status)
             if script_changed:
                 changed = True
         return changed
@@ -333,13 +333,9 @@ class ElementHandler(Handler):
         fake_status = kwargs.get("fake_status")
         changed = False
         for job_ in jobs:
-            if fake_status and job_.status.value >= StatusEnum.prepared.value:
-                await job_.update_values(session, status=fake_status)
+            (job_changed, _job_status) = await job_.run_check(session, fake_status=fake_status)
+            if job_changed:
                 changed = True
-            else:
-                (job_changed, _job_status) = await job_.run_check(session)
-                if job_changed:
-                    changed = True
         return changed
 
     async def check(
