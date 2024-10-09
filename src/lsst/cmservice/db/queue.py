@@ -4,19 +4,18 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import pause
-from sqlalchemy import JSON, DateTime, and_, select
+from sqlalchemy import JSON, DateTime
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
 from ..common.enums import LevelEnum
-from ..common.errors import CMBadEnumError, CMMissingFullnameError
+from ..common.errors import CMBadEnumError
 from .base import Base
 from .campaign import Campaign
 from .dbid import DbId
 from .element import ElementMixin
-from .enums import SqlLevelEnum
 from .group import Group
 from .job import Job
 from .node import NodeMixin
@@ -33,39 +32,64 @@ class Queue(Base, NodeMixin):
     time_created: Mapped[datetime] = mapped_column(type_=DateTime)
     time_updated: Mapped[datetime] = mapped_column(type_=DateTime)
     time_finished: Mapped[datetime | None] = mapped_column(type_=DateTime, default=None)
+    time_next_check: Mapped[datetime | None] = mapped_column(type_=DateTime, default=datetime.min)
     interval: Mapped[float] = mapped_column(default=300.0)
     options: Mapped[dict | list | None] = mapped_column(type_=JSON)
 
-    element_level: Mapped[LevelEnum] = mapped_column(type_=SqlLevelEnum)
-    element_id: Mapped[int] = mapped_column()
     c_id: Mapped[int | None] = mapped_column(ForeignKey("campaign.id", ondelete="CASCADE"), index=True)
     s_id: Mapped[int | None] = mapped_column(ForeignKey("step.id", ondelete="CASCADE"), index=True)
     g_id: Mapped[int | None] = mapped_column(ForeignKey("group.id", ondelete="CASCADE"), index=True)
     j_id: Mapped[int | None] = mapped_column(ForeignKey("job.id", ondelete="CASCADE"), index=True)
 
-    c_: Mapped[Campaign] = relationship("Campaign", viewonly=True)
-    s_: Mapped[Step] = relationship("Step", viewonly=True)
-    g_: Mapped[Group] = relationship("Group", viewonly=True)
-    j_: Mapped[Job] = relationship("Job", viewonly=True)
+    c_: Mapped[Campaign] = relationship("Campaign")
+    s_: Mapped[Step] = relationship("Step")
+    g_: Mapped[Group] = relationship("Group")
+    j_: Mapped[Job] = relationship("Job")
 
     col_names_for_table = [
         "id",
-        # "element_level",
-        "element_id",
         "interval",
         "time_created",
         "time_updated",
         "time_finished",
+        "time_next_check",
     ]
+
+    def __init__(self, element, time_created, time_updated, time_finished=None):
+        self.time_created = time_created
+        self.time_updated = time_updated
+        self.time_finished = time_finished
+
+        if isinstance(element, Campaign):
+            self.c_ = element
+        elif isinstance(element, Step):
+            self.s_ = element
+        elif isinstance(element, Group):
+            self.g_ = element
+        elif isinstance(element, Job):
+            self.j_ = element
+        else:
+            assert ValueError
 
     @hybrid_property
     def element_db_id(self) -> DbId:
         """Returns DbId"""
-        return DbId(self.element_level, self.element_id)
+        return DbId(self.get_element_level(), self.get_element().id)
+
+    def get_element_level(self):
+        if self.c_:
+            return LevelEnum.campaign
+        elif self.s_:
+            return LevelEnum.step
+        elif self.g_:
+            return LevelEnum.group
+        elif self.j_:
+            return LevelEnum.job
+        else:
+            assert ValueError
 
     async def get_element(
         self,
-        session: async_scoped_session,
     ) -> ElementMixin:
         """Get the parent `Element`
 
@@ -184,7 +208,7 @@ class Queue(Base, NodeMixin):
         session: async_scoped_session,
     ) -> int:
         """Check how long to sleep based on what is running"""
-        element = await self.get_element(session)
+        element = await self.get_element()
         return await element.estimate_sleep_time(session)
 
     def waiting(
@@ -219,7 +243,7 @@ class Queue(Base, NodeMixin):
         session: async_scoped_session,
     ) -> bool:  # pragma: no cover
         """Process associated element and update queue row"""
-        element = await self.get_element(session)
+        element = await self.get_element()
         if not element.status.is_processable_element():
             return False
 
