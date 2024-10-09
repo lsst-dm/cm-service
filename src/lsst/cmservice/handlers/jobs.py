@@ -205,12 +205,23 @@ class BpsScriptHandler(ScriptHandler):
         slurm_id: str | None,
         script: Script,
         parent: ElementMixin,
+        fake_status: StatusEnum | None = None,
     ) -> StatusEnum:
-        slurm_status = await ScriptHandler._check_slurm_job(self, session, slurm_id, script, parent)
+        slurm_status = await ScriptHandler._check_slurm_job(
+            self,
+            session,
+            slurm_id,
+            script,
+            parent,
+            fake_status,
+        )
         if slurm_status == StatusEnum.accepted:
             await script.update_values(session, status=StatusEnum.accepted)
-            bps_dict = parse_bps_stdout(script.log_url)
-            wms_job_id = self._get_job_id(bps_dict)
+            if fake_status is not None:
+                wms_job_id = "fake_job"
+            else:
+                bps_dict = parse_bps_stdout(script.log_url)
+                wms_job_id = self._get_job_id(bps_dict)
             await parent.update_values(session, wms_job_id=wms_job_id)
         return slurm_status
 
@@ -220,12 +231,23 @@ class BpsScriptHandler(ScriptHandler):
         htcondor_id: str,
         script: Script,
         parent: ElementMixin,
+        fake_status: StatusEnum | None = None,
     ) -> StatusEnum:
-        htcondor_status = await ScriptHandler._check_htcondor_job(self, session, htcondor_id, script, parent)
+        htcondor_status = await ScriptHandler._check_htcondor_job(
+            self,
+            session,
+            htcondor_id,
+            script,
+            parent,
+            fake_status,
+        )
         if htcondor_status == StatusEnum.accepted:
             await script.update_values(session, status=StatusEnum.accepted)
-            bps_dict = parse_bps_stdout(script.log_url)
-            wms_job_id = self._get_job_id(bps_dict)
+            if fake_status is not None:
+                wms_job_id = "fake_job"
+            else:
+                bps_dict = parse_bps_stdout(script.log_url)
+                wms_job_id = self._get_job_id(bps_dict)
             await parent.update_values(session, wms_job_id=wms_job_id)
         return htcondor_status
 
