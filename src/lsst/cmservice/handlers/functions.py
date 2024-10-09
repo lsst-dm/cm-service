@@ -227,8 +227,10 @@ async def load_specification(
     loaded_specs: dict | None = None,
     *,
     allow_update: bool = False,
-) -> Specification | None:
-    """Read a yaml file and create Specification objects
+) -> Specification:
+    """Load Specification, SpecBlock, and ScriptTemplate objects from a yaml
+    file, including from files referenced by Include blocks. Return the last
+    Specification object in the file.
 
     Parameters
     ----------
@@ -247,7 +249,7 @@ async def load_specification(
     Returns
     -------
     specification: Specification
-        Newly created Specification
+        Last Specification in the yaml file.
     """
     if loaded_specs is None:
         loaded_specs = {}
@@ -255,6 +257,11 @@ async def load_specification(
     specification = None
     with open(yaml_file, encoding="utf-8") as fin:
         spec_data = yaml.safe_load(fin)
+
+    block_types = [list(entry.keys())[0] for entry in spec_data]
+
+    if "Specification" not in block_types:
+        raise CMYamlParseError("Yaml file must contain a Specification object.")
 
     for config_item in spec_data:
         if "Imports" in config_item:
@@ -289,7 +296,59 @@ async def load_specification(
             good_keys = "ScriptTemplate | SpecBlock | Specification | Imports"
             raise CMYamlParseError(f"Expecting one of {good_keys} not: {spec_data.keys()})")
 
+    if not specification:
+        raise CMYamlParseError("Specification was not loaded.")
+
     return specification
+
+
+async def load_yaml(
+    session: async_scoped_session,
+    yaml_filename: str,
+    *,
+    allow_update: bool = False,
+) -> None:
+    """Load Specification, SpecBlock, and ScriptTemplate objects from a yaml
+    file.  Does not evaluate Include statements.
+
+    Parameters
+    ----------
+    session: async_scoped_session
+        DB session manager
+
+    yaml_filename: str
+        File to load
+
+    allow_update: bool
+        Allow updating existing items
+    """
+
+    with open(yaml_filename, encoding="utf-8") as fin:
+        spec_data = yaml.safe_load(fin)
+
+    for config_item in spec_data:
+        if "SpecBlock" in config_item:
+            await upsert_spec_block(
+                session,
+                config_item["SpecBlock"],
+                {},
+                allow_update=allow_update,
+            )
+        elif "ScriptTemplate" in config_item:
+            await upsert_script_template(
+                session,
+                config_item["ScriptTemplate"],
+                allow_update=allow_update,
+            )
+        elif "Specification" in config_item:
+            await upsert_specification(
+                session,
+                config_item["Specification"],
+                allow_update=allow_update,
+            )
+        else:
+            good_keys = "ScriptTemplate | SpecBlock | Specification"
+            raise CMYamlParseError(f"Expecting one of {good_keys} but got: {spec_data.keys()})")
 
 
 async def add_step_prerequisite(
