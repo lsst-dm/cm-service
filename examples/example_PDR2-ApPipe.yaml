@@ -21,7 +21,7 @@
                 spec_block: PDR2-ApPipe_step1
                 child_config:
                     split_method: split_by_query
-                    split_min_groups: 1
+                    split_min_groups: 20
       data:
           butler_repo: '/repo/main+sasquatch_dev'
           prod_area: 'output/archive'
