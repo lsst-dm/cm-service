@@ -64,7 +64,7 @@ class BaseScriptHandler(Handler):
             except (
                 CMBadExecutionMethodError,
                 CMMissingNodeUrlError,
-            ) as msg:
+            ) as msg:  # pragma: no cover
                 _new_error = await ScriptError.create_row(
                     session,
                     script_id=node.id,
@@ -87,7 +87,7 @@ class BaseScriptHandler(Handler):
         if status == StatusEnum.running:
             try:
                 status = await self.check(session, node, parent, **kwargs)
-            except (CMBadExecutionMethodError, CMMissingNodeUrlError) as msg:
+            except (CMBadExecutionMethodError, CMMissingNodeUrlError) as msg:  # pragma: no cover
                 _new_error = await ScriptError.create_row(
                     session,
                     script_id=node.id,
@@ -108,7 +108,7 @@ class BaseScriptHandler(Handler):
                 status = StatusEnum.failed
 
         if status == StatusEnum.reviewable:
-            status = await self.review(session, node, parent)
+            status = await self.review(session, node, parent, **kwargs)
         if status != orig_status:
             changed = True
             await node.update_values(session, status=status)
@@ -231,6 +231,7 @@ class BaseScriptHandler(Handler):
         session: async_scoped_session,
         script: Script,
         parent: ElementMixin,
+        **kwargs: Any,
     ) -> StatusEnum:
         """Review a `Script` processing
 
@@ -256,6 +257,9 @@ class BaseScriptHandler(Handler):
         status : StatusEnum
             The status of the processing
         """
+        fake_status = kwargs.get("fake_status", None)
+        if fake_status is not None:
+            return fake_status
         return script.status
 
     async def reset_script(
@@ -352,6 +356,7 @@ class ScriptHandler(BaseScriptHandler):
         slurm_id: str | None,
         script: Script,
         parent: ElementMixin,
+        fake_status: StatusEnum | None = None,
     ) -> StatusEnum:
         """Check the status of a `Script` sent to slurm
 
@@ -369,12 +374,15 @@ class ScriptHandler(BaseScriptHandler):
         parent: ElementMixin
             Parent Element of the `Script` in question
 
+        fake_status: StatusEnum | None,
+            If set, don't actually check the job, set status to fake_status
+
         Returns
         -------
         status : StatusEnum
             The status of the processing
         """
-        status = check_slurm_job(slurm_id)
+        status = check_slurm_job(slurm_id, fake_status)
         print(f"Getting status for {script.fullname} {status}")
         if status is None:
             status = StatusEnum.running
@@ -388,6 +396,7 @@ class ScriptHandler(BaseScriptHandler):
         htcondor_id: str,
         script: Script,
         parent: ElementMixin,
+        fake_status: StatusEnum | None = None,
     ) -> StatusEnum:
         """Check the status of a `Script` sent to htcondor
 
@@ -405,12 +414,15 @@ class ScriptHandler(BaseScriptHandler):
         parent: ElementMixin
             Parent Element of the `Script` in question
 
+        fake_status: StatusEnum | None,
+            If set, don't actually check the job, set status to fake_status
+
         Returns
         -------
         status : StatusEnum
             The status of the processing
         """
-        status = check_htcondor_job(htcondor_id)
+        status = check_htcondor_job(htcondor_id, fake_status)
         print(f"Getting status for {script.fullname} {status}")
         if status != script.status:
             await script.update_values(session, status=status)
@@ -432,9 +444,9 @@ class ScriptHandler(BaseScriptHandler):
             raise CMBadExecutionMethodError("ScriptMethodEnum.no_script can not be set for ScriptHandler")
         if script_method == ScriptMethodEnum.bash:
             status = await self._write_script(session, script, parent, **kwargs)
-        elif script_method == ScriptMethodEnum.slurm:  # pragma: no cover
+        elif script_method == ScriptMethodEnum.slurm:
             status = await self._write_script(session, script, parent, **kwargs)
-        elif script_method == ScriptMethodEnum.htcondor:  # pragma: no cover
+        elif script_method == ScriptMethodEnum.htcondor:
             status = await self._write_script(session, script, parent, **kwargs)
         if status != script.status:
             await script.update_values(session, status=status)
@@ -451,32 +463,22 @@ class ScriptHandler(BaseScriptHandler):
         if script_method == ScriptMethodEnum.default:
             script_method = self.default_method
 
-        fake_status = kwargs.get("fake_status", None)
         if script_method == ScriptMethodEnum.no_script:  # pragma: no cover
             raise CMBadExecutionMethodError("ScriptMethodEnum.no_script can not be set for ScriptHandler")
         orig_status = script.status
-        if fake_status:
-            status = fake_status
-        elif script_method == ScriptMethodEnum.bash:
-            if not script.script_url:
-                raise CMMissingNodeUrlError(f"script_url is not set for {script}")
-            if not script.log_url:
-                raise CMMissingNodeUrlError(f"log_url is not set for {script}")
-            run_bash_job(script.script_url, script.log_url)
+        if not script.script_url:  # pragma: no cover
+            raise CMMissingNodeUrlError(f"script_url is not set for {script}")
+        if not script.log_url:  # pragma: no cover
+            raise CMMissingNodeUrlError(f"log_url is not set for {script}")
+
+        if script_method == ScriptMethodEnum.bash:
+            run_bash_job(script.script_url, script.log_url, **kwargs)
             status = StatusEnum.running
-        elif script_method == ScriptMethodEnum.slurm:  # pragma: no cover
-            if not script.script_url:
-                raise CMMissingNodeUrlError(f"script_url is not set for {script}")
-            if not script.log_url:
-                raise CMMissingNodeUrlError(f"log_url is not set for {script}")
-            job_id = submit_slurm_job(script.script_url, script.log_url)
+        elif script_method == ScriptMethodEnum.slurm:
+            job_id = submit_slurm_job(script.script_url, script.log_url, **kwargs)
             status = StatusEnum.running
             await script.update_values(session, stamp_url=job_id, status=status)
-        elif script_method == ScriptMethodEnum.htcondor:  # pragma: no cover
-            if not script.script_url:
-                raise CMMissingNodeUrlError(f"script_url is not set for {script}")
-            if not script.log_url:
-                raise CMMissingNodeUrlError(f"log_url is not set for {script}")
+        elif script_method == ScriptMethodEnum.htcondor:
             job_id_base = os.path.abspath(os.path.splitext(script.script_url)[0])
             htcondor_script_path = f"{job_id_base}.sub"
             htcondor_log = f"{job_id_base}.condorlog"
@@ -487,10 +489,10 @@ class ScriptHandler(BaseScriptHandler):
                 os.path.abspath(script.script_url),
                 os.path.abspath(htcondor_sublog),
             )
-            submit_htcondor_job(htcondor_script_path)
+            submit_htcondor_job(htcondor_script_path, **kwargs)
             status = StatusEnum.running
             await script.update_values(session, stamp_url=htcondor_log, status=status)
-        else:
+        else:  # pragma: no cover
             raise CMBadExecutionMethodError(f"Method {script_method} not valid for {script}")
         if status != orig_status:
             await script.update_values(session, status=status)
@@ -507,25 +509,20 @@ class ScriptHandler(BaseScriptHandler):
         if script_method == ScriptMethodEnum.default:
             script_method = self.default_method
 
-        fake_status = kwargs.get("fake_status")
-        if fake_status:
-            status = fake_status
-        elif script_method == ScriptMethodEnum.no_script:  # pragma: no cover
+        if script_method == ScriptMethodEnum.no_script:  # pragma: no cover
             raise CMBadExecutionMethodError("ScriptMethodEnum.no_script can not be set for ScriptHandler")
-        elif script_method == ScriptMethodEnum.bash:
-            if not script.stamp_url:
-                raise CMMissingNodeUrlError(f"stamp_url is not set for {script}")
+        if not script.stamp_url:  # pragma: no cover
+            raise CMMissingNodeUrlError(f"stamp_url is not set for {script}")
+
+        fake_status = kwargs.get("fake_status")
+        if script_method == ScriptMethodEnum.bash:
             status = await self._check_stamp_file(session, script.stamp_url, script, parent)
-        elif script_method == ScriptMethodEnum.slurm:  # pragma: no cover
-            if not script.stamp_url:
-                raise CMMissingNodeUrlError(f"stamp_url is not set for {script}")
-            status = await self._check_slurm_job(session, script.stamp_url, script, parent)
-        elif script_method == ScriptMethodEnum.htcondor:  # pragma: no cover
-            if not script.stamp_url:
-                raise CMMissingNodeUrlError(f"stamp_url is not set for {script}")
-            status = await self._check_htcondor_job(session, script.stamp_url, script, parent)
+        elif script_method == ScriptMethodEnum.slurm:
+            status = await self._check_slurm_job(session, script.stamp_url, script, parent, fake_status)
+        elif script_method == ScriptMethodEnum.htcondor:
+            status = await self._check_htcondor_job(session, script.stamp_url, script, parent, fake_status)
         if status == StatusEnum.failed:
-            if not script.log_url:
+            if not script.log_url:  # pragma: no cover
                 raise CMMissingNodeUrlError(f"log_url is not set for {script}")
             diagnostic_message = await self._get_diagnostic_message(script.log_url)
             _new_error = await ScriptError.create_row(
@@ -622,7 +619,7 @@ class FunctionHandler(BaseScriptHandler):
         script_method = script.method
         if script_method is ScriptMethodEnum.default:
             script_method = self.default_method
-        if script_method != ScriptMethodEnum.no_script:
+        if script_method != ScriptMethodEnum.no_script:  # pragma: no cover
             raise CMBadExecutionMethodError(f"ScriptMethodEnum.no_script must be set for {type(self)}")
         status = await self._do_prepare(session, script, parent, **kwargs)
         if status != script.status:
@@ -640,7 +637,7 @@ class FunctionHandler(BaseScriptHandler):
         if script_method == ScriptMethodEnum.default:
             script_method = self.default_method
 
-        if script_method != ScriptMethodEnum.no_script:
+        if script_method != ScriptMethodEnum.no_script:  # pragma: no cover
             raise CMBadExecutionMethodError(f"ScriptMethodEnum.no_script must be set for {type(self)}")
         status = await self._do_run(session, script, parent, **kwargs)
         if status != script.status:
@@ -658,7 +655,7 @@ class FunctionHandler(BaseScriptHandler):
         if script_method == ScriptMethodEnum.default:
             script_method = self.default_method
 
-        if script_method != ScriptMethodEnum.no_script:
+        if script_method != ScriptMethodEnum.no_script:  # pragma: no cover
             raise CMBadExecutionMethodError(f"ScriptMethodEnum.no_script must be set for {type(self)}")
         status = await self._do_check(session, script, parent, **kwargs)
         if status != script.status:

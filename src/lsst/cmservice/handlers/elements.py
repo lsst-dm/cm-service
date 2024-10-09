@@ -113,9 +113,9 @@ class RunJobsScriptHandler(RunElementScriptHandler):
         slurm_id: str,
         script: Script,
         parent: ElementMixin,
-        **kwargs: Any,
+        fake_status: StatusEnum | None = None,
     ) -> StatusEnum:
-        slurm_status = check_slurm_job(slurm_id)
+        slurm_status = check_slurm_job(slurm_id, fake_status=fake_status)
         if slurm_status is None:
             slurm_status = StatusEnum.running
         if slurm_status == StatusEnum.accepted:
@@ -134,8 +134,9 @@ class RunJobsScriptHandler(RunElementScriptHandler):
         **kwargs: Any,
     ) -> StatusEnum:
         jobs = await parent.get_jobs(session, remaining_only=not kwargs.get("force_check", False))
+        fake_status = kwargs.get("fake_status", None)
         for job_ in jobs:
-            job_status = await job_.run_check(session)
+            job_status = await job_.run_check(session, fake_status=fake_status)
             if job_status < StatusEnum.accepted:
                 status = StatusEnum.reviewable  # FIXME
                 await script.update_values(session, status=status)

@@ -68,6 +68,7 @@ def write_htcondor_script(
 
 def submit_htcondor_job(
     htcondor_script_path: str,
+    fake_status: StatusEnum | None = None,
 ) -> None:
     """Submit a  `Script` to htcondor
 
@@ -76,7 +77,12 @@ def submit_htcondor_job(
     htcondor_script_path: str
         Path to the script to submit
 
+    fake_status: StatusEnum | None,
+        If set, don't actually submit the job
+
     """
+    if fake_status is not None:
+        return
     try:
         with subprocess.Popen(
             [
@@ -97,6 +103,7 @@ def submit_htcondor_job(
 
 def check_htcondor_job(
     htcondor_id: str,
+    fake_status: StatusEnum | None = None,
 ) -> StatusEnum:
     """Check the status of a `HTCondor` job
 
@@ -105,11 +112,16 @@ def check_htcondor_job(
     htcondor_id : str
         htcondor job id, in this case the log file from the wrapper script
 
+    fake_status: StatusEnum | None,
+        If set, don't actually check the job and just return fake_status
+
     Returns
     -------
     status: StatusEnum
         HTCondor job status
     """
+    if fake_status is not None:
+        return StatusEnum.reviewable
     try:
         with subprocess.Popen(
             ["condor_q", "-userlog", htcondor_id, "-af", "JobStatus", "ExitCode"],

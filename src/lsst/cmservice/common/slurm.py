@@ -37,6 +37,7 @@ slurm_status_map = {
 def submit_slurm_job(
     script_url: str,
     log_url: str,
+    fake_status: StatusEnum | None = None,
 ) -> str:
     """Submit a  `Script` to slurm
 
@@ -48,11 +49,16 @@ def submit_slurm_job(
     log_url: str
         Location of log file to write
 
+    fake_status: StatusEnum | None,
+        If set, don't actually submit the job
+
     Returns
     -------
     job_id : str
         Slurm job id
     """
+    if fake_status is not None:
+        return "fake_job"
     try:
         with subprocess.Popen(
             [
@@ -85,6 +91,7 @@ def submit_slurm_job(
 
 def check_slurm_job(
     slurm_id: str | None,
+    fake_status: StatusEnum | None = None,
 ) -> StatusEnum | None:
     """Check the status of a `Slurm` job
 
@@ -93,6 +100,9 @@ def check_slurm_job(
     slurm_id : str
         Slurm job id
 
+    fake_status: StatusEnum | None,
+        If set, don't actually check the job and just return fake_status
+
     Returns
     -------
     status: StatusEnum | None
@@ -100,6 +110,8 @@ def check_slurm_job(
     """
     if slurm_id is None:
         return None
+    if fake_status is not None:
+        return StatusEnum.reviewable
     try:
         with subprocess.Popen(["sacct", "--parsable", "-b", "-j", slurm_id], stdout=subprocess.PIPE) as sacct:
             sacct.wait()
