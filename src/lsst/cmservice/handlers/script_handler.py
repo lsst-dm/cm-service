@@ -55,7 +55,7 @@ class BaseScriptHandler(Handler):
                     session,
                     script_id=node.id,
                     source=ErrorSourceEnum.cmservice,
-                    diagnostic_message=msg,
+                    diagnostic_message=str(msg),
                 )
                 status = StatusEnum.failed
         if status == StatusEnum.prepared:

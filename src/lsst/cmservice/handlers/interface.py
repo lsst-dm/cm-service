@@ -1246,7 +1246,7 @@ async def load_specification(
     yaml_file: str,
     *,
     allow_update: bool = False,
-) -> db.Specification:
+) -> db.Specification | None:
     """Load a Specification from a yaml file
 
     Parameters
@@ -1266,7 +1266,6 @@ async def load_specification(
         Newly created `Specification`
     """
     result = await functions.load_specification(session, yaml_file, {}, allow_update=allow_update)
-    assert result  # for mypy
     return result
 
 
