@@ -474,6 +474,7 @@ class ScriptHandler(BaseScriptHandler):
         if script_method == ScriptMethodEnum.bash:
             run_bash_job(script.script_url, script.log_url, **kwargs)
             status = StatusEnum.running
+            await script.update_values(session, stamp_url=script.log_url, status=status)
         elif script_method == ScriptMethodEnum.slurm:
             job_id = submit_slurm_job(script.script_url, script.log_url, **kwargs)
             status = StatusEnum.running
