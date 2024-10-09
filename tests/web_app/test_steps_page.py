@@ -79,19 +79,19 @@ def test_steps_page() -> None:
         # check the campaign has 12 steps
         expect(page.locator(".step-card")).to_have_count(14)
         # check the first step card has a full width progress bar with green bg
-        expect(page.locator(".step-card").first.filter(has=page.locator(".w-full"))).not_to_be_empty()
         expect(page.locator(".step-card").first.filter(has=page.locator(".bg-green-500"))).not_to_be_empty()
+        expect(page.locator(".bg-green-500").first).to_have_attribute("style", "width: 101%")
         # check campaign name is correct
         expect(page.get_by_text("w_2024_26_DM-45061", exact=True)).not_to_be_empty()
         # check clicking the first step name opens step details page
-        page.get_by_role("link", name="step1").click()
+        page.get_by_role("link", name="step1", exact=True).click()
         expect(page).to_have_url("http://0.0.0.0:8080/web_app/campaign/4/29/")
         # check clicking campaign name breadcrumb
         # in step details opens step list page
         page.get_by_role("link", name="w_2024_26_DM-45061").click()
         expect(page).to_have_url("http://0.0.0.0:8080/web_app/campaign/4/steps/")
         # check clicking production name opens campaigns page
-        page.get_by_role("link", name="HSC_DRP-RC2").click()
+        page.get_by_role("link", name="HSC_DRP-RC2", exact=True).click()
         expect(page).to_have_url("http://0.0.0.0:8080/web_app/campaigns/")
         # context.tracing.stop(path="trace2.zip")
         context.close()

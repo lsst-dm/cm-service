@@ -2,11 +2,12 @@
 {% block title %} Step Details {% endblock %}
 {% block content %}
 {% set fullname = step.fullname.split('/') %}
+{% set no_status_groups = step.no_groups - step.no_groups_failed - step.no_groups_need_attention - step.no_groups_completed %}
 <nav class="flex px-2 sm:px-4 lg:px-4" aria-label="Breadcrumb">
   <ol role="list" class="flex items-center space-x-2">
     <li>
       <div class="flex items-center">
-        <a href="{{ url_for('get_campaigns')}}" class="ml-2 text-sm font-medium text-gray-500 hover:text-gray-700">{{ fullname[0] }}</a>
+        <a href="{{ url_for('get_campaigns')}}" class="underline decoration-2 ml-2 text-sm font-medium text-gray-500 hover:text-gray-700">{{ fullname[0] }}</a>
       </div>
     </li>
     <li>
@@ -14,7 +15,7 @@
         <svg class="h-5 w-5 flex-shrink-0 text-gray-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
           <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
         </svg>
-        <a href="{{ url_for('get_steps', campaign_id=campaign_id) }}" class="ml-2 text-sm font-medium text-gray-500 hover:text-gray-700" aria-current="page">{{ fullname[1] }}</a>
+        <a href="{{ url_for('get_steps', campaign_id=campaign_id) }}" class="underline decoration-2 ml-2 text-sm font-medium text-gray-500 hover:text-gray-700" aria-current="page">{{ fullname[1] }}</a>
       </div>
     </li>
   </ol>
@@ -45,20 +46,33 @@
             <div class="block text-sm">{{key}}: {{value}}</div>
             {% endfor %}
         </div>
+        {% if step.no_groups != 0 %}
         <div class="flex pt-2">
-            {% if step.no_groups_completed == step.no_groups %}
-            <div class="bg-green-500 h-5 w-full"></div>
-            {% elif step.no_groups_need_attention == step.no_groups %}
-            <div class="bg-yellow-300 w-full h-5"></div>
-            {% elif step.no_groups_failed == step.no_groups %}
-            <div class="bg-red-600 w-full h-5"></div>
-            {% else %}
-            <div class="bg-green-500 h-5 w-{{(step.no_groups_completed * 12 / step.no_groups)|round|int}}/12"></div>
-            <div class="bg-yellow-300 w-{{(step.no_groups_need_attention * 12 / step.no_groups)|round|int}}/12 h-5"></div>
-            <div class="bg-red-600 w-{{(step.no_groups_failed * 12 / step.no_groups)|round|int}}/12 h-5"></div>
-            {% endif %}
+            <div class="has-tooltip bg-green-500 h-5
+                {% if step.no_groups_completed == 0 %}hidden{%endif%}"
+                 style="width: {{ '{:.0%}'.format((step.no_groups_completed/step.no_groups) + 0.01) }}">
+                <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Completed</span>
+                <span class="text-xs">{{step.no_groups_completed}}</span>
+            </div>
+            <div class="has-tooltip bg-yellow-300 h-5
+                {% if step.no_groups_need_attention == 0 %}hidden{%endif%}"
+                 style="width: {{ '{:.0%}'.format((step.no_groups_need_attention/step.no_groups) + 0.01) }}">
+                <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Need Attention</span>
+                <span class="text-xs">{{step.no_groups_need_attention}}</span>
+            </div>
+            <div class="has-tooltip bg-red-600 h-5
+                {% if step.no_groups_failed == 0 %}hidden{%endif%}"
+                 style="width: {{ '{:.0%}'.format((step.no_groups_failed/step.no_groups) + 0.01) }}">
+                <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Failed</span>
+                <span class="text-xs">{{step.no_groups_failed}}</span>
+            </div>
+            <div class="bg-gray-100 h-5
+                {% if no_status_groups == 0 %}hidden{%endif%}"
+                 style="width: {{ '{:.0%}'.format((no_status_groups/step.no_groups) + 0.01) }}">
+            </div>
         </div>
-        <div class="flex items-center text-xs font-normal">{{step.no_groups}} Groups ({{step.no_groups_completed}} FINISHED, {{step.no_groups_need_attention}} NEED ATTENTION, {{step.no_groups_failed}} FAILED)</div>
+        <div class="items-center text-xs font-normal">{{step.no_groups}} Groups ({{step.no_groups_completed}} FINISHED, {{step.no_groups_need_attention}} NEED ATTENTION, {{step.no_groups_failed}} FAILED)</div>
+        {% endif %}
     </div>
     <div class="w-full px-4 py-5 sm:p-6">
         <div class="flex items-center">
@@ -83,7 +97,7 @@
        let groupName = document.createElement('a');
        groupName.textContent = params.data.name;
        groupName.href = `{{url_for("get_group", campaign_id=campaign_id, step_id=step.id, group_id="${params.data.id}")}}`;
-       groupName.setAttribute('class', 'font-bold hover:text-gray-500');
+       groupName.setAttribute('class', 'font-bold text-teal-700 underline underline-offset-4 decoration-2 hover:text-gray-500');
        this.eGui = document.createElement('span');
        this.eGui.appendChild(groupName)
      }
@@ -104,7 +118,7 @@
        let scriptName = document.createElement('a');
        scriptName.textContent = params.data.name;
        scriptName.href = `{{url_for("get_script", campaign_id=campaign_id, step_id=step.id, script_id="${params.data.id}")}}`;
-       scriptName.setAttribute('class', 'font-bold hover:text-gray-500');
+       scriptName.setAttribute('class', 'font-bold text-teal-700 underline underline-offset-4 decoration-2 hover:text-gray-500');
        this.eGui = document.createElement('span');
        this.eGui.appendChild(scriptName)
      }
