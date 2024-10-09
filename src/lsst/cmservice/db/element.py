@@ -223,11 +223,11 @@ class ElementMixin(NodeMixin):
             all_jobs = await self.get_jobs(session)
         for job_ in all_jobs:
             if job_.status == StatusEnum.running:
-                sleep_time = max(job_sleep, sleep_time)
+                sleep_time = min(job_sleep, sleep_time)
         all_scripts = await self.get_all_scripts(session)
         for script_ in all_scripts:
             if script_.status == StatusEnum.running:
-                sleep_time = max(script_sleep, sleep_time)
+                sleep_time = min(script_sleep, sleep_time)
         return sleep_time
 
     async def get_wms_reports(
