@@ -288,12 +288,14 @@ class NodeMixin(RowMixin):
 
         if self.level == LevelEnum.script:
             parent_ = await self.get_parent(session)
-            parent_colls = await parent_.get_collections(session)
-            ret_dict.update(parent_colls)
+            if parent_:
+                parent_colls = await parent_.get_collections(session)
+                ret_dict.update(parent_colls)
         elif self.level.value > LevelEnum.campaign.value:
             parent = await self.get_parent(session)
-            parent_colls = await parent.get_collections(session)
-            ret_dict.update(parent_colls)
+            if parent:
+                parent_colls = await parent.get_collections(session)
+                ret_dict.update(parent_colls)
         spec_block = await self.get_spec_block(session)
         if spec_block.collections:
             ret_dict.update(spec_block.collections)
@@ -361,12 +363,14 @@ class NodeMixin(RowMixin):
         ret_dict = {}
         if self.level == LevelEnum.script:
             parent_ = await self.get_parent(session)
-            parent_data = await parent_.data_dict(session)
-            ret_dict.update(parent_data)
+            if parent_:
+                parent_data = await parent_.data_dict(session)
+                ret_dict.update(parent_data)
         elif self.level.value > LevelEnum.campaign.value:
             parent = await self.get_parent(session)
-            parent_data = await parent.data_dict(session)
-            ret_dict.update(parent_data)
+            if parent:
+                parent_data = await parent.data_dict(session)
+                ret_dict.update(parent_data)
         spec_block = await self.get_spec_block(session)
         if spec_block.data:
             ret_dict.update(spec_block.data)
@@ -401,8 +405,9 @@ class NodeMixin(RowMixin):
             raise NotImplementedError
         if self.level.value > LevelEnum.campaign.value:
             parent = await self.get_parent(session)
-            parent_data = await parent.get_spec_aliases(session)
-            ret_dict.update(parent_data)
+            if parent:
+                parent_data = await parent.get_spec_aliases(session)
+                ret_dict.update(parent_data)
         spec_block = await self.get_spec_block(session)
         if spec_block.spec_aliases:
             ret_dict.update(spec_block.spec_aliases)
@@ -607,7 +612,6 @@ class NodeMixin(RowMixin):
             await session.refresh(self, attribute_names=["prereqs_"])
         except Exception:  # pylint: disable=broad-exception-caught
             return True
-        print(f"N prereq {len(self.prereqs_)}")
         for prereq_ in self.prereqs_:
             is_done = await prereq_.is_done(session)
             if not is_done:
