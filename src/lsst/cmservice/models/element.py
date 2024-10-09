@@ -47,7 +47,7 @@ class ElementMixin(ElementBase):
     id: int
 
     # ForeignKey for Parent Node
-    parent_id: int
+    parent_id: int | None
 
     # Full unique name for this Node
     fullname: str
