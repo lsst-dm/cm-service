@@ -1,10 +1,10 @@
 Production:
     name: PDR2-ApPipe
 Campaign:
-    name: DM-46140_20241009run1
+    name: DM-46140_w_2024_38_run2
     spec_name: PDR2-ApPipe_panda
     collections:
-        out: 'u/sierrav/DM-46140_20241009run1'
+        out: 'u/sierrav/DM-46140_w_2024_38_run2'
     data:
         lsst_version: w_2024_38
         prod_area: 'output/archive'
