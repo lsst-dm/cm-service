@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from copy import deepcopy
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -33,6 +35,7 @@ class MergedProductSet(BaseModel):
         self.n_failed_upstream = other.n_failed_upstream
         self.n_missing = other.n_missing
         self.n_done += other.n_done
+        self.n_expected = self.n_failed + self.n_failed_upstream + self.n_missing + self.n_done
         return self
 
 
@@ -46,7 +49,7 @@ class MergedProductSetDict(BaseModel):
             if key in self.reports:
                 self.reports[key] += val
             else:
-                self.reports[key] = val
+                self.reports[key] = deepcopy(val)
         return self
 
     def merge(self, other: MergedProductSetDict) -> MergedProductSetDict:
@@ -58,5 +61,5 @@ class MergedProductSetDict(BaseModel):
             if key in self.reports:
                 self.reports[key].merge(val)
             else:
-                self.reports[key] = val
+                self.reports[key] = deepcopy(val)
         return self

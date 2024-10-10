@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from copy import deepcopy
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -49,5 +51,5 @@ class MergedWmsTaskReportDict(BaseModel):
             if key in self.reports:
                 self.reports[key] += val
             else:
-                self.reports[key] = val
+                self.reports[key] = deepcopy(val)
         return self
