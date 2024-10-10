@@ -322,7 +322,7 @@ async def get_resolved_collections(
     CMMissingFullnameError : No such element was found
     """
     row = await get_node_by_fullname(session, fullname)
-    return await row.resolve_collections(session)
+    return await row.resolve_collections(session, throw_overrides=False)
 
 
 async def get_collections(

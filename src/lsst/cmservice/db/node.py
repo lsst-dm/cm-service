@@ -195,6 +195,8 @@ class NodeMixin(RowMixin):
     async def resolve_collections(
         self,
         session: async_scoped_session,
+        *,
+        throw_overrides: bool = True,
     ) -> dict:
         """Resolve the collections for a particular node
 
@@ -209,6 +211,9 @@ class NodeMixin(RowMixin):
         ----------
         session : async_scoped_session
             DB session manager
+
+        throw_overrides : bool
+            If true, raise exception if MUST_OVERRIDE is present
 
         Returns
         -------
@@ -246,12 +251,13 @@ class NodeMixin(RowMixin):
                     raise CMResolveCollectionsError(
                         f"Failed to resolve collection {name_}, {f1} using: {name_dict!s}",
                     ) from msg
-        for key, value in resolved_collections.items():
-            if "MUST_OVERRIDE" in value:
-                raise CMResolveCollectionsError(
-                    f"Attempts to resolve {key} collection includes MUST_OVERRIDE. Make sure to provide "
-                    "necessary collection names."
-                )
+        if throw_overrides:
+            for key, value in resolved_collections.items():
+                if "MUST_OVERRIDE" in value:
+                    raise CMResolveCollectionsError(
+                        f"Attempts to resolve {key} collection includes MUST_OVERRIDE. Make sure to provide "
+                        "necessary collection names."
+                    )
         return resolved_collections
 
     async def get_collections(

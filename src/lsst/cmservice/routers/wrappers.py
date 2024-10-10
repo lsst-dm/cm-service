@@ -570,7 +570,7 @@ def get_node_resolved_collections_function(
         try:
             async with session.begin():
                 the_node = await db_class.get_row(session, row_id)
-                the_dict = await the_node.resolve_collections(session)
+                the_dict = await the_node.resolve_collections(session, throw_overrides=False)
             return the_dict
         except CMMissingIDError as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
