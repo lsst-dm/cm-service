@@ -50,7 +50,7 @@ test: export CM_DATABASE_URL=postgresql://cm-service@localhost:${CM_DATABASE_POR
 test: export CM_DATABASE_PASSWORD=INSECURE-PASSWORD
 test: export CM_DATABASE_SCHEMA=cm_service_test
 test: run-compose
-	pytest -vvv --cov=lsst.cmservice --cov-branch --cov-report=term --cov-report=html ${PYTEST_ARGS}
+	pytest -vvv --asyncio-mode=auto --cov=lsst.cmservice --cov-branch --cov-report=term --cov-report=html ${PYTEST_ARGS}
 
 .PHONY: test-usdf-dev
 test-usdf-dev: CM_DATABASE_HOST=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get svc/cm-pg-lb -o jsonpath='{..ingress[0].ip}')
