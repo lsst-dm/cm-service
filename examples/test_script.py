@@ -5,6 +5,7 @@ import os
 dry_run = False
 
 prod_dict = {
+    "trivial": "trivial",
     "HSC_DRP-Prod": "HSC_DRP-Prod",
     "HSC_DRP-RC2": "HSC_DRP-RC2",
     "HSC_DRP-RC2_subset": "HSC_DRP-RC2_subset",
