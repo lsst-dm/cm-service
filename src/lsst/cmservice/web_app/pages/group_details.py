@@ -56,7 +56,7 @@ async def get_group_by_id(
 
                 aggregated_report_dict["expected"] = sum(aggregated_report_dict.values())
 
-            collections = await group.resolve_collections(session)
+            collections = await group.resolve_collections(session, throw_overrides=False)
             jobs = await get_group_jobs(session, group)
             scripts = await get_group_scripts(session, group)
             group_details = {

@@ -9,7 +9,7 @@ from lsst.cmservice.web_app.utils.utils import map_status
 
 
 async def get_campaign_details(session: async_scoped_session, campaign: Campaign) -> dict:
-    collections = await campaign.resolve_collections(session)
+    collections = await campaign.resolve_collections(session, throw_overrides=False)
     groups = await get_campaign_groups(session, campaign)
     no_groups_completed = len([group for group in groups if group.status == StatusEnum.accepted])
     need_attention_groups = [

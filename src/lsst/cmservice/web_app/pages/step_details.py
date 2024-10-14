@@ -12,7 +12,7 @@ async def get_step_details_by_id(
     step_id: int,
 ) -> tuple[Any, list[dict[Any, Any]], list[dict[Any, Any]]]:
     step = await Step.get_row(session, step_id)
-    collections = await step.resolve_collections(session)
+    collections = await step.resolve_collections(session, throw_overrides=False)
     step_details = await get_step_details(session, step)
     # get step dicts
     step_details["collections"] = {key: collections[key] for key in collections if key.startswith("step_")}

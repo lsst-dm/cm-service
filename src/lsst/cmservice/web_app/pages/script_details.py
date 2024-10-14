@@ -48,7 +48,7 @@ async def get_script_by_id(
                         if job_id is None:
                             job_id = await get_job_id_by_fullname(session, "/".join(fullname[:5]))
 
-            collections = await script.resolve_collections(session)
+            collections = await script.resolve_collections(session, throw_overrides=False)
             filtered_collections = dict(
                 filter(
                     lambda collection: is_script_collection(collection),

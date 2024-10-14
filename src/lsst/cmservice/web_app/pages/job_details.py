@@ -52,7 +52,7 @@ async def get_job_by_id(
             products_dict = await job.get_products(session)
             products = [y.__dict__ for y in products_dict.reports.values()]
 
-            collections = await job.resolve_collections(session)
+            collections = await job.resolve_collections(session, throw_overrides=False)
             scripts = await get_job_scripts(session, job)
             job_details = {
                 "id": job.id,
