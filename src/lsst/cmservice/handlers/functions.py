@@ -227,7 +227,7 @@ async def load_specification(
     loaded_specs: dict | None = None,
     *,
     allow_update: bool = False,
-) -> Specification:
+) -> Specification | None:
     """Load Specification, SpecBlock, and ScriptTemplate objects from a yaml
     file, including from files referenced by Include blocks. Return the last
     Specification object in the file.
@@ -257,11 +257,6 @@ async def load_specification(
     specification = None
     with open(yaml_file, encoding="utf-8") as fin:
         spec_data = yaml.safe_load(fin)
-
-    block_types = [list(entry.keys())[0] for entry in spec_data]
-
-    if "Specification" not in block_types:
-        raise CMYamlParseError("Yaml file must contain a Specification object.")
 
     for config_item in spec_data:
         if "Imports" in config_item:
@@ -295,9 +290,6 @@ async def load_specification(
         else:
             good_keys = "ScriptTemplate | SpecBlock | Specification | Imports"
             raise CMYamlParseError(f"Expecting one of {good_keys} not: {spec_data.keys()})")
-
-    if not specification:
-        raise CMYamlParseError("Specification was not loaded.")
 
     return specification
 
