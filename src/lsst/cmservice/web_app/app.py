@@ -267,3 +267,39 @@ async def test_layout(request: Request) -> HTMLResponse:
 @web_app.get("/test-ag-grid/", response_class=HTMLResponse)
 async def test_table(request: Request) -> HTMLResponse:
     return templates.TemplateResponse("test_ag_grid.html", {"request": request})
+
+
+@web_app.get("/campaigns-htmx", response_class=HTMLResponse)
+async def campaigns_htmx(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse("campaigns_toplevel_htmx.html", {"request": request})
+
+
+@web_app.get("/campaigns-content-htmx", response_class=HTMLResponse)
+async def get_campaigns_htmx(
+    request: Request,
+    session: async_scoped_session = Depends(db_session_dependency),
+) -> HTMLResponse:
+    try:
+        async with session.begin():
+            production_list = {}
+            productions = await db.Production.get_rows(session)
+            for p in productions:
+                children = await p.children(session)
+                production_campaigns = []
+                for c in children:
+                    campaign_details = await get_campaign_details(session, c)
+                    production_campaigns.append(campaign_details)
+                production_list[p.name] = production_campaigns
+
+        return templates.TemplateResponse(
+            name="campaigns_content_htmx.html",
+            request=request,
+            context={
+                "recent_campaigns": None,
+                "productions": production_list,
+            },
+        )
+    except Exception as e:
+        print(e)
+        traceback.print_tb(e.__traceback__)
+        return templates.TemplateResponse(f"Something went wrong:  {e}")

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %} Campaigns htmx {% endblock %}
+{% block content %}
+<div class="px-4 sm:px-6 lg:px-8">
+    <form method="post">
+    <div class="relative mt-2 inline-flex">
+        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-teal-600">
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+            </svg>
+        </div>
+        <input name="search_term" id="search" class="block bg-teal-50 border-0 py-1.5 pl-10 text-teal-600 ring-1 ring-inset ring-teal-600 placeholder:text-teal-500 sm:text-sm sm:leading-6" placeholder="Search Campaigns">
+        <span class="pl-3 uppercase text-teal-600 text-sm leading-8 font-mono drop-shadow-xl">+ new production</span>
+    </div>
+    </form>
+</div>
+<div hx-get="{{ url_for('get_campaigns_htmx') }}" hx-trigger="load, every 10s">
+</div>
+{% endblock %}
