@@ -41,10 +41,10 @@ class Queue(Base, NodeMixin):
     g_id: Mapped[int | None] = mapped_column(ForeignKey("group.id", ondelete="CASCADE"), index=True)
     j_id: Mapped[int | None] = mapped_column(ForeignKey("job.id", ondelete="CASCADE"), index=True)
 
-    c_: Mapped[Campaign] = relationship("Campaign")
-    s_: Mapped[Step] = relationship("Step")
-    g_: Mapped[Group] = relationship("Group")
-    j_: Mapped[Job] = relationship("Job")
+    c_: Mapped[Campaign] = relationship("Campaign", lazy="joined")
+    s_: Mapped[Step] = relationship("Step", lazy="joined")
+    g_: Mapped[Group] = relationship("Group", lazy="joined")
+    j_: Mapped[Job] = relationship("Job", lazy="joined")
 
     col_names_for_table = [
         "id",
@@ -55,7 +55,13 @@ class Queue(Base, NodeMixin):
         "time_next_check",
     ]
 
-    def __init__(self, element, time_created, time_updated, time_finished=None):
+    def __init__(
+        self,
+        element: ElementMixin,
+        time_created: datetime,
+        time_updated: datetime,
+        time_finished: datetime | None = None,
+    ):
         self.time_created = time_created
         self.time_updated = time_updated
         self.time_finished = time_finished
@@ -69,14 +75,14 @@ class Queue(Base, NodeMixin):
         elif isinstance(element, Job):
             self.j_ = element
         else:
-            assert ValueError
+            assert ValueError("element must be a Campaign, Step, Group, or Job")
 
     @hybrid_property
     def element_db_id(self) -> DbId:
         """Returns DbId"""
         return DbId(self.get_element_level(), self.get_element().id)
 
-    def get_element_level(self):
+    def get_element_level(self) -> LevelEnum:
         if self.c_:
             return LevelEnum.campaign
         elif self.s_:
@@ -86,9 +92,9 @@ class Queue(Base, NodeMixin):
         elif self.j_:
             return LevelEnum.job
         else:
-            assert ValueError
+            raise ValueError("Queue entry has no element reference")
 
-    async def get_element(
+    def get_element(
         self,
     ) -> ElementMixin:
         """Get the parent `Element`
@@ -112,7 +118,7 @@ class Queue(Base, NodeMixin):
         elif self.j_:
             return self.j_
         else:
-            raise ValueError
+            raise ValueError("Queue entry has no element reference")
 
     @classmethod
     async def get_create_kwargs(
@@ -154,7 +160,7 @@ class Queue(Base, NodeMixin):
         session: async_scoped_session,
     ) -> int:
         """Check how long to sleep based on what is running"""
-        element = await self.get_element()
+        element = self.get_element()
         return await element.estimate_sleep_time(session)
 
     def waiting(
@@ -189,7 +195,7 @@ class Queue(Base, NodeMixin):
         session: async_scoped_session,
     ) -> bool:  # pragma: no cover
         """Process associated element and update queue row"""
-        element = await self.get_element()
+        element = self.get_element()
         if not element.status.is_processable_element():
             return False
 
@@ -197,7 +203,7 @@ class Queue(Base, NodeMixin):
         if isinstance(self.options, dict):
             process_kwargs.update(**self.options)
         (_changed, status) = await element.process(session, **process_kwargs)
-        # FIXME, use _chagned to retry
+
         now = datetime.now()
         update_dict = {"time_updated": now}
         if status.is_successful_element():

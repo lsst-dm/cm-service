@@ -1288,6 +1288,8 @@ async def load_specification(
         Newly created `Specification`
     """
     result = await functions.load_specification(session, yaml_file, {}, allow_update=allow_update)
+    if result is None:
+        raise ValueError("load_specification() did not return a Specification")
     return result
 
 
@@ -1325,6 +1327,9 @@ async def load_and_create_campaign(  # pylint: disable=too-many-arguments
     """
     allow_update = kwargs.get("allow_update", False)
     specification = await functions.load_specification(session, yaml_file, allow_update=allow_update)
+
+    if specification is None:
+        raise ValueError("load_specification() did not return a Specification")
 
     try:
         await db.Production.create_row(session, name=parent_name)
