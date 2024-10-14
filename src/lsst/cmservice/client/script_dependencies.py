@@ -17,6 +17,8 @@ if TYPE_CHECKING:
 ResponseModelClass = models.Dependency
 # Specify the pydantic model from making new Groups
 CreateModelClass = models.DependencyCreate
+# Specify the pydantic model from updating rows
+UpdateModelClass = models.DependencyUpdate
 # Specify the associated database table
 DbClass = db.ScriptDependency
 
@@ -52,6 +54,7 @@ class CMScriptDependencyClient:
 
     update = wrappers.update_row_function(
         ResponseModelClass,
+        UpdateModelClass,
         f"{router_string}/update",
     )
 

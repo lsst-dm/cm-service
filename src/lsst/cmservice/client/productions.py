@@ -17,6 +17,8 @@ if TYPE_CHECKING:
 ResponseModelClass = models.Production
 # Specify the pydantic model from making new Production
 CreateModelClass = models.ProductionCreate
+# Specify the pydantic model from updating rows
+UpdateModelClass = models.ProductionUpdate
 # Specify the associated database table
 DbClass = db.Production
 
@@ -55,6 +57,7 @@ class CMProductionClient:
 
     update = wrappers.update_row_function(
         ResponseModelClass,
+        UpdateModelClass,
         f"{router_string}/update",
     )
 
