@@ -61,7 +61,7 @@ def first_campaign(
         status=StatusEnum.accepted,
     )
 
-    async def mock_resolve_collections(mock_session: Mock) -> dict:
+    async def mock_resolve_collections(mock_session: Mock, throw_overrides) -> dict:
         return mock_collections
 
     async def mock_get_all_scripts(mock_session: Mock) -> list:
