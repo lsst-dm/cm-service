@@ -7,7 +7,14 @@ import click
 from click.decorators import FC
 
 from ..client.client import CMClient
-from ..common.enums import ErrorActionEnum, ErrorFlavorEnum, ErrorSourceEnum, NodeTypeEnum, StatusEnum
+from ..common.enums import (
+    ErrorActionEnum,
+    ErrorFlavorEnum,
+    ErrorSourceEnum,
+    LevelEnum,
+    NodeTypeEnum,
+    StatusEnum,
+)
 
 __all__ = [
     "cmclient",
@@ -251,6 +258,11 @@ fake_status = PartialOption(
     help="Status to set for Element",
 )
 
+element_level = PartialOption(
+    "--element_level",
+    type=EnumChoice(LevelEnum),
+    help="Element level",
+)
 
 error_action = PartialOption(
     "--error_action",

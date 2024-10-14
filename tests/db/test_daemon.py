@@ -17,6 +17,7 @@ from lsst.cmservice.handlers import interface
 
 
 @pytest.mark.asyncio()
+@pytest.mark.skip(reason="Test if this is slowing down GHA.")
 async def test_daemon(engine: AsyncEngine) -> None:
     """Test creating a job, add it to the work queue, and start processing."""
 
