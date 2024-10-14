@@ -1,7 +1,10 @@
 """CLI to manage Queue table"""
 
+import click
+
 from .. import db
 from ..client.client import CMClient
+from ..common.enums import LevelEnum
 from . import options, wrappers
 from .commands import queue_group
 
@@ -59,3 +62,23 @@ def daemon(
 ) -> None:
     """Update a production"""
     client.queue.daemon(row_id)
+
+
+@queue_group.command(name="add")
+@options.cmclient()
+@options.fullname()
+@options.row_id()
+@options.element_level(required=True)
+def add_entry(
+    client: CMClient,
+    *,
+    fullname: str | None = None,
+    row_id: int | None = None,
+    element_level: LevelEnum,
+) -> None:
+    """Add an element to the queue."""
+
+    if (fullname is None) and (row_id is None):
+        raise click.UsageError("Must supply either fullname or row_id but not both.")
+
+    client.queue.add_entry(element_level=element_level, fullname=fullname, row_id=row_id)
