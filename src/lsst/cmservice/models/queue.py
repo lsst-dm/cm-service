@@ -22,7 +22,13 @@ class QueueCreate(QueueBase):
     """Parameters that are used to create new rows but not in DB tables"""
 
     # Fullname of associated Element
-    fullname: str
+    fullname: str | None = None
+
+    # Id of element to add
+    element_id: int
+
+    # Which type of element to add
+    element_level: int | None = None
 
 
 class Queue(QueueBase):
@@ -33,15 +39,14 @@ class Queue(QueueBase):
     # PrimaryKey
     id: int
 
-    # element_level: int  #FIXME (for now this defaults to campaign)
-    element_id: int
-
     # When this was added to Queue
     time_created: datetime
     # Time last call to process finished
     time_updated: datetime
     # When processing of this element completed
     time_finished: datetime | None = None
+    # When to next check this entry
+    time_next_check: datetime | None = None
 
 
 class QueueUpdate(QueueBase):
