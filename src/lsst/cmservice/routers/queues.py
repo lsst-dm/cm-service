@@ -1,10 +1,13 @@
 """http routers for managing Queue tables"""
 
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException
 from safir.dependencies.db_session import db_session_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from .. import db, models
+from ..common.enums import LevelEnum
 from ..common.errors import CMMissingIDError
 from . import wrappers
 
@@ -39,6 +42,34 @@ post_row = wrappers.post_row_function(
 )
 delete_row = wrappers.delete_row_function(router, DbClass)
 update_row = wrappers.put_row_function(router, ResponseModelClass, UpdateModelClass, DbClass)
+
+
+@router.post(
+    "",
+    response_model=bool,
+    summary="Add element to the queue",
+)
+async def add_entry(
+    entry: models.QueueCreate,
+    session: async_scoped_session = Depends(db_session_dependency),
+) -> bool:
+    db_element: db.Campaign | db.Step | db.Group | db.Job
+    if entry.element_level == LevelEnum.campaign.value:
+        db_element = await db.Campaign.get_row(session, entry.element_id)
+    elif entry.element_level == LevelEnum.step.value:
+        db_element = await db.Step.get_row(session, entry.element_id)
+    elif entry.element_level == LevelEnum.group.value:
+        db_element = await db.Group.get_row(session, entry.element_id)
+    elif entry.element_level == LevelEnum.job.value:
+        db_element = await db.Job.get_row(session, entry.element_id)
+    else:
+        raise HTTPException(status_code=400, detail="Invalid element_level")
+
+    queue_entry = db.Queue(db_element, time_created=datetime.now(), time_updated=datetime.now())
+    session.add(queue_entry)
+    await session.commit()
+
+    return True
 
 
 @router.get(
