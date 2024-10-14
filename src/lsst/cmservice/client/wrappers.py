@@ -192,9 +192,12 @@ def update_row_function(
     ) -> response_model_class:
         params = update_model_class(**kwargs)
         full_query = f"{query}/{row_id}"
-        results = obj.client.put(f"{full_query}", content=params.json()).json()
+        results = obj.client.put(f"{full_query}", content=params.json())
+        if results.status_code != 200:
+            raise ValueError(f"Server returned {results} on PUT call to {full_query}.")
+
         try:
-            return parse_obj_as(response_model_class, results)
+            return parse_obj_as(response_model_class, results.json())
         except ValidationError as msg:
             print(results)
             raise ValueError(f"Bad response: {results}") from msg
