@@ -61,7 +61,7 @@ def first_campaign(
         status=StatusEnum.accepted,
     )
 
-    async def mock_resolve_collections(mock_session: Mock) -> dict:
+    async def mock_resolve_collections(mock_session: Mock, *, throw_overrides: bool) -> dict:
         return mock_collections
 
     async def mock_get_all_scripts(mock_session: Mock) -> list:
@@ -140,9 +140,9 @@ def test_campaigns_page() -> None:
         # check correct campaign name
         expect(page.get_by_text("w_2024_26_DM-45061", exact=True)).not_to_be_empty()
         # check production name
-        expect(page.get_by_role("link", name="HSC_DRP-RC2")).not_to_be_empty()
+        expect(page.get_by_role("link", name="HSC_DRP-RC2", exact=True)).not_to_be_empty()
         # click breadcrumbs
-        page.get_by_role("link", name="HSC_DRP-RC2").click()
+        page.get_by_role("link", name="HSC_DRP-RC2", exact=True).click()
         # make sure it goes back to campaigns page
         expect(page).to_have_url("http://0.0.0.0:8080/web_app/campaigns/")
         # check production 'HSC_DRP-RC2' exists
