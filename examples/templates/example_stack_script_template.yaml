@@ -1,4 +1,4 @@
-text: "#!/usr/bin/env -S -i CM_CONFIGS=\"${CM_CONFIGS}\" HOME=\"${HOME}\" bash\n
+text: "#!/usr/bin/env -S CM_CONFIGS=\"${CM_CONFIGS}\" HOME=\"${HOME}\" bash\n
 
 # The shebang lines above are needed b/c setup lsst_distrib in putting\n
 # the lsst python _after_ the virtual env python in the PATH, which\n
