@@ -19,7 +19,7 @@
                 spec_block: run_jobs
       child_config:
           spec_block: trivial_job
-# Trivial Step Template, runs a step with nothiing except the script to make groups
+# Trivial Step Template, runs a step with nothing except the script to make groups
 - SpecBlock:
       name: trivial_step
       handler: lsst.cmservice.handlers.element_handler.ElementHandler
@@ -29,7 +29,7 @@
                 spec_block: run_groups
       child_config:
           spec_block: trivial_group
-# Trivial campaign, runs a campaign with nothiing except the script to make steps
+# Trivial campaign, runs a campaign with nothing except the script to make steps
 - SpecBlock:
       name: trivial_campaign_base
       handler: lsst.cmservice.handlers.element_handler.CampaignHandler
