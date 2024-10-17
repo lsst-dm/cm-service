@@ -1,0 +1,16 @@
+{% set fullname = campaign.fullname.split('/') %}
+<nav class="flex px-2 sm:px-4 lg:px-6" aria-label="Breadcrumb">
+  <ol role="list" class="flex items-center space-x-2">
+    <li>
+      <div class="flex items-center">
+        <a href="{{ url_for('campaigns_htmx')}}" class="underline decoration-2 ml-2 text-sm font-medium text-gray-500 hover:text-gray-700">{{ fullname[0] }}</a>
+      </div>
+    </li>
+  </ol>
+</nav>
+<div class="text-2xl font-bold px-4 pt-5 sm:px-6 lg:px-8">{{ campaign.name }}</div>
+<div class="w-1/2 mt-5 grid grid-cols-1 gap-5 sm:grid-cols-1 px-4 sm:px-6 lg:px-8">
+    {% for step in steps %}
+    {% include "step_card.html" %}
+    {% endfor %}
+</div>
