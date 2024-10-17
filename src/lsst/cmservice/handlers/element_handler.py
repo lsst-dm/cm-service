@@ -153,24 +153,22 @@ class ElementHandler(Handler):
         """
         spec_block = await element.get_spec_block(session)
         spec_aliases = await element.get_spec_aliases(session)
-        if not spec_block.scripts:
-            return (True, StatusEnum.prepared)
 
         script_ids_dict = {}
         prereq_pairs = []
         for script_item in spec_block.scripts:
             try:
                 script_vals = script_item["Script"].copy()
-            except KeyError as msg:
+            except KeyError as msg:  # pragma: no cover
                 raise CMYamlParseError(f"Expected Script tag, found {script_item.keys()}") from msg
-            if not isinstance(script_vals, dict):
+            if not isinstance(script_vals, dict):  # pragma: no cover
                 raise CMYamlParseError(f"Script Tag should be a dict not {script_vals}")
             try:
                 script_name = script_vals.pop("name")
-            except KeyError as msg:
+            except KeyError as msg:  # pragma: no cover
                 raise CMYamlParseError(f"Unnnamed Script block {script_vals}") from msg
             script_spec_block_name = script_vals.get("spec_block", None)
-            if script_spec_block_name is None:
+            if script_spec_block_name is None:  # pragma: no cover
                 raise CMYamlParseError(f"Script block {script_name} does not contain spec_block")
             script_spec_block_name = spec_aliases.get(script_spec_block_name, script_spec_block_name)
             new_script = await Script.create_row(
@@ -258,9 +256,8 @@ class ElementHandler(Handler):
             Status of the processing
         """
         fake_status = kwargs.get("fake_status", None)
-        if fake_status is not None:
-            return (False, fake_status)
-        return (False, element.status)
+        status = fake_status if fake_status is not None else element.status
+        return (False, status)
 
     async def _run_script_checks(
         self,
@@ -380,25 +377,29 @@ class ElementHandler(Handler):
             if scripts_changed or jobs_changed:
                 changed = True
 
-        scripts = await element.get_scripts(session, remaining_only=True)
+        remaining_only = not kwargs.get("force_check", False)
+        status = StatusEnum.accepted
+        scripts = await element.get_scripts(session, remaining_only=remaining_only)
         for script_ in scripts:
-            if script_.status.value <= StatusEnum.accepted.value:
-                status = StatusEnum.running  # FIXME
-                await element.update_values(session, status=status)
-                return (changed, status)
+            status = StatusEnum(min(status.value, script_.status.value))
 
         if element.level != LevelEnum.job:
-            jobs = await element.get_jobs(session, remaining_only=True)
+            jobs = await element.get_jobs(session, remaining_only=remaining_only)
         else:
             jobs = []
         for job_ in jobs:
-            if job_.status.value <= StatusEnum.accepted.value:
-                status = StatusEnum.running  # FIXME, revisit someday
-                await element.update_values(session, status=status)
-                return (changed, status)
+            status = StatusEnum(min(status.value, job_.status.value))
+
+        # if status == StatusEnum.reviewable:
+        #    if kwargs.get('fake_status', StatusEnum.reviewable).value
+        #       > StatusEnum.reviewable.value:
+        #        _, status = await self.review(session, element, **kwargs)
+        if status.value < StatusEnum.accepted.value:
+            status = StatusEnum.running
+            await element.update_values(session, status=status)
+            return (changed, status)
 
         status = await self._post_check(session, element, **kwargs)
-        status = StatusEnum.accepted
         await element.update_values(session, status=status)
         return (True, status)
 
