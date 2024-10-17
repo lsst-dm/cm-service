@@ -40,6 +40,7 @@ build-backend = "setuptools.build_meta"
 parallel = true
 branch = true
 source = ["lsst.cmservice"]
+concurrency = ['greenlet', 'thread']
 
 [tool.coverage.paths]
 source = ["src"]
