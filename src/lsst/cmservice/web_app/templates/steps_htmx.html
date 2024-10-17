@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %} Campaign Steps {% endblock %}
+{% block content %}
+<div hx-get="{{ url_for('get_steps_htmx', campaign_id=campaign_id) }}" hx-trigger="load, every 10s">
+</div>
+{% endblock %}

@@ -303,3 +303,41 @@ async def get_campaigns_htmx(
         print(e)
         traceback.print_tb(e.__traceback__)
         return templates.TemplateResponse(f"Something went wrong:  {e}")
+
+
+@web_app.get("/campaign-htmx/{campaign_id}/steps-htmx/", response_class=HTMLResponse)
+async def steps_htmx(
+    request: Request,
+    campaign_id: int,
+) -> HTMLResponse:
+    return templates.TemplateResponse(
+        name="steps_htmx.html", request=request, context={"campaign_id": campaign_id}
+    )
+
+
+@web_app.get("/campaign_steps_htmx/{campaign_id}", response_class=HTMLResponse)
+async def get_steps_htmx(
+    request: Request,
+    campaign_id: int,
+    session: async_scoped_session = Depends(db_session_dependency),
+) -> HTMLResponse:
+    try:
+        campaign = await get_campaign_by_id(session, campaign_id)
+        steps = await get_campaign_steps(session, campaign_id)
+        campaign_steps = []
+        for step in steps:
+            step_details = await get_step_details(session, step)
+            campaign_steps.append(step_details)
+
+        return templates.TemplateResponse(
+            name="steps_content_htmx.html",
+            request=request,
+            context={
+                "campaign": campaign,
+                "steps": campaign_steps,
+            },
+        )
+    except Exception as e:
+        print(e)
+        traceback.print_tb(e.__traceback__)
+        return templates.TemplateResponse(f"Something went wrong {e}")
