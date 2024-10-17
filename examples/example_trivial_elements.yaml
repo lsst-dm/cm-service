@@ -1,0 +1,42 @@
+# This is an example of the template specification file for the standard cm-service processing setup
+# for 'Elements', i.e., Jobs, Group, Steps, Campaign
+
+# Trivial Job Template, only runs the null script
+- SpecBlock:
+      name: trivial_job
+      handler: lsst.cmservice.handlers.job_handler.JobHandler
+      scripts:
+          - Script:
+                name: null_script
+                spec_block: null_script
+# Trivial Group Template, runs a group using the trivial job
+- SpecBlock:
+      name: trivial_group
+      handler: lsst.cmservice.handlers.element_handler.ElementHandler
+      scripts:
+          - Script:
+                name: run
+                spec_block: run_jobs
+      child_config:
+          spec_block: trivial_job
+# Trivial Step Template, runs a step with nothing except the script to make groups
+- SpecBlock:
+      name: trivial_step
+      handler: lsst.cmservice.handlers.element_handler.ElementHandler
+      scripts:
+          - Script:
+                name: run
+                spec_block: run_groups
+      child_config:
+          spec_block: trivial_group
+# Trivial campaign, runs a campaign with nothing except the script to make steps
+- SpecBlock:
+      name: trivial_campaign_base
+      handler: lsst.cmservice.handlers.element_handler.CampaignHandler
+      collections:
+          out: MUST_OVERRIDE
+          campaign_source: MUST_OVERRIDE
+      scripts:
+          - Script:
+                name: run
+                spec_block: run_steps
