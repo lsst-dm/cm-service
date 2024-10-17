@@ -23,6 +23,7 @@ class TableEnum(enum.Enum):
     specification = 13
     spec_block = 14
     script_template = 15
+    n_tables = 16
 
     def is_node(self) -> bool:
         """Is this a subclass of NodeMixin"""
@@ -70,6 +71,7 @@ class LevelEnum(enum.Enum):
     group = 3
     job = 4
     script = 5
+    n_levels = 6
 
     @staticmethod
     def get_level_from_fullname(fullname: str) -> LevelEnum:
