@@ -29,19 +29,19 @@ async def test_get_group_details_by_id(engine: AsyncEngine) -> None:
         await create_tree(session, LevelEnum.job, uuid_int)
 
         group, group_jobs, group_scripts = await get_group_by_id(session, 1)
-        assert len(group_scripts) == 0
+        assert len(group_scripts) == 2
         assert len(group_jobs) == 1
 
         assert group == {
             "id": 1,
             "name": f"group0_{uuid_int}",
-            "fullname": f"prod0_{uuid_int}/camp0_{uuid_int}/step0_{uuid_int}/group0_{uuid_int}",
+            "fullname": f"prod0_{uuid_int}/camp0_{uuid_int}/step1_{uuid_int}/group0_{uuid_int}",
             "status": "IN_PROGRESS",
             "superseded": False,
             "child_config": {},
             "collections": {
-                "group_output": f"cm/hsc_rc2_micro/step0_{uuid_int}/group0_{uuid_int}",
-                "group_validation": f"cm/hsc_rc2_micro/step0_{uuid_int}/group0_{uuid_int}/validate",
+                "group_output": f"cm/hsc_rc2_micro/step1_{uuid_int}/group0_{uuid_int}",
+                "group_validation": f"cm/hsc_rc2_micro/step1_{uuid_int}/group0_{uuid_int}/validate",
             },
             "data": {},
             "wms_report": [],
@@ -53,7 +53,7 @@ async def test_get_group_details_by_id(engine: AsyncEngine) -> None:
                 "other": 0,
                 "expected": 0,
             },
-            "step_id": 1,
+            "step_id": 2,
             "campaign_id": 1,
         }
 

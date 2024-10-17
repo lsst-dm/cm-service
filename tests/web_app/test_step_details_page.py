@@ -29,14 +29,14 @@ async def test_get_step_details_by_id(engine: AsyncEngine) -> None:
         # intialize a tree down to one level lower
         await create_tree(session, LevelEnum.group, uuid_int)
 
-        step, step_groups, step_scripts = await get_step_details_by_id(session, 1)
-        assert len(step_scripts) == 0
+        step, step_groups, step_scripts = await get_step_details_by_id(session, 2)
+        assert len(step_scripts) == 2
         assert len(step_groups) == 5
 
         assert step == {
-            "id": 1,
-            "name": f"step0_{uuid_int}",
-            "fullname": f"prod0_{uuid_int}/camp0_{uuid_int}/step0_{uuid_int}",
+            "id": 2,
+            "name": f"step1_{uuid_int}",
+            "fullname": f"prod0_{uuid_int}/camp0_{uuid_int}/step1_{uuid_int}",
             "status": "IN_PROGRESS",
             "no_groups": 5,
             "no_groups_completed": 0,
@@ -44,10 +44,10 @@ async def test_get_step_details_by_id(engine: AsyncEngine) -> None:
             "no_groups_failed": 0,
             "child_config": {},
             "collections": {
-                "step_input": f"cm/hsc_rc2_micro/step0_{uuid_int}/input",
-                "step_output": f"cm/hsc_rc2_micro/step0_{uuid_int}_ouput",
-                "step_public_output": f"cm/hsc_rc2_micro/step0_{uuid_int}",
-                "step_validation": f"cm/hsc_rc2_micro/step0_{uuid_int}/validate",
+                "step_input": f"cm/hsc_rc2_micro/step1_{uuid_int}/input",
+                "step_output": f"cm/hsc_rc2_micro/step1_{uuid_int}_ouput",
+                "step_public_output": f"cm/hsc_rc2_micro/step1_{uuid_int}",
+                "step_validation": f"cm/hsc_rc2_micro/step1_{uuid_int}/validate",
             },
             "data": {},
         }

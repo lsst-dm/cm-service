@@ -41,6 +41,8 @@ async def test_error_match(engine: AsyncEngine) -> None:
             **known_error,
         )
 
+        assert e1.fullname == f"{e1.task_name}#{e1.diagnostic_message}", "Bad fullname"
+
         # Assert that the error we just put in the database will match with
         # itself
         assert e1.match(

@@ -339,7 +339,7 @@ class ScriptHandler(BaseScriptHandler):
         status : StatusEnum
             The status of the processing
         """
-        status = await check_stamp_file(stamp_file)
+        status = check_stamp_file(stamp_file)
         if status is None:
             return script.status
         if status != script.status:
@@ -462,7 +462,7 @@ class ScriptHandler(BaseScriptHandler):
                 raise CMMissingNodeUrlError(f"script_url is not set for {script}")
             if not script.log_url:
                 raise CMMissingNodeUrlError(f"log_url is not set for {script}")
-            await run_bash_job(script.script_url, script.log_url)
+            run_bash_job(script.script_url, script.log_url)
             status = StatusEnum.running
         elif script_method == ScriptMethodEnum.slurm:  # pragma: no cover
             if not script.script_url:

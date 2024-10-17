@@ -12,7 +12,14 @@ from lsst.cmservice import db
 from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
 
-from .util_functions import create_tree, delete_all_productions
+from .util_functions import (
+    check_get_methods,
+    check_queue,
+    check_scripts,
+    check_update_methods,
+    create_tree,
+    delete_all_productions,
+)
 
 
 @pytest.mark.asyncio()
@@ -37,6 +44,40 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
                 parent_name=f"prod0_{uuid_int}",
             )
 
+        # explict tests of get_create_kwargs parsing
+        with pytest.raises(errors.CMMissingRowCreateInputError):
+            await db.Campaign.get_create_kwargs(
+                session,
+                parent_name=f"prod0_{uuid_int}",
+                name=f"camp0_{uuid_int}",
+            )
+
+        await db.Campaign.get_create_kwargs(
+            session,
+            parent_name=f"prod0_{uuid_int}",
+            name=f"camp0_{uuid_int}",
+            spec_name="base",
+        )
+
+        with pytest.raises(ValueError):
+            await db.Campaign.get_create_kwargs(
+                session,
+                parent_name=f"prod0_{uuid_int}",
+                name=f"camp0_{uuid_int}",
+                spec_block_assoc_name="bad",
+            )
+
+        await db.Campaign.get_create_kwargs(
+            session,
+            parent_name=f"prod0_{uuid_int}",
+            name=f"camp0_{uuid_int}",
+            spec_block_assoc_name="base#campaign",
+            data=None,
+            child_config=None,
+            collections=None,
+            spec_aliases=None,
+        )
+
         # run row mixin method tests
         check_getall = await db.Campaign.get_rows(
             session,
@@ -45,41 +86,29 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
         )
         assert len(check_getall) == 1, "length should be 1"
 
-        entry = check_getall[0]  # defining single unit for later
-
-        check_getall_nonefound = await db.Campaign.get_rows(
+        check_getall = await db.Campaign.get_rows(
             session,
-            parent_name="prod0_bad",
+            parent_class=db.Production,
+            parent_id=-99,
+        )
+        assert len(check_getall) == 0, "length should be 0"
+
+        check_getall = await db.Campaign.get_rows(
+            session,
+            parent_class=db.Production,
+            parent_id=1,
+        )
+        assert len(check_getall) == 1, "length should be 1"
+
+        check_getall = await db.Campaign.get_rows(
+            session,
             parent_class=db.Production,
         )
-        assert len(check_getall_nonefound) == 0, "length should be 0"
+        assert len(check_getall) == 1, "length should be 1"
 
-        check_get = await db.Campaign.get_row(session, entry.id)
-        assert check_get.id == entry.id, "pulled row should be identical"
+        entry = check_getall[0]  # defining single unit for later
 
-        with pytest.raises(errors.CMMissingIDError):
-            await db.Campaign.get_row(
-                session,
-                -99,
-            )
-
-        check_get_by_name = await db.Campaign.get_row_by_name(session, name=f"camp0_{uuid_int}")
-        assert check_get_by_name.id == entry.id, "pulled row should be identical"
-
-        with pytest.raises(errors.CMMissingFullnameError):
-            await db.Campaign.get_row_by_name(session, name="foo")
-
-        check_get_by_fullname = await db.Campaign.get_row_by_fullname(session, entry.fullname)
-        assert check_get_by_fullname.id == entry.id, "pulled row should be identical"
-
-        with pytest.raises(errors.CMMissingFullnameError):
-            await db.Campaign.get_row_by_fullname(session, "foo")
-
-        check_update = await db.Campaign.update_row(session, entry.id, data=dict(foo="bar"))
-        assert check_update.data["foo"] == "bar", "foo value should be bar"
-
-        check_update2 = await check_update.update_values(session, data=dict(bar="foo"))
-        assert check_update2.data["bar"] == "foo", "bar value should be foo"
+        await check_get_methods(session, entry, db.Campaign, db.Production)
 
         await db.Campaign.delete_row(session, -99)
 
@@ -96,6 +125,18 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
         check = await entry.get_products(session)
         assert len(check.reports) == 0, "length of products should be 0"
 
+        sleep_time = await entry.estimate_sleep_time(session)
+        assert sleep_time == 10, "Wrong sleep time"
+
+        # check update methods
+        await check_update_methods(session, entry, db.Campaign)
+
+        # check scripts
+        await check_scripts(session, entry)
+
+        # make and test queue object
+        await check_queue(session, entry)
+
         # delete everything we just made in the session
         await delete_all_productions(session)
 
@@ -104,4 +145,5 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
             session,
         )
         assert len(productions) == 0
+        await session.commit()
         await session.remove()

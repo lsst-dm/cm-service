@@ -268,10 +268,10 @@ class Job(Base, ElementMixin):
 
         fullname = f"{parent.fullname}/{self.name}_{attempt:03}"
         if self.data:
-            if not isinstance(self.data, dict):
+            if not isinstance(self.data, dict):  # pragma: no cover
                 raise CMBadParameterTypeError(f"job.data should be dict | None, not {type(self.data)}")
             data = self.data.copy()
-        else:
+        else:  # pragma: no cover
             data = {}
         data["rescue"] = True
         data["skip_colls"] = ",".join(skip_colls)
@@ -294,7 +294,7 @@ class Job(Base, ElementMixin):
         async with session.begin_nested():
             try:
                 session.add(new_job)
-            except IntegrityError as e:
+            except IntegrityError as e:  # pragma: no cover
                 await session.rollback()
                 if TYPE_CHECKING:
                     assert e.orig  # for mypy
