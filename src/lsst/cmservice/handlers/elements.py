@@ -126,7 +126,7 @@ class RunJobsScriptHandler(RunElementScriptHandler):
             return StatusEnum.reviewable
         return slurm_status
 
-    async def review(
+    async def review_script(
         self,
         session: async_scoped_session,
         script: Script,

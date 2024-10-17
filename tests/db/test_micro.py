@@ -96,7 +96,7 @@ async def test_micro(
         )
         assert status == StatusEnum.running
 
-        changed, status = await campaign.review(
+        status = await campaign.review(
             session,
             fake_status=StatusEnum.accepted,
         )

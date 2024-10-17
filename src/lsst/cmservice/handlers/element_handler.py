@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -107,9 +108,7 @@ class ElementHandler(Handler):
                 if has_changed:
                     changed = True
         if status == StatusEnum.reviewable:
-            (has_changed, status) = await self.review(session, node, *kwargs)
-            if has_changed:
-                changed = True
+            status = await self.review(session, node, *kwargs)
         if status != orig_status:
             changed = True
             await node.update_values(session, status=status)
@@ -156,6 +155,8 @@ class ElementHandler(Handler):
 
         script_ids_dict = {}
         prereq_pairs = []
+        if TYPE_CHECKING:
+            assert isinstance(spec_block.scripts, Iterable)
         for script_item in spec_block.scripts:
             try:
                 script_vals = script_item["Script"].copy()
@@ -233,7 +234,7 @@ class ElementHandler(Handler):
         session: async_scoped_session,
         element: ElementMixin,
         **kwargs: Any,
-    ) -> tuple[bool, StatusEnum]:
+    ) -> StatusEnum:
         """Review a `Element` processing
 
         By default this does nothing, but
@@ -250,14 +251,12 @@ class ElementHandler(Handler):
 
         Returns
         -------
-        chagned : bool
-            True if anything has changed
         status : StatusEnum
             Status of the processing
         """
         fake_status = kwargs.get("fake_status", None)
         status = fake_status if fake_status is not None else element.status
-        return (False, status)
+        return status
 
     async def _run_script_checks(
         self,
