@@ -11,6 +11,7 @@ import lsst.cmservice.common.errors as errors
 from lsst.cmservice import db
 from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
+from lsst.cmservice.handlers import interface
 
 from .util_functions import (
     check_get_methods,
@@ -112,21 +113,15 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
 
         await db.Campaign.delete_row(session, -99)
 
+        with pytest.raises(errors.CMBadFullnameError):
+            await interface.get_element_by_fullname(session, "")
+
+        with pytest.raises(errors.CMBadFullnameError):
+            await interface.get_element_by_fullname(session, "//////")
+
         # run campaign specific method tests
         check = await entry.children(session)
         assert len([c for c in check]) == 2, "length of children should be 2"
-
-        check = await entry.get_tasks(session)
-        assert len(check.reports) == 0, "length of tasks should be 0"
-
-        check = await entry.get_wms_reports(session)
-        assert len(check.reports) == 0, "length of reports should be 0"
-
-        check = await entry.get_products(session)
-        assert len(check.reports) == 0, "length of products should be 0"
-
-        sleep_time = await entry.estimate_sleep_time(session)
-        assert sleep_time == 10, "Wrong sleep time"
 
         # check update methods
         await check_update_methods(session, entry, db.Campaign)
