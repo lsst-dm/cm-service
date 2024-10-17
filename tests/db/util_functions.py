@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 
 import lsst.cmservice.common.errors as errors
 from lsst.cmservice import db
-from lsst.cmservice.common.enums import LevelEnum, StatusEnum
+from lsst.cmservice.common.enums import LevelEnum, StatusEnum, TableEnum
 from lsst.cmservice.handlers import interface
 
 
@@ -143,29 +143,90 @@ async def check_update_methods(
         session,
         test="dummy",
     )
-
     assert check.data["test"] == "dummy", "update_data_dict failed"
+
+    check = await interface.update_data_dict(
+        session,
+        entry.fullname,
+        test="dummy2",
+    )
+    assert check.data["test"] == "dummy2", "interface.update_data_dict failed"
+
+    check = await interface.get_data_dict(
+        session,
+        entry.fullname,
+    )
+    assert check["test"] == "dummy2", "interface.get_data_dict failed"
 
     check = await entry.update_collections(
         session,
         test="dummy",
     )
-
     assert check.collections["test"] == "dummy", "update_collections failed"
+
+    check = await interface.update_collections(
+        session,
+        entry.fullname,
+        test="dummy2",
+    )
+    assert check.collections["test"] == "dummy2", "interface.update_collections failed"
+
+    check = await interface.get_collections(
+        session,
+        entry.fullname,
+    )
+    assert check["test"] == "dummy2", "interface.get_collections failed"
+
+    check = await interface.get_resolved_collections(
+        session,
+        entry.fullname,
+    )
+    assert check["test"] == "dummy2", "interface.get_resovled_collections failed"
 
     check = await entry.update_child_config(
         session,
         test="dummy",
     )
-
     assert check.child_config["test"] == "dummy", "update_child_config failed"
+
+    check = await interface.update_child_config(
+        session,
+        entry.fullname,
+        test="dummy2",
+    )
+    assert check.child_config["test"] == "dummy2", "interface.update_child_config failed"
+
+    check = await interface.get_child_config(
+        session,
+        entry.fullname,
+    )
+    assert check["test"] == "dummy2", "interface.get_child_config failed"
 
     check = await entry.update_spec_aliases(
         session,
         test="dummy",
     )
-
     assert check.spec_aliases["test"] == "dummy", "update_spec_aliases failed"
+
+    check = await interface.update_spec_aliases(
+        session,
+        entry.fullname,
+        test="dummy2",
+    )
+    assert check.spec_aliases["test"] == "dummy2", "interface.update_spec_aliases failed"
+
+    check = await interface.get_spec_aliases(
+        session,
+        entry.fullname,
+    )
+    assert check["test"] == "dummy2", "interface.get_spec_aliases failed"
+
+    check = await interface.update_status(
+        session,
+        entry.fullname,
+        status=StatusEnum.rejected,
+    )
+    assert check.status == StatusEnum.rejected, "interface.update_status failed"
 
     await entry.update_values(
         session,
@@ -248,8 +309,10 @@ async def check_scripts(
     entry: db.ElementMixin,
 ) -> None:
     scripts = await entry.get_scripts(session)
-
     assert len(scripts) == 2, f"Expected exactly two scripts for {entry.fullname} got {len(scripts)}"
+
+    check = await interface.get_scripts(session, entry.fullname)
+    assert len(check) == 2, f"Expected exactly two scripts for {entry.fullname} got {len(check)}"
 
     for script_ in scripts:
         assert script_.db_id.level == LevelEnum.script, f"Bad script level {script_.db_id.level}"
@@ -261,13 +324,25 @@ async def check_scripts(
     prereq_0 = await scripts[0].check_prerequisites(session)
     assert prereq_0, "check_prerequisites is False for first script"
 
+    prereq_0 = await interface.check_prerequisites(
+        session,
+        f"script:{scripts[0].fullname}",
+    )
+    assert prereq_0, "check_prerequisites is False for first script"
+
     prereq_1 = await scripts[1].check_prerequisites(session)
     assert not prereq_1, "check_prerequisites is True for second script"
 
     no_scripts = await entry.get_scripts(session, script_name="bad")
     assert len(no_scripts) == 0, "get_scripts with bad script_name did not return []"
 
+    no_scripts = await interface.get_scripts(session, entry.fullname, script_name="bad")
+    assert len(no_scripts) == 0, "get_scripts with bad script_name did not return []"
+
     all_scripts = await entry.get_all_scripts(session)
+    assert len(all_scripts) != 0, "get_all_scripts with failed"
+
+    all_scripts = await interface.get_all_scripts(session, entry.fullname)
     assert len(all_scripts) != 0, "get_all_scripts with failed"
 
     await scripts[1].update_values(session, superseded=True)
@@ -289,6 +364,10 @@ async def check_scripts(
     await scripts[0].update_values(session, status=StatusEnum.failed)
 
     check = await entry.retry_script(session, "prepare")
+    assert check.status == StatusEnum.waiting, "Failed to retry script"
+
+    await scripts[0].update_values(session, status=StatusEnum.failed)
+    check = await interface.reset_script(session, scripts[0].fullname, StatusEnum.waiting)
     assert check.status == StatusEnum.waiting, "Failed to retry script"
 
 
@@ -325,8 +404,57 @@ async def check_get_methods(
     check_get_by_fullname = await entry_class.get_row_by_fullname(session, entry.fullname)
     assert check_get_by_fullname.id == entry.id, "pulled row should be identical"
 
+    with pytest.raises(errors.CMBadEnumError):
+        await interface.get_row_by_table_and_id(session, entry.id, TableEnum.n_tables)
+
     with pytest.raises(errors.CMMissingFullnameError):
-        await entry_class.get_row_by_fullname(session, "foo")
+        await interface.get_row_by_table_and_id(session, -99, TableEnum[entry.__tablename__])
+
+    with pytest.raises(errors.CMBadEnumError):
+        await interface.get_node_by_level_and_id(session, entry.id, LevelEnum.n_levels)
+
+    with pytest.raises(errors.CMMissingFullnameError):
+        await interface.get_node_by_level_and_id(session, -99, entry.level)
+
+    check = await interface.get_row_by_table_and_id(
+        session,
+        entry.id,
+        TableEnum[entry.__tablename__],
+    )
+    assert check.fullname == entry.fullname
+
+    check = await interface.get_node_by_level_and_id(
+        session,
+        entry.id,
+        entry.level,
+    )
+    assert check.fullname == entry.fullname
+
+    spec_block = await interface.get_spec_block(
+        session,
+        entry.fullname,
+    )
+    spec_block_check = await entry.get_spec_block(session)
+    assert spec_block.name == spec_block_check.name
+
+    specification = await interface.get_specification(
+        session,
+        entry.fullname,
+    )
+    specification_check = await entry.get_specification(session)
+    assert specification.name == specification_check.name
+
+    check = await entry.get_tasks(session)
+    assert len(check.reports) == 0, "length of tasks should be 0"
+
+    check = await entry.get_wms_reports(session)
+    assert len(check.reports) == 0, "length of reports should be 0"
+
+    check = await entry.get_products(session)
+    assert len(check.reports) == 0, "length of products should be 0"
+
+    sleep_time = await entry.estimate_sleep_time(session)
+    assert sleep_time == 10, "Wrong sleep time"
 
 
 async def check_queue(

@@ -108,7 +108,7 @@ class BaseScriptHandler(Handler):
                 status = StatusEnum.failed
 
         if status == StatusEnum.reviewable:
-            status = await self.review(session, node, parent, **kwargs)
+            status = await self.review_script(session, node, parent, **kwargs)
         if status != orig_status:
             changed = True
             await node.update_values(session, status=status)
@@ -226,7 +226,7 @@ class BaseScriptHandler(Handler):
         """
         raise NotImplementedError("{type(self)}.check()")
 
-    async def review(  # pylint: disable=unused-argument
+    async def review_script(  # pylint: disable=unused-argument
         self,
         session: async_scoped_session,
         script: Script,

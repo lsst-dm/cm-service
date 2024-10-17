@@ -11,6 +11,7 @@ import lsst.cmservice.common.errors as errors
 from lsst.cmservice import db
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum
 from lsst.cmservice.config import config
+from lsst.cmservice.handlers import interface
 
 from .util_functions import (
     check_get_methods,
@@ -72,16 +73,19 @@ async def test_job_db(engine: AsyncEngine) -> None:
         check = await entry.get_siblings(session)
         assert len([c for c in check]) == 0, "length of siblings should be 0"
 
-        check = await entry.get_tasks(session)
-        assert len(check.reports) == 0, "length of tasks should be 0"
-
-        check = await entry.get_wms_reports(session)
-        assert len(check.reports) == 0, "length of reports should be 0"
-
-        check = await entry.get_products(session)
-        assert len(check.reports) == 0, "length of products should be 0"
-
         check = await entry.get_errors(session)
+        assert len(check) == 0, "length of errors should be 0"
+
+        check = await interface.get_task_sets_for_job(session, entry.fullname)
+        assert len(check) == 0, "length of task sets should be 0"
+
+        check = await interface.get_wms_reports_for_job(session, entry.fullname)
+        assert len(check) == 0, "length of wms reports should be 0"
+
+        check = await interface.get_product_sets_for_job(session, entry.fullname)
+        assert len(check) == 0, "length of products should be 0"
+
+        check = await interface.get_errors_for_job(session, entry.fullname)
         assert len(check) == 0, "length of errors should be 0"
 
         sleep_time = await campaign.estimate_sleep_time(session)

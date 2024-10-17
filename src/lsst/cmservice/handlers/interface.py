@@ -30,6 +30,7 @@ TABLE_DICT: dict[TableEnum, type[db.RowMixin]] = {
     TableEnum.product_set: db.ProductSet,
     TableEnum.specification: db.Specification,
     TableEnum.spec_block: db.SpecBlock,
+    TableEnum.script_template: db.ScriptTemplate,
 }
 
 
@@ -95,9 +96,7 @@ async def get_row_by_table_and_id(
         raise CMBadEnumError(f"Unknown table {table_enum}") from msg
     query = select(table_class).where(table_class.id == row_id)
     result_s = await session.scalars(query)
-    if result_s is None:
-        raise CMMissingFullnameError(f"{table_class} {row_id} not found")
-    result = result_s.first()
+    result = None if result_s is None else result_s.first()
     if result is None:
         raise CMMissingFullnameError(f"{table_class} {row_id} not found")
     return result
@@ -657,7 +656,7 @@ async def check_prerequisites(
 async def get_scripts(
     session: async_scoped_session,
     fullname: str,
-    script_name: str,
+    script_name: str | None = None,
     *,
     remaining_only: bool = False,
     skip_superseded: bool = True,

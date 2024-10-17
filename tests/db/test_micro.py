@@ -82,6 +82,26 @@ async def test_micro(
         assert changed
         assert status == StatusEnum.accepted
 
+        jobs = await campaign.get_jobs(
+            session,
+            remaining_only=False,
+        )
+        assert len(jobs) == 6
+
+        changed, status = await campaign.run_check(
+            session,
+            do_checks=True,
+            force_check=True,
+            fake_status=StatusEnum.accepted,
+        )
+        assert status == StatusEnum.running
+
+        status = await campaign.review(
+            session,
+            fake_status=StatusEnum.accepted,
+        )
+        assert status == StatusEnum.accepted
+
         # now we clean up
         await db.Production.delete_row(session, 1)
 
