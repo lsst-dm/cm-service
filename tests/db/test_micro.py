@@ -8,14 +8,25 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 import lsst.cmservice.common.errors as errors
 from lsst.cmservice import db
-from lsst.cmservice.common.enums import StatusEnum
+from lsst.cmservice.common.enums import ScriptMethodEnum, StatusEnum
 from lsst.cmservice.config import config
 from lsst.cmservice.handlers import interface
+from lsst.cmservice.handlers.script_handler import ScriptHandler
 
 
+@pytest.mark.parametrize(
+    "script_method", [ScriptMethodEnum.bash, ScriptMethodEnum.slurm, ScriptMethodEnum.htcondor]
+)
 @pytest.mark.asyncio()
-async def test_micro(engine: AsyncEngine, tmp_path: Path) -> None:
+async def test_micro(
+    engine: AsyncEngine,
+    tmp_path: Path,
+    script_method: ScriptMethodEnum,
+) -> None:
     """Test fake end to end run using example/example_micro.yaml"""
+
+    orig_method = ScriptHandler.default_method
+    ScriptHandler.default_method = script_method
 
     logger = structlog.get_logger(config.logger_name)
     async with engine.begin():
@@ -55,6 +66,8 @@ async def test_micro(engine: AsyncEngine, tmp_path: Path) -> None:
         )
 
         temp_dir = str(tmp_path / "archive")
+        # use this line if you want to be able to inspect the outputs
+        # temp_dir = f"output_test/{script_method.name}/archive"
         await campaign.update_data_dict(
             session,
             prod_area=temp_dir,
@@ -94,3 +107,5 @@ async def test_micro(engine: AsyncEngine, tmp_path: Path) -> None:
         assert n_script_dependencies == 0
 
         await session.remove()
+
+    ScriptHandler.default_method = orig_method
