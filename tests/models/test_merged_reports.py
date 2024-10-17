@@ -39,19 +39,23 @@ def test_merged_product_set() -> None:
         n_done=5,
     )
 
-    set_1_merge = models.MergedProductSetDict(
+    set_1 = models.MergedProductSetDict(
         reports=dict(
             alice=deepcopy(set_1_alice),
             bob=deepcopy(set_1_bob),
         ),
     )
 
-    set_1_iadd = models.MergedProductSetDict(
-        reports=dict(
-            alice=deepcopy(set_1_alice),
-            bob=deepcopy(set_1_bob),
-        ),
+    set_1_merge = models.MergedProductSetDict(
+        reports=dict(),
     )
+
+    set_1_iadd = models.MergedProductSetDict(
+        reports=dict(),
+    )
+
+    set_1_merge.merge(set_1)
+    set_1_iadd += set_1
 
     set_2 = models.MergedProductSetDict(
         reports=dict(
@@ -207,12 +211,18 @@ def test_merged_wms_task_report() -> None:
         n_succeeded=1,
     )
 
-    set_1_iadd = models.MergedWmsTaskReportDict(
+    set_1 = models.MergedWmsTaskReportDict(
         reports=dict(
             alice=deepcopy(set_1_alice),
             bob=deepcopy(set_1_bob),
         ),
     )
+
+    set_1_iadd = models.MergedWmsTaskReportDict(
+        reports=dict(),
+    )
+
+    set_1_iadd += set_1
 
     set_2 = models.MergedWmsTaskReportDict(
         reports=dict(
