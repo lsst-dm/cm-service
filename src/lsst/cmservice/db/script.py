@@ -170,6 +170,8 @@ class Script(Base, NodeMixin):
             raise CMMissingRowCreateInputError(f"Missing input to create Script: {msg}") from msg
         attempt = kwargs.get("attempt", 0)
         parent_level = kwargs["parent_level"]
+        if isinstance(parent_level, int):
+            parent_level = LevelEnum(parent_level)
 
         ret_dict = {
             "parent_level": parent_level,
