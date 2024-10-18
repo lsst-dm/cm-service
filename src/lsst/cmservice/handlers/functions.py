@@ -83,7 +83,7 @@ async def upsert_spec_block(
     spec_block = spec_block_result.first()
     if spec_block and not allow_update:
         print(f"SpecBlock {key} already defined, skipping it")
-        return None
+        return spec_block
     includes = config_values.pop("includes", [])
     block_data = config_values.copy()
     include_data: dict[str, Any] = {}
@@ -167,7 +167,7 @@ async def upsert_script_template(
     script_template = script_template_result.first()
     if script_template and not allow_update:
         print(f"ScriptTemplate {key} already defined, skipping it")
-        return None
+        return script_template
     if script_template is None:
         return await ScriptTemplate.load(
             session,
@@ -215,7 +215,7 @@ async def upsert_specification(
     specification = spec_result.first()
     if specification and not allow_update:
         print(f"Specification {spec_name} already defined, skipping it")
-        return None
+        return specification
     if specification is None:
         return await Specification.create_row(session, **config_values)
     return await specification.update_values(session, **config_values)
