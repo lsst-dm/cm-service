@@ -2,7 +2,7 @@
 
 from .campaign import Campaign, CampaignCreate, CampaignUpdate
 from .dependency import Dependency, DependencyCreate
-from .element import Element
+from .element import ElementMixin, Element
 from .group import Group, GroupCreate, GroupUpdate
 from .index import Index
 from .interface import (
