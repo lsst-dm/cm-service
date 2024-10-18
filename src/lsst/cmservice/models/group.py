@@ -4,6 +4,9 @@ These tables don't have anything beyond
 standard Element columns
 """
 
+from typing import ClassVar
+
+from ..common.enums import LevelEnum
 from .element import ElementCreateMixin, ElementMixin, ElementUpdate
 
 
@@ -16,6 +19,8 @@ class GroupCreate(ElementCreateMixin):
 
 class Group(ElementMixin):
     """Parameters that are in DB tables and not used to create new rows"""
+
+    level: ClassVar = LevelEnum.group
 
     # ForeignKey for SpecBlock
     spec_block_id: int
