@@ -5,9 +5,8 @@ set -eo pipefail
 # already active at this point (arranged during container build)
 
 # Setup partial Rubin stack
-source ./stack/loadLSST.bash
-setup ctrl_bps
-setup lsst_bps_plugins
+#source ./stack/loadLSST.bash
+#setup ctrl_bps
+#setup lsst_bps_plugins
 
-echo "Splice Python worker task invocation here..."
-tail -f /dev/null
+cm-worker
