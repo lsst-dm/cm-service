@@ -7,6 +7,7 @@ import httpx
 from .actions import CMActionClient
 from .adders import CMAddClient
 from .campaigns import CMCampaignClient
+from .clientconfig import client_config
 from .groups import CMGroupClient
 from .jobs import CMJobClient
 from .loaders import CMLoadClient
@@ -33,8 +34,14 @@ __all__ = ["CMClient"]
 class CMClient:  # pylint: disable=too-many-instance-attributes
     """Interface for accessing remote cm-service."""
 
-    def __init__(self: CMClient, url: str) -> None:
-        self._client = httpx.Client(base_url=url)
+    def __init__(self: CMClient) -> None:
+        # Use url and bearer token (if any) from client settings object
+        base_url = client_config.service_url
+        headers = {}
+        if client_config.auth_token is not None:
+            headers["Authorization"] = f"Bearer {client_config.auth_token}"
+        self._client = httpx.Client(base_url=base_url, headers=headers)
+
         self.production = CMProductionClient(self)
         self.campaign = CMCampaignClient(self)
         self.step = CMStepClient(self)
