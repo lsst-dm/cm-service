@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import httpx
@@ -98,7 +97,7 @@ class CMJobClient:
     get_spec_aliases = wrappers.get_node_property_function(dict, f"{router_string}/get", "spec_aliases")
 
     get_errors = wrappers.get_node_property_function(
-        Sequence[models.PipetaskError],
+        list[models.PipetaskError],
         f"{router_string}/get",
         "errors",
     )
@@ -170,14 +169,14 @@ class CMJobClient:
 
     get_scripts = wrappers.get_general_query_function(
         models.ScriptQuery,
-        list[models.Script],
+        models.Script,
         f"{router_string}/get",
         "scripts",
     )
 
     get_all_scripts = wrappers.get_general_query_function(
         models.ScriptQuery,
-        list[models.Script],
+        models.Script,
         f"{router_string}/get",
         "all_scripts",
     )

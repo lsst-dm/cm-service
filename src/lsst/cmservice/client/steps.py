@@ -164,21 +164,21 @@ class CMStepClient:
 
     get_scripts = wrappers.get_general_query_function(
         models.ScriptQuery,
-        list[models.Script],
+        models.Script,
         f"{router_string}/get",
         "scripts",
     )
 
     get_all_scripts = wrappers.get_general_query_function(
         models.ScriptQuery,
-        list[models.Script],
+        models.Script,
         f"{router_string}/get",
         "all_scripts",
     )
 
     get_jobs = wrappers.get_general_query_function(
         models.JobQuery,
-        list[models.Job],
+        models.Job,
         f"{router_string}/get",
         "jobs",
     )

@@ -206,7 +206,7 @@ class CMGroupClient:
     )
 
     mark_rescued = wrappers.get_node_post_query_function(
-        list[models.Job],
+        models.Job,
         models.NodeQuery,
         f"{router_string}/action",
         "mark_rescued",
