@@ -21,3 +21,7 @@ class Production(ProductionBase):
 
     # PrimaryKey
     id: int
+
+
+class ProductionUpdate(ProductionBase):
+    """Parameters that can be udpated"""

@@ -30,3 +30,7 @@ class Dependency(DependencyBase):
 
     # primary key
     id: int
+
+
+class DependencyUpdate(DependencyBase):
+    """Parameters that can be udpated"""
