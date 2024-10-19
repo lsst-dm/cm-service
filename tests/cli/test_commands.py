@@ -2,13 +2,14 @@ from click.testing import CliRunner
 from safir.testing.uvicorn import UvicornProcess
 
 from lsst.cmservice.cli.commands import client_top, server
+from lsst.cmservice.client.clientconfig import client_config
 from lsst.cmservice.config import config
 
 
 def test_commands(uvicorn: UvicornProcess) -> None:
     """Test the cli"""
-    env = {"CM_SERVICE": f"{uvicorn.url}{config.prefix}"}
-    runner = CliRunner(env=env)
+    client_config.service_url = f"{uvicorn.url}{config.prefix}"
+    runner = CliRunner()
 
     result = runner.invoke(server, "--version")
     assert result.exit_code == 0
