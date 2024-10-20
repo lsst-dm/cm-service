@@ -24,6 +24,7 @@ python -m venv ./venv
 source ./venv/bin/activate
 
 # Upgrade pip, setuptools, wheel; install deps; install app
+PIP_PROGRESS_BAR=off
 pip install --upgrade --no-cache-dir pip setuptools wheel
 pip install --quiet --no-cache-dir -r ./workdir/requirements/main.txt
 pip install --no-cache-dir ./workdir
