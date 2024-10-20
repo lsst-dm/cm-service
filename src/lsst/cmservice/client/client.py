@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import httpx
 
 from .actions import CMActionClient
@@ -35,12 +37,13 @@ class CMClient:  # pylint: disable=too-many-instance-attributes
     """Interface for accessing remote cm-service."""
 
     def __init__(self: CMClient) -> None:
-        # Use url and bearer token (if any) from client settings object
-        base_url = client_config.service_url
-        headers = {}
-        if client_config.auth_token is not None:
-            headers["Authorization"] = f"Bearer {client_config.auth_token}"
-        self._client = httpx.Client(base_url=base_url, headers=headers)
+        client_kwargs: dict[str, Any] = {}
+        client_kwargs["base_url"] = client_config.service_url
+        if "auth_token" in client_config.model_fields_set:
+            client_kwargs["headers"] = {"Authorization": f"Bearer {client_config.auth_token}"}
+        if "timeout" in client_config.model_fields_set:
+            client_kwargs["timeout"] = client_config.timeout
+        self._client = httpx.Client(**client_kwargs)
 
         self.production = CMProductionClient(self)
         self.campaign = CMCampaignClient(self)
