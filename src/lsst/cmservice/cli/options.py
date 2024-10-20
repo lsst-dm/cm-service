@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from enum import Enum, auto
-from functools import partial
-from typing import Any
+from functools import partial, wraps
+from typing import Any, cast
 
 import click
 from click.decorators import FC
@@ -481,18 +481,16 @@ yaml_file = PartialOption(
 )
 
 
-def make_client(_ctx: click.Context, _param: click.Parameter, value: Any) -> CMClient:
-    """Build and return a CMCLient object"""
-    return CMClient(value)
+def cmclient() -> Callable[[FC], FC]:
+    """Pass a freshly constructed CMClient to a decorated click Command without
+    adding/requiring a corresponding click Option"""
 
+    def decorator(f: FC) -> FC:
+        @wraps(f)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            kwargs["client"] = CMClient()
+            return f(*args, **kwargs)
 
-cmclient = PartialOption(
-    "--server",
-    "client",
-    type=str,
-    default="http://localhost:8080/cm-service/v1",
-    envvar="CM_SERVICE",
-    show_envvar=True,
-    callback=make_client,
-    help="URL of cm service.",
-)
+        return cast(FC, wrapper)
+
+    return decorator
