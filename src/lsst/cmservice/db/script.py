@@ -236,3 +236,27 @@ class Script(Base, NodeMixin):
         """
         handler = await self.get_handler(session)
         return await handler.reset_script(session, self, to_status)
+
+    async def review(
+        self,
+        session: async_scoped_session,
+        **kwargs: Any,
+    ) -> StatusEnum:
+        """Run review() function on this Script
+
+        This will create a `Handler` and
+        pass this node to it for review
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        Returns
+        -------
+        status : StatusEnum
+            Status of the processing
+        """
+        handler = await self.get_handler(session)
+        parent = await self.get_parent(session)
+        return await handler.review_script(session, self, parent, **kwargs)

@@ -13,7 +13,9 @@ from ..common.errors import CMBadHandlerTypeError
 from ..common.utils import add_sys_path
 
 if TYPE_CHECKING:
+    from .element import ElementMixin
     from .node import NodeMixin
+    from .script import Script
 
 
 class Handler:
@@ -160,7 +162,7 @@ class Handler:
         status : StatusEnum
             Status of the processing
         """
-        raise NotImplementedError(f"{type(self)}.process")
+        raise NotImplementedError(f"{type(self)}.reset")
 
     async def reset_script(
         self,
@@ -186,4 +188,54 @@ class Handler:
         status : StatusEnum
             Status of the processing
         """
-        raise NotImplementedError(f"{type(self)}.process")
+        raise NotImplementedError(f"{type(self)}.reset_script")
+
+    async def review(
+        self,
+        session: async_scoped_session,
+        element: ElementMixin,
+        **kwargs: Any,
+    ) -> StatusEnum:
+        """Review an `Element`
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        element: ElementMixin
+            The `Element` in question
+
+        Returns
+        -------
+        status : StatusEnum
+            Status of the processing
+        """
+        raise NotImplementedError(f"{type(self)}.review")
+
+    async def review_script(
+        self,
+        session: async_scoped_session,
+        script: Script,
+        parent: ElementMixin,
+        **kwargs: Any,
+    ) -> StatusEnum:
+        """Review a `Script`
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        script: Script
+            The `Script` in question
+
+        parent: ElementMixin
+            Parent `Node` from script
+
+        Returns
+        -------
+        status : StatusEnum
+            Status of the processing
+        """
+        raise NotImplementedError(f"{type(self)}.review_script")

@@ -284,3 +284,26 @@ class ElementMixin(NodeMixin):
              Requested reports
         """
         raise NotImplementedError()
+
+    async def review(
+        self,
+        session: async_scoped_session,
+        **kwargs: Any,
+    ) -> StatusEnum:
+        """Run review() function on this Element
+
+        This will create a `Handler` and
+        pass this node to it for review
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        Returns
+        -------
+        status : StatusEnum
+            Status of the processing
+        """
+        handler = await self.get_handler(session)
+        return await handler.review(session, self, **kwargs)

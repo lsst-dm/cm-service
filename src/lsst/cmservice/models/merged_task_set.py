@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from copy import deepcopy
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -43,7 +45,7 @@ class MergedTaskSetDict(BaseModel):
             if key in self.reports:
                 self.reports[key] += val
             else:
-                self.reports[key] = val
+                self.reports[key] = deepcopy(val)
         return self
 
     def merge(self, other: MergedTaskSetDict) -> MergedTaskSetDict:
@@ -55,5 +57,5 @@ class MergedTaskSetDict(BaseModel):
             if key in self.reports:
                 self.reports[key].merge(val)
             else:
-                self.reports[key] = val
+                self.reports[key] = deepcopy(val)
         return self
