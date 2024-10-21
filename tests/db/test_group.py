@@ -84,8 +84,6 @@ async def test_group_db(engine: AsyncEngine) -> None:
         sleep_time = await entry.estimate_sleep_time(session)
         assert sleep_time == 10, "Wrong sleep time"
 
-        assert entry.db_id.level == LevelEnum.group, "enum should match group"
-
         # check update methods
         await check_update_methods(session, entry, db.Group)
 

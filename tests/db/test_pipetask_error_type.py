@@ -118,7 +118,7 @@ async def test_error_type_db(engine: AsyncEngine) -> None:
             )
 
         # Make sure we can read the same values out of the PipetaskErrorType
-        # database that we just put in it and that the dbid is right
+        # database that we just put in it and that the id is right
         check = await db.PipetaskErrorType.get_row(session, e1.id)
         assert check.task_name == e1.task_name
         assert check.diagnostic_message == e1.diagnostic_message

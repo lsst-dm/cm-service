@@ -6,7 +6,6 @@ from typing import Any
 import pause
 from sqlalchemy import JSON, DateTime, and_, select
 from sqlalchemy.ext.asyncio import async_scoped_session
-from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
@@ -14,7 +13,6 @@ from ..common.enums import LevelEnum
 from ..common.errors import CMBadEnumError, CMMissingFullnameError
 from .base import Base
 from .campaign import Campaign
-from .dbid import DbId
 from .element import ElementMixin
 from .enums import SqlLevelEnum
 from .group import Group
@@ -57,11 +55,6 @@ class Queue(Base, NodeMixin):
         "time_updated",
         "time_finished",
     ]
-
-    @hybrid_property
-    def element_db_id(self) -> DbId:
-        """Returns DbId"""
-        return DbId(self.element_level, self.element_id)
 
     async def get_element(
         self,

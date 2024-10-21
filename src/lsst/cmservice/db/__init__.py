@@ -2,7 +2,6 @@
 
 from .base import Base
 from .campaign import Campaign
-from .dbid import DbId
 from .element import ElementMixin
 from .group import Group
 from .job import Job
@@ -27,7 +26,6 @@ from .wms_task_report import WmsTaskReport
 __all__ = [
     "Base",
     "Campaign",
-    "DbId",
     "ElementMixin",
     "Group",
     "Job",

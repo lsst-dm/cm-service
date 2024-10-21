@@ -7,7 +7,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..common.enums import LevelEnum
 from .base import Base
-from .dbid import DbId
 from .row import RowMixin
 
 if TYPE_CHECKING:
@@ -26,11 +25,6 @@ class Production(Base, RowMixin):
     c_: Mapped[list["Campaign"]] = relationship("Campaign", viewonly=True)
 
     col_names_for_table = ["id", "name"]
-
-    @hybrid_property
-    def db_id(self) -> DbId:
-        """Returns DbId"""
-        return DbId(LevelEnum.production, self.id)
 
     @property
     def level(self) -> LevelEnum:
