@@ -220,7 +220,7 @@ class Handler:
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        """Review an `Element`
+        """Review a `Script`
 
         Parameters
         ----------

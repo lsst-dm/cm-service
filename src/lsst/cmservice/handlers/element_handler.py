@@ -389,6 +389,8 @@ class ElementHandler(Handler):
         for job_ in jobs:
             status = StatusEnum(min(status.value, job_.status.value))
 
+        # Keep this around until we've determined if we need a special
+        # way to handle reviewable state when doing fake runs
         # if status == StatusEnum.reviewable:
         #    if kwargs.get('fake_status', StatusEnum.reviewable).value
         #       > StatusEnum.reviewable.value:
