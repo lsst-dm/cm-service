@@ -3,13 +3,13 @@ import uuid
 
 import pytest
 from httpx import AsyncClient
-from pydantic import parse_obj_as
 
 from lsst.cmservice import models
 from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
 
 from .util_functions import (
+    check_and_parse_repsonse,
     check_get_methods,
     check_scripts,
     check_update_methods,
@@ -30,15 +30,15 @@ async def test_campaigns_api(client: AsyncClient) -> None:
     # intialize a tree down to one level lower
     await create_tree(client, LevelEnum.step, uuid_int)
 
-    result = await client.get(f"{config.prefix}/campaign/list")
-    campaigns = parse_obj_as(
+    response = await client.get(f"{config.prefix}/campaign/list")
+    campaigns = check_and_parse_repsonse(
+        response,
         list[models.Campaign],
-        result.json(),
     )
     entry = campaigns[0]
 
     # check get methods
-    await check_get_methods(client, entry, models.Campaign, models.Production)
+    await check_get_methods(client, entry, "campaign", models.Campaign, models.Production)
 
     # check update methods
     await check_update_methods(client, entry, "campaign", models.Campaign)
@@ -50,10 +50,10 @@ async def test_campaigns_api(client: AsyncClient) -> None:
     await delete_all_productions(client)
 
     # confirm cleanup
-    result = await client.get(f"{config.prefix}/production/list")
-    productions = parse_obj_as(
+    response = await client.get(f"{config.prefix}/production/list")
+    productions = check_and_parse_repsonse(
+        response,
         list[models.Production],
-        result.json(),
     )
 
     assert len(productions) == 0
