@@ -20,7 +20,7 @@ from .util_functions import (
 
 @pytest.mark.asyncio()
 @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
-async def test_groups_api(client: AsyncClient) -> None:
+async def test_jobs_api(client: AsyncClient) -> None:
     """Test `/groups` API endpoint."""
 
     # generate a uuid to avoid collisions
@@ -31,21 +31,21 @@ async def test_groups_api(client: AsyncClient) -> None:
     # intialize a tree down to one level lower
     await create_tree(client, LevelEnum.job, uuid_int)
 
-    response = await client.get(f"{config.prefix}/group/list")
-    groups = check_and_parse_repsonse(
+    response = await client.get(f"{config.prefix}/job/list")
+    jobs = check_and_parse_repsonse(
         response,
-        list[models.Group],
+        list[models.Job],
     )
-    entry = groups[0]
+    entry = jobs[0]
 
     # check get methods
-    await check_get_methods(client, entry, "group", models.Group, models.Step)
+    await check_get_methods(client, entry, "job", models.Job, models.Group)
 
     # check update methods
-    await check_update_methods(client, entry, "group", models.Group)
+    await check_update_methods(client, entry, "job", models.Job)
 
     # check scripts
-    await check_scripts(client, entry, "group")
+    await check_scripts(client, entry, "job")
 
     # delete everything we just made in the session
     await delete_all_productions(client)
