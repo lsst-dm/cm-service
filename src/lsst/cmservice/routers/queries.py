@@ -3,6 +3,7 @@ from safir.dependencies.db_session import db_session_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from .. import db, models
+from ..common import errors
 from ..handlers import interface
 
 router = APIRouter(
@@ -49,6 +50,8 @@ async def get_script(
                 fullname,
             )
         return the_script
+    except errors.CMMissingFullnameError as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
     except Exception as msg:
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
@@ -70,6 +73,8 @@ async def get_job(
                 fullname,
             )
         return the_job
+    except errors.CMMissingFullnameError as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
     except Exception as msg:
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
@@ -91,6 +96,8 @@ async def get_spec_block(
                 fullname,
             )
         return the_spec_block
+    except errors.CMMissingFullnameError as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
     except Exception as msg:
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
@@ -112,6 +119,8 @@ async def get_specification(
                 fullname,
             )
         return the_specification
+    except errors.CMMissingFullnameError as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
     except Exception as msg:
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
@@ -133,6 +142,8 @@ async def get_resolved_collections(
                 fullname,
             )
         return the_dict
+    except errors.CMMissingFullnameError as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
     except Exception as msg:
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
@@ -154,6 +165,8 @@ async def get_collections(
                 fullname,
             )
         return the_dict
+    except errors.CMMissingFullnameError as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
     except Exception as msg:
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
@@ -175,6 +188,8 @@ async def get_child_config(
                 fullname,
             )
         return the_dict
+    except errors.CMMissingFullnameError as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
     except Exception as msg:
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
@@ -196,6 +211,8 @@ async def get_data_dict(
                 fullname,
             )
         return the_dict
+    except errors.CMMissingFullnameError as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
     except Exception as msg:
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
@@ -217,8 +234,10 @@ async def get_spec_aliases(
                 fullname,
             )
         return the_dict
+    except errors.CMMissingFullnameError as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
     except Exception as msg:
-        raise HTTPException(status_code=400, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
 @router.get(
@@ -238,6 +257,8 @@ async def get_prerequisites(
                 fullname=fullname,
             )
         return ret_val
+    except errors.CMMissingFullnameError as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
     except Exception as msg:
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
@@ -266,6 +287,8 @@ async def get_element_scripts(
                 skip_superseded=skip_superseded,
             )
         return the_scripts
+    except errors.CMMissingFullnameError as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
     except Exception as msg:
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
