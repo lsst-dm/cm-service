@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy import JSON, and_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_scoped_session
-from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
@@ -16,7 +15,6 @@ from ..models.merged_product_set import MergedProductSet, MergedProductSetDict
 from ..models.merged_task_set import MergedTaskSet, MergedTaskSetDict
 from ..models.merged_wms_task_report import MergedWmsTaskReport, MergedWmsTaskReportDict
 from .base import Base
-from .dbid import DbId
 from .element import ElementMixin
 from .enums import SqlStatusEnum
 from .group import Group
@@ -115,11 +113,6 @@ class Job(Base, ElementMixin):
         "status",
         "superseded",
     ]
-
-    @hybrid_property
-    def db_id(self) -> DbId:
-        """Returns DbId"""
-        return DbId(LevelEnum.job, self.id)
 
     @property
     def level(self) -> LevelEnum:

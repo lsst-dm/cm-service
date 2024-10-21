@@ -92,8 +92,6 @@ async def test_job_db(engine: AsyncEngine) -> None:
         sleep_time = await campaign.estimate_sleep_time(session)
         assert sleep_time == 10, "Wrong sleep time"
 
-        assert entry.db_id.level == LevelEnum.job, "enum should match job"
-
         # check update methods
         await check_update_methods(session, entry, db.Job)
 
