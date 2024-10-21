@@ -75,6 +75,18 @@ async def test_group_db(engine: AsyncEngine) -> None:
 
         assert entry.db_id.level == LevelEnum.group, "enum should match group"
 
+        check = await entry.get_tasks(session)
+        assert len(check.reports) == 0, "length of tasks should be 0"
+
+        check = await entry.get_wms_reports(session)
+        assert len(check.reports) == 0, "length of reports should be 0"
+
+        check = await entry.get_products(session)
+        assert len(check.reports) == 0, "length of products should be 0"
+
+        sleep_time = await entry.estimate_sleep_time(session)
+        assert sleep_time == 10, "Wrong sleep time"
+
         # check update methods
         await check_update_methods(session, entry, db.Group)
 

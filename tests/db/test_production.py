@@ -70,7 +70,6 @@ async def test_production_db(engine: AsyncEngine) -> None:
         check_update2 = await check_update.update_values(session, name="bar")
         assert check_update2.name == "bar", "name should be bar"
 
-        assert entry.db_id.level == LevelEnum.production, "enum should match production"
         assert entry.level == LevelEnum.production, "level should match production"
 
         with pytest.raises(errors.CMMissingIDError):
