@@ -23,7 +23,6 @@ from .routers import (
     productions,
     queries,
     queues,
-    row,
     script_dependencies,
     script_errors,
     script_templates,
@@ -123,10 +122,6 @@ tags_metadata = [
         "name": "Wms Task Reports",
         "description": "Operations with `wms_task_report` table.",
     },
-    {
-        "name": "Rows",
-        "description": "Generic row-based operations",
-    },
     {"name": "Specifications", "description": "Operations with `specification` table."},
     {"name": "SpecBlocks", "description": "Operations with `spec_block` table."},
     {"name": "ScriptTemplates", "description": "Operations with `script_template` table."},
@@ -187,7 +182,6 @@ app.include_router(script_errors.router, prefix=config.prefix)
 app.include_router(task_sets.router, prefix=config.prefix)
 app.include_router(product_sets.router, prefix=config.prefix)
 app.include_router(wms_task_reports.router, prefix=config.prefix)
-app.include_router(row.router, prefix=config.prefix)
 
 app.include_router(script_dependencies.router, prefix=config.prefix)
 app.include_router(step_dependencies.router, prefix=config.prefix)
