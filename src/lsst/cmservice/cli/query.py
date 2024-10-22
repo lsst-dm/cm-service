@@ -270,20 +270,6 @@ def step_dependencies(
 @options.cmclient()
 @options.fullname()
 @options.output()
-def element(
-    client: CMClient,
-    fullname: str,
-    output: options.OutputEnum | None,
-) -> None:
-    """Get a particular element"""
-    result = client.query.get_element(fullname)
-    output_pydantic_object(result, output, db.ElementMixin.col_names_for_table)
-
-
-@get.command()
-@options.cmclient()
-@options.fullname()
-@options.output()
 def script(
     client: CMClient,
     fullname: str,
