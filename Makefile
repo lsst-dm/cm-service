@@ -50,7 +50,6 @@ test: export CM_DATABASE_URL=postgresql://cm-service@localhost:${CM_DATABASE_POR
 test: export CM_DATABASE_PASSWORD=INSECURE-PASSWORD
 test: export CM_DATABASE_SCHEMA=cm_service_test
 test: run-compose
-	cm-service init
 	pytest -vvv --asyncio-mode=auto --cov=lsst.cmservice --cov-branch --cov-report=term --cov-report=html ${PYTEST_ARGS}
 
 .PHONY: test-usdf-dev
