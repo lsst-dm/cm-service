@@ -9,7 +9,7 @@ from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
 
 from .util_functions import (
-    check_and_parse_repsonse,
+    check_and_parse_response,
     check_get_methods,
     check_scripts,
     check_update_methods,
@@ -31,7 +31,7 @@ async def test_campaigns_api(client: AsyncClient) -> None:
     await create_tree(client, LevelEnum.step, uuid_int)
 
     response = await client.get(f"{config.prefix}/campaign/list")
-    campaigns = check_and_parse_repsonse(
+    campaigns = check_and_parse_response(
         response,
         list[models.Campaign],
     )
@@ -51,7 +51,7 @@ async def test_campaigns_api(client: AsyncClient) -> None:
 
     # confirm cleanup
     response = await client.get(f"{config.prefix}/production/list")
-    productions = check_and_parse_repsonse(
+    productions = check_and_parse_response(
         response,
         list[models.Production],
     )

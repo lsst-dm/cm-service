@@ -8,7 +8,7 @@ from lsst.cmservice import models
 from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
 
-from .util_functions import check_and_parse_repsonse, create_tree, delete_all_productions
+from .util_functions import check_and_parse_response, create_tree, delete_all_productions
 
 
 @pytest.mark.asyncio()
@@ -29,7 +29,7 @@ async def test_productions_api(client: AsyncClient) -> None:
 
     # confirm cleanup
     response = await client.get(f"{config.prefix}/production/list")
-    productions = check_and_parse_repsonse(
+    productions = check_and_parse_response(
         response,
         list[models.Production],
     )

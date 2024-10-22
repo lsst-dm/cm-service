@@ -10,7 +10,7 @@ from lsst.cmservice.config import config
 T = TypeVar("T")
 
 
-def check_and_parse_repsonse(
+def check_and_parse_response(
     response: Response,
     return_class: type[T],
 ) -> T:
@@ -43,7 +43,7 @@ async def add_scripts(
         f"{config.prefix}/script/create",
         content=prep_script_model.json(),
     )
-    prep_script = check_and_parse_repsonse(response, models.Script)
+    prep_script = check_and_parse_response(response, models.Script)
 
     collect_script_model = models.ScriptCreate(
         name="collect",
@@ -55,7 +55,7 @@ async def add_scripts(
         f"{config.prefix}/script/create",
         content=collect_script_model.json(),
     )
-    collect_script = check_and_parse_repsonse(response, models.Script)
+    collect_script = check_and_parse_response(response, models.Script)
 
     script_depend_model = models.DependencyCreate(
         prereq_id=prep_script.id,
@@ -65,7 +65,7 @@ async def add_scripts(
         f"{config.prefix}/script_dependency/create",
         content=script_depend_model.json(),
     )
-    script_depend = check_and_parse_repsonse(response, models.Dependency)
+    script_depend = check_and_parse_response(response, models.Dependency)
     return ([prep_script, collect_script], script_depend)
 
 
@@ -81,7 +81,7 @@ async def create_tree(
         f"{config.prefix}/load/specification",
         content=specification_load_model.json(),
     )
-    check_and_parse_repsonse(response, models.Specification)
+    check_and_parse_response(response, models.Specification)
 
     pname = f"prod0_{uuid_int}"
 
@@ -90,7 +90,7 @@ async def create_tree(
         f"{config.prefix}/production/create",
         content=production_model.json(),
     )
-    check_and_parse_repsonse(response, models.Production)
+    check_and_parse_response(response, models.Production)
 
     cname = f"camp0_{uuid_int}"
     campaign_model = models.CampaignCreate(
@@ -102,7 +102,7 @@ async def create_tree(
         f"{config.prefix}/campaign/create",
         content=campaign_model.json(),
     )
-    camp = check_and_parse_repsonse(response, models.Campaign)
+    camp = check_and_parse_response(response, models.Campaign)
 
     (camp_scripts, camp_script_depend) = await add_scripts(client, camp)
 
@@ -121,7 +121,7 @@ async def create_tree(
             f"{config.prefix}/step/create",
             content=step_model.json(),
         )
-        step = check_and_parse_repsonse(response, models.Step)
+        step = check_and_parse_response(response, models.Step)
         steps.append(step)
 
     for step_ in steps:
@@ -135,7 +135,7 @@ async def create_tree(
         f"{config.prefix}/step_dependency/create",
         content=step_depend_model.json(),
     )
-    step_depend = check_and_parse_repsonse(response, models.Dependency)
+    step_depend = check_and_parse_response(response, models.Dependency)
 
     assert step_depend.prereq_id == steps[0].id
     assert step_depend.depend_id == steps[1].id
@@ -157,7 +157,7 @@ async def create_tree(
             f"{config.prefix}/group/create",
             content=group_model.json(),
         )
-        group = check_and_parse_repsonse(response, models.Group)
+        group = check_and_parse_response(response, models.Group)
         groups.append(group)
 
     for group_ in groups:
@@ -177,7 +177,7 @@ async def create_tree(
             f"{config.prefix}/job/create",
             content=job_model.json(),
         )
-        job = check_and_parse_repsonse(response, models.Job)
+        job = check_and_parse_response(response, models.Job)
         jobs.append(job)
 
     for job_ in jobs:
@@ -190,7 +190,7 @@ async def delete_all_productions(
     client: AsyncClient,
 ) -> None:
     response = await client.get(f"{config.prefix}/production/list")
-    productions = check_and_parse_repsonse(response, list[models.Production])
+    productions = check_and_parse_response(response, list[models.Production])
 
     for prod_ in productions:
         await client.delete(f"{config.prefix}/production/delete/{prod_.id}")
@@ -210,7 +210,7 @@ async def check_update_methods(
         f"{config.prefix}/{entry_class_name}/update/{entry.id}/data_dict",
         content=update_model.json(),
     )
-    check = check_and_parse_repsonse(response, entry_class)
+    check = check_and_parse_response(response, entry_class)
     assert check.data["test"] == "dummy", "update_data_dict failed"
 
     response = await client.post(
@@ -222,7 +222,7 @@ async def check_update_methods(
     response = await client.get(
         f"{config.prefix}/{entry_class_name}/get/{entry.id}/data_dict",
     )
-    check = check_and_parse_repsonse(response, dict)
+    check = check_and_parse_response(response, dict)
     assert check["test"] == "dummy", "get_data_dict failed"
 
     response = await client.get(
@@ -242,7 +242,7 @@ async def check_update_methods(
         f"{config.prefix}/get/data_dict",
         params=get_fullname_model.model_dump(),
     )
-    check = check_and_parse_repsonse(response, dict)
+    check = check_and_parse_response(response, dict)
     assert check["test"] == "dummy", "get_data_dict failed"
 
     response = await client.get(
@@ -265,7 +265,7 @@ async def check_update_methods(
         f"{config.prefix}/{entry_class_name}/update/{entry.id}/collections",
         content=update_model.json(),
     )
-    check = check_and_parse_repsonse(response, entry_class)
+    check = check_and_parse_response(response, entry_class)
     assert check.collections["test"] == "dummy", "update_collections failed"
 
     response = await client.post(
@@ -277,7 +277,7 @@ async def check_update_methods(
     response = await client.get(
         f"{config.prefix}/{entry_class_name}/get/{entry.id}/collections",
     )
-    check = check_and_parse_repsonse(response, dict)
+    check = check_and_parse_response(response, dict)
     assert check["test"] == "dummy", "get_collections failed"
 
     response = await client.get(
@@ -289,7 +289,7 @@ async def check_update_methods(
         f"{config.prefix}/get/collections",
         params=get_fullname_model.model_dump(),
     )
-    check = check_and_parse_repsonse(response, dict)
+    check = check_and_parse_response(response, dict)
     assert check["test"] == "dummy", "get_collections failed"
 
     response = await client.get(
@@ -307,7 +307,7 @@ async def check_update_methods(
     response = await client.get(
         f"{config.prefix}/{entry_class_name}/get/{entry.id}/resolved_collections",
     )
-    check = check_and_parse_repsonse(response, dict)
+    check = check_and_parse_response(response, dict)
     assert check["test"] == "dummy", "get_resolved_collections failed"
 
     response = await client.get(
@@ -319,7 +319,7 @@ async def check_update_methods(
         f"{config.prefix}/get/resolved_collections",
         params=get_fullname_model.model_dump(),
     )
-    check = check_and_parse_repsonse(response, dict)
+    check = check_and_parse_response(response, dict)
     assert check["test"] == "dummy", "get_resolved_collections failed"
 
     response = await client.get(
@@ -342,7 +342,7 @@ async def check_update_methods(
         f"{config.prefix}/{entry_class_name}/update/{entry.id}/child_config",
         content=update_model.json(),
     )
-    check = check_and_parse_repsonse(response, entry_class)
+    check = check_and_parse_response(response, entry_class)
     assert check.child_config["test"] == "dummy", "update_child_config failed"
 
     response = await client.post(
@@ -354,7 +354,7 @@ async def check_update_methods(
     response = await client.get(
         f"{config.prefix}/{entry_class_name}/get/{entry.id}/child_config",
     )
-    check = check_and_parse_repsonse(response, dict)
+    check = check_and_parse_response(response, dict)
     assert check["test"] == "dummy", "get_child_config failed"
 
     response = await client.get(
@@ -366,7 +366,7 @@ async def check_update_methods(
         f"{config.prefix}/get/child_config",
         params=get_fullname_model.model_dump(),
     )
-    check = check_and_parse_repsonse(response, dict)
+    check = check_and_parse_response(response, dict)
     assert check["test"] == "dummy", "get_child_config failed"
 
     response = await client.get(
@@ -389,7 +389,7 @@ async def check_update_methods(
         f"{config.prefix}/{entry_class_name}/update/{entry.id}/spec_aliases",
         content=update_model.json(),
     )
-    check = check_and_parse_repsonse(response, entry_class)
+    check = check_and_parse_response(response, entry_class)
     assert check.spec_aliases["test"] == "dummy", "update_spec_aliases failed"
 
     response = await client.post(
@@ -401,7 +401,7 @@ async def check_update_methods(
     response = await client.get(
         f"{config.prefix}/{entry_class_name}/get/{entry.id}/spec_aliases",
     )
-    check = check_and_parse_repsonse(response, dict)
+    check = check_and_parse_response(response, dict)
     assert check["test"] == "dummy", "get_spec_aliases failed"
 
     response = await client.get(
@@ -413,7 +413,7 @@ async def check_update_methods(
         f"{config.prefix}/get/spec_aliases",
         params=get_fullname_model.model_dump(),
     )
-    check = check_and_parse_repsonse(response, dict)
+    check = check_and_parse_response(response, dict)
 
     assert check["test"] == "dummy", "get_spec_aliases failed"
 
@@ -437,19 +437,19 @@ async def check_update_methods(
         f"{config.prefix}/{entry_class_name}/update/{entry.id}/status",
         content=update_status_model.json(),
     )
-    check_update = check_and_parse_repsonse(response, entry_class)
+    check_update = check_and_parse_response(response, entry_class)
     assert check_update.status == StatusEnum.reviewable
 
     response = await client.post(
         f"{config.prefix}/{entry_class_name}/action/{entry.id}/reject",
     )
-    check_update = check_and_parse_repsonse(response, entry_class)
+    check_update = check_and_parse_response(response, entry_class)
     assert check_update.status == StatusEnum.rejected, "reject() failed"
 
     response = await client.post(
         f"{config.prefix}/{entry_class_name}/action/{entry.id}/reset",
     )
-    check_update = check_and_parse_repsonse(response, entry_class)
+    check_update = check_and_parse_response(response, entry_class)
     assert check_update.status == StatusEnum.waiting, "reset() failed"
 
     response = await client.post(
@@ -462,13 +462,13 @@ async def check_update_methods(
         f"{config.prefix}/{entry_class_name}/update/{entry.id}/status",
         content=update_status_model.json(),
     )
-    check_update = check_and_parse_repsonse(response, entry_class)
+    check_update = check_and_parse_response(response, entry_class)
     assert check_update.status == StatusEnum.running
 
     response = await client.post(
         f"{config.prefix}/{entry_class_name}/action/{entry.id}/accept",
     )
-    check_update = check_and_parse_repsonse(response, entry_class)
+    check_update = check_and_parse_response(response, entry_class)
     assert check_update.status == StatusEnum.accepted
 
     response = await client.delete(
@@ -520,7 +520,7 @@ async def check_scripts(
         f"{config.prefix}/{entry_class_name}/get/{entry.id}/scripts",
         params=query_model.model_dump(),
     )
-    scripts = check_and_parse_repsonse(response, list[models.Script])
+    scripts = check_and_parse_response(response, list[models.Script])
     assert len(scripts) == 2, f"Expected exactly two scripts for {entry.fullname} got {len(scripts)}"
 
     query_model = models.ScriptQuery(
@@ -532,7 +532,7 @@ async def check_scripts(
         params=query_model.model_dump(),
     )
 
-    no_scripts = check_and_parse_repsonse(response, list[models.Script])
+    no_scripts = check_and_parse_response(response, list[models.Script])
     assert len(no_scripts) == 0, "get_scripts with bad script_name did not return []"
 
     query_model = models.ScriptQuery(
@@ -543,7 +543,7 @@ async def check_scripts(
         f"{config.prefix}/{entry_class_name}/get/{entry.id}/all_scripts",
         params=query_model.model_dump(),
     )
-    all_scripts = check_and_parse_repsonse(response, list[models.Script])
+    all_scripts = check_and_parse_response(response, list[models.Script])
     assert len(all_scripts) != 0, "get_all_scripts with failed"
 
 
@@ -557,7 +557,7 @@ async def check_get_methods(
     response = await client.get(
         f"{config.prefix}/{entry_class_name}/get/{entry.id}",
     )
-    check_get = check_and_parse_repsonse(response, entry_class)
+    check_get = check_and_parse_response(response, entry_class)
 
     assert check_get.id == entry.id, "pulled row should be identical"
     assert check_get.level == entry.level, "pulled row db_id should be identical"
@@ -579,7 +579,7 @@ async def check_get_methods(
         f"{config.prefix}/{entry_class_name}/get_row_by_fullname",
         params=get_fullname_model.model_dump(),
     )
-    check_other = check_and_parse_repsonse(response, entry_class)
+    check_other = check_and_parse_response(response, entry_class)
     assert check_get.id == check_other.id
 
     response = await client.get(
@@ -592,7 +592,7 @@ async def check_get_methods(
         f"{config.prefix}/{entry_class_name}/get_row_by_name",
         params=get_name_model.model_dump(),
     )
-    check_other = check_and_parse_repsonse(response, entry_class)
+    check_other = check_and_parse_response(response, entry_class)
     assert check_get.id == check_other.id
 
     response = await client.get(
@@ -605,10 +605,10 @@ async def check_get_methods(
         f"{config.prefix}/get/spec_block",
         params=get_fullname_model.model_dump(),
     )
-    spec_block = check_and_parse_repsonse(response, models.SpecBlock)
+    spec_block = check_and_parse_response(response, models.SpecBlock)
 
     response = await client.get(f"{config.prefix}/{entry_class_name}/get/{entry.id}/spec_block")
-    spec_block_check = check_and_parse_repsonse(response, models.SpecBlock)
+    spec_block_check = check_and_parse_response(response, models.SpecBlock)
     assert spec_block.name == spec_block_check.name
 
     response = await client.get(f"{config.prefix}/{entry_class_name}/get/-1/spec_block")
@@ -618,12 +618,12 @@ async def check_get_methods(
         f"{config.prefix}/get/specification",
         params=get_fullname_model.model_dump(),
     )
-    specification = check_and_parse_repsonse(response, models.Specification)
+    specification = check_and_parse_response(response, models.Specification)
 
     response = await client.get(
         f"{config.prefix}/{entry_class_name}/get/{entry.id}/specification",
     )
-    specification_check = check_and_parse_repsonse(response, models.Specification)
+    specification_check = check_and_parse_response(response, models.Specification)
     assert specification.name == specification_check.name
 
     response = await client.get(f"{config.prefix}/{entry_class_name}/get/-1/specification")
@@ -632,7 +632,7 @@ async def check_get_methods(
     response = await client.get(
         f"{config.prefix}/{entry_class_name}/get/{entry.id}/tasks",
     )
-    check = check_and_parse_repsonse(response, models.MergedTaskSetDict)
+    check = check_and_parse_response(response, models.MergedTaskSetDict)
     assert len(check.reports) == 0, "length of tasks should be 0"
 
     response = await client.get(f"{config.prefix}/{entry_class_name}/get/-1/tasks")
@@ -641,7 +641,7 @@ async def check_get_methods(
     response = await client.get(
         f"{config.prefix}/{entry_class_name}/get/{entry.id}/wms_task_reports",
     )
-    check = check_and_parse_repsonse(response, models.MergedWmsTaskReportDict)
+    check = check_and_parse_response(response, models.MergedWmsTaskReportDict)
 
     assert len(check.reports) == 0, "length of reports should be 0"
     response = await client.get(f"{config.prefix}/{entry_class_name}/get/-1/wms_task_reports")
@@ -650,7 +650,7 @@ async def check_get_methods(
     response = await client.get(
         f"{config.prefix}/{entry_class_name}/get/{entry.id}/products",
     )
-    check = check_and_parse_repsonse(response, models.MergedProductSetDict)
+    check = check_and_parse_response(response, models.MergedProductSetDict)
     assert len(check.reports) == 0, "length of products should be 0"
 
     response = await client.get(f"{config.prefix}/{entry_class_name}/get/-1/products")
@@ -661,5 +661,5 @@ async def check_queue(
     client: AsyncClient,
     entry: models.ElementMixin,
 ) -> None:
-    # make and test queue object
+    # TODO, make and test queue object
     pass

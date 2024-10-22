@@ -9,7 +9,7 @@ from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
 
 from .util_functions import (
-    check_and_parse_repsonse,
+    check_and_parse_response,
     check_get_methods,
     check_scripts,
     check_update_methods,
@@ -21,7 +21,7 @@ from .util_functions import (
 @pytest.mark.asyncio()
 @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
 async def test_jobs_api(client: AsyncClient) -> None:
-    """Test `/groups` API endpoint."""
+    """Test `/jobs` API endpoint."""
 
     # generate a uuid to avoid collisions
     uuid_int = uuid.uuid1().int
@@ -32,7 +32,7 @@ async def test_jobs_api(client: AsyncClient) -> None:
     await create_tree(client, LevelEnum.job, uuid_int)
 
     response = await client.get(f"{config.prefix}/job/list")
-    jobs = check_and_parse_repsonse(
+    jobs = check_and_parse_response(
         response,
         list[models.Job],
     )
@@ -52,7 +52,7 @@ async def test_jobs_api(client: AsyncClient) -> None:
 
     # confirm cleanup
     response = await client.get(f"{config.prefix}/production/list")
-    productions = check_and_parse_repsonse(
+    productions = check_and_parse_response(
         response,
         list[models.Production],
     )
