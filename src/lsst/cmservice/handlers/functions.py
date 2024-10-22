@@ -82,7 +82,7 @@ async def upsert_spec_block(
     spec_block_result = await session.scalars(spec_block_q)
     spec_block = spec_block_result.first()
     if spec_block and not allow_update:
-        print(f"SpecBlock {key} already defined, skipping it")
+        print(f"SpecBlock {key} already defined, leaving it unchanged")
         return spec_block
     includes = config_values.pop("includes", [])
     block_data = config_values.copy()
@@ -166,7 +166,7 @@ async def upsert_script_template(
     script_template_result = await session.scalars(script_template_q)
     script_template = script_template_result.first()
     if script_template and not allow_update:
-        print(f"ScriptTemplate {key} already defined, skipping it")
+        print(f"ScriptTemplate {key} already defined, leaving it unchanged")
         return script_template
     if script_template is None:
         return await ScriptTemplate.load(
@@ -214,7 +214,7 @@ async def upsert_specification(
     spec_result = await session.scalars(spec_q)
     specification = spec_result.first()
     if specification and not allow_update:
-        print(f"Specification {spec_name} already defined, skipping it")
+        print(f"Specification {spec_name} already defined, leaving it unchanged")
         return specification
     if specification is None:
         return await Specification.create_row(session, **config_values)
