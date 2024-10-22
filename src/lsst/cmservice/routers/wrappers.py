@@ -168,7 +168,7 @@ def get_row_function(
             return the_row
         except CMMissingIDError as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
     return get_row
@@ -444,7 +444,7 @@ def get_node_spec_block_function(
             return the_spec_block
         except CMMissingIDError as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
     return get_node_spec_block
@@ -486,7 +486,7 @@ def get_node_specification_function(
             return the_specification
         except CMMissingIDError as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
     return get_node_specification
@@ -532,7 +532,7 @@ def get_node_parent_function(
             return the_parent
         except CMMissingIDError as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
     return get_node_parent
@@ -574,7 +574,7 @@ def get_node_resolved_collections_function(
             return the_dict
         except CMMissingIDError as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
     return get_node_resolved_collections
@@ -616,7 +616,7 @@ def get_node_collections_function(
             return the_dict
         except CMMissingIDError as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
     return get_node_collections
@@ -644,7 +644,7 @@ def get_node_child_config_function(
 
     @router.get(
         "/get/{row_id}/child_config",
-        response_model=dict[str, str],
+        response_model=dict[str, str | int],
         summary=f"Get the child_config associated to a {db_class.class_string}",
     )
     async def get_node_child_config(
@@ -658,7 +658,7 @@ def get_node_child_config_function(
             return the_dict
         except CMMissingIDError as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
     return get_node_child_config
@@ -700,7 +700,7 @@ def get_node_data_dict_function(
             return the_dict
         except CMMissingIDError as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
     return get_node_data_dict
@@ -742,7 +742,7 @@ def get_node_spec_aliases_function(
             return the_dict
         except CMMissingIDError as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
     return get_node_spec_aliases
@@ -838,7 +838,7 @@ def update_node_collections_function(
             return the_dict
         except CMMissingIDError as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
     return update_node_collections
@@ -885,7 +885,7 @@ def update_node_child_config_function(
             return the_dict
         except CMMissingIDError as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
     return update_node_child_config
@@ -932,7 +932,7 @@ def update_node_data_dict_function(
             return the_dict
         except CMMissingIDError as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
     return update_node_data_dict
@@ -979,7 +979,7 @@ def update_node_spec_aliases_function(
             return the_dict
         except CMMissingIDError as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
     return update_node_spec_aliases
@@ -1468,7 +1468,7 @@ def get_element_estimate_sleep_time_function(
             return sleep_time
         except CMMissingIDError as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
     return element_estimate_sleep_time
@@ -1511,7 +1511,7 @@ def get_element_wms_task_reports_function(
             return merged_reports
         except CMMissingIDError as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
     return element_get_wms_task_reports
@@ -1554,7 +1554,7 @@ def get_element_tasks_function(
             return the_tasks
         except CMMissingIDError as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
     return element_get_tasks
@@ -1597,7 +1597,7 @@ def get_element_products_function(
             return the_products
         except CMMissingIDError as msg:
             raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
     return element_get_products

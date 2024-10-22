@@ -206,6 +206,8 @@ class RowMixin:
         CMBadStateTransitionError: Row is in use
         """
         row = await session.get(cls, row_id)
+        if row is None:
+            raise CMMissingIDError(f"{cls} {row_id} not found")
         if row is not None:
             if hasattr(row, "status") and row.status not in DELETEABLE_STATES:
                 raise CMBadStateTransitionError(
@@ -255,7 +257,7 @@ class RowMixin:
             raise CMIDMismatchError("ID mismatch between URL and body")
         row = await session.get(cls, row_id)
         if row is None:
-            raise CMMissingFullnameError(f"{cls} {row_id} not found")
+            raise CMMissingIDError(f"{cls} {row_id} not found")
         async with session.begin_nested():
             try:
                 for var, value in kwargs.items():

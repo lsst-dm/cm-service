@@ -4,8 +4,11 @@ These tables don't have anything beyond
 standard Element columns
 """
 
+from typing import ClassVar
+
 from pydantic import ConfigDict
 
+from ..common.enums import LevelEnum
 from .element import ElementCreateMixin, ElementMixin, ElementUpdate
 
 
@@ -18,6 +21,8 @@ class StepCreate(ElementCreateMixin):
 
 class Step(ElementMixin):
     """Parameters that are in DB tables and not used to create new rows"""
+
+    level: ClassVar = LevelEnum.step
 
     model_config = ConfigDict(from_attributes=True)
 

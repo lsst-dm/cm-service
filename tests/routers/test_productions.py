@@ -1,7 +1,14 @@
+import os
+import uuid
+
 import pytest
 from httpx import AsyncClient
 
+from lsst.cmservice import models
+from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
+
+from .util_functions import check_and_parse_response, create_tree, delete_all_productions
 
 
 @pytest.mark.asyncio()
@@ -9,20 +16,22 @@ from lsst.cmservice.config import config
 async def test_productions_api(client: AsyncClient) -> None:
     """Test `/productions` API endpoint."""
 
-    pids: list[int] = []
-    # Get list;
-    response = await client.get(f"{config.prefix}/production/list")
-    assert response.status_code == 200
-    data = response.json()
-    assert isinstance(data, list)
-    pids_expected = set(pids)
-    pids_retrieved = {production["id"] for production in data}
-    assert pids_retrieved == pids_expected
+    # generate a uuid to avoid collisions
+    uuid_int = uuid.uuid1().int
 
-    # Verify an individual get
-    # response =
-    #   await client.get(f"{config.prefix}/production/get/{data[0]['id']}")
-    # assert response.status_code == 200
-    # data = response.json()
-    # assert data["id"] == pids[0]
-    # assert data["name"] == 'p1'
+    os.environ["CM_CONFIGS"] = "examples"
+
+    # intialize a tree down to one level lower
+    await create_tree(client, LevelEnum.campaign, uuid_int)
+
+    # delete everything we just made in the session
+    await delete_all_productions(client)
+
+    # confirm cleanup
+    response = await client.get(f"{config.prefix}/production/list")
+    productions = check_and_parse_response(
+        response,
+        list[models.Production],
+    )
+
+    assert len(productions) == 0

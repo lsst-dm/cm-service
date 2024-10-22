@@ -11,7 +11,7 @@ class ScriptBase(BaseModel):
     # Attempt number from this script
     attempt: int = 0
     # Method used to process this script
-    method: ScriptMethodEnum = ScriptMethodEnum.slurm
+    # method: ScriptMethodEnum | None = None
     # Override for Callback handler class
     handler: str | None = None
     # Parameter Overrides
@@ -35,6 +35,8 @@ class ScriptCreate(ScriptBase):
     spec_block_name: str | None = None
     # Name of Parent Node
     parent_name: str
+    # Level of parent Node
+    parent_level: int
 
 
 class Script(ScriptBase):

@@ -4,6 +4,9 @@ These tables have a few columns beyond the
 standard Element columns
 """
 
+from typing import ClassVar
+
+from ..common.enums import LevelEnum
 from .element import ElementBase, ElementCreateMixin, ElementMixin, ElementUpdate
 
 
@@ -24,6 +27,8 @@ class JobCreate(JobBase, ElementCreateMixin):
 
 class Job(JobBase, ElementMixin):
     """Parameters that are in DB tables and not used to create new rows"""
+
+    level: ClassVar = LevelEnum.job
 
     # ForeignKey for SpecBlock
     spec_block_id: int
