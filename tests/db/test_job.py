@@ -64,7 +64,8 @@ async def test_job_db(engine: AsyncEngine) -> None:
 
         await check_get_methods(session, entry, db.Job, db.Group)
 
-        await db.Job.delete_row(session, -99)
+        with pytest.raises(errors.CMMissingIDError):
+            await db.Job.delete_row(session, -99)
 
         # run job specific method tests
         campaign = await entry.get_campaign(session)

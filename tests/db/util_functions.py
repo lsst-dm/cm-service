@@ -292,7 +292,7 @@ async def check_update_methods(
     with pytest.raises(errors.CMIDMismatchError):
         await entry.update_row(session, id=99, row_id=entry.id)
 
-    with pytest.raises(errors.CMMissingFullnameError):
+    with pytest.raises(errors.CMMissingIDError):
         await entry.update_row(session, id=99, row_id=99)
 
     await entry.update_row(session, row_id=entry.id, dummy=None)
