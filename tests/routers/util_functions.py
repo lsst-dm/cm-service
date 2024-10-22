@@ -1,17 +1,19 @@
-from typing import TypeAlias
+from typing import TypeAlias, TypeVar
 
-from httpx import AsyncClient
-from pydantic import BaseModel, parse_obj_as
+from httpx import AsyncClient, Response
+from pydantic import parse_obj_as
 
 from lsst.cmservice import models
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum
 from lsst.cmservice.config import config
 
+T = TypeVar("T")
+
 
 def check_and_parse_repsonse(
-    response,
-    return_class: TypeAlias = BaseModel,
-) -> BaseModel:
+    response: Response,
+    return_class: type[T],
+) -> T:
     if not response.is_success:
         raise ValueError(f"{response.request} failed with {response.text}")
     return_obj = parse_obj_as(return_class, response.json())
@@ -19,7 +21,7 @@ def check_and_parse_repsonse(
 
 
 def expect_failed_response(
-    response,
+    response: Response,
     expected_code: int = 500,
 ) -> None:
     if response.status_code != expected_code:
