@@ -62,8 +62,6 @@ class CMQueryClient:
 
     get_queues = wrappers.get_rows_no_parent_function(models.Queue, "queue/list")
 
-    get_element = wrappers.get_row_by_fullname_function(models.Element, "get/element")
-
     get_script = wrappers.get_row_by_fullname_function(models.Script, "get/script")
 
     get_job = wrappers.get_row_by_fullname_function(models.Job, "get/job")
