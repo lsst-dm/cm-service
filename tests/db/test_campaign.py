@@ -111,7 +111,8 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
 
         await check_get_methods(session, entry, db.Campaign, db.Production)
 
-        await db.Campaign.delete_row(session, -99)
+        with pytest.raises(errors.CMMissingIDError):
+            await db.Campaign.delete_row(session, -99)
 
         with pytest.raises(errors.CMBadFullnameError):
             await interface.get_element_by_fullname(session, "")

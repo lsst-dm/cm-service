@@ -73,9 +73,8 @@ async def test_production_db(engine: AsyncEngine) -> None:
         assert entry.db_id.level == LevelEnum.production, "enum should match production"
         assert entry.level == LevelEnum.production, "level should match production"
 
-        # TODO: decide how to handle this case
-        # when trying to delete a row that does not exist.
-        await db.Production.delete_row(session, -99)
+        with pytest.raises(errors.CMMissingIDError):
+            await db.Production.delete_row(session, -99)
 
         # run campaign specific method tests
         check = await entry.children(session)

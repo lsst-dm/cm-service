@@ -63,7 +63,8 @@ async def test_step_db(engine: AsyncEngine) -> None:
 
         await check_get_methods(session, entry, db.Step, db.Campaign)
 
-        await db.Step.delete_row(session, -99)
+        with pytest.raises(errors.CMMissingIDError):
+            await db.Step.delete_row(session, -99)
 
         # run step specific method tests
         check = await entry.get_campaign(session)
