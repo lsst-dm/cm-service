@@ -34,14 +34,20 @@ __all__ = ["CMClient"]
 class CMClient:  # pylint: disable=too-many-instance-attributes
     """Interface for accessing remote cm-service."""
 
-    def __init__(self: CMClient) -> None:
+    def __init__(
+        self: CMClient,
+        httpx_client: httpx.Client | None = None,
+    ) -> None:
         client_kwargs: dict[str, Any] = {}
-        client_kwargs["base_url"] = client_config.service_url
-        if "auth_token" in client_config.model_fields_set:  # pragma: no cover
-            client_kwargs["headers"] = {"Authorization": f"Bearer {client_config.auth_token}"}
-        if "timeout" in client_config.model_fields_set:  # pragma: no cover
-            client_kwargs["timeout"] = client_config.timeout
-        self._client = httpx.Client(**client_kwargs)
+        if httpx_client is None:
+            client_kwargs["base_url"] = client_config.service_url
+            if "auth_token" in client_config.model_fields_set:  # pragma no cover
+                client_kwargs["headers"] = {"Authorization": f"Bearer {client_config.auth_token}"}
+            if "timeout" in client_config.model_fields_set:  # pragma no cover
+                client_kwargs["timeout"] = client_config.timeout
+            self._client = httpx.Client(**client_kwargs)
+        else:
+            self._client = httpx_client
 
         self.production = CMProductionClient(self)
         self.campaign = CMCampaignClient(self)

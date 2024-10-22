@@ -13,6 +13,7 @@ from safir.testing.uvicorn import UvicornProcess, spawn_uvicorn
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from lsst.cmservice import db, main
+from lsst.cmservice.client import CMClient
 from lsst.cmservice.config import config
 
 
@@ -42,6 +43,13 @@ async def client_fixture(app: FastAPI) -> AsyncIterator[AsyncClient]:
     """Return an ``httpx.AsyncClient`` configured to talk to the test app."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="https:") as the_client:
         yield the_client
+
+
+@pytest_asyncio.fixture(name="pyclient")
+async def pyclient_fixture(client) -> CMClient:
+    """Return a ``client.CMClient`` configured to talk to the test app."""
+    the_pyclient = CMClient(client)
+    return the_pyclient
 
 
 @pytest_asyncio.fixture(name="uvicorn")
