@@ -322,8 +322,8 @@ def check_update_methods(
         "--update_dict test:dummy",
     )
     # FIXME, type
-    check = check_and_parse_result(result, entry_class)
-    assert check.spec_aliases["test"] == "dummy", "update_spec_aliases failed"
+    check_spec = check_and_parse_result(result, entry_class)
+    assert check_spec.spec_aliases["test"] == "dummy", "update_spec_aliases failed"
 
     result = runner.invoke(
         client_top,
