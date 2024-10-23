@@ -20,7 +20,9 @@
     </li>
   </ol>
 </nav>
-<div class="w-full">
+<div id="step_content" class="w-full"
+     hx-get="{{ url_for('get_step', campaign_id=campaign_id, step_id=step.id) }}"
+     hx-trigger="every 20s" hx-select="#step_content" hx-swap="outerHTML">
     <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
         <div class="flex items-center">
             <span class="text-2xl font-bold">{{step.name}}</span>
@@ -131,17 +133,6 @@
          return false
      }
     }
-    const stepScripts = {{scripts|tojson}};
-    const scriptsGridOptions = {
-    rowData: stepScripts,
-     columnDefs: [
-         {field: "name", flex: 1, cellRenderer: ScriptNameRenderer,},
-         {field: "status", flex: 1},
-         {field: "superseded", flex: 1}
-     ]
-    };
-    const scriptsGridElement = document.getElementById("scriptsGrid");
-    agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
 
     // groups
     class DictRenderer {
@@ -168,21 +159,51 @@
          return false
      }
     }
-    const stepGroups = {{groups|tojson}};
-    const groupsGridOptions = {
-        rowData: stepGroups,
-        rowHeight: 120,
-        columnDefs: [
-            {field: "name", flex: 1, filter: true, cellRenderer: GroupNameRenderer},
-            {field: "status", flex: 1},
-            {field: "superseded", flex: 1},
-            {field: "data", flex: 2, wrapText: true, valueFormatter: (params) => params.data.data["data_query"] },
-            {field: "child_config", flex: 2, cellRenderer: DictRenderer},
-            {field: "collections", flex: 2, cellRenderer: DictRenderer},
-            {field: "spec_aliases", flex: 2, cellRenderer: DictRenderer},
-        ]
+
+    const populateScriptGrid = (scriptsJson) => {
+        const scriptsGridOptions = {
+        rowData: scriptsJson,
+             columnDefs: [
+                 {field: "name", flex: 1, cellRenderer: ScriptNameRenderer,},
+                 {field: "status", flex: 1},
+                 {field: "superseded", flex: 1}
+             ]
+        };
+        const scriptsGridElement = document.getElementById("scriptsGrid");
+        agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
     };
-    const groupsGridElement = document.getElementById("groupsGrid");
-    agGrid.createGrid(groupsGridElement, groupsGridOptions);
+
+    const populateGroupsGrid = (groupsJson) => {
+        const groupsGridOptions = {
+            rowData: groupsJson,
+            rowHeight: 120,
+            columnDefs: [
+                {field: "name", flex: 1, filter: true, cellRenderer: GroupNameRenderer},
+                {field: "status", flex: 1},
+                {field: "superseded", flex: 1},
+                {field: "data", flex: 2, wrapText: true, valueFormatter: (params) => params.data.data["data_query"] },
+                {field: "child_config", flex: 2, cellRenderer: DictRenderer},
+                {field: "collections", flex: 2, cellRenderer: DictRenderer},
+                {field: "spec_aliases", flex: 2, cellRenderer: DictRenderer},
+            ]
+        };
+        const groupsGridElement = document.getElementById("groupsGrid");
+        agGrid.createGrid(groupsGridElement, groupsGridOptions);
+    };
+
+    const stepScripts = {{scripts|tojson}};
+    populateScriptGrid(stepScripts);
+
+    const stepGroups = {{groups|tojson}};
+    populateGroupsGrid(stepGroups)
+
+    htmx.on('htmx:afterRequest', (evt) => {
+        const stepScripts = {{scripts|tojson}};
+        populateScriptGrid(stepScripts);
+
+        const stepGroups = {{groups|tojson}};
+        populateGroupsGrid(stepGroups);
+
+    });
 </script>
 {% endblock %}

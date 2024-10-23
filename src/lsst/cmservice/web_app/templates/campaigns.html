@@ -14,22 +14,24 @@
         </div>
         </form>
     </div>
-    {% if recent_campaigns %}
-    <div class="px-4 sm:px-6 lg:px-8">
-        <h1 class="text-sm font-bold leading-tight tracking-tight text-gray-400 pb-3 font-mono uppercase pt-8">most recent campaigns</h1>
-    </div>
-    <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-5 px-4 sm:px-6 lg:px-8">
+    <div id="campaigns_content" hx-get=" {{ url_for('get_campaigns') }}" hx-trigger="every 20s" hx-select="#campaigns_content" hx-swap="outerHTML">
+        {% if recent_campaigns %}
+        <div class="px-4 sm:px-6 lg:px-8">
+            <h1 class="text-sm font-bold leading-tight tracking-tight text-gray-400 pb-3 font-mono uppercase pt-8">most recent campaigns</h1>
+        </div>
+        <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-5 px-4 sm:px-6 lg:px-8">
 
-        <!-- Campaign Cards -->
-        {% for campaign in recent_campaigns %}
-        {% include "campaign_card.html" %}
+            <!-- Campaign Cards -->
+            {% for campaign in recent_campaigns %}
+            {% include "campaign_card.html" %}
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if productions %}
+        <!-- Productions -->
+        {% for production in productions.keys() %}
+        {% include "production.html" %}
         {% endfor %}
+        {% endif %}
     </div>
-    {% endif %}
-    {% if productions %}
-    <!-- Productions -->
-    {% for production in productions.keys() %}
-    {% include "production.html" %}
-    {% endfor %}
-    {% endif %}
 {% endblock %}
