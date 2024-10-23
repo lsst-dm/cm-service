@@ -36,7 +36,7 @@ class ScriptCreate(ScriptBase):
     # Name of Parent Node
     parent_name: str
     # Level of parent Node
-    parent_level: int
+    parent_level: int | None = None
 
 
 class Script(ScriptBase):

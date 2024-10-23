@@ -69,20 +69,21 @@ def output_pydantic_list(
     col_names: list[str]
         Names for columns in tabular representation
     """
+    yaml_list = []
     the_table = []
     for model_ in models:
         match output:
             case options.OutputEnum.json:
                 click.echo(json.dumps(model_.model_dump(), indent=4))
             case options.OutputEnum.yaml:
-                click.echo(yaml.dump(model_.model_dump()))
+                yaml_list.append(model_.dict())
             case _:
                 the_table.append([str(getattr(model_, col_)) for col_ in col_names])
     match output:
         case options.OutputEnum.json:
             pass
         case options.OutputEnum.yaml:
-            pass
+            click.echo(yaml.dump(yaml_list))
         case _:
             click.echo(tabulate(the_table, headers=col_names, tablefmt="plain"))
 
@@ -369,7 +370,7 @@ def get_update_command(
     for option_ in update_options:
         update = option_(update)
 
-    update = group_command(name="update")(update)
+    update = group_command(name="all")(update)
     return update
 
 

@@ -169,7 +169,9 @@ class Script(Base, NodeMixin):
         except KeyError as msg:
             raise CMMissingRowCreateInputError(f"Missing input to create Script: {msg}") from msg
         attempt = kwargs.get("attempt", 0)
-        parent_level = kwargs["parent_level"]
+        parent_level = kwargs.get("parent_level", None)
+        if parent_level is None:
+            parent_level = LevelEnum.get_level_from_fullname(parent_name)
         if isinstance(parent_level, int):
             parent_level = LevelEnum(parent_level)
 

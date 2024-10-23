@@ -77,6 +77,10 @@ delete = wrappers.get_delete_command(group_command, sub_client)
 
 get_row = wrappers.get_row_command(get_command, sub_client, DbClass)
 
+get_row_by_name = wrappers.get_row_by_name_command(get_command, sub_client, DbClass)
+
+get_row_by_fullname = wrappers.get_row_by_fullname_command(get_command, sub_client, DbClass)
+
 get_spec_block = wrappers.get_spec_block_command(get_command, sub_client)
 
 get_specification = wrappers.get_specification_command(get_command, sub_client)
