@@ -370,7 +370,7 @@ def get_update_command(
     for option_ in update_options:
         update = option_(update)
 
-    update = group_command(name="update")(update)
+    update = group_command(name="all")(update)
     return update
 
 

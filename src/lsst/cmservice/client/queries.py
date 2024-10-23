@@ -66,9 +66,11 @@ class CMQueryClient:
 
     get_job = wrappers.get_row_by_fullname_function(models.Job, "get/job")
 
-    get_spec_block = wrappers.get_row_by_name_function(models.SpecBlock, "get/spec_block")
+    get_spec_block = wrappers.get_node_property_by_fullname_function(models.SpecBlock, "get/spec_block")
 
-    get_specification = wrappers.get_row_by_name_function(models.Specification, "get/specification")
+    get_specification = wrappers.get_node_property_by_fullname_function(
+        models.Specification, "get/specification"
+    )
 
     get_resolved_collections = wrappers.get_node_property_by_fullname_function(
         dict,
