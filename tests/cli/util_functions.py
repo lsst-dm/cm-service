@@ -114,12 +114,12 @@ def create_tree(
     for step_ in steps:
         add_scripts(runner, client_top, step_)
 
+    step_0 = steps[0]
+    step_1 = steps[1]
+
     result = runner.invoke(
         client_top,
-        "step_dependency create "
-        "--output yaml "
-        f"--prereq_id {steps[0].id} "
-        f"--depend_id {steps[1].id} ",
+        "step_dependency create " "--output yaml " f"--prereq_id {step_0.id} " f"--depend_id {step_1.id} ",
     )
     step_depend = check_and_parse_result(result, models.Dependency)
 
@@ -136,8 +136,11 @@ def create_tree(
     for gname_ in gnames:
         result = runner.invoke(
             client_top,
-            "group create " "--output yaml " f"--name {gname_} " "--spec_block_name group",
-            f"--parent_name {steps[1].fullname}",
+            "group create "
+            "--output yaml "
+            f"--name {gname_} "
+            "--spec_block_name group "
+            f"--parent_name {step_1.fullname}",
         )
         group = check_and_parse_result(result, models.Group)
         groups.append(group)
@@ -152,7 +155,10 @@ def create_tree(
     for group_ in groups:
         result = runner.invoke(
             client_top,
-            "job create " "--output yaml " f"--name job_{uuid_int}" "--spec_block_name job",
+            "job create "
+            "--output yaml "
+            f"--name job_{uuid_int} "
+            "--spec_block_name job "
             f"--parent_name {group_.fullname}",
         )
         job = check_and_parse_result(result, models.Job)
@@ -199,6 +205,13 @@ def check_update_methods(
         f"{entry_class_name} update data_dict " "--output yaml " "--row_id -1 " "--update_dict test:dummy",
     )
     expect_failed_result(result, 1)
+
+    result = runner.invoke(
+        client_top,
+        f"{entry_class_name} update all " "--output yaml " f"--row_id {entry.id} " "--data test:dummy",
+    )
+    check_update = check_and_parse_result(result, entry_class)
+    assert check_update.data["test"] == "dummy", "update all failed"
 
     result = runner.invoke(
         client_top, f"{entry_class_name} get data_dict " "--output yaml " f"--row_id {entry.id}"
@@ -327,10 +340,7 @@ def check_update_methods(
 
     result = runner.invoke(
         client_top,
-        f"{entry_class_name} update spec_aliases "
-        "--output yaml "
-        f"--row_id -1 "
-        "--update_dict test:dummy",
+        f"{entry_class_name} update spec_aliases " "--output yaml " "--row_id -1 " "--update_dict test:dummy",
     )
     # FIXME
     expect_failed_result(result, 1)
@@ -402,63 +412,77 @@ def check_get_methods(
     assert check_get.id == entry.id, "pulled row should be identical"
     assert check_get.level == entry.level, "pulled row db_id should be identical"
 
+    result = runner.invoke(
+        client_top, f"{entry_class_name} get by_name " "--output yaml " f"--name {entry.name}"
+    )
+    check_get = check_and_parse_result(result, entry_class)
+    assert check_get.id == entry.id, "pulled row should be identical"
+
+    result = runner.invoke(
+        client_top, f"{entry_class_name} get by_fullname " "--output yaml " f"--fullname {entry.fullname}"
+    )
+    check_get = check_and_parse_result(result, entry_class)
+    assert check_get.id == entry.id, "pulled row should be identical"
+
     result = runner.invoke(client_top, f"{entry_class_name} get all " "--output yaml " "--row_id -1")
     expect_failed_result(result, 1)
 
     result = runner.invoke(
         client_top, f"{entry_class_name} get spec_block " "--output yaml " f"--row_id {entry.id}"
     )
-    check_and_parse_result(result, models.SpecBlock)
+    spec_block = check_and_parse_result(result, models.SpecBlock)
 
     result = runner.invoke(client_top, f"{entry_class_name} get spec_block " "--output yaml " "--row_id -1")
     expect_failed_result(result, 1)
 
-    """
+    result = runner.invoke(client_top, f"get obj-spec-block " "--output yaml " f"--fullname {entry.fullname}")
+    spec_block_check = check_and_parse_result(result, models.SpecBlock)
+    assert spec_block.id == spec_block_check.id
+
     result = runner.invoke(
-        f"{config.prefix}/get/specification",
-        params=get_fullname_model.model_dump(),
+        client_top, f"{entry_class_name} get specification " "--output yaml " f"--row_id {entry.id}"
     )
     specification = check_and_parse_result(result, models.Specification)
 
     result = runner.invoke(
-        f"{config.prefix}/{entry_class_name}/get/{entry.id}/specification",
+        client_top, f"{entry_class_name} get specification " "--output yaml " "--row_id -1"
+    )
+    expect_failed_result(result, 1)
+
+    result = runner.invoke(
+        client_top, "get obj-specification " "--output yaml " f"--fullname {entry.fullname}"
     )
     specification_check = check_and_parse_result(result, models.Specification)
     assert specification.name == specification_check.name
 
-    result =
-      runner.invoke(f"{config.prefix}/{entry_class_name}/get/-1/specification")
-    expect_failed_result(result, 404)
+    result = runner.invoke(
+        client_top, f"{entry_class_name} get tasks " "--output yaml " f"--row_id {entry.id}"
+    )
+    check_tasks = check_and_parse_result(result, list[models.MergedTaskSet])
+    assert len(check_tasks) == 0, "length of tasks should be 0"
+
+    result = runner.invoke(client_top, f"{entry_class_name} get tasks " "--output yaml " "--row_id -1")
+    expect_failed_result(result, 1)
 
     result = runner.invoke(
-        f"{config.prefix}/{entry_class_name}/get/{entry.id}/tasks",
+        client_top, f"{entry_class_name} get wms_task_reports " "--output yaml " f"--row_id {entry.id}"
     )
-    check = check_and_parse_result(result, models.MergedTaskSetDict)
-    assert len(check.reports) == 0, "length of tasks should be 0"
-
-    result = runner.invoke(f"{config.prefix}/{entry_class_name}/get/-1/tasks")
-    expect_failed_result(result, 404)
+    check_wms_reports = check_and_parse_result(result, list[models.MergedWmsTaskReport])
+    assert len(check_wms_reports) == 0, "length of wms_task_reports should be 0"
 
     result = runner.invoke(
-        f"{config.prefix}/{entry_class_name}/get/{entry.id}/wms_task_reports",
+        client_top, f"{entry_class_name} get wms_task_reports " "--output yaml " "--row_id -1"
     )
-    check = check_and_parse_result(result, models.MergedWmsTaskReportDict)
-
-    assert len(check.reports) == 0, "length of reports should be 0"
-    result =
-     client.get(f"{config.prefix}/{entry_class_name}/get/-1/wms_task_reports")
-    expect_failed_result(result, 404)
+    expect_failed_result(result, 1)
 
     result = runner.invoke(
-        f"{config.prefix}/{entry_class_name}/get/{entry.id}/products",
+        client_top, f"{entry_class_name} get products " "--output yaml " f"--row_id {entry.id}"
     )
-    check = check_and_parse_result(result, models.MergedProductSetDict)
-    assert len(check.reports) == 0, "length of products should be 0"
+    check_products = check_and_parse_result(result, list[models.MergedProductSet])
+    assert len(check_products) == 0, "length of wms_task_reports should be 0"
 
-    result =
-      runner.invoke(f"{config.prefix}/{entry_class_name}/get/-1/products")
-    expect_failed_result(result, 404)
-    """
+    result = runner.invoke(client_top, f"{entry_class_name} get products " "--output yaml " "--row_id -1")
+    expect_failed_result(result, 1)
 
 
 def check_queue(
