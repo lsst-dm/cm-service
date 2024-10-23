@@ -75,14 +75,14 @@ def output_pydantic_list(
             case options.OutputEnum.json:
                 click.echo(json.dumps(model_.model_dump(), indent=4))
             case options.OutputEnum.yaml:
-                click.echo(yaml.dump(model_.model_dump()))
+                the_table.append(model_.dict())
             case _:
                 the_table.append([str(getattr(model_, col_)) for col_ in col_names])
     match output:
         case options.OutputEnum.json:
             pass
         case options.OutputEnum.yaml:
-            pass
+            click.echo(yaml.dump(the_table))
         case _:
             click.echo(tabulate(the_table, headers=col_names, tablefmt="plain"))
 
