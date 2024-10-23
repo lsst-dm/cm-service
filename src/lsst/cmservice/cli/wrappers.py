@@ -69,20 +69,21 @@ def output_pydantic_list(
     col_names: list[str]
         Names for columns in tabular representation
     """
+    yaml_list = []
     the_table = []
     for model_ in models:
         match output:
             case options.OutputEnum.json:
                 click.echo(json.dumps(model_.model_dump(), indent=4))
             case options.OutputEnum.yaml:
-                the_table.append(model_.dict())
+                yaml_list.append(model_.dict())
             case _:
                 the_table.append([str(getattr(model_, col_)) for col_ in col_names])
     match output:
         case options.OutputEnum.json:
             pass
         case options.OutputEnum.yaml:
-            click.echo(yaml.dump(the_table))
+            click.echo(yaml.dump(yaml_list))
         case _:
             click.echo(tabulate(the_table, headers=col_names, tablefmt="plain"))
 
