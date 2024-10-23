@@ -83,8 +83,7 @@ class CMLoadClient:
 
         spec_block = self._parent.spec_block.get_row_by_name(key)
         if spec_block and not allow_update:
-            print(f"SpecBlock {key} already defined, skipping it")
-            return None
+            return spec_block
         includes = config_values.pop("includes", [])
         block_data = config_values.copy()
         include_data: dict[str, Any] = {}
@@ -158,8 +157,7 @@ class CMLoadClient:
         key = config_values.pop("name")
         script_template = self._parent.script_template.get_row_by_name(key)
         if script_template and not allow_update:
-            print(f"ScriptTemplate {key} already defined, skipping it")
-            return None
+            return script_template
 
         file_path = config_values["file_path"]
         full_file_path = os.path.abspath(os.path.expandvars(file_path))
@@ -205,8 +203,7 @@ class CMLoadClient:
 
         specification = self._parent.specification.get_row_by_name(spec_name)
         if specification is not None and not allow_update:
-            print(f"Specification {spec_name} already defined, skipping it")
-            return None
+            return specification
 
         if specification is None:
             specification = self._parent.specification.create(**config_values)
@@ -445,8 +442,7 @@ class CMLoadClient:
         fullname = f"{task_name}#{diag_message}".strip()
         error_type = self._parent.pipetask_error_type.get_row_by_fullname(fullname)
         if error_type and not allow_update:
-            print(f"PipetaskErrorType {diag_message} already defined, skipping it")
-            return None
+            return error_type
 
         if error_type is None:
             return self._parent.pipetask_error_type.create(**config_values)
