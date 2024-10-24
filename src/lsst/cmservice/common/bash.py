@@ -8,11 +8,13 @@ from typing import Any
 import yaml
 
 from .enums import StatusEnum
+from .errors import CMBashSubmitError
 
 
 def run_bash_job(
     script_url: str,
     log_url: str,
+    stamp_url: str,
     fake_status: StatusEnum | None = None,
 ) -> None:
     """Run a bash job
@@ -25,15 +27,35 @@ def run_bash_job(
     log_url: str
         Location of log file to write
 
+    log_url: str
+        Location of stamp file to write
+
     fake_status: StatusEnum | None,
         If set, don't actually submit the job
     """
     if fake_status is not None:
-        with open(log_url, "w", encoding="utf-8") as fout:
+        with open(stamp_url, "w", encoding="utf-8") as fstamp:
             fields = dict(status="reviewable")
-            yaml.dump(fields, fout)
+            yaml.dump(fields, fstamp)
         return
-    subprocess.run(["/bin/bash", script_url, ">", log_url], check=False)
+    try:
+        with open(log_url, "w", encoding="utf-8") as fout:
+            os.system(f"chmod +x {script_url}")
+            with subprocess.Popen(
+                [os.path.abspath(script_url)],
+                stdout=fout,
+                stderr=fout,
+            ) as process:
+                process.wait()
+                if process.returncode != 0:
+                    assert process.stderr
+                    msg = process.stderr.read().decode()
+                    raise CMBashSubmitError(f"Bad bash submit: {msg}")
+    except Exception as msg:
+        raise CMBashSubmitError(f"Bad bash submit: {msg}") from msg
+    with open(stamp_url, "w", encoding="utf-8") as fstamp:
+        fields = dict(status="accepted")
+        yaml.dump(fields, fstamp)
 
 
 def check_stamp_file(
