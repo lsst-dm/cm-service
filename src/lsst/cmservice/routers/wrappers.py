@@ -15,10 +15,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from safir.dependencies.db_session import db_session_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
+from structlog import get_logger
 
 from .. import db, models
 from ..common.enums import StatusEnum
 from ..common.errors import CMMissingFullnameError, CMMissingIDError
+from ..config import config
+
+logger = get_logger(config.logger_name)
 
 
 def get_rows_no_parent_function(
@@ -310,6 +314,7 @@ def post_row_function(
                 result = await db_class.create_row(session, **row_create.model_dump())
             return result
         except Exception as msg:
+            logger.warn(msg)
             raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
     return post_row

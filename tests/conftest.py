@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator, Generator, Iterator
 from typing import Any
 
 import pytest
@@ -6,6 +6,7 @@ import pytest_asyncio
 import structlog
 from asgi_lifespan import LifespanManager
 from fastapi import FastAPI
+from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 from pytest import TempPathFactory
 from safir.database import create_database_engine, initialize_database
@@ -45,11 +46,10 @@ async def client_fixture(app: FastAPI) -> AsyncIterator[AsyncClient]:
         yield the_client
 
 
-@pytest_asyncio.fixture(name="pyclient")
-async def pyclient_fixture(client) -> CMClient:
+@pytest.fixture(name="pyclient")
+def pyclient_fixture(app: FastAPI) -> Generator[CMClient, None, None]:
     """Return a ``client.CMClient`` configured to talk to the test app."""
-    the_pyclient = CMClient(client)
-    return the_pyclient
+    yield CMClient(TestClient(app=app, base_url=f"http://testserver{config.prefix}/"))  # [sic]
 
 
 @pytest_asyncio.fixture(name="uvicorn")

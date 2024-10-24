@@ -38,7 +38,7 @@ def get_rows_no_parent_function(
     def get_rows(obj: CMClient) -> list[response_model_class]:
         the_list: list[response_model_class] = []
         params = {"skip": 0}
-        while (results := obj.client.get(f"{query}", params=params).json()) != []:
+        while (results := obj.client.get(f"{query}", params=params).raise_for_status().json()) != []:
             the_list.extend(parse_obj_as(list[response_model_class], results))
             params["skip"] += len(results)
         return the_list
@@ -151,7 +151,7 @@ def create_row_function(
 
     def row_create(obj: CMClient, **kwargs: Any) -> response_model_class:
         params = create_model_class(**kwargs)
-        results = obj.client.post(f"{query}", content=params.json()).json()
+        results = obj.client.post(f"{query}", content=params.json()).raise_for_status().json()
         try:
             return parse_obj_as(response_model_class, results)
         except ValidationError as msg:
@@ -539,7 +539,7 @@ def get_general_post_function(
         **kwargs: Any,
     ) -> response_model_class:
         params = query_class(**kwargs)
-        results = obj.client.post(f"{query}", content=params.json()).json()
+        results = obj.client.post(f"{query}", content=params.json()).raise_for_status().json()
         try:
             if results_key is None:
                 return parse_obj_as(response_model_class, results)
