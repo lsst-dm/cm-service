@@ -37,11 +37,15 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install packages for testing
+        env:
+          PIP_PROGRESS_BAR: "off"
         run: |
           pip install -r requirements/main.txt -r requirements/dev.txt
           pip install -e .
 
       - name: Run tests
+        env:
+          PIP_PROGRESS_BAR: "off"
         run: |
           pip install pytest-playwright
           playwright install
@@ -59,6 +63,8 @@ jobs:
           python-version: "3.11"
 
       - name: Install packages for testing
+        env:
+          PIP_PROGRESS_BAR: "off"
         run: |
           pip install -r requirements/main.txt -r requirements/dev.txt
           pip install -e .

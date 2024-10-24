@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON
 from sqlalchemy.ext.asyncio import async_scoped_session
-from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey, UniqueConstraint
 
@@ -18,7 +17,6 @@ from ..models.merged_product_set import MergedProductSetDict
 from ..models.merged_task_set import MergedTaskSetDict
 from ..models.merged_wms_task_report import MergedWmsTaskReportDict
 from .base import Base
-from .dbid import DbId
 from .element import ElementMixin
 from .enums import SqlStatusEnum
 from .spec_block import SpecBlock
@@ -82,11 +80,6 @@ class Group(Base, ElementMixin):
     jobs_: Mapped[list["Job"]] = relationship("Job", viewonly=True)
 
     col_names_for_table = ["id", "fullname", "spec_block_id", "handler", "status", "superseded"]
-
-    @hybrid_property
-    def db_id(self) -> DbId:
-        """Returns DbId"""
-        return DbId(LevelEnum.group, self.id)
 
     @property
     def level(self) -> LevelEnum:

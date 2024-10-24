@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON
 from sqlalchemy.ext.asyncio import async_scoped_session
-from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
@@ -12,7 +11,6 @@ from ..common.enums import LevelEnum, NodeTypeEnum, ScriptMethodEnum, StatusEnum
 from ..common.errors import CMBadEnumError, CMMissingRowCreateInputError
 from .base import Base
 from .campaign import Campaign
-from .dbid import DbId
 from .element import ElementMixin
 from .enums import SqlLevelEnum, SqlScriptMethodEnum, SqlStatusEnum
 from .group import Group
@@ -94,16 +92,6 @@ class Script(Base, NodeMixin):
         "status",
         "superseded",
     ]
-
-    @hybrid_property
-    def db_id(self) -> DbId:
-        """Returns DbId"""
-        return DbId(LevelEnum.script, self.id)
-
-    @hybrid_property
-    def parent_db_id(self) -> DbId:
-        """Returns DbId"""
-        return DbId(self.parent_level, self.parent_id)
 
     @property
     def level(self) -> LevelEnum:

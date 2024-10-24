@@ -3,13 +3,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from sqlalchemy.ext.asyncio import async_scoped_session
-from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
-from ..common.enums import LevelEnum, StatusEnum
+from ..common.enums import StatusEnum
 from .base import Base
-from .dbid import DbId
 from .row import RowMixin
 
 if TYPE_CHECKING:
@@ -35,18 +33,8 @@ class StepDependency(Base, RowMixin):
 
     col_names_for_table = ["id", "prereq_id", "depend_id"]
 
-    @hybrid_property
-    def prereq_db_id(self) -> DbId:
-        """Returns DdbId of prerequisite Step"""
-        return DbId(LevelEnum.step, self.prereq_id)
-
-    @hybrid_property
-    def depend_db_id(self) -> DbId:
-        """Returns DdbId of depenedent Step"""
-        return DbId(LevelEnum.step, self.depend_id)
-
     def __repr__(self) -> str:
-        return f"StepDependency {self.prereq_db_id}: {self.depend_db_id}"
+        return f"StepDependency {self.prereq_id}: {self.depend_id}"
 
     async def is_done(
         self,

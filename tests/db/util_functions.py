@@ -82,8 +82,8 @@ async def create_tree(
         depend_id=steps[1].id,
     )
 
-    assert step_depend.prereq_db_id.id == steps[0].id
-    assert step_depend.depend_db_id.id == steps[1].id
+    assert step_depend.prereq_id == steps[0].id
+    assert step_depend.depend_id == steps[1].id
     depend_is_done = await step_depend.is_done(session)
     assert not depend_is_done
 
@@ -315,9 +315,6 @@ async def check_scripts(
     assert len(check) == 2, f"Expected exactly two scripts for {entry.fullname} got {len(check)}"
 
     for script_ in scripts:
-        assert script_.db_id.level == LevelEnum.script, f"Bad script level {script_.db_id.level}"
-        assert script_.parent_db_id.level == entry.level, "Script parent level mismatch"
-
         parent_check = await script_.get_parent(session)
         assert parent_check.id == entry.id, "Script parent id mismatch"
 
@@ -386,8 +383,6 @@ async def check_get_methods(
 
     check_get = await entry_class.get_row(session, entry.id)
     assert check_get.id == entry.id, "pulled row should be identical"
-    assert check_get.db_id.level == entry.db_id.level, "pulled row db_id should be identical"
-    assert check_get.db_id.id == entry.db_id.id, "pulled row db_id should be identical"
 
     with pytest.raises(errors.CMMissingIDError):
         await entry_class.get_row(
@@ -464,7 +459,6 @@ async def check_queue(
     # make and test queue object
     queue = await db.Queue.create_row(session, fullname=entry.fullname)
 
-    assert queue.element_db_id.level == entry.level
     check_elem = await queue.get_element(session)
     assert check_elem.id == entry.id
 

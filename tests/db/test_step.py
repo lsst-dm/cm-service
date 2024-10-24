@@ -76,8 +76,6 @@ async def test_step_db(engine: AsyncEngine) -> None:
         check = await entry.children(session)
         assert len([c for c in check]) == 5, "length of children should be 5"
 
-        assert entry.db_id.level == LevelEnum.step, "enum should match step"
-
         # check update methods
         await check_update_methods(session, entry, db.Step)
 
