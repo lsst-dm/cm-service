@@ -13,12 +13,10 @@ def test_common_bash() -> None:
         "ls",
         prepend="#!/usr/bin/env bash",
         append="# have a nice day",
-        stamp="accepted",
-        stamp_url="temp.stamp",
         fake=True,
     )
 
-    bash.run_bash_job(the_script, "temp.log")
+    bash.run_bash_job(the_script, "temp.log", "temp.stamp")
 
     status = bash.check_stamp_file("temp.stamp")
     assert status == enums.StatusEnum.accepted
