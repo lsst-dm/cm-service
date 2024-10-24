@@ -470,7 +470,7 @@ class ResourceUsageScriptHandler(ScriptHandler):
         butler_repo = data_dict["butler_repo"]
         lsst_distrib_dir = data_dict["lsst_distrib_dir"]
         lsst_version = data_dict["lsst_version"]
-        usage_graph_url = os.path.expandvars(f"{prod_area}/{parent.fullname}.qgraph")
+        usage_graph_url = os.path.expandvars(f"{prod_area}/{parent.fullname}/resource_usage.qgraph")
 
         resource_usage_script_template = await specification.get_script_template(
             session,
