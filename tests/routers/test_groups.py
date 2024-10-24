@@ -20,8 +20,8 @@ from .util_functions import (
 
 @pytest.mark.asyncio()
 @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
-async def test_groups_routes(client: AsyncClient) -> None:
-    """Test `/groups` API endpoint."""
+async def test_group_routes(client: AsyncClient) -> None:
+    """Test `/group` API endpoint."""
 
     # generate a uuid to avoid collisions
     uuid_int = uuid.uuid1().int
@@ -32,10 +32,7 @@ async def test_groups_routes(client: AsyncClient) -> None:
     await create_tree(client, LevelEnum.job, uuid_int)
 
     response = await client.get(f"{config.prefix}/group/list")
-    groups = check_and_parse_response(
-        response,
-        list[models.Group],
-    )
+    groups = check_and_parse_response(response, list[models.Group])
     entry = groups[0]
 
     # check get methods

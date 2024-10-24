@@ -11,8 +11,8 @@ from .util_functions import cleanup, create_tree
 
 @pytest.mark.asyncio()
 @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
-async def test_productions_routes(client: AsyncClient) -> None:
-    """Test `/productions` API endpoint."""
+async def test_production_routes(client: AsyncClient) -> None:
+    """Test `/production` API endpoint."""
 
     # generate a uuid to avoid collisions
     uuid_int = uuid.uuid1().int
