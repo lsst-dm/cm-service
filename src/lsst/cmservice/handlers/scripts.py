@@ -31,8 +31,18 @@ class NullScriptHandler(ScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        _resolved_cols = await script.resolve_collections(session)
-        _data_dict = await script.data_dict(session)
+        resolved_cols = await script.resolve_collections(session)
+        data_dict = await script.data_dict(session)
+        try:
+            output_coll = resolved_cols["output"]
+            script_url = await self._set_script_files(session, script, data_dict["prod_area"])
+            butler_repo = data_dict["butler_repo"]
+        except KeyError as msg:
+            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+
+        command = f"echo trivial {butler_repo} {output_coll}"
+        write_bash_script(script_url, command, prepend="#!/usr/bin/bash\n", **data_dict)
+        await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
     async def _purge_products(
