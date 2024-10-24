@@ -1,12 +1,12 @@
-import typing
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
+from typing import Any
 
 import pytest
 import pytest_asyncio
 import structlog
 from asgi_lifespan import LifespanManager
 from fastapi import FastAPI
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from pytest import TempPathFactory
 from safir.database import create_database_engine, initialize_database
 from safir.testing.uvicorn import UvicornProcess, spawn_uvicorn
@@ -40,7 +40,7 @@ async def app_fixture() -> AsyncIterator[FastAPI]:
 @pytest_asyncio.fixture(name="client")
 async def client_fixture(app: FastAPI) -> AsyncIterator[AsyncClient]:
     """Return an ``httpx.AsyncClient`` configured to talk to the test app."""
-    async with AsyncClient(app=app, base_url="https:") as the_client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="https:") as the_client:
         yield the_client
 
 
@@ -56,7 +56,7 @@ async def uvicorn_fixture(tmp_path_factory: TempPathFactory) -> AsyncIterator[Uv
     my_uvicorn.process.terminate()
 
 
-def pytest_addoption(parser: typing.Any) -> None:
+def pytest_addoption(parser: Any) -> None:
     parser.addoption(
         "--run-playwright",
         action="store_true",
@@ -65,11 +65,11 @@ def pytest_addoption(parser: typing.Any) -> None:
     )
 
 
-def pytest_configure(config: typing.Any) -> None:
+def pytest_configure(config: Any) -> None:
     config.addinivalue_line("markers", "playwright: mark test as a playwright test")
 
 
-def pytest_collection_modifyitems(config: typing.Any, items: typing.Iterator) -> None:
+def pytest_collection_modifyitems(config: Any, items: Iterator) -> None:
     if config.getoption("--run-playwright"):
         # --run-playwright given in cli: do not skip playwright
         return
