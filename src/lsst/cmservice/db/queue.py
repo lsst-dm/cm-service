@@ -222,7 +222,11 @@ class Queue(Base, NodeMixin):
     ) -> bool:  # pragma: no cover
         """Process associated node and update queue row"""
         node = await self.get_node(session)
-        if not node.status.is_processable_node():
+
+        if node.level == LevelEnum.script:
+            if not node.status.is_processable_script():
+                return False
+        if not node.status.is_processable_element():
             return False
 
         process_kwargs: dict = {}
@@ -241,7 +245,9 @@ class Queue(Base, NodeMixin):
                 update_dict.update(time_finished=now)
 
         await self.update_values(session, **update_dict)
-        return node.status.is_processable_node()
+        if node.level == LevelEnum.script:
+            node.status.is_processable_script()
+        return node.status.is_processable_element()
 
     async def process_node(
         self,
