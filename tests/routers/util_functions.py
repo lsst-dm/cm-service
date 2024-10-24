@@ -1,7 +1,7 @@
 from typing import TypeAlias, TypeVar
 
 from httpx import AsyncClient, Response
-from pydantic import parse_obj_as
+from pydantic import TypeAdapter
 
 from lsst.cmservice import models
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum
@@ -16,7 +16,7 @@ def check_and_parse_response(
 ) -> T:
     if not response.is_success:
         raise ValueError(f"{response.request} failed with {response.text}")
-    return_obj = parse_obj_as(return_class, response.json())
+    return_obj = TypeAdapter(return_class).validate_python(response.json())
     return return_obj
 
 

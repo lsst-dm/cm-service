@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import httpx
-from pydantic import ValidationError, parse_obj_as
+from pydantic import TypeAdapter, ValidationError
 
 from .. import models
 from . import wrappers
@@ -133,7 +133,7 @@ class CMQueryClient:
         query = "get/element_scripts"
         results = self._client.get(f"{query}", params=params.model_dump()).json()
         try:
-            return parse_obj_as(list[models.Script], results)
+            return TypeAdapter(list[models.Script]).validate_json(results)
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 
@@ -171,7 +171,7 @@ class CMQueryClient:
         query = "get/element_all_scripts"
         results = self._client.get(f"{query}", params=params.model_dump()).json()
         try:
-            return parse_obj_as(list[models.Script], results)
+            return TypeAdapter(list[models.Script]).validate_json(results)
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 
@@ -208,7 +208,7 @@ class CMQueryClient:
         query = "get/element_jobs"
         results = self._client.get(f"{query}", params=params.model_dump()).json()
         try:
-            return parse_obj_as(list[models.Job], results)
+            return TypeAdapter(list[models.Job]).validate_json(results)
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 
@@ -234,6 +234,6 @@ class CMQueryClient:
         query = "get/element_sleep_ime"
         results = self._client.get(f"{query}", params=params.model_dump()).json()
         try:
-            return parse_obj_as(int, results)
+            return TypeAdapter(int).validate_json(results)
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
