@@ -9,6 +9,8 @@
           - Script:
                 name: null_script
                 spec_block: null_script
+                collections:
+                    output: "{campaign_source}/out"
 # Trivial Group Template, runs a group using the trivial job
 - SpecBlock:
       name: trivial_group
