@@ -459,15 +459,15 @@ async def check_queue(
     # make and test queue object
     queue = await db.Queue.create_row(session, fullname=entry.fullname)
 
-    check_elem = await queue.get_element(session)
+    check_elem = await queue.get_node(session)
     assert check_elem.id == entry.id
 
     check_queue = await db.Queue.get_queue_item(session, fullname=entry.fullname)
-    assert check_queue.element_id == entry.id
+    assert check_queue.node_id == entry.id
 
     queue.waiting()
 
-    sleep_time = await queue.element_sleep_time(session)
+    sleep_time = await queue.node_sleep_time(session)
     assert sleep_time == 10
 
     await db.Queue.delete_row(session, queue.id)
