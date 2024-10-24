@@ -20,8 +20,8 @@ from .util_functions import (
 )
 
 
-async def test_groups_cli(uvicorn: UvicornProcess) -> None:
-    """Test `/groups` API endpoint."""
+async def test_group_cli(uvicorn: UvicornProcess) -> None:
+    """Test `group` CLI command"""
 
     client_config.service_url = f"{uvicorn.url}{config.prefix}"
     runner = CliRunner()
@@ -31,21 +31,15 @@ async def test_groups_cli(uvicorn: UvicornProcess) -> None:
 
     os.environ["CM_CONFIGS"] = "examples"
 
-    result = runner.invoke(client_top, "group list " "--output yaml ")
-    groups = check_and_parse_result(
-        result,
-        list[models.Group],
-    )
+    result = runner.invoke(client_top, "group list --output yaml")
+    groups = check_and_parse_result(result, list[models.Group])
     assert len(groups) == 0, "Group list not empty"
 
     # intialize a tree down to one level lower
     create_tree(runner, client_top, LevelEnum.job, uuid_int)
 
-    result = runner.invoke(client_top, "group list " "--output yaml ")
-    groups = check_and_parse_result(
-        result,
-        list[models.Group],
-    )
+    result = runner.invoke(client_top, "group list --output yaml")
+    groups = check_and_parse_result(result, list[models.Group])
     entry = groups[0]
 
     # check get methods

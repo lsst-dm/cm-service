@@ -20,8 +20,8 @@ from .util_functions import (
 )
 
 
-async def test_steps_cli(uvicorn: UvicornProcess) -> None:
-    """Test `/steps` API endpoint."""
+async def test_step_cli(uvicorn: UvicornProcess) -> None:
+    """Test `step` CLI command"""
 
     client_config.service_url = f"{uvicorn.url}{config.prefix}"
     runner = CliRunner()
@@ -31,21 +31,15 @@ async def test_steps_cli(uvicorn: UvicornProcess) -> None:
 
     os.environ["CM_CONFIGS"] = "examples"
 
-    result = runner.invoke(client_top, "step list " "--output yaml ")
-    steps = check_and_parse_result(
-        result,
-        list[models.Step],
-    )
+    result = runner.invoke(client_top, "step list --output yaml")
+    steps = check_and_parse_result(result, list[models.Step])
     assert len(steps) == 0, "Step list not empty"
 
     # intialize a tree down to one level lower
     create_tree(runner, client_top, LevelEnum.group, uuid_int)
 
-    result = runner.invoke(client_top, "step list " "--output yaml ")
-    steps = check_and_parse_result(
-        result,
-        list[models.Step],
-    )
+    result = runner.invoke(client_top, "step list --output yaml")
+    steps = check_and_parse_result(result, list[models.Step])
     entry = steps[0]
 
     # check get methods
