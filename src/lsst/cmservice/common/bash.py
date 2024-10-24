@@ -123,7 +123,6 @@ def write_bash_script(
     """
     prepend = kwargs.get("prepend")
     append = kwargs.get("append")
-    stamp = kwargs.get("stamp")
     fake = kwargs.get("fake")
     rollback_prefix = kwargs.get("rollback", "")
 
@@ -140,7 +139,4 @@ def write_bash_script(
         fout.write("\n")
         if append:
             fout.write(f"{append}\n")
-        if stamp:
-            stamp_url = kwargs["stamp_url"]
-            fout.write(f'echo "status: {stamp}" > {os.path.abspath(stamp_url)}\n')
     return script_url
