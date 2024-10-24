@@ -3,7 +3,7 @@ from typing import TypeAlias, TypeVar
 import yaml
 from click import BaseCommand
 from click.testing import CliRunner, Result
-from pydantic import parse_obj_as
+from pydantic import TypeAdapter
 
 from lsst.cmservice import models
 from lsst.cmservice.common.enums import LevelEnum
@@ -17,7 +17,7 @@ def check_and_parse_result(
 ) -> T:
     if not result.exit_code == 0:
         raise ValueError(f"{result} failed with {result.exit_code} {result.output}")
-    return_obj = parse_obj_as(return_class, yaml.unsafe_load(result.stdout))
+    return_obj = TypeAdapter(return_class).validate_python(yaml.unsafe_load(result.stdout))
     return return_obj
 
 
