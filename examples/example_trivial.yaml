@@ -9,9 +9,10 @@
           campaign_source: HSC/raw/RC2
       steps:
           - Step:
-                name: isr
-                spec_block: hsc_micro_isr
+                name: trivial_step
+                spec_block: trivial_step
                 child_config:
+                    base_query: "instrument = 'HSC'"
                     split_method: no_split
       data:
           butler_repo: '/repo/main'
