@@ -1,16 +1,22 @@
 import os
+from datetime import datetime
 
+import pause
 import pytest
 import structlog
 from safir.database import create_async_session
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from lsst.cmservice import db
+from lsst.cmservice.common.daemon import daemon_iteration
+from lsst.cmservice.common.enums import StatusEnum
 from lsst.cmservice.config import config
 from lsst.cmservice.handlers import interface
 
+from .util_functions import delete_all_productions
+
 
 @pytest.mark.asyncio()
-@pytest.mark.skip("Not yet baby")
 async def test_daemon(engine: AsyncEngine) -> None:
     """Test creating a job, add it to the work queue, and start processing."""
 
@@ -34,42 +40,47 @@ async def test_daemon(engine: AsyncEngine) -> None:
             campaign_source="HSC/raw/RC2",
         )
 
-        changed, status = await interface.process(
+        # Add the job to the work queue, to be processed by the daemon.
+        queue_entry = await db.Queue.create_row(
             session,
-            "trivial_panda/test_daemon",
+            fullname=campaign.fullname,
+            time_created=datetime.now(),
+            time_updated=datetime.now(),
         )
 
-        """
+        await daemon_iteration(session)
+        await session.refresh(campaign)
 
-        # Add the job to the work queue, to be processed by the daemon.
-        queue_entry = db.Queue.create(job, time_created=datetime.now(),
-           time_updated=datetime.now())
-        session.add(queue_entry)
+        assert campaign.status.value >= StatusEnum.running.value
+
+        pause.sleep(2)
+        await queue_entry.update_values(
+            session,
+            time_next_check=datetime.now(),
+        )
         await session.commit()
 
         await daemon_iteration(session)
+        await session.refresh(campaign)
 
-        # Confirm that scripts were created and that one started running.
-        await session.refresh(job, attribute_names=["scripts_"])
-        assert len(job.scripts_) > 0
-        assert job.scripts_[0].status == StatusEnum.running
+        assert campaign.status == StatusEnum.accepted
 
-        # Confirm that the work queue knows to wait before re-checking.
-        await session.refresh(queue_entry)
-        assert queue_entry.time_next_check > datetime.now()
+        queues = await db.Queue.get_rows(
+            session,
+        )
+        for queue_ in queues:
+            await db.Queue.delete_row(session, queue_.id)
 
-        time.sleep(20)
+        queues = await db.Queue.get_rows(
+            session,
+        )
+        assert len(queues) == 0
 
-        # Manually run the daemon to process any available work.
-        await daemon_iteration(session)
-
-        await session.refresh(job, attribute_names=["scripts_"])
-        assert job.scripts_[0].status == StatusEnum.failed
-
-        for script in job.scripts_:
-            await session.refresh(script, attribute_names=["errors_"])
-            print(script)
-            if script.status == StatusEnum.failed:
-                print(script.errors_)
-
-        """
+        await delete_all_productions(session)
+        # confirm cleanup
+        productions = await db.Production.get_rows(
+            session,
+        )
+        assert len(productions) == 0
+        await session.commit()
+        await session.remove()
