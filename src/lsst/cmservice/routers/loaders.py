@@ -1,9 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from safir.dependencies.db_session import db_session_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
+from structlog import get_logger
 
 from .. import db, models
+from ..config import config
 from ..handlers import interface
+
+logger = get_logger(config.logger_name)
 
 router = APIRouter(
     prefix="/load",
@@ -60,6 +64,7 @@ async def load_specification(
             result = await interface.load_specification(session, **query.model_dump())
         return result
     except Exception as msg:
+        logger.warn(msg)
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
