@@ -73,7 +73,7 @@ async def test_group_db(engine: AsyncEngine) -> None:
         check = await entry.children(session)
         assert len([c for c in check]) == 1, "length of children should be 1"
 
-        assert entry.db_id.level == LevelEnum.group, "enum should match group"
+        assert entry.level == LevelEnum.group, "enum should match group"
 
         check = await entry.get_tasks(session)
         assert len(check.reports) == 0, "length of tasks should be 0"
