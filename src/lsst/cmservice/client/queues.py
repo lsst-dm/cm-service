@@ -7,10 +7,9 @@ from typing import TYPE_CHECKING
 
 import httpx
 import pause
-from pydantic import ValidationError, parse_obj_as
+from pydantic import TypeAdapter, ValidationError
 
 from .. import db, models
-from ..common.enums import LevelEnum
 from . import wrappers
 
 if TYPE_CHECKING:
@@ -54,29 +53,6 @@ class CMQueueClient:
         f"{router_string}/create",
     )
 
-    def add_entry(
-        self, *, element_level: LevelEnum, fullname: str | None = None, row_id: int | None = None
-    ) -> bool:
-        if (fullname is None) and (row_id is None):
-            raise ValueError("Must supply either fullname or row_id but not both.")
-
-        data = {}
-        if fullname:
-            data["fullname"] = fullname
-        else:
-            data["element_id"] = str(row_id)
-            data["element_level"] = str(element_level.value)
-
-        response = self._client.post(f"{router_string}", json=data)
-
-        try:
-            response.raise_for_status()
-        except httpx.HTTPStatusError as e:
-            print(f"An error occurred while requesting {e.request.url!r}. Body: {response.text}")
-            raise e
-
-        return True
-
     update = wrappers.update_row_function(
         ResponseModelClass,
         UpdateModelClass,
@@ -103,7 +79,7 @@ class CMQueueClient:
         """
         results = self._client.get(f"{router_string}/sleep_time/{row_id}").json()
         try:
-            return parse_obj_as(int, results)
+            return TypeAdapter(int).validate_json(results)
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 
@@ -125,7 +101,7 @@ class CMQueueClient:
         """
         results = self._client.get(f"{router_string}/process/{row_id}").json()
         try:
-            return parse_obj_as(bool, results)
+            return TypeAdapter(bool).validate_json(results)
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 
