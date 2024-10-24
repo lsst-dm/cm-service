@@ -11,10 +11,10 @@ async def daemon_iteration(session: async_scoped_session) -> None:
     queue_entries = await session.execute(select(Queue).where(Queue.time_next_check < datetime.now()))
 
     for (queue_entry,) in queue_entries:
-        queued_element = queue_entry.get_element()
-        print(f"Processing queue_entry f{queued_element.fullname}")
-        await queue_entry.process_element(session)
-        sleep_time = await queue_entry.element_sleep_time(session)
+        queued_node = await queue_entry.get_node(session)
+        print(f"Processing queue_entry f{queued_node.fullname}")
+        await queue_entry.process_node(session)
+        sleep_time = await queue_entry.node_sleep_time(session)
         queue_entry.time_next_check = datetime.now() + timedelta(seconds=sleep_time)
 
     await session.commit()
