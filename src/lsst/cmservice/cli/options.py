@@ -11,7 +11,6 @@ from ..common.enums import (
     ErrorActionEnum,
     ErrorFlavorEnum,
     ErrorSourceEnum,
-    LevelEnum,
     NodeTypeEnum,
     StatusEnum,
 )
@@ -258,11 +257,6 @@ fake_status = PartialOption(
     help="Status to set for Element",
 )
 
-element_level = PartialOption(
-    "--element_level",
-    type=EnumChoice(LevelEnum),
-    help="Element level",
-)
 
 error_action = PartialOption(
     "--error_action",
