@@ -4,16 +4,15 @@ import uuid
 from click.testing import CliRunner
 from safir.testing.uvicorn import UvicornProcess
 
-from lsst.cmservice import models
 from lsst.cmservice.cli.commands import client_top
 from lsst.cmservice.client.clientconfig import client_config
 from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
 
-from .util_functions import check_and_parse_result, create_tree, delete_all_productions
+from .util_functions import cleanup, create_tree
 
 
-async def test_productions_api(uvicorn: UvicornProcess) -> None:
+async def test_productions_cli(uvicorn: UvicornProcess) -> None:
     """Test `/productions` API endpoint."""
 
     client_config.service_url = f"{uvicorn.url}{config.prefix}"
@@ -28,13 +27,4 @@ async def test_productions_api(uvicorn: UvicornProcess) -> None:
     create_tree(runner, client_top, LevelEnum.campaign, uuid_int)
 
     # delete everything we just made in the session
-    delete_all_productions(runner, client_top)
-
-    # confirm cleanup
-    result = runner.invoke(client_top, "production list " "--output yaml ")
-    productions = check_and_parse_result(
-        result,
-        list[models.Production],
-    )
-
-    assert len(productions) == 0
+    cleanup(runner, client_top, check_cascade=True)

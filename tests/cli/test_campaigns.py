@@ -15,12 +15,12 @@ from .util_functions import (
     check_get_methods,
     check_scripts,
     check_update_methods,
+    cleanup,
     create_tree,
-    delete_all_productions,
 )
 
 
-async def test_campaigns_api(uvicorn: UvicornProcess) -> None:
+async def test_campaigns_cli(uvicorn: UvicornProcess) -> None:
     """Test `/campaigns` API endpoint."""
 
     client_config.service_url = f"{uvicorn.url}{config.prefix}"
@@ -58,13 +58,4 @@ async def test_campaigns_api(uvicorn: UvicornProcess) -> None:
     check_scripts(runner, client_top, entry, "campaign")
 
     # delete everything we just made in the session
-    delete_all_productions(runner, client_top)
-
-    # confirm cleanup
-    result = runner.invoke(client_top, "production list " "--output yaml ")
-    productions = check_and_parse_result(
-        result,
-        list[models.Production],
-    )
-
-    assert len(productions) == 0
+    cleanup(runner, client_top, check_cascade=True)

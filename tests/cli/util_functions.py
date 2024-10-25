@@ -170,17 +170,62 @@ def create_tree(
     return
 
 
+def delete_all_rows(
+    runner: CliRunner,
+    client_top: BaseCommand,
+    entry_class_name: str,
+    entry_class: TypeAlias = models.ElementMixin,
+) -> None:
+    result = runner.invoke(client_top, f"{entry_class_name} list " "--output yaml")
+    rows = check_and_parse_result(result, list[entry_class])
+
+    for row_ in rows:
+        result = runner.invoke(client_top, f"{entry_class_name} delete " f"--row_id {row_.id}")
+        if not result.exit_code == 0:
+            raise ValueError(f"{result} failed with {result.exit_code} {result.output}")
+
+
 def delete_all_productions(
     runner: CliRunner,
     client_top: BaseCommand,
+    *,
+    check_cascade: bool = False,
 ) -> None:
-    result = runner.invoke(client_top, "production list " "--output yaml")
-    productions = check_and_parse_result(result, list[models.Production])
+    delete_all_rows(runner, client_top, "production", models.Production)
+    if check_cascade:
+        result = runner.invoke(client_top, "campaign list " "--output yaml")
+        n_campaigns = len(check_and_parse_result(result, list[models.Campaign]))
+        result = runner.invoke(client_top, "step list " "--output yaml")
+        n_steps = len(check_and_parse_result(result, list[models.Step]))
+        assert n_campaigns == 0
+        assert n_steps == 0
 
-    for prod_ in productions:
-        result = runner.invoke(client_top, "production delete " f"--row_id {prod_.id}")
-        if not result.exit_code == 0:
-            raise ValueError(f"{result} failed with {result.exit_code} {result.output}")
+
+def delete_all_spec_stuff(
+    runner: CliRunner,
+    client_top: BaseCommand,
+) -> None:
+    delete_all_rows(runner, client_top, "specification", models.Specification)
+    delete_all_rows(runner, client_top, "spec_block", models.SpecBlock)
+    delete_all_rows(runner, client_top, "script_template", models.ScriptTemplate)
+
+
+def delete_all_queues(
+    runner: CliRunner,
+    client_top: BaseCommand,
+) -> None:
+    delete_all_rows(runner, client_top, "queue", models.Queue)
+
+
+def cleanup(
+    runner: CliRunner,
+    client_top: BaseCommand,
+    *,
+    check_cascade: bool = False,
+) -> None:
+    delete_all_productions(runner, client_top, check_cascade=check_cascade)
+    delete_all_spec_stuff(runner, client_top)
+    delete_all_queues(runner, client_top)
 
 
 def check_update_methods(
