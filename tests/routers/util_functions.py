@@ -41,7 +41,7 @@ async def add_scripts(
 
     response = await client.post(
         f"{config.prefix}/script/create",
-        content=prep_script_model.json(),
+        content=prep_script_model.model_dump_json(),
     )
     prep_script = check_and_parse_response(response, models.Script)
 
@@ -53,7 +53,7 @@ async def add_scripts(
     )
     response = await client.post(
         f"{config.prefix}/script/create",
-        content=collect_script_model.json(),
+        content=collect_script_model.model_dump_json(),
     )
     collect_script = check_and_parse_response(response, models.Script)
 
@@ -63,7 +63,7 @@ async def add_scripts(
     )
     response = await client.post(
         f"{config.prefix}/script_dependency/create",
-        content=script_depend_model.json(),
+        content=script_depend_model.model_dump_json(),
     )
     script_depend = check_and_parse_response(response, models.Dependency)
     return ([prep_script, collect_script], script_depend)
@@ -79,7 +79,7 @@ async def create_tree(
     )
     response = await client.post(
         f"{config.prefix}/load/specification",
-        content=specification_load_model.json(),
+        content=specification_load_model.model_dump_json(),
     )
     check_and_parse_response(response, models.Specification)
 
@@ -88,7 +88,7 @@ async def create_tree(
     production_model = models.ProductionCreate(name=pname)
     response = await client.post(
         f"{config.prefix}/production/create",
-        content=production_model.json(),
+        content=production_model.model_dump_json(),
     )
     check_and_parse_response(response, models.Production)
 
@@ -100,7 +100,7 @@ async def create_tree(
     )
     response = await client.post(
         f"{config.prefix}/campaign/create",
-        content=campaign_model.json(),
+        content=campaign_model.model_dump_json(),
     )
     camp = check_and_parse_response(response, models.Campaign)
 
@@ -119,7 +119,7 @@ async def create_tree(
         )
         response = await client.post(
             f"{config.prefix}/step/create",
-            content=step_model.json(),
+            content=step_model.model_dump_json(),
         )
         step = check_and_parse_response(response, models.Step)
         steps.append(step)
@@ -133,7 +133,7 @@ async def create_tree(
     )
     response = await client.post(
         f"{config.prefix}/step_dependency/create",
-        content=step_depend_model.json(),
+        content=step_depend_model.model_dump_json(),
     )
     step_depend = check_and_parse_response(response, models.Dependency)
 
@@ -155,7 +155,7 @@ async def create_tree(
         )
         response = await client.post(
             f"{config.prefix}/group/create",
-            content=group_model.json(),
+            content=group_model.model_dump_json(),
         )
         group = check_and_parse_response(response, models.Group)
         groups.append(group)
@@ -175,7 +175,7 @@ async def create_tree(
         )
         response = await client.post(
             f"{config.prefix}/job/create",
-            content=job_model.json(),
+            content=job_model.model_dump_json(),
         )
         job = check_and_parse_response(response, models.Job)
         jobs.append(job)
@@ -208,14 +208,14 @@ async def check_update_methods(
     )
     response = await client.post(
         f"{config.prefix}/{entry_class_name}/update/{entry.id}/data_dict",
-        content=update_model.json(),
+        content=update_model.model_dump_json(),
     )
     check = check_and_parse_response(response, entry_class)
     assert check.data["test"] == "dummy", "update_data_dict failed"
 
     response = await client.post(
         f"{config.prefix}/{entry_class_name}/update/-1/data_dict",
-        content=update_model.json(),
+        content=update_model.model_dump_json(),
     )
     expect_failed_response(response, 404)
 
@@ -263,14 +263,14 @@ async def check_update_methods(
     )
     response = await client.post(
         f"{config.prefix}/{entry_class_name}/update/{entry.id}/collections",
-        content=update_model.json(),
+        content=update_model.model_dump_json(),
     )
     check = check_and_parse_response(response, entry_class)
     assert check.collections["test"] == "dummy", "update_collections failed"
 
     response = await client.post(
         f"{config.prefix}/{entry_class_name}/update/-1/collections",
-        content=update_model.json(),
+        content=update_model.model_dump_json(),
     )
     expect_failed_response(response, 404)
 
@@ -340,14 +340,14 @@ async def check_update_methods(
     )
     response = await client.post(
         f"{config.prefix}/{entry_class_name}/update/{entry.id}/child_config",
-        content=update_model.json(),
+        content=update_model.model_dump_json(),
     )
     check = check_and_parse_response(response, entry_class)
     assert check.child_config["test"] == "dummy", "update_child_config failed"
 
     response = await client.post(
         f"{config.prefix}/{entry_class_name}/update/-1/child_config",
-        content=update_model.json(),
+        content=update_model.model_dump_json(),
     )
     expect_failed_response(response, 404)
 
@@ -387,14 +387,14 @@ async def check_update_methods(
     )
     response = await client.post(
         f"{config.prefix}/{entry_class_name}/update/{entry.id}/spec_aliases",
-        content=update_model.json(),
+        content=update_model.model_dump_json(),
     )
     check = check_and_parse_response(response, entry_class)
     assert check.spec_aliases["test"] == "dummy", "update_spec_aliases failed"
 
     response = await client.post(
         f"{config.prefix}/{entry_class_name}/update/-1/spec_aliases",
-        content=update_model.json(),
+        content=update_model.model_dump_json(),
     )
     expect_failed_response(response, 404)
 
@@ -435,7 +435,7 @@ async def check_update_methods(
 
     response = await client.post(
         f"{config.prefix}/{entry_class_name}/update/{entry.id}/status",
-        content=update_status_model.json(),
+        content=update_status_model.model_dump_json(),
     )
     check_update = check_and_parse_response(response, entry_class)
     assert check_update.status == StatusEnum.reviewable
@@ -460,7 +460,7 @@ async def check_update_methods(
     update_status_model.status = StatusEnum.running
     response = await client.post(
         f"{config.prefix}/{entry_class_name}/update/{entry.id}/status",
-        content=update_status_model.json(),
+        content=update_status_model.model_dump_json(),
     )
     check_update = check_and_parse_response(response, entry_class)
     assert check_update.status == StatusEnum.running
