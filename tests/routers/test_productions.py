@@ -4,16 +4,14 @@ import uuid
 import pytest
 from httpx import AsyncClient
 
-from lsst.cmservice import models
 from lsst.cmservice.common.enums import LevelEnum
-from lsst.cmservice.config import config
 
-from .util_functions import check_and_parse_response, create_tree, delete_all_productions
+from .util_functions import cleanup, create_tree
 
 
 @pytest.mark.asyncio()
 @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
-async def test_productions_api(client: AsyncClient) -> None:
+async def test_productions_routes(client: AsyncClient) -> None:
     """Test `/productions` API endpoint."""
 
     # generate a uuid to avoid collisions
@@ -25,13 +23,4 @@ async def test_productions_api(client: AsyncClient) -> None:
     await create_tree(client, LevelEnum.campaign, uuid_int)
 
     # delete everything we just made in the session
-    await delete_all_productions(client)
-
-    # confirm cleanup
-    response = await client.get(f"{config.prefix}/production/list")
-    productions = check_and_parse_response(
-        response,
-        list[models.Production],
-    )
-
-    assert len(productions) == 0
+    await cleanup(client, check_cascade=True)

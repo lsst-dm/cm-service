@@ -13,14 +13,14 @@ from .util_functions import (
     check_get_methods,
     check_scripts,
     check_update_methods,
+    cleanup,
     create_tree,
-    delete_all_productions,
 )
 
 
 @pytest.mark.asyncio()
 @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
-async def test_groups_api(client: AsyncClient) -> None:
+async def test_groups_routes(client: AsyncClient) -> None:
     """Test `/groups` API endpoint."""
 
     # generate a uuid to avoid collisions
@@ -48,13 +48,4 @@ async def test_groups_api(client: AsyncClient) -> None:
     await check_scripts(client, entry, "group")
 
     # delete everything we just made in the session
-    await delete_all_productions(client)
-
-    # confirm cleanup
-    response = await client.get(f"{config.prefix}/production/list")
-    productions = check_and_parse_response(
-        response,
-        list[models.Production],
-    )
-
-    assert len(productions) == 0
+    await cleanup(client, check_cascade=True)

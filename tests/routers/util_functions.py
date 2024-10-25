@@ -186,14 +186,57 @@ async def create_tree(
     return
 
 
+async def delete_all_rows(
+    client: AsyncClient,
+    entry_class_name: str,
+    entry_class: TypeAlias = models.ElementMixin,
+) -> None:
+    response = await client.get(f"{config.prefix}/{entry_class_name}/list")
+    rows = check_and_parse_response(response, list[entry_class])
+
+    for row_ in rows:
+        await client.delete(f"{config.prefix}/{entry_class_name}/delete/{row_.id}")
+
+    response = await client.get(f"{config.prefix}/{entry_class_name}/list")
+    rows_check = check_and_parse_response(response, list[entry_class])
+
+    assert len(rows_check) == 0, f"Failed to delete all {entry_class_name}"
+
+
 async def delete_all_productions(
     client: AsyncClient,
+    *,
+    check_cascade: bool = False,
 ) -> None:
-    response = await client.get(f"{config.prefix}/production/list")
-    productions = check_and_parse_response(response, list[models.Production])
+    await delete_all_rows(client, "production", models.Production)
+    if check_cascade:
+        response = await client.get(f"{config.prefix}/campaign/list")
+        n_campaigns = len(check_and_parse_response(response, list[models.Campaign]))
+        assert n_campaigns == 0
 
-    for prod_ in productions:
-        await client.delete(f"{config.prefix}/production/delete/{prod_.id}")
+
+async def delete_all_spec_stuff(
+    client: AsyncClient,
+) -> None:
+    await delete_all_rows(client, "specification", models.Specification)
+    await delete_all_rows(client, "spec_block", models.SpecBlock)
+    await delete_all_rows(client, "script_template", models.ScriptTemplate)
+
+
+async def delete_all_queues(
+    client: AsyncClient,
+) -> None:
+    await delete_all_rows(client, "queue", models.Queue)
+
+
+async def cleanup(
+    client: AsyncClient,
+    *,
+    check_cascade: bool = False,
+) -> None:
+    await delete_all_productions(client, check_cascade=check_cascade)
+    await delete_all_spec_stuff(client)
+    await delete_all_queues(client)
 
 
 async def check_update_methods(
