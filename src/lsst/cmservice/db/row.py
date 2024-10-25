@@ -219,6 +219,26 @@ class RowMixin:
                 if TYPE_CHECKING:
                     assert e.orig  # for mypy
                 raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
+        await cls._delete_hook(session, row_id)
+
+    @classmethod
+    async def _delete_hook(
+        cls,
+        session: async_scoped_session,
+        row_id: int,
+    ) -> None:
+        """Hook called during delete_row
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        row_id: int
+            PrimaryKey of the row to delete
+
+        """
+        pass
 
     @classmethod
     async def update_row(
