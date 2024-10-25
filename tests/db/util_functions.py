@@ -134,6 +134,29 @@ async def delete_all_productions(
         await db.Production.delete_row(session, prod_.id)
 
 
+async def delete_all_spec_stuff(
+    session: async_scoped_session,
+) -> None:
+    specs = await db.Specification.get_rows(
+        session,
+    )
+    for spec_ in specs:
+        await db.Specification.delete_row(session, spec_.id)
+
+    spec_blocks = await db.SpecBlock.get_rows(
+        session,
+    )
+    for spec_block_ in spec_blocks:
+        await db.SpecBlock.delete_row(session, spec_block_.id)
+    db.handler.Handler.reset_cache()
+
+    script_templates = await db.ScriptTemplate.get_rows(
+        session,
+    )
+    for script_template_ in script_templates:
+        await db.ScriptTemplate.delete_row(session, script_template_.id)
+
+
 async def check_update_methods(
     session: async_scoped_session,
     entry: db.NodeMixin,
