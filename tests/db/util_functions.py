@@ -123,15 +123,63 @@ async def create_tree(
     return
 
 
+async def delete_all_rows(
+    session: async_scoped_session,
+    table_class: TypeAlias = db.RowMixin,
+) -> None:
+    rows = await table_class.get_rows(session)
+    for row_ in rows:
+        await table_class.delete_row(session, row_.id)
+
+    rows_check = await table_class.get_rows(session)
+    assert len(rows_check) == 0, f"Failed to delete all {table_class}"
+
+
 async def delete_all_productions(
     session: async_scoped_session,
+    *,
+    check_cascade: bool = False,
 ) -> None:
-    productions = await db.Production.get_rows(
-        session,
-    )
+    await delete_all_rows(session, db.Production)
+    if check_cascade:
+        n_campaigns = len(await db.Campaign.get_rows(session))
+        n_steps = len(await db.Step.get_rows(session))
+        n_groups = len(await db.Group.get_rows(session))
+        n_jobs = len(await db.Job.get_rows(session))
+        n_scripts = len(await db.Script.get_rows(session))
+        assert n_campaigns == 0
+        assert n_steps == 0
+        assert n_groups == 0
+        assert n_jobs == 0
+        assert n_scripts == 0
 
-    for prod_ in productions:
-        await db.Production.delete_row(session, prod_.id)
+
+async def delete_all_spec_stuff(
+    session: async_scoped_session,
+) -> None:
+    await delete_all_rows(session, db.Specification)
+    await delete_all_rows(session, db.SpecBlock)
+    await delete_all_rows(session, db.ScriptTemplate)
+
+
+async def delete_all_queues(
+    session: async_scoped_session,
+) -> None:
+    await delete_all_rows(session, db.Queue)
+
+
+async def cleanup(
+    session: async_scoped_session,
+    *,
+    check_cascade: bool = False,
+) -> None:
+    await delete_all_productions(session, check_cascade=check_cascade)
+    await delete_all_spec_stuff(session)
+    await delete_all_queues(session)
+
+    await session.commit()
+    await session.close()
+    await session.remove()
 
 
 async def check_update_methods(
@@ -459,15 +507,15 @@ async def check_queue(
     # make and test queue object
     queue = await db.Queue.create_row(session, fullname=entry.fullname)
 
-    check_elem = await queue.get_element(session)
+    check_elem = await queue.get_node(session)
     assert check_elem.id == entry.id
 
     check_queue = await db.Queue.get_queue_item(session, fullname=entry.fullname)
-    assert check_queue.element_id == entry.id
+    assert check_queue.node_id == entry.id
 
     queue.waiting()
 
-    sleep_time = await queue.element_sleep_time(session)
+    sleep_time = await queue.node_sleep_time(session)
     assert sleep_time == 10
 
     await db.Queue.delete_row(session, queue.id)

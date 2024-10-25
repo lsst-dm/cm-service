@@ -68,7 +68,7 @@ async def process_element(
     try:
         async with session.begin():
             queue = await db.Queue.get_row(session, row_id)
-            can_continue = await queue.process_element(session)
+            can_continue = await queue.process_node(session)
     except CMMissingIDError as msg:
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
     except Exception as msg:
@@ -103,9 +103,9 @@ async def sleep_time(
     try:
         async with session.begin():
             queue = await db.Queue.get_row(session, row_id)
-            element_sleep_time = await queue.element_sleep_time(session)
+            node_sleep_time = await queue.node_sleep_time(session)
     except CMMissingIDError as msg:
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
     except Exception as msg:
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
-    return element_sleep_time
+    return node_sleep_time

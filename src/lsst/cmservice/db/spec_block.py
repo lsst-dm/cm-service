@@ -8,6 +8,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
+from .handler import Handler
 from .row import RowMixin
 
 
@@ -59,3 +60,11 @@ class SpecBlock(Base, RowMixin):
             "scripts": kwargs.get("scripts", {}),
             "steps": kwargs.get("steps", {}),
         }
+
+    @classmethod
+    async def _delete_hook(
+        cls,
+        session: async_scoped_session,
+        row_id: int,
+    ) -> None:
+        Handler.remove_from_cache(row_id)

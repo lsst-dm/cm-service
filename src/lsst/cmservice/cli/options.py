@@ -7,7 +7,13 @@ import click
 from click.decorators import FC
 
 from ..client.client import CMClient
-from ..common.enums import ErrorActionEnum, ErrorFlavorEnum, ErrorSourceEnum, NodeTypeEnum, StatusEnum
+from ..common.enums import (
+    ErrorActionEnum,
+    ErrorFlavorEnum,
+    ErrorSourceEnum,
+    NodeTypeEnum,
+    StatusEnum,
+)
 
 __all__ = [
     "cmclient",

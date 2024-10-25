@@ -748,3 +748,33 @@ class NodeMixin(RowMixin):
         """
         handler = await self.get_handler(session)
         return await handler.run_check(session, self, **kwargs)
+
+    async def estimate_sleep_time(
+        self,
+        session: async_scoped_session,
+        job_sleep: int = 150,
+        script_sleep: int = 15,
+    ) -> int:
+        """Estimate how long to sleep before calling process again
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        job_sleep: int = 150
+            Time to sleep if jobs are running
+
+        script_sleep: int = 15
+            Time to sleep if scripts are running
+
+        Returns
+        -------
+        sleep_time : int
+            Time to sleep in seconds
+        """
+        sleep_time = 10
+        _changed, status_ = await self.run_check(session)
+        if status_ == StatusEnum.running:
+            sleep_time = min(script_sleep, sleep_time)
+        return sleep_time

@@ -3,6 +3,10 @@
 from sqlalchemy.exc import IntegrityError
 
 
+class CMBashCheckError(KeyError):
+    """Raised when bash checking fails"""
+
+
 class CMBashSubmitError(KeyError):
     """Raised when bash submisison fails"""
 

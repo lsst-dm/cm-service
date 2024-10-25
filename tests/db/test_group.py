@@ -17,8 +17,8 @@ from .util_functions import (
     check_queue,
     check_scripts,
     check_update_methods,
+    cleanup,
     create_tree,
-    delete_all_productions,
 )
 
 
@@ -94,13 +94,5 @@ async def test_group_db(engine: AsyncEngine) -> None:
         # make and test queue object
         await check_queue(session, entry)
 
-        # delete everything we just made in the session
-        await delete_all_productions(session)
-
-        # confirm cleanup
-        productions = await db.Production.get_rows(
-            session,
-        )
-        assert len(productions) == 0
-        await session.commit()
-        await session.remove()
+        # cleanup
+        await cleanup(session)

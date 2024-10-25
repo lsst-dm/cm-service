@@ -12,7 +12,7 @@ from lsst.cmservice import db
 from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
 
-from .util_functions import create_tree, delete_all_productions
+from .util_functions import cleanup, create_tree
 
 
 @pytest.mark.asyncio()
@@ -80,12 +80,4 @@ async def test_production_db(engine: AsyncEngine) -> None:
         assert len([c for c in check]) == 1, "length of children should be 2"
 
         # delete everything we just made in the session
-        await delete_all_productions(session)
-
-        # confirm cleanup
-        productions = await db.Production.get_rows(
-            session,
-        )
-        assert len(productions) == 0
-        await session.commit()
-        await session.remove()
+        await cleanup(session)

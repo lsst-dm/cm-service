@@ -31,6 +31,13 @@ async def test_jobs_api(uvicorn: UvicornProcess) -> None:
 
     os.environ["CM_CONFIGS"] = "examples"
 
+    result = runner.invoke(client_top, "job list " "--output yaml ")
+    jobs = check_and_parse_result(
+        result,
+        list[models.Job],
+    )
+    assert len(jobs) == 0, "Job list not empty"
+
     # intialize a tree down to one level lower
     create_tree(runner, client_top, LevelEnum.job, uuid_int)
 

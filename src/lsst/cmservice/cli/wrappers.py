@@ -76,7 +76,7 @@ def output_pydantic_list(
             case options.OutputEnum.json:
                 click.echo(json.dumps(model_.model_dump(), indent=4))
             case options.OutputEnum.yaml:
-                yaml_list.append(model_.dict())
+                yaml_list.append(model_.model_dump())
             case _:
                 the_table.append([str(getattr(model_, col_)) for col_ in col_names])
     match output:

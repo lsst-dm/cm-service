@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, TypeAlias
 
-from pydantic import BaseModel, ValidationError, parse_obj_as
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from .. import models
 
@@ -38,8 +38,9 @@ def get_rows_no_parent_function(
     def get_rows(obj: CMClient) -> list[response_model_class]:
         the_list: list[response_model_class] = []
         params = {"skip": 0}
+        adapter = TypeAdapter(list[response_model_class])
         while (results := obj.client.get(f"{query}", params=params).json()) != []:
-            the_list.extend(parse_obj_as(list[response_model_class], results))
+            the_list.extend(adapter.validate_python(results))
             params["skip"] += len(results)
         return the_list
 
@@ -77,12 +78,13 @@ def get_rows_function(
     ) -> list[response_model_class]:
         the_list: list[response_model_class] = []
         params: dict[str, Any] = {"skip": 0}
+        adapter = TypeAdapter(list[response_model_class])
         if parent_id:
             params["parent_id"] = parent_id
         if parent_name:
             params["parent_name"] = parent_name
         while (results := obj.client.get(f"{query}", params=params).json()) != []:
-            the_list.extend(parse_obj_as(list[response_model_class], results))
+            the_list.extend(adapter.validate_python(results))
             params["skip"] += len(results)
         return the_list
 
@@ -117,7 +119,7 @@ def get_row_function(
         full_query = f"{query}/{row_id}"
         results = obj.client.get(f"{full_query}").json()
         try:
-            return parse_obj_as(response_model_class, results)
+            return TypeAdapter(response_model_class).validate_python(results)
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 
@@ -151,9 +153,9 @@ def create_row_function(
 
     def row_create(obj: CMClient, **kwargs: Any) -> response_model_class:
         params = create_model_class(**kwargs)
-        results = obj.client.post(f"{query}", content=params.json()).json()
+        results = obj.client.post(f"{query}", content=params.model_dump_json()).json()
         try:
-            return parse_obj_as(response_model_class, results)
+            return TypeAdapter(response_model_class).validate_python(results)
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 
@@ -192,9 +194,12 @@ def update_row_function(
     ) -> response_model_class:
         params = update_model_class(**kwargs)
         full_query = f"{query}/{row_id}"
-        results = obj.client.put(f"{full_query}", content=params.json()).json()
+        results = obj.client.put(f"{full_query}", content=params.model_dump_json())
+        if results.status_code != 200:
+            raise ValueError(f"Server returned {results} on PUT call to {full_query}.")
+
         try:
-            return parse_obj_as(response_model_class, results)
+            return TypeAdapter(response_model_class).validate_python(results.json())
         except ValidationError as msg:
             print(results)
             raise ValueError(f"Bad response: {results}") from msg
@@ -263,7 +268,7 @@ def get_row_by_fullname_function(
         if "detail" in results:
             return None
         try:
-            return parse_obj_as(response_model_class, results)
+            return TypeAdapter(response_model_class).validate_python(results)
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 
@@ -304,7 +309,7 @@ def get_row_by_name_function(
         if "detail" in results:
             return None
         try:
-            return parse_obj_as(response_model_class, results)
+            return TypeAdapter(response_model_class).validate_python(results)
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 
@@ -342,7 +347,7 @@ def get_node_property_function(
     ) -> response_model_class:
         results = obj.client.get(f"{query}/{row_id}/{query_suffix}").json()
         try:
-            return parse_obj_as(response_model_class, results)
+            return TypeAdapter(response_model_class).validate_python(results)
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 
@@ -379,7 +384,7 @@ def get_node_property_by_fullname_function(
         )
         results = obj.client.get(f"{query}", params=params.model_dump()).json()
         try:
-            return parse_obj_as(response_model_class, results)
+            return TypeAdapter(response_model_class).validate_python(results)
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 
@@ -423,10 +428,10 @@ def get_node_post_query_function(
         params = query_class(**kwargs)
         results = obj.client.post(
             f"{query}/{row_id}/{query_suffix}",
-            content=params.json(),
+            content=params.model_dump_json(),
         ).json()
         try:
-            return parse_obj_as(response_model_class, results)
+            return TypeAdapter(response_model_class).validate_python(results)
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 
@@ -464,7 +469,7 @@ def get_node_post_no_query_function(
     ) -> response_model_class:
         results = obj.client.post(f"{query}/{row_id}/{query_suffix}").json()
         try:
-            return parse_obj_as(response_model_class, results)
+            return TypeAdapter(response_model_class).validate_python(results)
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 
@@ -501,7 +506,7 @@ def get_job_property_function(
         )
         results = obj.client.get(f"{query}", params=params.model_dump()).json()
         try:
-            return parse_obj_as(list[response_model_class], results)
+            return TypeAdapter(list[response_model_class]).validate_python(results)
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 
@@ -539,11 +544,11 @@ def get_general_post_function(
         **kwargs: Any,
     ) -> response_model_class:
         params = query_class(**kwargs)
-        results = obj.client.post(f"{query}", content=params.json()).json()
+        results = obj.client.post(f"{query}", content=params.model_dump_json()).json()
         try:
             if results_key is None:
-                return parse_obj_as(response_model_class, results)
-            return parse_obj_as(response_model_class, results[results_key])
+                return TypeAdapter(response_model_class).validate_python(results)
+            return TypeAdapter(response_model_class).validate_python(results[results_key])
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 
@@ -595,8 +600,8 @@ def get_general_query_function(
         ).json()
         try:
             if results_key is None:
-                return parse_obj_as(response_model_class, results)
-            return parse_obj_as(response_model_class, results[results_key])
+                return TypeAdapter(response_model_class).validate_python(results)
+            return TypeAdapter(response_model_class).validate_python(results[results_key])
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 

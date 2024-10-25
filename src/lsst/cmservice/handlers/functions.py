@@ -228,7 +228,9 @@ async def load_specification(
     *,
     allow_update: bool = False,
 ) -> Specification | None:
-    """Read a yaml file and create Specification objects
+    """Load Specification, SpecBlock, and ScriptTemplate objects from a yaml
+    file, including from files referenced by Include blocks. Return the last
+    Specification object in the file.
 
     Parameters
     ----------

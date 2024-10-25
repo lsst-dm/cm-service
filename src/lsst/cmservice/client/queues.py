@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import httpx
 import pause
-from pydantic import ValidationError, parse_obj_as
+from pydantic import TypeAdapter, ValidationError
 
 from .. import db, models
 from . import wrappers
@@ -79,7 +79,7 @@ class CMQueueClient:
         """
         results = self._client.get(f"{router_string}/sleep_time/{row_id}").json()
         try:
-            return parse_obj_as(int, results)
+            return TypeAdapter(int).validate_json(results)
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 
@@ -101,7 +101,7 @@ class CMQueueClient:
         """
         results = self._client.get(f"{router_string}/process/{row_id}").json()
         try:
-            return parse_obj_as(bool, results)
+            return TypeAdapter(bool).validate_json(results)
         except ValidationError as msg:
             raise ValueError(f"Bad response: {results}") from msg
 

@@ -6,7 +6,7 @@ import pytest_asyncio
 import structlog
 from asgi_lifespan import LifespanManager
 from fastapi import FastAPI
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from pytest import TempPathFactory
 from safir.database import create_database_engine, initialize_database
 from safir.testing.uvicorn import UvicornProcess, spawn_uvicorn
@@ -40,7 +40,7 @@ async def app_fixture() -> AsyncIterator[FastAPI]:
 @pytest_asyncio.fixture(name="client")
 async def client_fixture(app: FastAPI) -> AsyncIterator[AsyncClient]:
     """Return an ``httpx.AsyncClient`` configured to talk to the test app."""
-    async with AsyncClient(app=app, base_url="https:") as the_client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="https:") as the_client:
         yield the_client
 
 

@@ -31,6 +31,13 @@ async def test_campaigns_api(uvicorn: UvicornProcess) -> None:
 
     os.environ["CM_CONFIGS"] = "examples"
 
+    result = runner.invoke(client_top, "campaign list " "--output yaml ")
+    campaigns = check_and_parse_result(
+        result,
+        list[models.Campaign],
+    )
+    assert len(campaigns) == 0, "Campaign list not empty"
+
     # intialize a tree down to one level lower
     create_tree(runner, client_top, LevelEnum.step, uuid_int)
 

@@ -55,7 +55,7 @@ class BaseScriptHandler(Handler):
                     session,
                     script_id=node.id,
                     source=ErrorSourceEnum.cmservice,
-                    diagnostic_message=msg,
+                    diagnostic_message=str(msg),
                 )
                 status = StatusEnum.failed
         if status == StatusEnum.prepared:
@@ -69,7 +69,7 @@ class BaseScriptHandler(Handler):
                     session,
                     script_id=node.id,
                     source=ErrorSourceEnum.cmservice,
-                    diagnostic_message=msg,
+                    diagnostic_message=str(msg),
                 )
                 status = StatusEnum.failed
             except (
@@ -81,7 +81,7 @@ class BaseScriptHandler(Handler):
                     session,
                     script_id=node.id,
                     source=ErrorSourceEnum.local_script,
-                    diagnostic_message=msg,
+                    diagnostic_message=str(msg),
                 )
                 status = StatusEnum.failed
         if status == StatusEnum.running:
@@ -92,7 +92,7 @@ class BaseScriptHandler(Handler):
                     session,
                     script_id=node.id,
                     source=ErrorSourceEnum.cmservice,
-                    diagnostic_message=msg,
+                    diagnostic_message=str(msg),
                 )
                 status = StatusEnum.failed
             except (
@@ -103,7 +103,7 @@ class BaseScriptHandler(Handler):
                     session,
                     script_id=node.id,
                     source=ErrorSourceEnum.local_script,
-                    diagnostic_message=msg,
+                    diagnostic_message=str(msg),
                 )
                 status = StatusEnum.failed
 
@@ -472,9 +472,11 @@ class ScriptHandler(BaseScriptHandler):
             raise CMMissingNodeUrlError(f"log_url is not set for {script}")
 
         if script_method == ScriptMethodEnum.bash:
-            run_bash_job(script.script_url, script.log_url, **kwargs)
+            if not script.stamp_url:  # pragma: no cover
+                raise CMMissingNodeUrlError(f"log_url is not set for {script}")
+            run_bash_job(script.script_url, script.log_url, script.stamp_url, **kwargs)
             status = StatusEnum.running
-            await script.update_values(session, stamp_url=script.log_url, status=status)
+            await script.update_values(session, status=status)
         elif script_method == ScriptMethodEnum.slurm:
             job_id = submit_slurm_job(script.script_url, script.log_url, **kwargs)
             status = StatusEnum.running
@@ -581,7 +583,8 @@ class ScriptHandler(BaseScriptHandler):
     ) -> str:
         script_url = f"{prod_area}/{script.fullname}.sh"
         log_url = f"{prod_area}/{script.fullname}.log"
-        await script.update_values(session, script_url=script_url, log_url=log_url)
+        stamp_url = f"{prod_area}/{script.fullname}.stamp"
+        await script.update_values(session, script_url=script_url, log_url=log_url, stamp_url=stamp_url)
         return script_url
 
     async def _reset_script(
@@ -595,6 +598,8 @@ class ScriptHandler(BaseScriptHandler):
             update_fields["stamp_url"] = None
             if script.log_url:
                 os.unlink(script.log_url)
+            if script.stamp_url and os.path.exists(script.stamp_url):
+                os.unlink(script.stamp_url)
         if to_status.value <= StatusEnum.ready.value:
             if script.script_url:
                 os.unlink(script.script_url)

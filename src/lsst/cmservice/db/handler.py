@@ -36,6 +36,17 @@ class Handler:
         self._spec_block_id = spec_block_id
         self._data = kwargs.copy()
 
+    @classmethod
+    def reset_cache(cls) -> None:
+        cls.handler_cache = {}
+
+    @classmethod
+    def remove_from_cache(
+        cls,
+        spec_block_id: int,
+    ) -> None:
+        cls.handler_cache.pop(spec_block_id, None)
+
     @staticmethod
     def get_handler(
         spec_block_id: int,

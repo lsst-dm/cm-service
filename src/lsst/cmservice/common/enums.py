@@ -155,6 +155,10 @@ class StatusEnum(enum.Enum):
         """Is this a processable state for an elememnt"""
         return self.value >= StatusEnum.waiting.value and self.value <= StatusEnum.reviewable.value
 
+    def is_processable_script(self) -> bool:
+        """Is this a processable state for an elememnt"""
+        return self.value >= StatusEnum.waiting.value and self.value <= StatusEnum.running.value
+
 
 class TaskStatusEnum(enum.Enum):
     """Defines possible outcomes for Pipetask tasks"""
