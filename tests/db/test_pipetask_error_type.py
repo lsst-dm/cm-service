@@ -10,6 +10,8 @@ from lsst.cmservice import db
 from lsst.cmservice.config import config
 from lsst.cmservice.handlers import interface
 
+from .util_functions import cleanup, delete_all_rows
+
 
 @pytest.mark.asyncio()
 async def test_error_match(engine: AsyncEngine) -> None:
@@ -77,8 +79,8 @@ async def test_error_match(engine: AsyncEngine) -> None:
         # Here we test that match doesn't return true for an empty error
         assert e1.match("", "") is False, "Matched known error to empty strings"
 
-        await session.commit()
-        await session.remove()
+        await delete_all_rows(session, db.PipetaskErrorType)
+        await cleanup(session)
 
 
 @pytest.mark.asyncio()
@@ -137,5 +139,5 @@ async def test_error_type_db(engine: AsyncEngine) -> None:
         errors = await db.PipetaskErrorType.get_rows(session)
         assert len(errors) == n_errors - 1
 
-        await session.commit()
-        await session.remove()
+        await delete_all_rows(session, db.PipetaskErrorType)
+        await cleanup(session)
