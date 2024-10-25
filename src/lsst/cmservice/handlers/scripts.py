@@ -534,6 +534,93 @@ class ResourceUsageScriptHandler(ScriptHandler):
         return await super()._purge_products(session, script, to_status, fake_reset=fake_reset)
 
 
+class HipsMapsScriptHandler(ScriptHandler):
+    """Write the script to make the HiPS maps for a campaign."""
+
+    async def _write_script(
+        self,
+        session: async_scoped_session,
+        script: Script,
+        parent: ElementMixin,
+        **kwargs: Any,
+    ) -> StatusEnum:
+        # breakpoint()
+        specification = await script.get_specification(session)
+        resolved_cols = await script.resolve_collections(session)
+        data_dict = await script.data_dict(session)
+        prod_area = os.path.expandvars(data_dict["prod_area"])
+        script_url = await self._set_script_files(session, script, prod_area)
+        butler_repo = data_dict["butler_repo"]
+        lsst_distrib_dir = data_dict["lsst_distrib_dir"]
+        lsst_version = data_dict["lsst_version"]
+        hips_maps_graph_url = os.path.expandvars(f"{prod_area}/{parent.fullname}/hips_maps.qgraph")
+
+        hips_maps_script_template = await specification.get_script_template(
+            session,
+            data_dict["hips_maps_script_template"],
+        )
+        prepend = hips_maps_script_template.data["text"].replace(
+            "{lsst_version}",
+            lsst_version,
+        )
+        prepend = prepend.replace("{lsst_distrib_dir}", lsst_distrib_dir)
+        if "custom_lsst_setup" in data_dict:
+            custom_lsst_setup = data_dict["custom_lsst_setup"]
+            prepend += f"\n{custom_lsst_setup}"
+
+        hips_pipeline_yaml = os.path.abspath(
+            os.path.expandvars("${CM_CONFIGS}") + "/stack_files/highres_hips.yaml"
+        )
+        gen_hips_both_yaml = os.path.abspath(
+            os.path.expandvars("${CM_CONFIGS}") + "/stack_files/gen_hips_both.yaml"
+        )
+        # First we get the output of the generated pixels and then format it so
+        # the output of the first command can be used as input to the next.
+        command = f"""output=$(build-high-resolution-hips-qg segment -b {butler_repo} -p {hips_pipeline_yaml}
+        -i {resolved_cols["campaign_output"]} -o 1);
+        pixels=$(echo '$output' | grep -Eo '[0-9]+' | tr '\n' ' ');
+        """
+        # Take pixels from previous commands and use to build the hips maps
+        # graph.
+        command += f"""build-high-resolution-hips-qg build -b {butler_repo} -p {hips_pipeline_yaml}
+        -i {resolved_cols["campaign_output"]} --output {resolved_cols["campaign_hips_maps"]}
+        --pixels $pixels -q {hips_maps_graph_url};
+        """
+        # Now we pipetask run the graph
+        command += f"""pipetask --long-log --log-level=INFO run -j 16 -b {butler_repo}
+        --output {resolved_cols["campaign_hips_maps"]} --register-dataset-types -g {hips_maps_graph_url};
+        """
+        # Generate HIPS 9-level .png images
+        command += f"""pipetask --long-log --log-level=INFO run -j 16 -b {butler_repo}
+        -i {resolved_cols["campaign_output"]} --output {resolved_cols["campaign_hips_maps"]}
+        -p {gen_hips_both_yaml} -c 'generateHips:hips_base_uri=
+        /sdf/group/rubin{butler_repo}/{resolved_cols["campaign_hips_maps"]}' --register-dataset-types
+        """
+
+        write_bash_script(script_url, command, prepend=prepend)
+
+        return StatusEnum.prepared
+
+    async def _purge_products(
+        self, session: async_scoped_session, script: Script, to_status: StatusEnum
+    ) -> None:
+        """When the script is reset or the campaign is deleted, cleanup
+        hips maps products."""
+        resolved_cols = await script.resolve_collections(session)
+        data_dict = await script.data_dict(session)
+        parent = await script.get_parent(session)
+        if parent.level != LevelEnum.campaign:
+            raise CMBadExecutionMethodError(f"Script parent is a {parent.level}, not a LevelEnum.campaign")
+        try:
+            resource_coll = resolved_cols["campaign_hips_maps"]
+            butler_repo = data_dict["butler_repo"]
+        except KeyError as msg:
+            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        if to_status.value < StatusEnum.running.value:
+            remove_run_collections(butler_repo, resource_coll)
+        return await super()._purge_products(session, script, to_status)
+
+
 class ValidateScriptHandler(ScriptHandler):
     """Write a script to run validate after processing
 

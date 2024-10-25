@@ -2,6 +2,13 @@
       - "${CM_CONFIGS}/example_standard_scripts.yaml"
       - "${CM_CONFIGS}/example_standard_elements.yaml"
       - "${CM_CONFIGS}/example_HSC_DRP-RC2_steps.yaml"
+      - "${CM_CONFIGS/stack_files/highres_hips.yaml"
+      - "${CM_CONFIGS}/stack_files/gen_hips_both.yaml"
+# Script to make hips maps for a campaign
+- SpecBlock:
+      name: hips_maps_script
+      handler: lsst.cmservice.handlers.scripts.HipsMapsScriptHandler
+# SpecBlock for the HSC_DRP-RC2 campaign
 - SpecBlock:
       name: HSC_DRP-RC2_campaign
       includes: ["base_campaign"]
@@ -13,6 +20,22 @@
               - HSC/fgcmcal/lut/RC2
               - refcats
               - skymaps
+          campaign_hips_maps: "{out}/hips_maps"
+      scripts:
+          - Script:
+                name: hips_maps
+                prerequisites: ["collect_steps"]
+                spec_block: hips_maps_script
+                collections:
+                    inputs: "{campaign_output}"
+                    output: "{campaign_hips_maps}"
+          - Script:
+                name: make_campaign_public_output
+                prerequisites: ['resource_usage', 'hips_maps']
+                spec_block: chain_create_script
+                collections:
+                    inputs: ["{campaign_output}", "{campaign_input}", "{campaign_resource_usage}", "{campaign_hips_maps}"]
+                    output: "{campaign_public_output}"
       steps:
           - Step:
                 name: step1
@@ -100,6 +123,30 @@
           extra_qgraph_options: >
             -c parameters:sasquatch_dataset_identifier=HSC/RC2
             -c parameters:sasquatch_timestamp_version=reference_package_timestamp
+          hips_maps_script_template: stack_script_template
+# Custom Campagin Template for fixed inputs
+# This assumes that the input data is already set, it will run the steps and then collect the outputs
+# Note that the steps are not defined here.
+- SpecBlock:
+      name: HSC_DRP-RC2_campaign_fixed_input
+      includes: ["base_campaign_fixed_input"]
+      scripts:
+          - Script:
+                name: hips_maps
+                prerequisites: ["collect_steps"]
+                spec_block: hips_maps_script
+                collections:
+                    input: "{campaign_output}"
+                    output: "{campaign_hips_maps}"
+          - Script:
+                name: make_campaign_public_output
+                prerequisites: ['resource_usage', 'hips_maps']
+                spec_block: chain_create_script
+                collections:
+                    inputs: ["{campaign_output}", "{campaign_input}"]
+                    output: "{campaign_public_output}"
+      data:
+          hips_maps_script_template: stack_script_template
 - Specification:   # This is just a look up table.
       name: HSC_DRP-RC2_panda
       spec_aliases:
