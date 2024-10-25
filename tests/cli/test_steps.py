@@ -31,6 +31,13 @@ async def test_steps_api(uvicorn: UvicornProcess) -> None:
 
     os.environ["CM_CONFIGS"] = "examples"
 
+    result = runner.invoke(client_top, "step list " "--output yaml ")
+    steps = check_and_parse_result(
+        result,
+        list[models.Step],
+    )
+    assert len(steps) == 0, "Step list not empty"
+
     # intialize a tree down to one level lower
     create_tree(runner, client_top, LevelEnum.group, uuid_int)
 

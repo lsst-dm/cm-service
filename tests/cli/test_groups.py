@@ -31,6 +31,13 @@ async def test_groups_api(uvicorn: UvicornProcess) -> None:
 
     os.environ["CM_CONFIGS"] = "examples"
 
+    result = runner.invoke(client_top, "group list " "--output yaml ")
+    groups = check_and_parse_result(
+        result,
+        list[models.Group],
+    )
+    assert len(groups) == 0, "Group list not empty"
+
     # intialize a tree down to one level lower
     create_tree(runner, client_top, LevelEnum.job, uuid_int)
 
