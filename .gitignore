@@ -36,7 +36,10 @@ output/
 .DS_Store/
 
 # vscode
-/.vscode/
+.vscode/
+
+# development local sqlite file
+test_cm.db
 
 # temporary secrets files (do not commit these to git!)
 .secrets/
