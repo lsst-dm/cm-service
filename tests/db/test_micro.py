@@ -13,6 +13,8 @@ from lsst.cmservice.config import config
 from lsst.cmservice.handlers import interface
 from lsst.cmservice.handlers.script_handler import ScriptHandler
 
+from .util_functions import delete_all_productions, delete_all_spec_stuff
+
 
 @pytest.mark.parametrize(
     "script_method", [ScriptMethodEnum.bash, ScriptMethodEnum.slurm, ScriptMethodEnum.htcondor]
@@ -103,10 +105,8 @@ async def test_micro(
         assert status == StatusEnum.accepted
 
         # now we clean up
-        await db.Production.delete_row(session, 1)
-
-        this_spec = await db.Specification.get_row_by_fullname(session, "hsc_micro_panda")
-        await db.Specification.delete_row(session, this_spec.id)
+        await delete_all_productions(session)
+        await delete_all_spec_stuff(session)
 
         # make sure we cleaned up
         n_campaigns = len(await db.Campaign.get_rows(session))
@@ -126,6 +126,7 @@ async def test_micro(
         assert n_step_dependencies == 0
         assert n_script_dependencies == 0
 
+        await session.commit()
         await session.remove()
 
     ScriptHandler.default_method = orig_method
