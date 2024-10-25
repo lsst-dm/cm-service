@@ -74,6 +74,24 @@ run: run-compose
 	cm-service init
 	cm-service run
 
+.PHONY: run-worker
+run-worker: CM_DATABASE_PORT=$(shell docker compose port postgresql 5432 | cut -d: -f2)
+run-worker: export CM_DATABASE_URL=postgresql://cm-service@localhost:${CM_DATABASE_PORT}/cm-service
+run-worker: export CM_DATABASE_PASSWORD=INSECURE-PASSWORD
+run-worker: export CM_DATABASE_ECHO=true
+run-worker: run-compose
+	cm-service init
+	cm-worker
+
+.PHONY: run-worker-usdf-dev
+run-worker-usdf-dev: CM_DATABASE_HOST=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get svc/cm-pg-lb -o jsonpath='{..ingress[0].ip}')
+run-worker-usdf-dev: export CM_DATABASE_URL=postgresql://cm-service@${CM_DATABASE_HOST}:5432/cm-service
+run-worker-usdf-dev: export CM_DATABASE_PASSWORD=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get secret/cm-pg-app -o jsonpath='{.data.password}' | base64 --decode)
+run-worker-usdf-dev: export CM_DATABASE_ECHO=true
+run-worker-usdf-dev: run-compose
+	cm-service init
+	cm-worker
+
 .PHONY: run-usdf-dev
 run-usdf-dev: CM_DATABASE_HOST=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get svc/cm-pg-lb -o jsonpath='{..ingress[0].ip}')
 run-usdf-dev: export CM_DATABASE_URL=postgresql://cm-service@${CM_DATABASE_HOST}:5432/cm-service
@@ -89,3 +107,10 @@ run-sqlite: export CM_DATABASE_ECHO=true
 run-sqlite:
 	cm-service init
 	cm-service run
+
+.PHONY: run-worker-sqlite
+run-worker-sqlite: export CM_DATABASE_URL=sqlite+aiosqlite://///test_cm.db
+run-worker-sqlite: export CM_DATABASE_ECHO=true
+run-worker-sqlite:
+	cm-service init
+	cm-worker
