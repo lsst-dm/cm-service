@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_scoped_session
+from structlog import get_logger
 
 from ..common.enums import StatusEnum
 from ..common.errors import (
@@ -15,8 +16,11 @@ from ..common.errors import (
     CMMissingFullnameError,
     CMMissingIDError,
 )
+from ..config import config
 
-T = TypeVar("T")
+logger = get_logger(config.logger_name)
+
+T = TypeVar("T", bound="RowMixin")
 
 DELETEABLE_STATES = [
     StatusEnum.failed,
@@ -142,11 +146,7 @@ class RowMixin:
         result: T
             Matching row
         """
-        # This is a stupid workaround to fool mypy
-        cls_copy = cls
-        if TYPE_CHECKING:
-            assert issubclass(cls_copy, RowMixin)  # for mypy
-        query = select(cls).where(cls_copy.name == name)
+        query = select(cls).where(cls.name == name)
         rows = await session.scalars(query)
         row = rows.first()
         if row is None:
@@ -174,11 +174,7 @@ class RowMixin:
         result: T
             Matching row
         """
-        # This is a stupid workaround to fool mypy
-        cls_copy = cls
-        if TYPE_CHECKING:
-            assert issubclass(cls_copy, RowMixin)  # for mypy
-        query = select(cls).where(cls_copy.fullname == fullname)
+        query = select(cls).where(cls.fullname == fullname)
         rows = await session.scalars(query)
         row = rows.first()
         if row is None:
@@ -322,11 +318,7 @@ class RowMixin:
         result: RowMixin
             Newly created row
         """
-        # This is a stupid workaround to fool mypy
-        cls_copy = cls
-        if TYPE_CHECKING:
-            assert issubclass(cls_copy, RowMixin)  # for mypy
-        create_kwargs = await cls_copy.get_create_kwargs(session, **kwargs)
+        create_kwargs = await cls.get_create_kwargs(session, **kwargs)
         row = cls(**create_kwargs)
         async with session.begin_nested():
             try:
