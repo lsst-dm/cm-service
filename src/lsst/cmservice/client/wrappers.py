@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, TypeAlias
 
-from pydantic import BaseModel, TypeAdapter, ValidationError
+from pydantic import BaseModel, TypeAdapter
 
 from .. import models
 
@@ -36,13 +36,13 @@ def get_rows_no_parent_function(
     """
 
     def get_rows(obj: CMClient) -> list[response_model_class]:
-        the_list: list[response_model_class] = []
+        results: list[response_model_class] = []
         params = {"skip": 0}
         adapter = TypeAdapter(list[response_model_class])
-        while (results := obj.client.get(f"{query}", params=params).json()) != []:
-            the_list.extend(adapter.validate_python(results))
-            params["skip"] += len(results)
-        return the_list
+        while (paged_results := obj.client.get(query, params=params).raise_for_status().json()) != []:
+            results.extend(adapter.validate_python(paged_results))
+            params["skip"] += len(paged_results)
+        return results
 
     return get_rows
 
@@ -76,17 +76,17 @@ def get_rows_function(
         parent_id: int | None = None,
         parent_name: str | None = None,
     ) -> list[response_model_class]:
-        the_list: list[response_model_class] = []
+        results: list[response_model_class] = []
         params: dict[str, Any] = {"skip": 0}
         adapter = TypeAdapter(list[response_model_class])
         if parent_id:
             params["parent_id"] = parent_id
         if parent_name:
             params["parent_name"] = parent_name
-        while (results := obj.client.get(f"{query}", params=params).json()) != []:
-            the_list.extend(adapter.validate_python(results))
-            params["skip"] += len(results)
-        return the_list
+        while (paged_results := obj.client.get(f"{query}", params=params).raise_for_status().json()) != []:
+            results.extend(adapter.validate_python(paged_results))
+            params["skip"] += len(paged_results)
+        return results
 
     return get_rows
 
@@ -117,11 +117,8 @@ def get_row_function(
         row_id: int,
     ) -> response_model_class:
         full_query = f"{query}/{row_id}"
-        results = obj.client.get(f"{full_query}").json()
-        try:
-            return TypeAdapter(response_model_class).validate_python(results)
-        except ValidationError as msg:
-            raise ValueError(f"Bad response: {results}") from msg
+        results = obj.client.get(full_query).raise_for_status().json()
+        return TypeAdapter(response_model_class).validate_python(results)
 
     return row_get
 
@@ -152,12 +149,9 @@ def create_row_function(
     """
 
     def row_create(obj: CMClient, **kwargs: Any) -> response_model_class:
-        params = create_model_class(**kwargs)
-        results = obj.client.post(f"{query}", content=params.model_dump_json()).json()
-        try:
-            return TypeAdapter(response_model_class).validate_python(results)
-        except ValidationError as msg:
-            raise ValueError(f"Bad response: {results}") from msg
+        content = create_model_class(**kwargs).model_dump_json()
+        results = obj.client.post(query, content=content).raise_for_status().json()
+        return TypeAdapter(response_model_class).validate_python(results)
 
     return row_create
 
@@ -192,17 +186,10 @@ def update_row_function(
         row_id: int,
         **kwargs: Any,
     ) -> response_model_class:
-        params = update_model_class(**kwargs)
         full_query = f"{query}/{row_id}"
-        results = obj.client.put(f"{full_query}", content=params.model_dump_json())
-        if results.status_code != 200:
-            raise ValueError(f"Server returned {results} on PUT call to {full_query}.")
-
-        try:
-            return TypeAdapter(response_model_class).validate_python(results.json())
-        except ValidationError as msg:
-            print(results)
-            raise ValueError(f"Bad response: {results}") from msg
+        content = update_model_class(**kwargs).model_dump_json()
+        results = obj.client.put(full_query, content=content).raise_for_status().json()
+        return TypeAdapter(response_model_class).validate_python(results)
 
     return row_update
 
@@ -229,7 +216,7 @@ def delete_row_function(
         row_id: int,
     ) -> None:
         full_query = f"{query}/{row_id}"
-        obj.client.delete(f"{full_query}")
+        obj.client.delete(full_query).raise_for_status()
 
     return row_delete
 
@@ -258,19 +245,13 @@ def get_row_by_fullname_function(
     def get_row_by_fullname(
         obj: CMClient,
         fullname: str,
-    ) -> response_model_class:
-        params = models.FullnameQuery(
-            fullname=fullname,
-        )
-        results = obj.client.get(f"{query}", params=params.model_dump()).json()
-        # I need to figure out a better way how to check if the request bombed.
-        # For now this works.
-        if "detail" in results:
+    ) -> response_model_class | None:
+        params = models.FullnameQuery(fullname=fullname).model_dump()
+        response = obj.client.get(query, params=params)
+        if response.status_code == 404:
             return None
-        try:
-            return TypeAdapter(response_model_class).validate_python(results)
-        except ValidationError as msg:
-            raise ValueError(f"Bad response: {results}") from msg
+        results = response.raise_for_status().json()
+        return TypeAdapter(response_model_class).validate_python(results)
 
     return get_row_by_fullname
 
@@ -300,18 +281,12 @@ def get_row_by_name_function(
         obj: CMClient,
         name: str,
     ) -> response_model_class | None:
-        params = models.NameQuery(
-            name=name,
-        )
-        results = obj.client.get(f"{query}", params=params.model_dump()).json()
-        # I need to figure out a better way how to check if the request bombed.
-        # For now this works.
-        if "detail" in results:
+        params = models.NameQuery(name=name).model_dump()
+        response = obj.client.get(query, params=params)
+        if response.status_code == 404:
             return None
-        try:
-            return TypeAdapter(response_model_class).validate_python(results)
-        except ValidationError as msg:
-            raise ValueError(f"Bad response: {results}") from msg
+        results = response.raise_for_status().json()
+        return TypeAdapter(response_model_class).validate_python(results)
 
     return get_row_by_name
 
@@ -345,11 +320,9 @@ def get_node_property_function(
         obj: CMClient,
         row_id: int,
     ) -> response_model_class:
-        results = obj.client.get(f"{query}/{row_id}/{query_suffix}").json()
-        try:
-            return TypeAdapter(response_model_class).validate_python(results)
-        except ValidationError as msg:
-            raise ValueError(f"Bad response: {results}") from msg
+        full_query = f"{query}/{row_id}/{query_suffix}"
+        results = obj.client.get(full_query).raise_for_status().json()
+        return TypeAdapter(response_model_class).validate_python(results)
 
     return get_node_property
 
@@ -379,14 +352,9 @@ def get_node_property_by_fullname_function(
         obj: CMClient,
         fullname: str,
     ) -> response_model_class:
-        params = models.FullnameQuery(
-            fullname=fullname,
-        )
-        results = obj.client.get(f"{query}", params=params.model_dump()).json()
-        try:
-            return TypeAdapter(response_model_class).validate_python(results)
-        except ValidationError as msg:
-            raise ValueError(f"Bad response: {results}") from msg
+        params = models.FullnameQuery(fullname=fullname).model_dump()
+        results = obj.client.get(query, params=params).raise_for_status().json()
+        return TypeAdapter(response_model_class).validate_python(results)
 
     return get_node_property_by_fullname
 
@@ -425,15 +393,10 @@ def get_node_post_query_function(
         row_id: int,
         **kwargs: Any,
     ) -> response_model_class:
-        params = query_class(**kwargs)
-        results = obj.client.post(
-            f"{query}/{row_id}/{query_suffix}",
-            content=params.model_dump_json(),
-        ).json()
-        try:
-            return TypeAdapter(response_model_class).validate_python(results)
-        except ValidationError as msg:
-            raise ValueError(f"Bad response: {results}") from msg
+        full_query = f"{query}/{row_id}/{query_suffix}"
+        content = query_class(**kwargs).model_dump_json()
+        results = obj.client.post(full_query, content=content).raise_for_status().json()
+        return TypeAdapter(response_model_class).validate_python(results)
 
     return node_update
 
@@ -467,11 +430,9 @@ def get_node_post_no_query_function(
         obj: CMClient,
         row_id: int,
     ) -> response_model_class:
-        results = obj.client.post(f"{query}/{row_id}/{query_suffix}").json()
-        try:
-            return TypeAdapter(response_model_class).validate_python(results)
-        except ValidationError as msg:
-            raise ValueError(f"Bad response: {results}") from msg
+        full_query = f"{query}/{row_id}/{query_suffix}"
+        results = obj.client.post(full_query).raise_for_status().json()
+        return TypeAdapter(response_model_class).validate_python(results)
 
     return node_update
 
@@ -501,14 +462,9 @@ def get_job_property_function(
         obj: CMClient,
         fullname: str,
     ) -> list[response_model_class]:
-        params = models.FullnameQuery(
-            fullname=fullname,
-        )
-        results = obj.client.get(f"{query}", params=params.model_dump()).json()
-        try:
-            return TypeAdapter(list[response_model_class]).validate_python(results)
-        except ValidationError as msg:
-            raise ValueError(f"Bad response: {results}") from msg
+        params = models.FullnameQuery(fullname=fullname).model_dump()
+        results = obj.client.get(query, params=params).raise_for_status().json()
+        return TypeAdapter(list[response_model_class]).validate_python(results)
 
     return get_job_property
 
@@ -543,14 +499,12 @@ def get_general_post_function(
         obj: CMClient,
         **kwargs: Any,
     ) -> response_model_class:
-        params = query_class(**kwargs)
-        results = obj.client.post(f"{query}", content=params.model_dump_json()).json()
-        try:
-            if results_key is None:
-                return TypeAdapter(response_model_class).validate_python(results)
+        content = query_class(**kwargs).model_dump_json()
+        results = obj.client.post(query, content=content).raise_for_status().json()
+        if results_key is None:
+            return TypeAdapter(response_model_class).validate_python(results)
+        else:
             return TypeAdapter(response_model_class).validate_python(results[results_key])
-        except ValidationError as msg:
-            raise ValueError(f"Bad response: {results}") from msg
 
     return general_post_function
 
@@ -593,16 +547,12 @@ def get_general_query_function(
         row_id: int,
         **kwargs: Any,
     ) -> response_model_class:
-        params = query_class(**kwargs)
-        results = obj.client.get(
-            f"{query}/{row_id}/{query_suffix}",
-            params=params.model_dump(),
-        ).json()
-        try:
-            if results_key is None:
-                return TypeAdapter(response_model_class).validate_python(results)
+        full_query = f"{query}/{row_id}/{query_suffix}"
+        params = query_class(**kwargs).model_dump()
+        results = obj.client.get(full_query, params=params).raise_for_status().json()
+        if results_key is None:
+            return TypeAdapter(response_model_class).validate_python(results)
+        else:
             return TypeAdapter(response_model_class).validate_python(results[results_key])
-        except ValidationError as msg:
-            raise ValueError(f"Bad response: {results}") from msg
 
     return general_query_function
