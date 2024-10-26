@@ -19,8 +19,8 @@ from .util_functions import (
 
 
 @pytest.mark.asyncio()
-async def test_campaigns_routes(client: AsyncClient) -> None:
-    """Test `/campaigns` API endpoint."""
+async def test_campaign_routes(client: AsyncClient) -> None:
+    """Test `/campaign` API endpoint."""
 
     # generate a uuid to avoid collisions
     uuid_int = uuid.uuid1().int
@@ -31,10 +31,7 @@ async def test_campaigns_routes(client: AsyncClient) -> None:
     await create_tree(client, LevelEnum.step, uuid_int)
 
     response = await client.get(f"{config.prefix}/campaign/list")
-    campaigns = check_and_parse_response(
-        response,
-        list[models.Campaign],
-    )
+    campaigns = check_and_parse_response(response, list[models.Campaign])
     entry = campaigns[0]
 
     # check get methods

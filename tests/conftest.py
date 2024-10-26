@@ -1,5 +1,5 @@
-import typing
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
+from typing import Any
 
 import pytest
 import pytest_asyncio
@@ -56,7 +56,7 @@ async def uvicorn_fixture(tmp_path_factory: TempPathFactory) -> AsyncIterator[Uv
     my_uvicorn.process.terminate()
 
 
-def pytest_addoption(parser: typing.Any) -> None:
+def pytest_addoption(parser: Any) -> None:
     parser.addoption(
         "--run-playwright",
         action="store_true",
@@ -65,11 +65,11 @@ def pytest_addoption(parser: typing.Any) -> None:
     )
 
 
-def pytest_configure(config: typing.Any) -> None:
+def pytest_configure(config: Any) -> None:
     config.addinivalue_line("markers", "playwright: mark test as a playwright test")
 
 
-def pytest_collection_modifyitems(config: typing.Any, items: typing.Iterator) -> None:
+def pytest_collection_modifyitems(config: Any, items: Iterator) -> None:
     if config.getoption("--run-playwright"):
         # --run-playwright given in cli: do not skip playwright
         return

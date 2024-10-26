@@ -20,8 +20,8 @@ from .util_functions import (
 )
 
 
-async def test_campaigns_cli(uvicorn: UvicornProcess) -> None:
-    """Test `/campaigns` API endpoint."""
+async def test_campaign_cli(uvicorn: UvicornProcess) -> None:
+    """Test `campaign` CLI command"""
 
     client_config.service_url = f"{uvicorn.url}{config.prefix}"
     runner = CliRunner()
@@ -31,21 +31,15 @@ async def test_campaigns_cli(uvicorn: UvicornProcess) -> None:
 
     os.environ["CM_CONFIGS"] = "examples"
 
-    result = runner.invoke(client_top, "campaign list " "--output yaml ")
-    campaigns = check_and_parse_result(
-        result,
-        list[models.Campaign],
-    )
+    result = runner.invoke(client_top, "campaign list --output yaml")
+    campaigns = check_and_parse_result(result, list[models.Campaign])
     assert len(campaigns) == 0, "Campaign list not empty"
 
     # intialize a tree down to one level lower
     create_tree(runner, client_top, LevelEnum.step, uuid_int)
 
-    result = runner.invoke(client_top, "campaign list " "--output yaml ")
-    campaigns = check_and_parse_result(
-        result,
-        list[models.Campaign],
-    )
+    result = runner.invoke(client_top, "campaign list --output yaml")
+    campaigns = check_and_parse_result(result, list[models.Campaign])
     entry = campaigns[0]
 
     # check get methods

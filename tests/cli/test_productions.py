@@ -12,8 +12,8 @@ from lsst.cmservice.config import config
 from .util_functions import cleanup, create_tree
 
 
-async def test_productions_cli(uvicorn: UvicornProcess) -> None:
-    """Test `/productions` API endpoint."""
+async def test_production_cli(uvicorn: UvicornProcess) -> None:
+    """Test `production` CLI command"""
 
     client_config.service_url = f"{uvicorn.url}{config.prefix}"
     runner = CliRunner()

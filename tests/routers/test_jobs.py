@@ -20,8 +20,8 @@ from .util_functions import (
 
 @pytest.mark.asyncio()
 @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
-async def test_jobs_routes(client: AsyncClient) -> None:
-    """Test `/jobs` API endpoint."""
+async def test_job_routes(client: AsyncClient) -> None:
+    """Test `/job` API endpoint."""
 
     # generate a uuid to avoid collisions
     uuid_int = uuid.uuid1().int
@@ -32,10 +32,7 @@ async def test_jobs_routes(client: AsyncClient) -> None:
     await create_tree(client, LevelEnum.job, uuid_int)
 
     response = await client.get(f"{config.prefix}/job/list")
-    jobs = check_and_parse_response(
-        response,
-        list[models.Job],
-    )
+    jobs = check_and_parse_response(response, list[models.Job])
     entry = jobs[0]
 
     # check get methods

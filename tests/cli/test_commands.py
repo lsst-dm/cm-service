@@ -6,8 +6,8 @@ from lsst.cmservice.client.clientconfig import client_config
 from lsst.cmservice.config import config
 
 
-def test_commands(uvicorn: UvicornProcess) -> None:
-    """Test the cli"""
+def test_commands_cli(uvicorn: UvicornProcess) -> None:
+    """Test miscellaneous CLI commands"""
     client_config.service_url = f"{uvicorn.url}{config.prefix}"
     runner = CliRunner()
 

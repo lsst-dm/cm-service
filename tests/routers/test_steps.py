@@ -20,8 +20,8 @@ from .util_functions import (
 
 @pytest.mark.asyncio()
 @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
-async def test_steps_routes(client: AsyncClient) -> None:
-    """Test `/steps` API endpoint."""
+async def test_step_routes(client: AsyncClient) -> None:
+    """Test `/step` API endpoint."""
 
     # generate a uuid to avoid collisions
     uuid_int = uuid.uuid1().int
@@ -32,10 +32,7 @@ async def test_steps_routes(client: AsyncClient) -> None:
     await create_tree(client, LevelEnum.group, uuid_int)
 
     response = await client.get(f"{config.prefix}/step/list")
-    steps = check_and_parse_response(
-        response,
-        list[models.Step],
-    )
+    steps = check_and_parse_response(response, list[models.Step])
     entry = steps[0]
 
     # check get methods
