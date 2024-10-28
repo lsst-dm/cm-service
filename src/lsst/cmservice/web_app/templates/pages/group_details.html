@@ -1,7 +1,7 @@
-{% extends "base.html" %}
-{% block title %} Job Details {% endblock %}
+{% extends "pages/base.html" %}
+{% block title %} Group Details {% endblock %}
 {% block content %}
-{% set fullname = job.fullname.split('/') %}
+{% set fullname = group.fullname.split('/') %}
 <nav class="flex px-2 sm:px-4 lg:px-4" aria-label="Breadcrumb">
   <ol role="list" class="flex items-center space-x-2">
     <li>
@@ -14,7 +14,7 @@
         <svg class="h-5 w-5 flex-shrink-0 text-gray-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
           <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
         </svg>
-        <a href="{{ url_for('get_steps', campaign_id=campaign_id) }}" class="underline decoration-2 ml-2 text-sm font-medium text-gray-500 hover:text-gray-700" aria-current="page">{{ fullname[1] }}</a>
+        <a href="{{ url_for('get_steps', campaign_id=group.campaign_id) }}" class="underline decoration-2 ml-2 text-sm font-medium text-gray-500 hover:text-gray-700" aria-current="page">{{ fullname[1] }}</a>
       </div>
     </li>
       <li>
@@ -22,83 +22,72 @@
         <svg class="h-5 w-5 flex-shrink-0 text-gray-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
           <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
         </svg>
-        <a href="{{ url_for('get_step', campaign_id=campaign_id, step_id=step_id) }}" class="underline decoration-2 ml-2 text-sm font-medium text-gray-500 hover:text-gray-700" aria-current="page">{{ fullname[2] }}</a>
-      </div>
-    </li>
-      <li>
-      <div class="flex items-center">
-        <svg class="h-5 w-5 flex-shrink-0 text-gray-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-          <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
-        </svg>
-        <a href="{{ url_for('get_group', campaign_id=campaign_id, step_id=step_id, group_id=group_id) }}" class="underline decoration-2 ml-2 text-sm font-medium text-gray-500 hover:text-gray-700" aria-current="page">{{ fullname[3] }}</a>
+        <a href="{{ url_for('get_step', campaign_id=group.campaign_id, step_id=group.step_id) }}" class="underline decoration-2 ml-2 text-sm font-medium text-gray-500 hover:text-gray-700" aria-current="page">{{ fullname[2] }}</a>
       </div>
     </li>
   </ol>
 </nav>
-<div class="w-full"
-     id="job_content"
-     hx-get="{{ url_for('get_job', campaign_id=campaign_id, step_id=step_id, group_id=group_id, job_id=job.id) }}"
-     hx-trigger="every 20s"
-     hx-select="#job_content"
-     hx-swap="outerHTML">
+<div class="w-full" id="group_content"
+     hx-get="{{ url_for('get_group', campaign_id=group.campaign_id, step_id=group.step_id, group_id=group.id) }}"
+     hx-trigger="every 20s" hx-select="#group_content" hx-swap="outerHTML">
     <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
         <div class="flex items-center">
-            <span class="text-2xl font-bold">{{job.name}}</span>
+            <span class="text-2xl font-bold">{{group.name}}</span>
         </div>
         <div class="flex items-center">
-            <span class="text-sm font-normal">{{job.fullname}}</span>
+            <span class="text-sm font-normal">{{group.fullname}}</span>
         </div>
         <div class="block items-center pt-2">
             <span class="text-sm font-bold">Collections</span>
-            {% for key, value in job.collections|items %}
+            {% for key, value in group.collections|items %}
             <div class="block text-sm">{{key}}: {{value}}</div>
             {% endfor %}
         </div>
         <div class="block items-center pt-2">
             <span class="text-sm font-bold">Data</span>
-            {% for key, value in job.data|items %}
+            {% for key, value in group.data|items %}
             <div class="block text-sm">{{key}}: {{value}}</div>
             {% endfor %}
         </div>
         <div class="block items-center pt-2">
             <span class="text-sm font-bold">Child Config</span>
-            {% for key, value in job.child_config|items %}
+            {% for key, value in group.child_config|items %}
             <div class="block text-sm">{{key}}: {{value}}</div>
             {% endfor %}
         </div>
         <div class="items-center pt-2">
             <span class="text-sm font-bold">WMS Task Report</span>
-            {% if job.aggregated_wms_report.expected != 0 %}
+            {% if group.aggregated_wms_report.expected != 0 %}
             <div class="flex pt-2 w-full">
                 <div class="has-tooltip bg-teal-700 h-5
-                    {% if job.aggregated_wms_report.running == 0 %}hidden{%endif%}"
-                     style="width: {{ '{:.0%}'.format((job.aggregated_wms_report.running/job.aggregated_wms_report.expected) + 0.01) }}">
+                    {% if group.aggregated_wms_report.running == 0 %}hidden{%endif%}"
+                     style="width: {{ '{:.0%}'.format((group.aggregated_wms_report.running/group.aggregated_wms_report.expected) + 0.01) }}">
                     <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Running</span>
-                    <span class="text-xs">{{job.aggregated_wms_report.running}}</span>
+                    <span class="text-xs">{{group.aggregated_wms_report.running}}</span>
                 </div>
                 <div class="has-tooltip bg-green-500 h-5
-                    {% if job.aggregated_wms_report.succeeded == 0 %}hidden{%endif%}"
-                     style="width: {{ '{:.0%}'.format((job.aggregated_wms_report.succeeded/job.aggregated_wms_report.expected) + 0.01) }}">
+                    {% if group.aggregated_wms_report.succeeded == 0 %}hidden{%endif%}"
+                     style="width: {{ '{:.0%}'.format((group.aggregated_wms_report.succeeded/group.aggregated_wms_report.expected) + 0.01) }}">
                     <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Succeeded</span>
-                    <span class="text-xs">{{job.aggregated_wms_report.succeeded}}</span>
+                    <span class="text-xs">{{group.aggregated_wms_report.succeeded}}</span>
                 </div>
                 <div class="has-tooltip bg-yellow-300 h-5
-                    {% if job.aggregated_wms_report.pending == 0 %}hidden{%endif%}"
-                     style="width: {{ '{:.0%}'.format((job.aggregated_wms_report.pending/job.aggregated_wms_report.expected) + 0.01) }}">
+                    {% if group.aggregated_wms_report.pending == 0 %}hidden{%endif%}"
+                     style="width: {{ '{:.0%}'.format((group.aggregated_wms_report.pending/group.aggregated_wms_report.expected) + 0.01) }}">
                     <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Pending</span>
-                    <span class="text-xs">{{job.aggregated_wms_report.pending}}</span>
+                    <span class="text-xs">{{group.aggregated_wms_report.pending}}</span>
                 </div>
                 <div class="has-tooltip bg-red-600 h-5
-                    {% if job.aggregated_wms_report.failed == 0 %}hidden{%endif%}"
-                     style="width: {{ '{:.0%}'.format((job.aggregated_wms_report.failed/job.aggregated_wms_report.expected) + 0.01) }}">
+                    {% if group.aggregated_wms_report.failed == 0 %}hidden{%endif%}"
+                     style="width: {{ '{:.0%}'.format((group.aggregated_wms_report.failed/group.aggregated_wms_report.expected) + 0.01) }}">
                     <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Failed</span>
-                    <span class="text-xs">{{job.aggregated_wms_report.failed}}</span>
+                    <span class="text-xs">{{group.aggregated_wms_report.failed}}</span>
                 </div>
                 <div class="has-tooltip bg-gray-300 h-5
-                    {% if job.aggregated_wms_report.other == 0 %}hidden{%endif%}"
-                     style="width: {{ '{:.0%}'.format((job.aggregated_wms_report.other/job.aggregated_wms_report.expected) + 0.01) }}">
+                    {% if group.aggregated_wms_report.other == 0 %}hidden{%endif%}"
+                     style="width: {{ '{:.0%}'.format((group.aggregated_wms_report.other/group.aggregated_wms_report.expected) + 0.01) }}">
                     <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Other</span>
-                    <span class="text-xs">{{job.aggregated_wms_report.other}}</span>
+                    <span class="text-xs">{{group.aggregated_wms_report.other}}</span>
                 </div>
             </div>
             {% endif %}
@@ -112,10 +101,10 @@
             <div id="scriptsGrid" class="ag-theme-alpine h-64"></div>
         </div>
         <div class="flex items-center pt-4">
-            <span class="text-large font-bold">Products</span>
+            <span class="text-large font-bold">Jobs</span>
         </div>
         <div class="items-center pt-4">
-            <div id="productsGrid" class="ag-theme-alpine h-64"></div>
+            <div id="jobsGrid" class="ag-theme-alpine h-64"></div>
         </div>
         <div class="flex items-center pt-4">
             <span class="text-large font-bold">WMS Task Report</span>
@@ -126,13 +115,33 @@
     </div>
 </div>
 <script>
+    class JobNameRenderer {
+        eGui;
+
+     init(params) {
+       let jobName = document.createElement('a');
+       jobName.textContent = params.data.name;
+       jobName.href = `{{url_for("get_job", campaign_id=group.campaign_id, step_id=group.step_id, group_id=group.id, job_id="${params.data.id}")}}`;
+       jobName.setAttribute('class', 'font-bold text-teal-700 underline underline-offset-4 decoration-2 hover:text-gray-500');
+       this.eGui = document.createElement('span');
+       this.eGui.appendChild(jobName)
+     }
+
+     getGui() {
+       return this.eGui;
+     }
+
+     refresh(params) {
+         return false
+     }
+    }
     class ScriptNameRenderer {
         eGui;
 
      init(params) {
        let scriptName = document.createElement('a');
        scriptName.textContent = params.data.name;
-       scriptName.href = `{{url_for("get_script", campaign_id=campaign_id, step_id=step_id, group_id=group_id, job_id=job.id, script_id="${params.data.id}")}}`;
+       scriptName.href = `{{url_for("get_script", campaign_id=group.campaign_id, step_id=group.step_id, group_id=group.id, script_id="${params.data.id}")}}`;
        scriptName.setAttribute('class', 'font-bold text-teal-700 underline underline-offset-4 decoration-2 hover:text-gray-500');
        this.eGui = document.createElement('span');
        this.eGui.appendChild(scriptName)
@@ -148,53 +157,46 @@
     }
 
     const populateScriptsGrid = (scriptsJson) => {
-        scriptsGridOptions.rowData = scriptsJson;
-        const scriptsGridElement = document.getElementById("scriptsGrid");
-        agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
-    }
-    const jobScripts = {{scripts|tojson}};
-    const scriptsGridOptions = {
-        rowData: jobScripts,
-        columnDefs: [
+        const scriptsGridOptions = {
+        rowData: scriptsJson,
+         columnDefs: [
              {field: "name", flex: 1, cellRenderer: ScriptNameRenderer,},
              {field: "status", flex: 1},
              {field: "superseded", flex: 1}
-        ]
+         ]
+        };
+        const scriptsGridElement = document.getElementById("scriptsGrid");
+        agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
     };
-    populateScriptsGrid(jobScripts);
+    const groupScripts = {{scripts|tojson}};
+    populateScriptsGrid(groupScripts);
 
-    // products
-    const formatWMSColumn = (params) => params.value === 0 ? "" : params.value;
-    const populateProductsGrid = (productsJson) => {
-        productsGridOptions.rowData = productsJson;
-        const productsGridElement = document.getElementById("productsGrid");
-        agGrid.createGrid(productsGridElement, productsGridOptions);
-    };
 
-    const jobProducts = {{job.products|tojson}};
-    const productsGridOptions = {
-        rowData: jobProducts,
+    // jobs
+    const populateJobsGrid = (jobsJson) => {
+        const jobsGridOptions = {
+            rowData: jobsJson,
             columnDefs: [
-                {field: "name", headerName: "Name", flex: 2,},
-                {field: "n_expected", headerName: "Expected", valueFormatter: formatWMSColumn},
-                {field: "n_done", headerName: "Done", valueFormatter: formatWMSColumn},
-                {field: "n_failed", headerName: "Failed", valueFormatter: formatWMSColumn},
-                {field: "n_failed_upstream", headerName: "Failed Upstream", valueFormatter: formatWMSColumn},
-                {field: "n_missing", headerName: "Missing", valueFormatter: formatWMSColumn},
+                {field: "name", flex: 1, cellRenderer: JobNameRenderer},
+                {field: "status", flex: 1},
+                {field: "superseded", flex: 1},
+                {field: "submit_status", headerName: "Submit Status"},
+                {field: "submit_url", flex: 2, headerName: "Submit URL"},
+                {field: "stamp_url", flex: 2, headerName: "Stamp URL"},
             ]
         };
-    populateProductsGrid(jobProducts);
-
-    // WMS task report
-    const populateWMSReportGrid = (wmsReportJson) => {
-        wmsReportOptions.rowData = wmsReportJson;
-        const wmsReportGridElement = document.getElementById("wmsReportGrid");
-        agGrid.createGrid(wmsReportGridElement, wmsReportOptions);
+        const jobsGridElement = document.getElementById("jobsGrid");
+        agGrid.createGrid(jobsGridElement, jobsGridOptions);
     };
+    const groupJobs = {{jobs|tojson}};
+    populateJobsGrid(groupJobs);
 
-    const wmsReport = {{job.wms_report|tojson}};
-    const wmsReportOptions = {
-            rowData: wmsReport,
+
+    // wms task report
+    const populateWMSReportGrid = (wmsReportJson) => {
+        const formatWMSColumn = (params) => params.value === 0 ? "" : params.value;
+        const wmsReportOptions = {
+            rowData: wmsReportJson,
             defaultColDef: {
                 resizable: false,
                 width: 100,
@@ -215,17 +217,22 @@
                 {field: "n_pruned", headerName: "Pruned", valueFormatter: formatWMSColumn},
             ]
         };
+        const wmsReportGridElement = document.getElementById("wmsReportGrid");
+        agGrid.createGrid(wmsReportGridElement, wmsReportOptions);
+    };
+    const wmsReport = {{group.wms_report|tojson}};
     populateWMSReportGrid(wmsReport);
 
     htmx.on('htmx:afterRequest', (evt) => {
-        const jobScripts = {{scripts|tojson}};
-        populateScriptsGrid(jobScripts);
+        const groupScripts = {{scripts|tojson}};
+        populateScriptsGrid(groupScripts);
 
-        const jobProducts = {{job.products|tojson}};
-        populateProductsGrid(jobProducts);
+        const groupJobs = {{jobs|tojson}};
+        populateJobsGrid(groupJobs);
 
-        const wmsReport = {{job.wms_report|tojson}};
+        const wmsReport = {{group.wms_report|tojson}};
         populateWMSReportGrid(wmsReport);
+
     });
 
 </script>

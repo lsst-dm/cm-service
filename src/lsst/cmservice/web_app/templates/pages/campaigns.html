@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "pages/base.html" %}
 {% block title %} Campaigns {% endblock %}
 {% block content %}
     <div class="px-4 sm:px-6 lg:px-8">
@@ -13,19 +13,25 @@
             <span class="pl-3 uppercase text-teal-600 text-sm leading-8 font-mono drop-shadow-xl">+ new production</span>
         </div>
         </form>
-        <h1 class="text-sm font-bold leading-tight tracking-tight text-gray-400 pb-3 font-mono uppercase pt-8">Search results for: <span class="italic underline">{{search_term}}</span></h1>
     </div>
-    {% if search_results %}
-    <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-5 px-4 sm:px-6 lg:px-8">
-        <!-- Campaign Cards -->
-        {% for campaign in search_results %}
-        {% include "campaign_card.html" %}
+    <div id="campaigns_content" hx-get=" {{ url_for('get_campaigns') }}" hx-trigger="every 20s" hx-select="#campaigns_content" hx-swap="outerHTML">
+        {% if recent_campaigns %}
+        <div class="px-4 sm:px-6 lg:px-8">
+            <h1 class="text-sm font-bold leading-tight tracking-tight text-gray-400 pb-3 font-mono uppercase pt-8">most recent campaigns</h1>
+        </div>
+        <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-5 px-4 sm:px-6 lg:px-8">
+
+            <!-- Campaign Cards -->
+            {% for campaign in recent_campaigns %}
+            {% include "partials/campaign_card.html" %}
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if productions %}
+        <!-- Productions -->
+        {% for production in productions.keys() %}
+        {% include "partials/production.html" %}
         {% endfor %}
+        {% endif %}
     </div>
-    {%else%}
-    <p class="text-sm font-normal leading-6 text-gray-900 pl-3">
-        <span class="inset-0" aria-hidden="true"></span>
-        No campaigns found!!
-    </p>
-    {%endif%}
 {% endblock %}
