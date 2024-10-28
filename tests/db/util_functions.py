@@ -193,43 +193,11 @@ async def check_update_methods(
     )
     assert check.data["test"] == "dummy", "update_data_dict failed"
 
-    check = await interface.update_data_dict(
-        session,
-        entry.fullname,
-        test="dummy2",
-    )
-    assert check.data["test"] == "dummy2", "interface.update_data_dict failed"
-
-    check = await interface.get_data_dict(
-        session,
-        entry.fullname,
-    )
-    assert check["test"] == "dummy2", "interface.get_data_dict failed"
-
     check = await entry.update_collections(
         session,
         test="dummy",
     )
     assert check.collections["test"] == "dummy", "update_collections failed"
-
-    check = await interface.update_collections(
-        session,
-        entry.fullname,
-        test="dummy2",
-    )
-    assert check.collections["test"] == "dummy2", "interface.update_collections failed"
-
-    check = await interface.get_collections(
-        session,
-        entry.fullname,
-    )
-    assert check["test"] == "dummy2", "interface.get_collections failed"
-
-    check = await interface.get_resolved_collections(
-        session,
-        entry.fullname,
-    )
-    assert check["test"] == "dummy2", "interface.get_resovled_collections failed"
 
     check = await entry.update_child_config(
         session,
@@ -237,44 +205,11 @@ async def check_update_methods(
     )
     assert check.child_config["test"] == "dummy", "update_child_config failed"
 
-    check = await interface.update_child_config(
-        session,
-        entry.fullname,
-        test="dummy2",
-    )
-    assert check.child_config["test"] == "dummy2", "interface.update_child_config failed"
-
-    check = await interface.get_child_config(
-        session,
-        entry.fullname,
-    )
-    assert check["test"] == "dummy2", "interface.get_child_config failed"
-
     check = await entry.update_spec_aliases(
         session,
         test="dummy",
     )
     assert check.spec_aliases["test"] == "dummy", "update_spec_aliases failed"
-
-    check = await interface.update_spec_aliases(
-        session,
-        entry.fullname,
-        test="dummy2",
-    )
-    assert check.spec_aliases["test"] == "dummy2", "interface.update_spec_aliases failed"
-
-    check = await interface.get_spec_aliases(
-        session,
-        entry.fullname,
-    )
-    assert check["test"] == "dummy2", "interface.get_spec_aliases failed"
-
-    check = await interface.update_status(
-        session,
-        entry.fullname,
-        status=StatusEnum.rejected,
-    )
-    assert check.status == StatusEnum.rejected, "interface.update_status failed"
 
     await entry.update_values(
         session,
@@ -359,20 +294,11 @@ async def check_scripts(
     scripts = await entry.get_scripts(session)
     assert len(scripts) == 2, f"Expected exactly two scripts for {entry.fullname} got {len(scripts)}"
 
-    check = await interface.get_scripts(session, entry.fullname)
-    assert len(check) == 2, f"Expected exactly two scripts for {entry.fullname} got {len(check)}"
-
     for script_ in scripts:
         parent_check = await script_.get_parent(session)
         assert parent_check.id == entry.id, "Script parent id mismatch"
 
     prereq_0 = await scripts[0].check_prerequisites(session)
-    assert prereq_0, "check_prerequisites is False for first script"
-
-    prereq_0 = await interface.check_prerequisites(
-        session,
-        f"script:{scripts[0].fullname}",
-    )
     assert prereq_0, "check_prerequisites is False for first script"
 
     prereq_1 = await scripts[1].check_prerequisites(session)
@@ -381,13 +307,7 @@ async def check_scripts(
     no_scripts = await entry.get_scripts(session, script_name="bad")
     assert len(no_scripts) == 0, "get_scripts with bad script_name did not return []"
 
-    no_scripts = await interface.get_scripts(session, entry.fullname, script_name="bad")
-    assert len(no_scripts) == 0, "get_scripts with bad script_name did not return []"
-
     all_scripts = await entry.get_all_scripts(session)
-    assert len(all_scripts) != 0, "get_all_scripts with failed"
-
-    all_scripts = await interface.get_all_scripts(session, entry.fullname)
     assert len(all_scripts) != 0, "get_all_scripts with failed"
 
     await scripts[1].update_values(session, superseded=True)
@@ -473,19 +393,11 @@ async def check_get_methods(
     )
     assert check.fullname == entry.fullname
 
-    spec_block = await interface.get_spec_block(
-        session,
-        entry.fullname,
-    )
     spec_block_check = await entry.get_spec_block(session)
-    assert spec_block.name == spec_block_check.name
+    assert spec_block_check.name
 
-    specification = await interface.get_specification(
-        session,
-        entry.fullname,
-    )
     specification_check = await entry.get_specification(session)
-    assert specification.name == specification_check.name
+    assert specification_check.name
 
     check = await entry.get_tasks(session)
     assert len(check.reports) == 0, "length of tasks should be 0"

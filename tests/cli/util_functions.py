@@ -268,14 +268,6 @@ def check_update_methods(
     # FIXME
     # expect_failed_result(result, 1)
 
-    result = runner.invoke(client_top, "get obj-data-dict " "--output yaml " f"--fullname {entry.fullname}")
-    check = check_and_parse_result(result, dict)
-    assert check["test"] == "dummy", "get_data_dict failed"
-
-    result = runner.invoke(client_top, "get obj-data-dict " "--output yaml " "--fullname bad")
-    # FIXME
-    # expect_failed_result(result, 1)
-
     result = runner.invoke(
         client_top,
         f"{entry_class_name} update collections "
@@ -302,14 +294,6 @@ def check_update_methods(
     # FIXME
     # expect_failed_result(result, 1)
 
-    result = runner.invoke(client_top, "get obj-collections " "--output yaml " f"--fullname {entry.fullname}")
-    check = check_and_parse_result(result, dict)
-    assert check["test"] == "dummy", "get_collections failed"
-
-    result = runner.invoke(client_top, "get obj-collections " "--output yaml " "--fullname bad")
-    # FIXME
-    # expect_failed_result(result, 1)
-
     result = runner.invoke(
         client_top, f"{entry_class_name} get resolved_collections " "--output yaml " f"--row_id {entry.id}"
     )
@@ -319,16 +303,6 @@ def check_update_methods(
     result = runner.invoke(
         client_top, f"{entry_class_name} get resolved_collections " "--output yaml " "--row_id -1"
     )
-    # FIXME
-    # expect_failed_result(result, 1)
-
-    result = runner.invoke(
-        client_top, "get obj-resolved-collections " "--output yaml " f"--fullname {entry.fullname}"
-    )
-    check = check_and_parse_result(result, dict)
-    assert check["test"] == "dummy", "get_collections failed"
-
-    result = runner.invoke(client_top, "get obj-resolved-collections " "--output yaml " "--fullname bad")
     # FIXME
     # expect_failed_result(result, 1)
 
@@ -363,16 +337,6 @@ def check_update_methods(
     # expect_failed_result(result, 1)
 
     result = runner.invoke(
-        client_top, "get obj-child-config " "--output yaml " f"--fullname {entry.fullname}"
-    )
-    check = check_and_parse_result(result, dict)
-    assert check["test"] == "dummy", "get_child_config failed"
-
-    result = runner.invoke(client_top, "get obj-child-config " "--output yaml " "--fullname bad")
-    # FIXME
-    # expect_failed_result(result, 1)
-
-    result = runner.invoke(
         client_top,
         f"{entry_class_name} update spec_aliases "
         "--output yaml "
@@ -398,16 +362,6 @@ def check_update_methods(
     assert check["test"] == "dummy", "get_spec_alias failed"
 
     result = runner.invoke(client_top, f"{entry_class_name} get spec_alias " "--output yaml " "--row_id -1")
-    # FIXME
-    # expect_failed_result(result, 1)
-
-    result = runner.invoke(
-        client_top, "get obj-spec-aliases " "--output yaml " f"--fullname {entry.fullname}"
-    )
-    check = check_and_parse_result(result, dict)
-    assert check["test"] == "dummy", "get_spec_aliases failed"
-
-    result = runner.invoke(client_top, "get obj-spec-aliases " "--output yaml " "--fullname bad")
     # FIXME
     # expect_failed_result(result, 1)
 
@@ -475,30 +429,20 @@ def check_get_methods(
     result = runner.invoke(
         client_top, f"{entry_class_name} get spec_block " "--output yaml " f"--row_id {entry.id}"
     )
-    spec_block = check_and_parse_result(result, models.SpecBlock)
+    check_and_parse_result(result, models.SpecBlock)
 
     result = runner.invoke(client_top, f"{entry_class_name} get spec_block " "--output yaml " "--row_id -1")
     expect_failed_result(result, 1)
 
-    result = runner.invoke(client_top, f"get obj-spec-block " "--output yaml " f"--fullname {entry.fullname}")
-    spec_block_check = check_and_parse_result(result, models.SpecBlock)
-    assert spec_block.id == spec_block_check.id
-
     result = runner.invoke(
         client_top, f"{entry_class_name} get specification " "--output yaml " f"--row_id {entry.id}"
     )
-    specification = check_and_parse_result(result, models.Specification)
+    check_and_parse_result(result, models.Specification)
 
     result = runner.invoke(
         client_top, f"{entry_class_name} get specification " "--output yaml " "--row_id -1"
     )
     expect_failed_result(result, 1)
-
-    result = runner.invoke(
-        client_top, "get obj-specification " "--output yaml " f"--fullname {entry.fullname}"
-    )
-    specification_check = check_and_parse_result(result, models.Specification)
-    assert specification.name == specification_check.name
 
     result = runner.invoke(
         client_top, f"{entry_class_name} get tasks " "--output yaml " f"--row_id {entry.id}"

@@ -31,7 +31,6 @@ from . import (
     pipetask_error_type,
     product_set,
     production,
-    query,
     queue,
     script,
     script_dependency,

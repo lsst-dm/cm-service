@@ -21,7 +21,6 @@ from .routers import (
     pipetask_errors,
     product_sets,
     productions,
-    queries,
     queues,
     script_dependencies,
     script_errors,
@@ -46,10 +45,6 @@ tags_metadata = [
     {
         "name": "Loaders",
         "description": "Operations that load Objects in to the DB.",
-    },
-    {
-        "name": "Query",
-        "description": "Operations query exsiting Objects in to the DB.",
     },
     {
         "name": "Actions",
@@ -160,7 +155,6 @@ app.add_middleware(XForwardedMiddleware)
 
 app.include_router(index.router)
 app.include_router(loaders.router, prefix=config.prefix)
-app.include_router(queries.router, prefix=config.prefix)
 app.include_router(actions.router, prefix=config.prefix)
 app.include_router(adders.router, prefix=config.prefix)
 
