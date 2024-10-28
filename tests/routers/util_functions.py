@@ -273,14 +273,6 @@ async def check_update_methods(
     )
     expect_failed_response(response, 404)
 
-    models.FullnameQuery(
-        fullname=entry.fullname,
-    )
-    models.FullnameQuery(
-        fullname="bad/bad",
-    )
-    models.FullnameQuery(fullname="invalid")
-
     update_model = models.UpdateNodeQuery(
         fullname=entry.fullname,
         update_dict=dict(test="dummy"),
@@ -517,7 +509,7 @@ async def check_get_methods(
         fullname=entry.fullname,
     )
     bad_fullname_model = models.FullnameQuery(fullname="bad/bad")
-    models.FullnameQuery(fullname="invalid")
+
     get_name_model = models.NameQuery(
         name=entry.name,
     )
