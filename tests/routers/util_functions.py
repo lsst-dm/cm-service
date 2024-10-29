@@ -273,33 +273,6 @@ async def check_update_methods(
     )
     expect_failed_response(response, 404)
 
-    get_fullname_model = models.FullnameQuery(
-        fullname=entry.fullname,
-    )
-    bad_fullname_model = models.FullnameQuery(
-        fullname="bad/bad",
-    )
-    invalid_fullname_model = models.FullnameQuery(fullname="invalid")
-
-    response = await client.get(
-        f"{config.prefix}/get/data_dict",
-        params=get_fullname_model.model_dump(),
-    )
-    check = check_and_parse_response(response, dict)
-    assert check["test"] == "dummy", "get_data_dict failed"
-
-    response = await client.get(
-        f"{config.prefix}/get/data_dict",
-        params=bad_fullname_model.model_dump(),
-    )
-    expect_failed_response(response, 404)
-
-    response = await client.get(
-        f"{config.prefix}/get/data_dict",
-        params=invalid_fullname_model.model_dump(),
-    )
-    expect_failed_response(response, 500)
-
     update_model = models.UpdateNodeQuery(
         fullname=entry.fullname,
         update_dict=dict(test="dummy"),
@@ -329,25 +302,6 @@ async def check_update_methods(
     expect_failed_response(response, 404)
 
     response = await client.get(
-        f"{config.prefix}/get/collections",
-        params=get_fullname_model.model_dump(),
-    )
-    check = check_and_parse_response(response, dict)
-    assert check["test"] == "dummy", "get_collections failed"
-
-    response = await client.get(
-        f"{config.prefix}/get/collections",
-        params=bad_fullname_model.model_dump(),
-    )
-    expect_failed_response(response, 404)
-
-    response = await client.get(
-        f"{config.prefix}/get/collections",
-        params=invalid_fullname_model.model_dump(),
-    )
-    expect_failed_response(response, 500)
-
-    response = await client.get(
         f"{config.prefix}/{entry_class_name}/get/{entry.id}/resolved_collections",
     )
     check = check_and_parse_response(response, dict)
@@ -357,25 +311,6 @@ async def check_update_methods(
         f"{config.prefix}/{entry_class_name}/get/-1/resolved_collections",
     )
     expect_failed_response(response, 404)
-
-    response = await client.get(
-        f"{config.prefix}/get/resolved_collections",
-        params=get_fullname_model.model_dump(),
-    )
-    check = check_and_parse_response(response, dict)
-    assert check["test"] == "dummy", "get_resolved_collections failed"
-
-    response = await client.get(
-        f"{config.prefix}/get/resolved_collections",
-        params=bad_fullname_model.model_dump(),
-    )
-    expect_failed_response(response, 404)
-
-    response = await client.get(
-        f"{config.prefix}/get/collections",
-        params=invalid_fullname_model.model_dump(),
-    )
-    expect_failed_response(response, 500)
 
     update_model = models.UpdateNodeQuery(
         fullname=entry.fullname,
@@ -405,25 +340,6 @@ async def check_update_methods(
     )
     expect_failed_response(response, 404)
 
-    response = await client.get(
-        f"{config.prefix}/get/child_config",
-        params=get_fullname_model.model_dump(),
-    )
-    check = check_and_parse_response(response, dict)
-    assert check["test"] == "dummy", "get_child_config failed"
-
-    response = await client.get(
-        f"{config.prefix}/get/child_config",
-        params=bad_fullname_model.model_dump(),
-    )
-    expect_failed_response(response, 404)
-
-    response = await client.get(
-        f"{config.prefix}/get/child_config",
-        params=invalid_fullname_model.model_dump(),
-    )
-    expect_failed_response(response, 500)
-
     update_model = models.UpdateNodeQuery(
         fullname=entry.fullname,
         update_dict=dict(test="dummy"),
@@ -452,25 +368,6 @@ async def check_update_methods(
     )
     expect_failed_response(response, 404)
 
-    response = await client.get(
-        f"{config.prefix}/get/spec_aliases",
-        params=get_fullname_model.model_dump(),
-    )
-    check = check_and_parse_response(response, dict)
-
-    assert check["test"] == "dummy", "get_spec_aliases failed"
-
-    response = await client.get(
-        f"{config.prefix}/get/spec_aliases",
-        params=bad_fullname_model.model_dump(),
-    )
-    expect_failed_response(response, 404)
-
-    response = await client.get(
-        f"{config.prefix}/get/spec_aliases",
-        params=invalid_fullname_model.model_dump(),
-    )
-    expect_failed_response(response, 500)
     update_status_model = models.UpdateStatusQuery(
         fullname=entry.fullname,
         status=StatusEnum.reviewable,
@@ -612,7 +509,7 @@ async def check_get_methods(
         fullname=entry.fullname,
     )
     bad_fullname_model = models.FullnameQuery(fullname="bad/bad")
-    models.FullnameQuery(fullname="invalid")
+
     get_name_model = models.NameQuery(
         name=entry.name,
     )
@@ -644,30 +541,18 @@ async def check_get_methods(
     )
     expect_failed_response(response, 404)
 
-    response = await client.get(
-        f"{config.prefix}/get/spec_block",
-        params=get_fullname_model.model_dump(),
-    )
-    spec_block = check_and_parse_response(response, models.SpecBlock)
-
     response = await client.get(f"{config.prefix}/{entry_class_name}/get/{entry.id}/spec_block")
     spec_block_check = check_and_parse_response(response, models.SpecBlock)
-    assert spec_block.name == spec_block_check.name
+    assert spec_block_check.name
 
     response = await client.get(f"{config.prefix}/{entry_class_name}/get/-1/spec_block")
     expect_failed_response(response, 404)
 
     response = await client.get(
-        f"{config.prefix}/get/specification",
-        params=get_fullname_model.model_dump(),
-    )
-    specification = check_and_parse_response(response, models.Specification)
-
-    response = await client.get(
         f"{config.prefix}/{entry_class_name}/get/{entry.id}/specification",
     )
     specification_check = check_and_parse_response(response, models.Specification)
-    assert specification.name == specification_check.name
+    assert specification_check.name
 
     response = await client.get(f"{config.prefix}/{entry_class_name}/get/-1/specification")
     expect_failed_response(response, 404)

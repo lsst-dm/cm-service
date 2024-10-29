@@ -22,21 +22,21 @@ def test_commands_cli(uvicorn: UvicornProcess) -> None:
     result = runner.invoke(server, "init")
     assert result.exit_code == 0
 
-    result = runner.invoke(client_top, "get productions")
+    result = runner.invoke(client_top, "production list")
     assert result.exit_code == 0
 
-    result = runner.invoke(client_top, "get productions -o yaml")
+    result = runner.invoke(client_top, "production list -o yaml")
     assert result.exit_code == 0
 
-    result = runner.invoke(client_top, "get productions -o json")
+    result = runner.invoke(client_top, "production list -o json")
     assert result.exit_code == 0
 
-    result = runner.invoke(client_top, "get campaigns")
+    result = runner.invoke(client_top, "campaign list")
     assert result.exit_code == 0
 
-    result = runner.invoke(client_top, "get campaigns -o yaml")
+    result = runner.invoke(client_top, "campaign list -o yaml")
     assert result.exit_code == 0
 
     # FIXME StatusEnum not JSON serializable
-    # result = runner.invoke(client_top, "get campaigns -o json")
+    # result = runner.invoke(client_top, "campaign list -o json")
     # assert result.exit_code == 0

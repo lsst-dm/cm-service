@@ -17,7 +17,6 @@ from .pipetask_error_types import CMPipetaskErrorTypeClient
 from .pipetask_errors import CMPipetaskErrorClient
 from .product_sets import CMProductSetClient
 from .productions import CMProductionClient
-from .queries import CMQueryClient
 from .queues import CMQueueClient
 from .script_dependencies import CMScriptDependencyClient
 from .script_errors import CMScriptErrorClient
@@ -68,7 +67,6 @@ class CMClient:  # pylint: disable=too-many-instance-attributes
         self.script_dependency = CMScriptDependencyClient(self)
         self.step_dependency = CMStepDependencyClient(self)
 
-        self.query = CMQueryClient(self)
         self.action = CMActionClient(self)
         self.add = CMAddClient(self)
         self.load = CMLoadClient(self)

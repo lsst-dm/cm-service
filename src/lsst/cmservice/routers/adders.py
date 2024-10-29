@@ -47,22 +47,3 @@ async def add_steps(
         return ret_val
     except Exception as msg:
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
-
-
-@router.post(
-    "/campaign",
-    status_code=201,
-    response_model=models.Campaign,
-    summary="Create a campaign",
-)
-async def add_campaign(
-    query: models.CampaignCreate,
-    session: async_scoped_session = Depends(db_session_dependency),
-) -> db.Campaign:
-    """Invoke the interface.add_campaign function"""
-    try:
-        async with session.begin():
-            ret_val = await interface.create_campaign(session, **query.model_dump())
-        return ret_val
-    except Exception as msg:
-        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg

@@ -2,7 +2,7 @@ from .. import db
 from ..client.client import CMClient
 from . import options
 from .commands import add
-from .wrappers import output_pydantic_list, output_pydantic_object
+from .wrappers import output_pydantic_list
 
 
 @add.command()
@@ -41,22 +41,3 @@ def steps(
         child_configs=child_configs,
     )
     output_pydantic_list(result, output, db.Step.col_names_for_table)
-
-
-@add.command()
-@options.cmclient()
-@options.fullname()
-@options.output()
-@options.child_configs()
-def campaign(
-    client: CMClient,
-    fullname: options.PartialOption,
-    child_configs: dict,
-    output: options.OutputEnum | None,
-) -> None:
-    """Add a Campaign"""
-    result = client.add.campaign(
-        fullname=fullname,
-        **child_configs,
-    )
-    output_pydantic_object(result, output, db.Campaign.col_names_for_table)
