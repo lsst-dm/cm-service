@@ -489,7 +489,7 @@ class ManifestReportScriptHandler(ScriptHandler):
         qgraph_file = f"{job_run_coll}.qgraph".replace("/", "_")
 
         graph_url = os.path.abspath(f"{prod_area}/{parent.fullname}/submit/{qgraph_file}")
-        report_url = os.path.abspath(f"{prod_area}/{parent.fullname}/submit/manifest_report.yaml")
+        report_url = os.path.abspath(f"{prod_area}/{parent.fullname}/submit/manifest_report.json")
 
         manifest_script_template = await specification.get_script_template(
             session,
@@ -501,7 +501,7 @@ class ManifestReportScriptHandler(ScriptHandler):
             custom_lsst_setup = data_dict["custom_lsst_setup"]
             prepend += f"\n{custom_lsst_setup}"
 
-        command = f"pipetask report --full-output-filename {report_url} {butler_repo} {graph_url}"
+        command = f"pipetask report --full-output-filename {report_url} {butler_repo} {graph_url} --force-v2"
         write_bash_script(script_url, command, prepend=prepend)
 
         return StatusEnum.prepared
@@ -519,7 +519,7 @@ class ManifestReportLoadHandler(FunctionHandler):
     ) -> StatusEnum:
         data_dict = await script.data_dict(session)
         prod_area = os.path.expandvars(data_dict["prod_area"])
-        report_url = os.path.expandvars(f"{prod_area}/{parent.fullname}/submit/manifest_report.yaml")
+        report_url = os.path.expandvars(f"{prod_area}/{parent.fullname}/submit/manifest_report.json")
 
         await script.update_values(
             session,
@@ -549,7 +549,7 @@ class ManifestReportLoadHandler(FunctionHandler):
         self,
         session: async_scoped_session,
         job: Job,
-        pipetask_report_yaml: str | None,
+        pipetask_report_json: str | None,
     ) -> StatusEnum:
         """Load the job processing info
 
@@ -558,14 +558,14 @@ class ManifestReportLoadHandler(FunctionHandler):
         job: Job
             Job in question
 
-        pipetask_report_yaml : str | None
-            Yaml file
+        pipetask_report_json : str | None
+            JSON file containing the `QuantumProvenanceGraph.Summary`
 
         """
-        if pipetask_report_yaml is None:
+        if pipetask_report_json is None:
             return StatusEnum.failed
 
-        check_job = await load_manifest_report(session, job.fullname, pipetask_report_yaml)
+        check_job = await load_manifest_report(session, job.fullname, pipetask_report_json)
         if not job.id == check_job.id:
             raise CMIDMismatchError(f"job.id {job.id} != check_job.id {check_job.id}")
 

@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 
 from lsst.ctrl.bps.bps_reports import compile_job_summary
 from lsst.ctrl.bps.wms_service import WmsJobReport, WmsRunReport, WmsStates
+from lsst.pipe.base import Summary
 
 from ..common.enums import StatusEnum
 from ..common.errors import CMYamlParseError
@@ -471,7 +472,7 @@ async def match_pipetask_error(
 async def load_manifest_report(
     session: async_scoped_session,
     job_name: str,
-    yaml_file: str,
+    summary_json: str,
 ) -> Job:
     """Parse and load output of pipetask report
 
@@ -483,20 +484,20 @@ async def load_manifest_report(
     job_name: str
         Name of associated Job
 
-    yaml_file: str
-        Pipetask report yaml file
+    summary_json: str
+        JSON file containing the Pydantic model created by pipetask report
 
     Returns
     -------
     job : Job
         Associated Job
     """
-    with open(yaml_file, encoding="utf-8") as fin:
-        manifest_data = yaml.safe_load(fin)
+    with open(summary_json) as fin:
+        model = Summary.model_validate_json(fin.read())
 
     job = await Job.get_row_by_fullname(session, job_name)
 
-    for task_name_, task_data_ in manifest_data.items():
+    for task_name_, task_data_ in model.tasks.items():
         failed_quanta = task_data_.get("failed_quanta", {})
         outputs = task_data_.get("outputs", {})
         n_expected = task_data_.get("n_expected", 0)
