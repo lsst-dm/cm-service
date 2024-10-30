@@ -2,8 +2,6 @@
       - "${CM_CONFIGS}/example_standard_scripts.yaml"
       - "${CM_CONFIGS}/example_standard_elements.yaml"
       - "${CM_CONFIGS}/example_HSC_DRP-RC2_steps.yaml"
-      - "${CM_CONFIGS/stack_files/highres_hips.yaml"
-      - "${CM_CONFIGS}/stack_files/gen_hips_both.yaml"
 # Script to make hips maps for a campaign
 - SpecBlock:
       name: hips_maps_script
@@ -143,7 +141,7 @@
                 prerequisites: ['resource_usage', 'hips_maps']
                 spec_block: chain_create_script
                 collections:
-                    inputs: ["{campaign_output}", "{campaign_input}"]
+                    inputs: ["{campaign_output}", "{campaign_hips_maps}", "{campaign_resource_usage}", "{campaign_input}"]
                     output: "{campaign_public_output}"
       data:
           hips_maps_script_template: stack_script_template

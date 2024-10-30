@@ -8,11 +8,11 @@ tasks:
         config.png_gray_asinh_stretch=0.4
         config.png_gray_asinh_softening=8
         config.png_gray_asinh_minimum=0.0
-        config.properties.creator_did_template = "temp://lsst/ci_hsc/hips/images/band_{band}"
-        config.properties.obs_title_template = "CI HSC for band {band}"
-        config.properties.obs_description_template = "Coadded data from ci_hsc, band {band}."
+        config.properties.creator_did_template = "temp://lsst/hsc_rc2/hips/images/band_{band}"
+        config.properties.obs_title_template = "HSC-RC2 for band {band}"
+        config.properties.obs_description_template = "Coadded data from hsc_rc2, band {band}."
         config.properties.prov_progenitor = [
-          "Coadded data from the ci_hsc test dataset.",
+          "Coadded data from the HSC-RC2 test dataset.",
           "HiPS generation: internal pre-release code (https://pipelines.lsst.io/v/w_2022_22/index.html)"
         ]
 
@@ -23,11 +23,11 @@ tasks:
         config.png_color_asinh_stretch=0.3
         config.png_color_asinh_softening=10
         config.png_color_asinh_minimum=0.0
-        config.properties.creator_did_template = "temp://lsst/ci_hsc/hips/images/color_gri"
-        config.properties.obs_title_template = "CI HSC: gri color visualization"
-        config.properties.obs_description_template = "Color visualization of coadded data from ci_imsim " +
+        config.properties.creator_did_template = "temp://lsst/hsc_rc2/hips/images/color_gri"
+        config.properties.obs_title_template = "HSC-RC2: gri color visualization"
+        config.properties.obs_description_template = "Color visualization of coadded data from hsc_rc2 " +
           "(red: band i, green: band r, blue: band g) with a hue-preserving stretch."
         config.properties.prov_progenitor = [
-          "Coadded data from the ci_hsc test dataset.",
+          "Coadded data from the HSC-RC2 test dataset.",
           "HiPS generation: internal pre-release code (https://pipelines.lsst.io/v/w_2022_22/index.html)"
         ]
