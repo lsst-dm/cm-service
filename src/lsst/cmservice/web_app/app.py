@@ -56,11 +56,6 @@ router = APIRouter(
 web_app.mount("/static", StaticFiles(directory=str(Path(BASE_DIR, "static"))), name="static")
 
 
-@web_app.get("/", response_class=HTMLResponse)
-async def read_item(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse("pages/index.html", {"request": request})
-
-
 @web_app.get("/campaigns/", response_class=HTMLResponse)
 async def get_campaigns(
     request: Request,
