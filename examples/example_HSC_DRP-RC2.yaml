@@ -54,6 +54,26 @@
                         - 9697
                         - 9813
           - Step:
+                name: injected_step3
+                spec_block: HSC_DRP-RC2_injected_step3
+                prerequisites: ['step3']
+                child_config:
+                    split_method: split_by_vals
+                    split_vals:
+                        - 9615
+                        - 9697
+                        - 9813
+          - Step:
+                name: injected_coadd_analysis
+                spec_block: HSC_DRP-RC2_injected_coadd_analysis
+                prerequisites: ['injected_step3']
+                child_config:
+                    split_method: split_by_vals
+                    split_vals:
+                        - 9615
+                        - 9697
+                        - 9813
+          - Step:
                 name: step4
                 spec_block: HSC_DRP-RC2_step4
                 prerequisites: ['step3']

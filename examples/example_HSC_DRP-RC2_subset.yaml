@@ -45,6 +45,18 @@
                 child_config:
                     split_method: no_split
           - Step:
+                name: injected_step3
+                spec_block: HSC_DRP-RC2_subset_injected_step3
+                prerequisites: ['step3']
+                child_config:
+                    split_method: no_split
+          - Step:
+                name: injected_coadd_analysis
+                spec_block: HSC_DRP-RC2_subset_injected_coadd_analysis
+                prerequisites: ['injected_step3']
+                child_config:
+                    split_method: no_split
+          - Step:
                 name: step4
                 spec_block: HSC_DRP-RC2_subset_step4
                 prerequisites: ['step3']

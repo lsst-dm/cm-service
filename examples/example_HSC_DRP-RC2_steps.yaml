@@ -40,6 +40,22 @@
           base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
           split_field: tract
 - SpecBlock:
+      name: HSC_DRP-RC2_injected_step3
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2+injected_deepCoadd.yaml#injected_step3"
+      child_config:
+          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+          split_field: tract
+- SpecBlock:
+      name: HSC_DRP-RC2_injected_coadd_analysis
+      includes: ['step']
+      data:
+          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2+injected_deepCoadd.yaml#injected_coadd_analysis"
+      child_config:
+          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+          split_field: tract
+- SpecBlock:
       name: HSC_DRP-RC2_step4
       includes: ['step']
       data:
