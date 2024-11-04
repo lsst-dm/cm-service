@@ -406,6 +406,18 @@ async def check_update_methods(
     assert check_update.status == StatusEnum.running
 
     response = await client.post(
+        f"{config.prefix}/{entry_class_name}/action/{entry.id}/run_check",
+    )
+    check_run_check = check_and_parse_response(response, tuple[bool, StatusEnum])
+    assert check_run_check[1] == StatusEnum.running
+
+    response = await client.post(
+        f"{config.prefix}/{entry_class_name}/action/{entry.id}/process",
+    )
+    check_process = check_and_parse_response(response, tuple[bool, StatusEnum])
+    assert check_process[1] == StatusEnum.running
+
+    response = await client.post(
         f"{config.prefix}/{entry_class_name}/action/{entry.id}/accept",
     )
     check_update = check_and_parse_response(response, entry_class)
@@ -446,6 +458,16 @@ async def check_update_methods(
     )
     expect_failed_response(response, 404)
 
+    response = await client.post(
+        f"{config.prefix}/{entry_class_name}/action/-1/process",
+    )
+    expect_failed_response(response, 404)
+
+    response = await client.post(
+        f"{config.prefix}/{entry_class_name}/action/-1/run_check",
+    )
+    expect_failed_response(response, 404)
+
 
 async def check_scripts(
     client: AsyncClient,
@@ -462,6 +484,24 @@ async def check_scripts(
     )
     scripts = check_and_parse_response(response, list[models.Script])
     assert len(scripts) == 2, f"Expected exactly two scripts for {entry.fullname} got {len(scripts)}"
+
+    for script_ in scripts:
+        response = await client.get(
+            f"{config.prefix}/script/get/{script_.id}/parent",
+        )
+        parent_check = check_and_parse_response(response, models.ElementMixin)
+        assert parent_check.id == entry.id
+
+    response = await client.get(
+        f"{config.prefix}/script/get/-1/parent",
+    )
+    expect_failed_response(response, 404)
+
+    response = await client.get(
+        f"{config.prefix}/{entry_class_name}/get/-1/scripts",
+        params=query_model.model_dump(),
+    )
+    expect_failed_response(response, 404)
 
     query_model = models.ScriptQuery(
         fullname=entry.fullname,
@@ -485,6 +525,88 @@ async def check_scripts(
     )
     all_scripts = check_and_parse_response(response, list[models.Script])
     assert len(all_scripts) != 0, "get_all_scripts with failed"
+
+    response = await client.get(
+        f"{config.prefix}/{entry_class_name}/get/-1/all_scripts",
+        params=query_model.model_dump(),
+    )
+    expect_failed_response(response, 404)
+
+    script0 = scripts[0]
+    script1 = scripts[1]
+
+    if script0.id > script1.id:
+        script0 = scripts[1]
+        script1 = scripts[0]
+
+    response = await client.get(
+        f"{config.prefix}/script/get/{script0.id}/check_prerequisites",
+    )
+    script0_prereq = check_and_parse_response(response, bool)
+
+    response = await client.get(
+        f"{config.prefix}/script/get/{script1.id}/check_prerequisites",
+    )
+    script1_prereq = check_and_parse_response(response, bool)
+    assert script0_prereq
+    assert not script1_prereq
+
+    response = await client.get(
+        f"{config.prefix}/script/get/-1/check_prerequisites",
+    )
+    expect_failed_response(response, 404)
+
+    update_status_model = models.UpdateStatusQuery(
+        fullname=entry.fullname,
+        status=StatusEnum.failed,
+    )
+
+    response = await client.post(
+        f"{config.prefix}/script/update/{script0.id}/status", content=update_status_model.model_dump_json()
+    )
+    update_check = check_and_parse_response(response, models.Script)
+    assert update_check.status == StatusEnum.failed
+
+    response = await client.post(
+        f"{config.prefix}/script/update/-1/status", content=update_status_model.model_dump_json()
+    )
+    expect_failed_response(response, 404)
+
+    query_model = models.ScriptQuery(
+        fullname=entry.fullname,
+        script_name="prepare",
+    )
+
+    response = await client.post(
+        f"{config.prefix}/{entry_class_name}/action/{entry.id}/retry_script",
+        content=query_model.model_dump_json(),
+    )
+    retry_check = check_and_parse_response(response, models.Script)
+    assert retry_check.status == StatusEnum.waiting
+
+    response = await client.post(
+        f"{config.prefix}/{entry_class_name}/action/-1/retry_script",
+        content=query_model.model_dump_json(),
+    )
+    expect_failed_response(response, 404)
+
+    response = await client.post(
+        f"{config.prefix}/script/update/{script0.id}/status",
+        content=update_status_model.model_dump_json(),
+    )
+    update_check = check_and_parse_response(response, models.Script)
+    assert update_check.status == StatusEnum.failed
+
+    response = await client.put(
+        f"{config.prefix}/script/action/{script0.id}/reset_script",
+    )
+    status_check = check_and_parse_response(response, StatusEnum)
+    assert status_check == StatusEnum.waiting
+
+    response = await client.put(
+        f"{config.prefix}/script/action/-1/reset_script",
+    )
+    expect_failed_response(response, 404)
 
 
 async def check_get_methods(
@@ -584,10 +706,62 @@ async def check_get_methods(
     response = await client.get(f"{config.prefix}/{entry_class_name}/get/-1/products")
     expect_failed_response(response, 404)
 
+    sleep_time_query = models.SleepTimeQuery(
+        fullname=entry.fullname,
+        job_sleep=150,
+        script_sleep=15,
+    )
+
+    response = await client.post(
+        f"{config.prefix}/{entry_class_name}/get/{entry.id}/estimate_sleep_time",
+        content=sleep_time_query.model_dump_json(),
+    )
+    check_sleep_time = check_and_parse_response(response, int)
+    assert check_sleep_time == 10
+
+    response = await client.post(
+        f"{config.prefix}/{entry_class_name}/get/-1/estimate_sleep_time",
+        content=sleep_time_query.model_dump_json(),
+    )
+
+    expect_failed_response(response, 404)
+
 
 async def check_queue(
     client: AsyncClient,
     entry: models.ElementMixin,
 ) -> None:
-    # TODO, make and test queue object
-    pass
+    # make and test a queue object
+
+    fullname_model = models.FullnameQuery(
+        fullname=entry.fullname,
+    )
+
+    response = await client.post(
+        f"{config.prefix}/queue/create",
+        content=fullname_model.model_dump_json(),
+    )
+    queue = check_and_parse_response(response, models.Queue)
+
+    response = await client.get(
+        f"{config.prefix}/queue/sleep_time/{queue.id}",
+    )
+    sleep_time = check_and_parse_response(response, int)
+    assert sleep_time == 10
+
+    response = await client.get(
+        f"{config.prefix}/queue/sleep_time/-1",
+    )
+
+    expect_failed_response(response, 404)
+
+    response = await client.get(
+        f"{config.prefix}/queue/process/{queue.id}",
+    )
+    changed = check_and_parse_response(response, bool)
+    assert not changed
+
+    response = await client.get(
+        f"{config.prefix}/queue/process/-1",
+    )
+    expect_failed_response(response, 404)

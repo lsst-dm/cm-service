@@ -11,6 +11,7 @@ from lsst.cmservice.config import config
 from .util_functions import (
     check_and_parse_response,
     check_get_methods,
+    check_queue,
     check_scripts,
     check_update_methods,
     cleanup,
@@ -42,6 +43,9 @@ async def test_campaign_routes(client: AsyncClient) -> None:
 
     # check scripts
     await check_scripts(client, entry, "campaign")
+
+    # check queues
+    await check_queue(client, entry)
 
     # delete everything we just made in the session
     await cleanup(client, check_cascade=True)
