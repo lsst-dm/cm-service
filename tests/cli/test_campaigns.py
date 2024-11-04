@@ -13,6 +13,7 @@ from lsst.cmservice.config import config
 from .util_functions import (
     check_and_parse_result,
     check_get_methods,
+    check_queue,
     check_scripts,
     check_update_methods,
     cleanup,
@@ -50,6 +51,9 @@ async def test_campaign_cli(uvicorn: UvicornProcess) -> None:
 
     # check scripts
     check_scripts(runner, client_top, entry, "campaign")
+
+    # check queue
+    check_queue(runner, client_top, entry)
 
     # delete everything we just made in the session
     cleanup(runner, client_top, check_cascade=True)
