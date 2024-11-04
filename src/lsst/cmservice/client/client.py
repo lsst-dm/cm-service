@@ -7,7 +7,6 @@ from typing import Any
 import httpx
 
 from .actions import CMActionClient
-from .adders import CMAddClient
 from .campaigns import CMCampaignClient
 from .clientconfig import client_config
 from .groups import CMGroupClient
@@ -68,7 +67,6 @@ class CMClient:  # pylint: disable=too-many-instance-attributes
         self.step_dependency = CMStepDependencyClient(self)
 
         self.action = CMActionClient(self)
-        self.add = CMAddClient(self)
         self.load = CMLoadClient(self)
 
     @property

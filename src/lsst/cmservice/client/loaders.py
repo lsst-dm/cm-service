@@ -46,6 +46,10 @@ class CMLoadClient:
         self._parent = parent
         self._client = parent.client
 
+    add_groups = wrappers.get_general_post_function(models.AddGroups, list[models.Group], "add_groups")
+
+    add_steps = wrappers.get_general_post_function(models.AddSteps, models.Campaign, "add_steps")
+
     @property
     def client(self) -> httpx.Client:
         """Return the httpx.Client"""
@@ -404,7 +408,7 @@ class CMLoadClient:
         campaign = self._parent.campaign.create(**camp_config)
 
         if step_configs:
-            self._parent.add.steps(fullname=campaign.fullname, child_configs=step_configs)
+            self.add_steps(fullname=campaign.fullname, child_configs=step_configs)
 
         return campaign
 
