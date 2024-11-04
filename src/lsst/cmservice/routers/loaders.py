@@ -26,7 +26,7 @@ async def add_groups(
         async with session.begin():
             ret_val = await interface.add_groups(session, **query.model_dump())
         return ret_val
-    except Exception as msg:
+    except Exception as msg:  # pragma: no cover
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
@@ -45,7 +45,7 @@ async def add_steps(
         async with session.begin():
             ret_val = await interface.add_steps(session, **query.model_dump())
         return ret_val
-    except Exception as msg:
+    except Exception as msg:  # pragma: no cover
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
@@ -78,7 +78,7 @@ async def load_specification(
         async with session.begin():
             result = await interface.load_specification(session, **query.model_dump())
         return result
-    except Exception as msg:
+    except Exception as msg:  # pragma: no cover
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
@@ -111,7 +111,7 @@ async def load_and_create_campaign(
         async with session.begin():
             result = await interface.load_and_create_campaign(session, **query.model_dump())
         return result
-    except Exception as msg:
+    except Exception as msg:  # pragma: no cover
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
@@ -144,7 +144,7 @@ async def load_error_types(
         async with session.begin():
             the_error_types = await interface.load_error_types(session, **query.model_dump())
         return the_error_types
-    except Exception as msg:
+    except Exception as msg:  # pragma: no cover
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
@@ -177,5 +177,5 @@ async def load_manifest_report(
         async with session.begin():
             the_job = await interface.load_manifest_report(session, **query.model_dump())
         return the_job
-    except Exception as msg:
+    except Exception as msg:  # pragma: no cover
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
