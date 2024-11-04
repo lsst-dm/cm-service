@@ -603,6 +603,25 @@ async def check_scripts(
     status_check = check_and_parse_response(response, StatusEnum)
     assert status_check == StatusEnum.waiting
 
+    response = await client.post(
+        f"{config.prefix}/script/update/{script0.id}/status",
+        content=update_status_model.model_dump_json(),
+    )
+    update_check = check_and_parse_response(response, models.Script)
+    assert update_check.status == StatusEnum.failed
+
+    script_reset_status_model = models.UpdateStatusQuery(
+        fullname=script0.fullname,
+        status=StatusEnum.waiting,
+    )
+
+    response = await client.post(
+        f"{config.prefix}/actions/reset_script",
+        content=script_reset_status_model.model_dump_json(),
+    )
+    reset_check = check_and_parse_response(response, models.Script)
+    assert reset_check.status == StatusEnum.waiting
+
     response = await client.put(
         f"{config.prefix}/script/action/-1/reset_script",
     )

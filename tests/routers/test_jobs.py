@@ -66,11 +66,6 @@ async def test_job_routes(client: AsyncClient) -> None:
     )
     expect_failed_response(response, 404)
 
-    # response = await client.post(
-    #    f"{config.prefix}/group/action/{parent.id}/rescue_job",
-    # )
-    # expect_failed_response(response, 405)
-
     update_model = models.JobUpdate(
         fullname=entry.fullname,
         status=StatusEnum.rescuable,
@@ -92,11 +87,24 @@ async def test_job_routes(client: AsyncClient) -> None:
     rescue_job = check_and_parse_response(response, models.Job)
     assert rescue_job.attempt == 1
 
+    response = await client.put(
+        f"{config.prefix}/job/update/{rescue_job.id}",
+        content=update_model.model_dump_json(),
+    )
+
+    rescue_node_model = models.NodeQuery(fullname=parent.fullname)
+
+    response = await client.post(
+        f"{config.prefix}/actions/rescue_job", content=rescue_node_model.model_dump_json()
+    )
+    rescue_job = check_and_parse_response(response, models.Job)
+    assert rescue_job.attempt == 1
+
     response = await client.get(
         f"{config.prefix}/group/get/{parent.id}/jobs",
     )
     check_jobs = check_and_parse_response(response, list[models.Job])
-    assert len(check_jobs) == 1
+    assert len(check_jobs) == 2
     new_job = check_jobs[-1]
 
     response = await client.get(
@@ -111,8 +119,10 @@ async def test_job_routes(client: AsyncClient) -> None:
     )
 
     response = await client.post(
-        f"{config.prefix}/group/action/{parent.id}/mark_job_rescued",
+        f"{config.prefix}/group/action/{parent.id}/mark_rescued",
     )
+    check_jobs = check_and_parse_response(response, list[models.Job])
+    assert len(check_jobs) == 1
 
     # delete everything we just made in the session
     await cleanup(client, check_cascade=True)
