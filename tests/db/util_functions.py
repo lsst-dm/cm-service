@@ -333,7 +333,7 @@ async def check_scripts(
 
     await scripts[0].update_values(session, status=StatusEnum.failed)
     check = await interface.reset_script(session, scripts[0].fullname, StatusEnum.waiting)
-    assert check.status == StatusEnum.waiting, "Failed to retry script"
+    assert check.status == StatusEnum.waiting, "Failed to reset script"
 
 
 async def check_get_methods(
