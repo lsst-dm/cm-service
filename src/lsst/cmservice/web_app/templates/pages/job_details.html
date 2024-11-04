@@ -88,7 +88,7 @@
         agGrid.createGrid(wmsReportGridElement, wmsReportOptions);
     };
 
-    window.addEventListener("DOMContentLoaded", function() {
+    const populateGrids = () => {
         const jobScripts = {{scripts|tojson}};
         populateScriptsGrid(jobScripts);
 
@@ -97,17 +97,14 @@
 
         const wmsReport = {{job.wms_report|tojson}};
         populateWMSReportGrid(wmsReport);
+    };
+
+    window.addEventListener("DOMContentLoaded", function() {
+        populateGrids();
     }, false);
 
     htmx.on('htmx:afterRequest', (evt) => {
-        const jobScripts = {{scripts|tojson}};
-        populateScriptsGrid(jobScripts);
-
-        const jobProducts = {{job.products|tojson}};
-        populateProductsGrid(jobProducts);
-
-        const wmsReport = {{job.wms_report|tojson}};
-        populateWMSReportGrid(wmsReport);
+        populateGrids();
     });
 
 </script>
