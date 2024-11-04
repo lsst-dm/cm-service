@@ -479,5 +479,7 @@ def check_queue(
     client_top: BaseCommand,
     entry: models.ElementMixin,
 ) -> None:
-    # TODO, make and test queue object
-    pass
+    result = runner.invoke(client_top, f"queue create --output yaml --fullname {entry.fullname}")
+    check = check_and_parse_result(result, models.Queue)
+
+    result = runner.invoke(client_top, f"queue delete --row_id {check.id}")
