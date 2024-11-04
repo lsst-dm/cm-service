@@ -42,7 +42,7 @@ delete_row = wrappers.delete_row_function(router, DbClass)
 update_row = wrappers.put_row_function(router, ResponseModelClass, UpdateModelClass, DbClass)
 get_spec_block = wrappers.get_node_spec_block_function(router, DbClass)
 get_specification = wrappers.get_node_specification_function(router, DbClass)
-get_parent = wrappers.get_node_parent_function(router, models.Production, DbClass)
+get_parent = wrappers.get_node_parent_function(router, models.ElementMixin, DbClass)
 get_resolved_collections = wrappers.get_node_resolved_collections_function(router, DbClass)
 get_collections = wrappers.get_node_collections_function(router, DbClass)
 get_child_config = wrappers.get_node_child_config_function(router, DbClass)
@@ -74,6 +74,7 @@ reject = wrappers.get_node_reject_function(router, ResponseModelClass, DbClass)
 reset = wrappers.get_node_reset_function(router, ResponseModelClass, DbClass)
 process = wrappers.get_node_process_function(router, DbClass)
 run_check = wrappers.get_node_run_check_function(router, DbClass)
+check_prerequisites = wrappers.get_node_check_prerequisites_function(router, DbClass)
 
 
 @router.put(
@@ -110,6 +111,6 @@ async def reset_script(
             result = await script.reset_script(session, to_status=to_status)
     except CMMissingIDError as msg:
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-    except Exception as msg:
+    except Exception as msg:  # pragma: no cover
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
     return result
