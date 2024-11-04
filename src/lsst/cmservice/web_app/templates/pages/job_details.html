@@ -1,6 +1,114 @@
-{% extends "base.html" %}
+{% extends "pages/base.html" %}
 {% block title %} Job Details {% endblock %}
 {% block content %}
+<script>
+    class ScriptNameRenderer {
+        eGui;
+
+     init(params) {
+       let scriptName = document.createElement('a');
+       scriptName.textContent = params.data.name;
+       scriptName.href = `{{url_for("get_script", campaign_id=campaign_id, step_id=step_id, group_id=group_id, job_id=job.id, script_id="${params.data.id}")}}`;
+       scriptName.setAttribute('class', 'font-bold text-teal-700 underline underline-offset-4 decoration-2 hover:text-gray-500');
+       this.eGui = document.createElement('span');
+       this.eGui.appendChild(scriptName)
+     }
+
+     getGui() {
+       return this.eGui;
+     }
+
+     refresh(params) {
+         return false
+     }
+    }
+
+    const scriptsGridOptions = {
+        // rowData: jobScripts,
+        columnDefs: [
+             {field: "name", flex: 1, cellRenderer: ScriptNameRenderer,},
+             {field: "status", flex: 1},
+             {field: "superseded", flex: 1}
+        ]
+    };
+    const populateScriptsGrid = (scriptsJson) => {
+        scriptsGridOptions.rowData = scriptsJson;
+        const scriptsGridElement = document.getElementById("scriptsGrid");
+        agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
+    }
+
+    // products
+    const formatWMSColumn = (params) => params.value === 0 ? "" : params.value;
+
+    const productsGridOptions = {
+        // rowData: jobProducts,
+        columnDefs: [
+            {field: "name", headerName: "Name", flex: 2,},
+            {field: "n_expected", headerName: "Expected", valueFormatter: formatWMSColumn},
+            {field: "n_done", headerName: "Done", valueFormatter: formatWMSColumn},
+            {field: "n_failed", headerName: "Failed", valueFormatter: formatWMSColumn},
+            {field: "n_failed_upstream", headerName: "Failed Upstream", valueFormatter: formatWMSColumn},
+            {field: "n_missing", headerName: "Missing", valueFormatter: formatWMSColumn},
+        ]
+    };
+
+    const populateProductsGrid = (productsJson) => {
+        productsGridOptions.rowData = productsJson;
+        const productsGridElement = document.getElementById("productsGrid");
+        agGrid.createGrid(productsGridElement, productsGridOptions);
+    };
+
+    // WMS task report
+
+    const wmsReportOptions = {
+        // rowData: wmsReport,
+        defaultColDef: {
+            resizable: false,
+            width: 100,
+        },
+        columnDefs: [
+            {field: "name", headerName: "Name", width: 350,},
+            {field: "n_expected", headerName: "Expected", valueFormatter: formatWMSColumn},
+            {field: "n_unknown", headerName: "Unknown", valueFormatter: formatWMSColumn},
+            {field: "n_misfit", headerName: "Misfit", valueFormatter: formatWMSColumn},
+            {field: "n_unready", headerName: "Unready", valueFormatter: formatWMSColumn},
+            {field: "n_ready", headerName: "Ready", valueFormatter: formatWMSColumn},
+            {field: "n_pending", headerName: "Pending", valueFormatter: formatWMSColumn},
+            {field: "n_running", headerName: "Running", valueFormatter: formatWMSColumn},
+            {field: "n_deleted", headerName: "Deleted", valueFormatter: formatWMSColumn},
+            {field: "n_held", headerName: "Held", valueFormatter: formatWMSColumn},
+            {field: "n_succeeded", headerName: "Succeeded", valueFormatter: formatWMSColumn},
+            {field: "n_failed", headerName: "Failed", valueFormatter: formatWMSColumn},
+            {field: "n_pruned", headerName: "Pruned", valueFormatter: formatWMSColumn},
+        ]
+    };
+    const populateWMSReportGrid = (wmsReportJson) => {
+        wmsReportOptions.rowData = wmsReportJson;
+        const wmsReportGridElement = document.getElementById("wmsReportGrid");
+        agGrid.createGrid(wmsReportGridElement, wmsReportOptions);
+    };
+
+    const populateGrids = () => {
+        const jobScripts = {{scripts|tojson}};
+        populateScriptsGrid(jobScripts);
+
+        const jobProducts = {{job.products|tojson}};
+        populateProductsGrid(jobProducts);
+
+        const wmsReport = {{job.wms_report|tojson}};
+        populateWMSReportGrid(wmsReport);
+    };
+
+    window.addEventListener("DOMContentLoaded", function() {
+        populateGrids();
+    }, false);
+
+    htmx.on('htmx:afterRequest', (evt) => {
+        populateGrids();
+    });
+
+</script>
+
 {% set fullname = job.fullname.split('/') %}
 <nav class="flex px-2 sm:px-4 lg:px-4" aria-label="Breadcrumb">
   <ol role="list" class="flex items-center space-x-2">
@@ -35,7 +143,12 @@
     </li>
   </ol>
 </nav>
-<div class="w-full">
+<div class="w-full"
+     id="job_content"
+     hx-get="{{ url_for('get_job', campaign_id=campaign_id, step_id=step_id, group_id=group_id, job_id=job.id) }}"
+     hx-trigger="every 20s"
+     hx-select="#job_content"
+     hx-swap="outerHTML">
     <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
         <div class="flex items-center">
             <span class="text-2xl font-bold">{{job.name}}</span>
@@ -120,82 +233,4 @@
         </div>
     </div>
 </div>
-<script>
-    class ScriptNameRenderer {
-        eGui;
-
-     init(params) {
-       let scriptName = document.createElement('a');
-       scriptName.textContent = params.data.name;
-       scriptName.href = `{{url_for("get_script", campaign_id=campaign_id, step_id=step_id, group_id=group_id, job_id=job.id, script_id="${params.data.id}")}}`;
-       scriptName.setAttribute('class', 'font-bold text-teal-700 underline underline-offset-4 decoration-2 hover:text-gray-500');
-       this.eGui = document.createElement('span');
-       this.eGui.appendChild(scriptName)
-     }
-
-     getGui() {
-       return this.eGui;
-     }
-
-     refresh(params) {
-         return false
-     }
-    }
-    const jobScripts = {{scripts|tojson}};
-    const scriptsGridOptions = {
-    rowData: jobScripts,
-     columnDefs: [
-         {field: "name", flex: 1, cellRenderer: ScriptNameRenderer,},
-         {field: "status", flex: 1},
-         {field: "superseded", flex: 1}
-     ]
-    };
-    const scriptsGridElement = document.getElementById("scriptsGrid");
-    agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
-
-    // products
-    const formatWMSColumn = (params) => params.value === 0 ? "" : params.value;
-    const jobProducts = {{job.products|tojson}};
-    const productsGridOptions = {
-    rowData: jobProducts,
-        columnDefs: [
-            {field: "name", headerName: "Name", flex: 2,},
-            {field: "n_expected", headerName: "Expected", valueFormatter: formatWMSColumn},
-            {field: "n_done", headerName: "Done", valueFormatter: formatWMSColumn},
-            {field: "n_failed", headerName: "Failed", valueFormatter: formatWMSColumn},
-            {field: "n_failed_upstream", headerName: "Failed Upstream", valueFormatter: formatWMSColumn},
-            {field: "n_missing", headerName: "Missing", valueFormatter: formatWMSColumn},
-        ]
-    };
-
-    const productsGridElement = document.getElementById("productsGrid");
-    agGrid.createGrid(productsGridElement, productsGridOptions);
-
-    // WMS task report
-    const wmsReport = {{job.wms_report|tojson}};
-    const wmsReportOptions = {
-        rowData: wmsReport,
-        defaultColDef: {
-            resizable: false,
-            width: 100,
-        },
-        columnDefs: [
-            {field: "name", headerName: "Name", width: 350,},
-            {field: "n_expected", headerName: "Expected", valueFormatter: formatWMSColumn},
-            {field: "n_unknown", headerName: "Unknown", valueFormatter: formatWMSColumn},
-            {field: "n_misfit", headerName: "Misfit", valueFormatter: formatWMSColumn},
-            {field: "n_unready", headerName: "Unready", valueFormatter: formatWMSColumn},
-            {field: "n_ready", headerName: "Ready", valueFormatter: formatWMSColumn},
-            {field: "n_pending", headerName: "Pending", valueFormatter: formatWMSColumn},
-            {field: "n_running", headerName: "Running", valueFormatter: formatWMSColumn},
-            {field: "n_deleted", headerName: "Deleted", valueFormatter: formatWMSColumn},
-            {field: "n_held", headerName: "Held", valueFormatter: formatWMSColumn},
-            {field: "n_succeeded", headerName: "Succeeded", valueFormatter: formatWMSColumn},
-            {field: "n_failed", headerName: "Failed", valueFormatter: formatWMSColumn},
-            {field: "n_pruned", headerName: "Pruned", valueFormatter: formatWMSColumn},
-        ]
-    };
-    const wmsReportGridElement = document.getElementById("wmsReportGrid");
-    agGrid.createGrid(wmsReportGridElement, wmsReportOptions);
-</script>
 {% endblock %}

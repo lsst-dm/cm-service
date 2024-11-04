@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "pages/base.html" %}
 {% block title %} Script Details {% endblock %}
 {% block content %}
 {% set fullname = script.fullname.split('/') %}
@@ -30,7 +30,12 @@
       {% endfor %}
   </ol>
 </nav>
-<div class="w-full">
+<div class="w-full"
+    id="script_content"
+     hx-get="{{ url_for('get_script', campaign_id=script.campaign_id, step_id=script.step_id, group_id=script.group_id, job_id=script.job_id, script_id=script.id) }}"
+     hx-trigger="every 20s"
+     hx-select="#script_content"
+     hx-swap="outerHTML">
     <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
         <div class="flex items-center">
             <span class="text-2xl font-bold">{{script.name}}</span>

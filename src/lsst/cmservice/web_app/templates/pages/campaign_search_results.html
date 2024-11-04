@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "pages/base.html" %}
 {% block title %} Campaigns {% endblock %}
 {% block content %}
     <div class="px-4 sm:px-6 lg:px-8">
@@ -19,7 +19,7 @@
     <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-5 px-4 sm:px-6 lg:px-8">
         <!-- Campaign Cards -->
         {% for campaign in search_results %}
-        {% include "campaign_card.html" %}
+        {% include "partials/campaign_card.html" %}
         {% endfor %}
     </div>
     {%else%}

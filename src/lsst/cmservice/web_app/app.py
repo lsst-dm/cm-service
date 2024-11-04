@@ -56,11 +56,6 @@ router = APIRouter(
 web_app.mount("/static", StaticFiles(directory=str(Path(BASE_DIR, "static"))), name="static")
 
 
-@web_app.get("/", response_class=HTMLResponse)
-async def read_item(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse("index.html", {"request": request})
-
-
 @web_app.get("/campaigns/", response_class=HTMLResponse)
 async def get_campaigns(
     request: Request,
@@ -79,7 +74,7 @@ async def get_campaigns(
                 production_list[p.name] = production_campaigns
 
         return templates.TemplateResponse(
-            name="campaigns.html",
+            name="pages/campaigns.html",
             request=request,
             context={
                 "recent_campaigns": None,
@@ -106,7 +101,7 @@ async def search(
             campaigns_list.append(campaign_details)
 
         return templates.TemplateResponse(
-            "campaign_search_results.html",
+            "pages/campaign_search_results.html",
             context={
                 "search_term": search_term,
                 "request": request,
@@ -134,7 +129,7 @@ async def get_steps(
             campaign_steps.append(step_details)
 
         return templates.TemplateResponse(
-            name="steps.html",
+            name="pages/steps.html",
             request=request,
             context={
                 "campaign": campaign,
@@ -157,7 +152,7 @@ async def get_step(
     try:
         step, step_groups, step_scripts = await get_step_details_by_id(session, step_id)
         return templates.TemplateResponse(
-            name="step_details.html",
+            name="pages/step_details.html",
             request=request,
             context={
                 "campaign_id": campaign_id,
@@ -182,7 +177,7 @@ async def get_group(
     try:
         group_details, jobs, scripts = await get_group_by_id(session, group_id)
         return templates.TemplateResponse(
-            name="group_details.html",
+            name="pages/group_details.html",
             request=request,
             context={
                 "group": group_details,
@@ -208,7 +203,7 @@ async def get_job(
     try:
         job_details, scripts = await get_job_by_id(session, job_id)
         return templates.TemplateResponse(
-            name="job_details.html",
+            name="pages/job_details.html",
             request=request,
             context={
                 "campaign_id": campaign_id,
@@ -247,7 +242,7 @@ async def get_script(
             job_id=job_id,
         )
         return templates.TemplateResponse(
-            name="script_details.html",
+            name="pages/script_details.html",
             request=request,
             context={
                 "script": script_details,
@@ -261,9 +256,4 @@ async def get_script(
 
 @web_app.get("/layout/", response_class=HTMLResponse)
 async def test_layout(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse("mockup.html", {"request": request})
-
-
-@web_app.get("/test-ag-grid/", response_class=HTMLResponse)
-async def test_table(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse("test_ag_grid.html", {"request": request})
+    return templates.TemplateResponse("pages/mockup.html", {"request": request})

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "pages/base.html" %}
 {% block title %} Campaign Steps {% endblock %}
 {% block content %}
 {% set fullname = campaign.fullname.split('/') %}
@@ -12,9 +12,9 @@
   </ol>
 </nav>
 <div class="text-2xl font-bold px-4 pt-5 sm:px-6 lg:px-8">{{ campaign.name }}</div>
-<div class="w-1/2 mt-5 grid grid-cols-1 gap-5 sm:grid-cols-1 px-4 sm:px-6 lg:px-8">
+<div id="steps_content" hx-get=" {{ url_for('get_steps', campaign_id=campaign.id) }}" hx-trigger="every 20s" hx-select="#steps_content" hx-swap="outerHTML" class="w-1/2 mt-5 grid grid-cols-1 gap-5 sm:grid-cols-1 px-4 sm:px-6 lg:px-8">
     {% for step in steps %}
-    {% include "step_card.html" %}
+    {% include "partials/step_card.html" %}
     {% endfor %}
 </div>
 {% endblock %}

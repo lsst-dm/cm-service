@@ -1,6 +1,124 @@
-{% extends "base.html" %}
+{% extends "pages/base.html" %}
 {% block title %} Step Details {% endblock %}
 {% block content %}
+<script>
+    class GroupNameRenderer {
+        eGui;
+
+     init(params) {
+       let groupName = document.createElement('a');
+       groupName.textContent = params.data.name;
+       groupName.href = `{{url_for("get_group", campaign_id=campaign_id, step_id=step.id, group_id="${params.data.id}")}}`;
+       groupName.setAttribute('class', 'font-bold text-teal-700 underline underline-offset-4 decoration-2 hover:text-gray-500');
+       this.eGui = document.createElement('span');
+       this.eGui.appendChild(groupName)
+     }
+
+     getGui() {
+       return this.eGui;
+     }
+
+     refresh(params) {
+         return false
+     }
+    }
+    // scripts
+    class ScriptNameRenderer {
+        eGui;
+
+     init(params) {
+       let scriptName = document.createElement('a');
+       scriptName.textContent = params.data.name;
+       scriptName.href = `{{url_for("get_script", campaign_id=campaign_id, step_id=step.id, script_id="${params.data.id}")}}`;
+       scriptName.setAttribute('class', 'font-bold text-teal-700 underline underline-offset-4 decoration-2 hover:text-gray-500');
+       this.eGui = document.createElement('span');
+       this.eGui.appendChild(scriptName)
+     }
+
+     getGui() {
+       return this.eGui;
+     }
+
+     refresh(params) {
+         return false
+     }
+    }
+
+    // groups
+    class DictRenderer {
+        eGui;
+
+     init(params) {
+       let dictElement = document.createElement('div');
+       let my_dict = params.value;
+       for (const key in my_dict){
+           let itemElement = document.createElement('p');
+           itemElement.textContent = `${key}: ${my_dict[key]}`
+           dictElement.appendChild(itemElement);
+       }
+       // dictElement.setAttribute('class', 'font-bold hover:text-teal-500 h-64');
+       this.eGui = document.createElement('span');
+       this.eGui.appendChild(dictElement)
+     }
+
+     getGui() {
+       return this.eGui;
+     }
+
+     refresh(params) {
+         return false
+     }
+    }
+
+    const scriptsGridOptions = {
+        // rowData: scriptsJson,
+        columnDefs: [
+            {field: "name", flex: 1, cellRenderer: ScriptNameRenderer,},
+            {field: "status", flex: 1},
+            {field: "superseded", flex: 1}
+        ]
+    };
+    const groupsGridOptions = {
+        // rowData: groupsJson,
+        rowHeight: 120,
+        columnDefs: [
+            {field: "name", flex: 1, filter: true, cellRenderer: GroupNameRenderer},
+            {field: "status", flex: 1},
+            {field: "superseded", flex: 1},
+            {field: "data", flex: 2, wrapText: true, valueFormatter: (params) => params.data.data["data_query"] },
+            {field: "child_config", flex: 2, cellRenderer: DictRenderer},
+            {field: "collections", flex: 2, cellRenderer: DictRenderer},
+            {field: "spec_aliases", flex: 2, cellRenderer: DictRenderer},
+        ]
+    };
+    const populateScriptGrid = (scriptsJson) => {
+        scriptsGridOptions.rowData = scriptsJson;
+        const scriptsGridElement = document.getElementById("scriptsGrid");
+        agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
+    };
+
+    const populateGroupsGrid = (groupsJson) => {
+        groupsGridOptions.rowData = groupsJson;
+        const groupsGridElement = document.getElementById("groupsGrid");
+        agGrid.createGrid(groupsGridElement, groupsGridOptions);
+    };
+
+    const populateGrids = () => {
+        const stepScripts = {{scripts|tojson}};
+        populateScriptGrid(stepScripts);
+
+        const stepGroups = {{groups|tojson}};
+        populateGroupsGrid(stepGroups)
+    };
+    window.addEventListener("DOMContentLoaded", function() {
+        populateGrids();
+    }, false);
+
+    htmx.on('htmx:afterRequest', (evt) => {
+        populateGrids();
+    });
+</script>
+
 {% set fullname = step.fullname.split('/') %}
 {% set no_status_groups = step.no_groups - step.no_groups_failed - step.no_groups_need_attention - step.no_groups_completed %}
 <nav class="flex px-2 sm:px-4 lg:px-4" aria-label="Breadcrumb">
@@ -20,7 +138,9 @@
     </li>
   </ol>
 </nav>
-<div class="w-full">
+<div id="step_content" class="w-full"
+     hx-get="{{ url_for('get_step', campaign_id=campaign_id, step_id=step.id) }}"
+     hx-trigger="every 20s" hx-select="#step_content" hx-swap="outerHTML">
     <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
         <div class="flex items-center">
             <span class="text-2xl font-bold">{{step.name}}</span>
@@ -89,100 +209,4 @@
         </div>
     </div>
 </div>
-<script>
-    class GroupNameRenderer {
-        eGui;
-
-     init(params) {
-       let groupName = document.createElement('a');
-       groupName.textContent = params.data.name;
-       groupName.href = `{{url_for("get_group", campaign_id=campaign_id, step_id=step.id, group_id="${params.data.id}")}}`;
-       groupName.setAttribute('class', 'font-bold text-teal-700 underline underline-offset-4 decoration-2 hover:text-gray-500');
-       this.eGui = document.createElement('span');
-       this.eGui.appendChild(groupName)
-     }
-
-     getGui() {
-       return this.eGui;
-     }
-
-     refresh(params) {
-         return false
-     }
-    }
-    // scripts
-    class ScriptNameRenderer {
-        eGui;
-
-     init(params) {
-       let scriptName = document.createElement('a');
-       scriptName.textContent = params.data.name;
-       scriptName.href = `{{url_for("get_script", campaign_id=campaign_id, step_id=step.id, script_id="${params.data.id}")}}`;
-       scriptName.setAttribute('class', 'font-bold text-teal-700 underline underline-offset-4 decoration-2 hover:text-gray-500');
-       this.eGui = document.createElement('span');
-       this.eGui.appendChild(scriptName)
-     }
-
-     getGui() {
-       return this.eGui;
-     }
-
-     refresh(params) {
-         return false
-     }
-    }
-    const stepScripts = {{scripts|tojson}};
-    const scriptsGridOptions = {
-    rowData: stepScripts,
-     columnDefs: [
-         {field: "name", flex: 1, cellRenderer: ScriptNameRenderer,},
-         {field: "status", flex: 1},
-         {field: "superseded", flex: 1}
-     ]
-    };
-    const scriptsGridElement = document.getElementById("scriptsGrid");
-    agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
-
-    // groups
-    class DictRenderer {
-        eGui;
-
-     init(params) {
-       let dictElement = document.createElement('div');
-       let my_dict = params.value;
-       for (const key in my_dict){
-           let itemElement = document.createElement('p');
-           itemElement.textContent = `${key}: ${my_dict[key]}`
-           dictElement.appendChild(itemElement);
-       }
-       // dictElement.setAttribute('class', 'font-bold hover:text-teal-500 h-64');
-       this.eGui = document.createElement('span');
-       this.eGui.appendChild(dictElement)
-     }
-
-     getGui() {
-       return this.eGui;
-     }
-
-     refresh(params) {
-         return false
-     }
-    }
-    const stepGroups = {{groups|tojson}};
-    const groupsGridOptions = {
-        rowData: stepGroups,
-        rowHeight: 120,
-        columnDefs: [
-            {field: "name", flex: 1, filter: true, cellRenderer: GroupNameRenderer},
-            {field: "status", flex: 1},
-            {field: "superseded", flex: 1},
-            {field: "data", flex: 2, wrapText: true, valueFormatter: (params) => params.data.data["data_query"] },
-            {field: "child_config", flex: 2, cellRenderer: DictRenderer},
-            {field: "collections", flex: 2, cellRenderer: DictRenderer},
-            {field: "spec_aliases", flex: 2, cellRenderer: DictRenderer},
-        ]
-    };
-    const groupsGridElement = document.getElementById("groupsGrid");
-    agGrid.createGrid(groupsGridElement, groupsGridOptions);
-</script>
 {% endblock %}
