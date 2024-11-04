@@ -51,6 +51,13 @@ class ProcessNodeQuery(NodeQuery):
     fake_status: int | None = None
 
 
+class SleepTimeQuery(NodeQuery):
+    """Parameters ask a Node for a sleep time"""
+
+    job_sleep: int = 150
+    script_sleep: int = 15
+
+
 class UpdateStatusQuery(NodeQuery):
     """Parameters needed to update the status of a Node"""
 
