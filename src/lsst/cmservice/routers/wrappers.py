@@ -66,7 +66,7 @@ def get_rows_no_parent_function(
         try:
             async with session.begin():
                 return await db_class.get_rows(session, skip=skip, limit=limit)
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -121,7 +121,7 @@ def get_rows_function(
                     limit=limit,
                     parent_class=db.Production,
                 )
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -215,7 +215,7 @@ def get_row_by_fullname_function(
         except CMMissingFullnameError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -262,7 +262,7 @@ def get_row_by_name_function(
         except CMMissingFullnameError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -311,7 +311,7 @@ def post_row_function(
         try:
             async with session.begin():
                 return await db_class.create_row(session, **row_create.model_dump())
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -406,7 +406,7 @@ def put_row_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -812,7 +812,7 @@ def update_node_status_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -1053,7 +1053,7 @@ def get_node_check_prerequisites_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -1245,7 +1245,7 @@ def get_node_process_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -1290,7 +1290,7 @@ def get_node_run_check_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -1336,7 +1336,7 @@ def get_element_get_scripts_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -1381,7 +1381,7 @@ def get_element_get_all_scripts_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -1426,7 +1426,7 @@ def get_element_get_jobs_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -1454,25 +1454,28 @@ def get_element_retry_script_function(
     """
 
     @router.post(
-        "/get/{row_id}/retry_script",
+        "/action/{row_id}/retry_script",
         status_code=201,
         response_model=models.Script,
         summary=f"Retry a script associated to a {db_class.class_string}",
     )
     async def element_retry_script(
         row_id: int,
+        query: models.ScriptQuery,
         session: async_scoped_session = Depends(db_session_dependency),
-        **kwargs: Any,
     ) -> db.Script:
         try:
             async with session.begin():
                 the_element = await db_class.get_row(session, row_id)
-                the_script = await the_element.retry_script(session, **kwargs)
+                the_script = await the_element.retry_script(
+                    session,
+                    script_name=query.script_name,
+                )
             return the_script
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:
+        except Exception as msg:  # pragma: no cover
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -1509,13 +1512,17 @@ def get_element_estimate_sleep_time_function(
     )
     async def element_estimate_sleep_time(
         row_id: int,
+        query: models.SleepTimeQuery,
         session: async_scoped_session = Depends(db_session_dependency),
-        **kwargs: Any,
     ) -> int:
         try:
             async with session.begin():
                 the_element = await db_class.get_row(session, row_id)
-                sleep_time = await the_element.estimate_sleep_time(session, **kwargs)
+                sleep_time = await the_element.estimate_sleep_time(
+                    session,
+                    job_sleep=query.job_sleep,
+                    script_sleep=query.script_sleep,
+                )
             return sleep_time
         except CMMissingIDError as msg:
             logger.info(msg)
