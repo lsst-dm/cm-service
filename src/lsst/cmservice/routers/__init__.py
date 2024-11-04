@@ -20,7 +20,6 @@ queries: getting objects from the database
 
 from . import (
     actions,
-    adders,
     campaigns,
     groups,
     index,

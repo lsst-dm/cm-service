@@ -12,6 +12,44 @@ router = APIRouter(
 
 
 @router.post(
+    "/groups",
+    status_code=201,
+    response_model=models.Step,
+    summary="Add Groups to a `Step`",
+)
+async def add_groups(
+    query: models.AddGroups,
+    session: async_scoped_session = Depends(db_session_dependency),
+) -> db.Step:
+    """Invoke the interface.add_groups function"""
+    try:
+        async with session.begin():
+            ret_val = await interface.add_groups(session, **query.model_dump())
+        return ret_val
+    except Exception as msg:
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
+
+
+@router.post(
+    "/steps",
+    status_code=201,
+    response_model=models.Campaign,
+    summary="Add Steps to a Campaign",
+)
+async def add_steps(
+    query: models.AddSteps,
+    session: async_scoped_session = Depends(db_session_dependency),
+) -> db.Campaign:
+    """Invoke the interface.add_steps function"""
+    try:
+        async with session.begin():
+            ret_val = await interface.add_steps(session, **query.model_dump())
+        return ret_val
+    except Exception as msg:
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
+
+
+@router.post(
     "/specification",
     status_code=201,
     response_model=models.Specification,

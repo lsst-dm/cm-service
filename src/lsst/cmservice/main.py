@@ -11,7 +11,6 @@ from safir.middleware.x_forwarded import XForwardedMiddleware
 from .config import config
 from .routers import (
     actions,
-    adders,
     campaigns,
     groups,
     index,
@@ -50,11 +49,6 @@ tags_metadata = [
         "name": "Actions",
         "description": "Operations perform actions on existing Objects in to the DB."
         "In many cases this will result in the creating of new objects in the DB.",
-    },
-    {
-        "name": "Adders",
-        "description": "Operations explicitly add new Objects in to the DB."
-        "These are typically used when we need to do something unexpected",
     },
     {
         "name": "Productions",
@@ -156,7 +150,6 @@ app.add_middleware(XForwardedMiddleware)
 app.include_router(index.router)
 app.include_router(loaders.router, prefix=config.prefix)
 app.include_router(actions.router, prefix=config.prefix)
-app.include_router(adders.router, prefix=config.prefix)
 
 app.include_router(productions.router, prefix=config.prefix)
 app.include_router(campaigns.router, prefix=config.prefix)
