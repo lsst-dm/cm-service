@@ -2,6 +2,7 @@ from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey, UniqueConstraint
@@ -9,6 +10,7 @@ from sqlalchemy.schema import ForeignKey, UniqueConstraint
 from ..common.enums import LevelEnum, StatusEnum
 from ..common.errors import (
     CMBadStateTransitionError,
+    CMIntegrityError,
     CMMissingRowCreateInputError,
     CMTooFewAcceptedJobsError,
     CMTooManyActiveScriptsError,
@@ -196,7 +198,14 @@ class Group(Base, ElementMixin):
         if not rescuable_jobs:
             raise CMTooFewAcceptedJobsError(f"Expected at least one rescuable job for {self.fullname}, got 0")
         latest_resuable_job = rescuable_jobs[-1]
-        new_job = await latest_resuable_job.copy_job(session, self)
+        try:
+            new_job = await latest_resuable_job.copy_job(session, self)
+            await session.commit()
+        except IntegrityError as e:  # pragma: no cover
+            if TYPE_CHECKING:
+                assert e.orig  # for mypy
+            await session.rollback()
+            raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
         return new_job
 
     async def mark_job_rescued(
