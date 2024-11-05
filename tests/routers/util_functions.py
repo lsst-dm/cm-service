@@ -732,14 +732,14 @@ async def check_get_methods(
     )
 
     response = await client.post(
-        f"{config.prefix}/{entry_class_name}/get/{entry.id}/estimate_sleep_time",
+        f"{config.prefix}/{entry_class_name}/get/{entry.id}/sleep_time",
         content=sleep_time_query.model_dump_json(),
     )
     check_sleep_time = check_and_parse_response(response, int)
     assert check_sleep_time == 10
 
     response = await client.post(
-        f"{config.prefix}/{entry_class_name}/get/-1/estimate_sleep_time",
+        f"{config.prefix}/{entry_class_name}/get/-1/sleep_time",
         content=sleep_time_query.model_dump_json(),
     )
 
