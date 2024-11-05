@@ -156,6 +156,6 @@ def mark_rescued(
     row_id: int,
     output: options.OutputEnum | None,
 ) -> None:
-    """Create a rescue job"""
+    """Mark the jobs in a group as rescued"""
     result = client.group.mark_rescued(row_id=row_id)
-    wrappers.output_pydantic_object(result, output, db.Job.col_names_for_table)
+    wrappers.output_pydantic_list(result, output, db.Job.col_names_for_table)
