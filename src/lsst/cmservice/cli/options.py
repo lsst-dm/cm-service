@@ -118,7 +118,7 @@ class DictParamType(click.ParamType):
         ------
             click.BadParameter: If the validation is failed.
         """
-        if isinstance(value, dict):
+        if isinstance(value, dict):  # pragma: no cover
             return value
         try:
             keyvalue_pairs = value.rstrip(";").split(";")
