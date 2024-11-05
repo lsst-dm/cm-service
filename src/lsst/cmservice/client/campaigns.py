@@ -198,10 +198,11 @@ class CMCampaignClient:
         "retry_script",
     )
 
-    estimate_sleep_time = wrappers.get_node_property_function(
+    estimate_sleep_time = wrappers.get_node_post_query_function(
         int,
+        models.SleepTimeQuery,
         f"{router_string}/get",
-        "jobs",
+        "sleep_time",
     )
 
     get_wms_task_reports = wrappers.get_node_property_function(

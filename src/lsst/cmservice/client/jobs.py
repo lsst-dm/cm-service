@@ -189,8 +189,9 @@ class CMJobClient:
         "retry_script",
     )
 
-    estimate_sleep_time = wrappers.get_node_property_function(
+    estimate_sleep_time = wrappers.get_node_post_query_function(
         int,
+        models.SleepTimeQuery,
         f"{router_string}/get",
         "sleep_time",
     )

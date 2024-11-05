@@ -1505,7 +1505,7 @@ def get_element_estimate_sleep_time_function(
     """
 
     @router.post(
-        "/get/{row_id}/estimate_sleep_time",
+        "/get/{row_id}/sleep_time",
         status_code=201,
         response_model=int,
         summary=f"Retry a script associated to a {db_class.class_string}",
