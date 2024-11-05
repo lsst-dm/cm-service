@@ -150,8 +150,9 @@ class CMStepClient:
         "reset",
     )
 
-    process = wrappers.get_node_post_no_query_function(
+    process = wrappers.get_node_post_query_function(
         tuple[bool, StatusEnum],
+        models.ProcessQuery,
         f"{router_string}/action",
         "process",
     )

@@ -139,7 +139,7 @@ class CMJobClient:
     )
 
     accept = wrappers.get_node_post_no_query_function(
-        tuple[bool, StatusEnum],
+        ResponseModelClass,
         f"{router_string}/action",
         "accept",
     )
@@ -156,8 +156,9 @@ class CMJobClient:
         "reset",
     )
 
-    process = wrappers.get_node_post_no_query_function(
-        ResponseModelClass,
+    process = wrappers.get_node_post_query_function(
+        tuple[bool, StatusEnum],
+        models.ProcessQuery,
         f"{router_string}/action",
         "process",
     )
