@@ -43,6 +43,31 @@ async def test_campaign_cli(uvicorn: UvicornProcess) -> None:
     campaigns = check_and_parse_result(result, list[models.Campaign])
     entry = campaigns[0]
 
+    # test other output cases
+    result = runner.invoke(client_top, "campaign list --output json")
+    assert result.exit_code == 1  # FIXME. StatusEnum is not JSON serializable
+
+    result = runner.invoke(client_top, "campaign list")
+    assert result.exit_code == 0
+
+    result = runner.invoke(client_top, f"campaign get all --row_id {entry.id} --output json")
+    assert result.exit_code == 1  # FIXME. StatusEnum is not JSON serializable
+
+    result = runner.invoke(client_top, f"campaign get all --row_id {entry.id}")
+    assert result.exit_code == 0
+
+    result = runner.invoke(client_top, f"campaign get data_dict --row_id {entry.id} --output json")
+    assert result.exit_code == 0  # FIXME. StatusEnum is not JSON serializable
+
+    result = runner.invoke(client_top, f"campaign get data_dict --row_id {entry.id}")
+    assert result.exit_code == 0
+
+    # badly formated update dict
+    result = runner.invoke(
+        client_top, f"campaign update data_dict --update_dict aa --row_id {entry.id} --output json"
+    )
+    assert result.exit_code == 1
+
     # check get methods
     check_get_methods(runner, client_top, entry, "campaign", models.Campaign, models.Production)
 
