@@ -1107,6 +1107,47 @@ def get_action_reset_command(
     return reset
 
 
+def get_element_parent_command(
+    group_command: Callable,
+    sub_client_name: str,
+    db_parent_class: TypeAlias,
+) -> Callable:
+    """Return a function that gets the parent of an element
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_parent_class: TypeAlias = db.RowMixin
+        Underlying parent database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that gets the scripts assocaited to an element
+    """
+
+    @group_command(name="parent")
+    @options.cmclient()
+    @options.row_id()
+    @options.output()
+    def parent(
+        client: CMClient,
+        row_id: int,
+        output: options.OutputEnum | None,
+    ) -> None:
+        """Get the scripts assocaited to an element"""
+        sub_client = getattr(client, sub_client_name)
+        result = sub_client.get_parent(row_id=row_id)
+        output_pydantic_object(result, output, db_parent_class.col_names_for_table)
+
+    return parent
+
+
 def get_element_scripts_command(
     group_command: Callable,
     sub_client_name: str,
