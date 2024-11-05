@@ -7,7 +7,7 @@ from safir.testing.uvicorn import UvicornProcess
 from lsst.cmservice import models
 from lsst.cmservice.cli.commands import client_top
 from lsst.cmservice.client.clientconfig import client_config
-from lsst.cmservice.common.enums import LevelEnum
+from lsst.cmservice.common.enums import LevelEnum, StatusEnum
 from lsst.cmservice.config import config
 
 from .util_functions import (
@@ -50,6 +50,38 @@ async def test_job_cli(uvicorn: UvicornProcess) -> None:
 
     # check scripts
     check_scripts(runner, client_top, entry, "job")
+
+    # job specific stuff
+    result = runner.invoke(client_top, f"job get parent --row_id {entry.id} --output yaml")
+    parent = check_and_parse_result(result, models.ElementMixin)
+
+    result = runner.invoke(client_top, f"job action estimate_sleep_time --row_id {entry.id} --output yaml")
+    sleep_time = check_and_parse_result(result, dict)["sleep_time"]
+    assert sleep_time == 10
+
+    result = runner.invoke(client_top, f"job get errors --row_id {entry.id} --output yaml")
+    job_errors = check_and_parse_result(result, list[models.PipetaskError])
+    assert len(job_errors) == 0
+
+    result = runner.invoke(
+        client_top, f"job update status --status reviewable --row_id {entry.id} --output yaml"
+    )
+    check_status = check_and_parse_result(result, dict)["status"]
+    assert check_status == StatusEnum.reviewable
+
+    result = runner.invoke(client_top, f"job action reject --row_id {entry.id} --output yaml")
+    check_status = check_and_parse_result(result, dict)["status"]
+    assert check_status == StatusEnum.rejected
+
+    result = runner.invoke(
+        client_top, f"job update status --status rescuable --row_id {entry.id} --output yaml"
+    )
+    check_status = check_and_parse_result(result, dict)["status"]
+    assert check_status == StatusEnum.rescuable
+
+    result = runner.invoke(client_top, f"group action rescue_job --row_id {parent.id} --output yaml")
+    rescue_job = check_and_parse_result(result, models.Job)
+    assert rescue_job.attempt == 1
 
     # delete everything we just made in the session
     cleanup(runner, client_top, check_cascade=True)
