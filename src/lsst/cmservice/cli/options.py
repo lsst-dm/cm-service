@@ -258,6 +258,14 @@ fake_status = PartialOption(
 )
 
 
+fake_reset = PartialOption(
+    "--fake_reset",
+    is_flag=True,
+    default=False,
+    help="Don't actually do reset",
+)
+
+
 error_action = PartialOption(
     "--error_action",
     type=EnumChoice(ErrorActionEnum),
