@@ -6,7 +6,7 @@ from click.testing import CliRunner, Result
 from pydantic import TypeAdapter
 
 from lsst.cmservice import models
-from lsst.cmservice.common.enums import LevelEnum
+from lsst.cmservice.common.enums import LevelEnum, StatusEnum
 
 T = TypeVar("T")
 
@@ -396,6 +396,48 @@ def check_scripts(
     all_scripts = check_and_parse_result(result, list[models.Script])
     assert len(all_scripts) != 0, "get_all_scripts with failed"
 
+    script0 = scripts[0]
+
+    result = runner.invoke(
+        client_top,
+        f"script update status --status failed --row_id {script0.id} --output yaml",
+    )
+    assert result.exit_code == 0
+
+    result = runner.invoke(
+        client_top,
+        f"script action reset --row_id {script0.id} --output yaml",
+    )
+    reset_script = check_and_parse_result(result, models.Script)
+    assert reset_script.status == StatusEnum.waiting
+
+    result = runner.invoke(
+        client_top,
+        f"script update status --status failed --row_id {script0.id} --output yaml",
+    )
+    assert result.exit_code == 0
+
+    result = runner.invoke(
+        client_top,
+        f"action reset-script --fullname {script0.fullname} --status waiting --output yaml",
+    )
+    reset_script = check_and_parse_result(result, models.Script)
+    assert reset_script.status == StatusEnum.waiting
+
+    result = runner.invoke(
+        client_top,
+        f"script update status --status failed --row_id {script0.id} --output yaml",
+    )
+    assert result.exit_code == 0
+
+    # FIXME, not working
+    # result = runner.invoke(
+    #    client_top, f"{entry_class_name} action retry_script
+    #    --row_id {entry.id} --script_name {script0.name} --output yaml",
+    # )
+    # retry_script = check_and_parse_result(result, models.Script)
+    # assert retry_script.status == StatusEnum.waiting
+
 
 def check_get_methods(
     runner: CliRunner,
@@ -478,8 +520,17 @@ def check_queue(
     runner: CliRunner,
     client_top: BaseCommand,
     entry: models.ElementMixin,
+    *,
+    run_daemon: bool = False,
 ) -> None:
-    result = runner.invoke(client_top, f"queue create --output yaml --fullname {entry.fullname}")
+    result = runner.invoke(client_top, f"queue create --output yaml --interval 0 --fullname {entry.fullname}")
     check = check_and_parse_result(result, models.Queue)
+
+    if run_daemon:
+        result = runner.invoke(client_top, f"queue update all --interval 0 --row_id {check.id}")
+        assert result.exit_code == 0
+
+        result = runner.invoke(client_top, f"queue daemon --row_id {check.id}")
+        assert result.exit_code == 0
 
     result = runner.invoke(client_top, f"queue delete --row_id {check.id}")

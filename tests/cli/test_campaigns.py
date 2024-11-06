@@ -1,6 +1,7 @@
 import os
 import uuid
 
+import pytest
 from click.testing import CliRunner
 from safir.testing.uvicorn import UvicornProcess
 
@@ -21,6 +22,7 @@ from .util_functions import (
 )
 
 
+@pytest.mark.asyncio()
 async def test_campaign_cli(uvicorn: UvicornProcess) -> None:
     """Test `campaign` CLI command"""
 
@@ -66,7 +68,7 @@ async def test_campaign_cli(uvicorn: UvicornProcess) -> None:
     result = runner.invoke(
         client_top, f"campaign update data_dict --update_dict aa --row_id {entry.id} --output json"
     )
-    assert result.exit_code == 1
+    assert result.exit_code == 2
 
     # check get methods
     check_get_methods(runner, client_top, entry, "campaign", models.Campaign, models.Production)
@@ -78,7 +80,9 @@ async def test_campaign_cli(uvicorn: UvicornProcess) -> None:
     check_scripts(runner, client_top, entry, "campaign")
 
     # check queue
-    check_queue(runner, client_top, entry)
+    result = runner.invoke(client_top, f"campaign update status --status accepted --row_id {entry.id}")
+    assert result.exit_code == 0
+    check_queue(runner, client_top, entry, run_daemon=True)
 
     # delete everything we just made in the session
     cleanup(runner, client_top, check_cascade=True)

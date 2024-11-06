@@ -102,7 +102,30 @@ async def test_job_cli(uvicorn: UvicornProcess) -> None:
     rescue_jobs = check_and_parse_result(result, list[models.Job])
     assert len(rescue_jobs) == 1
 
+    result = runner.invoke(
+        client_top, f"job update status --status rescuable --row_id {rescue_job.id} --output yaml"
+    )
+    check_status = check_and_parse_result(result, dict)["status"]
+    assert check_status == StatusEnum.rescuable
+
+    result = runner.invoke(client_top, f"action rescue-job --fullname {parent.fullname} --output yaml")
+    rescue_job = check_and_parse_result(result, models.Job)
+
+    result = runner.invoke(
+        client_top, f"job update status --status accepted --row_id {rescue_job.id} --output yaml"
+    )
+    check_status = check_and_parse_result(result, dict)["status"]
+    assert check_status == StatusEnum.accepted
+
+    result = runner.invoke(client_top, f"action mark-job-rescued --fullname {parent.fullname} --output yaml")
+    rescue_jobs = check_and_parse_result(result, list[models.Job])
+    assert len(rescue_jobs) == 2
+
     result = runner.invoke(client_top, f"job action process --row_id {entry.id} --output yaml")
+    check_changed = check_and_parse_result(result, dict)["changed"]
+    assert not check_changed
+
+    result = runner.invoke(client_top, f"action process --fullname {entry.fullname} --output yaml")
     check_changed = check_and_parse_result(result, dict)["changed"]
     assert not check_changed
 

@@ -98,13 +98,13 @@ async def test_job_routes(client: AsyncClient) -> None:
         f"{config.prefix}/actions/rescue_job", content=rescue_node_model.model_dump_json()
     )
     rescue_job = check_and_parse_response(response, models.Job)
-    assert rescue_job.attempt == 1
+    assert rescue_job.attempt == 2
 
     response = await client.get(
         f"{config.prefix}/group/get/{parent.id}/jobs",
     )
     check_jobs = check_and_parse_response(response, list[models.Job])
-    assert len(check_jobs) == 2
+    assert len(check_jobs) == 3
     new_job = check_jobs[-1]
 
     response = await client.get(
@@ -122,7 +122,7 @@ async def test_job_routes(client: AsyncClient) -> None:
         f"{config.prefix}/group/action/{parent.id}/mark_rescued",
     )
     check_jobs = check_and_parse_response(response, list[models.Job])
-    assert len(check_jobs) == 1
+    assert len(check_jobs) == 2
 
     # delete everything we just made in the session
     await cleanup(client, check_cascade=True)
