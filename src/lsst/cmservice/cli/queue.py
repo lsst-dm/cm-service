@@ -20,7 +20,7 @@ create_options = [
 # Specify the options for the update command
 update_options = [
     options.cmclient(),
-    options.fullname(),
+    options.row_id(),
     options.interval(),
     options.output(),
 ]
