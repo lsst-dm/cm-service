@@ -154,6 +154,7 @@ class Queue(Base, NodeMixin):
         now = datetime.now()
         ret_dict = {
             "node_level": node_level,
+            "interval": kwargs.get("interval", 300),
             "time_created": now,
             "time_updated": now,
             "options": kwargs.get("options", {}),

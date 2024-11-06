@@ -65,6 +65,6 @@ class QueueUpdate(QueueBase):
     # Options based to process
     options: dict | str | None = None
     # Time last call to process finished
-    time_updated: datetime
+    time_updated: datetime | None = None
     # When processing of this element completed
     time_finished: datetime | None = None
