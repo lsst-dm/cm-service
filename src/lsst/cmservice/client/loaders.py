@@ -94,7 +94,7 @@ class CMLoadClient:
         for include_ in includes:
             if include_ in loaded_specs:
                 update_include_dict(include_data, loaded_specs[include_])
-            else:
+            else:  # pragma: no cover
                 spec_block_ = self._parent.spec_block.get_row_by_name(include_)
                 update_include_dict(
                     include_data,
@@ -288,7 +288,7 @@ class CMLoadClient:
                 )
                 if specification:
                     out_dict["Specification"].append(specification)
-            else:
+            else:  # pragma: no cover
                 good_keys = "ScriptTemplate | SpecBlock | Specification | Imports"
                 raise CMYamlParseError(f"Expecting one of {good_keys} not: {spec_data.keys()})")
 
@@ -364,13 +364,13 @@ class CMLoadClient:
 
         try:
             prod_config = config_data["Production"]
-        except KeyError as msg:
+        except KeyError as msg:  # pragma: no cover
             raise CMYamlParseError(
                 f"Could not find 'Production' tag in {campaign_yaml}",
             ) from msg
         try:
             parent_name = prod_config["name"]
-        except KeyError as msg:
+        except KeyError as msg:  # pragma: no cover
             raise CMYamlParseError(
                 f"Could not find 'name' tag in {campaign_yaml}#Production",
             ) from msg
@@ -378,7 +378,7 @@ class CMLoadClient:
         try:
             camp_config = config_data["Campaign"]
             camp_config["parent_name"] = parent_name
-        except KeyError as msg:
+        except KeyError as msg:  # pragma: no cover
             raise CMYamlParseError(
                 f"Could not find 'Campaign' tag in {campaign_yaml}",
             ) from msg
@@ -484,7 +484,7 @@ class CMLoadClient:
         for error_type_ in error_types:
             try:
                 val = error_type_["PipetaskErrorType"]
-            except KeyError as msg:
+            except KeyError as msg:  # pragma: no cover
                 raise CMYamlParseError(
                     f"Expecting PipetaskErrorType items not: {error_type_.keys()})",
                 ) from msg
