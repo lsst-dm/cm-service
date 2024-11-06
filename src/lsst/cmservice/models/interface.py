@@ -10,6 +10,16 @@ class RematchQuery(BaseModel):
     rematch: bool = False
 
 
+class ResetQuery(BaseModel):
+    """Parameters needed to call reset functions"""
+
+    # fake reset
+    fake_reset: bool = False
+
+    # Status to set
+    status: StatusEnum = StatusEnum.waiting
+
+
 class FullnameQuery(BaseModel):
     """Parameters needed to run query by fullname"""
 
@@ -70,6 +80,26 @@ class ScriptQueryBase(FullnameQuery):
 
     # Name of the script
     script_name: str | None = None
+
+
+class RetryScriptQuery(ScriptQueryBase):
+    """Parameters needed to retry a script associated to a Node"""
+
+    # fake reset
+    fake_reset: bool = False
+
+    # Status to set
+    status: StatusEnum
+
+
+class ResetScriptQuery(FullnameQuery):
+    """Parameters needed to call reset functions"""
+
+    # fake reset
+    fake_reset: bool = False
+
+    # Status to set
+    status: StatusEnum
 
 
 class ScriptQuery(ScriptQueryBase):
