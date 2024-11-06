@@ -232,7 +232,7 @@ class Script(Base, NodeMixin):
             New status
         """
         handler = await self.get_handler(session)
-        return await handler.reset_script(session, self, to_status)
+        return await handler.reset_script(session, self, to_status, fake_reset=fake_reset)
 
     async def review(
         self,
