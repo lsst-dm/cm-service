@@ -1190,12 +1190,13 @@ def get_node_reset_function(
     )
     async def node_reset(
         row_id: int,
+        query: models.ResetQuery,
         session: async_scoped_session = Depends(db_session_dependency),
     ) -> response_model_class:
         try:
             async with session.begin():
                 the_node = await db_class.get_row(session, row_id)
-                ret_val = await the_node.reset(session)
+                ret_val = await the_node.reset(session, fake_reset=query.fake_reset)
             return ret_val
         except CMMissingIDError as msg:
             logger.info(msg)
@@ -1461,7 +1462,7 @@ def get_element_retry_script_function(
     )
     async def element_retry_script(
         row_id: int,
-        query: models.ScriptQuery,
+        query: models.RetryScriptQuery,
         session: async_scoped_session = Depends(db_session_dependency),
     ) -> db.Script:
         try:

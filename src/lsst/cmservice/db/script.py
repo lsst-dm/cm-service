@@ -205,6 +205,8 @@ class Script(Base, NodeMixin):
         self,
         session: async_scoped_session,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> StatusEnum:
         """Reset a script to a lower status
         This will remove log files and processing
@@ -220,6 +222,9 @@ class Script(Base, NodeMixin):
 
         to_status : StatusEnum
             Status to set script to
+
+        fake_reset: bool
+            Don't actually try to remove collections if True
 
         Returns
         -------

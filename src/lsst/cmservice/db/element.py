@@ -162,6 +162,8 @@ class ElementMixin(NodeMixin):
         self,
         session: async_scoped_session,
         script_name: str,
+        *,
+        fake_reset: bool = True,
     ) -> Script:
         """Retry a script
 
@@ -174,6 +176,9 @@ class ElementMixin(NodeMixin):
 
         script_name: str
             The name of the script
+
+        fake_reset: bool
+            Don't actually try to remove collections if True
 
         Returns
         -------
@@ -189,7 +194,7 @@ class ElementMixin(NodeMixin):
             raise CMBadStateTransitionError(
                 f"Can only retry failed/rejected scripts, {the_script.fullname} is {the_script.status.value}",
             )
-        _new_status = await the_script.reset_script(session, StatusEnum.waiting)
+        _new_status = await the_script.reset_script(session, StatusEnum.waiting, fake_reset=fake_reset)
         return the_script
 
     async def estimate_sleep_time(

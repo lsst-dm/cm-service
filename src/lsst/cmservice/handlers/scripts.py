@@ -52,6 +52,8 @@ class NullScriptHandler(ScriptHandler):
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> None:
         _resolved_cols = await script.resolve_collections(session)
         _data_dict = await script.data_dict(session)
@@ -100,6 +102,8 @@ class ChainCreateScriptHandler(ScriptHandler):
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> None:
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
@@ -110,7 +114,7 @@ class ChainCreateScriptHandler(ScriptHandler):
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
         if to_status.value <= StatusEnum.running.value:
-            remove_run_collections(butler_repo, output_coll)
+            remove_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
 
 
 class ChainPrependScriptHandler(ScriptHandler):
@@ -151,6 +155,8 @@ class ChainPrependScriptHandler(ScriptHandler):
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> None:
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
@@ -162,7 +168,7 @@ class ChainPrependScriptHandler(ScriptHandler):
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
         if to_status.value <= StatusEnum.running.value:
-            remove_collection_from_chain(butler_repo, input_coll, output_coll)
+            remove_collection_from_chain(butler_repo, input_coll, output_coll, fake_reset=fake_reset)
 
 
 class ChainCollectScriptHandler(ScriptHandler):
@@ -223,6 +229,8 @@ class ChainCollectScriptHandler(ScriptHandler):
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> None:
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
@@ -233,7 +241,7 @@ class ChainCollectScriptHandler(ScriptHandler):
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
         if to_status.value <= StatusEnum.running.value:
-            remove_non_run_collections(butler_repo, output_coll)
+            remove_non_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
 
 
 class TagInputsScriptHandler(ScriptHandler):
@@ -278,6 +286,8 @@ class TagInputsScriptHandler(ScriptHandler):
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> None:
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
@@ -288,7 +298,7 @@ class TagInputsScriptHandler(ScriptHandler):
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
         if to_status.value <= StatusEnum.running.value:
-            remove_non_run_collections(butler_repo, output_coll)
+            remove_non_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
 
 
 class TagCreateScriptHandler(ScriptHandler):
@@ -324,6 +334,8 @@ class TagCreateScriptHandler(ScriptHandler):
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> None:
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
@@ -334,7 +346,7 @@ class TagCreateScriptHandler(ScriptHandler):
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
         if to_status.value <= StatusEnum.running.value:
-            remove_non_run_collections(butler_repo, output_coll)
+            remove_non_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
 
 
 class TagAssociateScriptHandler(ScriptHandler):
@@ -374,6 +386,8 @@ class TagAssociateScriptHandler(ScriptHandler):
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> None:
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
@@ -385,7 +399,7 @@ class TagAssociateScriptHandler(ScriptHandler):
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
         if to_status.value <= StatusEnum.running.value:
-            remove_datasets_from_collections(butler_repo, input_coll, output_coll)
+            remove_datasets_from_collections(butler_repo, input_coll, output_coll, fake_reset=fake_reset)
 
 
 class PrepareStepScriptHandler(ScriptHandler):
@@ -450,6 +464,8 @@ class PrepareStepScriptHandler(ScriptHandler):
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> None:
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
@@ -460,7 +476,7 @@ class PrepareStepScriptHandler(ScriptHandler):
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
         if to_status.value <= StatusEnum.running.value:
-            remove_non_run_collections(butler_repo, output_coll)
+            remove_non_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
 
 
 class ResourceUsageScriptHandler(ScriptHandler):
@@ -507,7 +523,12 @@ class ResourceUsageScriptHandler(ScriptHandler):
         return StatusEnum.prepared
 
     async def _purge_products(
-        self, session: async_scoped_session, script: Script, to_status: StatusEnum
+        self,
+        session: async_scoped_session,
+        script: Script,
+        to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> None:
         """When the script is reset or the campaign is deleted, cleanup
         resource usage products."""
@@ -523,7 +544,7 @@ class ResourceUsageScriptHandler(ScriptHandler):
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         if to_status.value < StatusEnum.running.value:
             remove_run_collections(butler_repo, resource_coll)
-        return await super()._purge_products(session, script, to_status)
+        return await super()._purge_products(session, script, to_status, fake_reset=fake_reset)
 
 
 class ValidateScriptHandler(ScriptHandler):
@@ -561,6 +582,8 @@ class ValidateScriptHandler(ScriptHandler):
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> None:
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
@@ -571,4 +594,4 @@ class ValidateScriptHandler(ScriptHandler):
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
         if to_status.value <= StatusEnum.running.value:
-            remove_run_collections(butler_repo, output_coll)
+            remove_run_collections(butler_repo, output_coll, fake_reset=fake_reset)

@@ -661,6 +661,8 @@ class NodeMixin(RowMixin):
     async def reset(
         self,
         session: async_scoped_session,
+        *,
+        fake_reset: bool = False,
     ) -> NodeMixin:
         """Reset a Node to `waiting`
 
@@ -668,6 +670,9 @@ class NodeMixin(RowMixin):
         ----------
         session : async_scoped_session
             DB session manager
+
+        fake_reset: bool
+            Don't actually try to remove collections if True
 
         Returns
         -------
@@ -677,13 +682,15 @@ class NodeMixin(RowMixin):
         if self.status not in [StatusEnum.rejected, StatusEnum.failed, StatusEnum.ready]:
             raise CMBadStateTransitionError(f"Can not reset {self} as it is in status {self.status}")
 
-        await self._clean_up_node(session)
+        await self._clean_up_node(session, fake_reset=fake_reset)
         await self.update_values(session, status=StatusEnum.waiting, superseded=False)
         return self
 
     async def _clean_up_node(
         self,
         session: async_scoped_session,
+        *,
+        fake_reset: bool = False,
     ) -> NodeMixin:
         """Clean up stuff that a node has made
 
@@ -691,6 +698,9 @@ class NodeMixin(RowMixin):
         ----------
         session : async_scoped_session
             DB session manager
+
+        fake_reset: bool
+            Don't actually try to remove collections if True
 
         Returns
         -------

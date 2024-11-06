@@ -138,8 +138,9 @@ class CMScriptClient:
         "reject",
     )
 
-    reset = wrappers.get_node_post_no_query_function(
+    reset = wrappers.get_node_post_query_function(
         ResponseModelClass,
+        models.ResetQuery,
         f"{router_string}/action",
         "reset",
     )
@@ -156,8 +157,9 @@ class CMScriptClient:
         "run_check",
     )
 
-    reset_script = wrappers.get_node_post_no_query_function(
+    reset_script = wrappers.get_node_post_query_function(
         StatusEnum,
+        models.ResetQuery,
         f"{router_string}/action",
         "reset_script",
     )

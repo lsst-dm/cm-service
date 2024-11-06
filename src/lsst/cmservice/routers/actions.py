@@ -41,7 +41,7 @@ async def process(
     summary="Reset `Script`",
 )
 async def reset_script(
-    query: models.UpdateStatusQuery,
+    query: models.ResetScriptQuery,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Script:
     """Invoke the interface.reset_script function"""

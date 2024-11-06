@@ -275,8 +275,12 @@ class BpsScriptHandler(ScriptHandler):
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> dict[str, Any]:
-        update_fields = await ScriptHandler._reset_script(self, session, script, to_status)
+        update_fields = await ScriptHandler._reset_script(
+            self, session, script, to_status, fake_reset=fake_reset
+        )
         if script.script_url and to_status.value <= StatusEnum.ready.value:
             json_url = script.script_url.replace(".sh", "_log.json")
             config_url = script.script_url.replace(".sh", "_bps_config.yaml")
@@ -303,6 +307,8 @@ class BpsScriptHandler(ScriptHandler):
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> None:
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
@@ -313,7 +319,7 @@ class BpsScriptHandler(ScriptHandler):
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
         if to_status.value <= StatusEnum.running.value:
-            remove_run_collections(butler_repo, run_coll)
+            remove_run_collections(butler_repo, run_coll, fake_reset=fake_reset)
 
 
 class BpsReportHandler(FunctionHandler):
@@ -426,8 +432,12 @@ class BpsReportHandler(FunctionHandler):
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> dict[str, Any]:
-        update_fields = await FunctionHandler._reset_script(self, session, script, to_status)
+        update_fields = await FunctionHandler._reset_script(
+            self, session, script, to_status, fake_reset=fake_reset
+        )
         parent = await script.get_parent(session)
         if parent.level != LevelEnum.job:
             raise CMBadParameterTypeError(f"Script parent is a {parent.level}, not a LevelEnum.job")
@@ -577,8 +587,12 @@ class ManifestReportLoadHandler(FunctionHandler):
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> dict[str, Any]:
-        update_fields = await FunctionHandler._reset_script(self, session, script, to_status)
+        update_fields = await FunctionHandler._reset_script(
+            self, session, script, to_status, fake_reset=fake_reset
+        )
         parent = await script.get_parent(session)
         if parent.level != LevelEnum.job:
             raise CMBadParameterTypeError(f"Script parent is a {parent.level}, not a LevelEnum.job")

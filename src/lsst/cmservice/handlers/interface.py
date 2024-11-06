@@ -354,6 +354,8 @@ async def reset_script(
     session: async_scoped_session,
     fullname: str,
     status: StatusEnum,
+    *,
+    fake_reset: bool = False,
 ) -> db.Script:
     """Run a retry on a `Script`
 
@@ -376,6 +378,9 @@ async def reset_script(
     status: StatusEnum
         Status to set script to
 
+    fake_reset: bool
+        Don't actually try to remove collections if True
+
     Returns
     -------
     script : Script
@@ -388,7 +393,7 @@ async def reset_script(
     CMMissingFullnameError : Could not find Node
     """
     script = await db.Script.get_row_by_fullname(session, fullname)
-    _result = await script.reset_script(session, status)
+    _result = await script.reset_script(session, status, fake_reset=fake_reset)
     return script
 
 

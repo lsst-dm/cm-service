@@ -1093,15 +1093,18 @@ def get_action_reset_command(
     @group_command(name="reset")
     @options.cmclient()
     @options.row_id()
+    @options.fake_reset()
     @options.output()
     def reset(
         client: CMClient,
         row_id: int,
         output: options.OutputEnum | None,
+        *,
+        fake_reset: bool = False,
     ) -> None:
         """Reset the status of a node"""
         sub_client = getattr(client, sub_client_name)
-        result = sub_client.reset(row_id=row_id)
+        result = sub_client.reset(row_id=row_id, fake_reset=fake_reset)
         output_pydantic_object(result, output, db_class.col_names_for_table)
 
     return reset
@@ -1284,16 +1287,19 @@ def get_element_retry_script_command(
     @options.cmclient()
     @options.row_id()
     @options.script_name()
+    @options.fake_reset()
     @options.output()
     def retry_script(
         client: CMClient,
         row_id: int,
         script_name: str,
         output: options.OutputEnum | None,
+        *,
+        fake_reset: bool = False,
     ) -> None:
         """Get the scripts assocaited to an element"""
         sub_client = getattr(client, sub_client_name)
-        result = sub_client.retry_script(row_id=row_id, script_name=script_name)
+        result = sub_client.retry_script(row_id=row_id, script_name=script_name, fake_reset=fake_reset)
         output_pydantic_object(result, output, Script.col_names_for_table)
 
     return retry_script

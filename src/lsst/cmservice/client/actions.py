@@ -30,7 +30,7 @@ class CMActionClient:
     )
 
     reset_script = wrappers.get_general_post_function(
-        models.UpdateStatusQuery,
+        models.ResetScriptQuery,
         models.Script,
         "actions/reset_script",
     )

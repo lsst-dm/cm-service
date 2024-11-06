@@ -77,15 +77,15 @@ run_check = wrappers.get_node_run_check_function(router, DbClass)
 check_prerequisites = wrappers.get_node_check_prerequisites_function(router, DbClass)
 
 
-@router.put(
+@router.post(
     "/action/{row_id}/reset_script",
     response_model=StatusEnum,
     summary=f"Reset the status of a {DbClass.class_string}",
 )
 async def reset_script(
     row_id: int,
+    query: models.ResetQuery,
     session: async_scoped_session = Depends(db_session_dependency),
-    to_status: StatusEnum = StatusEnum.waiting,
 ) -> StatusEnum:
     """Reset a script to an earlier status
 
@@ -97,9 +97,6 @@ async def reset_script(
     session: async_scoped_session
         DB session manager
 
-    to_status: StatusEnum
-        Status to set script to
-
     Returns
     -------
     new_status: StatusEnum
@@ -108,7 +105,7 @@ async def reset_script(
     try:
         async with session.begin():
             script = await DbClass.get_row(session, row_id)
-            result = await script.reset_script(session, to_status=to_status)
+            result = await script.reset_script(session, to_status=query.status, fake_reset=query.fake_reset)
     except CMMissingIDError as msg:
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
     except Exception as msg:  # pragma: no cover

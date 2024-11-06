@@ -267,6 +267,8 @@ class BaseScriptHandler(Handler):
         session: async_scoped_session,
         node: NodeMixin,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> StatusEnum:
         if TYPE_CHECKING:
             assert isinstance(node, Script)  # for mypy
@@ -288,7 +290,7 @@ class BaseScriptHandler(Handler):
                 "Use script.rollback or script.retry instead",
             )
 
-        update_fields = await self._reset_script(session, node, to_status)
+        update_fields = await self._reset_script(session, node, to_status, fake_reset=fake_reset)
         await node.update_values(session, **update_fields)
         await session.refresh(node, attribute_names=["status"])
         return node.status
@@ -298,6 +300,8 @@ class BaseScriptHandler(Handler):
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> dict[str, Any]:
         raise NotImplementedError(f"{type(self)}._reset_script()")
 
@@ -306,6 +310,8 @@ class BaseScriptHandler(Handler):
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> None:
         pass
 
@@ -592,6 +598,8 @@ class ScriptHandler(BaseScriptHandler):
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> dict[str, Any]:
         update_fields: dict[str, Any] = {}
         if to_status.value <= StatusEnum.prepared.value:
@@ -606,7 +614,7 @@ class ScriptHandler(BaseScriptHandler):
             update_fields["script_url"] = None
             update_fields["log_url"] = None
         update_fields["status"] = to_status
-        await self._purge_products(session, script, to_status)
+        await self._purge_products(session, script, to_status, fake_reset=fake_reset)
         return update_fields
 
 
@@ -754,8 +762,10 @@ class FunctionHandler(BaseScriptHandler):
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> dict[str, Any]:
         update_fields = {}
         update_fields["status"] = to_status
-        await self._purge_products(session, script, to_status)
+        await self._purge_products(session, script, to_status, fake_reset=fake_reset)
         return update_fields

@@ -150,8 +150,9 @@ class CMJobClient:
         "reject",
     )
 
-    reset = wrappers.get_node_post_no_query_function(
+    reset = wrappers.get_node_post_query_function(
         ResponseModelClass,
+        models.ResetQuery,
         f"{router_string}/action",
         "reset",
     )
@@ -184,7 +185,7 @@ class CMJobClient:
     )
 
     retry_script = wrappers.get_general_post_function(
-        models.ScriptQuery,
+        models.RetryScriptQuery,
         models.Script,
         f"{router_string}/action",
         "retry_script",
