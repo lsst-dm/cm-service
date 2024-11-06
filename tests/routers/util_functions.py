@@ -386,8 +386,13 @@ async def check_update_methods(
     check_update = check_and_parse_response(response, entry_class)
     assert check_update.status == StatusEnum.rejected, "reject() failed"
 
+    reset_model = models.ResetQuery(
+        fake_reset=True,
+    )
+
     response = await client.post(
         f"{config.prefix}/{entry_class_name}/action/{entry.id}/reset",
+        content=reset_model.model_dump_json(),
     )
     check_update = check_and_parse_response(response, entry_class)
     assert check_update.status == StatusEnum.waiting, "reset() failed"
@@ -435,6 +440,7 @@ async def check_update_methods(
 
     response = await client.post(
         f"{config.prefix}/{entry_class_name}/action/{entry.id}/reset",
+        content=reset_model.model_dump_json(),
     )
     expect_failed_response(response, 500)
 
@@ -455,6 +461,7 @@ async def check_update_methods(
 
     response = await client.post(
         f"{config.prefix}/{entry_class_name}/action/-1/reset",
+        content=reset_model.model_dump_json(),
     )
     expect_failed_response(response, 404)
 
@@ -572,9 +579,11 @@ async def check_scripts(
     )
     expect_failed_response(response, 404)
 
-    query_model = models.ScriptQuery(
+    query_model = models.RetryScriptQuery(
         fullname=entry.fullname,
         script_name="prepare",
+        fake_reset=True,
+        status=StatusEnum.waiting,
     )
 
     response = await client.post(
@@ -597,8 +606,14 @@ async def check_scripts(
     update_check = check_and_parse_response(response, models.Script)
     assert update_check.status == StatusEnum.failed
 
-    response = await client.put(
+    reset_query = models.ResetQuery(
+        status=StatusEnum.waiting,
+        fake_reset=True,
+    )
+
+    response = await client.post(
         f"{config.prefix}/script/action/{script0.id}/reset_script",
+        content=reset_query.model_dump_json(),
     )
     status_check = check_and_parse_response(response, StatusEnum)
     assert status_check == StatusEnum.waiting
@@ -610,7 +625,7 @@ async def check_scripts(
     update_check = check_and_parse_response(response, models.Script)
     assert update_check.status == StatusEnum.failed
 
-    script_reset_status_model = models.UpdateStatusQuery(
+    script_reset_status_model = models.ResetScriptQuery(
         fullname=script0.fullname,
         status=StatusEnum.waiting,
     )
@@ -622,8 +637,9 @@ async def check_scripts(
     reset_check = check_and_parse_response(response, models.Script)
     assert reset_check.status == StatusEnum.waiting
 
-    response = await client.put(
+    response = await client.post(
         f"{config.prefix}/script/action/-1/reset_script",
+        content=update_status_model.model_dump_json(),
     )
     expect_failed_response(response, 404)
 
