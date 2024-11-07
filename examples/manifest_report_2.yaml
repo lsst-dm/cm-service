@@ -1,0 +1,614 @@
+analyzeObjectTableCore:
+  failed_quanta: {}
+  n_quanta_blocked: 0
+  outputs:
+    analyzeObjectTableCore_log:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    analyzeObjectTableCore_metadata:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_g_e1Diff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_g_e2Diff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_g_shapeSizeFractionalDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_g_skyObjectFlux_HistPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_g_skyObjectSky_SkyPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_i_e1Diff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_i_e2Diff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_i_shapeSizeFractionalDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_i_skyObjectFlux_HistPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_i_skyObjectSky_SkyPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_metrics:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_r_e1Diff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_r_e2Diff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_r_shapeSizeFractionalDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_r_skyObjectFlux_HistPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_r_skyObjectSky_SkyPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_u_e1Diff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_u_e2Diff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_u_shapeSizeFractionalDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_u_skyObjectFlux_HistPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_u_skyObjectSky_SkyPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_wPerpCModel_ColorColorFitPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_wPerpPSFP_ColorColorFitPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_xPerpCModel_ColorColorFitPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_xPerpPSFP_ColorColorFitPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_yPerpCModel_ColorColorFitPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_yPerpPSF_ColorColorFitPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_y_e1Diff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_y_e2Diff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_y_shapeSizeFractionalDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_y_skyObjectFlux_HistPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_y_skyObjectSky_SkyPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_z_e1Diff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_z_e2Diff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_z_shapeSizeFractionalDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_z_skyObjectFlux_HistPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_z_skyObjectSky_SkyPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+analyzeObjectTableSurveyCore:
+  failed_quanta: {}
+  n_quanta_blocked: 0
+  outputs:
+    analyzeObjectTableSurveyCore_log:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 1
+    analyzeObjectTableSurveyCore_metadata:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 1
+    objectTableSurvey_i_rhoStatistics_rho1_RhoStatisticsPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 1
+    objectTableSurvey_i_rhoStatistics_rho2_RhoStatisticsPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 1
+    objectTableSurvey_i_rhoStatistics_rho3_RhoStatisticsPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 1
+    objectTableSurvey_i_rhoStatistics_rho3alt_RhoStatisticsPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 1
+    objectTableSurvey_i_rhoStatistics_rho4_RhoStatisticsPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 1
+    objectTableSurvey_i_rhoStatistics_rho5_RhoStatisticsPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 1
+catalogMatchTract:
+  failed_quanta: {}
+  n_quanta_blocked: 0
+  outputs:
+    catalogMatchTract_log:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    catalogMatchTract_metadata:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+diff_matched_analysis:
+  failed_quanta: {}
+  n_quanta_blocked: 0
+  outputs:
+    diff_matched_analysis_log:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_analysis_metadata:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_g_matchedRefCModelMagDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_g_matchedRefMagChi_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_g_matchedRefPositionXChi_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_g_matchedRefPositionXDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_g_matchedRefPositionYChi_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_g_matchedRefPositionYDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_i_matchedRefCModelMagDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_i_matchedRefMagChi_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_i_matchedRefPositionXChi_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_i_matchedRefPositionXDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_i_matchedRefPositionYChi_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_i_matchedRefPositionYDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_metrics:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_r_matchedRefCModelMagDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_r_matchedRefMagChi_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_r_matchedRefPositionXChi_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_r_matchedRefPositionXDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_r_matchedRefPositionYChi_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_r_matchedRefPositionYDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_u_matchedRefCModelMagDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_u_matchedRefMagChi_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_u_matchedRefPositionXChi_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_u_matchedRefPositionXDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_u_matchedRefPositionYChi_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_u_matchedRefPositionYDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_y_matchedRefCModelMagDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_y_matchedRefMagChi_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_y_matchedRefPositionXChi_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_y_matchedRefPositionXDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_y_matchedRefPositionYChi_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_y_matchedRefPositionYDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_z_matchedRefCModelMagDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_z_matchedRefMagChi_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_z_matchedRefPositionXChi_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_z_matchedRefPositionXDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_z_matchedRefPositionYChi_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_z_matchedRefPositionYDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+refCatObjectTract:
+  failed_quanta: {}
+  n_quanta_blocked: 0
+  outputs:
+    objectTable_tract_cal_ref_cat_2_2_match_g_astromDiffDecMag_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match_g_astromDiffDec_SkyPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match_g_astromDiffRAMag_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match_g_astromDiffRA_SkyPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match_i_astromDiffDecMag_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match_i_astromDiffDec_SkyPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match_i_astromDiffRAMag_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match_i_astromDiffRA_SkyPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match_r_astromDiffDecMag_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match_r_astromDiffDec_SkyPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match_r_astromDiffRAMag_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match_r_astromDiffRA_SkyPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match_u_astromDiffDecMag_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match_u_astromDiffDec_SkyPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match_u_astromDiffRAMag_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match_u_astromDiffRA_SkyPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match_y_astromDiffDecMag_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match_y_astromDiffDec_SkyPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match_y_astromDiffRAMag_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match_y_astromDiffRA_SkyPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match_z_astromDiffDecMag_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match_z_astromDiffDec_SkyPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match_z_astromDiffRAMag_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match_z_astromDiffRA_SkyPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    refCatObjectTract_log:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    refCatObjectTract_metadata:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+validateObjectTableCore:
+  failed_quanta: {}
+  n_quanta_blocked: 0
+  outputs:
+    objectTableColumnValidate_metrics:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    validateObjectTableCore_log:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    validateObjectTableCore_metadata:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
