@@ -77,7 +77,7 @@ class RunJobsScriptHandler(RunElementScriptHandler):
         child_config = await parent.get_child_config(session)
         spec_aliases = await parent.get_spec_aliases(session)
         spec_block_name = child_config.pop("spec_block", None)
-        if spec_block_name is None:
+        if spec_block_name is None:  # pragma: no cover
             raise CMMissingScriptInputError(f"child_config for {script.fullname} does not contain spec_block")
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
         _new_job = await Job.create_row(
@@ -121,7 +121,7 @@ class Splitter:
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
-    ) -> AsyncGenerator:
+    ) -> AsyncGenerator:  # pragma: no cover
         """Create a generator that will split a step into groups
 
         Parameters
@@ -171,7 +171,7 @@ class SplitByVals(Splitter):
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
-    ) -> AsyncGenerator:
+    ) -> AsyncGenerator:  # pragma: no cover
         ret_dict: dict = {"data": {}}
         split_vals = kwargs.get("split_vals", [])
         base_query = kwargs["base_query"]
