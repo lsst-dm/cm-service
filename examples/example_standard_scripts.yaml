@@ -49,6 +49,7 @@
 # make an empty TAGGED collection
 - SpecBlock:
       name: tag_create_script
+      handler: lsst.cmservice.handlers.scripts.TagCreateScriptHandler
 # add datasets to an existing TAGGED collection
 - SpecBlock:
       name: tag_associate_script
