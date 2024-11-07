@@ -506,6 +506,11 @@ class ScriptHandler(BaseScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
+        fake_status = kwargs.get("fake_status", None)
+
+        if script.status not in [StatusEnum.running]:
+            return script.status
+
         script_method = script.method
         if script_method == ScriptMethodEnum.default:
             script_method = self.default_method
@@ -515,7 +520,6 @@ class ScriptHandler(BaseScriptHandler):
         if not script.stamp_url:  # pragma: no cover
             raise CMMissingNodeUrlError(f"stamp_url is not set for {script}")
 
-        fake_status = kwargs.get("fake_status")
         if script_method == ScriptMethodEnum.bash:
             status = await self._check_stamp_file(session, script.stamp_url, script, parent)
         elif script_method == ScriptMethodEnum.slurm:
