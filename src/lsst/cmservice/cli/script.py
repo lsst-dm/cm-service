@@ -121,5 +121,5 @@ def get_script_errors(
     output: options.OutputEnum | None,
 ) -> None:
     """Get the errors associated to this script"""
-    result = client.job.get_errors(row_id=row_id)
+    result = client.script.get_script_errors(row_id=row_id)
     wrappers.output_pydantic_list(result, output, db.ScriptError.col_names_for_table)
