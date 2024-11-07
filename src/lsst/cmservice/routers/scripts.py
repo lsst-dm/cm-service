@@ -1,5 +1,7 @@
 """http routers for managing Script tables"""
 
+from collections.abc import Sequence
+
 from fastapi import APIRouter, Depends, HTTPException
 from safir.dependencies.db_session import db_session_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -111,3 +113,24 @@ async def reset_script(
     except Exception as msg:  # pragma: no cover
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
     return result
+
+
+@router.get(
+    "/get/{row_id}/script_errors",
+    status_code=201,
+    response_model=Sequence[models.ScriptError],
+    summary="Get the errors associated to a job",
+)
+async def get_script_errors(
+    row_id: int,
+    session: async_scoped_session = Depends(db_session_dependency),
+) -> Sequence[db.ScriptError]:
+    try:
+        async with session.begin():
+            the_script = await DbClass.get_row(session, row_id)
+            the_errors = await the_script.get_script_errors(session)
+            return the_errors
+    except CMMissingIDError as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+    except Exception as msg:  # pragma: no cover
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
