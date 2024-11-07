@@ -76,7 +76,7 @@ def run_bash_job(
 def check_stamp_file(
     stamp_file: str,
     default_status: StatusEnum,
-) -> StatusEnum | None:
+) -> StatusEnum:
     """Check a 'stamp' file for a status code
 
     Parameters
