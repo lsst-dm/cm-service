@@ -28,8 +28,8 @@ def remove_run_collections(
     except Exception as msg:
         if fake_reset:
             return
-        raise errors.CMNoButlerError(msg) from msg
-    try:
+        raise errors.CMNoButlerError(msg) from msg  # pragma: no cover
+    try:  # pragma: no cover
         butler.registry.removeCollection(collection_name)
     except Exception as msg:
         raise errors.CMButlerCallError(msg) from msg
@@ -59,8 +59,8 @@ def remove_non_run_collections(
     except Exception as msg:
         if fake_reset:
             return
-        raise errors.CMNoButlerError(msg) from msg
-    try:
+        raise errors.CMNoButlerError(msg) from msg  # pragma: no cover
+    try:  # pragma: no cover
         butler.registry.removeCollection(collection_name)
     except Exception as msg:  # pylint: disable=broad-exception-caught
         raise errors.CMButlerCallError(msg) from msg

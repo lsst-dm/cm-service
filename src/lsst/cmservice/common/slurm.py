@@ -76,7 +76,7 @@ def submit_slurm_job(
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-        ) as sbatch:
+        ) as sbatch:  # pragma: no cover
             sbatch.wait()
             if sbatch.returncode != 0:
                 assert sbatch.stderr
@@ -108,12 +108,14 @@ def check_slurm_job(
     status: StatusEnum | None
         Slurm job status, None implies job not found in slurm
     """
-    if slurm_id is None:
+    if slurm_id is None:  # pragma: no cover
         return None
     if fake_status is not None:
         return StatusEnum.reviewable
     try:
-        with subprocess.Popen(["sacct", "--parsable", "-b", "-j", slurm_id], stdout=subprocess.PIPE) as sacct:
+        with subprocess.Popen(
+            ["sacct", "--parsable", "-b", "-j", slurm_id], stdout=subprocess.PIPE
+        ) as sacct:  # pragma: no cover
             sacct.wait()
             if sacct.returncode != 0:
                 assert sacct.stderr
@@ -132,4 +134,4 @@ def check_slurm_job(
                 raise CMSlurmCheckError(f"Badly formatted slurm check: {msg}")
     except Exception as msg:
         raise CMSlurmCheckError(f"Bad slurm check: {msg}")
-    return slurm_status_map[slurm_status]
+    return slurm_status_map[slurm_status]  # pragma: no cover

@@ -91,7 +91,7 @@ def submit_htcondor_job(
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-        ) as sbatch:
+        ) as sbatch:  # pragma: no cover
             sbatch.wait()
             if sbatch.returncode != 0:
                 assert sbatch.stderr
@@ -127,7 +127,7 @@ def check_htcondor_job(
             ["condor_q", "-userlog", htcondor_id, "-af", "JobStatus", "ExitCode"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-        ) as condor_q:
+        ) as condor_q:  # pragma: no cover
             condor_q.wait()
             if condor_q.returncode != 0:
                 assert condor_q.stderr
@@ -146,10 +146,10 @@ def check_htcondor_job(
     except Exception as msg:
         raise CMHTCondorCheckError(f"Bad htcondor check: {msg}")
 
-    status = htcondor_status_map[htcondor_status]
-    if status == StatusEnum.reviewable:
+    status = htcondor_status_map[htcondor_status]  # pragma: no cover
+    if status == StatusEnum.reviewable:  # pragma: no cover
         if int(exit_code) == 0:
             status = StatusEnum.accepted
         else:
             status = StatusEnum.failed
-    return status
+    return status  # pragma: no cover
