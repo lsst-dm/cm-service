@@ -98,6 +98,13 @@ class Script(Base, NodeMixin):
         """Returns LevelEnum.script"""
         return LevelEnum.script
 
+    async def get_script_errors(
+        self,
+        session: async_scoped_session,
+    ) -> list[ScriptError]:
+        await session.refresh(self, attribute_names=["errors_"])
+        return self.errors_
+
     async def get_campaign(
         self,
         session: async_scoped_session,
