@@ -489,9 +489,9 @@ class CMLoadClient:
                     f"Expecting PipetaskErrorType items not: {error_type_.keys()})",
                 ) from msg
 
-            val["error_source"] = ErrorSourceEnum[val["source"]]
-            val["error_action"] = ErrorActionEnum[val["action"]]
-            val["error_flavor"] = ErrorFlavorEnum[val["flavor"]]
+            val["error_source"] = ErrorSourceEnum[val["error_source"]]
+            val["error_action"] = ErrorActionEnum[val["error_action"]]
+            val["error_flavor"] = ErrorFlavorEnum[val["error_flavor"]]
 
             new_error_type = self._upsert_error_type(val, allow_update=allow_update)
             if new_error_type:
