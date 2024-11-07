@@ -529,7 +529,7 @@ class ManifestReportLoadHandler(FunctionHandler):
         self,
         session: async_scoped_session,
         job: Job,
-        pipetask_report_yaml: str | None,
+        pipetask_report_yaml: str,
         fake_status: StatusEnum | None = None,
     ) -> StatusEnum:
         """Load the job processing info
