@@ -422,6 +422,24 @@ async def check_update_methods(
     check_process = check_and_parse_response(response, tuple[bool, StatusEnum])
     assert check_process[1] == StatusEnum.running
 
+    process_query = models.ProcessNodeQuery(
+        fullname=entry.fullname,
+    )
+    response = await client.post(
+        f"{config.prefix}/actions/process",
+        content=process_query.model_dump_json(),
+    )
+    check_process = check_and_parse_response(response, tuple[bool, StatusEnum])
+    assert check_process[1] == StatusEnum.running
+
+    process_query.fake_status = StatusEnum.running
+    response = await client.post(
+        f"{config.prefix}/actions/process",
+        content=process_query.model_dump_json(),
+    )
+    check_process = check_and_parse_response(response, tuple[bool, StatusEnum])
+    assert check_process[1] == StatusEnum.running
+
     response = await client.post(
         f"{config.prefix}/{entry_class_name}/action/{entry.id}/accept",
     )
@@ -640,6 +658,17 @@ async def check_scripts(
     response = await client.post(
         f"{config.prefix}/script/action/-1/reset_script",
         content=update_status_model.model_dump_json(),
+    )
+    expect_failed_response(response, 404)
+
+    response = await client.get(
+        f"{config.prefix}/script/get/{script0.id}/script_errors",
+    )
+    check_errors = check_and_parse_response(response, list[models.ScriptError])
+    assert len(check_errors) == 1
+
+    response = await client.get(
+        f"{config.prefix}/script/get/-1/script_errors",
     )
     expect_failed_response(response, 404)
 

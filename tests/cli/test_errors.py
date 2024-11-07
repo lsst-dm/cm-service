@@ -14,7 +14,7 @@ from .util_functions import (
 
 
 @pytest.mark.asyncio()
-async def test_error_create(uvicorn: UvicornProcess) -> None:
+async def test_error_create_cli(uvicorn: UvicornProcess) -> None:
     """Test error matching in pipetask_error_type.match.
 
     Correctly match a real error to the error_type database and fail to match a
@@ -51,5 +51,8 @@ async def test_load_error_types_cli(uvicorn: UvicornProcess) -> None:
     # result = runner.invoke(client_top, "load error-types --allow_update
     # --yaml_file examples/error_types.yaml")
     # assert result.exit_code == 0
+
+    result = runner.invoke(client_top, "action rematch --rematch")
+    assert result.exit_code == 0
 
     delete_all_rows(runner, client_top, "pipetask_error_type", models.PipetaskErrorType)

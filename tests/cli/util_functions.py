@@ -430,13 +430,20 @@ def check_scripts(
     )
     assert result.exit_code == 0
 
-    # FIXME, not working
-    # result = runner.invoke(
-    #    client_top, f"{entry_class_name} action retry_script
-    #    --row_id {entry.id} --script_name {script0.name} --output yaml",
-    # )
-    # retry_script = check_and_parse_result(result, models.Script)
-    # assert retry_script.status == StatusEnum.waiting
+    result = runner.invoke(
+        client_top,
+        f"{entry_class_name} action retry_script "
+        f"--row_id {entry.id} --script_name {script0.name} --output yaml",
+    )
+    retry_script = check_and_parse_result(result, models.Script)
+    assert retry_script.status == StatusEnum.waiting
+
+    result = runner.invoke(
+        client_top,
+        f"script get script-errors --row_id {script0.id} --output yaml",
+    )
+    check_errors = check_and_parse_result(result, list[models.ScriptError])
+    assert len(check_errors) == 0
 
 
 def check_get_methods(

@@ -133,5 +133,13 @@ async def test_job_cli(uvicorn: UvicornProcess) -> None:
     check_changed = check_and_parse_result(result, dict)["changed"]
     assert not check_changed
 
+    # FIXME
+    # result = runner.invoke(
+    #    client_top,
+    #    f"load manifest-report --fullname {entry.fullname} "
+    #    "--yaml_file examples/manifest_report_2.yaml",
+    # )
+    # assert result.exit_code == 0
+
     # delete everything we just made in the session
     cleanup(runner, client_top, check_cascade=True)
