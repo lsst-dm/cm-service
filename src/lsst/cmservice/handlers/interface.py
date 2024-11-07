@@ -595,6 +595,40 @@ async def load_and_create_campaign(  # pylint: disable=too-many-arguments
     return result
 
 
+async def add_steps(
+    session: async_scoped_session,
+    fullname: str,
+    child_configs: list[dict[str, Any]],
+) -> db.Campaign:
+    """Add Steps to a `Campaign`
+
+    Parameters
+    ----------
+    session : async_scoped_session
+        DB session manager
+
+    fullname: str
+        Full unique name for the parent `Campaign`
+
+    child_configs: list[dict[str, Any]]
+        Configurations for the `Step`s to be created
+
+    Returns
+    -------
+    campaign : Campaign
+        Newly updated Campaign
+
+    Raises
+    ------
+    CMBadFullnameError : could not parse fullname to determine table
+
+    CMMissingFullnameError : Could not find Element
+    """
+    campaign = await db.Campaign.get_row_by_fullname(session, fullname)
+    result = await functions.add_steps(session, campaign, child_configs)
+    return result
+
+
 async def load_error_types(
     session: async_scoped_session,
     yaml_file: str,
