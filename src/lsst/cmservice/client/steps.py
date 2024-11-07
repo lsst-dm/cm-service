@@ -185,9 +185,9 @@ class CMStepClient:
         "jobs",
     )
 
-    retry_script = wrappers.get_general_post_function(
-        models.RetryScriptQuery,
+    retry_script = wrappers.get_node_post_query_function(
         models.Script,
+        models.RetryScriptQuery,
         f"{router_string}/action",
         "retry_script",
     )
