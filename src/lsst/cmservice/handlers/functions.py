@@ -546,7 +546,7 @@ async def load_manifest_report(
 def status_from_bps_report(
     wms_run_report: WmsRunReport | None,
     fake_status: StatusEnum | None,
-) -> StatusEnum:  # pragma: no cover
+) -> StatusEnum | None:  # pragma: no cover
     """Decide the status for a workflow for a bps report
 
     Parameters
