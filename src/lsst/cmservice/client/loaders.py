@@ -46,8 +46,6 @@ class CMLoadClient:
         self._parent = parent
         self._client = parent.client
 
-    groups = wrappers.get_general_post_function(models.AddGroups, list[models.Group], "load/groups")
-
     steps = wrappers.get_general_post_function(models.AddSteps, models.Campaign, "load/steps")
 
     @property
