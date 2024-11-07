@@ -1,7 +1,7 @@
 - PipetaskErrorType:
-      source: manifest
-      flavor: configuration
-      action: review
+      error_source: manifest
+      error_flavor: configuration
+      error_action: review
       task_name: skyObjectMean
       diagnostic_message: 'Execution of task ''skyObjectMean'' on quantum.*failed. Exception ValueError: Failure
           from formatter ''lsst.daf.butler.formatters.parquet.ParquetFormatter'' for dataset.*:
