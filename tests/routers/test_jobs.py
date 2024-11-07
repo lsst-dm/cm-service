@@ -124,5 +124,18 @@ async def test_job_routes(client: AsyncClient) -> None:
     check_jobs = check_and_parse_response(response, list[models.Job])
     assert len(check_jobs) == 2
 
+    update_model.status = StatusEnum.rescuable
+    response = await client.put(
+        f"{config.prefix}/job/update/{entry.id}",
+        content=update_model.model_dump_json(),
+    )
+
+    response = await client.post(
+        f"{config.prefix}/actions/mark_job_rescued",
+        content=rescue_node_model.model_dump_json(),
+    )
+    check_jobs = check_and_parse_response(response, list[models.Job])
+    assert len(check_jobs) == 2
+
     # delete everything we just made in the session
     await cleanup(client, check_cascade=True)

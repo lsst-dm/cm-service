@@ -315,6 +315,12 @@ async def check_scripts(
 
     assert len(scripts_check) == 1, "Failed to ignore superseded script"
 
+    script_iface_check = await interface.get_node_by_fullname(
+        session,
+        f"script:{scripts[1].fullname}",
+    )
+    assert script_iface_check.id == scripts[1].id
+
     scripts_check = await entry.get_scripts(session, skip_superseded=False)
     assert len(scripts_check) == 2, "Failed to respect skip_superseded"
 
@@ -334,6 +340,9 @@ async def check_scripts(
     await scripts[0].update_values(session, status=StatusEnum.failed)
     check = await interface.reset_script(session, scripts[0].fullname, StatusEnum.waiting)
     assert check.status == StatusEnum.waiting, "Failed to reset script"
+
+    sleep_time = await scripts[0].estimate_sleep_time(session)
+    assert sleep_time == 10
 
 
 async def check_get_methods(

@@ -95,7 +95,7 @@ async def test_micro_db(
             force_check=True,
             fake_status=StatusEnum.accepted,
         )
-        assert status == StatusEnum.running
+        assert status == StatusEnum.accepted
 
         status = await campaign.review(
             session,

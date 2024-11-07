@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, async_scoped_session
 from lsst.cmservice import db
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum
 from lsst.cmservice.config import config
-from lsst.cmservice.handlers import interface
+from lsst.cmservice.handlers import interface, jobs
 
 from .util_functions import cleanup, create_tree
 
@@ -66,7 +66,7 @@ async def test_handlers_campaign_level_db(
 
         campaign = (await db.Campaign.get_rows(session))[0]
 
-        collections = dict(
+        collections: dict[str, str | list[str]] = dict(
             out="out",
             campaign_input="campaign_input",
             campaign_source="campaign_source",
@@ -215,5 +215,8 @@ async def test_handlers_job_level_db(
         await check_script(
             session, job, "manifest_report_load", "manifest_report_load", collections=collections, data=data
         )
+
+        assert jobs.PandaScriptHandler.get_job_id({"Run Id": 322}) == 322
+        assert jobs.HTCondorScriptHandler.get_job_id({"Submit dir": "dummy"}) == "dummy"
 
         await cleanup(session, check_cascade=True)

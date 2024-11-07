@@ -1,8 +1,9 @@
 import os
+import sys
 
 import pytest
 
-from lsst.cmservice.common import bash, enums, errors, htcondor, slurm
+from lsst.cmservice.common import bash, enums, errors, htcondor, slurm, utils
 
 
 def test_common_bash() -> None:
@@ -112,3 +113,10 @@ def test_common_slurm() -> None:
 
     with pytest.raises(errors.CMSlurmCheckError):
         slurm.check_slurm_job("slurm_temp.log")
+
+
+def test_add_sys_path() -> None:
+    """Test add_sys_path util"""
+    with utils.add_sys_path("examples"):
+        assert "examples" in sys.path
+    assert "examples" not in sys.path

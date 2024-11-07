@@ -27,6 +27,8 @@ from .util_functions import (
 async def test_campaign_db(engine: AsyncEngine) -> None:
     """Test `campaign` db table."""
 
+    db.handler.Handler.reset_cache()
+
     # generate a uuid to avoid collisions
     uuid_int = uuid.uuid1().int
     logger = structlog.get_logger(config.logger_name)
@@ -108,6 +110,16 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
         assert len(check_getall) == 1, "length should be 1"
 
         entry = check_getall[0]  # defining single unit for later
+
+        with pytest.raises(errors.CMMissingRowCreateInputError):
+            await db.Script.create_row(session)
+
+        handler = db.handler.Handler.get_handler(
+            entry.spec_block_id,
+            "lsst.cmservice.handlers.element_handler.CampaignHandler",
+        )
+        assert not handler.data
+        assert handler.get_handler_class_name()
 
         await check_get_methods(session, entry, db.Campaign, db.Production)
 
