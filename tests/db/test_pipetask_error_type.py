@@ -14,7 +14,7 @@ from .util_functions import cleanup, delete_all_rows
 
 
 @pytest.mark.asyncio()
-async def test_error_match(engine: AsyncEngine) -> None:
+async def test_error_match_db(engine: AsyncEngine) -> None:
     """Test error matching in pipetask_error_type.match.
 
     Correctly match a real error to the error_type database and fail to match a

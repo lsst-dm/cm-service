@@ -92,7 +92,7 @@ def submit_slurm_job(
 def check_slurm_job(
     slurm_id: str | None,
     fake_status: StatusEnum | None = None,
-) -> StatusEnum | None:
+) -> StatusEnum:
     """Check the status of a `Slurm` job
 
     Parameters
@@ -105,13 +105,13 @@ def check_slurm_job(
 
     Returns
     -------
-    status: StatusEnum | None
-        Slurm job status, None implies job not found in slurm
+    status: StatusEnum
+        Slurm job status
     """
-    if slurm_id is None:  # pragma: no cover
-        return None
     if fake_status is not None:
         return StatusEnum.reviewable
+    if slurm_id is None:  # pragma: no cover
+        return StatusEnum.running
     try:
         with subprocess.Popen(
             ["sacct", "--parsable", "-b", "-j", slurm_id], stdout=subprocess.PIPE

@@ -17,6 +17,7 @@ from lsst.cmservice.db.wms_task_report import WmsTaskReport
 from lsst.ctrl.bps import BaseWmsService, WmsRunReport, WmsStates
 from lsst.utils import doImport
 
+from ..common.bash import parse_bps_stdout
 from ..common.butler import remove_run_collections
 from ..common.enums import LevelEnum, StatusEnum, TaskStatusEnum, WmsMethodEnum
 from ..common.errors import (
@@ -41,21 +42,6 @@ WMS_TO_TASK_STATUS_MAP = {
     WmsStates.FAILED: TaskStatusEnum.failed,
     WmsStates.PRUNED: TaskStatusEnum.failed,
 }
-
-
-def parse_bps_stdout(url: str) -> dict[str, str]:
-    """Parse the std from a bps submit job"""
-    out_dict = {}
-    with open(url, encoding="utf8") as fin:
-        line = fin.readline()
-        while line:
-            tokens = line.split(":")
-            if len(tokens) != 2:  # pragma: no cover
-                line = fin.readline()
-                continue
-            out_dict[tokens[0]] = tokens[1]
-            line = fin.readline()
-    return out_dict
 
 
 class BpsScriptHandler(ScriptHandler):
@@ -215,11 +201,11 @@ class BpsScriptHandler(ScriptHandler):
             parent,
             fake_status,
         )
-        if slurm_status == StatusEnum.accepted:
-            await script.update_values(session, status=StatusEnum.accepted)
+        if slurm_status in [StatusEnum.reviewable, StatusEnum.accepted]:
+            await script.update_values(session, status=slurm_status)
             if fake_status is not None:
                 wms_job_id = "fake_job"
-            else:
+            else:  # pragma: no cover
                 bps_dict = parse_bps_stdout(script.log_url)
                 wms_job_id = self._get_job_id(bps_dict)
             await parent.update_values(session, wms_job_id=wms_job_id)
@@ -241,11 +227,11 @@ class BpsScriptHandler(ScriptHandler):
             parent,
             fake_status,
         )
-        if htcondor_status == StatusEnum.accepted:
-            await script.update_values(session, status=StatusEnum.accepted)
+        if htcondor_status in [StatusEnum.reviewable, StatusEnum.accepted]:
+            await script.update_values(session, status=htcondor_status)
             if fake_status is not None:
                 wms_job_id = "fake_job"
-            else:
+            else:  # pragma: no cover
                 bps_dict = parse_bps_stdout(script.log_url)
                 wms_job_id = self._get_job_id(bps_dict)
             await parent.update_values(session, wms_job_id=wms_job_id)
@@ -334,10 +320,10 @@ class BpsReportHandler(FunctionHandler):
 
     def _get_wms_svc(self, **kwargs: Any) -> BaseWmsService:
         if self._wms_svc is None:
-            if self.wms_svc_class_name is None:
+            if self.wms_svc_class_name is None:  # pragma: no cover
                 raise CMBadExecutionMethodError(f"{type(self)} should not be used, use a sub-class instead")
             self._wms_svc_class = doImport(self.wms_svc_class_name)
-            if isinstance(self._wms_svc_class, types.ModuleType):
+            if isinstance(self._wms_svc_class, types.ModuleType):  # pragma: no cover
                 raise CMBadExecutionMethodError(
                     f"Site class={self.wms_svc_class_name} is not a BaseWmsService subclass",
                 )
@@ -368,6 +354,7 @@ class BpsReportHandler(FunctionHandler):
         session: async_scoped_session,
         job: Job,
         wms_workflow_id: str | None,
+        **kwargs: Any,
     ) -> StatusEnum | None:
         """Load the job processing info
 
@@ -384,14 +371,21 @@ class BpsReportHandler(FunctionHandler):
         status: StatusEnum | None
             Status of requested job
         """
-        if wms_workflow_id is None:
-            return None
+        fake_status = kwargs.get("fake_status", None)
+
         try:
             wms_svc = self._get_wms_svc()
-            wms_run_report = wms_svc.report(wms_workflow_id=wms_workflow_id.strip())[0][0]
+        except ImportError as msg:
+            if not fake_status:
+                raise msg
+        try:
+            if fake_status or wms_workflow_id is None:
+                wms_run_report = None
+            else:
+                wms_run_report = wms_svc.report(wms_workflow_id=wms_workflow_id.strip())[0][0]
             _job = await load_wms_reports(session, job, wms_run_report)
-            status = status_from_bps_report(wms_run_report)
-        except Exception as msg:  # pylint: disable=broad-exception-caught
+            status = status_from_bps_report(wms_run_report, fake_status=fake_status)
+        except Exception as msg:  # pragma: no cover
             print(f"Catching wms_svc.report failure: {msg}, continuing")
             status = StatusEnum.failed
         return status
@@ -417,10 +411,7 @@ class BpsReportHandler(FunctionHandler):
         **kwargs: Any,
     ) -> StatusEnum:
         fake_status = kwargs.get("fake_status", None)
-        if fake_status:
-            status = fake_status
-        else:
-            status = await self._load_wms_reports(session, parent, parent.wms_job_id)
+        status = await self._load_wms_reports(session, parent, parent.wms_job_id, fake_status=fake_status)
         if status is None:
             status = script.status
         if status != script.status:
@@ -545,12 +536,8 @@ class ManifestReportLoadHandler(FunctionHandler):
         **kwargs: Any,
     ) -> StatusEnum:
         fake_status = kwargs.get("fake_status", None)
-        if fake_status:
-            status = fake_status
-        else:
-            status = await self._load_pipetask_report(session, parent, script.stamp_url)
-        if status is None:
-            status = script.status
+        status = await self._load_pipetask_report(session, parent, script.stamp_url, fake_status=fake_status)
+        status = status if fake_status is None else fake_status
         if status != script.status:
             await script.update_values(session, status=status)
         return status
@@ -560,6 +547,7 @@ class ManifestReportLoadHandler(FunctionHandler):
         session: async_scoped_session,
         job: Job,
         pipetask_report_yaml: str | None,
+        fake_status: StatusEnum | None = None,
     ) -> StatusEnum:
         """Load the job processing info
 
@@ -572,11 +560,10 @@ class ManifestReportLoadHandler(FunctionHandler):
             Yaml file
 
         """
-        if pipetask_report_yaml is None:
-            return StatusEnum.failed
-
-        check_job = await load_manifest_report(session, job.fullname, pipetask_report_yaml)
-        if not job.id == check_job.id:
+        check_job = await load_manifest_report(
+            session, job.fullname, pipetask_report_yaml, fake_status=fake_status
+        )
+        if not job.id == check_job.id:  # pragma: no cover
             raise CMIDMismatchError(f"job.id {job.id} != check_job.id {check_job.id}")
 
         status = await compute_job_status(session, job)

@@ -43,7 +43,7 @@ async def check_script(
 
 
 @pytest.mark.asyncio()
-async def test_handlers_campaign_level(
+async def test_handlers_campaign_level_db(
     engine: AsyncEngine,
     tmp_path: Path,
 ) -> None:
@@ -78,6 +78,12 @@ async def test_handlers_campaign_level(
 
         await check_script(session, campaign, "chain_create", "chain_create_script", collections=collections)
 
+        collections2 = collections.copy()
+        collections2["inputs"] = ["input1", "input2"]
+        await check_script(
+            session, campaign, "chain_create2", "chain_create_script", collections=collections2
+        )
+
         await check_script(
             session, campaign, "chain_prepend", "chain_prepend_script", collections=collections
         )
@@ -104,7 +110,7 @@ async def test_handlers_campaign_level(
 
 
 @pytest.mark.asyncio()
-async def test_handlers_step_level(
+async def test_handlers_step_level_db(
     engine: AsyncEngine,
     tmp_path: Path,
 ) -> None:
@@ -134,7 +140,7 @@ async def test_handlers_step_level(
 
 
 @pytest.mark.asyncio()
-async def test_handlers_job_level(
+async def test_handlers_job_level_db(
     engine: AsyncEngine,
     tmp_path: Path,
 ) -> None:

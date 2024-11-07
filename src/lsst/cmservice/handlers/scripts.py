@@ -196,7 +196,7 @@ class ChainCollectScriptHandler(ScriptHandler):
             output_coll = resolved_cols["output"]
             input_colls = resolved_cols["inputs"]
             to_collect = data_dict["collect"]
-        except KeyError as msg:
+        except KeyError as msg:  # pragma: no cover
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         collect_colls = []
         if to_collect == "jobs":
@@ -426,7 +426,7 @@ class PrepareStepScriptHandler(ScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        if not isinstance(parent, Step):
+        if not isinstance(parent, Step):  # pragma: no cover
             raise CMBadExecutionMethodError(f"script {script} should only be run on steps, not {parent}")
 
         resolved_cols = await script.resolve_collections(session)
@@ -508,7 +508,7 @@ class ResourceUsageScriptHandler(ScriptHandler):
             lsst_version,
         )
         prepend = prepend.replace("{lsst_distrib_dir}", lsst_distrib_dir)
-        if "custom_lsst_setup" in data_dict:
+        if "custom_lsst_setup" in data_dict:  # pragma: no cover
             custom_lsst_setup = data_dict["custom_lsst_setup"]
             prepend += f"\n{custom_lsst_setup}"
 
@@ -534,7 +534,7 @@ class ResourceUsageScriptHandler(ScriptHandler):
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
         parent = await script.get_parent(session)
-        if parent.level != LevelEnum.campaign:
+        if parent.level != LevelEnum.campaign:  # pragma: no cover
             raise CMBadExecutionMethodError(f"Script parent is a {parent.level}, not a LevelEnum.campaign")
         try:
             resource_coll = resolved_cols["campaign_resource_usage"]

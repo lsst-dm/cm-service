@@ -11,6 +11,21 @@ from .enums import StatusEnum
 from .errors import CMBashSubmitError
 
 
+def parse_bps_stdout(url: str) -> dict[str, str]:
+    """Parse the std from a bps submit job"""
+    out_dict = {}
+    with open(url, encoding="utf8") as fin:
+        line = fin.readline()
+        while line:
+            tokens = line.split(":")
+            if len(tokens) != 2:  # pragma: no cover
+                line = fin.readline()
+                continue
+            out_dict[tokens[0]] = tokens[1]
+            line = fin.readline()
+    return out_dict
+
+
 def run_bash_job(
     script_url: str,
     log_url: str,
@@ -60,6 +75,7 @@ def run_bash_job(
 
 def check_stamp_file(
     stamp_file: str,
+    default_status: StatusEnum,
 ) -> StatusEnum | None:
     """Check a 'stamp' file for a status code
 
@@ -68,13 +84,16 @@ def check_stamp_file(
     stamp_file: str
         File to read for status
 
+    default_status: StatusEnum
+        Status to return if stamp_file does not exist
+
     Returns
     -------
     status: StatusEnum
         Status of the script
     """
     if not os.path.exists(stamp_file):
-        return None
+        return default_status
     with open(stamp_file, encoding="utf-8") as fin:
         fields = yaml.safe_load(fin)
         return StatusEnum[fields["status"]]

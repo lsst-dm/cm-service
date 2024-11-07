@@ -19,7 +19,7 @@ from .util_functions import cleanup
     "script_method", [ScriptMethodEnum.bash, ScriptMethodEnum.slurm, ScriptMethodEnum.htcondor]
 )
 @pytest.mark.asyncio()
-async def test_micro(
+async def test_micro_db(
     engine: AsyncEngine,
     tmp_path: Path,
     script_method: ScriptMethodEnum,

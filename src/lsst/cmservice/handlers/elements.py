@@ -13,25 +13,11 @@ from lsst.cmservice.db.job import Job
 from lsst.cmservice.db.script import Script
 from lsst.daf.butler import Butler
 
+from ..common.bash import parse_bps_stdout
 from ..common.enums import StatusEnum
 from ..common.errors import CMBadExecutionMethodError, CMMissingScriptInputError
 from ..common.slurm import check_slurm_job
 from .script_handler import FunctionHandler
-
-
-def parse_bps_stdout(url: str) -> dict[str, str]:
-    """Parse the std from a bps submit job"""
-    out_dict = {}
-    with open(url, encoding="utf8") as fin:
-        line = fin.readline()
-        while line:
-            tokens = line.split(":")
-            if len(tokens) != 2:  # pragma: no cover
-                line = fin.readline()
-                continue
-            out_dict[tokens[0]] = tokens[1]
-            line = fin.readline()
-    return out_dict
 
 
 class RunElementScriptHandler(FunctionHandler):

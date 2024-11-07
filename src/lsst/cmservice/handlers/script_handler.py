@@ -76,7 +76,7 @@ class BaseScriptHandler(Handler):
                 CMHTCondorSubmitError,
                 CMSlurmSubmitError,
                 CMBashSubmitError,
-            ) as msg:
+            ) as msg:  # pragma: no cover
                 _new_error = await ScriptError.create_row(
                     session,
                     script_id=node.id,
@@ -98,7 +98,7 @@ class BaseScriptHandler(Handler):
             except (
                 CMHTCondorCheckError,
                 CMSlurmCheckError,
-            ) as msg:
+            ) as msg:  # pragma: no cover
                 _new_error = await ScriptError.create_row(
                     session,
                     script_id=node.id,
@@ -258,9 +258,7 @@ class BaseScriptHandler(Handler):
             The status of the processing
         """
         fake_status = kwargs.get("fake_status", None)
-        if fake_status is not None:
-            return fake_status
-        return script.status
+        return script.status if fake_status is None else fake_status
 
     async def reset_script(
         self,
@@ -349,9 +347,7 @@ class ScriptHandler(BaseScriptHandler):
         status : StatusEnum
             The status of the processing
         """
-        status = check_stamp_file(stamp_file)
-        if status is None:
-            return script.status
+        status = check_stamp_file(stamp_file, script.status)
         if status != script.status:
             await script.update_values(session, status=status)
         return status
@@ -389,9 +385,6 @@ class ScriptHandler(BaseScriptHandler):
             The status of the processing
         """
         status = check_slurm_job(slurm_id, fake_status)
-        print(f"Getting status for {script.fullname} {status}")
-        if status is None:
-            status = StatusEnum.running
         if status != script.status:
             await script.update_values(session, status=status)
         return status
@@ -429,7 +422,6 @@ class ScriptHandler(BaseScriptHandler):
             The status of the processing
         """
         status = check_htcondor_job(htcondor_id, fake_status)
-        print(f"Getting status for {script.fullname} {status}")
         if status != script.status:
             await script.update_values(session, status=status)
         return status
@@ -604,7 +596,7 @@ class ScriptHandler(BaseScriptHandler):
         update_fields: dict[str, Any] = {}
         if to_status.value <= StatusEnum.prepared.value:
             update_fields["stamp_url"] = None
-            if script.log_url and os.path.exists(script.log_url):
+            if script.log_url and os.path.exists(script.log_url):  # pragma: no cover
                 os.unlink(script.log_url)
             if script.stamp_url and os.path.exists(script.stamp_url):
                 os.unlink(script.stamp_url)
@@ -701,7 +693,7 @@ class FunctionHandler(BaseScriptHandler):
         status : StatusEnum
             The status of the processing
         """
-        return StatusEnum.prepared
+        raise NotImplementedError
 
     async def _do_run(  # pylint: disable=unused-argument
         self,
@@ -755,7 +747,7 @@ class FunctionHandler(BaseScriptHandler):
         status : StatusEnum
             The status of the processing
         """
-        return StatusEnum.accepted
+        raise NotImplementedError
 
     async def _reset_script(
         self,

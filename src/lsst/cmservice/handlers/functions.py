@@ -472,6 +472,7 @@ async def load_manifest_report(
     session: async_scoped_session,
     job_name: str,
     yaml_file: str,
+    fake_status: StatusEnum | None = None,
 ) -> Job:
     """Parse and load output of pipetask report
 
@@ -486,15 +487,20 @@ async def load_manifest_report(
     yaml_file: str
         Pipetask report yaml file
 
+    fake_status: StatusEnum | None
+        If set, return this status
+
     Returns
     -------
     job : Job
         Associated Job
     """
+    job = await Job.get_row_by_fullname(session, job_name)
+    if fake_status is not None:
+        return job
+
     with open(yaml_file, encoding="utf-8") as fin:
         manifest_data = yaml.safe_load(fin)
-
-    job = await Job.get_row_by_fullname(session, job_name)
 
     for task_name_, task_data_ in manifest_data.items():
         failed_quanta = task_data_.get("failed_quanta", {})
@@ -587,8 +593,9 @@ async def load_manifest_report(
 
 
 def status_from_bps_report(
-    wms_run_report: WmsRunReport,
-) -> StatusEnum:
+    wms_run_report: WmsRunReport | None,
+    fake_status: StatusEnum | None,
+) -> StatusEnum:  # pragma: no cover
     """Decide the status for a workflow for a bps report
 
     Parameters
@@ -601,6 +608,9 @@ def status_from_bps_report(
     status: StatusEnum
         The status to set for the bps_report script
     """
+    if wms_run_report is None:
+        return fake_status
+
     the_state = wms_run_report.state
     # We treat RUNNING as running from the CM point of view,
     if the_state == WmsStates.RUNNING:
@@ -646,8 +656,8 @@ def status_from_bps_report(
 async def load_wms_reports(
     session: async_scoped_session,
     job: Job,
-    wms_run_report: WmsRunReport,
-) -> Job:
+    wms_run_report: WmsRunReport | None,
+) -> Job:  # pragma: no cover
     """Parse and load output of bps report
 
     Parameters
@@ -658,7 +668,7 @@ async def load_wms_reports(
     job_name: str
         Name of associated Job
 
-    wms_run_report: WmsRunReport
+    wms_run_report: WmsRunReport | None
         bps report return object
 
     Returns
@@ -666,6 +676,8 @@ async def load_wms_reports(
     job : Job
         Associated Job
     """
+    if wms_run_report is None:
+        return job
     if wms_run_report.job_summary is None:
         wms_run_report.job_summary = compile_job_summary(wms_run_report.jobs)
     for task_name, job_summary in wms_run_report.job_summary.items():

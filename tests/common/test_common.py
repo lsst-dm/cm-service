@@ -18,17 +18,20 @@ def test_common_bash() -> None:
 
     bash.run_bash_job(the_script, "temp.log", "temp.stamp")
 
-    status = bash.check_stamp_file("temp.stamp")
+    status = bash.check_stamp_file("temp.stamp", enums.StatusEnum.running)
     assert status == enums.StatusEnum.accepted
 
-    status = bash.check_stamp_file("bad.stamp")
-    assert status is None
+    status = bash.check_stamp_file("bad.stamp", enums.StatusEnum.running)
+    assert status == enums.StatusEnum.running
 
     os.unlink("temp.sh")
     os.unlink("temp.stamp")
 
     if os.path.exists("temp.log"):
         os.unlink("temp.log")
+
+    bps_dict = bash.parse_bps_stdout("examples/bps_stdout.log")
+    assert bps_dict["run_id"].strip() == "334"
 
 
 def test_common_table_enums() -> None:
@@ -70,6 +73,12 @@ def test_common_status_enums() -> None:
             assert status_enum.value <= enums.StatusEnum.rejected.value
 
         if status_enum.is_processable_element():
+            assert (
+                status_enum.value >= enums.StatusEnum.waiting.value
+                and status_enum.value <= enums.StatusEnum.reviewable.value
+            )
+
+        if status_enum.is_processable_script():
             assert (
                 status_enum.value >= enums.StatusEnum.waiting.value
                 and status_enum.value <= enums.StatusEnum.reviewable.value
