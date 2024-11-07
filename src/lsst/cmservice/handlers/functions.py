@@ -12,7 +12,6 @@ from lsst.ctrl.bps.wms_service import WmsJobReport, WmsRunReport, WmsStates
 from ..common.enums import StatusEnum
 from ..common.errors import CMYamlParseError
 from ..db.campaign import Campaign
-from ..db.group import Group
 from ..db.job import Job
 from ..db.pipetask_error import PipetaskError
 from ..db.pipetask_error_type import PipetaskErrorType
@@ -287,7 +286,7 @@ async def load_specification(
                 config_item["Specification"],
                 allow_update=allow_update,
             )
-        else:
+        else:  # pragma: no cover
             good_keys = "ScriptTemplate | SpecBlock | Specification | Imports"
             raise CMYamlParseError(f"Expecting one of {good_keys} not: {spec_data.keys()})")
 
@@ -358,11 +357,11 @@ async def add_steps(
     for step_ in step_config_list:
         try:
             step_config_ = step_["Step"]
-        except KeyError as msg:
+        except KeyError as msg:  # pragma: no cover
             raise CMYamlParseError(f"Expecting Step not: {step_.keys()}") from msg
         child_name_ = step_config_.pop("name")
         spec_block_name = step_config_.pop("spec_block")
-        if spec_block_name is None:
+        if spec_block_name is None:  # pragma: no cover
             raise CMYamlParseError(
                 f"Step {child_name_} of {campaign.fullname} does contain 'spec_block'",
             )
@@ -389,54 +388,6 @@ async def add_steps(
 
     await session.refresh(campaign)
     return campaign
-
-
-async def add_groups(
-    session: async_scoped_session,
-    step: Step,
-    child_configs: dict,
-) -> Step:
-    """Add Groups to a Step
-
-    Parameters
-    ----------
-    session: async_scoped_session
-        DB session manager
-
-    step: Step
-        Step in question
-
-    child_configs: dict
-        Configuration for the Groups
-
-    Returns
-    -------
-    step: Step
-        Step in question
-    """
-    spec_aliases = await step.get_spec_aliases(session)
-
-    current_groups = await step.children(session)
-    n_groups = len(list(current_groups))
-    i = n_groups
-    for child_name_, child_config_ in child_configs.items():
-        spec_block_name = child_config_.pop("spec_block", None)
-        if spec_block_name is None:
-            raise CMYamlParseError(
-                f"child_config_ {child_name_} of {step.fullname} does contain 'spec_block'",
-            )
-        spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
-        await Group.create_row(
-            session,
-            name=f"group{i}",
-            spec_block_name=spec_block_name,
-            parent_name=step.fullname,
-            **child_config_,
-        )
-        i += 1
-
-    await session.refresh(step)
-    return step
 
 
 async def match_pipetask_error(
@@ -724,7 +675,7 @@ async def load_error_types(
     for error_type_ in error_types:
         try:
             val = error_type_["PipetaskErrorType"]
-        except KeyError as msg:
+        except KeyError as msg:  # pragma: no cover
             raise CMYamlParseError(f"Expecting PipetaskErrorType items not: {error_type_.keys()})") from msg
 
         new_error_type = await PipetaskErrorType.create_row(session, **val)

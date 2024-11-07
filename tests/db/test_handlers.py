@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, async_scoped_session
 from lsst.cmservice import db
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum
 from lsst.cmservice.config import config
+from lsst.cmservice.handlers import interface
 
 from .util_functions import cleanup, create_tree
 
@@ -30,6 +31,13 @@ async def check_script(
         **kwargs,
     )
     assert script.name == script_name
+
+    changed, status = await interface.process(
+        session,
+        f"script:{script.fullname}",
+        fake_status=StatusEnum.ready,
+    )
+    assert status == StatusEnum.ready
 
     changed, status = await script.process(session, fake_status=StatusEnum.reviewable)
     if status != StatusEnum.reviewable:

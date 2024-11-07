@@ -11,6 +11,7 @@ import lsst.cmservice.common.errors as errors
 from lsst.cmservice import db
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum
 from lsst.cmservice.config import config
+from lsst.cmservice.handlers import interface
 
 from .util_functions import (
     check_get_methods,
@@ -123,7 +124,7 @@ async def test_job_db(engine: AsyncEngine) -> None:
         newest_job = await parent.rescue_job(session)
         await newest_job.update_values(session, status=StatusEnum.accepted)
 
-        rescued = await parent.mark_job_rescued(session)
+        rescued = await interface.mark_job_rescued(session, parent.fullname)
         assert len(rescued) == 2, "Wrong number of rescued jobs"
 
         # make and test queue object

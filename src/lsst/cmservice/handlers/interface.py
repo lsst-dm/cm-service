@@ -347,7 +347,9 @@ async def process(
         return await process_element(session, fullname, fake_status=fake_status)
     if node_type == NodeTypeEnum.script:
         return await process_script(session, fullname[7:], fake_status=fake_status)
-    raise CMBadExecutionMethodError(f"Tried to process an row from a table of type {node_type}")
+    raise CMBadExecutionMethodError(
+        f"Tried to process an row from a table of type {node_type}"
+    )  # pragma: no cover
 
 
 async def reset_script(
@@ -431,7 +433,7 @@ async def rescue_job(
     CMMissingFullnameError : Could not find Element
     """
     element = await get_element_by_fullname(session, fullname)
-    if not isinstance(element, db.Group):
+    if not isinstance(element, db.Group):  # pragma: no cover
         raise CMBadExecutionMethodError(f"rescue_job should only be run on Group nodes, not {type(element)}")
     return await element.rescue_job(session)
 
@@ -472,80 +474,11 @@ async def mark_job_rescued(
     CMMissingFullnameError : Could not find Element
     """
     element = await get_element_by_fullname(session, fullname)
-    if not isinstance(element, db.Group):
+    if not isinstance(element, db.Group):  # pragma: no cover
         raise CMBadExecutionMethodError(
             f"mark_job_rescued should only be run on Group nodes, not {type(element)}",
         )
     return await element.mark_job_rescued(session)
-
-
-async def add_groups(
-    session: async_scoped_session,
-    fullname: str,
-    child_configs: dict,
-) -> db.Step:
-    """Add Groups to a `Step`
-
-    Parameters
-    ----------
-    session : async_scoped_session
-        DB session manager
-
-    fullname: str
-        Full unique name for the parent `Step`
-
-    child_configs: dict,
-        Configurations for the `Group`s to be created
-
-    Returns
-    -------
-    step : Step
-        Newly updated Step
-
-    Raises
-    ------
-    CMBadFullnameError : could not parse fullname to determine table
-
-    CMMissingFullnameError : Could not find Element
-    """
-    step = await db.Step.get_row_by_fullname(session, fullname)
-    result = await functions.add_groups(session, step, child_configs)
-    # await session.commit()
-    return result
-
-
-async def add_steps(
-    session: async_scoped_session,
-    fullname: str,
-    child_configs: list[dict[str, Any]],
-) -> db.Campaign:
-    """Add Steps to a `Campaign`
-
-    Parameters
-    ----------
-    session : async_scoped_session
-        DB session manager
-
-    fullname: str
-        Full unique name for the parent `Campaign`
-
-    child_configs: list[dict[str, Any]]
-        Configurations for the `Step`s to be created
-
-    Returns
-    -------
-    campaign : Campaign
-        Newly updated Campaign
-
-    Raises
-    ------
-    CMBadFullnameError : could not parse fullname to determine table
-
-    CMMissingFullnameError : Could not find Element
-    """
-    campaign = await db.Campaign.get_row_by_fullname(session, fullname)
-    result = await functions.add_steps(session, campaign, child_configs)
-    return result
 
 
 async def create_campaign(
@@ -733,26 +666,3 @@ async def match_pipetask_errors(  # pylint: disable=unused-argument
         Newly matched (or rematched) PipetaskErrors
     """
     return []
-
-
-async def create_error_type(
-    session: async_scoped_session,
-    **kwargs: Any,
-) -> db.PipetaskErrorType:
-    """Add an PipetaskErrorType to DB
-
-    Parameters
-    ----------
-    session : async_scoped_session
-        DB session manager
-
-    kwargs : Any
-        Passed to Campaign construction
-
-    Returns
-    -------
-    error_type : PipetaskErrorType
-        Newly created PipetaskErrorType
-    """
-    result = await db.PipetaskErrorType.create_row(session, **kwargs)
-    return result

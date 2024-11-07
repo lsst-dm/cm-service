@@ -13,10 +13,8 @@ from lsst.cmservice.db.job import Job
 from lsst.cmservice.db.script import Script
 from lsst.daf.butler import Butler
 
-from ..common.bash import parse_bps_stdout
 from ..common.enums import StatusEnum
 from ..common.errors import CMBadExecutionMethodError, CMMissingScriptInputError
-from ..common.slurm import check_slurm_job
 from .script_handler import FunctionHandler
 
 
@@ -92,25 +90,6 @@ class RunJobsScriptHandler(RunElementScriptHandler):
         )
         await script.update_values(session, status=StatusEnum.prepared)
         return StatusEnum.running
-
-    async def _check_slurm_job(  # pylint: disable=unused-argument
-        self,
-        session: async_scoped_session,
-        slurm_id: str,
-        script: Script,
-        parent: ElementMixin,
-        fake_status: StatusEnum | None = None,
-    ) -> StatusEnum:
-        slurm_status = check_slurm_job(slurm_id, fake_status=fake_status)
-        if slurm_status is None:
-            slurm_status = StatusEnum.running
-        if slurm_status == StatusEnum.accepted:
-            await script.update_values(session, status=StatusEnum.reviewable)
-            bps_dict = parse_bps_stdout(script.log_url)
-            panda_url = bps_dict["Run Id"]
-            await parent.update_values(session, wms_stamp_url=panda_url)
-            return StatusEnum.reviewable
-        return slurm_status
 
     async def review_script(
         self,
@@ -228,7 +207,7 @@ class SplitByQuery(Splitter):
         split_min_groups = kwargs.get("split_min_groups", 1)
         split_max_group_size = kwargs.get("split_max_group_size", 100000000)
         fake_status = kwargs.get("fake_status", None)
-        if not fake_status:
+        if not fake_status:  # pragma: no cover
             butler = Butler.from_config(
                 butler_repo,
                 collections=[input_coll, campaign_input_coll],
@@ -285,7 +264,7 @@ class RunGroupsScriptHandler(RunElementScriptHandler):
         child_config = await parent.get_child_config(session)
         spec_aliases = await parent.get_spec_aliases(session)
         spec_block_name = child_config.pop("spec_block", None)
-        if spec_block_name is None:
+        if spec_block_name is None:  # pragma: no cover
             raise CMMissingScriptInputError(f"child_config for {script.fullname} does not contain spec_block")
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
         fake_status = kwargs.get("fake_status")
@@ -327,7 +306,7 @@ class RunStepsScriptHandler(RunElementScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        if not isinstance(parent, Campaign):
+        if not isinstance(parent, Campaign):  # pragma: no cover
             raise CMBadExecutionMethodError(f"Can not run script {script} on {parent}")
         status = StatusEnum.prepared
         await script.update_values(session, status=status)

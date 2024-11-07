@@ -14,7 +14,7 @@ from lsst.cmservice.db.job import Job
 from lsst.cmservice.db.script import Script
 from lsst.cmservice.db.task_set import TaskSet
 from lsst.cmservice.db.wms_task_report import WmsTaskReport
-from lsst.ctrl.bps import BaseWmsService, WmsRunReport, WmsStates
+from lsst.ctrl.bps import BaseWmsService, WmsStates
 from lsst.utils import doImport
 
 from ..common.bash import parse_bps_stdout
@@ -207,7 +207,7 @@ class BpsScriptHandler(ScriptHandler):
                 wms_job_id = "fake_job"
             else:  # pragma: no cover
                 bps_dict = parse_bps_stdout(script.log_url)
-                wms_job_id = self._get_job_id(bps_dict)
+                wms_job_id = self.get_job_id(bps_dict)
             await parent.update_values(session, wms_job_id=wms_job_id)
         return slurm_status
 
@@ -233,7 +233,7 @@ class BpsScriptHandler(ScriptHandler):
                 wms_job_id = "fake_job"
             else:  # pragma: no cover
                 bps_dict = parse_bps_stdout(script.log_url)
-                wms_job_id = self._get_job_id(bps_dict)
+                wms_job_id = self.get_job_id(bps_dict)
             await parent.update_values(session, wms_job_id=wms_job_id)
         return htcondor_status
 
@@ -253,7 +253,8 @@ class BpsScriptHandler(ScriptHandler):
             await parent.update_values(session, stamp_url=script.stamp_url)
         return status
 
-    def _get_job_id(self, bps_dict: dict) -> str:
+    @classmethod
+    def get_job_id(cls, bps_dict: dict) -> str:
         raise NotImplementedError
 
     async def _reset_script(
@@ -330,25 +331,6 @@ class BpsReportHandler(FunctionHandler):
             self._wms_svc = self._wms_svc_class(kwargs)
         return self._wms_svc
 
-    def _get_wms_report(
-        self,
-        wms_workflow_id: str,
-    ) -> WmsRunReport:
-        """Get the WmsRunReport for a job
-
-        Paramters
-        ---------
-        wms_workflow_id : str | None
-            WMS workflow id
-
-        Returns
-        -------
-        report: WmsRunReport
-            Report for requested job
-        """
-        wms_svc = self._get_wms_svc()
-        return wms_svc.report(wms_workflow_id=wms_workflow_id)[0][0]
-
     async def _load_wms_reports(
         self,
         session: async_scoped_session,
@@ -376,12 +358,12 @@ class BpsReportHandler(FunctionHandler):
         try:
             wms_svc = self._get_wms_svc()
         except ImportError as msg:
-            if not fake_status:
+            if not fake_status:  # pragma: no cover
                 raise msg
         try:
             if fake_status or wms_workflow_id is None:
                 wms_run_report = None
-            else:
+            else:  # pragma: no cover
                 wms_run_report = wms_svc.report(wms_workflow_id=wms_workflow_id.strip())[0][0]
             _job = await load_wms_reports(session, job, wms_run_report)
             status = status_from_bps_report(wms_run_report, fake_status=fake_status)
@@ -412,8 +394,7 @@ class BpsReportHandler(FunctionHandler):
     ) -> StatusEnum:
         fake_status = kwargs.get("fake_status", None)
         status = await self._load_wms_reports(session, parent, parent.wms_job_id, fake_status=fake_status)
-        if status is None:
-            status = script.status
+        status = script.status if status is None else status
         if status != script.status:
             await script.update_values(session, status=status)
         return status
@@ -443,7 +424,8 @@ class PandaScriptHandler(BpsScriptHandler):
 
     wms_method = WmsMethodEnum.panda
 
-    def _get_job_id(self, bps_dict: dict) -> str:
+    @classmethod
+    def get_job_id(cls, bps_dict: dict) -> str:
         return bps_dict["Run Id"]
 
 
@@ -452,7 +434,8 @@ class HTCondorScriptHandler(BpsScriptHandler):
 
     wms_method = WmsMethodEnum.ht_condor
 
-    def _get_job_id(self, bps_dict: dict) -> str:
+    @classmethod
+    def get_job_id(cls, bps_dict: dict) -> str:
         return bps_dict["Submit dir"]
 
 

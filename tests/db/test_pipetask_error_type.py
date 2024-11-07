@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from lsst.cmservice import db
 from lsst.cmservice.config import config
-from lsst.cmservice.handlers import interface
+from lsst.cmservice.handlers import functions, interface
 
 from .util_functions import cleanup, delete_all_rows
 
@@ -78,6 +78,28 @@ async def test_error_match_db(engine: AsyncEngine) -> None:
 
         # Here we test that match doesn't return true for an empty error
         assert e1.match("", "") is False, "Matched known error to empty strings"
+
+        # using the interface
+        matched = await functions.match_pipetask_error(
+            session,
+            known_error["task_name"],
+            known_error["diagnostic_message"],
+        )
+        assert matched is not None, "interface.match_pipetask_error failed"
+
+        not_matched = await functions.match_pipetask_error(
+            session,
+            "bad",
+            known_error["diagnostic_message"],
+        )
+        assert not_matched is None
+
+        matched = await functions.match_pipetask_error(
+            session,
+            known_error["task_name"],
+            "bad",
+        )
+        assert not_matched is None
 
         await delete_all_rows(session, db.PipetaskErrorType)
         await cleanup(session)

@@ -358,6 +358,9 @@ async def check_get_methods(
             -99,
         )
 
+    check_iface = await interface.get_node_by_fullname(session, entry.fullname)
+    assert check_iface.id == entry.id, "pulled row using interface should be identical"
+
     check_get_by_name = await entry_class.get_row_by_name(session, name=entry.name)
     assert check_get_by_name.id == entry.id, "pulled row should be identical"
 
