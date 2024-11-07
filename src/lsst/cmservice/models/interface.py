@@ -89,7 +89,7 @@ class RetryScriptQuery(ScriptQueryBase):
     fake_reset: bool = False
 
     # Status to set
-    status: StatusEnum
+    status: StatusEnum = StatusEnum.waiting
 
 
 class ResetScriptQuery(FullnameQuery):
@@ -99,7 +99,7 @@ class ResetScriptQuery(FullnameQuery):
     fake_reset: bool = False
 
     # Status to set
-    status: StatusEnum
+    status: StatusEnum = StatusEnum.waiting
 
 
 class ScriptQuery(ScriptQueryBase):
