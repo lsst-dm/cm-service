@@ -6,7 +6,6 @@ from .element import ElementMixin, Element
 from .group import Group, GroupCreate, GroupUpdate
 from .index import Index
 from .interface import (
-    AddGroups,
     AddSteps,
     FullnameQuery,
     JobQuery,
@@ -123,7 +122,6 @@ __all__ = [
     "ScriptQueryBase",
     "ScriptQuery",
     "JobQuery",
-    "AddGroups",
     "AddSteps",
     "LoadAndCreateCampaign",
     "YamlFileQuery",

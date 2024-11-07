@@ -120,13 +120,6 @@ class JobQuery(FullnameQuery):
     skip_superseded: bool = True
 
 
-class AddGroups(FullnameQuery):
-    """Parameters needed to add groups to an existing step"""
-
-    # Configurations for new groups
-    child_configs: dict
-
-
 class AddSteps(FullnameQuery):
     """Parameters needed to add steps to an existing campaign"""
 
