@@ -678,6 +678,7 @@ async def load_error_types(
         except KeyError as msg:  # pragma: no cover
             raise CMYamlParseError(f"Expecting PipetaskErrorType items not: {error_type_.keys()})") from msg
 
+        val["diagnostic_message"] = val["diagnostic_message"].strip()
         new_error_type = await PipetaskErrorType.create_row(session, **val)
         ret_list.append(new_error_type)
 
