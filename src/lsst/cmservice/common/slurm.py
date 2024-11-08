@@ -131,7 +131,7 @@ def check_slurm_job(
                     return slurm_status_map["PENDING"]
                 slurm_status = tokens[1]
             except Exception as msg:
-                raise CMSlurmCheckError(f"Badly formatted slurm check: {msg}")
+                raise CMSlurmCheckError(f"Badly formatted slurm check: {msg}") from msg
     except Exception as msg:
-        raise CMSlurmCheckError(f"Bad slurm check: {msg}")
+        raise CMSlurmCheckError(f"Bad slurm check: {msg}") from msg
     return slurm_status_map[slurm_status]  # pragma: no cover

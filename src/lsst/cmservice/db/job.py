@@ -185,7 +185,6 @@ class Job(Base, ElementMixin):
     async def get_errors(
         self,
         session: async_scoped_session,
-        **kwargs: Any,
     ) -> Sequence[PipetaskError]:
         await session.refresh(self, attribute_names=["errors_"])
         return self.errors_

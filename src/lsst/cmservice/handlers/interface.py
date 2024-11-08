@@ -232,8 +232,7 @@ async def get_node_by_fullname(
     node_type = get_node_type_by_fullname(fullname)
     if node_type == NodeTypeEnum.element:
         return await get_element_by_fullname(session, fullname)
-    if node_type == NodeTypeEnum.script:
-        result = await db.Script.get_row_by_fullname(session, fullname[7:])
+    result = await db.Script.get_row_by_fullname(session, fullname[7:])
     return result
 
 

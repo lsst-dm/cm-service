@@ -686,7 +686,7 @@ class NodeMixin(RowMixin):
         await self.update_values(session, status=StatusEnum.waiting, superseded=False)
         return self
 
-    async def _clean_up_node(
+    async def _clean_up_node(  # pylint: disable=unused-argument
         self,
         session: async_scoped_session,
         *,
@@ -762,7 +762,7 @@ class NodeMixin(RowMixin):
     async def estimate_sleep_time(
         self,
         session: async_scoped_session,
-        job_sleep: int = 150,
+        job_sleep: int = 150,  # pylint: disable=unused-argument
         script_sleep: int = 15,
     ) -> int:
         """Estimate how long to sleep before calling process again

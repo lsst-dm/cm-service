@@ -32,14 +32,14 @@ async def check_script(
     )
     assert script.name == script_name
 
-    changed, status = await interface.process(
+    _changed, status = await interface.process(
         session,
         f"script:{script.fullname}",
         fake_status=StatusEnum.ready,
     )
     assert status == StatusEnum.ready
 
-    changed, status = await script.process(session, fake_status=StatusEnum.reviewable)
+    _changed, status = await script.process(session, fake_status=StatusEnum.reviewable)
     if status != StatusEnum.reviewable:
         errors = await script.get_script_errors(session)
         raise ValueError(f"{str(errors)}")

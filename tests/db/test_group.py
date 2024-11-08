@@ -7,8 +7,8 @@ from safir.database import create_async_session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-import lsst.cmservice.common.errors as errors
 from lsst.cmservice import db
+from lsst.cmservice.common import errors
 from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
 
@@ -71,7 +71,7 @@ async def test_group_db(engine: AsyncEngine) -> None:
         assert check.name == f"camp0_{uuid_int}", "should return same name as camp0"
 
         check = await entry.children(session)
-        assert len([c for c in check]) == 1, "length of children should be 1"
+        assert len(list(check)) == 1, "length of children should be 1"
 
         # check update methods
         await check_update_methods(session, entry, db.Group)

@@ -3,8 +3,8 @@ from typing import TypeAlias
 import pytest
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-import lsst.cmservice.common.errors as errors
 from lsst.cmservice import db
+from lsst.cmservice.common import errors
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum, TableEnum
 from lsst.cmservice.handlers import interface
 
@@ -57,7 +57,7 @@ async def create_tree(
         parent_name=pname,
     )
 
-    (camp_scripts, camp_script_depend) = await add_scripts(session, camp)
+    (_camp_scripts, _camp_script_depend) = await add_scripts(session, camp)
 
     if level.value <= LevelEnum.campaign.value:
         return
@@ -434,8 +434,8 @@ async def check_queue(
     check_elem = await queue.get_node(session)
     assert check_elem.id == entry.id
 
-    check_queue = await db.Queue.get_queue_item(session, fullname=entry.fullname)
-    assert check_queue.node_id == entry.id
+    check_queue_item = await db.Queue.get_queue_item(session, fullname=entry.fullname)
+    assert check_queue_item.node_id == entry.id
 
     queue.waiting()
 

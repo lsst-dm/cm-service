@@ -104,7 +104,7 @@ async def create_tree(
     )
     camp = check_and_parse_response(response, models.Campaign)
 
-    (camp_scripts, camp_script_depend) = await add_scripts(client, camp)
+    (_camp_scripts, _camp_script_depend) = await add_scripts(client, camp)
 
     if level.value <= LevelEnum.campaign.value:
         return

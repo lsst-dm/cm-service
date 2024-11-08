@@ -66,7 +66,7 @@ def remove_non_run_collections(
         raise errors.CMButlerCallError(msg) from msg
 
 
-def remove_collection_from_chain(
+def remove_collection_from_chain(  # pylint: disable=unused-argument
     butler_repo: str,
     chain_collection: str,
     collection_name: str,
@@ -94,7 +94,7 @@ def remove_collection_from_chain(
     raise NotImplementedError
 
 
-def remove_datasets_from_collections(
+def remove_datasets_from_collections(  # pylint: disable=unused-argument
     butler_repo: str,
     tagged_collection: str,
     collection_name: str,

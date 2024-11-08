@@ -55,7 +55,7 @@ def write_htcondor_script(
     )
     options.update(**kwargs)
 
-    with open(htcondor_script_path, "w") as fout:
+    with open(htcondor_script_path, "w", encoding="utf8") as fout:
         fout.write(f"executable = {script_url}\n")
         fout.write(f"log = {htcondor_log}\n")
         fout.write(f"output = {log_url}\n")
@@ -142,9 +142,9 @@ def check_htcondor_job(
                 htcondor_status = int(tokens[0])
                 exit_code = tokens[1]
             except Exception as msg:
-                raise CMHTCondorCheckError(f"Badly formatted htcondor check: {msg}")
+                raise CMHTCondorCheckError(f"Badly formatted htcondor check: {msg}") from msg
     except Exception as msg:
-        raise CMHTCondorCheckError(f"Bad htcondor check: {msg}")
+        raise CMHTCondorCheckError(f"Bad htcondor check: {msg}") from msg
 
     status = htcondor_status_map[htcondor_status]  # pragma: no cover
     if status == StatusEnum.reviewable:  # pragma: no cover

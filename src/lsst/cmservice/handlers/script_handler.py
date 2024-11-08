@@ -526,6 +526,8 @@ class ScriptHandler(BaseScriptHandler):
             status = await self._check_slurm_job(session, script.stamp_url, script, parent, fake_status)
         elif script_method == ScriptMethodEnum.htcondor:
             status = await self._check_htcondor_job(session, script.stamp_url, script, parent, fake_status)
+        else:  # pragma: no cover
+            raise CMBadExecutionMethodError(f"Bad script method {script_method}")
         if status == StatusEnum.failed:
             if not script.log_url:  # pragma: no cover
                 raise CMMissingNodeUrlError(f"log_url is not set for {script}")

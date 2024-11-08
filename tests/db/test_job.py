@@ -7,8 +7,8 @@ from safir.database import create_async_session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-import lsst.cmservice.common.errors as errors
 from lsst.cmservice import db
+from lsst.cmservice.common import errors
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum
 from lsst.cmservice.config import config
 from lsst.cmservice.handlers import interface
@@ -72,7 +72,7 @@ async def test_job_db(engine: AsyncEngine) -> None:
         assert campaign.name == f"camp0_{uuid_int}", "should return same name as camp0"
 
         check = await entry.get_siblings(session)
-        assert len([c for c in check]) == 0, "length of siblings should be 0"
+        assert len(list(check)) == 0, "length of siblings should be 0"
 
         check = await entry.get_errors(session)
         assert len(check) == 0, "length of errors should be 0"

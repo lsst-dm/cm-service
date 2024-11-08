@@ -6,7 +6,7 @@ import structlog
 from safir.database import create_async_session
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-import lsst.cmservice.common.errors as errors
+from lsst.cmservice.common import errors
 from lsst.cmservice.common.enums import ScriptMethodEnum, StatusEnum
 from lsst.cmservice.config import config
 from lsst.cmservice.handlers import interface

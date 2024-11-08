@@ -439,8 +439,7 @@ def get_general_post_function(
         results = obj.client.post(query, content=content).raise_for_status().json()
         if results_key is None:
             return TypeAdapter(response_model_class).validate_python(results)
-        else:  # pragma: no cover
-            return TypeAdapter(response_model_class).validate_python(results[results_key])
+        return TypeAdapter(response_model_class).validate_python(results[results_key])  # pragma: no cover
 
     return general_post_function
 
@@ -488,7 +487,6 @@ def get_general_query_function(
         results = obj.client.get(full_query, params=params).raise_for_status().json()
         if results_key is None:
             return TypeAdapter(response_model_class).validate_python(results)
-        else:  # pragma: no cover
-            return TypeAdapter(response_model_class).validate_python(results[results_key])
+        return TypeAdapter(response_model_class).validate_python(results[results_key])  # pragma: no cover
 
     return general_query_function

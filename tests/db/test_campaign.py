@@ -7,8 +7,8 @@ from safir.database import create_async_session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-import lsst.cmservice.common.errors as errors
 from lsst.cmservice import db
+from lsst.cmservice.common import errors
 from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
 from lsst.cmservice.handlers import interface
@@ -134,7 +134,7 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
 
         # run campaign specific method tests
         check = await entry.children(session)
-        assert len([c for c in check]) == 2, "length of children should be 2"
+        assert len(list(check)) == 2, "length of children should be 2"
 
         # check update methods
         await check_update_methods(session, entry, db.Campaign)

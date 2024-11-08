@@ -218,7 +218,7 @@ class RowMixin:
         await cls._delete_hook(session, row_id)
 
     @classmethod
-    async def _delete_hook(
+    async def _delete_hook(  # pylint: disable=unused-argument
         cls,
         session: async_scoped_session,
         row_id: int,
@@ -234,7 +234,7 @@ class RowMixin:
             PrimaryKey of the row to delete
 
         """
-        pass
+        return
 
     @classmethod
     async def update_row(
