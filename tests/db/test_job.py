@@ -62,6 +62,13 @@ async def test_job_db(engine: AsyncEngine) -> None:
 
         entry = check_getall[0]  # defining single unit for later
 
+        parent = await entry.get_parent(session)
+
+        await db.Job.update_row(session, entry.id, status=StatusEnum.running)
+        sleep_time = await parent.estimate_sleep_time(session)
+        assert sleep_time == 150
+        await db.Job.update_row(session, entry.id, status=StatusEnum.waiting)
+
         await check_get_methods(session, entry, db.Job, db.Group)
 
         with pytest.raises(errors.CMMissingIDError):
@@ -87,8 +94,6 @@ async def test_job_db(engine: AsyncEngine) -> None:
         await check_scripts(session, entry)
 
         # check on the rescue job
-        parent = await entry.get_parent(session)
-
         with pytest.raises(errors.CMTooFewAcceptedJobsError):
             new_job = await parent.rescue_job(session)
 
