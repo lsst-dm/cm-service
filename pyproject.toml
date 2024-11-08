@@ -156,6 +156,10 @@ disable = [
     "missing-function-docstring",
     "too-few-public-methods",
     "too-many-lines",
+    "broad-exception-caught",
+    "use-dict-literal",
+    "too-many-arguments",
+    "too-many-positional-arguments",
     "duplicate-code"
 ]
 max-line-length = 110
