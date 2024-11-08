@@ -45,6 +45,9 @@ async def test_error_match_db(engine: AsyncEngine) -> None:
 
         assert e1.fullname == f"{e1.task_name}#{e1.diagnostic_message}", "Bad fullname"
 
+        dummy = await db.PipetaskErrorType.get_row_by_fullname(session, e1.fullname)
+        assert dummy.fullname == e1.fullname
+
         # Assert that the error we just put in the database will match with
         # itself
         assert e1.match(
