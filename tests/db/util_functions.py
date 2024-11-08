@@ -310,7 +310,14 @@ async def check_scripts(
     all_scripts = await entry.get_all_scripts(session)
     assert len(all_scripts) != 0, "get_all_scripts with failed"
 
-    await scripts[1].update_values(session, superseded=True)
+    await scripts[1].update_values(session, status=StatusEnum.running)
+    sleep_time = await entry.estimate_sleep_time(session)
+    assert sleep_time == 15, "Wrong sleep time for element with running script"
+
+    sleep_time = await scripts[1].estimate_sleep_time(session)
+    assert sleep_time == 15, "Wrong sleep time for running script"
+
+    await scripts[1].update_values(session, status=StatusEnum.waiting, superseded=True)
     scripts_check = await entry.get_scripts(session)
 
     assert len(scripts_check) == 1, "Failed to ignore superseded script"
