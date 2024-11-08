@@ -47,10 +47,13 @@ async def test_load_error_types_cli(uvicorn: UvicornProcess) -> None:
     result = runner.invoke(client_top, "load error-types --yaml_file examples/error_types.yaml")
     assert result.exit_code == 0
 
-    # FIXME, fullname matching isn't quite working
-    # result = runner.invoke(client_top, "load error-types --allow_update
-    # --yaml_file examples/error_types.yaml")
-    # assert result.exit_code == 0
+    result = runner.invoke(client_top, "load error-types --yaml_file examples/error_types.yaml")
+    assert result.exit_code == 0
+
+    result = runner.invoke(
+        client_top, "load error-types --allow_update --yaml_file examples/error_types.yaml"
+    )
+    assert result.exit_code == 0
 
     result = runner.invoke(client_top, "action rematch --rematch")
     assert result.exit_code == 0
