@@ -784,7 +784,7 @@ class NodeMixin(RowMixin):
             Time to sleep in seconds
         """
         sleep_time = 10
-        _changed, status_ = await self.run_check(session)
-        if status_ == StatusEnum.running:
-            sleep_time = min(script_sleep, sleep_time)
+        await session.refresh(self, attribute_names=["status"])
+        if self.status == StatusEnum.running:
+            sleep_time = max(script_sleep, sleep_time)
         return sleep_time
