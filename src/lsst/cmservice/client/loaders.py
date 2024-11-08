@@ -59,7 +59,7 @@ class CMLoadClient:
         loaded_specs: dict,
         *,
         allow_update: bool = False,
-    ) -> models.SpecBlock | None:
+    ) -> models.SpecBlock:
         """Upsert and return a SpecBlock
 
         This will create a new SpecBlock, or update an existing one
@@ -138,7 +138,7 @@ class CMLoadClient:
         config_values: dict,
         *,
         allow_update: bool = False,
-    ) -> models.ScriptTemplate | None:
+    ) -> models.ScriptTemplate:
         """Upsert and return a ScriptTemplate
 
         This will create a new ScriptTemplate, or update an existing one
@@ -183,7 +183,7 @@ class CMLoadClient:
         config_values: dict,
         *,
         allow_update: bool = False,
-    ) -> models.Specification | None:
+    ) -> models.Specification:
         """Upsert and return a Specification
 
         This will create a new Specification, or update an existing one
@@ -270,22 +270,19 @@ class CMLoadClient:
                     loaded_specs,
                     allow_update=allow_update,
                 )
-                if spec_block:
-                    out_dict["SpecBlock"].append(spec_block)
+                out_dict["SpecBlock"].append(spec_block)
             elif "ScriptTemplate" in config_item:
                 script_template = self._upsert_script_template(
                     config_item["ScriptTemplate"],
                     allow_update=allow_update,
                 )
-                if script_template:
-                    out_dict["ScriptTemplate"].append(script_template)
+                out_dict["ScriptTemplate"].append(script_template)
             elif "Specification" in config_item:
                 specification = self._upsert_specification(
                     config_item["Specification"],
                     allow_update=allow_update,
                 )
-                if specification:
-                    out_dict["Specification"].append(specification)
+                out_dict["Specification"].append(specification)
             else:  # pragma: no cover
                 good_keys = "ScriptTemplate | SpecBlock | Specification | Imports"
                 raise CMYamlParseError(f"Expecting one of {good_keys} not: {spec_data.keys()})")
@@ -421,7 +418,7 @@ class CMLoadClient:
         config_values: dict,
         *,
         allow_update: bool = False,
-    ) -> models.PipetaskErrorType | None:
+    ) -> models.PipetaskErrorType:
         """Upsert and return a PipetaskErrorType
 
         This will create a new PipetaskErrorType, or update an existing one
@@ -439,15 +436,15 @@ class CMLoadClient:
         error_type: PipetaskErrorType
             Newly created or updated PipetaskErrorType
         """
-        task_name = config_values["task_name"]
-        diag_message = config_values["diagnostic_message"]
-        fullname = f"{task_name}#{diag_message}".strip()
+        task_name = config_values["task_name"].strip()
+        diag_message = config_values["diagnostic_message"].strip()
+        fullname = f"{task_name}#{diag_message}"
         error_type = self._parent.pipetask_error_type.get_row_by_fullname(fullname)
-        if error_type and not allow_update:
-            return error_type
-
         if error_type is None:
             return self._parent.pipetask_error_type.create(**config_values)
+
+        if not allow_update:
+            return error_type
 
         return self._parent.pipetask_error_type.update(
             row_id=error_type.id,
@@ -492,8 +489,7 @@ class CMLoadClient:
             val["error_flavor"] = ErrorFlavorEnum[val["error_flavor"]]
 
             new_error_type = self._upsert_error_type(val, allow_update=allow_update)
-            if new_error_type:
-                ret_list.append(new_error_type)
+            ret_list.append(new_error_type)
 
         return ret_list
 
