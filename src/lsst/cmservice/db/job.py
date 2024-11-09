@@ -302,4 +302,4 @@ class Job(Base, ElementMixin):
         remaining_only: bool = False,
         skip_superseded: bool = True,
     ) -> list[Job]:  # pragma: no cover
-        return [self]
+        return []
