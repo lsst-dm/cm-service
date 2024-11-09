@@ -214,7 +214,7 @@ class BpsScriptHandler(ScriptHandler):
     async def _check_htcondor_job(
         self,
         session: async_scoped_session,
-        htcondor_id: str,
+        htcondor_id: str | None,
         script: Script,
         parent: ElementMixin,
         fake_status: StatusEnum | None = None,
