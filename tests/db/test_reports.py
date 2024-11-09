@@ -7,9 +7,9 @@ from safir.database import create_async_session
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from lsst.cmservice import db
-from lsst.cmservice.common.enums import LevelEnum
+from lsst.cmservice.common.enums import LevelEnum, StatusEnum
 from lsst.cmservice.config import config
-from lsst.cmservice.handlers import interface
+from lsst.cmservice.handlers import functions, interface
 
 from .util_functions import (
     cleanup,
@@ -46,10 +46,34 @@ async def test_reports_db(engine: AsyncEngine) -> None:
             "examples/error_types.yaml",
         )
 
+        status_check = await functions.compute_job_status(
+            session,
+            entry,
+        )
+        assert status_check == StatusEnum.accepted
+
         await interface.load_manifest_report(
             session,
             "examples/manifest_report_2.yaml",
             entry.fullname,
+        )
+
+        status_check = await functions.compute_job_status(
+            session,
+            entry,
+        )
+        assert status_check == StatusEnum.reviewable
+
+        await db.Job.update_row(
+            session,
+            entry.id,
+            status=StatusEnum.running,
+        )
+
+        await entry.run_check(
+            session,
+            do_checks=True,
+            fake_status=StatusEnum.accepted,
         )
 
         # test upsert mechansim
