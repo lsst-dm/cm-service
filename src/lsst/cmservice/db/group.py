@@ -155,9 +155,7 @@ class Group(Base, ElementMixin):
             raise CMMissingRowCreateInputError(f"Missing input to create Group: {msg}") from msg
         step = await Step.get_row_by_fullname(session, parent_name)
         spec_aliases = await step.get_spec_aliases(session)
-        if spec_aliases:
-            assert isinstance(spec_aliases, dict)
-            spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
+        spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
         specification = await step.get_specification(session)
         spec_block = await specification.get_block(session, spec_block_name)
         return {

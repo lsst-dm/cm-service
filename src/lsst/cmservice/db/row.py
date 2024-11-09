@@ -204,17 +204,16 @@ class RowMixin:
         row = await session.get(cls, row_id)
         if row is None:
             raise CMMissingIDError(f"{cls} {row_id} not found")
-        if row is not None:
-            if hasattr(row, "status") and row.status not in DELETEABLE_STATES:
-                raise CMBadStateTransitionError(
-                    f"Can not delete a row because it is in use {row} {row.status}",
-                )
-            try:
-                await session.delete(row)
-            except IntegrityError as e:  # pragma: no cover
-                if TYPE_CHECKING:
-                    assert e.orig  # for mypy
-                raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
+        if hasattr(row, "status") and row.status not in DELETEABLE_STATES:
+            raise CMBadStateTransitionError(
+                f"Can not delete a row because it is in use {row} {row.status}",
+            )
+        try:
+            await session.delete(row)
+        except IntegrityError as e:  # pragma: no cover
+            if TYPE_CHECKING:
+                assert e.orig  # for mypy
+            raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
         await cls._delete_hook(session, row_id)
 
     @classmethod
