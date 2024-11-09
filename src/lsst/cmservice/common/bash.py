@@ -74,7 +74,7 @@ def run_bash_job(
 
 
 def check_stamp_file(
-    stamp_file: str,
+    stamp_file: str | None,
     default_status: StatusEnum,
 ) -> StatusEnum:
     """Check a 'stamp' file for a status code
@@ -92,6 +92,8 @@ def check_stamp_file(
     status: StatusEnum
         Status of the script
     """
+    if stamp_file is None:
+        return default_status
     if not os.path.exists(stamp_file):
         return default_status
     with open(stamp_file, encoding="utf-8") as fin:
