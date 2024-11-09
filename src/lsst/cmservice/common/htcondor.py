@@ -102,7 +102,7 @@ def submit_htcondor_job(
 
 
 def check_htcondor_job(
-    htcondor_id: str,
+    htcondor_id: str | None,
     fake_status: StatusEnum | None = None,
 ) -> StatusEnum:
     """Check the status of a `HTCondor` job
@@ -121,8 +121,10 @@ def check_htcondor_job(
         HTCondor job status
     """
     if fake_status is not None:
-        return StatusEnum.reviewable
+        return StatusEnum.reviewable if fake_status.value >= StatusEnum.reviewable.value else fake_status
     try:
+        if htcondor_id is None:  # pragma: no cover
+            raise CMHTCondorCheckError("No htcondor_id")
         with subprocess.Popen(
             ["condor_q", "-userlog", htcondor_id, "-af", "JobStatus", "ExitCode"],
             stdout=subprocess.PIPE,

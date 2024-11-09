@@ -322,7 +322,7 @@ class ScriptHandler(BaseScriptHandler):
     @staticmethod
     async def _check_stamp_file(  # pylint: disable=unused-argument
         session: async_scoped_session,
-        stamp_file: str,
+        stamp_file: str | None,
         script: Script,
         parent: ElementMixin,
         fake_status: StatusEnum | None = None,
@@ -334,7 +334,7 @@ class ScriptHandler(BaseScriptHandler):
         session : async_scoped_session
             DB session manager
 
-        stamp_file: str
+        stamp_file: str | None
             File with just the `Script` status written to it
 
         script: Script
@@ -397,7 +397,7 @@ class ScriptHandler(BaseScriptHandler):
     async def _check_htcondor_job(  # pylint: disable=unused-argument
         self,
         session: async_scoped_session,
-        htcondor_id: str,
+        htcondor_id: str | None,
         script: Script,
         parent: ElementMixin,
         fake_status: StatusEnum | None = None,
@@ -409,8 +409,8 @@ class ScriptHandler(BaseScriptHandler):
         session : async_scoped_session
             DB session manager
 
-        htcondor_id : str
-            HTCondor job id, in this case the lob from the submission script
+        htcondor_id : str | None
+            HTCondor job id, in this case the glob from the submission script
 
         script: Script
             The `Script` in question

@@ -109,7 +109,7 @@ def check_slurm_job(
         Slurm job status
     """
     if fake_status is not None:
-        return StatusEnum.reviewable
+        return StatusEnum.reviewable if fake_status.value >= StatusEnum.reviewable.value else fake_status
     if slurm_id is None:  # pragma: no cover
         return StatusEnum.running
     try:
