@@ -93,22 +93,18 @@ class ElementHandler(Handler):
                 changed = True
         if status == StatusEnum.ready:
             (has_changed, status) = await self.prepare(session, node)
-            if has_changed:
-                changed = True
+            changed |= has_changed
         if status == StatusEnum.prepared:
             (has_changed, status) = await self.continue_processing(session, node, **kwargs)
-            if has_changed:
-                changed = True
+            changed |= has_changed
         if status == StatusEnum.running:
             (has_changed, status) = await self.check(session, node, **kwargs)
-            if has_changed:
-                changed = True
+            changed |= has_changed
             if status == StatusEnum.running:
                 (has_changed, status) = await self.continue_processing(session, node, **kwargs)
-                if has_changed:
-                    changed = True
+                changed |= has_changed
         if status == StatusEnum.reviewable:
-            status = await self.review(session, node, *kwargs)
+            status = await self.review(session, node, **kwargs)
         if status != orig_status:
             changed = True
             await node.update_values(session, status=status)
@@ -237,7 +233,7 @@ class ElementHandler(Handler):
     ) -> StatusEnum:
         """Review a `Element` processing
 
-        By default this does nothing, but
+        By default this accepts the element but
         can be used to automate checking
         that the element is ok
 
@@ -255,7 +251,7 @@ class ElementHandler(Handler):
             Status of the processing
         """
         fake_status = kwargs.get("fake_status", None)
-        status = fake_status if fake_status is not None else element.status
+        status = fake_status if fake_status is not None else StatusEnum.accepted
         return status
 
     async def _run_script_checks(
@@ -370,6 +366,7 @@ class ElementHandler(Handler):
             Status of the processing
         """
         changed = False
+
         if kwargs.get("do_checks", False):
             scripts_changed = await self._run_script_checks(session, element, **kwargs)
             jobs_changed = await self._run_job_checks(session, element, **kwargs)
@@ -401,6 +398,9 @@ class ElementHandler(Handler):
             return (changed, status)
 
         status = await self._post_check(session, element, **kwargs)
+        fake_status = kwargs.get("fake_status", None)
+        if fake_status:
+            status = fake_status
         await element.update_values(session, status=status)
         return (True, status)
 
