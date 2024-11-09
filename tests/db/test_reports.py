@@ -52,5 +52,19 @@ async def test_reports_db(engine: AsyncEngine) -> None:
             entry.fullname,
         )
 
+        # test upsert mechansim
+        await interface.load_manifest_report(
+            session,
+            "examples/manifest_report_2.yaml",
+            entry.fullname,
+        )
+
+        await interface.load_manifest_report(
+            session,
+            "examples/manifest_report_2.yaml",
+            entry.fullname,
+            allow_update=True,
+        )
+
         # cleanup
         await cleanup(session)

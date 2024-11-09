@@ -449,4 +449,14 @@ async def check_queue(
     sleep_time = await queue.node_sleep_time(session)
     assert sleep_time == 10
 
+    scripts = await entry.get_scripts(session)
+    script = scripts[0]
+    queue_script = await db.Queue.create_row(session, fullname=f"script:{script.fullname}")
+
+    check_script = await queue_script.get_node(session)
+    assert check_script.id == script.id
+
+    check_queue_script_item = await db.Queue.get_queue_item(session, fullname=f"script:{script.fullname}")
+    assert check_queue_script_item.node_id == script.id
+
     await db.Queue.delete_row(session, queue.id)

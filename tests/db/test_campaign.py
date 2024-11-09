@@ -39,6 +39,9 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
         # intialize a tree down to one level lower
         await create_tree(session, LevelEnum.step, uuid_int)
 
+        # test the upsert mechanism
+        await interface.load_specification(session, "examples/empty_config.yaml", allow_update=True)
+
         with pytest.raises(IntegrityError):
             await db.Campaign.create_row(
                 session,
