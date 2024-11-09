@@ -655,6 +655,8 @@ async def load_manifest_report(
     session: async_scoped_session,
     yaml_file: str,
     fullname: str,
+    *,
+    allow_update: bool = False,
 ) -> db.Job:
     """Load a manifest checker yaml file
 
@@ -669,12 +671,15 @@ async def load_manifest_report(
     fullname: str
         Fullname of the `Job` to associate with this report
 
+    allow_update: bool
+        If set, allow updating values
+
     Returns
     -------
     job: Job
         Newly updated job
     """
-    result = await functions.load_manifest_report(session, fullname, yaml_file)
+    result = await functions.load_manifest_report(session, fullname, yaml_file, allow_update=allow_update)
     return result
 
 
