@@ -58,7 +58,12 @@ class Specification(Base, RowMixin):
             Requested SpecBlock
         """
         try:
-            spec_block = await SpecBlock.get_row_by_fullname(session, spec_block_name)
+            await session.refresh(self, attribute_names=["spec_aliases"])
+            aliases = self.spec_aliases if isinstance(self.spec_aliases, dict) else {}
+            spec_block = await SpecBlock.get_row_by_fullname(
+                session,
+                aliases.get(spec_block_name, spec_block_name),
+            )
             return spec_block
         except CMMissingFullnameError as msg:
             raise CMSpecficiationError(f"Could not find spec_block {spec_block_name} in {self}") from msg
