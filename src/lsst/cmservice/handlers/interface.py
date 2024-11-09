@@ -528,7 +528,7 @@ async def load_specification(
         Newly created `Specification`
     """
     result = await functions.load_specification(session, yaml_file, {}, allow_update=allow_update)
-    if result is None:
+    if result is None:  # pragma: no cover
         raise ValueError("load_specification() did not return a Specification")
     return result
 
@@ -566,18 +566,14 @@ async def load_and_create_campaign(  # pylint: disable=too-many-arguments
         Newly created `Campaign`
     """
     allow_update = kwargs.get("allow_update", False)
-    specification = await functions.load_specification(session, yaml_file, allow_update=allow_update)
-    assert specification  # for mypy
-
-    if specification is None:
-        raise ValueError("load_specification() did not return a Specification")
+    specification = await load_specification(session, yaml_file, allow_update=allow_update)
 
     try:
         await db.Production.create_row(session, name=parent_name)
-    except Exception:  # pylint: disable=broad-exception-caught
+    except Exception:  # pragma: no cover
         pass
 
-    if not spec_block_assoc_name:
+    if not spec_block_assoc_name:  # pragma: no cover
         spec_block_assoc_name = f"{specification.name}#campaign"
 
     kwargs.update(

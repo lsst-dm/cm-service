@@ -89,7 +89,9 @@ async def upsert_spec_block(
     for include_ in includes:
         if include_ in loaded_specs:
             update_include_dict(include_data, loaded_specs[include_])
-        else:
+        else:  # pragma: no cover
+            # This is only needed if the block are in reverse dependency order
+            # in the specification yaml file
             spec_block_ = await SpecBlock.get_row_by_fullname(session, include_)
             update_include_dict(
                 include_data,
@@ -250,7 +252,7 @@ async def load_specification(
     specification: Specification
         Newly created Specification
     """
-    if loaded_specs is None:
+    if loaded_specs is None:  # pragma: no cover
         loaded_specs = {}
 
     specification = None
@@ -530,7 +532,7 @@ async def load_manifest_report(
             diagnostic_message_list = failed_quanta_data_["error"]
             if diagnostic_message_list:
                 diagnostic_message = diagnostic_message_list[-1]
-            else:
+            else:  # pragma: no cover
                 diagnostic_message = "Super-unhelpful empty message"
 
             error_type_id = await match_pipetask_error(
