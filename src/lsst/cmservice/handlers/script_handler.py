@@ -325,6 +325,7 @@ class ScriptHandler(BaseScriptHandler):
         stamp_file: str,
         script: Script,
         parent: ElementMixin,
+        fake_status: StatusEnum | None = None,
     ) -> StatusEnum:
         """Get `Script` status from a stamp file
 
@@ -342,12 +343,16 @@ class ScriptHandler(BaseScriptHandler):
         parent: ElementMixin
             Parent Element of the `Script` in question
 
+        fake_status: StatusEnum | None,
+            If set, don't actually check the job, set status to fake_status
+
         Returns
         -------
         status : StatusEnum
             The status of the processing
         """
-        status = check_stamp_file(stamp_file, script.status)
+        default_status = script.status if fake_status is None else fake_status
+        status = check_stamp_file(stamp_file, default_status)
         if status != script.status:
             await script.update_values(session, status=status)
         return status
@@ -508,26 +513,23 @@ class ScriptHandler(BaseScriptHandler):
     ) -> StatusEnum:
         fake_status = kwargs.get("fake_status", None)
 
-        if script.status not in [StatusEnum.running]:
-            return script.status
-
         script_method = script.method
         if script_method == ScriptMethodEnum.default:
             script_method = self.default_method
 
         if script_method == ScriptMethodEnum.no_script:  # pragma: no cover
             raise CMBadExecutionMethodError("ScriptMethodEnum.no_script can not be set for ScriptHandler")
-        if not script.stamp_url:  # pragma: no cover
-            raise CMMissingNodeUrlError(f"stamp_url is not set for {script}")
 
         if script_method == ScriptMethodEnum.bash:
-            status = await self._check_stamp_file(session, script.stamp_url, script, parent)
+            status = await self._check_stamp_file(session, script.stamp_url, script, parent, fake_status)
         elif script_method == ScriptMethodEnum.slurm:
             status = await self._check_slurm_job(session, script.stamp_url, script, parent, fake_status)
         elif script_method == ScriptMethodEnum.htcondor:
             status = await self._check_htcondor_job(session, script.stamp_url, script, parent, fake_status)
         else:  # pragma: no cover
             raise CMBadExecutionMethodError(f"Bad script method {script_method}")
+        if fake_status is not None:
+            status = fake_status
         if status == StatusEnum.failed:
             if not script.log_url:  # pragma: no cover
                 raise CMMissingNodeUrlError(f"log_url is not set for {script}")
