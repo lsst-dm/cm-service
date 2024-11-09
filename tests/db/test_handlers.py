@@ -16,6 +16,32 @@ from .util_functions import cleanup, create_tree
 
 
 @pytest.mark.asyncio()
+async def check_run_script(
+    session: async_scoped_session,
+    parent: db.ElementMixin,
+    script_name: str,
+    spec_block_name: str,
+    **kwargs: Any,
+) -> None:
+    script = await db.Script.create_row(
+        session,
+        parent_name=parent.fullname,
+        name=script_name,
+        spec_block_name=spec_block_name,
+        **kwargs,
+    )
+    assert script.name == script_name
+
+    _changed, status = await interface.process(
+        session,
+        f"script:{script.fullname}",
+        fake_status=StatusEnum.accepted,
+    )
+    # FIXME
+    assert status.value >= StatusEnum.running.value
+
+
+@pytest.mark.asyncio()
 async def check_script(
     session: async_scoped_session,
     parent: db.ElementMixin,
@@ -62,7 +88,7 @@ async def test_handlers_campaign_level_db(
         session = await create_async_session(engine, logger)
         os.environ["CM_CONFIGS"] = "examples"
 
-        await create_tree(session, LevelEnum.step, 0)
+        await create_tree(session, LevelEnum.campaign, 0)
 
         campaign = (await db.Campaign.get_rows(session))[0]
 
@@ -81,6 +107,8 @@ async def test_handlers_campaign_level_db(
             lsst_distrib_dir="lsst_distrib_dir",
             resource_usage_script_template="stack_script_template",
         )
+
+        await check_run_script(session, campaign, "run", "run_steps", collections=collections)
 
         await check_script(session, campaign, "null", "null_script", collections=collections)
 
@@ -142,7 +170,49 @@ async def test_handlers_step_level_db(
             output="{campaign_output}",
         )
 
+        await check_run_script(session, step, "run", "run_groups", collections=collections)
+
         await check_script(session, step, "prepare_step", "prepare_step_script", collections=collections)
+
+        await cleanup(session, check_cascade=True)
+
+
+@pytest.mark.asyncio()
+async def test_handlers_group_level_db(
+    engine: AsyncEngine,
+    tmp_path: Path,
+) -> None:
+    """Test to run the write and purge methods of various scripts"""
+
+    logger = structlog.get_logger(config.logger_name)
+    async with engine.begin():
+        session = await create_async_session(engine, logger)
+        os.environ["CM_CONFIGS"] = "examples"
+        await create_tree(session, LevelEnum.group, 0)
+
+        group = (await db.Group.get_rows(session))[0]
+
+        collections = dict(
+            out="out",
+            run="run",
+            campaign_input="campaign_input",
+            campaign_source="campaign_source",
+            campaign_output="campaign_output",
+            inputs="inputs",
+            input="input",
+            output="{campaign_output}",
+        )
+
+        dict(
+            lsst_distrib_dir="lsst_distrib_dir",
+            bps_core_yaml_template="bps_core_yaml_template",
+            bps_core_script_template="bps_core_script_template",
+            bps_panda_script_template="bps_panda_script_template",
+            bps_htcondor_script_template="bps_htcondor_script_template",
+            manifest_script_template="stack_script_template",
+        )
+
+        await check_run_script(session, group, "run", "run_jobs", collections=collections)
 
         await cleanup(session, check_cascade=True)
 
