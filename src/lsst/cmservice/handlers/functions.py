@@ -10,7 +10,7 @@ from lsst.ctrl.bps.bps_reports import compile_job_summary
 from lsst.ctrl.bps.wms_service import WmsJobReport, WmsRunReport, WmsStates
 
 from ..common.enums import StatusEnum
-from ..common.errors import CMYamlParseError
+from ..common.errors import CMMissingFullnameError, CMYamlParseError
 from ..db.campaign import Campaign
 from ..db.job import Job
 from ..db.pipetask_error import PipetaskError
@@ -424,6 +424,8 @@ async def load_manifest_report(
     job_name: str,
     yaml_file: str,
     fake_status: StatusEnum | None = None,
+    *,
+    allow_update: bool = False,
 ) -> Job:
     """Parse and load output of pipetask report
 
@@ -440,6 +442,9 @@ async def load_manifest_report(
 
     fake_status: StatusEnum | None
         If set, return this status
+
+    allow_update: bool
+        If set, allow updating values
 
     Returns
     -------
@@ -461,25 +466,25 @@ async def load_manifest_report(
         n_failed_upstream = task_data_.get("n_quanta_blocked", 0)
         n_done = task_data_.get("n_succeeded", 0)
 
+        task_fullname = f"{job_name}/{task_name_}"
         try:
+            task_set = await TaskSet.get_row_by_fullname(session, task_fullname)
+            if allow_update:
+                task_set = await TaskSet.update_row(
+                    session,
+                    row_id=task_set.id,
+                    job_id=job.id,
+                    name=task_name_,
+                    fullname=task_fullname,
+                    n_expected=n_expected,
+                    n_done=n_done,
+                )
+        except CMMissingFullnameError:
             task_set = await TaskSet.create_row(
                 session,
                 job_id=job.id,
                 name=task_name_,
-                fullname=f"{job_name}/{task_name_}",
-                n_expected=n_expected,
-                n_done=n_done,
-                n_failed=n_failed,
-                n_failed_upstream=n_failed_upstream,
-            )
-        except Exception:  # pylint: disable=broad-exception-caught
-            task_set = await TaskSet.get_row_by_fullname(session, f"{job_name}/{task_name_}")
-            task_set = await TaskSet.update_row(
-                session,
-                row_id=task_set.id,
-                job_id=job.id,
-                name=task_name_,
-                fullname=f"{job_name}/{task_name_}",
+                fullname=task_fullname,
                 n_expected=n_expected,
                 n_done=n_done,
                 n_failed=n_failed,
@@ -487,27 +492,29 @@ async def load_manifest_report(
             )
 
         for data_type_, counts_ in outputs.items():
+            product_fullname = f"{task_set.fullname}/{data_type_}"
             try:
-                product_set = await ProductSet.create_row(
-                    session,
-                    job_id=job.id,
-                    task_id=task_set.id,
-                    name=data_type_,
-                    fullname=f"{task_set.fullname}/{data_type_}",
-                    n_expected=counts_.get("expected", 0),
-                    n_done=counts_.get("produced", 0),
-                    n_failed=counts_.get("failed", 0),
-                    n_failed_upstream=counts_.get("blocked", 0),
-                    n_missing=counts_.get("not_produced", 0),
-                )
-            except Exception:  # pylint: disable=broad-exception-caught
                 product_set = await ProductSet.get_row_by_fullname(
                     session,
-                    f"{task_set.fullname}/{data_type_}",
+                    product_fullname,
                 )
-                product_set = await ProductSet.update_row(
+                if allow_update:
+                    product_set = await ProductSet.update_row(
+                        session,
+                        row_id=product_set.id,
+                        job_id=job.id,
+                        task_id=task_set.id,
+                        name=data_type_,
+                        fullname=product_fullname,
+                        n_expected=counts_.get("expected", 0),
+                        n_done=counts_.get("produced", 0),
+                        n_failed=counts_.get("failed", 0),
+                        n_failed_upstream=counts_.get("blocked", 0),
+                        n_missing=counts_.get("not_produced", 0),
+                    )
+            except CMMissingFullnameError:
+                product_set = await ProductSet.create_row(
                     session,
-                    row_id=product_set.id,
                     job_id=job.id,
                     task_id=task_set.id,
                     name=data_type_,
@@ -531,14 +538,30 @@ async def load_manifest_report(
                 task_name_,
                 diagnostic_message,
             )
-            _new_pipetask_error = await PipetaskError.create_row(
-                session,
-                error_type_id=error_type_id,
-                task_id=task_set.id,
-                quanta=failed_quanta_uuid_,
-                data_id=failed_quanta_data_["data_id"],
-                diagnostic_message=diagnostic_message,
-            )
+            try:
+                pipetask_error = await PipetaskError.get_row_by_fullname(
+                    session,
+                    failed_quanta_uuid_,
+                )
+                if allow_update:
+                    pipetask_error = await PipetaskError.update_row(
+                        session,
+                        row_id=pipetask_error.id,
+                        error_type_id=error_type_id,
+                        task_id=task_set.id,
+                        quanta=failed_quanta_uuid_,
+                        data_id=failed_quanta_data_["data_id"],
+                        diagnostic_message=diagnostic_message,
+                    )
+            except CMMissingFullnameError:
+                pipetask_error = await PipetaskError.create_row(
+                    session,
+                    error_type_id=error_type_id,
+                    task_id=task_set.id,
+                    quanta=failed_quanta_uuid_,
+                    data_id=failed_quanta_data_["data_id"],
+                    diagnostic_message=diagnostic_message,
+                )
 
     return job
 
