@@ -227,16 +227,19 @@ class Group(Base, ElementMixin):
         ret_list = []
         for job_ in jobs:
             if job_.status == StatusEnum.rescuable:
-                await job_.update_values(session, status=StatusEnum.rescued)
                 ret_list.append(job_)
-            elif job_.status != StatusEnum.accepted:
-                raise CMBadStateTransitionError(
-                    f"Job should be rescuable or accepted: {job_.fullname} is {job_.status}",
-                )
-            else:
+            elif job_.status == StatusEnum.rescued:
+                pass
+            elif job_.status == StatusEnum.accepted:
                 if has_accepted:
                     raise CMTooManyActiveScriptsError(f"More that one accepted job found: {job_.fullname}")
                 has_accepted = True
+            else:
+                raise CMBadStateTransitionError(
+                    f"Job should be rescuable or accepted: {job_.fullname} is {job_.status}",
+                )
         if not has_accepted:
             raise CMTooFewAcceptedJobsError(f"Expected at least one accepted job for {self.fullname}, got 0")
+        for job_ in ret_list:
+            await job_.update_values(session, status=StatusEnum.rescued)
         return ret_list
