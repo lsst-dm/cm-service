@@ -353,8 +353,7 @@ class ScriptHandler(BaseScriptHandler):
         """
         default_status = script.status if fake_status is None else fake_status
         status = check_stamp_file(stamp_file, default_status)
-        if status != script.status:
-            await script.update_values(session, status=status)
+        await script.update_values(session, status=status)
         return status
 
     async def _check_slurm_job(  # pylint: disable=unused-argument
@@ -390,8 +389,7 @@ class ScriptHandler(BaseScriptHandler):
             The status of the processing
         """
         status = check_slurm_job(slurm_id, fake_status)
-        if status != script.status:
-            await script.update_values(session, status=status)
+        await script.update_values(session, status=status)
         return status
 
     async def _check_htcondor_job(  # pylint: disable=unused-argument
@@ -427,8 +425,7 @@ class ScriptHandler(BaseScriptHandler):
             The status of the processing
         """
         status = check_htcondor_job(htcondor_id, fake_status)
-        if status != script.status:
-            await script.update_values(session, status=status)
+        await script.update_values(session, status=status)
         return status
 
     async def prepare(
@@ -451,8 +448,7 @@ class ScriptHandler(BaseScriptHandler):
             status = await self._write_script(session, script, parent, **kwargs)
         elif script_method == ScriptMethodEnum.htcondor:
             status = await self._write_script(session, script, parent, **kwargs)
-        if status != script.status:
-            await script.update_values(session, status=status)
+        await script.update_values(session, status=status)
         return status
 
     async def launch(
@@ -468,7 +464,6 @@ class ScriptHandler(BaseScriptHandler):
 
         if script_method == ScriptMethodEnum.no_script:  # pragma: no cover
             raise CMBadExecutionMethodError("ScriptMethodEnum.no_script can not be set for ScriptHandler")
-        orig_status = script.status
         if not script.script_url:  # pragma: no cover
             raise CMMissingNodeUrlError(f"script_url is not set for {script}")
         if not script.log_url:  # pragma: no cover
@@ -500,8 +495,7 @@ class ScriptHandler(BaseScriptHandler):
             await script.update_values(session, stamp_url=htcondor_log, status=status)
         else:  # pragma: no cover
             raise CMBadExecutionMethodError(f"Method {script_method} not valid for {script}")
-        if status != orig_status:
-            await script.update_values(session, status=status)
+        await script.update_values(session, status=status)
         return status
 
     async def check(
