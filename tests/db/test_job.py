@@ -95,39 +95,43 @@ async def test_job_db(engine: AsyncEngine) -> None:
 
         # check on the rescue job
         with pytest.raises(errors.CMTooFewAcceptedJobsError):
-            new_job = await parent.rescue_job(session)
+            await parent.rescue_job(session)
 
-        await entry.update_values(session, status=StatusEnum.rescuable)
-        new_job = await parent.rescue_job(session)
+        await db.Job.update_row(session, entry.id, status=StatusEnum.rescuable)
+        job2 = await parent.rescue_job(session)
 
         with pytest.raises(errors.CMBadStateTransitionError):
             await parent.mark_job_rescued(session)
 
-        await entry.update_values(session, status=StatusEnum.rescuable)
+        await db.Job.update_row(session, entry.id, status=StatusEnum.rescuable)
         with pytest.raises(errors.CMBadStateTransitionError):
             await parent.mark_job_rescued(session)
 
-        await entry.update_values(session, status=StatusEnum.rescuable)
-        await new_job.update_values(session, status=StatusEnum.accepted)
+        await db.Job.update_row(session, entry.id, status=StatusEnum.rescuable)
+        await db.Job.update_row(session, job2.id, status=StatusEnum.accepted)
 
         rescued = await parent.mark_job_rescued(session)
         assert len(rescued) == 1, "Wrong number of rescued jobs"
 
-        await entry.update_values(session, status=StatusEnum.accepted)
+        await db.Job.update_row(session, entry.id, status=StatusEnum.accepted)
+        await db.Job.update_row(session, job2.id, status=StatusEnum.accepted)
         with pytest.raises(errors.CMTooManyActiveScriptsError):
             await parent.mark_job_rescued(session)
 
-        await entry.update_values(session, status=StatusEnum.rescuable)
-        await new_job.update_values(session, status=StatusEnum.rescuable)
+        await db.Job.update_row(session, entry.id, status=StatusEnum.rescuable)
+        await db.Job.update_row(session, job2.id, status=StatusEnum.rescuable)
+
+        job3 = await parent.rescue_job(session)
+
+        await db.Job.update_row(session, entry.id, status=StatusEnum.rescuable)
+        await db.Job.update_row(session, job2.id, status=StatusEnum.failed, superseded=True)
+        await db.Job.update_row(session, job3.id, status=StatusEnum.rescuable)
 
         with pytest.raises(errors.CMTooFewAcceptedJobsError):
             await parent.mark_job_rescued(session)
 
-        await entry.update_values(session, status=StatusEnum.rescuable)
-        await new_job.update_values(session, status=StatusEnum.rescuable)
-
-        newest_job = await parent.rescue_job(session)
-        await newest_job.update_values(session, status=StatusEnum.accepted)
+        job4 = await parent.rescue_job(session)
+        await db.Job.update_row(session, job4.id, status=StatusEnum.accepted)
 
         rescued = await interface.mark_job_rescued(session, parent.fullname)
         assert len(rescued) == 2, "Wrong number of rescued jobs"
