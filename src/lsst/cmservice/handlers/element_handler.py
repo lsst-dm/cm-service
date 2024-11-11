@@ -216,12 +216,11 @@ class ElementHandler(Handler):
         """
         scripts = await element.get_scripts(session, remaining_only=True)
         changed = False
-        if scripts:
-            for script_ in scripts:
-                (script_changed, _script_status) = await script_.process(session, **kwargs)
-                if script_changed:
-                    await script_.update_values(session, status=_script_status)
-                    changed = True
+        for script_ in scripts:
+            (script_changed, _script_status) = await script_.process(session, **kwargs)
+            if script_changed:
+                await script_.update_values(session, status=_script_status)
+                changed = True
         await element.update_values(session, status=StatusEnum.running)
         return (changed, StatusEnum.running)
 
@@ -326,8 +325,7 @@ class ElementHandler(Handler):
         changed = False
         for job_ in jobs:
             (job_changed, _job_status) = await job_.run_check(session, fake_status=fake_status)
-            if job_changed:
-                changed = True
+            changed |= job_changed
         return changed
 
     async def check(
@@ -370,8 +368,7 @@ class ElementHandler(Handler):
         if kwargs.get("do_checks", False):
             scripts_changed = await self._run_script_checks(session, element, **kwargs)
             jobs_changed = await self._run_job_checks(session, element, **kwargs)
-            if scripts_changed or jobs_changed:
-                changed = True
+            changed |= scripts_changed or jobs_changed
 
         remaining_only = not kwargs.get("force_check", False)
         status = StatusEnum.accepted
