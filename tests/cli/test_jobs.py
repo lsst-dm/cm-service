@@ -135,7 +135,7 @@ async def test_job_cli(uvicorn: UvicornProcess) -> None:
 
     fullpath = os.path.abspath("examples/manifest_report_2.yaml")
     result = runner.invoke(
-        client_top, f"load manifest-report --fullname {entry.fullname} " f"--yaml_file {fullpath}"
+        client_top, f"load manifest-report --fullname {entry.fullname} --yaml_file {fullpath}"
     )
     assert result.exit_code == 0
 
