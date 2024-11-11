@@ -238,8 +238,7 @@ class SplitByQuery(Splitter):
         ret_dict: dict = {"data": {}}
         for dq_ in data_queries:
             data_query = base_query
-            if dq_ is not None:
-                data_query += f" AND {dq_}"
+            data_query += f" AND {dq_}"
             ret_dict["data"]["data_query"] = data_query
             yield ret_dict
 

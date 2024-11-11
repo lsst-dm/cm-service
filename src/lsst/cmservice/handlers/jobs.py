@@ -248,9 +248,7 @@ class BpsScriptHandler(ScriptHandler):
             raise CMBadExecutionMethodError(f"Script {script} should not be run on {parent}")
 
         status = await ScriptHandler.launch(self, session, script, parent, **kwargs)
-
-        if status == StatusEnum.running:
-            await parent.update_values(session, stamp_url=script.stamp_url)
+        await parent.update_values(session, stamp_url=script.stamp_url)
         return status
 
     @classmethod
@@ -305,8 +303,7 @@ class BpsScriptHandler(ScriptHandler):
         except KeyError as msg:  # pragma: no cover
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
-        if to_status.value <= StatusEnum.running.value:
-            remove_run_collections(butler_repo, run_coll, fake_reset=fake_reset)
+        remove_run_collections(butler_repo, run_coll, fake_reset=fake_reset)
 
 
 class BpsReportHandler(FunctionHandler):
