@@ -1,5 +1,6 @@
 import os
 import sys
+from typing import Any
 
 import pytest
 
@@ -120,3 +121,24 @@ def test_add_sys_path() -> None:
     with utils.add_sys_path("examples"):
         assert "examples" in sys.path
     assert "examples" not in sys.path
+
+
+def test_update_include_dict() -> None:
+    """Test update_include_dict util"""
+    orig_dict: dict[str, Any] = dict(
+        alice="a",
+        bob=dict(
+            caleb="c",
+            david="d",
+        ),
+    )
+    include_dict: dict[str, Any] = dict(
+        bob=dict(
+            caleb="c",
+            david="d",
+            eric="e",
+        ),
+    )
+    utils.update_include_dict(orig_dict, include_dict)
+    assert orig_dict["alice"] == "a"
+    assert orig_dict["bob"]["eric"] == "e"

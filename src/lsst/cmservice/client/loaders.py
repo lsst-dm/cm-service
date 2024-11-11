@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 import httpx
@@ -10,32 +9,13 @@ import yaml
 from .. import models
 from ..common.enums import ErrorActionEnum, ErrorFlavorEnum, ErrorSourceEnum
 from ..common.errors import CMYamlParseError
+from ..common.utils import update_include_dict
 from . import wrappers
 
 if TYPE_CHECKING:
     from pydantic import BaseModel
 
     from .client import CMClient
-
-
-def update_include_dict(
-    orig_dict: dict[str, Any],
-    include_dict: dict[str, Any],
-) -> None:
-    """Update a dict by updating (instead of replacing) sub-dicts
-
-    Parameters
-    ----------
-    orig_dict: dict[str, Any]
-        Original dict
-    include_dict: dict[str, Any],
-        Dict used to update the original
-    """
-    for key, val in include_dict.items():
-        if isinstance(val, Mapping) and key in orig_dict:
-            orig_dict[key].update(val)
-        else:
-            orig_dict[key] = val
 
 
 class CMLoadClient:

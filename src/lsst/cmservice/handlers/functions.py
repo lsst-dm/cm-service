@@ -11,6 +11,7 @@ from lsst.ctrl.bps.wms_service import WmsJobReport, WmsRunReport, WmsStates
 
 from ..common.enums import StatusEnum
 from ..common.errors import CMMissingFullnameError, CMYamlParseError
+from ..common.utils import update_include_dict
 from ..db.campaign import Campaign
 from ..db.job import Job
 from ..db.pipetask_error import PipetaskError
@@ -23,26 +24,6 @@ from ..db.step import Step
 from ..db.step_dependency import StepDependency
 from ..db.task_set import TaskSet
 from ..db.wms_task_report import WmsTaskReport
-
-
-def update_include_dict(
-    orig_dict: dict[str, Any],
-    include_dict: dict[str, Any],
-) -> None:
-    """Update a dict by updating (instead of replacing) sub-dicts
-
-    Parameters
-    ----------
-    orig_dict: dict[str, Any]
-        Original dict
-    include_dict: dict[str, Any],
-        Dict used to update the original
-    """
-    for key, val in include_dict.items():
-        if isinstance(val, Mapping) and key in orig_dict:
-            orig_dict[key].update(val)
-        else:
-            orig_dict[key] = val
 
 
 async def upsert_spec_block(
