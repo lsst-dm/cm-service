@@ -35,6 +35,18 @@ async def test_campaign_routes(client: AsyncClient) -> None:
     campaigns = check_and_parse_response(response, list[models.Campaign])
     entry = campaigns[0]
 
+    add_steps_query = models.AddSteps(
+        fullname=entry.fullname,
+        child_configs=[],
+    )
+
+    response = await client.post(
+        f"{config.prefix}/load/steps",
+        content=add_steps_query.model_dump_json(),
+    )
+    campaign_check = check_and_parse_response(response, models.Campaign)
+    assert entry.id == campaign_check.id
+
     # check get methods
     await check_get_methods(client, entry, "campaign", models.Campaign, models.Production)
 
