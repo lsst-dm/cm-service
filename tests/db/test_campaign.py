@@ -114,7 +114,7 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
 
         entry = check_getall[0]  # defining single unit for later
 
-        campaign_check = interface.add_steps(session, entry.fullname, [])
+        campaign_check = await interface.add_steps(session, entry.fullname, [])
         assert entry.id == campaign_check.id
 
         with pytest.raises(errors.CMMissingRowCreateInputError):
