@@ -584,12 +584,11 @@ class ScriptHandler(BaseScriptHandler):
         fake_reset: bool = False,
     ) -> dict[str, Any]:
         update_fields: dict[str, Any] = {}
-        if to_status.value <= StatusEnum.prepared.value:
-            update_fields["stamp_url"] = None
-            if script.log_url and os.path.exists(script.log_url):  # pragma: no cover
-                os.unlink(script.log_url)
-            if script.stamp_url and os.path.exists(script.stamp_url):
-                os.unlink(script.stamp_url)
+        update_fields["stamp_url"] = None
+        if script.log_url and os.path.exists(script.log_url):  # pragma: no cover
+            os.unlink(script.log_url)
+        if script.stamp_url and os.path.exists(script.stamp_url):
+            os.unlink(script.stamp_url)
         if to_status.value <= StatusEnum.ready.value:
             if script.script_url:
                 os.unlink(script.script_url)
