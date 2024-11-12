@@ -217,6 +217,11 @@ async def test_handlers_group_level_db(
         )
 
         run_jobs = await check_run_script(session, group, "run", "run_jobs", collections=collections)
+        _changed, status = await interface.process(
+            session,
+            f"script:{run_jobs.fullname}",
+            fake_status=StatusEnum.accepted,
+        )
 
         await db.Script.update_row(session, run_jobs.id, status=StatusEnum.reviewable)
 
@@ -224,6 +229,8 @@ async def test_handlers_group_level_db(
             session,
             f"script:{run_jobs.fullname}",
         )
+
+        assert status.value >= StatusEnum.reviewable.value
 
         await cleanup(session, check_cascade=True)
 
