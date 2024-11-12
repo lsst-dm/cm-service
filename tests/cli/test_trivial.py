@@ -32,7 +32,7 @@ async def test_cli_trivial_campaign(uvicorn: UvicornProcess) -> None:
     result = runner.invoke(
         client_top,
         f"load campaign --yaml_file {yaml_file} --name test --parent_name trivial "
-        "--spec_block_name campaign --spec_name trivial_htcondor "
+        "--spec_block_name campaign --spec_name trivial_htcondor --data dummy:a "
         "--campaign_yaml examples/start_trivial.yaml --output yaml",
     )
     campaign = check_and_parse_result(result, models.Campaign)
