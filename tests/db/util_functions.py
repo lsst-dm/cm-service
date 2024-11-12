@@ -345,11 +345,28 @@ async def check_scripts(
     assert check.status == StatusEnum.waiting, "Failed to retry script"
 
     await scripts[0].update_values(session, status=StatusEnum.failed)
+
+    with pytest.raises(errors.CMBadStateTransitionError):
+        await interface.reset_script(session, scripts[0].fullname, StatusEnum.accepted)
+
+    check = await interface.reset_script(session, scripts[0].fullname, StatusEnum.prepared)
+    assert check.status == StatusEnum.prepared, "Failed to reset script to prepared"
+
+    check = await interface.reset_script(session, scripts[0].fullname, StatusEnum.ready)
+    assert check.status == StatusEnum.ready, "Failed to reset script to ready"
+
+    with pytest.raises(errors.CMBadStateTransitionError):
+        await interface.reset_script(session, scripts[0].fullname, StatusEnum.prepared)
+
     check = await interface.reset_script(session, scripts[0].fullname, StatusEnum.waiting)
-    assert check.status == StatusEnum.waiting, "Failed to reset script"
+    assert check.status == StatusEnum.waiting, "Failed to reset script to waiting"
 
     sleep_time = await scripts[0].estimate_sleep_time(session)
     assert sleep_time == 10
+
+    await scripts[0].update_values(session, status=StatusEnum.accepted)
+    with pytest.raises(errors.CMBadStateTransitionError):
+        await interface.reset_script(session, scripts[0].fullname, StatusEnum.waiting)
 
 
 async def check_get_methods(

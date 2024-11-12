@@ -35,6 +35,9 @@ def test_common_bash() -> None:
     bps_dict = bash.parse_bps_stdout("examples/bps_stdout.log")
     assert bps_dict["run_id"].strip() == "334"
 
+    diag_message = bash.get_diagnostic_message("examples/bps_stdout.log")
+    assert diag_message == "dummy: ada"
+
 
 def test_common_table_enums() -> None:
     """Test common.enums.TableEnum"""

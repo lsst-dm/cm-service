@@ -22,7 +22,7 @@ async def check_run_script(
     script_name: str,
     spec_block_name: str,
     **kwargs: Any,
-) -> None:
+) -> db.Script:
     script = await db.Script.create_row(
         session,
         parent_name=parent.fullname,
@@ -35,10 +35,12 @@ async def check_run_script(
     _changed, status = await interface.process(
         session,
         f"script:{script.fullname}",
-        fake_status=StatusEnum.accepted,
+        fake_status=StatusEnum.reviewable,
     )
     # FIXME
     assert status.value >= StatusEnum.running.value
+
+    return script
 
 
 @pytest.mark.asyncio()
@@ -48,7 +50,7 @@ async def check_script(
     script_name: str,
     spec_block_name: str,
     **kwargs: Any,
-) -> None:
+) -> db.Script:
     script = await db.Script.create_row(
         session,
         parent_name=parent.fullname,
@@ -74,6 +76,8 @@ async def check_script(
 
     status = await script.reset_script(session, to_status=StatusEnum.waiting, fake_reset=True)
     assert status == StatusEnum.waiting
+
+    return script
 
 
 @pytest.mark.asyncio()
@@ -212,7 +216,14 @@ async def test_handlers_group_level_db(
             manifest_script_template="stack_script_template",
         )
 
-        await check_run_script(session, group, "run", "run_jobs", collections=collections)
+        run_jobs = await check_run_script(session, group, "run", "run_jobs", collections=collections)
+
+        await db.Script.update_row(session, run_jobs.id, status=StatusEnum.reviewable)
+
+        _changed, status = await interface.process(
+            session,
+            f"script:{run_jobs.fullname}",
+        )
 
         await cleanup(session, check_cascade=True)
 

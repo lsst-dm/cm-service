@@ -41,6 +41,8 @@ async def test_reports_db(engine: AsyncEngine) -> None:
 
         entry = check_getall[0]  # defining single unit for later
 
+        parent = await entry.get_parent(session)
+
         await interface.load_error_types(
             session,
             "examples/error_types.yaml",
@@ -89,6 +91,70 @@ async def test_reports_db(engine: AsyncEngine) -> None:
             entry.fullname,
             allow_update=True,
         )
+
+        await db.Job.update_row(
+            session,
+            entry.id,
+            status=StatusEnum.rescuable,
+        )
+
+        job2 = await parent.rescue_job(session)
+
+        await interface.load_manifest_report(
+            session,
+            "examples/manifest_report_fail_error.yaml",
+            job2.fullname,
+        )
+        status_check = await functions.compute_job_status(
+            session,
+            job2,
+        )
+        assert status_check == StatusEnum.reviewable
+        _changed, status_check = await job2.run_check(
+            session,
+            do_checks=False,
+        )
+        assert status_check == StatusEnum.failed
+        await db.Job.update_row(session, job2.id, superseded=True)
+
+        job3 = await parent.rescue_job(session)
+
+        await interface.load_manifest_report(
+            session,
+            "examples/manifest_report_review_error.yaml",
+            job3.fullname,
+        )
+        status_check = await functions.compute_job_status(
+            session,
+            job3,
+        )
+        assert status_check == StatusEnum.reviewable
+        _changed, status_check = await job3.run_check(
+            session,
+            do_checks=False,
+        )
+        assert status_check == StatusEnum.reviewable
+
+        await db.Job.update_row(session, job3.id, status=StatusEnum.rescuable)
+
+        job4 = await parent.rescue_job(session)
+        await interface.load_manifest_report(
+            session,
+            "examples/manifest_report_accept_error.yaml",
+            job4.fullname,
+        )
+        status_check = await functions.compute_job_status(
+            session,
+            job4,
+        )
+        assert status_check == StatusEnum.reviewable
+        _changed, status_check = await job4.run_check(
+            session,
+            do_checks=False,
+        )
+        assert status_check == StatusEnum.accepted
+
+        await parent.mark_job_rescued(session)
 
         # cleanup
         await cleanup(session)

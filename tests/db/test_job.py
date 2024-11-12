@@ -123,7 +123,7 @@ async def test_job_db(engine: AsyncEngine) -> None:
 
         job3 = await parent.rescue_job(session)
 
-        await db.Job.update_row(session, entry.id, status=StatusEnum.rescuable)
+        await db.Job.update_row(session, entry.id, status=StatusEnum.rescued)
         await db.Job.update_row(session, job2.id, status=StatusEnum.failed, superseded=True)
         await db.Job.update_row(session, job3.id, status=StatusEnum.rescuable)
 
@@ -134,7 +134,7 @@ async def test_job_db(engine: AsyncEngine) -> None:
         await db.Job.update_row(session, job4.id, status=StatusEnum.accepted)
 
         rescued = await interface.mark_job_rescued(session, parent.fullname)
-        assert len(rescued) == 2, "Wrong number of rescued jobs"
+        assert len(rescued) == 1, "Wrong number of rescued jobs"
 
         # make and test queue object
         await check_queue(session, entry)
