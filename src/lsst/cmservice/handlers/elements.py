@@ -101,8 +101,8 @@ class RunJobsScriptHandler(RunElementScriptHandler):
         jobs = await parent.get_jobs(session, remaining_only=not kwargs.get("force_check", False))
         fake_status = kwargs.get("fake_status", None)
         for job_ in jobs:
-            job_status = await job_.run_check(session, fake_status=fake_status)
-            if job_status < StatusEnum.accepted:
+            _changed, job_status = await job_.run_check(session, fake_status=fake_status)
+            if job_status.value < StatusEnum.accepted.value:
                 status = StatusEnum.reviewable  # FIXME
                 await script.update_values(session, status=status)
                 return status
