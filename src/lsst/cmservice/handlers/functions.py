@@ -516,11 +516,13 @@ async def load_manifest_report(
             else:  # pragma: no cover
                 diagnostic_message = "Super-unhelpful empty message"
 
-            error_type_id = await match_pipetask_error(
+            error_type = await match_pipetask_error(
                 session,
                 task_name_,
                 diagnostic_message,
             )
+
+            error_type_id = error_type.id if error_type is not None else None
             try:
                 pipetask_error = await PipetaskError.get_row_by_fullname(
                     session,
