@@ -41,15 +41,13 @@ class JobHandler(ElementHandler):
             if error_type_.error_action == ErrorActionEnum.fail:
                 is_failure = True
                 break
-
-            if error_type_.error_action == ErrorActionEnum.review:
+            elif error_type_.error_action == ErrorActionEnum.review:
                 requires_review = True
                 continue
-
-            if error_type_.error_action == ErrorActionEnum.accept:
+            elif error_type_.error_action == ErrorActionEnum.accept:
                 continue
-
-            raise CMBadEnumError(f"Unexpected ErrorActionnEnum {error_type_.error_action}")
+            else:  # pragma: no cover
+                raise CMBadEnumError(f"Unexpected ErrorActionnEnum {error_type_.error_action}")
 
         if is_failure:
             return StatusEnum.failed

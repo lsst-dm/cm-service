@@ -392,8 +392,7 @@ class BpsReportHandler(FunctionHandler):
         fake_status = kwargs.get("fake_status", None)
         status = await self._load_wms_reports(session, parent, parent.wms_job_id, fake_status=fake_status)
         status = script.status if status is None else status
-        if status != script.status:
-            await script.update_values(session, status=status)
+        await script.update_values(session, status=status)
         return status
 
     async def _reset_script(
@@ -518,8 +517,7 @@ class ManifestReportLoadHandler(FunctionHandler):
         fake_status = kwargs.get("fake_status", None)
         status = await self._load_pipetask_report(session, parent, script.stamp_url, fake_status=fake_status)
         status = status if fake_status is None else fake_status
-        if status != script.status:
-            await script.update_values(session, status=status)
+        await script.update_values(session, status=status)
         return status
 
     async def _load_pipetask_report(

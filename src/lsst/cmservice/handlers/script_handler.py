@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-from ..common.bash import check_stamp_file, run_bash_job
+from ..common.bash import check_stamp_file, get_diagnostic_message, run_bash_job
 from ..common.enums import ErrorSourceEnum, ScriptMethodEnum, StatusEnum
 from ..common.errors import (
     CMBadExecutionMethodError,
@@ -435,9 +435,7 @@ class ScriptHandler(BaseScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        script_method = script.method
-        if script_method == ScriptMethodEnum.default:
-            script_method = self.default_method
+        script_method = self.default_method if script.method == ScriptMethodEnum.default else script.method
 
         status = script.status
         if script_method == ScriptMethodEnum.no_script:  # pragma: no cover
@@ -448,6 +446,8 @@ class ScriptHandler(BaseScriptHandler):
             status = await self._write_script(session, script, parent, **kwargs)
         elif script_method == ScriptMethodEnum.htcondor:
             status = await self._write_script(session, script, parent, **kwargs)
+        else:  # pragma: no cover
+            raise CMBadExecutionMethodError(f"Bad script method {script_method}")
         await script.update_values(session, status=status)
         return status
 
@@ -507,9 +507,7 @@ class ScriptHandler(BaseScriptHandler):
     ) -> StatusEnum:
         fake_status = kwargs.get("fake_status", None)
 
-        script_method = script.method
-        if script_method == ScriptMethodEnum.default:
-            script_method = self.default_method
+        script_method = self.default_method if script.method == ScriptMethodEnum.default else script.method
 
         if script_method == ScriptMethodEnum.no_script:  # pragma: no cover
             raise CMBadExecutionMethodError("ScriptMethodEnum.no_script can not be set for ScriptHandler")
@@ -527,7 +525,7 @@ class ScriptHandler(BaseScriptHandler):
         if status == StatusEnum.failed:
             if not script.log_url:  # pragma: no cover
                 raise CMMissingNodeUrlError(f"log_url is not set for {script}")
-            diagnostic_message = await self._get_diagnostic_message(script.log_url)
+            diagnostic_message = await get_diagnostic_message(script.log_url)
             _new_error = await ScriptError.create_row(
                 session,
                 script_id=script.id,
@@ -537,16 +535,6 @@ class ScriptHandler(BaseScriptHandler):
         if status != script.status:
             await script.update_values(session, status=status)
         return status
-
-    async def _get_diagnostic_message(
-        self,
-        log_url: str,
-    ) -> str:
-        with open(log_url, encoding="utf-8") as fin:
-            lines = fin.readlines()
-            if lines:
-                return lines[-1]
-            return "Empty log file"
 
     async def _write_script(
         self,
@@ -666,8 +654,7 @@ class FunctionHandler(BaseScriptHandler):
         if script_method != ScriptMethodEnum.no_script:  # pragma: no cover
             raise CMBadExecutionMethodError(f"ScriptMethodEnum.no_script must be set for {type(self)}")
         status = await self._do_check(session, script, parent, **kwargs)
-        if status != script.status:
-            await script.update_values(session, status=status)
+        await script.update_values(session, status=status)
         return status
 
     async def _do_prepare(  # pylint: disable=unused-argument
