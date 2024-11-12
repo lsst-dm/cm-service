@@ -81,11 +81,11 @@ class DictParamType(click.ParamType):
         ... def command(param):
         ...     ...
 
-        CLI: command --param='page:1; name=Items; rules=1, 2, three; extra=A,;'
+        CLI: command --param='page:1; name:Items; rules:1, 2, three; extra:A,;'
 
     Example
     -------
-        >>> param_value = 'page=1; name=Items; rules:1, 2, three; extra=A,;'
+        >>> param_value = 'page:1; name:Items; rules:1, 2, three; extra:A,;'
         >>> DictParamType().convert(param_value, None, None)
         {'page': 1, 'name': 'Items', 'rules': [1, 2, 'three'], 'extra': ['A']}`
 
