@@ -19,7 +19,7 @@ async def get_diagnostic_message(
     with open(log_url, encoding="utf-8") as fin:
         lines = fin.readlines()
         if lines:
-            return lines[-1]
+            return lines[-1].strip()
         return "Empty log file"
 
 
