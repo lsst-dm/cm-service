@@ -11,6 +11,18 @@ from .enums import StatusEnum
 from .errors import CMBashSubmitError
 
 
+async def get_diagnostic_message(
+    log_url: str,
+) -> str:
+    """Read the last line of a log file, aspirational hoping
+    that it contains a diagnostic error message"""
+    with open(log_url, encoding="utf-8") as fin:
+        lines = fin.readlines()
+        if lines:
+            return lines[-1]
+        return "Empty log file"
+
+
 def parse_bps_stdout(url: str) -> dict[str, str]:
     """Parse the std from a bps submit job"""
     out_dict = {}
