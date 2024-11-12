@@ -7,7 +7,8 @@ import pytest
 from lsst.cmservice.common import bash, enums, errors, htcondor, slurm, utils
 
 
-def test_common_bash() -> None:
+@pytest.mark.asyncio()
+async def test_common_bash() -> None:
     """Test common.bash utilities"""
 
     the_script = bash.write_bash_script(
@@ -35,7 +36,7 @@ def test_common_bash() -> None:
     bps_dict = bash.parse_bps_stdout("examples/bps_stdout.log")
     assert bps_dict["run_id"].strip() == "334"
 
-    diag_message = bash.get_diagnostic_message("examples/bps_stdout.log")
+    diag_message = await bash.get_diagnostic_message("examples/bps_stdout.log")
     assert diag_message == "dummy: ada"
 
 
