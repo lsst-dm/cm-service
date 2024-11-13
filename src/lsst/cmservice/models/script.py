@@ -54,6 +54,8 @@ class Script(ScriptBase):
     # Level of parent Node
     parent_level: LevelEnum
 
+    # Method used to process this script
+    method: ScriptMethodEnum = ScriptMethodEnum.slurm
     # ForeignKey giving associated Campaign
     c_id: int | None = None
     # ForeignKey giving associated Step
