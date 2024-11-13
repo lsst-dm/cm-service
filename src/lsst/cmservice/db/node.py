@@ -227,6 +227,7 @@ class NodeMixin(RowMixin):
         resolved_collections: dict = {}
         for name_, val_ in my_collections.items():
             if isinstance(val_, list):  # pragma: no cover
+                # FIXME, see if this is now being tested
                 resolved_collections[name_] = []
                 for item_ in val_:
                     try:

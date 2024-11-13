@@ -57,6 +57,8 @@ def get_rows_function(
     This version will provide a function which can be filtered
     based on the id of the parent node.
 
+    FIXME: we aren't using this version, but might want to
+
     Parameters
     ----------
     response_model_class: TypeAlias = BaseModel,

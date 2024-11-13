@@ -263,6 +263,8 @@ class Queue(Base, NodeMixin):
     ) -> None:  # pragma: no cover
         """Process associated node until it is done or requires
         intervention
+
+        FIXME: see about adding this to unit tests
         """
         can_continue = True
         while can_continue:

@@ -73,6 +73,8 @@ class CMLoadClient:
             if include_ in loaded_specs:
                 update_include_dict(include_data, loaded_specs[include_])
             else:  # pragma: no cover
+                # This is just in case the spec blocks are defined
+                # out of order in the specification file
                 spec_block_ = self._parent.spec_block.get_row_by_name(include_)
                 update_include_dict(
                     include_data,
@@ -372,7 +374,13 @@ class CMLoadClient:
         spec_name = camp_config["spec_name"]
 
         if yaml_file is None:  # pragma: no cover
-            self._parent.specification.get_row_by_name(spec_name)
+            # If yaml_file isn't given then the specifications
+            # should already exist
+            specfication = self._parent.specification.get_row_by_name(spec_name)
+            if specfication is None:
+                raise CMYamlParseError(
+                    f"Could not find 'Specification' {spec_name} in {campaign_yaml}",
+                )
         else:
             self.specification_cl(yaml_file, allow_update=allow_update)
 

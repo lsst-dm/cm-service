@@ -557,6 +557,8 @@ def status_from_bps_report(
 ) -> StatusEnum | None:  # pragma: no cover
     """Decide the status for a workflow for a bps report
 
+    FIXME: add to coverage
+
     Parameters
     ----------
     wms_run_report: WmsRunReport,
@@ -618,6 +620,8 @@ async def load_wms_reports(
     wms_run_report: WmsRunReport | None,
 ) -> Job:  # pragma: no cover
     """Parse and load output of bps report
+
+    FIXME: add to coverage
 
     Parameters
     ----------

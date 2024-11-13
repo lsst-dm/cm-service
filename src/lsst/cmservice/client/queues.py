@@ -130,6 +130,8 @@ class CMQueueClient:
             next_check = now + delta_t
         print(now, sleep_time, wait_time, delta_t, next_check)
         if now < next_check:  # pragma: no cover
+            # In unit tests we set queue.interval to zero
+            # so don't ever get to these lines
             print("pausing")
             pause.until(next_check)
 

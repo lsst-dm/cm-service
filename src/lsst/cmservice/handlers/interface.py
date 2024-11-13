@@ -686,6 +686,8 @@ async def match_pipetask_errors(  # pylint: disable=unused-argument
 ) -> list[db.PipetaskError]:
     """Match PipetaskErrors to PipetaskErrorTypes
 
+    FIXME: implement this function
+
     Parameters
     ----------
     session : async_scoped_session
