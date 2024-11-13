@@ -64,7 +64,15 @@ class RunElementScriptHandler(FunctionHandler):
 class RunJobsScriptHandler(RunElementScriptHandler):
     """Create a `Job` in the DB
 
-    FIXME
+    This will create a single job per group,
+    which ideally would process the workflow for
+    that group.
+
+    If needed rescue jobs can be attached to the
+    group.
+
+    The review_script method is there to check on the
+    status of the jobs.
     """
 
     async def _do_prepare(
@@ -103,7 +111,7 @@ class RunJobsScriptHandler(RunElementScriptHandler):
         for job_ in jobs:
             job_status = job_.status if fake_status is None else fake_status
             if job_status.value < StatusEnum.accepted.value:
-                status = StatusEnum.reviewable  # FIXME
+                status = StatusEnum.reviewable
                 await script.update_values(session, status=status)
                 return status
         status = StatusEnum.accepted

@@ -86,7 +86,7 @@ class RowMixin:
         parent_class = kwargs.get("parent_class")
 
         q = select(cls)
-        # TODO: Being a mixin leads to loose typing here.
+        # FIXME: Being a mixin leads to loose typing here.
         # Is there a better way?
         if hasattr(cls, "parent_id"):
             if parent_class is not None:

@@ -41,7 +41,7 @@ class JobHandler(ElementHandler):
             if error_type_.error_action == ErrorActionEnum.fail:
                 is_failure = True
                 break
-            elif error_type_.error_action == ErrorActionEnum.review:
+            if error_type_.error_action == ErrorActionEnum.review:
                 requires_review = True
                 continue
             elif error_type_.error_action == ErrorActionEnum.accept:

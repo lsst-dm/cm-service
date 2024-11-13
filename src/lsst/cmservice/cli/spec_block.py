@@ -18,8 +18,8 @@ create_options = [
     options.collections(),
     options.child_config(),
     options.spec_aliases(),
-    # options.scripts(),  FIXME
-    # options.steps(), FIXME
+    # options.scripts(), FIXME: does this belong in cli?
+    # options.steps(), FIXME: does this belong in cli?
     options.output(),
 ]
 update_options = [

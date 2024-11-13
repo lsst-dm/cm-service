@@ -541,7 +541,7 @@ class ValidateScriptHandler(ScriptHandler):
     This will create:
     `parent.collections['validation']`
 
-    FIXME (How? chained or tagged)
+    FIXME: what script do we actually run here?
     """
 
     async def _write_script(
@@ -560,7 +560,7 @@ class ValidateScriptHandler(ScriptHandler):
             butler_repo = data_dict["butler_repo"]
         except KeyError as msg:  # pragma: no cover
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
-        command = f"pipetask FIXME {butler_repo} {input_coll} {output_coll}"
+        command = f"pipetask validate {butler_repo} {input_coll} {output_coll}"
         write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
