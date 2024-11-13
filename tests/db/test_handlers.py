@@ -74,6 +74,12 @@ async def check_script(
 
     await script.reject(session)
 
+    status = await script.reset_script(session, to_status=StatusEnum.prepared, fake_reset=True)
+    assert status == StatusEnum.prepared
+
+    status = await script.reset_script(session, to_status=StatusEnum.ready, fake_reset=True)
+    assert status == StatusEnum.ready
+
     status = await script.reset_script(session, to_status=StatusEnum.waiting, fake_reset=True)
     assert status == StatusEnum.waiting
 

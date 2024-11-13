@@ -339,7 +339,8 @@ async def check_scripts(
     with pytest.raises(errors.CMTooManyActiveScriptsError):
         await entry.retry_script(session, "bad")
 
-    await scripts[0].update_values(session, status=StatusEnum.failed)
+    await scripts[0].update_values(session, status=StatusEnum.running)
+    await scripts[0].process(session, fake_status=StatusEnum.failed)
 
     check = await entry.retry_script(session, "prepare")
     assert check.status == StatusEnum.waiting, "Failed to retry script"
