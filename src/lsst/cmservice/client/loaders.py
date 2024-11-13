@@ -372,7 +372,7 @@ class CMLoadClient:
         spec_name = camp_config["spec_name"]
 
         if yaml_file is None:  # pragma: no cover
-            self._parent.specification.get_row_by_fullname(spec_name)
+            self._parent.specification.get_row_by_name(spec_name)
         else:
             self.specification_cl(yaml_file, allow_update=allow_update)
 
