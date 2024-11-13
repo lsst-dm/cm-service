@@ -278,9 +278,24 @@ async def test_handlers_job_level_db(
             session, job, "bps_panda_submit", "bps_panda_submit_script", collections=collections, data=data
         )
 
-        await check_script(
+        bps_panda_report = await check_script(
             session, job, "bps_panda_report", "bps_panda_report_script", collections=collections, data=data
         )
+
+        await db.WmsTaskReport.create_row(
+            session,
+            job_id=job.id,
+            name="dummy_report",
+            fullname=f"{job.fullname}#dummy_report",
+        )
+
+        await db.Script.update_row(
+            session,
+            bps_panda_report.id,
+            status=StatusEnum.prepared,
+        )
+        status = await bps_panda_report.reset_script(session, to_status=StatusEnum.waiting, fake_reset=True)
+        assert status == StatusEnum.waiting
 
         await check_script(
             session,
@@ -304,9 +319,25 @@ async def test_handlers_job_level_db(
             session, job, "manifest_report", "manifest_report_script", collections=collections, data=data
         )
 
-        await check_script(
+        manifest_report_load = await check_script(
             session, job, "manifest_report_load", "manifest_report_load", collections=collections, data=data
         )
+
+        await interface.load_manifest_report(
+            session,
+            "examples/manifest_report_review_error.yaml",
+            fullname=job.fullname,
+        )
+
+        await db.Script.update_row(
+            session,
+            manifest_report_load.id,
+            status=StatusEnum.prepared,
+        )
+        status = await manifest_report_load.reset_script(
+            session, to_status=StatusEnum.waiting, fake_reset=True
+        )
+        assert status == StatusEnum.waiting
 
         assert jobs.PandaScriptHandler.get_job_id({"Run Id": 322}) == 322
         assert jobs.HTCondorScriptHandler.get_job_id({"Submit dir": "dummy"}) == "dummy"
