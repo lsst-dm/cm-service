@@ -92,6 +92,7 @@ async def test_handlers_campaign_level_db(
     tmp_path: Path,
 ) -> None:
     """Test to run the write and purge methods of various scripts"""
+    temp_dir = str(tmp_path / "archive")
 
     logger = structlog.get_logger(config.logger_name)
     async with engine.begin():
@@ -101,6 +102,11 @@ async def test_handlers_campaign_level_db(
         await create_tree(session, LevelEnum.campaign, 0)
 
         campaign = (await db.Campaign.get_rows(session))[0]
+
+        await campaign.update_data_dict(
+            session,
+            prod_area=temp_dir,
+        )
 
         collections: dict[str, str | list[str]] = dict(
             out="out",
@@ -161,6 +167,7 @@ async def test_handlers_step_level_db(
     tmp_path: Path,
 ) -> None:
     """Test to run the write and purge methods of various scripts"""
+    temp_dir = str(tmp_path / "archive")
 
     logger = structlog.get_logger(config.logger_name)
     async with engine.begin():
@@ -169,6 +176,11 @@ async def test_handlers_step_level_db(
         await create_tree(session, LevelEnum.step, 0)
 
         step = (await db.Step.get_rows(session))[0]
+
+        await step.update_data_dict(
+            session,
+            prod_area=temp_dir,
+        )
 
         collections = dict(
             out="out",
@@ -193,6 +205,7 @@ async def test_handlers_group_level_db(
     tmp_path: Path,
 ) -> None:
     """Test to run the write and purge methods of various scripts"""
+    temp_dir = str(tmp_path / "archive")
 
     logger = structlog.get_logger(config.logger_name)
     async with engine.begin():
@@ -201,6 +214,11 @@ async def test_handlers_group_level_db(
         await create_tree(session, LevelEnum.group, 0)
 
         group = (await db.Group.get_rows(session))[0]
+
+        await group.update_data_dict(
+            session,
+            prod_area=temp_dir,
+        )
 
         collections = dict(
             out="out",
@@ -245,6 +263,7 @@ async def test_handlers_job_level_db(
     tmp_path: Path,
 ) -> None:
     """Test to run the write and purge methods of various scripts"""
+    temp_dir = str(tmp_path / "archive")
 
     logger = structlog.get_logger(config.logger_name)
     async with engine.begin():
@@ -253,6 +272,11 @@ async def test_handlers_job_level_db(
         await create_tree(session, LevelEnum.job, 0)
 
         job = (await db.Job.get_rows(session))[0]
+
+        await job.update_data_dict(
+            session,
+            prod_area=temp_dir,
+        )
 
         collections = dict(
             out="out",
