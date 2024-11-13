@@ -10,6 +10,9 @@ __pycache__/
 .coverage*
 htmlcov/
 
+# notes files
+notes/
+
 # Backup filies
 *~
 
