@@ -439,7 +439,6 @@ def check_get_methods(
     entry: models.ElementMixin,
     entry_class_name: str,
     entry_class: TypeAlias = models.ElementMixin,
-    parent_class: TypeAlias = models.ElementMixin,
 ) -> None:
     result = runner.invoke(client_top, f"{entry_class_name} get all --output yaml --row_id {entry.id}")
     check_get = check_and_parse_result(result, entry_class)

@@ -43,7 +43,7 @@ async def test_group_cli(uvicorn: UvicornProcess) -> None:
     entry = groups[0]
 
     # check get methods
-    check_get_methods(runner, client_top, entry, "group", models.Group, models.Step)
+    check_get_methods(runner, client_top, entry, "group", models.Group)
 
     # check update methods
     check_update_methods(runner, client_top, entry, "group", models.Group)

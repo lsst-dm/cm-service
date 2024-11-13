@@ -71,7 +71,7 @@ async def test_campaign_cli(uvicorn: UvicornProcess) -> None:
     assert result.exit_code == 2
 
     # check get methods
-    check_get_methods(runner, client_top, entry, "campaign", models.Campaign, models.Production)
+    check_get_methods(runner, client_top, entry, "campaign", models.Campaign)
 
     # check update methods
     check_update_methods(runner, client_top, entry, "campaign", models.Campaign)

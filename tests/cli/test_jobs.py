@@ -43,7 +43,7 @@ async def test_job_cli(uvicorn: UvicornProcess) -> None:
     entry = jobs[0]
 
     # check get methods
-    check_get_methods(runner, client_top, entry, "job", models.Job, models.Group)
+    check_get_methods(runner, client_top, entry, "job", models.Job)
 
     # check update methods
     check_update_methods(runner, client_top, entry, "job", models.Job)
