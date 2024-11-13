@@ -523,9 +523,12 @@ class ScriptHandler(BaseScriptHandler):
         if fake_status is not None:
             status = fake_status
         if status == StatusEnum.failed:
-            if not script.log_url:  # pragma: no cover
-                raise CMMissingNodeUrlError(f"log_url is not set for {script}")
-            diagnostic_message = await get_diagnostic_message(script.log_url)
+            if not script.log_url:
+                if fake_status is None:  # pragma: no cover
+                    raise CMMissingNodeUrlError(f"log_url is not set for {script}")
+                diagnostic_message = "Fake failure"
+            else:  # pragma: no cover
+                diagnostic_message = await get_diagnostic_message(script.log_url)
             _new_error = await ScriptError.create_row(
                 session,
                 script_id=script.id,

@@ -201,14 +201,15 @@ class BpsScriptHandler(ScriptHandler):
             parent,
             fake_status,
         )
-        if slurm_status in [StatusEnum.reviewable, StatusEnum.accepted]:
-            await script.update_values(session, status=slurm_status)
-            if fake_status is not None:
-                wms_job_id = "fake_job"
-            else:  # pragma: no cover
-                bps_dict = parse_bps_stdout(script.log_url)
-                wms_job_id = self.get_job_id(bps_dict)
-            await parent.update_values(session, wms_job_id=wms_job_id)
+        await script.update_values(session, status=slurm_status)
+        if slurm_status not in [StatusEnum.reviewable, StatusEnum.accepted]:  # pragma: no cover
+            return slurm_status
+        if fake_status is not None:
+            wms_job_id = "fake_job"
+        else:  # pragma: no cover
+            bps_dict = parse_bps_stdout(script.log_url)
+            wms_job_id = self.get_job_id(bps_dict)
+        await parent.update_values(session, wms_job_id=wms_job_id)
         return slurm_status
 
     async def _check_htcondor_job(
@@ -266,25 +267,28 @@ class BpsScriptHandler(ScriptHandler):
         update_fields = await ScriptHandler._reset_script(
             self, session, script, to_status, fake_reset=fake_reset
         )
-        if script.script_url and to_status.value <= StatusEnum.ready.value:
-            json_url = script.script_url.replace(".sh", "_log.json")
-            config_url = script.script_url.replace(".sh", "_bps_config.yaml")
-            submit_path = script.script_url.replace(
-                os.path.basename(script.script_url),
-                "/submit",
-            )
-            try:
-                os.unlink(json_url)
-            except Exception:  # pylint: disable=broad-exception-caught
-                pass
-            try:
-                os.unlink(config_url)
-            except Exception:  # pragma: no cover
-                pass
-            try:
-                os.rmdir(submit_path)
-            except Exception:  # pylint: disable=broad-exception-caught
-                pass
+        if to_status == StatusEnum.prepared:
+            return update_fields
+        if script.script_url is None:  # pragma: no cover
+            return update_fields
+        json_url = script.script_url.replace(".sh", "_log.json")
+        config_url = script.script_url.replace(".sh", "_bps_config.yaml")
+        submit_path = script.script_url.replace(
+            os.path.basename(script.script_url),
+            "/submit",
+        )
+        try:
+            os.unlink(json_url)
+        except Exception:  # pylint: disable=broad-exception-caught
+            pass
+        try:
+            os.unlink(config_url)
+        except Exception:  # pragma: no cover
+            pass
+        try:
+            os.rmdir(submit_path)
+        except Exception:  # pylint: disable=broad-exception-caught
+            pass
         return update_fields
 
     async def _purge_products(

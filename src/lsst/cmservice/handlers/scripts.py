@@ -272,8 +272,7 @@ class TagInputsScriptHandler(ScriptHandler):
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"butler associate {butler_repo} {output_coll}"
         command += f" --collections {input_coll}"
-        if data_query:
-            command += f' --where "{data_query}"'
+        command += f' --where "{data_query}"' if data_query else ""
         write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
