@@ -37,7 +37,7 @@ async def check_run_script(
         f"script:{script.fullname}",
         fake_status=StatusEnum.reviewable,
     )
-    # FIXME
+    # FIXME: What do we expect in terms of return type here?
     assert status.value >= StatusEnum.running.value
 
     return script

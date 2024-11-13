@@ -37,6 +37,6 @@ def test_commands_cli(uvicorn: UvicornProcess) -> None:
     result = runner.invoke(client_top, "campaign list -o yaml")
     assert result.exit_code == 0
 
-    # FIXME StatusEnum not JSON serializable
+    # FIXME: StatusEnum not JSON serializable
     # result = runner.invoke(client_top, "campaign list -o json")
     # assert result.exit_code == 0

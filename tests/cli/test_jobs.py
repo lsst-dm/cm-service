@@ -81,8 +81,7 @@ async def test_job_cli(uvicorn: UvicornProcess) -> None:
 
     result = runner.invoke(client_top, f"group action rescue_job --row_id {parent.id} --output yaml")
     rescue_job = check_and_parse_result(result, models.Job)
-    # FIXME, check this out
-    # assert rescue_job.attempt == 1
+    assert rescue_job.attempt == 1
 
     result = runner.invoke(client_top, f"group get jobs --row_id {parent.id} --output yaml")
     jobs = check_and_parse_result(result, list[models.Job])

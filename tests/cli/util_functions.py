@@ -263,8 +263,7 @@ def check_update_methods(
     assert check["test"] == "dummy", "get_data_dict failed"
 
     result = runner.invoke(client_top, f"{entry_class_name} get data_dict --output yaml --row_id -1")
-    # FIXME
-    # expect_failed_result(result, 1)
+    expect_failed_result(result, 1)
 
     result = runner.invoke(
         client_top,
@@ -289,8 +288,7 @@ def check_update_methods(
     assert check["test"] == "dummy", "get_collections failed"
 
     result = runner.invoke(client_top, f"{entry_class_name} get collections --output yaml --row_id -1")
-    # FIXME
-    # expect_failed_result(result, 1)
+    expect_failed_result(result, 1)
 
     result = runner.invoke(
         client_top, f"{entry_class_name} get resolved_collections --output yaml --row_id {entry.id}"
@@ -301,8 +299,7 @@ def check_update_methods(
     result = runner.invoke(
         client_top, f"{entry_class_name} get resolved_collections --output yaml --row_id -1"
     )
-    # FIXME
-    # expect_failed_result(result, 1)
+    expect_failed_result(result, 1)
 
     result = runner.invoke(
         client_top,
@@ -321,8 +318,7 @@ def check_update_methods(
         "--output yaml "
         "--update_dict test:dummy",
     )
-    # FIXME
-    # expect_failed_result(result, 1)
+    expect_failed_result(result, 1)
 
     result = runner.invoke(
         client_top, f"{entry_class_name} get child_config --output yaml --row_id {entry.id}"
@@ -331,8 +327,7 @@ def check_update_methods(
     assert check["test"] == "dummy", "get_child_config failed"
 
     result = runner.invoke(client_top, f"{entry_class_name} get child_config --output yaml --row_id -1")
-    # FIXME
-    # expect_failed_result(result, 1)
+    expect_failed_result(result, 1)
 
     result = runner.invoke(
         client_top,
@@ -341,7 +336,7 @@ def check_update_methods(
         f"--row_id {entry.id} "
         "--update_dict test:dummy",
     )
-    # FIXME, type
+    # FIXME: is this the return type we want?
     check_spec = check_and_parse_result(result, entry_class)
     assert check_spec.spec_aliases["test"] == "dummy", "update_spec_aliases failed"
 
@@ -349,17 +344,15 @@ def check_update_methods(
         client_top,
         f"{entry_class_name} update spec_aliases --output yaml --row_id -1 --update_dict test:dummy",
     )
-    # FIXME
     expect_failed_result(result, 1)
 
-    # FIXME name
+    # FIXME: do we want to change the name of this sub-command?
     result = runner.invoke(client_top, f"{entry_class_name} get spec_alias --output yaml --row_id {entry.id}")
     check = check_and_parse_result(result, dict)
     assert check["test"] == "dummy", "get_spec_alias failed"
 
     result = runner.invoke(client_top, f"{entry_class_name} get spec_alias --output yaml --row_id -1")
-    # FIXME
-    # expect_failed_result(result, 1)
+    expect_failed_result(result, 1)
 
 
 def check_scripts(

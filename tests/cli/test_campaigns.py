@@ -59,7 +59,7 @@ async def test_campaign_cli(uvicorn: UvicornProcess) -> None:
     assert result.exit_code == 0
 
     result = runner.invoke(client_top, f"campaign get data_dict --row_id {entry.id} --output json")
-    assert result.exit_code == 0  # FIXME. StatusEnum is not JSON serializable
+    assert result.exit_code == 0
 
     result = runner.invoke(client_top, f"campaign get data_dict --row_id {entry.id}")
     assert result.exit_code == 0
