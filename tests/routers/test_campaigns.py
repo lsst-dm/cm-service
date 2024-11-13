@@ -48,7 +48,7 @@ async def test_campaign_routes(client: AsyncClient) -> None:
     assert entry.id == campaign_check.id
 
     # check get methods
-    await check_get_methods(client, entry, "campaign", models.Campaign, models.Production)
+    await check_get_methods(client, entry, "campaign", models.Campaign)
 
     # check update methods
     await check_update_methods(client, entry, "campaign", models.Campaign)

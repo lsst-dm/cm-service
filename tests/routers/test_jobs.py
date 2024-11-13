@@ -38,7 +38,7 @@ async def test_job_routes(client: AsyncClient) -> None:
     entry = jobs[0]
 
     # check get methods
-    await check_get_methods(client, entry, "job", models.Job, models.Group)
+    await check_get_methods(client, entry, "job", models.Job)
 
     # check update methods
     await check_update_methods(client, entry, "job", models.Job)

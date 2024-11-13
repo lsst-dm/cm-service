@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 
 import pytest
 from httpx import AsyncClient
@@ -16,7 +15,6 @@ from .util_functions import (
 @pytest.mark.asyncio()
 async def test_routers_trivial_campaign(
     client: AsyncClient,
-    tmp_path: Path,
 ) -> None:
     """Test fake end to end run using example/example_trivial.yaml"""
 

@@ -678,7 +678,6 @@ async def check_get_methods(
     entry: models.ElementMixin,
     entry_class_name: str,
     entry_class: TypeAlias = models.ElementMixin,
-    parent_class: TypeAlias = models.ElementMixin,
 ) -> None:
     response = await client.get(
         f"{config.prefix}/{entry_class_name}/get/{entry.id}",

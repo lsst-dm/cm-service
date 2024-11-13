@@ -36,7 +36,7 @@ async def test_step_routes(client: AsyncClient) -> None:
     entry = steps[0]
 
     # check get methods
-    await check_get_methods(client, entry, "step", models.Step, models.Campaign)
+    await check_get_methods(client, entry, "step", models.Step)
 
     # check update methods
     await check_update_methods(client, entry, "step", models.Step)
