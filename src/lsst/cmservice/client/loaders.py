@@ -331,9 +331,6 @@ class CMLoadClient:
         campaign : `Campaign`
             Newly created `Campaign`
         """
-        if yaml_file is not None:
-            self.specification_cl(yaml_file, allow_update=allow_update)
-
         with open(campaign_yaml, encoding="utf-8") as fin:
             config_data = yaml.safe_load(fin)
 
@@ -372,8 +369,15 @@ class CMLoadClient:
             if val:
                 update_include_dict(camp_config[key], val)
 
+        spec_name = camp_config["spec_name"]
+
+        if yaml_file is None:  # pragma: no cover
+            self._parent.specification.get_row_by_fullname(spec_name)
+        else:
+            self.specification_cl(yaml_file, allow_update=allow_update)
+
         production = self._parent.production.get_row_by_name(parent_name)
-        if not production:
+        if not production:  # pragma: no cover
             self._parent.production.create(name=parent_name)
 
         spec_name = camp_config["spec_name"]
