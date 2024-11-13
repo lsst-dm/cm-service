@@ -1,22 +1,22 @@
 Production:
     name: HSC_DRP-RC2
 Campaign:
-    name: w_2024_26_DM-45061
-    spec_name: HSC_DRP-RC2_panda
+    name: test_source_injection
+    spec_name: HSC_DRP-RC2_htcondor
     collections:
-        out: HSC/runs/RC2/w_2024_26/DM-45061
-        campaign_source: HSC/raw/RC2
+        out: u/eiger/DM-41828
+        campaign_source: "HSC/runs/RC2/w_2024_38/DM-46429,HSC/raw/RC2"
     data:
-        lsst_version: w_2024_26
+        lsst_version: w_2024_38
         prod_area: /sdf/group/rubin/shared/campaigns/HSC-RC2/output/archive
 
-#       custom_lsst_setup: setup -j -r /sdf/group/rubin/u/yusra/lsst_devel/ctrl_bps
-#
-#       butler_repo: '/repo/main+sasquatch_dev'
-#       data_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1'"
-#       bps_wms_clustering_file: "${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml"
-#       bps_wms_resources_file: "${DRP_PIPE_DIR}/bps/resources/HSC/DRP-RC2.yaml"
-#
+        custom_lsst_setup: "setup -j -r /sdf/home/m/mccann/repos/drp_pipe;setup -j -r /sdf/home/m/mccann/repos/source_injection;"
+
+        butler_repo: '/repo/main'
+        data_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1'"
+        bps_wms_clustering_file: "${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml"
+        bps_wms_resources_file: "${DRP_PIPE_DIR}/bps/resources/HSC/DRP-RC2.yaml"
+
 # Examples of how to override step specific stuff
 #   child_config:
 #       step1:
