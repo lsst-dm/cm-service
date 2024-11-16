@@ -1,8 +1,26 @@
 - PipetaskErrorType:
-      source: manifest
-      flavor: configuration
-      action: review
+      error_source: manifest
+      error_flavor: configuration
+      error_action: review
       task_name: skyObjectMean
       diagnostic_message: 'Execution of task ''skyObjectMean'' on quantum.*failed. Exception ValueError: Failure
           from formatter ''lsst.daf.butler.formatters.parquet.ParquetFormatter'' for dataset.*:
           Column d_pixelFlags_edge specified in parameters not available in parquet file.'
+- PipetaskErrorType:
+      error_source: manifest
+      error_flavor: configuration
+      error_action: accept
+      task_name: diff_matched_analysis
+      diagnostic_message: 'USDF is on fire, but everything is fine.*'
+- PipetaskErrorType:
+      error_source: manifest
+      error_flavor: configuration
+      error_action: review
+      task_name: diff_matched_analysis
+      diagnostic_message: 'there is an error in cell.*of the spreadsheet, please review.*'
+- PipetaskErrorType:
+      error_source: manifest
+      error_flavor: configuration
+      error_action: fail
+      task_name: diff_matched_analysis
+      diagnostic_message: 'Just feeling like gleefully failing today.  Better crash this run.*'

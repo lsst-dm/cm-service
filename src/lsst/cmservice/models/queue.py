@@ -8,6 +8,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from lsst.cmservice.common.enums import LevelEnum
+
 
 class QueueBase(BaseModel):
     """Parameters that are in DB tables and also used to create new rows"""
@@ -24,11 +26,11 @@ class QueueCreate(QueueBase):
     # Fullname of associated Element
     fullname: str | None = None
 
-    # Id of element to add
-    element_id: int
+    # Id of node to add
+    node_id: int | None = None
 
-    # Which type of element to add
-    element_level: int | None = None
+    # Which type of node to add
+    node_level: int | None = None
 
 
 class Queue(QueueBase):
@@ -47,6 +49,10 @@ class Queue(QueueBase):
     time_finished: datetime | None = None
     # When to next check this entry
     time_next_check: datetime | None = None
+    # Id of node to add
+    node_id: int
+    # Which type of node to add
+    node_level: LevelEnum
 
 
 class QueueUpdate(QueueBase):
@@ -59,6 +65,6 @@ class QueueUpdate(QueueBase):
     # Options based to process
     options: dict | str | None = None
     # Time last call to process finished
-    time_updated: datetime
+    time_updated: datetime | None = None
     # When processing of this element completed
     time_finished: datetime | None = None

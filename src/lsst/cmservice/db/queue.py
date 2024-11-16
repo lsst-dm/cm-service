@@ -128,7 +128,8 @@ class Queue(Base, NodeMixin):
         elif node_level == LevelEnum.job:
             node = await Job.get_row_by_fullname(session, fullname)
         elif node_level == LevelEnum.script:
-            node = await Script.get_row_by_fullname(session, fullname)
+            # parse out the "script:" at the beginning fof ullname
+            node = await Script.get_row_by_fullname(session, fullname[7:])
         else:  # pragma: no cover
             raise CMBadEnumError(f"Bad level for queue: {node_level}")
         query = select(cls).where(
@@ -154,6 +155,7 @@ class Queue(Base, NodeMixin):
         now = datetime.now()
         ret_dict = {
             "node_level": node_level,
+            "interval": kwargs.get("interval", 300),
             "time_created": now,
             "time_updated": now,
             "options": kwargs.get("options", {}),
@@ -173,7 +175,8 @@ class Queue(Base, NodeMixin):
             node = await Job.get_row_by_fullname(session, fullname)
             ret_dict["j_id"] = node.id
         elif node_level == LevelEnum.script:
-            node = await Script.get_row_by_fullname(session, fullname)
+            # parse out the "script:" at the beginning fof ullname
+            node = await Script.get_row_by_fullname(session, fullname[7:])
             ret_dict["script_id"] = node.id
         else:  # pragma: no cover
             raise CMBadEnumError(f"Bad level for queue: {node_level}")
@@ -262,6 +265,8 @@ class Queue(Base, NodeMixin):
     ) -> None:  # pragma: no cover
         """Process associated node until it is done or requires
         intervention
+
+        FIXME: see about adding this to unit tests
         """
         can_continue = True
         while can_continue:

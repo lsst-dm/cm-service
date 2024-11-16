@@ -78,7 +78,7 @@ class Handler:
         if cached_handler is None:
             with add_sys_path(Handler.plugin_dir):
                 handler_class = doImport(class_name)
-            if isinstance(handler_class, types.ModuleType):
+            if isinstance(handler_class, types.ModuleType):  # pragma: no cover
                 raise CMBadHandlerTypeError(f"{type(handler_class)} is a Module, not a handler class")
             cached_handler = handler_class(spec_block_id, **kwargs)
             Handler.handler_cache[spec_block_id] = cached_handler
@@ -154,6 +154,8 @@ class Handler:
         session: async_scoped_session,
         node: NodeMixin,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> StatusEnum:
         """Reset a `Node` to an earlier status
 
@@ -167,6 +169,9 @@ class Handler:
 
         to_status: StatusEnum
             Status to reset the node to
+
+        fake_reset: bool
+            Don't actually try to remove collections if True
 
         Returns
         -------
@@ -180,6 +185,8 @@ class Handler:
         session: async_scoped_session,
         node: NodeMixin,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> StatusEnum:
         """Reset a `Node` to an earlier status
 
@@ -193,6 +200,9 @@ class Handler:
 
         to_status: StatusEnum
             Status to reset the node to
+
+        fake_reset: bool
+            Don't actually try to remove collections if True
 
         Returns
         -------

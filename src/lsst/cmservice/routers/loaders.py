@@ -12,6 +12,25 @@ router = APIRouter(
 
 
 @router.post(
+    "/steps",
+    status_code=201,
+    response_model=models.Campaign,
+    summary="Add Steps to a Campaign",
+)
+async def add_steps(
+    query: models.AddSteps,
+    session: async_scoped_session = Depends(db_session_dependency),
+) -> db.Campaign:
+    """Invoke the interface.add_steps function"""
+    try:
+        async with session.begin():
+            ret_val = await interface.add_steps(session, **query.model_dump())
+        return ret_val
+    except Exception as msg:  # pragma: no cover
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
+
+
+@router.post(
     "/specification",
     status_code=201,
     response_model=models.Specification,
@@ -40,7 +59,7 @@ async def load_specification(
         async with session.begin():
             result = await interface.load_specification(session, **query.model_dump())
         return result
-    except Exception as msg:
+    except Exception as msg:  # pragma: no cover
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
@@ -73,7 +92,7 @@ async def load_and_create_campaign(
         async with session.begin():
             result = await interface.load_and_create_campaign(session, **query.model_dump())
         return result
-    except Exception as msg:
+    except Exception as msg:  # pragma: no cover
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
@@ -106,7 +125,7 @@ async def load_error_types(
         async with session.begin():
             the_error_types = await interface.load_error_types(session, **query.model_dump())
         return the_error_types
-    except Exception as msg:
+    except Exception as msg:  # pragma: no cover
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
@@ -139,5 +158,5 @@ async def load_manifest_report(
         async with session.begin():
             the_job = await interface.load_manifest_report(session, **query.model_dump())
         return the_job
-    except Exception as msg:
+    except Exception as msg:  # pragma: no cover
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg

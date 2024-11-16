@@ -30,7 +30,7 @@ class ClientConfiguration(BaseSettings):
     @field_validator("timeout", mode="before", check_fields=True)
     @classmethod
     def validate_timeout(cls, v: Any) -> float | None:
-        if isinstance(v, str) and v in {"", "null", "None"}:
+        if isinstance(v, str) and v in {"", "null", "None"}:  # pragma: no cover
             return None
         return v
 

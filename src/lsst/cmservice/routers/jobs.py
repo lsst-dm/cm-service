@@ -45,7 +45,7 @@ delete_row = wrappers.delete_row_function(router, DbClass)
 update_row = wrappers.put_row_function(router, ResponseModelClass, UpdateModelClass, DbClass)
 get_spec_block = wrappers.get_node_spec_block_function(router, DbClass)
 get_specification = wrappers.get_node_specification_function(router, DbClass)
-get_parent = wrappers.get_node_parent_function(router, models.Production, DbClass)
+get_parent = wrappers.get_node_parent_function(router, models.Group, DbClass)
 get_resolved_collections = wrappers.get_node_resolved_collections_function(router, DbClass)
 get_collections = wrappers.get_node_collections_function(router, DbClass)
 get_child_config = wrappers.get_node_child_config_function(router, DbClass)
@@ -105,5 +105,5 @@ async def get_errors(
             return the_errors
     except CMMissingIDError as msg:
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-    except Exception as msg:
+    except Exception as msg:  # pragma: no cover
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg

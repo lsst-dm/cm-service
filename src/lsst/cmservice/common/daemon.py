@@ -20,7 +20,7 @@ async def daemon_iteration(session: async_scoped_session) -> None:
     await session.commit()
 
 
-async def daemon_loop(session: async_scoped_session) -> None:
+async def daemon_loop(session: async_scoped_session) -> None:  # pragma: no cover
     while True:
         await daemon_iteration(session)
         sleep(15)

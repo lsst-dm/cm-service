@@ -86,7 +86,7 @@ class RowMixin:
         parent_class = kwargs.get("parent_class")
 
         q = select(cls)
-        # TODO: Being a mixin leads to loose typing here.
+        # FIXME: Being a mixin leads to loose typing here.
         # Is there a better way?
         if hasattr(cls, "parent_id"):
             if parent_class is not None:
@@ -204,21 +204,20 @@ class RowMixin:
         row = await session.get(cls, row_id)
         if row is None:
             raise CMMissingIDError(f"{cls} {row_id} not found")
-        if row is not None:
-            if hasattr(row, "status") and row.status not in DELETEABLE_STATES:
-                raise CMBadStateTransitionError(
-                    f"Can not delete a row because it is in use {row} {row.status}",
-                )
-            try:
-                await session.delete(row)
-            except IntegrityError as e:  # pragma: no cover
-                if TYPE_CHECKING:
-                    assert e.orig  # for mypy
-                raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
+        if hasattr(row, "status") and row.status not in DELETEABLE_STATES:
+            raise CMBadStateTransitionError(
+                f"Can not delete a row because it is in use {row} {row.status}",
+            )
+        try:
+            await session.delete(row)
+        except IntegrityError as e:  # pragma: no cover
+            if TYPE_CHECKING:
+                assert e.orig  # for mypy
+            raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
         await cls._delete_hook(session, row_id)
 
     @classmethod
-    async def _delete_hook(
+    async def _delete_hook(  # pylint: disable=unused-argument
         cls,
         session: async_scoped_session,
         row_id: int,
@@ -234,7 +233,7 @@ class RowMixin:
             PrimaryKey of the row to delete
 
         """
-        pass
+        return
 
     @classmethod
     async def update_row(

@@ -11,6 +11,33 @@ from .enums import StatusEnum
 from .errors import CMBashSubmitError
 
 
+async def get_diagnostic_message(
+    log_url: str,
+) -> str:
+    """Read the last line of a log file, aspirational hoping
+    that it contains a diagnostic error message"""
+    with open(log_url, encoding="utf-8") as fin:
+        lines = fin.readlines()
+        if lines:
+            return lines[-1].strip()
+        return "Empty log file"
+
+
+def parse_bps_stdout(url: str) -> dict[str, str]:
+    """Parse the std from a bps submit job"""
+    out_dict = {}
+    with open(url, encoding="utf8") as fin:
+        line = fin.readline()
+        while line:
+            tokens = line.split(":")
+            if len(tokens) != 2:  # pragma: no cover
+                line = fin.readline()
+                continue
+            out_dict[tokens[0]] = tokens[1]
+            line = fin.readline()
+    return out_dict
+
+
 def run_bash_job(
     script_url: str,
     log_url: str,
@@ -47,11 +74,11 @@ def run_bash_job(
                 stderr=fout,
             ) as process:
                 process.wait()
-                if process.returncode != 0:
+                if process.returncode != 0:  # pragma: no cover
                     assert process.stderr
                     msg = process.stderr.read().decode()
                     raise CMBashSubmitError(f"Bad bash submit: {msg}")
-    except Exception as msg:
+    except Exception as msg:  # pragma: no cover
         raise CMBashSubmitError(f"Bad bash submit: {msg}") from msg
     with open(stamp_url, "w", encoding="utf-8") as fstamp:
         fields = dict(status="accepted")
@@ -59,22 +86,28 @@ def run_bash_job(
 
 
 def check_stamp_file(
-    stamp_file: str,
-) -> StatusEnum | None:
+    stamp_file: str | None,
+    default_status: StatusEnum,
+) -> StatusEnum:
     """Check a 'stamp' file for a status code
 
     Parameters
     ----------
-    stamp_file: str
+    stamp_file: str | None
         File to read for status
+
+    default_status: StatusEnum
+        Status to return if stamp_file does not exist
 
     Returns
     -------
     status: StatusEnum
         Status of the script
     """
+    if stamp_file is None:
+        return default_status
     if not os.path.exists(stamp_file):
-        return None
+        return default_status
     with open(stamp_file, encoding="utf-8") as fin:
         fields = yaml.safe_load(fin)
         return StatusEnum[fields["status"]]

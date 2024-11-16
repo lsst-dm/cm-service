@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-from ..common.bash import check_stamp_file, run_bash_job
+from ..common.bash import check_stamp_file, get_diagnostic_message, run_bash_job
 from ..common.enums import ErrorSourceEnum, ScriptMethodEnum, StatusEnum
 from ..common.errors import (
     CMBadExecutionMethodError,
@@ -76,7 +76,7 @@ class BaseScriptHandler(Handler):
                 CMHTCondorSubmitError,
                 CMSlurmSubmitError,
                 CMBashSubmitError,
-            ) as msg:
+            ) as msg:  # pragma: no cover
                 _new_error = await ScriptError.create_row(
                     session,
                     script_id=node.id,
@@ -98,7 +98,7 @@ class BaseScriptHandler(Handler):
             except (
                 CMHTCondorCheckError,
                 CMSlurmCheckError,
-            ) as msg:
+            ) as msg:  # pragma: no cover
                 _new_error = await ScriptError.create_row(
                     session,
                     script_id=node.id,
@@ -258,15 +258,15 @@ class BaseScriptHandler(Handler):
             The status of the processing
         """
         fake_status = kwargs.get("fake_status", None)
-        if fake_status is not None:
-            return fake_status
-        return script.status
+        return script.status if fake_status is None else fake_status
 
     async def reset_script(
         self,
         session: async_scoped_session,
         node: NodeMixin,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> StatusEnum:
         if TYPE_CHECKING:
             assert isinstance(node, Script)  # for mypy
@@ -288,7 +288,7 @@ class BaseScriptHandler(Handler):
                 "Use script.rollback or script.retry instead",
             )
 
-        update_fields = await self._reset_script(session, node, to_status)
+        update_fields = await self._reset_script(session, node, to_status, fake_reset=fake_reset)
         await node.update_values(session, **update_fields)
         await session.refresh(node, attribute_names=["status"])
         return node.status
@@ -298,6 +298,8 @@ class BaseScriptHandler(Handler):
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> dict[str, Any]:
         raise NotImplementedError(f"{type(self)}._reset_script()")
 
@@ -306,6 +308,8 @@ class BaseScriptHandler(Handler):
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> None:
         pass
 
@@ -318,9 +322,10 @@ class ScriptHandler(BaseScriptHandler):
     @staticmethod
     async def _check_stamp_file(  # pylint: disable=unused-argument
         session: async_scoped_session,
-        stamp_file: str,
+        stamp_file: str | None,
         script: Script,
         parent: ElementMixin,
+        fake_status: StatusEnum | None = None,
     ) -> StatusEnum:
         """Get `Script` status from a stamp file
 
@@ -329,7 +334,7 @@ class ScriptHandler(BaseScriptHandler):
         session : async_scoped_session
             DB session manager
 
-        stamp_file: str
+        stamp_file: str | None
             File with just the `Script` status written to it
 
         script: Script
@@ -338,16 +343,17 @@ class ScriptHandler(BaseScriptHandler):
         parent: ElementMixin
             Parent Element of the `Script` in question
 
+        fake_status: StatusEnum | None,
+            If set, don't actually check the job, set status to fake_status
+
         Returns
         -------
         status : StatusEnum
             The status of the processing
         """
-        status = check_stamp_file(stamp_file)
-        if status is None:
-            return script.status
-        if status != script.status:
-            await script.update_values(session, status=status)
+        default_status = script.status if fake_status is None else fake_status
+        status = check_stamp_file(stamp_file, default_status)
+        await script.update_values(session, status=status)
         return status
 
     async def _check_slurm_job(  # pylint: disable=unused-argument
@@ -383,17 +389,13 @@ class ScriptHandler(BaseScriptHandler):
             The status of the processing
         """
         status = check_slurm_job(slurm_id, fake_status)
-        print(f"Getting status for {script.fullname} {status}")
-        if status is None:
-            status = StatusEnum.running
-        if status != script.status:
-            await script.update_values(session, status=status)
+        await script.update_values(session, status=status)
         return status
 
     async def _check_htcondor_job(  # pylint: disable=unused-argument
         self,
         session: async_scoped_session,
-        htcondor_id: str,
+        htcondor_id: str | None,
         script: Script,
         parent: ElementMixin,
         fake_status: StatusEnum | None = None,
@@ -405,8 +407,8 @@ class ScriptHandler(BaseScriptHandler):
         session : async_scoped_session
             DB session manager
 
-        htcondor_id : str
-            HTCondor job id, in this case the lob from the submission script
+        htcondor_id : str | None
+            HTCondor job id, in this case the glob from the submission script
 
         script: Script
             The `Script` in question
@@ -423,9 +425,7 @@ class ScriptHandler(BaseScriptHandler):
             The status of the processing
         """
         status = check_htcondor_job(htcondor_id, fake_status)
-        print(f"Getting status for {script.fullname} {status}")
-        if status != script.status:
-            await script.update_values(session, status=status)
+        await script.update_values(session, status=status)
         return status
 
     async def prepare(
@@ -435,9 +435,7 @@ class ScriptHandler(BaseScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        script_method = script.method
-        if script_method == ScriptMethodEnum.default:
-            script_method = self.default_method
+        script_method = self.default_method if script.method == ScriptMethodEnum.default else script.method
 
         status = script.status
         if script_method == ScriptMethodEnum.no_script:  # pragma: no cover
@@ -448,8 +446,9 @@ class ScriptHandler(BaseScriptHandler):
             status = await self._write_script(session, script, parent, **kwargs)
         elif script_method == ScriptMethodEnum.htcondor:
             status = await self._write_script(session, script, parent, **kwargs)
-        if status != script.status:
-            await script.update_values(session, status=status)
+        else:  # pragma: no cover
+            raise CMBadExecutionMethodError(f"Bad script method {script_method}")
+        await script.update_values(session, status=status)
         return status
 
     async def launch(
@@ -465,7 +464,6 @@ class ScriptHandler(BaseScriptHandler):
 
         if script_method == ScriptMethodEnum.no_script:  # pragma: no cover
             raise CMBadExecutionMethodError("ScriptMethodEnum.no_script can not be set for ScriptHandler")
-        orig_status = script.status
         if not script.script_url:  # pragma: no cover
             raise CMMissingNodeUrlError(f"script_url is not set for {script}")
         if not script.log_url:  # pragma: no cover
@@ -497,8 +495,7 @@ class ScriptHandler(BaseScriptHandler):
             await script.update_values(session, stamp_url=htcondor_log, status=status)
         else:  # pragma: no cover
             raise CMBadExecutionMethodError(f"Method {script_method} not valid for {script}")
-        if status != orig_status:
-            await script.update_values(session, status=status)
+        await script.update_values(session, status=status)
         return status
 
     async def check(
@@ -508,26 +505,30 @@ class ScriptHandler(BaseScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        script_method = script.method
-        if script_method == ScriptMethodEnum.default:
-            script_method = self.default_method
+        fake_status = kwargs.get("fake_status", None)
+
+        script_method = self.default_method if script.method == ScriptMethodEnum.default else script.method
 
         if script_method == ScriptMethodEnum.no_script:  # pragma: no cover
             raise CMBadExecutionMethodError("ScriptMethodEnum.no_script can not be set for ScriptHandler")
-        if not script.stamp_url:  # pragma: no cover
-            raise CMMissingNodeUrlError(f"stamp_url is not set for {script}")
 
-        fake_status = kwargs.get("fake_status")
         if script_method == ScriptMethodEnum.bash:
-            status = await self._check_stamp_file(session, script.stamp_url, script, parent)
+            status = await self._check_stamp_file(session, script.stamp_url, script, parent, fake_status)
         elif script_method == ScriptMethodEnum.slurm:
             status = await self._check_slurm_job(session, script.stamp_url, script, parent, fake_status)
         elif script_method == ScriptMethodEnum.htcondor:
             status = await self._check_htcondor_job(session, script.stamp_url, script, parent, fake_status)
+        else:  # pragma: no cover
+            raise CMBadExecutionMethodError(f"Bad script method {script_method}")
+        if fake_status is not None:
+            status = fake_status
         if status == StatusEnum.failed:
-            if not script.log_url:  # pragma: no cover
-                raise CMMissingNodeUrlError(f"log_url is not set for {script}")
-            diagnostic_message = await self._get_diagnostic_message(script.log_url)
+            if not script.log_url:
+                if fake_status is None:  # pragma: no cover
+                    raise CMMissingNodeUrlError(f"log_url is not set for {script}")
+                diagnostic_message = "Fake failure"
+            else:  # pragma: no cover
+                diagnostic_message = await get_diagnostic_message(script.log_url)
             _new_error = await ScriptError.create_row(
                 session,
                 script_id=script.id,
@@ -537,16 +538,6 @@ class ScriptHandler(BaseScriptHandler):
         if status != script.status:
             await script.update_values(session, status=status)
         return status
-
-    async def _get_diagnostic_message(
-        self,
-        log_url: str,
-    ) -> str:
-        with open(log_url, encoding="utf-8") as fin:
-            lines = fin.readlines()
-            if lines:
-                return lines[-1]
-            return "Empty log file"
 
     async def _write_script(
         self,
@@ -592,21 +583,22 @@ class ScriptHandler(BaseScriptHandler):
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> dict[str, Any]:
         update_fields: dict[str, Any] = {}
-        if to_status.value <= StatusEnum.prepared.value:
-            update_fields["stamp_url"] = None
-            if script.log_url:
-                os.unlink(script.log_url)
-            if script.stamp_url and os.path.exists(script.stamp_url):
-                os.unlink(script.stamp_url)
+        update_fields["stamp_url"] = None
+        if script.log_url and os.path.exists(script.log_url):  # pragma: no cover
+            os.unlink(script.log_url)
+        if script.stamp_url and os.path.exists(script.stamp_url):
+            os.unlink(script.stamp_url)
         if to_status.value <= StatusEnum.ready.value:
             if script.script_url:
                 os.unlink(script.script_url)
             update_fields["script_url"] = None
             update_fields["log_url"] = None
         update_fields["status"] = to_status
-        await self._purge_products(session, script, to_status)
+        await self._purge_products(session, script, to_status, fake_reset=fake_reset)
         return update_fields
 
 
@@ -664,8 +656,7 @@ class FunctionHandler(BaseScriptHandler):
         if script_method != ScriptMethodEnum.no_script:  # pragma: no cover
             raise CMBadExecutionMethodError(f"ScriptMethodEnum.no_script must be set for {type(self)}")
         status = await self._do_check(session, script, parent, **kwargs)
-        if status != script.status:
-            await script.update_values(session, status=status)
+        await script.update_values(session, status=status)
         return status
 
     async def _do_prepare(  # pylint: disable=unused-argument
@@ -693,7 +684,7 @@ class FunctionHandler(BaseScriptHandler):
         status : StatusEnum
             The status of the processing
         """
-        return StatusEnum.prepared
+        raise NotImplementedError
 
     async def _do_run(  # pylint: disable=unused-argument
         self,
@@ -747,15 +738,17 @@ class FunctionHandler(BaseScriptHandler):
         status : StatusEnum
             The status of the processing
         """
-        return StatusEnum.accepted
+        raise NotImplementedError
 
     async def _reset_script(
         self,
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> dict[str, Any]:
         update_fields = {}
         update_fields["status"] = to_status
-        await self._purge_products(session, script, to_status)
+        await self._purge_products(session, script, to_status, fake_reset=fake_reset)
         return update_fields

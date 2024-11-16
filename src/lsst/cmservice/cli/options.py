@@ -81,11 +81,11 @@ class DictParamType(click.ParamType):
         ... def command(param):
         ...     ...
 
-        CLI: command --param='page:1; name=Items; rules=1, 2, three; extra=A,;'
+        CLI: command --param='page:1; name:Items; rules:1, 2, three; extra:A,;'
 
     Example
     -------
-        >>> param_value = 'page=1; name=Items; rules:1, 2, three; extra=A,;'
+        >>> param_value = 'page:1; name:Items; rules:1, 2, three; extra:A,;'
         >>> DictParamType().convert(param_value, None, None)
         {'page': 1, 'name': 'Items', 'rules': [1, 2, 'three'], 'extra': ['A']}`
 
@@ -118,7 +118,7 @@ class DictParamType(click.ParamType):
         ------
             click.BadParameter: If the validation is failed.
         """
-        if isinstance(value, dict):
+        if isinstance(value, dict):  # pragma: no cover
             return value
         try:
             keyvalue_pairs = value.rstrip(";").split(";")
@@ -255,6 +255,14 @@ fake_status = PartialOption(
     type=EnumChoice(StatusEnum),
     default=None,
     help="Status to set for Element",
+)
+
+
+fake_reset = PartialOption(
+    "--fake_reset",
+    is_flag=True,
+    default=False,
+    help="Don't actually do reset",
 )
 
 

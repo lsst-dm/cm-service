@@ -76,7 +76,7 @@ def submit_slurm_job(
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-        ) as sbatch:
+        ) as sbatch:  # pragma: no cover
             sbatch.wait()
             if sbatch.returncode != 0:
                 assert sbatch.stderr
@@ -92,7 +92,7 @@ def submit_slurm_job(
 def check_slurm_job(
     slurm_id: str | None,
     fake_status: StatusEnum | None = None,
-) -> StatusEnum | None:
+) -> StatusEnum:
     """Check the status of a `Slurm` job
 
     Parameters
@@ -105,15 +105,17 @@ def check_slurm_job(
 
     Returns
     -------
-    status: StatusEnum | None
-        Slurm job status, None implies job not found in slurm
+    status: StatusEnum
+        Slurm job status
     """
-    if slurm_id is None:
-        return None
     if fake_status is not None:
-        return StatusEnum.reviewable
+        return StatusEnum.reviewable if fake_status.value >= StatusEnum.reviewable.value else fake_status
+    if slurm_id is None:  # pragma: no cover
+        return StatusEnum.running
     try:
-        with subprocess.Popen(["sacct", "--parsable", "-b", "-j", slurm_id], stdout=subprocess.PIPE) as sacct:
+        with subprocess.Popen(
+            ["sacct", "--parsable", "-b", "-j", slurm_id], stdout=subprocess.PIPE
+        ) as sacct:  # pragma: no cover
             sacct.wait()
             if sacct.returncode != 0:
                 assert sacct.stderr
@@ -129,7 +131,7 @@ def check_slurm_job(
                     return slurm_status_map["PENDING"]
                 slurm_status = tokens[1]
             except Exception as msg:
-                raise CMSlurmCheckError(f"Badly formatted slurm check: {msg}")
+                raise CMSlurmCheckError(f"Badly formatted slurm check: {msg}") from msg
     except Exception as msg:
-        raise CMSlurmCheckError(f"Bad slurm check: {msg}")
-    return slurm_status_map[slurm_status]
+        raise CMSlurmCheckError(f"Bad slurm check: {msg}") from msg
+    return slurm_status_map[slurm_status]  # pragma: no cover

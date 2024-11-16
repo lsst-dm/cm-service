@@ -7,7 +7,6 @@ from typing import Any
 import httpx
 
 from .actions import CMActionClient
-from .adders import CMAddClient
 from .campaigns import CMCampaignClient
 from .clientconfig import client_config
 from .groups import CMGroupClient
@@ -38,9 +37,9 @@ class CMClient:  # pylint: disable=too-many-instance-attributes
     def __init__(self: CMClient) -> None:
         client_kwargs: dict[str, Any] = {}
         client_kwargs["base_url"] = client_config.service_url
-        if "auth_token" in client_config.model_fields_set:
+        if "auth_token" in client_config.model_fields_set:  # pragma: no cover
             client_kwargs["headers"] = {"Authorization": f"Bearer {client_config.auth_token}"}
-        if "timeout" in client_config.model_fields_set:
+        if "timeout" in client_config.model_fields_set:  # pragma: no cover
             client_kwargs["timeout"] = client_config.timeout
         self._client = httpx.Client(**client_kwargs)
 
@@ -68,7 +67,6 @@ class CMClient:  # pylint: disable=too-many-instance-attributes
         self.step_dependency = CMStepDependencyClient(self)
 
         self.action = CMActionClient(self)
-        self.add = CMAddClient(self)
         self.load = CMLoadClient(self)
 
     @property

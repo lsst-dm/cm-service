@@ -43,7 +43,7 @@ async def test_step_cli(uvicorn: UvicornProcess) -> None:
     entry = steps[0]
 
     # check get methods
-    check_get_methods(runner, client_top, entry, "step", models.Step, models.Campaign)
+    check_get_methods(runner, client_top, entry, "step", models.Step)
 
     # check update methods
     check_update_methods(runner, client_top, entry, "step", models.Step)

@@ -3,8 +3,8 @@ from typing import TypeAlias
 import pytest
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-import lsst.cmservice.common.errors as errors
 from lsst.cmservice import db
+from lsst.cmservice.common import errors
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum, TableEnum
 from lsst.cmservice.handlers import interface
 
@@ -57,7 +57,7 @@ async def create_tree(
         parent_name=pname,
     )
 
-    (camp_scripts, camp_script_depend) = await add_scripts(session, camp)
+    (_camp_scripts, _camp_script_depend) = await add_scripts(session, camp)
 
     if level.value <= LevelEnum.campaign.value:
         return
@@ -310,10 +310,23 @@ async def check_scripts(
     all_scripts = await entry.get_all_scripts(session)
     assert len(all_scripts) != 0, "get_all_scripts with failed"
 
-    await scripts[1].update_values(session, superseded=True)
+    await scripts[1].update_values(session, status=StatusEnum.running)
+    sleep_time = await entry.estimate_sleep_time(session)
+    assert sleep_time == 15, "Wrong sleep time for element with running script"
+
+    sleep_time = await scripts[1].estimate_sleep_time(session)
+    assert sleep_time == 15, "Wrong sleep time for running script"
+
+    await scripts[1].update_values(session, status=StatusEnum.waiting, superseded=True)
     scripts_check = await entry.get_scripts(session)
 
     assert len(scripts_check) == 1, "Failed to ignore superseded script"
+
+    script_iface_check = await interface.get_node_by_fullname(
+        session,
+        f"script:{scripts[1].fullname}",
+    )
+    assert script_iface_check.id == scripts[1].id
 
     scripts_check = await entry.get_scripts(session, skip_superseded=False)
     assert len(scripts_check) == 2, "Failed to respect skip_superseded"
@@ -326,14 +339,35 @@ async def check_scripts(
     with pytest.raises(errors.CMTooManyActiveScriptsError):
         await entry.retry_script(session, "bad")
 
-    await scripts[0].update_values(session, status=StatusEnum.failed)
+    await scripts[0].update_values(session, status=StatusEnum.running)
+    await scripts[0].process(session, fake_status=StatusEnum.failed)
 
     check = await entry.retry_script(session, "prepare")
     assert check.status == StatusEnum.waiting, "Failed to retry script"
 
     await scripts[0].update_values(session, status=StatusEnum.failed)
+
+    with pytest.raises(errors.CMBadStateTransitionError):
+        await interface.reset_script(session, scripts[0].fullname, StatusEnum.accepted)
+
+    check = await interface.reset_script(session, scripts[0].fullname, StatusEnum.prepared)
+    assert check.status == StatusEnum.prepared, "Failed to reset script to prepared"
+
+    check = await interface.reset_script(session, scripts[0].fullname, StatusEnum.ready)
+    assert check.status == StatusEnum.ready, "Failed to reset script to ready"
+
+    with pytest.raises(errors.CMBadStateTransitionError):
+        await interface.reset_script(session, scripts[0].fullname, StatusEnum.prepared)
+
     check = await interface.reset_script(session, scripts[0].fullname, StatusEnum.waiting)
-    assert check.status == StatusEnum.waiting, "Failed to retry script"
+    assert check.status == StatusEnum.waiting, "Failed to reset script to waiting"
+
+    sleep_time = await scripts[0].estimate_sleep_time(session)
+    assert sleep_time == 10
+
+    await scripts[0].update_values(session, status=StatusEnum.accepted)
+    with pytest.raises(errors.CMBadStateTransitionError):
+        await interface.reset_script(session, scripts[0].fullname, StatusEnum.waiting)
 
 
 async def check_get_methods(
@@ -357,6 +391,9 @@ async def check_get_methods(
             session,
             -99,
         )
+
+    check_iface = await interface.get_node_by_fullname(session, entry.fullname)
+    assert check_iface.id == entry.id, "pulled row using interface should be identical"
 
     check_get_by_name = await entry_class.get_row_by_name(session, name=entry.name)
     assert check_get_by_name.id == entry.id, "pulled row should be identical"
@@ -422,12 +459,22 @@ async def check_queue(
     check_elem = await queue.get_node(session)
     assert check_elem.id == entry.id
 
-    check_queue = await db.Queue.get_queue_item(session, fullname=entry.fullname)
-    assert check_queue.node_id == entry.id
+    check_queue_item = await db.Queue.get_queue_item(session, fullname=entry.fullname)
+    assert check_queue_item.node_id == entry.id
 
     queue.waiting()
 
     sleep_time = await queue.node_sleep_time(session)
     assert sleep_time == 10
+
+    scripts = await entry.get_scripts(session)
+    script = scripts[0]
+    queue_script = await db.Queue.create_row(session, fullname=f"script:{script.fullname}")
+
+    check_script = await queue_script.get_node(session)
+    assert check_script.id == script.id
+
+    check_queue_script_item = await db.Queue.get_queue_item(session, fullname=f"script:{script.fullname}")
+    assert check_queue_script_item.node_id == script.id
 
     await db.Queue.delete_row(session, queue.id)

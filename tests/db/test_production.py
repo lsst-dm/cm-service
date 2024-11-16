@@ -7,8 +7,8 @@ from safir.database import create_async_session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-import lsst.cmservice.common.errors as errors
 from lsst.cmservice import db
+from lsst.cmservice.common import errors
 from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
 
@@ -77,7 +77,7 @@ async def test_production_db(engine: AsyncEngine) -> None:
 
         # run campaign specific method tests
         check = await entry.children(session)
-        assert len([c for c in check]) == 1, "length of children should be 2"
+        assert len(list(check)) == 1, "length of children should be 2"
 
         # delete everything we just made in the session
         await cleanup(session)

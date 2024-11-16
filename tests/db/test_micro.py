@@ -6,7 +6,7 @@ import structlog
 from safir.database import create_async_session
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-import lsst.cmservice.common.errors as errors
+from lsst.cmservice.common import errors
 from lsst.cmservice.common.enums import ScriptMethodEnum, StatusEnum
 from lsst.cmservice.config import config
 from lsst.cmservice.handlers import interface
@@ -19,7 +19,7 @@ from .util_functions import cleanup
     "script_method", [ScriptMethodEnum.bash, ScriptMethodEnum.slurm, ScriptMethodEnum.htcondor]
 )
 @pytest.mark.asyncio()
-async def test_micro(
+async def test_micro_db(
     engine: AsyncEngine,
     tmp_path: Path,
     script_method: ScriptMethodEnum,
@@ -95,7 +95,7 @@ async def test_micro(
             force_check=True,
             fake_status=StatusEnum.accepted,
         )
-        assert status == StatusEnum.running
+        assert status == StatusEnum.accepted
 
         status = await campaign.review(
             session,

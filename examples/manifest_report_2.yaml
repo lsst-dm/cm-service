@@ -1,0 +1,148 @@
+analyzeObjectTableCore:
+  failed_quanta: {}
+  n_quanta_blocked: 0
+  outputs:
+    analyzeObjectTableCore_log:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    analyzeObjectTableCore_metadata:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_g_e1Diff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTableCore_g_e2Diff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+analyzeObjectTableSurveyCore:
+  failed_quanta: {}
+  n_quanta_blocked: 0
+  outputs:
+    analyzeObjectTableSurveyCore_log:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 1
+    analyzeObjectTableSurveyCore_metadata:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 1
+    objectTableSurvey_i_rhoStatistics_rho1_RhoStatisticsPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 1
+    objectTableSurvey_i_rhoStatistics_rho2_RhoStatisticsPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 1
+catalogMatchTract:
+  failed_quanta: {}
+  n_quanta_blocked: 0
+  outputs:
+    catalogMatchTract_log:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    catalogMatchTract_metadata:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    objectTable_tract_cal_ref_cat_2_2_match:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+diff_matched_analysis:
+  failed_quanta:
+    097fdd32-950f-49e3-9406-10ee1e2f7ac9:
+      data_id:
+        band: i~nd
+        skymap: DC2
+        tract: 3828
+      error:
+      - 'Reading from location file:///sdf/group/rubin/repo/dc2/2.2i/runs/test-med-1/
+        w_2023_37/DM-40870/step3/group0/w00_000/objectTable_tract/3828/
+	objectTable_tract_3828_DC2_2_2i_runs_test-med-1_w_2023_37_DM-40870_step3_group0_w00_000.parq  with
+        formatter lsst.daf.butler.formatters.parquet.ParquetFormatter: Took 0.0185 seconds'
+      - 'Execution of task ''skyObjectStd'' on quantum {band: ''i~nd'', skymap: ''DC2'',
+        tract: 3828} failed. Exception ValueError: Failure from formatter
+	''lsst.daf.butler.formatters.parquet.ParquetFormatter''
+        for dataset 134e9a93-8c19-4826-9007-8a2a6f00c21e
+	(objectTable_tract from file:///sdf/group/rubin/repo/dc2/2.2i/runs/test-med-1/
+	w_2023_37/DM-40870/step3/group0/w00_000/objectTable_tract/3828/
+	objectTable_tract_3828_DC2_2_2i_runs_test-med-1_w_2023_37_DM-40870_step3_group0_w00_000.parq):
+        Column d_pixelFlags_edge specified in parameters not available in parquet
+        file.'
+  n_quanta_blocked: 0
+  outputs:
+    diff_matched_analysis_log:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_analysis_metadata:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_g_matchedRefCModelMagDiff_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    diff_matched_truth_summary_objectTable_tract_g_matchedRefMagChi_ScatterPlotWithTwoHists:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+refCatObjectTract:
+  failed_quanta: {}
+  n_quanta_blocked: 0
+  outputs:
+    objectTable_tract_cal_ref_cat_2_2_match_g_astromDiffDec_SkyPlot:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    refCatObjectTract_log:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    refCatObjectTract_metadata:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+validateObjectTableCore:
+  failed_quanta: {}
+  n_quanta_blocked: 0
+  outputs:
+    objectTableColumnValidate_metrics:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    validateObjectTableCore_log:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2
+    validateObjectTableCore_metadata:
+      missing_failed: 0
+      missing_not_produced: 0
+      missing_upstream_failed: 0
+      produced: 2

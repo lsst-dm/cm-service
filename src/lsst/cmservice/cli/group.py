@@ -78,6 +78,8 @@ get_row_by_name = wrappers.get_row_by_name_command(get_command, sub_client, DbCl
 
 get_row_by_fullname = wrappers.get_row_by_fullname_command(get_command, sub_client, DbClass)
 
+get_parent = wrappers.get_element_parent_command(get_command, sub_client, db.Step)
+
 get_spec_block = wrappers.get_spec_block_command(get_command, sub_client)
 
 get_specification = wrappers.get_specification_command(get_command, sub_client)
@@ -154,6 +156,6 @@ def mark_rescued(
     row_id: int,
     output: options.OutputEnum | None,
 ) -> None:
-    """Create a rescue job"""
+    """Mark the jobs in a group as rescued"""
     result = client.group.mark_rescued(row_id=row_id)
-    wrappers.output_pydantic_object(result, output, db.Job.col_names_for_table)
+    wrappers.output_pydantic_list(result, output, db.Job.col_names_for_table)

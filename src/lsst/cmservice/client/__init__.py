@@ -19,7 +19,6 @@ queries: getting objects from the database
 
 
 from .actions import CMActionClient
-from .adders import CMAddClient
 from .campaigns import CMCampaignClient
 from .client import CMClient
 from .groups import CMGroupClient
@@ -43,7 +42,6 @@ from .wms_task_reports import CMWmsTaskReportClient
 
 __all__ = [
     "CMActionClient",
-    "CMAddClient",
     "CMCampaignClient",
     "CMClient",
     "CMGroupClient",

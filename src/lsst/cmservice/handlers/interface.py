@@ -232,8 +232,7 @@ async def get_node_by_fullname(
     node_type = get_node_type_by_fullname(fullname)
     if node_type == NodeTypeEnum.element:
         return await get_element_by_fullname(session, fullname)
-    if node_type == NodeTypeEnum.script:
-        result = await db.Script.get_row_by_fullname(session, fullname[7:])
+    result = await db.Script.get_row_by_fullname(session, fullname[7:])
     return result
 
 
@@ -347,13 +346,17 @@ async def process(
         return await process_element(session, fullname, fake_status=fake_status)
     if node_type == NodeTypeEnum.script:
         return await process_script(session, fullname[7:], fake_status=fake_status)
-    raise CMBadExecutionMethodError(f"Tried to process an row from a table of type {node_type}")
+    raise CMBadExecutionMethodError(
+        f"Tried to process an row from a table of type {node_type}"
+    )  # pragma: no cover
 
 
 async def reset_script(
     session: async_scoped_session,
     fullname: str,
     status: StatusEnum,
+    *,
+    fake_reset: bool = False,
 ) -> db.Script:
     """Run a retry on a `Script`
 
@@ -376,6 +379,9 @@ async def reset_script(
     status: StatusEnum
         Status to set script to
 
+    fake_reset: bool
+        Don't actually try to remove collections if True
+
     Returns
     -------
     script : Script
@@ -388,7 +394,7 @@ async def reset_script(
     CMMissingFullnameError : Could not find Node
     """
     script = await db.Script.get_row_by_fullname(session, fullname)
-    _result = await script.reset_script(session, status)
+    _result = await script.reset_script(session, status, fake_reset=fake_reset)
     return script
 
 
@@ -426,7 +432,7 @@ async def rescue_job(
     CMMissingFullnameError : Could not find Element
     """
     element = await get_element_by_fullname(session, fullname)
-    if not isinstance(element, db.Group):
+    if not isinstance(element, db.Group):  # pragma: no cover
         raise CMBadExecutionMethodError(f"rescue_job should only be run on Group nodes, not {type(element)}")
     return await element.rescue_job(session)
 
@@ -467,80 +473,11 @@ async def mark_job_rescued(
     CMMissingFullnameError : Could not find Element
     """
     element = await get_element_by_fullname(session, fullname)
-    if not isinstance(element, db.Group):
+    if not isinstance(element, db.Group):  # pragma: no cover
         raise CMBadExecutionMethodError(
             f"mark_job_rescued should only be run on Group nodes, not {type(element)}",
         )
     return await element.mark_job_rescued(session)
-
-
-async def add_groups(
-    session: async_scoped_session,
-    fullname: str,
-    child_configs: dict,
-) -> db.Step:
-    """Add Groups to a `Step`
-
-    Parameters
-    ----------
-    session : async_scoped_session
-        DB session manager
-
-    fullname: str
-        Full unique name for the parent `Step`
-
-    child_configs: dict,
-        Configurations for the `Group`s to be created
-
-    Returns
-    -------
-    step : Step
-        Newly updated Step
-
-    Raises
-    ------
-    CMBadFullnameError : could not parse fullname to determine table
-
-    CMMissingFullnameError : Could not find Element
-    """
-    step = await db.Step.get_row_by_fullname(session, fullname)
-    result = await functions.add_groups(session, step, child_configs)
-    # await session.commit()
-    return result
-
-
-async def add_steps(
-    session: async_scoped_session,
-    fullname: str,
-    child_configs: list[dict[str, Any]],
-) -> db.Campaign:
-    """Add Steps to a `Campaign`
-
-    Parameters
-    ----------
-    session : async_scoped_session
-        DB session manager
-
-    fullname: str
-        Full unique name for the parent `Campaign`
-
-    child_configs: list[dict[str, Any]]
-        Configurations for the `Step`s to be created
-
-    Returns
-    -------
-    campaign : Campaign
-        Newly updated Campaign
-
-    Raises
-    ------
-    CMBadFullnameError : could not parse fullname to determine table
-
-    CMMissingFullnameError : Could not find Element
-    """
-    campaign = await db.Campaign.get_row_by_fullname(session, fullname)
-    result = await functions.add_steps(session, campaign, child_configs)
-    return result
 
 
 async def create_campaign(
@@ -591,7 +528,7 @@ async def load_specification(
         Newly created `Specification`
     """
     result = await functions.load_specification(session, yaml_file, {}, allow_update=allow_update)
-    if result is None:
+    if result is None:  # pragma: no cover
         raise ValueError("load_specification() did not return a Specification")
     return result
 
@@ -629,18 +566,14 @@ async def load_and_create_campaign(  # pylint: disable=too-many-arguments
         Newly created `Campaign`
     """
     allow_update = kwargs.get("allow_update", False)
-    specification = await functions.load_specification(session, yaml_file, allow_update=allow_update)
-    assert specification  # for mypy
-
-    if specification is None:
-        raise ValueError("load_specification() did not return a Specification")
+    specification = await load_specification(session, yaml_file, allow_update=allow_update)
 
     try:
         await db.Production.create_row(session, name=parent_name)
-    except Exception:  # pylint: disable=broad-exception-caught
+    except Exception:  # pragma: no cover
         pass
 
-    if not spec_block_assoc_name:
+    if not spec_block_assoc_name:  # pragma: no cover
         spec_block_assoc_name = f"{specification.name}#campaign"
 
     kwargs.update(
@@ -654,6 +587,40 @@ async def load_and_create_campaign(  # pylint: disable=too-many-arguments
         **kwargs,
     )
     # await session.commit()
+    return result
+
+
+async def add_steps(
+    session: async_scoped_session,
+    fullname: str,
+    child_configs: list[dict[str, Any]],
+) -> db.Campaign:
+    """Add Steps to a `Campaign`
+
+    Parameters
+    ----------
+    session : async_scoped_session
+        DB session manager
+
+    fullname: str
+        Full unique name for the parent `Campaign`
+
+    child_configs: list[dict[str, Any]]
+        Configurations for the `Step`s to be created
+
+    Returns
+    -------
+    campaign : Campaign
+        Newly updated Campaign
+
+    Raises
+    ------
+    CMBadFullnameError : could not parse fullname to determine table
+
+    CMMissingFullnameError : Could not find Element
+    """
+    campaign = await db.Campaign.get_row_by_fullname(session, fullname)
+    result = await functions.add_steps(session, campaign, child_configs)
     return result
 
 
@@ -684,6 +651,8 @@ async def load_manifest_report(
     session: async_scoped_session,
     yaml_file: str,
     fullname: str,
+    *,
+    allow_update: bool = False,
 ) -> db.Job:
     """Load a manifest checker yaml file
 
@@ -698,12 +667,15 @@ async def load_manifest_report(
     fullname: str
         Fullname of the `Job` to associate with this report
 
+    allow_update: bool
+        If set, allow updating values
+
     Returns
     -------
     job: Job
         Newly updated job
     """
-    result = await functions.load_manifest_report(session, fullname, yaml_file)
+    result = await functions.load_manifest_report(session, fullname, yaml_file, allow_update=allow_update)
     return result
 
 
@@ -713,6 +685,8 @@ async def match_pipetask_errors(  # pylint: disable=unused-argument
     rematch: bool = False,
 ) -> list[db.PipetaskError]:
     """Match PipetaskErrors to PipetaskErrorTypes
+
+    FIXME: implement this function
 
     Parameters
     ----------
@@ -728,26 +702,3 @@ async def match_pipetask_errors(  # pylint: disable=unused-argument
         Newly matched (or rematched) PipetaskErrors
     """
     return []
-
-
-async def create_error_type(
-    session: async_scoped_session,
-    **kwargs: Any,
-) -> db.PipetaskErrorType:
-    """Add an PipetaskErrorType to DB
-
-    Parameters
-    ----------
-    session : async_scoped_session
-        DB session manager
-
-    kwargs : Any
-        Passed to Campaign construction
-
-    Returns
-    -------
-    error_type : PipetaskErrorType
-        Newly created PipetaskErrorType
-    """
-    result = await db.PipetaskErrorType.create_row(session, **kwargs)
-    return result

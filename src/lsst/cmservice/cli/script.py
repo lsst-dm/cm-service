@@ -1,6 +1,7 @@
 """CLI to manage Script table"""
 
 from .. import db
+from ..client.client import CMClient
 from . import options, wrappers
 from .commands import script_group
 
@@ -108,3 +109,17 @@ action_accept = wrappers.get_action_accept_command(action_command, sub_client, D
 action_reject = wrappers.get_action_reject_command(action_command, sub_client, DbClass)
 
 action_reset = wrappers.get_action_reset_command(action_command, sub_client, DbClass)
+
+
+@get_command(name="script-errors")
+@options.cmclient()
+@options.row_id()
+@options.output()
+def get_script_errors(
+    client: CMClient,
+    row_id: int,
+    output: options.OutputEnum | None,
+) -> None:
+    """Get the errors associated to this script"""
+    result = client.script.get_script_errors(row_id=row_id)
+    wrappers.output_pydantic_list(result, output, db.ScriptError.col_names_for_table)

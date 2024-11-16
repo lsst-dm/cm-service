@@ -93,22 +93,18 @@ class ElementHandler(Handler):
                 changed = True
         if status == StatusEnum.ready:
             (has_changed, status) = await self.prepare(session, node)
-            if has_changed:
-                changed = True
+            changed |= has_changed
         if status == StatusEnum.prepared:
             (has_changed, status) = await self.continue_processing(session, node, **kwargs)
-            if has_changed:
-                changed = True
+            changed |= has_changed
         if status == StatusEnum.running:
             (has_changed, status) = await self.check(session, node, **kwargs)
-            if has_changed:
-                changed = True
+            changed |= has_changed
             if status == StatusEnum.running:
                 (has_changed, status) = await self.continue_processing(session, node, **kwargs)
-                if has_changed:
-                    changed = True
+                changed |= has_changed
         if status == StatusEnum.reviewable:
-            status = await self.review(session, node, *kwargs)
+            status = await self.review(session, node, **kwargs)
         if status != orig_status:
             changed = True
             await node.update_values(session, status=status)
@@ -220,12 +216,11 @@ class ElementHandler(Handler):
         """
         scripts = await element.get_scripts(session, remaining_only=True)
         changed = False
-        if scripts:
-            for script_ in scripts:
-                (script_changed, _script_status) = await script_.process(session, **kwargs)
-                if script_changed:
-                    await script_.update_values(session, status=_script_status)
-                    changed = True
+        for script_ in scripts:
+            (script_changed, _script_status) = await script_.process(session, **kwargs)
+            if script_changed:
+                await script_.update_values(session, status=_script_status)
+                changed = True
         await element.update_values(session, status=StatusEnum.running)
         return (changed, StatusEnum.running)
 
@@ -237,7 +232,7 @@ class ElementHandler(Handler):
     ) -> StatusEnum:
         """Review a `Element` processing
 
-        By default this does nothing, but
+        By default this accepts the element but
         can be used to automate checking
         that the element is ok
 
@@ -255,7 +250,7 @@ class ElementHandler(Handler):
             Status of the processing
         """
         fake_status = kwargs.get("fake_status", None)
-        status = fake_status if fake_status is not None else element.status
+        status = fake_status if fake_status is not None else StatusEnum.accepted
         return status
 
     async def _run_script_checks(
@@ -330,8 +325,7 @@ class ElementHandler(Handler):
         changed = False
         for job_ in jobs:
             (job_changed, _job_status) = await job_.run_check(session, fake_status=fake_status)
-            if job_changed:
-                changed = True
+            changed |= job_changed
         return changed
 
     async def check(
@@ -370,11 +364,11 @@ class ElementHandler(Handler):
             Status of the processing
         """
         changed = False
+
         if kwargs.get("do_checks", False):
             scripts_changed = await self._run_script_checks(session, element, **kwargs)
             jobs_changed = await self._run_job_checks(session, element, **kwargs)
-            if scripts_changed or jobs_changed:
-                changed = True
+            changed |= scripts_changed or jobs_changed
 
         remaining_only = not kwargs.get("force_check", False)
         status = StatusEnum.accepted
@@ -401,6 +395,9 @@ class ElementHandler(Handler):
             return (changed, status)
 
         status = await self._post_check(session, element, **kwargs)
+        fake_status = kwargs.get("fake_status", None)
+        if fake_status:
+            status = fake_status
         await element.update_values(session, status=status)
         return (True, status)
 

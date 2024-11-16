@@ -50,12 +50,14 @@ def get_rows_no_parent_function(
 def get_rows_function(
     response_model_class: TypeAlias = BaseModel,
     query: str = "",
-) -> Callable:
+) -> Callable:  # pragma: no cover
     """Return a function that gets all the rows from a table
     and attaches that function to a client.
 
     This version will provide a function which can be filtered
     based on the id of the parent node.
+
+    FIXME: we aren't using this version, but might want to
 
     Parameters
     ----------
@@ -327,38 +329,6 @@ def get_node_property_function(
     return get_node_property
 
 
-def get_node_property_by_fullname_function(
-    response_model_class: TypeAlias,
-    query: str = "",
-) -> Callable:
-    """Return a function that gets a property of a single row of a table
-    and attaches that function to a client.
-
-    Parameters
-    ----------
-    response_model_class: TypeAlias = BaseModel,
-        Pydantic class used to serialize the return value
-
-    query: str
-        http query
-
-    Returns
-    -------
-    the_function: Callable
-        Function that returns a property of a single row from a table by name
-    """
-
-    def get_node_property_by_fullname(
-        obj: CMClient,
-        fullname: str,
-    ) -> response_model_class:
-        params = models.FullnameQuery(fullname=fullname).model_dump()
-        results = obj.client.get(query, params=params).raise_for_status().json()
-        return TypeAdapter(response_model_class).validate_python(results)
-
-    return get_node_property_by_fullname
-
-
 def get_node_post_query_function(
     response_model_class: TypeAlias,
     query_class: TypeAlias,
@@ -437,38 +407,6 @@ def get_node_post_no_query_function(
     return node_update
 
 
-def get_job_property_function(
-    response_model_class: TypeAlias,
-    query: str = "",
-) -> Callable:
-    """Return a function that invokes a query
-    and attaches that function to a client.
-
-    Parameters
-    ----------
-    response_model_class: TypeAlias = BaseModel,
-        Pydantic class used to serialize the return value
-
-    query: str
-        http query
-
-    Returns
-    -------
-    the_function: Callable
-        Function that invokes a query
-    """
-
-    def get_job_property(
-        obj: CMClient,
-        fullname: str,
-    ) -> list[response_model_class]:
-        params = models.FullnameQuery(fullname=fullname).model_dump()
-        results = obj.client.get(query, params=params).raise_for_status().json()
-        return TypeAdapter(list[response_model_class]).validate_python(results)
-
-    return get_job_property
-
-
 def get_general_post_function(
     query_class: TypeAlias = BaseModel,
     response_model_class: TypeAlias = Any,
@@ -503,8 +441,7 @@ def get_general_post_function(
         results = obj.client.post(query, content=content).raise_for_status().json()
         if results_key is None:
             return TypeAdapter(response_model_class).validate_python(results)
-        else:
-            return TypeAdapter(response_model_class).validate_python(results[results_key])
+        return TypeAdapter(response_model_class).validate_python(results[results_key])  # pragma: no cover
 
     return general_post_function
 
@@ -552,7 +489,6 @@ def get_general_query_function(
         results = obj.client.get(full_query, params=params).raise_for_status().json()
         if results_key is None:
             return TypeAdapter(response_model_class).validate_python(results)
-        else:
-            return TypeAdapter(response_model_class).validate_python(results[results_key])
+        return TypeAdapter(response_model_class).validate_python(results[results_key])  # pragma: no cover
 
     return general_query_function

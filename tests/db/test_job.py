@@ -7,10 +7,11 @@ from safir.database import create_async_session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-import lsst.cmservice.common.errors as errors
 from lsst.cmservice import db
+from lsst.cmservice.common import errors
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum
 from lsst.cmservice.config import config
+from lsst.cmservice.handlers import interface
 
 from .util_functions import (
     check_get_methods,
@@ -61,6 +62,13 @@ async def test_job_db(engine: AsyncEngine) -> None:
 
         entry = check_getall[0]  # defining single unit for later
 
+        parent = await entry.get_parent(session)
+
+        await db.Job.update_row(session, entry.id, status=StatusEnum.running)
+        sleep_time = await parent.estimate_sleep_time(session)
+        assert sleep_time == 150
+        await db.Job.update_row(session, entry.id, status=StatusEnum.waiting)
+
         await check_get_methods(session, entry, db.Job, db.Group)
 
         with pytest.raises(errors.CMMissingIDError):
@@ -71,7 +79,7 @@ async def test_job_db(engine: AsyncEngine) -> None:
         assert campaign.name == f"camp0_{uuid_int}", "should return same name as camp0"
 
         check = await entry.get_siblings(session)
-        assert len([c for c in check]) == 0, "length of siblings should be 0"
+        assert len(list(check)) == 0, "length of siblings should be 0"
 
         check = await entry.get_errors(session)
         assert len(check) == 0, "length of errors should be 0"
@@ -86,45 +94,47 @@ async def test_job_db(engine: AsyncEngine) -> None:
         await check_scripts(session, entry)
 
         # check on the rescue job
-        parent = await entry.get_parent(session)
-
         with pytest.raises(errors.CMTooFewAcceptedJobsError):
-            new_job = await parent.rescue_job(session)
+            await parent.rescue_job(session)
 
-        await entry.update_values(session, status=StatusEnum.rescuable)
-        new_job = await parent.rescue_job(session)
+        await db.Job.update_row(session, entry.id, status=StatusEnum.rescuable)
+        job2 = await parent.rescue_job(session)
 
         with pytest.raises(errors.CMBadStateTransitionError):
             await parent.mark_job_rescued(session)
 
-        await entry.update_values(session, status=StatusEnum.rescuable)
+        await db.Job.update_row(session, entry.id, status=StatusEnum.rescuable)
         with pytest.raises(errors.CMBadStateTransitionError):
             await parent.mark_job_rescued(session)
 
-        await entry.update_values(session, status=StatusEnum.rescuable)
-        await new_job.update_values(session, status=StatusEnum.accepted)
+        await db.Job.update_row(session, entry.id, status=StatusEnum.rescuable)
+        await db.Job.update_row(session, job2.id, status=StatusEnum.accepted)
 
         rescued = await parent.mark_job_rescued(session)
         assert len(rescued) == 1, "Wrong number of rescued jobs"
 
-        await entry.update_values(session, status=StatusEnum.accepted)
+        await db.Job.update_row(session, entry.id, status=StatusEnum.accepted)
+        await db.Job.update_row(session, job2.id, status=StatusEnum.accepted)
         with pytest.raises(errors.CMTooManyActiveScriptsError):
             await parent.mark_job_rescued(session)
 
-        await entry.update_values(session, status=StatusEnum.rescuable)
-        await new_job.update_values(session, status=StatusEnum.rescuable)
+        await db.Job.update_row(session, entry.id, status=StatusEnum.rescuable)
+        await db.Job.update_row(session, job2.id, status=StatusEnum.rescuable)
+
+        job3 = await parent.rescue_job(session)
+
+        await db.Job.update_row(session, entry.id, status=StatusEnum.rescued)
+        await db.Job.update_row(session, job2.id, status=StatusEnum.failed, superseded=True)
+        await db.Job.update_row(session, job3.id, status=StatusEnum.rescuable)
 
         with pytest.raises(errors.CMTooFewAcceptedJobsError):
             await parent.mark_job_rescued(session)
 
-        await entry.update_values(session, status=StatusEnum.rescuable)
-        await new_job.update_values(session, status=StatusEnum.rescuable)
+        job4 = await parent.rescue_job(session)
+        await db.Job.update_row(session, job4.id, status=StatusEnum.accepted)
 
-        newest_job = await parent.rescue_job(session)
-        await newest_job.update_values(session, status=StatusEnum.accepted)
-
-        rescued = await parent.mark_job_rescued(session)
-        assert len(rescued) == 2, "Wrong number of rescued jobs"
+        rescued = await interface.mark_job_rescued(session, parent.fullname)
+        assert len(rescued) == 1, "Wrong number of rescued jobs"
 
         # make and test queue object
         await check_queue(session, entry)

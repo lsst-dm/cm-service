@@ -10,9 +10,9 @@ from lsst.ctrl.bps.bps_reports import compile_job_summary
 from lsst.ctrl.bps.wms_service import WmsJobReport, WmsRunReport, WmsStates
 
 from ..common.enums import StatusEnum
-from ..common.errors import CMYamlParseError
+from ..common.errors import CMMissingFullnameError, CMYamlParseError
+from ..common.utils import update_include_dict
 from ..db.campaign import Campaign
-from ..db.group import Group
 from ..db.job import Job
 from ..db.pipetask_error import PipetaskError
 from ..db.pipetask_error_type import PipetaskErrorType
@@ -24,26 +24,6 @@ from ..db.step import Step
 from ..db.step_dependency import StepDependency
 from ..db.task_set import TaskSet
 from ..db.wms_task_report import WmsTaskReport
-
-
-def update_include_dict(
-    orig_dict: dict[str, Any],
-    include_dict: dict[str, Any],
-) -> None:
-    """Update a dict by updating (instead of replacing) sub-dicts
-
-    Parameters
-    ----------
-    orig_dict: dict[str, Any]
-        Original dict
-    include_dict: dict[str, Any],
-        Dict used to update the original
-    """
-    for key, val in include_dict.items():
-        if isinstance(val, Mapping) and key in orig_dict:
-            orig_dict[key].update(val)
-        else:
-            orig_dict[key] = val
 
 
 async def upsert_spec_block(
@@ -90,7 +70,9 @@ async def upsert_spec_block(
     for include_ in includes:
         if include_ in loaded_specs:
             update_include_dict(include_data, loaded_specs[include_])
-        else:
+        else:  # pragma: no cover
+            # This is only needed if the block are in reverse dependency order
+            # in the specification yaml file
             spec_block_ = await SpecBlock.get_row_by_fullname(session, include_)
             update_include_dict(
                 include_data,
@@ -251,7 +233,7 @@ async def load_specification(
     specification: Specification
         Newly created Specification
     """
-    if loaded_specs is None:
+    if loaded_specs is None:  # pragma: no cover
         loaded_specs = {}
 
     specification = None
@@ -287,7 +269,7 @@ async def load_specification(
                 config_item["Specification"],
                 allow_update=allow_update,
             )
-        else:
+        else:  # pragma: no cover
             good_keys = "ScriptTemplate | SpecBlock | Specification | Imports"
             raise CMYamlParseError(f"Expecting one of {good_keys} not: {spec_data.keys()})")
 
@@ -358,11 +340,11 @@ async def add_steps(
     for step_ in step_config_list:
         try:
             step_config_ = step_["Step"]
-        except KeyError as msg:
+        except KeyError as msg:  # pragma: no cover
             raise CMYamlParseError(f"Expecting Step not: {step_.keys()}") from msg
         child_name_ = step_config_.pop("name")
         spec_block_name = step_config_.pop("spec_block")
-        if spec_block_name is None:
+        if spec_block_name is None:  # pragma: no cover
             raise CMYamlParseError(
                 f"Step {child_name_} of {campaign.fullname} does contain 'spec_block'",
             )
@@ -389,54 +371,6 @@ async def add_steps(
 
     await session.refresh(campaign)
     return campaign
-
-
-async def add_groups(
-    session: async_scoped_session,
-    step: Step,
-    child_configs: dict,
-) -> Step:
-    """Add Groups to a Step
-
-    Parameters
-    ----------
-    session: async_scoped_session
-        DB session manager
-
-    step: Step
-        Step in question
-
-    child_configs: dict
-        Configuration for the Groups
-
-    Returns
-    -------
-    step: Step
-        Step in question
-    """
-    spec_aliases = await step.get_spec_aliases(session)
-
-    current_groups = await step.children(session)
-    n_groups = len(list(current_groups))
-    i = n_groups
-    for child_name_, child_config_ in child_configs.items():
-        spec_block_name = child_config_.pop("spec_block", None)
-        if spec_block_name is None:
-            raise CMYamlParseError(
-                f"child_config_ {child_name_} of {step.fullname} does contain 'spec_block'",
-            )
-        spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
-        await Group.create_row(
-            session,
-            name=f"group{i}",
-            spec_block_name=spec_block_name,
-            parent_name=step.fullname,
-            **child_config_,
-        )
-        i += 1
-
-    await session.refresh(step)
-    return step
 
 
 async def match_pipetask_error(
@@ -472,6 +406,9 @@ async def load_manifest_report(
     session: async_scoped_session,
     job_name: str,
     yaml_file: str,
+    fake_status: StatusEnum | None = None,
+    *,
+    allow_update: bool = False,
 ) -> Job:
     """Parse and load output of pipetask report
 
@@ -486,15 +423,23 @@ async def load_manifest_report(
     yaml_file: str
         Pipetask report yaml file
 
+    fake_status: StatusEnum | None
+        If set, return this status
+
+    allow_update: bool
+        If set, allow updating values
+
     Returns
     -------
     job : Job
         Associated Job
     """
+    job = await Job.get_row_by_fullname(session, job_name)
+    if fake_status is not None:
+        return job
+
     with open(yaml_file, encoding="utf-8") as fin:
         manifest_data = yaml.safe_load(fin)
-
-    job = await Job.get_row_by_fullname(session, job_name)
 
     for task_name_, task_data_ in manifest_data.items():
         failed_quanta = task_data_.get("failed_quanta", {})
@@ -504,25 +449,25 @@ async def load_manifest_report(
         n_failed_upstream = task_data_.get("n_quanta_blocked", 0)
         n_done = task_data_.get("n_succeeded", 0)
 
+        task_fullname = f"{job_name}/{task_name_}"
         try:
+            task_set = await TaskSet.get_row_by_fullname(session, task_fullname)
+            if allow_update:
+                task_set = await TaskSet.update_row(
+                    session,
+                    row_id=task_set.id,
+                    job_id=job.id,
+                    name=task_name_,
+                    fullname=task_fullname,
+                    n_expected=n_expected,
+                    n_done=n_done,
+                )
+        except CMMissingFullnameError:
             task_set = await TaskSet.create_row(
                 session,
                 job_id=job.id,
                 name=task_name_,
-                fullname=f"{job_name}/{task_name_}",
-                n_expected=n_expected,
-                n_done=n_done,
-                n_failed=n_failed,
-                n_failed_upstream=n_failed_upstream,
-            )
-        except Exception:  # pylint: disable=broad-exception-caught
-            task_set = await TaskSet.get_row_by_fullname(session, f"{job_name}/{task_name_}")
-            task_set = await TaskSet.update_row(
-                session,
-                row_id=task_set.id,
-                job_id=job.id,
-                name=task_name_,
-                fullname=f"{job_name}/{task_name_}",
+                fullname=task_fullname,
                 n_expected=n_expected,
                 n_done=n_done,
                 n_failed=n_failed,
@@ -530,27 +475,29 @@ async def load_manifest_report(
             )
 
         for data_type_, counts_ in outputs.items():
+            product_fullname = f"{task_set.fullname}/{data_type_}"
             try:
-                product_set = await ProductSet.create_row(
-                    session,
-                    job_id=job.id,
-                    task_id=task_set.id,
-                    name=data_type_,
-                    fullname=f"{task_set.fullname}/{data_type_}",
-                    n_expected=counts_.get("expected", 0),
-                    n_done=counts_.get("produced", 0),
-                    n_failed=counts_.get("failed", 0),
-                    n_failed_upstream=counts_.get("blocked", 0),
-                    n_missing=counts_.get("not_produced", 0),
-                )
-            except Exception:  # pylint: disable=broad-exception-caught
                 product_set = await ProductSet.get_row_by_fullname(
                     session,
-                    f"{task_set.fullname}/{data_type_}",
+                    product_fullname,
                 )
-                product_set = await ProductSet.update_row(
+                if allow_update:
+                    product_set = await ProductSet.update_row(
+                        session,
+                        row_id=product_set.id,
+                        job_id=job.id,
+                        task_id=task_set.id,
+                        name=data_type_,
+                        fullname=product_fullname,
+                        n_expected=counts_.get("expected", 0),
+                        n_done=counts_.get("produced", 0),
+                        n_failed=counts_.get("failed", 0),
+                        n_failed_upstream=counts_.get("blocked", 0),
+                        n_missing=counts_.get("not_produced", 0),
+                    )
+            except CMMissingFullnameError:
+                product_set = await ProductSet.create_row(
                     session,
-                    row_id=product_set.id,
                     job_id=job.id,
                     task_id=task_set.id,
                     name=data_type_,
@@ -566,30 +513,51 @@ async def load_manifest_report(
             diagnostic_message_list = failed_quanta_data_["error"]
             if diagnostic_message_list:
                 diagnostic_message = diagnostic_message_list[-1]
-            else:
+            else:  # pragma: no cover
                 diagnostic_message = "Super-unhelpful empty message"
 
-            error_type_id = await match_pipetask_error(
+            error_type = await match_pipetask_error(
                 session,
                 task_name_,
                 diagnostic_message,
             )
-            _new_pipetask_error = await PipetaskError.create_row(
-                session,
-                error_type_id=error_type_id,
-                task_id=task_set.id,
-                quanta=failed_quanta_uuid_,
-                data_id=failed_quanta_data_["data_id"],
-                diagnostic_message=diagnostic_message,
-            )
+
+            error_type_id = error_type.id if error_type is not None else None
+            try:
+                pipetask_error = await PipetaskError.get_row_by_fullname(
+                    session,
+                    failed_quanta_uuid_,
+                )
+                if allow_update:
+                    pipetask_error = await PipetaskError.update_row(
+                        session,
+                        row_id=pipetask_error.id,
+                        error_type_id=error_type_id,
+                        task_id=task_set.id,
+                        quanta=failed_quanta_uuid_,
+                        data_id=failed_quanta_data_["data_id"],
+                        diagnostic_message=diagnostic_message,
+                    )
+            except CMMissingFullnameError:
+                pipetask_error = await PipetaskError.create_row(
+                    session,
+                    error_type_id=error_type_id,
+                    task_id=task_set.id,
+                    quanta=failed_quanta_uuid_,
+                    data_id=failed_quanta_data_["data_id"],
+                    diagnostic_message=diagnostic_message,
+                )
 
     return job
 
 
 def status_from_bps_report(
-    wms_run_report: WmsRunReport,
-) -> StatusEnum:
+    wms_run_report: WmsRunReport | None,
+    fake_status: StatusEnum | None,
+) -> StatusEnum | None:  # pragma: no cover
     """Decide the status for a workflow for a bps report
+
+    FIXME: add to coverage
 
     Parameters
     ----------
@@ -601,6 +569,9 @@ def status_from_bps_report(
     status: StatusEnum
         The status to set for the bps_report script
     """
+    if wms_run_report is None:
+        return fake_status
+
     the_state = wms_run_report.state
     # We treat RUNNING as running from the CM point of view,
     if the_state == WmsStates.RUNNING:
@@ -646,9 +617,11 @@ def status_from_bps_report(
 async def load_wms_reports(
     session: async_scoped_session,
     job: Job,
-    wms_run_report: WmsRunReport,
-) -> Job:
+    wms_run_report: WmsRunReport | None,
+) -> Job:  # pragma: no cover
     """Parse and load output of bps report
+
+    FIXME: add to coverage
 
     Parameters
     ----------
@@ -658,7 +631,7 @@ async def load_wms_reports(
     job_name: str
         Name of associated Job
 
-    wms_run_report: WmsRunReport
+    wms_run_report: WmsRunReport | None
         bps report return object
 
     Returns
@@ -666,6 +639,8 @@ async def load_wms_reports(
     job : Job
         Associated Job
     """
+    if wms_run_report is None:
+        return job
     if wms_run_report.job_summary is None:
         wms_run_report.job_summary = compile_job_summary(wms_run_report.jobs)
     for task_name, job_summary in wms_run_report.job_summary.items():
@@ -712,9 +687,10 @@ async def load_error_types(
     for error_type_ in error_types:
         try:
             val = error_type_["PipetaskErrorType"]
-        except KeyError as msg:
+        except KeyError as msg:  # pragma: no cover
             raise CMYamlParseError(f"Expecting PipetaskErrorType items not: {error_type_.keys()})") from msg
 
+        val["diagnostic_message"] = val["diagnostic_message"].strip()
         new_error_type = await PipetaskErrorType.create_row(session, **val)
         ret_list.append(new_error_type)
 

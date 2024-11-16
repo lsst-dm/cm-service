@@ -12,7 +12,6 @@ CLI using the wrapper template functions.
 The exceptions to this pattern are:
 
 action: specfic database actions
-add: adding things to the database (such as campaigns, steps or groups)
 load: reading yaml files an loading objects into the database
 query: getting objects from the database
 """
@@ -20,7 +19,6 @@ query: getting objects from the database
 
 from . import (
     action,
-    add,
     campaign,
     commands,
     group,

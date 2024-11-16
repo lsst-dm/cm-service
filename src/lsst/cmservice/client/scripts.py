@@ -91,6 +91,12 @@ class CMScriptClient:
 
     get_spec_aliases = wrappers.get_node_property_function(dict, f"{router_string}/get", "spec_aliases")
 
+    get_script_errors = wrappers.get_node_property_function(
+        list[models.ScriptError],
+        f"{router_string}/get",
+        "script_errors",
+    )
+
     update_status = wrappers.get_node_post_query_function(
         ResponseModelClass,
         models.UpdateStatusQuery,
@@ -138,8 +144,9 @@ class CMScriptClient:
         "reject",
     )
 
-    reset = wrappers.get_node_post_no_query_function(
+    reset = wrappers.get_node_post_query_function(
         ResponseModelClass,
+        models.ResetQuery,
         f"{router_string}/action",
         "reset",
     )
@@ -156,8 +163,9 @@ class CMScriptClient:
         "run_check",
     )
 
-    reset_script = wrappers.get_node_post_no_query_function(
+    reset_script = wrappers.get_node_post_query_function(
         StatusEnum,
+        models.ResetQuery,
         f"{router_string}/action",
         "reset_script",
     )

@@ -135,7 +135,7 @@ class CMGroupClient:
     )
 
     accept = wrappers.get_node_post_no_query_function(
-        tuple[bool, StatusEnum],
+        ResponseModelClass,
         f"{router_string}/action",
         "accept",
     )
@@ -146,14 +146,16 @@ class CMGroupClient:
         "reject",
     )
 
-    reset = wrappers.get_node_post_no_query_function(
+    reset = wrappers.get_node_post_query_function(
         ResponseModelClass,
+        models.ResetQuery,
         f"{router_string}/action",
         "reset",
     )
 
-    process = wrappers.get_node_post_no_query_function(
-        ResponseModelClass,
+    process = wrappers.get_node_post_query_function(
+        tuple[bool, StatusEnum],
+        models.ProcessQuery,
         f"{router_string}/action",
         "process",
     )
@@ -185,17 +187,18 @@ class CMGroupClient:
         "jobs",
     )
 
-    retry_script = wrappers.get_general_post_function(
-        models.ScriptQuery,
+    retry_script = wrappers.get_node_post_query_function(
         models.Script,
+        models.RetryScriptQuery,
         f"{router_string}/action",
         "retry_script",
     )
 
-    estimate_sleep_time = wrappers.get_node_property_function(
+    estimate_sleep_time = wrappers.get_node_post_query_function(
         int,
+        models.SleepTimeQuery,
         f"{router_string}/get",
-        "jobs",
+        "sleep_time",
     )
 
     rescue_job = wrappers.get_node_post_query_function(

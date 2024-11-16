@@ -25,17 +25,14 @@ def specification(
     script_templates = result.get("ScriptTemplate", [])
 
     do_print = output not in [options.OutputEnum.json, options.OutputEnum.yaml]
-    if specifications:
-        if do_print:
-            print("Specifications: -----")
+    if do_print:
+        print("Specifications: -----")
         output_pydantic_list(specifications, output, db.Specification.col_names_for_table)
-    if spec_blocks:
-        if do_print:
-            print("SpecBlocks: -----")
+    if do_print:
+        print("SpecBlocks: -----")
         output_pydantic_list(spec_blocks, output, db.SpecBlock.col_names_for_table)
-    if script_templates:
-        if do_print:
-            print("ScriptTemplates: -----")
+    if do_print:
+        print("ScriptTemplates: -----")
         output_pydantic_list(script_templates, output, db.ScriptTemplate.col_names_for_table)
 
 

@@ -17,7 +17,7 @@ from .util_functions import cleanup
 
 
 @pytest.mark.asyncio()
-async def test_daemon(engine: AsyncEngine) -> None:
+async def test_daemon_db(engine: AsyncEngine) -> None:
     """Test creating a job, add it to the work queue, and start processing."""
 
     logger = structlog.get_logger(config.logger_name)

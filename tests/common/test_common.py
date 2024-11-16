@@ -1,11 +1,14 @@
 import os
+import sys
+from typing import Any
 
 import pytest
 
-from lsst.cmservice.common import bash, enums, errors, htcondor, slurm
+from lsst.cmservice.common import bash, enums, errors, htcondor, slurm, utils
 
 
-def test_common_bash() -> None:
+@pytest.mark.asyncio()
+async def test_common_bash() -> None:
     """Test common.bash utilities"""
 
     the_script = bash.write_bash_script(
@@ -18,17 +21,23 @@ def test_common_bash() -> None:
 
     bash.run_bash_job(the_script, "temp.log", "temp.stamp")
 
-    status = bash.check_stamp_file("temp.stamp")
+    status = bash.check_stamp_file("temp.stamp", enums.StatusEnum.running)
     assert status == enums.StatusEnum.accepted
 
-    status = bash.check_stamp_file("bad.stamp")
-    assert status is None
+    status = bash.check_stamp_file("bad.stamp", enums.StatusEnum.running)
+    assert status == enums.StatusEnum.running
 
     os.unlink("temp.sh")
     os.unlink("temp.stamp")
 
     if os.path.exists("temp.log"):
         os.unlink("temp.log")
+
+    bps_dict = bash.parse_bps_stdout("examples/bps_stdout.log")
+    assert bps_dict["run_id"].strip() == "334"
+
+    diag_message = await bash.get_diagnostic_message("examples/bps_stdout.log")
+    assert diag_message == "dummy: ada"
 
 
 def test_common_table_enums() -> None:
@@ -75,6 +84,12 @@ def test_common_status_enums() -> None:
                 and status_enum.value <= enums.StatusEnum.reviewable.value
             )
 
+        if status_enum.is_processable_script():
+            assert (
+                status_enum.value >= enums.StatusEnum.waiting.value
+                and status_enum.value <= enums.StatusEnum.reviewable.value
+            )
+
 
 def test_common_htcondor() -> None:
     """Test common.htcondor functions"""
@@ -103,3 +118,31 @@ def test_common_slurm() -> None:
 
     with pytest.raises(errors.CMSlurmCheckError):
         slurm.check_slurm_job("slurm_temp.log")
+
+
+def test_add_sys_path() -> None:
+    """Test add_sys_path util"""
+    with utils.add_sys_path("examples"):
+        assert "examples" in sys.path
+    assert "examples" not in sys.path
+
+
+def test_update_include_dict() -> None:
+    """Test update_include_dict util"""
+    orig_dict: dict[str, Any] = dict(
+        alice="a",
+        bob=dict(
+            caleb="c",
+            david="d",
+        ),
+    )
+    include_dict: dict[str, Any] = dict(
+        bob=dict(
+            caleb="c",
+            david="d",
+            eric="e",
+        ),
+    )
+    utils.update_include_dict(orig_dict, include_dict)
+    assert orig_dict["alice"] == "a"
+    assert orig_dict["bob"]["eric"] == "e"

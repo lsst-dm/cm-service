@@ -79,8 +79,8 @@ class CMQueueClient:
         """
         results = self._client.get(f"{router_string}/sleep_time/{row_id}").json()
         try:
-            return TypeAdapter(int).validate_json(results)
-        except ValidationError as msg:
+            return TypeAdapter(int).validate_json(str(results))
+        except ValidationError as msg:  # pragma: no cover
             raise ValueError(f"Bad response: {results}") from msg
 
     def process(
@@ -100,10 +100,9 @@ class CMQueueClient:
             True if processing can continue
         """
         results = self._client.get(f"{router_string}/process/{row_id}").json()
-        try:
-            return TypeAdapter(bool).validate_json(results)
-        except ValidationError as msg:
-            raise ValueError(f"Bad response: {results}") from msg
+        if not isinstance(results, bool):  # pragma: no cover
+            raise ValueError(f"Bad response: {results}")
+        return results
 
     def pause_until_next_check(
         self,
@@ -123,14 +122,16 @@ class CMQueueClient:
             wait_time = min(sleep_time, queue.interval)
             delta_t = timedelta(seconds=wait_time)
             next_check = queue.time_updated + delta_t
-        except Exception as msg:  # pylint: disable=broad-exception-caught
+        except Exception as msg:  # pragma: no cover
             print(f"failed to compute next_check time, making best guess: {msg}")
             sleep_time = 300
             wait_time = 300
             delta_t = timedelta(seconds=sleep_time)
             next_check = now + delta_t
         print(now, sleep_time, wait_time, delta_t, next_check)
-        if now < next_check:
+        if now < next_check:  # pragma: no cover
+            # In unit tests we set queue.interval to zero
+            # so don't ever get to these lines
             print("pausing")
             pause.until(next_check)
 
@@ -150,10 +151,10 @@ class CMQueueClient:
             self.pause_until_next_check(row_id)
             try:
                 can_continue = self.process(row_id)
-            except Exception as msg:  # pylint: disable=broad-exception-caught
+            except Exception as msg:  # pragma: no cover
                 print(f"Caught exception in process: {msg}, continuing")
                 try:
                     self.update(row_id, time_updated=datetime.now())
-                except Exception as msg2:  # pylint: disable=broad-exception-caught
+                except Exception as msg2:  # pragma: no cover
                     print(f"Failed to modify time_updated: {msg2}, continuing")
                 can_continue = True

@@ -36,6 +36,8 @@
       name: base
       spec_aliases:
           campaign: campaign
+          bps_submit_script: bps_panda_submit_script
+          bps_report_script: bps_panda_report_script
       data:
           var: dummy
       collections:

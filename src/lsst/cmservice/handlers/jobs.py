@@ -14,9 +14,10 @@ from lsst.cmservice.db.job import Job
 from lsst.cmservice.db.script import Script
 from lsst.cmservice.db.task_set import TaskSet
 from lsst.cmservice.db.wms_task_report import WmsTaskReport
-from lsst.ctrl.bps import BaseWmsService, WmsRunReport, WmsStates
+from lsst.ctrl.bps import BaseWmsService, WmsStates
 from lsst.utils import doImport
 
+from ..common.bash import parse_bps_stdout
 from ..common.butler import remove_run_collections
 from ..common.enums import LevelEnum, StatusEnum, TaskStatusEnum, WmsMethodEnum
 from ..common.errors import (
@@ -41,21 +42,6 @@ WMS_TO_TASK_STATUS_MAP = {
     WmsStates.FAILED: TaskStatusEnum.failed,
     WmsStates.PRUNED: TaskStatusEnum.failed,
 }
-
-
-def parse_bps_stdout(url: str) -> dict[str, str]:
-    """Parse the std from a bps submit job"""
-    out_dict = {}
-    with open(url, encoding="utf8") as fin:
-        line = fin.readline()
-        while line:
-            tokens = line.split(":")
-            if len(tokens) != 2:  # pragma: no cover
-                line = fin.readline()
-                continue
-            out_dict[tokens[0]] = tokens[1]
-            line = fin.readline()
-    return out_dict
 
 
 class BpsScriptHandler(ScriptHandler):
@@ -86,7 +72,7 @@ class BpsScriptHandler(ScriptHandler):
             bps_core_yaml_template = data_dict["bps_core_yaml_template"]
             bps_core_script_template = data_dict["bps_core_script_template"]
             bps_wms_script_template = data_dict["bps_wms_script_template"]
-        except KeyError as msg:
+        except KeyError as msg:  # pragma: no cover
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
         script_url = await self._set_script_files(session, script, prod_area)
@@ -136,7 +122,7 @@ class BpsScriptHandler(ScriptHandler):
         prepend = prepend.replace("{lsst_distrib_dir}", lsst_distrib_dir)
         # Add custom_lsst_setup to the bps submit script
         # in case it is a change to bps itself
-        if custom_lsst_setup:
+        if custom_lsst_setup:  # pragma: no cover
             prepend += f"\n{custom_lsst_setup}\n"
         prepend += bps_wms_script_template_.data["text"]
 
@@ -164,14 +150,14 @@ class BpsScriptHandler(ScriptHandler):
         workflow_config["submitPath"] = submit_path
 
         workflow_config["LSST_VERSION"] = os.path.expandvars(lsst_version)
-        if custom_lsst_setup:
+        if custom_lsst_setup:  # pragma: no cover
             workflow_config["custom_lsst_setup"] = custom_lsst_setup
         workflow_config["pipelineYaml"] = pipeline_yaml
 
-        if extra_qgraph_options:
+        if extra_qgraph_options:  # pragma: no cover
             workflow_config["extraQgraphOptions"] = extra_qgraph_options.replace("\n", " ").strip()
 
-        if isinstance(input_colls, list):
+        if isinstance(input_colls, list):  # pragma: no cover
             in_collection = ",".join(input_colls)
         else:
             in_collection = input_colls
@@ -184,12 +170,12 @@ class BpsScriptHandler(ScriptHandler):
         }
         if data_query:
             payload["dataQuery"] = data_query.replace("\n", " ").strip()
-        if rescue:
-            payload["extra_args"] = f"--skip-existing-in {skip_colls}"  # FIXME, is this right
+        if rescue:  # pragma: no cover
+            payload["extra_args"] = f"--skip-existing-in {skip_colls}"
 
         workflow_config["payload"] = payload
 
-        if bps_extra_config:
+        if bps_extra_config:  # pragma: no cover
             workflow_config.update(**bps_extra_config)
 
         with contextlib.suppress(OSError):
@@ -215,20 +201,21 @@ class BpsScriptHandler(ScriptHandler):
             parent,
             fake_status,
         )
-        if slurm_status == StatusEnum.accepted:
-            await script.update_values(session, status=StatusEnum.accepted)
-            if fake_status is not None:
-                wms_job_id = "fake_job"
-            else:
-                bps_dict = parse_bps_stdout(script.log_url)
-                wms_job_id = self._get_job_id(bps_dict)
-            await parent.update_values(session, wms_job_id=wms_job_id)
+        await script.update_values(session, status=slurm_status)
+        if slurm_status not in [StatusEnum.reviewable, StatusEnum.accepted]:  # pragma: no cover
+            return slurm_status
+        if fake_status is not None:
+            wms_job_id = "fake_job"
+        else:  # pragma: no cover
+            bps_dict = parse_bps_stdout(script.log_url)
+            wms_job_id = self.get_job_id(bps_dict)
+        await parent.update_values(session, wms_job_id=wms_job_id)
         return slurm_status
 
     async def _check_htcondor_job(
         self,
         session: async_scoped_session,
-        htcondor_id: str,
+        htcondor_id: str | None,
         script: Script,
         parent: ElementMixin,
         fake_status: StatusEnum | None = None,
@@ -241,13 +228,13 @@ class BpsScriptHandler(ScriptHandler):
             parent,
             fake_status,
         )
-        if htcondor_status == StatusEnum.accepted:
-            await script.update_values(session, status=StatusEnum.accepted)
+        if htcondor_status in [StatusEnum.reviewable, StatusEnum.accepted]:
+            await script.update_values(session, status=htcondor_status)
             if fake_status is not None:
                 wms_job_id = "fake_job"
-            else:
+            else:  # pragma: no cover
                 bps_dict = parse_bps_stdout(script.log_url)
-                wms_job_id = self._get_job_id(bps_dict)
+                wms_job_id = self.get_job_id(bps_dict)
             await parent.update_values(session, wms_job_id=wms_job_id)
         return htcondor_status
 
@@ -258,16 +245,15 @@ class BpsScriptHandler(ScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        if not isinstance(parent, Job):
+        if not isinstance(parent, Job):  # pragma: no cover
             raise CMBadExecutionMethodError(f"Script {script} should not be run on {parent}")
 
         status = await ScriptHandler.launch(self, session, script, parent, **kwargs)
-
-        if status == StatusEnum.running:
-            await parent.update_values(session, stamp_url=script.stamp_url)
+        await parent.update_values(session, stamp_url=script.stamp_url)
         return status
 
-    def _get_job_id(self, bps_dict: dict) -> str:
+    @classmethod
+    def get_job_id(cls, bps_dict: dict) -> str:
         raise NotImplementedError
 
     async def _reset_script(
@@ -275,27 +261,34 @@ class BpsScriptHandler(ScriptHandler):
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> dict[str, Any]:
-        update_fields = await ScriptHandler._reset_script(self, session, script, to_status)
-        if script.script_url and to_status.value <= StatusEnum.ready.value:
-            json_url = script.script_url.replace(".sh", "_log.json")
-            config_url = script.script_url.replace(".sh", "_bps_config.yaml")
-            submit_path = script.script_url.replace(
-                os.path.basename(script.script_url),
-                "/submit",
-            )
-            try:
-                os.unlink(json_url)
-            except Exception as msg:  # pylint: disable=broad-exception-caught
-                print(f"Failed to unlink log file: {json_url}: {msg}, continuing")
-            try:
-                os.unlink(config_url)
-            except Exception as msg:  # pylint: disable=broad-exception-caught
-                print(f"Failed to unlink configuration file: {config_url}: {msg}, continuing")
-            try:
-                os.rmdir(submit_path)
-            except Exception as msg:  # pylint: disable=broad-exception-caught
-                print(f"Failed to remove submit dir: {submit_path}: {msg}, continuing")
+        update_fields = await ScriptHandler._reset_script(
+            self, session, script, to_status, fake_reset=fake_reset
+        )
+        if to_status == StatusEnum.prepared:
+            return update_fields
+        if script.script_url is None:  # pragma: no cover
+            return update_fields
+        json_url = script.script_url.replace(".sh", "_log.json")
+        config_url = script.script_url.replace(".sh", "_bps_config.yaml")
+        submit_path = script.script_url.replace(
+            os.path.basename(script.script_url),
+            "/submit",
+        )
+        try:
+            os.unlink(json_url)
+        except Exception:  # pylint: disable=broad-exception-caught
+            pass
+        try:
+            os.unlink(config_url)
+        except Exception:  # pragma: no cover
+            pass
+        try:
+            os.rmdir(submit_path)
+        except Exception:  # pylint: disable=broad-exception-caught
+            pass
         return update_fields
 
     async def _purge_products(
@@ -303,17 +296,18 @@ class BpsScriptHandler(ScriptHandler):
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> None:
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
         try:
             run_coll = resolved_cols["run"]
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:
+        except KeyError as msg:  # pragma: no cover
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
-        if to_status.value <= StatusEnum.running.value:
-            remove_run_collections(butler_repo, run_coll)
+        remove_run_collections(butler_repo, run_coll, fake_reset=fake_reset)
 
 
 class BpsReportHandler(FunctionHandler):
@@ -328,40 +322,22 @@ class BpsReportHandler(FunctionHandler):
 
     def _get_wms_svc(self, **kwargs: Any) -> BaseWmsService:
         if self._wms_svc is None:
-            if self.wms_svc_class_name is None:
+            if self.wms_svc_class_name is None:  # pragma: no cover
                 raise CMBadExecutionMethodError(f"{type(self)} should not be used, use a sub-class instead")
             self._wms_svc_class = doImport(self.wms_svc_class_name)
-            if isinstance(self._wms_svc_class, types.ModuleType):
+            if isinstance(self._wms_svc_class, types.ModuleType):  # pragma: no cover
                 raise CMBadExecutionMethodError(
                     f"Site class={self.wms_svc_class_name} is not a BaseWmsService subclass",
                 )
             self._wms_svc = self._wms_svc_class(kwargs)
         return self._wms_svc
 
-    def _get_wms_report(
-        self,
-        wms_workflow_id: str,
-    ) -> WmsRunReport:
-        """Get the WmsRunReport for a job
-
-        Paramters
-        ---------
-        wms_workflow_id : str | None
-            WMS workflow id
-
-        Returns
-        -------
-        report: WmsRunReport
-            Report for requested job
-        """
-        wms_svc = self._get_wms_svc()
-        return wms_svc.report(wms_workflow_id=wms_workflow_id)[0][0]
-
     async def _load_wms_reports(
         self,
         session: async_scoped_session,
         job: Job,
         wms_workflow_id: str | None,
+        **kwargs: Any,
     ) -> StatusEnum | None:
         """Load the job processing info
 
@@ -378,14 +354,21 @@ class BpsReportHandler(FunctionHandler):
         status: StatusEnum | None
             Status of requested job
         """
-        if wms_workflow_id is None:
-            return None
+        fake_status = kwargs.get("fake_status", None)
+
         try:
             wms_svc = self._get_wms_svc()
-            wms_run_report = wms_svc.report(wms_workflow_id=wms_workflow_id.strip())[0][0]
+        except ImportError as msg:
+            if not fake_status:  # pragma: no cover
+                raise msg
+        try:
+            if fake_status or wms_workflow_id is None:
+                wms_run_report = None
+            else:  # pragma: no cover
+                wms_run_report = wms_svc.report(wms_workflow_id=wms_workflow_id.strip())[0][0]
             _job = await load_wms_reports(session, job, wms_run_report)
-            status = status_from_bps_report(wms_run_report)
-        except Exception as msg:  # pylint: disable=broad-exception-caught
+            status = status_from_bps_report(wms_run_report, fake_status=fake_status)
+        except Exception as msg:  # pragma: no cover
             print(f"Catching wms_svc.report failure: {msg}, continuing")
             status = StatusEnum.failed
         return status
@@ -411,14 +394,9 @@ class BpsReportHandler(FunctionHandler):
         **kwargs: Any,
     ) -> StatusEnum:
         fake_status = kwargs.get("fake_status", None)
-        if fake_status:
-            status = fake_status
-        else:
-            status = await self._load_wms_reports(session, parent, parent.wms_job_id)
-        if status is None:
-            status = script.status
-        if status != script.status:
-            await script.update_values(session, status=status)
+        status = await self._load_wms_reports(session, parent, parent.wms_job_id, fake_status=fake_status)
+        status = script.status if status is None else status
+        await script.update_values(session, status=status)
         return status
 
     async def _reset_script(
@@ -426,10 +404,14 @@ class BpsReportHandler(FunctionHandler):
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> dict[str, Any]:
-        update_fields = await FunctionHandler._reset_script(self, session, script, to_status)
+        update_fields = await FunctionHandler._reset_script(
+            self, session, script, to_status, fake_reset=fake_reset
+        )
         parent = await script.get_parent(session)
-        if parent.level != LevelEnum.job:
+        if parent.level != LevelEnum.job:  # pragma: no cover
             raise CMBadParameterTypeError(f"Script parent is a {parent.level}, not a LevelEnum.job")
         await session.refresh(parent, attribute_names=["wms_reports_"])
         for wms_report_ in parent.wms_reports_:
@@ -442,7 +424,8 @@ class PandaScriptHandler(BpsScriptHandler):
 
     wms_method = WmsMethodEnum.panda
 
-    def _get_job_id(self, bps_dict: dict) -> str:
+    @classmethod
+    def get_job_id(cls, bps_dict: dict) -> str:
         return bps_dict["Run Id"]
 
 
@@ -451,7 +434,8 @@ class HTCondorScriptHandler(BpsScriptHandler):
 
     wms_method = WmsMethodEnum.ht_condor
 
-    def _get_job_id(self, bps_dict: dict) -> str:
+    @classmethod
+    def get_job_id(cls, bps_dict: dict) -> str:
         return bps_dict["Submit dir"]
 
 
@@ -497,7 +481,7 @@ class ManifestReportScriptHandler(ScriptHandler):
         )
         prepend = manifest_script_template.data["text"].replace("{lsst_version}", lsst_version)
         prepend = prepend.replace("{lsst_distrib_dir}", lsst_distrib_dir)
-        if "custom_lsst_setup" in data_dict:
+        if "custom_lsst_setup" in data_dict:  # pragma: no cover
             custom_lsst_setup = data_dict["custom_lsst_setup"]
             prepend += f"\n{custom_lsst_setup}"
 
@@ -535,21 +519,17 @@ class ManifestReportLoadHandler(FunctionHandler):
         **kwargs: Any,
     ) -> StatusEnum:
         fake_status = kwargs.get("fake_status", None)
-        if fake_status:
-            status = fake_status
-        else:
-            status = await self._load_pipetask_report(session, parent, script.stamp_url)
-        if status is None:
-            status = script.status
-        if status != script.status:
-            await script.update_values(session, status=status)
+        status = await self._load_pipetask_report(session, parent, script.stamp_url, fake_status=fake_status)
+        status = status if fake_status is None else fake_status
+        await script.update_values(session, status=status)
         return status
 
     async def _load_pipetask_report(
         self,
         session: async_scoped_session,
         job: Job,
-        pipetask_report_yaml: str | None,
+        pipetask_report_yaml: str,
+        fake_status: StatusEnum | None = None,
     ) -> StatusEnum:
         """Load the job processing info
 
@@ -562,11 +542,10 @@ class ManifestReportLoadHandler(FunctionHandler):
             Yaml file
 
         """
-        if pipetask_report_yaml is None:
-            return StatusEnum.failed
-
-        check_job = await load_manifest_report(session, job.fullname, pipetask_report_yaml)
-        if not job.id == check_job.id:
+        check_job = await load_manifest_report(
+            session, job.fullname, pipetask_report_yaml, fake_status=fake_status
+        )
+        if not job.id == check_job.id:  # pragma: no cover
             raise CMIDMismatchError(f"job.id {job.id} != check_job.id {check_job.id}")
 
         status = await compute_job_status(session, job)
@@ -577,10 +556,14 @@ class ManifestReportLoadHandler(FunctionHandler):
         session: async_scoped_session,
         script: Script,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> dict[str, Any]:
-        update_fields = await FunctionHandler._reset_script(self, session, script, to_status)
+        update_fields = await FunctionHandler._reset_script(
+            self, session, script, to_status, fake_reset=fake_reset
+        )
         parent = await script.get_parent(session)
-        if parent.level != LevelEnum.job:
+        if parent.level != LevelEnum.job:  # pragma: no cover
             raise CMBadParameterTypeError(f"Script parent is a {parent.level}, not a LevelEnum.job")
         await session.refresh(parent, attribute_names=["tasks_"])
         for task_ in parent.tasks_:

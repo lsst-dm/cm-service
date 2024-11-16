@@ -7,8 +7,8 @@ from safir.database import create_async_session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-import lsst.cmservice.common.errors as errors
 from lsst.cmservice import db
+from lsst.cmservice.common import errors
 from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
 from lsst.cmservice.handlers import interface
@@ -27,6 +27,8 @@ from .util_functions import (
 async def test_campaign_db(engine: AsyncEngine) -> None:
     """Test `campaign` db table."""
 
+    db.handler.Handler.reset_cache()
+
     # generate a uuid to avoid collisions
     uuid_int = uuid.uuid1().int
     logger = structlog.get_logger(config.logger_name)
@@ -36,6 +38,9 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
 
         # intialize a tree down to one level lower
         await create_tree(session, LevelEnum.step, uuid_int)
+
+        # test the upsert mechanism
+        await interface.load_specification(session, "examples/empty_config.yaml", allow_update=True)
 
         with pytest.raises(IntegrityError):
             await db.Campaign.create_row(
@@ -109,6 +114,19 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
 
         entry = check_getall[0]  # defining single unit for later
 
+        campaign_check = await interface.add_steps(session, entry.fullname, [])
+        assert entry.id == campaign_check.id
+
+        with pytest.raises(errors.CMMissingRowCreateInputError):
+            await db.Script.create_row(session)
+
+        handler = db.handler.Handler.get_handler(
+            entry.spec_block_id,
+            "lsst.cmservice.handlers.element_handler.CampaignHandler",
+        )
+        assert not handler.data
+        assert handler.get_handler_class_name()
+
         await check_get_methods(session, entry, db.Campaign, db.Production)
 
         with pytest.raises(errors.CMMissingIDError):
@@ -122,7 +140,7 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
 
         # run campaign specific method tests
         check = await entry.children(session)
-        assert len([c for c in check]) == 2, "length of children should be 2"
+        assert len(list(check)) == 2, "length of children should be 2"
 
         # check update methods
         await check_update_methods(session, entry, db.Campaign)

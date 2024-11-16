@@ -1093,18 +1093,62 @@ def get_action_reset_command(
     @group_command(name="reset")
     @options.cmclient()
     @options.row_id()
+    @options.fake_reset()
     @options.output()
     def reset(
         client: CMClient,
         row_id: int,
         output: options.OutputEnum | None,
+        *,
+        fake_reset: bool = False,
     ) -> None:
         """Reset the status of a node"""
         sub_client = getattr(client, sub_client_name)
-        result = sub_client.reset(row_id=row_id)
+        result = sub_client.reset(row_id=row_id, fake_reset=fake_reset)
         output_pydantic_object(result, output, db_class.col_names_for_table)
 
     return reset
+
+
+def get_element_parent_command(
+    group_command: Callable,
+    sub_client_name: str,
+    db_parent_class: TypeAlias,
+) -> Callable:
+    """Return a function that gets the parent of an element
+
+    Parameters
+    ----------
+    group_command: Callable
+        CLI decorator from the CLI group to attach to
+
+    sub_client_name: str
+        Name of python API sub-client to use
+
+    db_parent_class: TypeAlias = db.RowMixin
+        Underlying parent database class
+
+    Returns
+    -------
+    the_function: Callable
+        Function that gets the scripts assocaited to an element
+    """
+
+    @group_command(name="parent")
+    @options.cmclient()
+    @options.row_id()
+    @options.output()
+    def parent(
+        client: CMClient,
+        row_id: int,
+        output: options.OutputEnum | None,
+    ) -> None:
+        """Get the scripts assocaited to an element"""
+        sub_client = getattr(client, sub_client_name)
+        result = sub_client.get_parent(row_id=row_id)
+        output_pydantic_object(result, output, db_parent_class.col_names_for_table)
+
+    return parent
 
 
 def get_element_scripts_command(
@@ -1243,16 +1287,19 @@ def get_element_retry_script_command(
     @options.cmclient()
     @options.row_id()
     @options.script_name()
+    @options.fake_reset()
     @options.output()
     def retry_script(
         client: CMClient,
         row_id: int,
         script_name: str,
         output: options.OutputEnum | None,
+        *,
+        fake_reset: bool = False,
     ) -> None:
         """Get the scripts assocaited to an element"""
         sub_client = getattr(client, sub_client_name)
-        result = sub_client.retry_script(row_id=row_id, script_name=script_name)
+        result = sub_client.retry_script(row_id=row_id, script_name=script_name, fake_reset=fake_reset)
         output_pydantic_object(result, output, Script.col_names_for_table)
 
     return retry_script

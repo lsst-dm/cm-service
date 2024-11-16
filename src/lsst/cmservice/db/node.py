@@ -65,7 +65,7 @@ class NodeMixin(RowMixin):
             Requested Specblock
         """
         await session.refresh(self, attribute_names=["spec_block_"])
-        if isinstance(self.spec_block_, InstrumentedList):
+        if isinstance(self.spec_block_, InstrumentedList):  # pragma: no cover
             return self.spec_block_[0]
         return self.spec_block_
 
@@ -124,7 +124,7 @@ class NodeMixin(RowMixin):
             Requested parent Element
         """
         await session.refresh(self, attribute_names=["parent_"])
-        if isinstance(self.parent_, InstrumentedList):
+        if isinstance(self.parent_, InstrumentedList):  # pragma: no cover
             return self.parent_[0]
         return self.parent_
 
@@ -150,7 +150,7 @@ class NodeMixin(RowMixin):
             The handler in question
         """
         spec_block = await self.get_spec_block(session)
-        if self.handler:
+        if self.handler:  # pragma: no cover
             handler_class = self.handler
         else:
             handler_class = spec_block.handler
@@ -188,7 +188,7 @@ class NodeMixin(RowMixin):
                 fields["group"] = token
             elif i == 4:
                 fields["job"] = token
-            else:
+            else:  # pragma: no cover
                 raise CMBadFullnameError(f"Too many fields in {fullname}")
         return fields
 
@@ -226,9 +226,10 @@ class NodeMixin(RowMixin):
         name_dict["out"] = collection_dict.pop("out")
         resolved_collections: dict = {}
         for name_, val_ in my_collections.items():
-            if isinstance(val_, list):
+            if isinstance(val_, list):  # pragma: no cover
+                # FIXME, see if this is now being tested
                 resolved_collections[name_] = []
-                for item_ in val_:  # pragma: no cover
+                for item_ in val_:
                     try:
                         f1 = item_.format(**collection_dict)
                     except KeyError:
@@ -247,13 +248,13 @@ class NodeMixin(RowMixin):
                     f1 = val_
                 try:
                     resolved_collections[name_] = f1.format(**name_dict)
-                except KeyError as msg:
+                except KeyError as msg:  # pragma: no cover
                     raise CMResolveCollectionsError(
                         f"Failed to resolve collection {name_}, {f1} using: {name_dict!s}",
                     ) from msg
         if throw_overrides:
             for key, value in resolved_collections.items():
-                if "MUST_OVERRIDE" in value:
+                if "MUST_OVERRIDE" in value:  # pragma: no cover
                     raise CMResolveCollectionsError(
                         f"Attempts to resolve {key} collection includes MUST_OVERRIDE. Make sure to provide "
                         "necessary collection names."
@@ -283,7 +284,7 @@ class NodeMixin(RowMixin):
             Requested collection configuration
         """
         ret_dict = {}
-        if not hasattr(self, "collections"):
+        if not hasattr(self, "collections"):  # pragma: no cover
             return {}
 
         if self.level == LevelEnum.script:
@@ -404,7 +405,7 @@ class NodeMixin(RowMixin):
             parent_data = await parent.get_spec_aliases(session)
             ret_dict.update(parent_data)
         spec_block = await self.get_spec_block(session)
-        if spec_block.spec_aliases:
+        if spec_block.spec_aliases:  # pragma: no cover
             ret_dict.update(spec_block.spec_aliases)
         if self.spec_aliases:
             ret_dict.update(self.spec_aliases)
@@ -607,7 +608,6 @@ class NodeMixin(RowMixin):
             await session.refresh(self, attribute_names=["prereqs_"])
         except Exception:  # pylint: disable=broad-exception-caught
             return True
-        print(f"N prereq {len(self.prereqs_)}")
         for prereq_ in self.prereqs_:
             is_done = await prereq_.is_done(session)
             if not is_done:
@@ -661,6 +661,8 @@ class NodeMixin(RowMixin):
     async def reset(
         self,
         session: async_scoped_session,
+        *,
+        fake_reset: bool = False,
     ) -> NodeMixin:
         """Reset a Node to `waiting`
 
@@ -668,6 +670,9 @@ class NodeMixin(RowMixin):
         ----------
         session : async_scoped_session
             DB session manager
+
+        fake_reset: bool
+            Don't actually try to remove collections if True
 
         Returns
         -------
@@ -677,13 +682,15 @@ class NodeMixin(RowMixin):
         if self.status not in [StatusEnum.rejected, StatusEnum.failed, StatusEnum.ready]:
             raise CMBadStateTransitionError(f"Can not reset {self} as it is in status {self.status}")
 
-        await self._clean_up_node(session)
+        await self._clean_up_node(session, fake_reset=fake_reset)
         await self.update_values(session, status=StatusEnum.waiting, superseded=False)
         return self
 
-    async def _clean_up_node(
+    async def _clean_up_node(  # pylint: disable=unused-argument
         self,
         session: async_scoped_session,
+        *,
+        fake_reset: bool = False,
     ) -> NodeMixin:
         """Clean up stuff that a node has made
 
@@ -691,6 +698,9 @@ class NodeMixin(RowMixin):
         ----------
         session : async_scoped_session
             DB session manager
+
+        fake_reset: bool
+            Don't actually try to remove collections if True
 
         Returns
         -------
@@ -752,7 +762,7 @@ class NodeMixin(RowMixin):
     async def estimate_sleep_time(
         self,
         session: async_scoped_session,
-        job_sleep: int = 150,
+        job_sleep: int = 150,  # pylint: disable=unused-argument
         script_sleep: int = 15,
     ) -> int:
         """Estimate how long to sleep before calling process again
@@ -774,7 +784,7 @@ class NodeMixin(RowMixin):
             Time to sleep in seconds
         """
         sleep_time = 10
-        _changed, status_ = await self.run_check(session)
-        if status_ == StatusEnum.running:
-            sleep_time = min(script_sleep, sleep_time)
+        await session.refresh(self, attribute_names=["status"])
+        if self.status == StatusEnum.running:
+            sleep_time = max(script_sleep, sleep_time)
         return sleep_time

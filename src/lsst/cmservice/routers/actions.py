@@ -30,7 +30,7 @@ async def process(
         async with session.begin():
             ret_val = await interface.process(session, **params)
         return ret_val
-    except Exception as msg:
+    except Exception as msg:  # pragma: no cover
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
@@ -41,7 +41,7 @@ async def process(
     summary="Reset `Script`",
 )
 async def reset_script(
-    query: models.UpdateStatusQuery,
+    query: models.ResetScriptQuery,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> db.Script:
     """Invoke the interface.reset_script function"""
@@ -50,7 +50,7 @@ async def reset_script(
         async with session.begin():
             ret_val = await interface.reset_script(session, **params)
         return ret_val
-    except Exception as msg:
+    except Exception as msg:  # pragma: no cover
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
@@ -70,7 +70,7 @@ async def rescue_job(
         async with session.begin():
             ret_val = await interface.rescue_job(session, **params)
         return ret_val
-    except Exception as msg:
+    except Exception as msg:  # pragma: no cover
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
@@ -90,7 +90,7 @@ async def mark_job_rescued(
         async with session.begin():
             ret_val = await interface.mark_job_rescued(session, **params)
         return ret_val
-    except Exception as msg:
+    except Exception as msg:  # pragma: no cover
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
@@ -110,5 +110,5 @@ async def rematch_pipetask_errors(
         async with session.begin():
             ret_val = await interface.match_pipetask_errors(session, **params)
         return ret_val
-    except Exception as msg:
+    except Exception as msg:  # pragma: no cover
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg

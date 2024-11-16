@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 import httpx
@@ -10,32 +9,13 @@ import yaml
 from .. import models
 from ..common.enums import ErrorActionEnum, ErrorFlavorEnum, ErrorSourceEnum
 from ..common.errors import CMYamlParseError
+from ..common.utils import update_include_dict
 from . import wrappers
 
 if TYPE_CHECKING:
     from pydantic import BaseModel
 
     from .client import CMClient
-
-
-def update_include_dict(
-    orig_dict: dict[str, Any],
-    include_dict: dict[str, Any],
-) -> None:
-    """Update a dict by updating (instead of replacing) sub-dicts
-
-    Parameters
-    ----------
-    orig_dict: dict[str, Any]
-        Original dict
-    include_dict: dict[str, Any],
-        Dict used to update the original
-    """
-    for key, val in include_dict.items():
-        if isinstance(val, Mapping) and key in orig_dict:
-            orig_dict[key].update(val)
-        else:
-            orig_dict[key] = val
 
 
 class CMLoadClient:
@@ -45,6 +25,8 @@ class CMLoadClient:
         """Return the httpx.Client"""
         self._parent = parent
         self._client = parent.client
+
+    steps = wrappers.get_general_post_function(models.AddSteps, models.Campaign, "load/steps")
 
     @property
     def client(self) -> httpx.Client:
@@ -57,7 +39,7 @@ class CMLoadClient:
         loaded_specs: dict,
         *,
         allow_update: bool = False,
-    ) -> models.SpecBlock | None:
+    ) -> models.SpecBlock:
         """Upsert and return a SpecBlock
 
         This will create a new SpecBlock, or update an existing one
@@ -90,7 +72,9 @@ class CMLoadClient:
         for include_ in includes:
             if include_ in loaded_specs:
                 update_include_dict(include_data, loaded_specs[include_])
-            else:
+            else:  # pragma: no cover
+                # This is just in case the spec blocks are defined
+                # out of order in the specification file
                 spec_block_ = self._parent.spec_block.get_row_by_name(include_)
                 update_include_dict(
                     include_data,
@@ -136,7 +120,7 @@ class CMLoadClient:
         config_values: dict,
         *,
         allow_update: bool = False,
-    ) -> models.ScriptTemplate | None:
+    ) -> models.ScriptTemplate:
         """Upsert and return a ScriptTemplate
 
         This will create a new ScriptTemplate, or update an existing one
@@ -181,7 +165,7 @@ class CMLoadClient:
         config_values: dict,
         *,
         allow_update: bool = False,
-    ) -> models.Specification | None:
+    ) -> models.Specification:
         """Upsert and return a Specification
 
         This will create a new Specification, or update an existing one
@@ -268,23 +252,20 @@ class CMLoadClient:
                     loaded_specs,
                     allow_update=allow_update,
                 )
-                if spec_block:
-                    out_dict["SpecBlock"].append(spec_block)
+                out_dict["SpecBlock"].append(spec_block)
             elif "ScriptTemplate" in config_item:
                 script_template = self._upsert_script_template(
                     config_item["ScriptTemplate"],
                     allow_update=allow_update,
                 )
-                if script_template:
-                    out_dict["ScriptTemplate"].append(script_template)
+                out_dict["ScriptTemplate"].append(script_template)
             elif "Specification" in config_item:
                 specification = self._upsert_specification(
                     config_item["Specification"],
                     allow_update=allow_update,
                 )
-                if specification:
-                    out_dict["Specification"].append(specification)
-            else:
+                out_dict["Specification"].append(specification)
+            else:  # pragma: no cover
                 good_keys = "ScriptTemplate | SpecBlock | Specification | Imports"
                 raise CMYamlParseError(f"Expecting one of {good_keys} not: {spec_data.keys()})")
 
@@ -352,21 +333,18 @@ class CMLoadClient:
         campaign : `Campaign`
             Newly created `Campaign`
         """
-        if yaml_file is not None:
-            self.specification_cl(yaml_file, allow_update=allow_update)
-
         with open(campaign_yaml, encoding="utf-8") as fin:
             config_data = yaml.safe_load(fin)
 
         try:
             prod_config = config_data["Production"]
-        except KeyError as msg:
+        except KeyError as msg:  # pragma: no cover
             raise CMYamlParseError(
                 f"Could not find 'Production' tag in {campaign_yaml}",
             ) from msg
         try:
             parent_name = prod_config["name"]
-        except KeyError as msg:
+        except KeyError as msg:  # pragma: no cover
             raise CMYamlParseError(
                 f"Could not find 'name' tag in {campaign_yaml}#Production",
             ) from msg
@@ -374,7 +352,7 @@ class CMLoadClient:
         try:
             camp_config = config_data["Campaign"]
             camp_config["parent_name"] = parent_name
-        except KeyError as msg:
+        except KeyError as msg:  # pragma: no cover
             raise CMYamlParseError(
                 f"Could not find 'Campaign' tag in {campaign_yaml}",
             ) from msg
@@ -393,8 +371,21 @@ class CMLoadClient:
             if val:
                 update_include_dict(camp_config[key], val)
 
+        spec_name = camp_config["spec_name"]
+
+        if yaml_file is None:  # pragma: no cover
+            # If yaml_file isn't given then the specifications
+            # should already exist
+            specfication = self._parent.specification.get_row_by_name(spec_name)
+            if specfication is None:
+                raise CMYamlParseError(
+                    f"Could not find 'Specification' {spec_name} in {campaign_yaml}",
+                )
+        else:
+            self.specification_cl(yaml_file, allow_update=allow_update)
+
         production = self._parent.production.get_row_by_name(parent_name)
-        if not production:
+        if not production:  # pragma: no cover
             self._parent.production.create(name=parent_name)
 
         spec_name = camp_config["spec_name"]
@@ -404,7 +395,7 @@ class CMLoadClient:
         campaign = self._parent.campaign.create(**camp_config)
 
         if step_configs:
-            self._parent.add.steps(fullname=campaign.fullname, child_configs=step_configs)
+            self.steps(fullname=campaign.fullname, child_configs=step_configs)
 
         return campaign
 
@@ -419,7 +410,7 @@ class CMLoadClient:
         config_values: dict,
         *,
         allow_update: bool = False,
-    ) -> models.PipetaskErrorType | None:
+    ) -> models.PipetaskErrorType:
         """Upsert and return a PipetaskErrorType
 
         This will create a new PipetaskErrorType, or update an existing one
@@ -437,15 +428,15 @@ class CMLoadClient:
         error_type: PipetaskErrorType
             Newly created or updated PipetaskErrorType
         """
-        task_name = config_values["task_name"]
-        diag_message = config_values["diagnostic_message"]
-        fullname = f"{task_name}#{diag_message}".strip()
+        task_name = config_values["task_name"].strip()
+        diag_message = config_values["diagnostic_message"].strip()
+        fullname = f"{task_name}#{diag_message}"
         error_type = self._parent.pipetask_error_type.get_row_by_fullname(fullname)
-        if error_type and not allow_update:
-            return error_type
-
         if error_type is None:
             return self._parent.pipetask_error_type.create(**config_values)
+
+        if not allow_update:
+            return error_type
 
         return self._parent.pipetask_error_type.update(
             row_id=error_type.id,
@@ -480,18 +471,17 @@ class CMLoadClient:
         for error_type_ in error_types:
             try:
                 val = error_type_["PipetaskErrorType"]
-            except KeyError as msg:
+            except KeyError as msg:  # pragma: no cover
                 raise CMYamlParseError(
                     f"Expecting PipetaskErrorType items not: {error_type_.keys()})",
                 ) from msg
 
-            val["error_source"] = ErrorSourceEnum[val["source"]]
-            val["error_action"] = ErrorActionEnum[val["action"]]
-            val["error_flavor"] = ErrorFlavorEnum[val["flavor"]]
+            val["error_source"] = ErrorSourceEnum[val["error_source"]]
+            val["error_action"] = ErrorActionEnum[val["error_action"]]
+            val["error_flavor"] = ErrorFlavorEnum[val["error_flavor"]]
 
             new_error_type = self._upsert_error_type(val, allow_update=allow_update)
-            if new_error_type:
-                ret_list.append(new_error_type)
+            ret_list.append(new_error_type)
 
         return ret_list
 

@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 
 from sqlalchemy import JSON
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
@@ -25,7 +26,7 @@ class PipetaskError(Base, RowMixin):
         index=True,
     )
     task_id: Mapped[int] = mapped_column(ForeignKey("task_set.id", ondelete="CASCADE"), index=True)
-    quanta: Mapped[str] = mapped_column()
+    quanta: Mapped[str] = mapped_column(unique=True)
     diagnostic_message: Mapped[str] = mapped_column()
     data_id: Mapped[dict | list | None] = mapped_column(type_=JSON)
 
@@ -38,5 +39,9 @@ class PipetaskError(Base, RowMixin):
     )
     task_: Mapped["TaskSet"] = relationship("TaskSet", viewonly=True)
     error_type_: Mapped["PipetaskErrorType"] = relationship("PipetaskErrorType", viewonly=True)
+
+    @hybrid_property
+    def fullname(self) -> str:
+        return self.quanta
 
     col_names_for_table = ["id", "error_type_id", "task_id", "quanta", "data_id"]

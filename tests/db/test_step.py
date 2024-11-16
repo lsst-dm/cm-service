@@ -7,8 +7,8 @@ from safir.database import create_async_session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-import lsst.cmservice.common.errors as errors
 from lsst.cmservice import db
+from lsst.cmservice.common import errors
 from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
 
@@ -74,7 +74,7 @@ async def test_step_db(engine: AsyncEngine) -> None:
         assert len(check) == 1, "should be one prereq"
 
         check = await entry.children(session)
-        assert len([c for c in check]) == 5, "length of children should be 5"
+        assert len(list(check)) == 5, "length of children should be 5"
 
         # check update methods
         await check_update_methods(session, entry, db.Step)

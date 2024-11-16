@@ -98,6 +98,13 @@ class Script(Base, NodeMixin):
         """Returns LevelEnum.script"""
         return LevelEnum.script
 
+    async def get_script_errors(
+        self,
+        session: async_scoped_session,
+    ) -> list[ScriptError]:
+        await session.refresh(self, attribute_names=["errors_"])
+        return self.errors_
+
     async def get_campaign(
         self,
         session: async_scoped_session,
@@ -193,9 +200,7 @@ class Script(Base, NodeMixin):
 
         specification = await element.get_specification(session)
         spec_aliases = await element.get_spec_aliases(session)
-        if spec_aliases:
-            assert isinstance(spec_aliases, dict)
-            spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
+        spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
         spec_block = await specification.get_block(session, spec_block_name)
         ret_dict["spec_block_id"] = spec_block.id
 
@@ -205,6 +210,8 @@ class Script(Base, NodeMixin):
         self,
         session: async_scoped_session,
         to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> StatusEnum:
         """Reset a script to a lower status
         This will remove log files and processing
@@ -221,13 +228,16 @@ class Script(Base, NodeMixin):
         to_status : StatusEnum
             Status to set script to
 
+        fake_reset: bool
+            Don't actually try to remove collections if True
+
         Returns
         -------
         status : StatusEnum
             New status
         """
         handler = await self.get_handler(session)
-        return await handler.reset_script(session, self, to_status)
+        return await handler.reset_script(session, self, to_status, fake_reset=fake_reset)
 
     async def review(
         self,

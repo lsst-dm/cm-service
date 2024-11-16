@@ -10,6 +10,16 @@ class RematchQuery(BaseModel):
     rematch: bool = False
 
 
+class ResetQuery(BaseModel):
+    """Parameters needed to call reset functions"""
+
+    # fake reset
+    fake_reset: bool = False
+
+    # Status to set
+    status: StatusEnum = StatusEnum.waiting
+
+
 class FullnameQuery(BaseModel):
     """Parameters needed to run query by fullname"""
 
@@ -51,6 +61,13 @@ class ProcessNodeQuery(NodeQuery):
     fake_status: int | None = None
 
 
+class SleepTimeQuery(NodeQuery):
+    """Parameters ask a Node for a sleep time"""
+
+    job_sleep: int = 150
+    script_sleep: int = 15
+
+
 class UpdateStatusQuery(NodeQuery):
     """Parameters needed to update the status of a Node"""
 
@@ -63,6 +80,26 @@ class ScriptQueryBase(FullnameQuery):
 
     # Name of the script
     script_name: str | None = None
+
+
+class RetryScriptQuery(ScriptQueryBase):
+    """Parameters needed to retry a script associated to a Node"""
+
+    # fake reset
+    fake_reset: bool = False
+
+    # Status to set
+    status: StatusEnum = StatusEnum.waiting
+
+
+class ResetScriptQuery(FullnameQuery):
+    """Parameters needed to call reset functions"""
+
+    # fake reset
+    fake_reset: bool = False
+
+    # Status to set
+    status: StatusEnum = StatusEnum.waiting
 
 
 class ScriptQuery(ScriptQueryBase):
@@ -81,13 +118,6 @@ class JobQuery(FullnameQuery):
     remaining_only: bool = False
     # If True, skip all Jobs marked as Superseded
     skip_superseded: bool = True
-
-
-class AddGroups(FullnameQuery):
-    """Parameters needed to add groups to an existing step"""
-
-    # Configurations for new groups
-    child_configs: dict
 
 
 class AddSteps(FullnameQuery):

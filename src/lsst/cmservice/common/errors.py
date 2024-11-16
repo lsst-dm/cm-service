@@ -83,6 +83,14 @@ class CMHTCondorCheckError(KeyError):
     """Raised when htcondor checking fails"""
 
 
+class CMNoButlerError(KeyError):
+    """Raised when no butler is present"""
+
+
+class CMButlerCallError(KeyError):
+    """Raised when a call to butler fails"""
+
+
 class CMSpecficiationError(KeyError):
     """Raised when Specification calls out an non-existing fragement"""
 

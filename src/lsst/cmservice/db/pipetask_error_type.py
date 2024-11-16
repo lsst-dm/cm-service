@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.schema import UniqueConstraint
 
 from ..common.enums import ErrorActionEnum, ErrorFlavorEnum, ErrorSourceEnum
 from .base import Base
@@ -19,18 +20,20 @@ class PipetaskErrorType(Base, RowMixin):
     __tablename__ = "pipetask_error_type"
     class_string = "pipetask_error_type"
 
+    __table_args__ = (UniqueConstraint("task_name", "diagnostic_message"),)
+
     id: Mapped[int] = mapped_column(primary_key=True)
     error_source: Mapped[ErrorSourceEnum] = mapped_column(type_=SqlErrorSourceEnum)
     error_flavor: Mapped[ErrorFlavorEnum] = mapped_column(type_=SqlErrorFlavorEnum)
     error_action: Mapped[ErrorActionEnum] = mapped_column(type_=SqlErrorActionEnum)
     task_name: Mapped[str] = mapped_column()
-    diagnostic_message: Mapped[str] = mapped_column(unique=True)
+    diagnostic_message: Mapped[str] = mapped_column()
 
     errors_: Mapped[list["PipetaskError"]] = relationship("PipetaskError", viewonly=True)
 
     @hybrid_property
     def fullname(self) -> str:
-        return f"{self.task_name}#{self.diagnostic_message}".strip()
+        return self.task_name + "#" + self.diagnostic_message
 
     col_names_for_table = [
         "id",

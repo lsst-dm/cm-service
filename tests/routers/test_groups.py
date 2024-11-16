@@ -36,7 +36,7 @@ async def test_group_routes(client: AsyncClient) -> None:
     entry = groups[0]
 
     # check get methods
-    await check_get_methods(client, entry, "group", models.Group, models.Step)
+    await check_get_methods(client, entry, "group", models.Group)
 
     # check update methods
     await check_update_methods(client, entry, "group", models.Group)

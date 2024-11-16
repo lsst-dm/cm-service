@@ -55,7 +55,7 @@ def write_htcondor_script(
     )
     options.update(**kwargs)
 
-    with open(htcondor_script_path, "w") as fout:
+    with open(htcondor_script_path, "w", encoding="utf8") as fout:
         fout.write(f"executable = {script_url}\n")
         fout.write(f"log = {htcondor_log}\n")
         fout.write(f"output = {log_url}\n")
@@ -91,7 +91,7 @@ def submit_htcondor_job(
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-        ) as sbatch:
+        ) as sbatch:  # pragma: no cover
             sbatch.wait()
             if sbatch.returncode != 0:
                 assert sbatch.stderr
@@ -102,14 +102,14 @@ def submit_htcondor_job(
 
 
 def check_htcondor_job(
-    htcondor_id: str,
+    htcondor_id: str | None,
     fake_status: StatusEnum | None = None,
 ) -> StatusEnum:
     """Check the status of a `HTCondor` job
 
     Parameters
     ----------
-    htcondor_id : str
+    htcondor_id : str | None
         htcondor job id, in this case the log file from the wrapper script
 
     fake_status: StatusEnum | None,
@@ -121,13 +121,15 @@ def check_htcondor_job(
         HTCondor job status
     """
     if fake_status is not None:
-        return StatusEnum.reviewable
+        return StatusEnum.reviewable if fake_status.value >= StatusEnum.reviewable.value else fake_status
     try:
+        if htcondor_id is None:  # pragma: no cover
+            raise CMHTCondorCheckError("No htcondor_id")
         with subprocess.Popen(
             ["condor_q", "-userlog", htcondor_id, "-af", "JobStatus", "ExitCode"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-        ) as condor_q:
+        ) as condor_q:  # pragma: no cover
             condor_q.wait()
             if condor_q.returncode != 0:
                 assert condor_q.stderr
@@ -142,14 +144,14 @@ def check_htcondor_job(
                 htcondor_status = int(tokens[0])
                 exit_code = tokens[1]
             except Exception as msg:
-                raise CMHTCondorCheckError(f"Badly formatted htcondor check: {msg}")
+                raise CMHTCondorCheckError(f"Badly formatted htcondor check: {msg}") from msg
     except Exception as msg:
-        raise CMHTCondorCheckError(f"Bad htcondor check: {msg}")
+        raise CMHTCondorCheckError(f"Bad htcondor check: {msg}") from msg
 
-    status = htcondor_status_map[htcondor_status]
-    if status == StatusEnum.reviewable:
+    status = htcondor_status_map[htcondor_status]  # pragma: no cover
+    if status == StatusEnum.reviewable:  # pragma: no cover
         if int(exit_code) == 0:
             status = StatusEnum.accepted
         else:
             status = StatusEnum.failed
-    return status
+    return status  # pragma: no cover
