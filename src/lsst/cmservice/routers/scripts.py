@@ -110,7 +110,7 @@ async def reset_script(
             result = await script.reset_script(session, to_status=query.status, fake_reset=query.fake_reset)
     except CMMissingIDError as msg:
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-    except Exception as msg:  # pragma: no cover
+    except Exception as msg:
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
     return result
 
@@ -132,5 +132,5 @@ async def get_script_errors(
             return the_errors
     except CMMissingIDError as msg:
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-    except Exception as msg:  # pragma: no cover
+    except Exception as msg:
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg

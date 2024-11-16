@@ -10,7 +10,9 @@ from ..common.errors import (
     CMBadEnumError,
     CMBadExecutionMethodError,
     CMBadFullnameError,
+    CMIntegrityError,
     CMMissingFullnameError,
+    test_type_and_raise,
 )
 from . import functions
 
@@ -92,8 +94,8 @@ async def get_row_by_table_and_id(
     """
     try:
         table_class = get_table(table_enum)
-    except KeyError as msg:
-        raise CMBadEnumError(f"Unknown table {table_enum}") from msg
+    except KeyError as e:
+        raise CMBadEnumError(f"Unknown table {table_enum}") from e
     query = select(table_class).where(table_class.id == row_id)
     result_s = await session.scalars(query)
     result = None if result_s is None else result_s.first()
@@ -133,8 +135,8 @@ async def get_node_by_level_and_id(
     """
     try:
         element_class = LEVEL_DICT[level]
-    except KeyError as msg:
-        raise CMBadEnumError(f"Unknown level {level}") from msg
+    except KeyError as e:
+        raise CMBadEnumError(f"Unknown level {level}") from e
     result = await session.get(element_class, element_id)
     if result is None:
         raise CMMissingFullnameError(f"{element_class} {element_id} not found")
@@ -432,8 +434,7 @@ async def rescue_job(
     CMMissingFullnameError : Could not find Element
     """
     element = await get_element_by_fullname(session, fullname)
-    if not isinstance(element, db.Group):  # pragma: no cover
-        raise CMBadExecutionMethodError(f"rescue_job should only be run on Group nodes, not {type(element)}")
+    element = test_type_and_raise(element, db.Group, "rescue_job element")
     return await element.rescue_job(session)
 
 
@@ -473,10 +474,7 @@ async def mark_job_rescued(
     CMMissingFullnameError : Could not find Element
     """
     element = await get_element_by_fullname(session, fullname)
-    if not isinstance(element, db.Group):  # pragma: no cover
-        raise CMBadExecutionMethodError(
-            f"mark_job_rescued should only be run on Group nodes, not {type(element)}",
-        )
+    element = test_type_and_raise(element, db.Group, "mark_job_rescued element")
     return await element.mark_job_rescued(session)
 
 
@@ -570,7 +568,7 @@ async def load_and_create_campaign(  # pylint: disable=too-many-arguments
 
     try:
         await db.Production.create_row(session, name=parent_name)
-    except Exception:  # pragma: no cover
+    except CMIntegrityError:  # pragma: no cover
         pass
 
     if not spec_block_assoc_name:  # pragma: no cover

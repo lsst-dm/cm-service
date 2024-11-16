@@ -10,6 +10,7 @@ import pause
 from pydantic import TypeAdapter, ValidationError
 
 from .. import db, models
+from ..common.errors import test_type_and_raise
 from . import wrappers
 
 if TYPE_CHECKING:
@@ -100,8 +101,7 @@ class CMQueueClient:
             True if processing can continue
         """
         results = self._client.get(f"{router_string}/process/{row_id}").json()
-        if not isinstance(results, bool):  # pragma: no cover
-            raise ValueError(f"Bad response: {results}")
+        test_type_and_raise(results, bool, "Queue.process response")
         return results
 
     def pause_until_next_check(
@@ -122,7 +122,7 @@ class CMQueueClient:
             wait_time = min(sleep_time, queue.interval)
             delta_t = timedelta(seconds=wait_time)
             next_check = queue.time_updated + delta_t
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             print(f"failed to compute next_check time, making best guess: {msg}")
             sleep_time = 300
             wait_time = 300
@@ -151,10 +151,10 @@ class CMQueueClient:
             self.pause_until_next_check(row_id)
             try:
                 can_continue = self.process(row_id)
-            except Exception as msg:  # pragma: no cover
+            except Exception as msg:
                 print(f"Caught exception in process: {msg}, continuing")
                 try:
                     self.update(row_id, time_updated=datetime.now())
-                except Exception as msg2:  # pragma: no cover
+                except Exception as msg2:
                     print(f"Failed to modify time_updated: {msg2}, continuing")
                 can_continue = True

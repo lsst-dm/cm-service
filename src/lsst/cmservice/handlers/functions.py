@@ -340,7 +340,7 @@ async def add_steps(
     for step_ in step_config_list:
         try:
             step_config_ = step_["Step"]
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise CMYamlParseError(f"Expecting Step not: {step_.keys()}") from msg
         child_name_ = step_config_.pop("name")
         spec_block_name = step_config_.pop("spec_block")
@@ -652,7 +652,7 @@ async def load_wms_reports(
         try:
             report = await WmsTaskReport.get_row_by_fullname(session, fullname)
             await report.update_values(session, **wms_dict)
-        except Exception:  # pylint: disable=broad-exception-caught
+        except CMMissingFullnameError:
             _report = await WmsTaskReport.create_row(
                 session,
                 job_id=job.id,
@@ -689,7 +689,7 @@ async def load_error_types(
     for error_type_ in error_types:
         try:
             val = error_type_["PipetaskErrorType"]
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise CMYamlParseError(f"Expecting PipetaskErrorType items not: {error_type_.keys()})") from msg
 
         val["diagnostic_message"] = val["diagnostic_message"].strip()

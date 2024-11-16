@@ -97,8 +97,8 @@ def submit_htcondor_job(
                 assert sbatch.stderr
                 msg = sbatch.stderr.read().decode()
                 raise CMHTCondorSubmitError(f"Bad htcondor submit: {msg}")
-    except Exception as msg:
-        raise CMHTCondorSubmitError(f"Bad htcondor submit: {msg}") from msg
+    except Exception as e:
+        raise CMHTCondorSubmitError(f"Bad htcondor submit: {e}") from e
 
 
 def check_htcondor_job(
@@ -143,10 +143,10 @@ def check_htcondor_job(
                 assert len(tokens) == 2
                 htcondor_status = int(tokens[0])
                 exit_code = tokens[1]
-            except Exception as msg:
-                raise CMHTCondorCheckError(f"Badly formatted htcondor check: {msg}") from msg
-    except Exception as msg:
-        raise CMHTCondorCheckError(f"Bad htcondor check: {msg}") from msg
+            except Exception as e:
+                raise CMHTCondorCheckError(f"Badly formatted htcondor check: {e}") from e
+    except Exception as e:
+        raise CMHTCondorCheckError(f"Bad htcondor check: {e}") from e
 
     status = htcondor_status_map[htcondor_status]  # pragma: no cover
     if status == StatusEnum.reviewable:  # pragma: no cover

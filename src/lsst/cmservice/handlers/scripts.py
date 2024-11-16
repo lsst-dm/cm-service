@@ -16,7 +16,7 @@ from ..common.butler import (
     remove_run_collections,
 )
 from ..common.enums import LevelEnum, ScriptMethodEnum, StatusEnum
-from ..common.errors import CMBadExecutionMethodError, CMMissingScriptInputError
+from ..common.errors import CMBadExecutionMethodError, CMMissingScriptInputError, test_type_and_raise
 from ..db.step import Step
 from .script_handler import ScriptHandler
 
@@ -39,8 +39,8 @@ class NullScriptHandler(ScriptHandler):
             output_coll = resolved_cols["output"]
             script_url = await self._set_script_files(session, script, data_dict["prod_area"])
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:  # pragma: no cover
-            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        except KeyError as e:
+            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {e}") from e
 
         command = f"echo trivial {butler_repo} {output_coll}"
         write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
@@ -85,7 +85,7 @@ class ChainCreateScriptHandler(ScriptHandler):
             input_colls = resolved_cols["inputs"]
             script_url = await self._set_script_files(session, script, data_dict["prod_area"])
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"butler collection-chain {butler_repo} {output_coll}"
         # This is here out of paranoia.
@@ -112,7 +112,7 @@ class ChainCreateScriptHandler(ScriptHandler):
         try:
             output_coll = resolved_cols["output"]
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
         remove_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
@@ -144,7 +144,7 @@ class ChainPrependScriptHandler(ScriptHandler):
             input_coll = resolved_cols["input"]
             script_url = await self._set_script_files(session, script, data_dict["prod_area"])
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"butler collection-chain {butler_repo} {output_coll} --mode prepend {input_coll}"
         write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
@@ -165,7 +165,7 @@ class ChainPrependScriptHandler(ScriptHandler):
             input_coll = resolved_cols["input"]
             output_coll = resolved_cols["output"]
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
         remove_collection_from_chain(butler_repo, input_coll, output_coll, fake_reset=fake_reset)
@@ -196,7 +196,7 @@ class ChainCollectScriptHandler(ScriptHandler):
             output_coll = resolved_cols["output"]
             input_colls = resolved_cols["inputs"]
             to_collect = data_dict["collect"]
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         collect_colls = []
         if to_collect == "jobs":
@@ -237,7 +237,7 @@ class ChainCollectScriptHandler(ScriptHandler):
         try:
             output_coll = resolved_cols["output"]
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
         remove_non_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
@@ -270,7 +270,7 @@ class TagInputsScriptHandler(ScriptHandler):
             script_url = await self._set_script_files(session, script, data_dict["prod_area"])
             butler_repo = data_dict["butler_repo"]
             data_query = data_dict.get("data_query")
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"butler associate {butler_repo} {output_coll}"
         command += f" --collections {input_coll}"
@@ -292,7 +292,7 @@ class TagInputsScriptHandler(ScriptHandler):
         try:
             output_coll = resolved_cols["output"]
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
         remove_non_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
@@ -319,7 +319,7 @@ class TagCreateScriptHandler(ScriptHandler):
             output_coll = resolved_cols["output"]
             script_url = await self._set_script_files(session, script, data_dict["prod_area"])
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"butler associate {butler_repo} {output_coll}"
         write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
@@ -339,7 +339,7 @@ class TagCreateScriptHandler(ScriptHandler):
         try:
             output_coll = resolved_cols["output"]
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
         remove_non_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
@@ -369,7 +369,7 @@ class TagAssociateScriptHandler(ScriptHandler):
             output_coll = resolved_cols["output"]
             script_url = await self._set_script_files(session, script, data_dict["prod_area"])
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"butler associate {butler_repo} {output_coll}"
         command += f" --collections {input_coll}"
@@ -391,7 +391,7 @@ class TagAssociateScriptHandler(ScriptHandler):
             input_coll = resolved_cols["input"]
             output_coll = resolved_cols["output"]
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
         remove_datasets_from_collections(butler_repo, input_coll, output_coll, fake_reset=fake_reset)
@@ -421,8 +421,7 @@ class PrepareStepScriptHandler(ScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        if not isinstance(parent, Step):  # pragma: no cover
-            raise CMBadExecutionMethodError(f"script {script} should only be run on steps, not {parent}")
+        test_type_and_raise(parent, Step, "PrepareStepScriptHandler._write_script parent")
 
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
@@ -430,7 +429,7 @@ class PrepareStepScriptHandler(ScriptHandler):
             script_url = await self._set_script_files(session, script, data_dict["prod_area"])
             butler_repo = data_dict["butler_repo"]
             output_coll = resolved_cols["output"]
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
         prereq_colls: list[str] = []
@@ -463,7 +462,7 @@ class PrepareStepScriptHandler(ScriptHandler):
         try:
             output_coll = resolved_cols["output"]
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
         remove_non_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
@@ -529,7 +528,7 @@ class ResourceUsageScriptHandler(ScriptHandler):
         try:
             resource_coll = resolved_cols["campaign_resource_usage"]
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         remove_run_collections(butler_repo, resource_coll, fake_reset=fake_reset)
         return await super()._purge_products(session, script, to_status, fake_reset=fake_reset)
@@ -558,7 +557,7 @@ class ValidateScriptHandler(ScriptHandler):
             output_coll = resolved_cols["output"]
             script_url = await self._set_script_files(session, script, data_dict["prod_area"])
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"pipetask validate {butler_repo} {input_coll} {output_coll}"
         write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
@@ -578,7 +577,7 @@ class ValidateScriptHandler(ScriptHandler):
         try:
             output_coll = resolved_cols["output"]
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
         remove_run_collections(butler_repo, output_coll, fake_reset=fake_reset)

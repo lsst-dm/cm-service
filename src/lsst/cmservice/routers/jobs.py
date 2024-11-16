@@ -105,5 +105,5 @@ async def get_errors(
             return the_errors
     except CMMissingIDError as msg:
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-    except Exception as msg:  # pragma: no cover
+    except Exception as msg:
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg

@@ -14,7 +14,7 @@ from lsst.cmservice.db.script import Script
 from lsst.daf.butler import Butler
 
 from ..common.enums import StatusEnum
-from ..common.errors import CMBadExecutionMethodError, CMMissingScriptInputError
+from ..common.errors import CMMissingScriptInputError, test_type_and_raise
 from .script_handler import FunctionHandler
 
 
@@ -313,8 +313,7 @@ class RunStepsScriptHandler(RunElementScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        if not isinstance(parent, Campaign):  # pragma: no cover
-            raise CMBadExecutionMethodError(f"Can not run script {script} on {parent}")
+        test_type_and_raise(parent, Campaign, "RunStepsScriptHandler parent")
         status = StatusEnum.prepared
         await script.update_values(session, status=status)
         return status

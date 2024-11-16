@@ -78,7 +78,7 @@ def run_bash_job(
                     assert process.stderr
                     msg = process.stderr.read().decode()
                     raise CMBashSubmitError(f"Bad bash submit: {msg}")
-    except Exception as msg:  # pragma: no cover
+    except Exception as msg:
         raise CMBashSubmitError(f"Bad bash submit: {msg}") from msg
     with open(stamp_url, "w", encoding="utf-8") as fstamp:
         fields = dict(status="accepted")

@@ -151,8 +151,8 @@ class Group(Base, ElementMixin):
             parent_name = kwargs["parent_name"]
             name = kwargs["name"]
             spec_block_name = kwargs["spec_block_name"]
-        except KeyError as msg:
-            raise CMMissingRowCreateInputError(f"Missing input to create Group: {msg}") from msg
+        except KeyError as e:
+            raise CMMissingRowCreateInputError(f"Missing input to create Group: {e}") from e
         step = await Step.get_row_by_fullname(session, parent_name)
         spec_aliases = await step.get_spec_aliases(session)
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
@@ -199,11 +199,11 @@ class Group(Base, ElementMixin):
         try:
             new_job = await latest_resuable_job.copy_job(session, self)
             await session.commit()
-        except IntegrityError as e:  # pragma: no cover
+        except IntegrityError as msg:
             if TYPE_CHECKING:
-                assert e.orig  # for mypy
+                assert msg.orig  # for mypy
             await session.rollback()
-            raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
+            raise CMIntegrityError(params=msg.params, orig=msg.orig, statement=msg.statement) from msg
         return new_job
 
     async def mark_job_rescued(

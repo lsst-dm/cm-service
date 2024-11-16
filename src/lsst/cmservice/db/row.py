@@ -210,10 +210,10 @@ class RowMixin:
             )
         try:
             await session.delete(row)
-        except IntegrityError as e:  # pragma: no cover
+        except IntegrityError as msg:
             if TYPE_CHECKING:
-                assert e.orig  # for mypy
-            raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
+                assert msg.orig  # for mypy
+            raise CMIntegrityError(params=msg.params, orig=msg.orig, statement=msg.statement) from msg
         await cls._delete_hook(session, row_id)
 
     @classmethod
@@ -284,15 +284,15 @@ class RowMixin:
                         setattr(row, var, the_dict)
                     else:
                         setattr(row, var, value)
-            except IntegrityError as e:  # pragma: no cover
+            except IntegrityError as msg:
                 await session.rollback()
                 if TYPE_CHECKING:
-                    assert e.orig  # for mypy
+                    assert msg.orig  # for mypy
                 raise CMIntegrityError(
-                    params=e.params,
-                    orig=e.orig,
-                    statement=e.statement,
-                ) from e
+                    params=msg.params,
+                    orig=msg.orig,
+                    statement=msg.statement,
+                ) from msg
         await session.refresh(row)
         return row
 
@@ -322,11 +322,11 @@ class RowMixin:
         async with session.begin_nested():
             try:
                 session.add(row)
-            except IntegrityError as e:  # pragma: no cover
+            except IntegrityError as msg:
                 await session.rollback()
                 if TYPE_CHECKING:
-                    assert e.orig  # for mypy
-                raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
+                    assert msg.orig  # for mypy
+                raise CMIntegrityError(params=msg.params, orig=msg.orig, statement=msg.statement) from msg
         await session.refresh(row)
         return row
 
@@ -386,9 +386,9 @@ class RowMixin:
                 for var, value in kwargs.items():
                     setattr(self, var, value)
             await session.refresh(self)
-        except IntegrityError as e:  # pragma: no cover
+        except IntegrityError as msg:
             await session.rollback()
             if TYPE_CHECKING:
-                assert e.orig  # for mypy
-            raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
+                assert msg.orig  # for mypy
+            raise CMIntegrityError(params=msg.params, orig=msg.orig, statement=msg.statement) from msg
         return self

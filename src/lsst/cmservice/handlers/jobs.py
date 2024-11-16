@@ -25,6 +25,7 @@ from ..common.errors import (
     CMBadParameterTypeError,
     CMIDMismatchError,
     CMMissingScriptInputError,
+    test_type_and_raise,
 )
 from .functions import compute_job_status, load_manifest_report, load_wms_reports, status_from_bps_report
 from .script_handler import FunctionHandler, ScriptHandler
@@ -72,7 +73,7 @@ class BpsScriptHandler(ScriptHandler):
             bps_core_yaml_template = data_dict["bps_core_yaml_template"]
             bps_core_script_template = data_dict["bps_core_script_template"]
             bps_wms_script_template = data_dict["bps_wms_script_template"]
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
         script_url = await self._set_script_files(session, script, prod_area)
@@ -112,7 +113,7 @@ class BpsScriptHandler(ScriptHandler):
         submit_path = os.path.abspath(f"{prod_area}/{parent.fullname}/submit")
         try:
             os.rmdir(submit_path)
-        except Exception:  # pylint: disable=broad-exception-caught
+        except FileNotFoundError:
             pass
 
         # build up the bps wrapper script
@@ -245,9 +246,7 @@ class BpsScriptHandler(ScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        if not isinstance(parent, Job):  # pragma: no cover
-            raise CMBadExecutionMethodError(f"Script {script} should not be run on {parent}")
-
+        test_type_and_raise(parent, Job, "BpsScriptHandler parent")
         status = await ScriptHandler.launch(self, session, script, parent, **kwargs)
         await parent.update_values(session, stamp_url=script.stamp_url)
         return status
@@ -279,15 +278,15 @@ class BpsScriptHandler(ScriptHandler):
         )
         try:
             os.unlink(json_url)
-        except Exception:  # pylint: disable=broad-exception-caught
+        except FileNotFoundError:
             pass
         try:
             os.unlink(config_url)
-        except Exception:  # pragma: no cover
+        except FileNotFoundError:  # pragma: no cover
             pass
         try:
             os.rmdir(submit_path)
-        except Exception:  # pylint: disable=broad-exception-caught
+        except FileNotFoundError:
             pass
         return update_fields
 
@@ -304,7 +303,7 @@ class BpsScriptHandler(ScriptHandler):
         try:
             run_coll = resolved_cols["run"]
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
         remove_run_collections(butler_repo, run_coll, fake_reset=fake_reset)
@@ -368,7 +367,7 @@ class BpsReportHandler(FunctionHandler):
                 wms_run_report = wms_svc.report(wms_workflow_id=wms_workflow_id.strip())[0][0]
             _job = await load_wms_reports(session, job, wms_run_report)
             status = status_from_bps_report(wms_run_report, fake_status=fake_status)
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             print(f"Catching wms_svc.report failure: {msg}, continuing")
             status = StatusEnum.failed
         return status
