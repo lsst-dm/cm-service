@@ -93,7 +93,7 @@ def check_stamp_file(
 
     Parameters
     ----------
-    stamp_file: str
+    stamp_file: str | None
         File to read for status
 
     default_status: StatusEnum

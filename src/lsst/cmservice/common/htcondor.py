@@ -109,7 +109,7 @@ def check_htcondor_job(
 
     Parameters
     ----------
-    htcondor_id : str
+    htcondor_id : str | None
         htcondor job id, in this case the log file from the wrapper script
 
     fake_status: StatusEnum | None,

@@ -128,6 +128,7 @@ class Queue(Base, NodeMixin):
         elif node_level == LevelEnum.job:
             node = await Job.get_row_by_fullname(session, fullname)
         elif node_level == LevelEnum.script:
+            # parse out the "script:" at the beginning fof ullname
             node = await Script.get_row_by_fullname(session, fullname[7:])
         else:  # pragma: no cover
             raise CMBadEnumError(f"Bad level for queue: {node_level}")
@@ -174,6 +175,7 @@ class Queue(Base, NodeMixin):
             node = await Job.get_row_by_fullname(session, fullname)
             ret_dict["j_id"] = node.id
         elif node_level == LevelEnum.script:
+            # parse out the "script:" at the beginning fof ullname
             node = await Script.get_row_by_fullname(session, fullname[7:])
             ret_dict["script_id"] = node.id
         else:  # pragma: no cover
