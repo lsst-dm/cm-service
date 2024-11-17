@@ -3,7 +3,13 @@
 from .. import db
 from ..client.client import CMClient
 from . import options, wrappers
-from .commands import queue_group
+from .commands import client_top
+
+
+@client_top.group(name="queue")
+def queue_group() -> None:
+    """Manage the processing queue"""
+
 
 # Template specialization
 # Specify the cli path to attach these commands to

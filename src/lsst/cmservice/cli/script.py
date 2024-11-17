@@ -3,7 +3,13 @@
 from .. import db
 from ..client.client import CMClient
 from . import options, wrappers
-from .commands import script_group
+from .commands import client_top
+
+
+@client_top.group(name="script")
+def script_group() -> None:
+    """Manage Script table"""
+
 
 # Template specialization
 # Specify the cli path to attach these commands to

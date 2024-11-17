@@ -4,8 +4,13 @@ from .. import db
 from ..client.client import CMClient
 from ..common.enums import StatusEnum
 from . import options
-from .commands import action
+from .commands import client_top
 from .wrappers import output_dict, output_pydantic_list, output_pydantic_object
+
+
+@client_top.group()
+def action() -> None:
+    """Do something"""
 
 
 @action.command()

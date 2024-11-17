@@ -2,7 +2,13 @@
 
 from .. import db
 from . import options, wrappers
-from .commands import script_error_group
+from .commands import client_top
+
+
+@client_top.group(name="script_error")
+def script_error_group() -> None:
+    """Manage ScriptError table"""
+
 
 # Template specialization
 # Specify the cli path to attach these commands to

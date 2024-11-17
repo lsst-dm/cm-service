@@ -3,8 +3,13 @@ from typing import Any
 from .. import db
 from ..client.client import CMClient
 from . import options
-from .commands import load
+from .commands import client_top
 from .wrappers import output_pydantic_list, output_pydantic_object
+
+
+@client_top.group()
+def load() -> None:
+    """Read a yaml file and add stuff to the DB"""
 
 
 @load.command()

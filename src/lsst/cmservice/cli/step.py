@@ -2,7 +2,13 @@
 
 from .. import db
 from . import options, wrappers
-from .commands import step_group
+from .commands import client_top
+
+
+@client_top.group(name="step")
+def step_group() -> None:
+    """Manage Step table"""
+
 
 # Template specialization
 # Specify the cli path to attach these commands to

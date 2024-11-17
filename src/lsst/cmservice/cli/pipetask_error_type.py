@@ -2,7 +2,13 @@
 
 from .. import db
 from . import options, wrappers
-from .commands import pipetask_error_type_group
+from .commands import client_top
+
+
+@client_top.group(name="pipetask_error_type")
+def pipetask_error_type_group() -> None:
+    """Manage PipetaskErrorType table"""
+
 
 # Template specialization
 # Specify the cli path to attach these commands to

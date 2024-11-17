@@ -2,7 +2,13 @@
 
 from .. import db
 from . import options, wrappers
-from .commands import spec_block_group
+from .commands import client_top
+
+
+@client_top.group(name="spec_block")
+def spec_block_group() -> None:
+    """Manage SpecBlock table"""
+
 
 # Template specialization
 # Specify the cli path to attach these commands to
