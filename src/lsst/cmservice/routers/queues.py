@@ -71,7 +71,7 @@ async def process_element(
             can_continue = await queue.process_node(session)
     except CMMissingIDError as msg:
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-    except Exception as msg:  # pragma: no cover
+    except Exception as msg:
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
     return can_continue
 
@@ -106,6 +106,6 @@ async def sleep_time(
             node_sleep_time = await queue.node_sleep_time(session)
     except CMMissingIDError as msg:
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
-    except Exception as msg:  # pragma: no cover
+    except Exception as msg:
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
     return node_sleep_time

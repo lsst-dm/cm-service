@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from ..common.enums import LevelEnum, StatusEnum
-from ..common.errors import CMYamlParseError
+from ..common.errors import CMYamlParseError, test_type_and_raise
 from ..db.campaign import Campaign
 from ..db.element import ElementMixin
 from ..db.handler import Handler
@@ -156,13 +156,12 @@ class ElementHandler(Handler):
         for script_item in spec_block.scripts:
             try:
                 script_vals = script_item["Script"].copy()
-            except KeyError as msg:  # pragma: no cover
+            except KeyError as msg:
                 raise CMYamlParseError(f"Expected Script tag, found {script_item.keys()}") from msg
-            if not isinstance(script_vals, dict):  # pragma: no cover
-                raise CMYamlParseError(f"Script Tag should be a dict not {script_vals}")
+            test_type_and_raise(script_vals, dict, "ElementHandler Script yaml tag")
             try:
                 script_name = script_vals.pop("name")
-            except KeyError as msg:  # pragma: no cover
+            except KeyError as msg:
                 raise CMYamlParseError(f"Unnnamed Script block {script_vals}") from msg
             script_spec_block_name = script_vals.get("spec_block", None)
             if script_spec_block_name is None:  # pragma: no cover

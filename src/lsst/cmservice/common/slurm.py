@@ -85,8 +85,8 @@ def submit_slurm_job(
             assert sbatch.stdout
             line = sbatch.stdout.read().decode().strip()
             return line.split("|")[0]
-    except Exception as msg:
-        raise CMSlurmSubmitError(f"Bad slurm submit: {msg}") from msg
+    except Exception as e:
+        raise CMSlurmSubmitError(f"Bad slurm submit: {e}") from e
 
 
 def check_slurm_job(
@@ -130,8 +130,8 @@ def check_slurm_job(
                 if len(tokens) < 2:
                     return slurm_status_map["PENDING"]
                 slurm_status = tokens[1]
-            except Exception as msg:
-                raise CMSlurmCheckError(f"Badly formatted slurm check: {msg}") from msg
-    except Exception as msg:
-        raise CMSlurmCheckError(f"Bad slurm check: {msg}") from msg
+            except Exception as e:
+                raise CMSlurmCheckError(f"Badly formatted slurm check: {e}") from e
+    except Exception as e:
+        raise CMSlurmCheckError(f"Bad slurm check: {e}") from e
     return slurm_status_map[slurm_status]  # pragma: no cover

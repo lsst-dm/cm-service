@@ -91,7 +91,7 @@ class Specification(Base, RowMixin):
         try:
             script_template = await ScriptTemplate.get_row_by_fullname(session, script_template_name)
             return script_template
-        except KeyError as msg:
+        except KeyError as e:
             raise CMSpecficiationError(
                 f"Could not find ScriptTemplate {script_template_name} in {self}",
-            ) from msg
+            ) from e

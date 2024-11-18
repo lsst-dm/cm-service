@@ -25,13 +25,13 @@ def remove_run_collections(
     """
     try:
         butler = Butler.from_config(butler_repo, collections=[collection_name], without_datastore=True)
-    except Exception as msg:
+    except Exception as e:
         if fake_reset:
             return
-        raise errors.CMNoButlerError(msg) from msg  # pragma: no cover
+        raise errors.CMNoButlerError(e) from e  # pragma: no cover
     try:  # pragma: no cover
         butler.registry.removeCollection(collection_name)
-    except Exception as msg:  # pragma: no cover
+    except Exception as msg:
         raise errors.CMButlerCallError(msg) from msg
 
 
@@ -56,13 +56,13 @@ def remove_non_run_collections(
     """
     try:
         butler = Butler.from_config(butler_repo, collections=[collection_name], without_datastore=True)
-    except Exception as msg:
+    except Exception as e:
         if fake_reset:
             return
-        raise errors.CMNoButlerError(msg) from msg  # pragma: no cover
+        raise errors.CMNoButlerError(e) from e  # pragma: no cover
     try:  # pragma: no cover
         butler.registry.removeCollection(collection_name)
-    except Exception as msg:  # pragma: no cover
+    except Exception as msg:
         raise errors.CMButlerCallError(msg) from msg
 
 

@@ -338,13 +338,13 @@ class CMLoadClient:
 
         try:
             prod_config = config_data["Production"]
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise CMYamlParseError(
                 f"Could not find 'Production' tag in {campaign_yaml}",
             ) from msg
         try:
             parent_name = prod_config["name"]
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise CMYamlParseError(
                 f"Could not find 'name' tag in {campaign_yaml}#Production",
             ) from msg
@@ -352,7 +352,7 @@ class CMLoadClient:
         try:
             camp_config = config_data["Campaign"]
             camp_config["parent_name"] = parent_name
-        except KeyError as msg:  # pragma: no cover
+        except KeyError as msg:
             raise CMYamlParseError(
                 f"Could not find 'Campaign' tag in {campaign_yaml}",
             ) from msg
@@ -471,7 +471,7 @@ class CMLoadClient:
         for error_type_ in error_types:
             try:
                 val = error_type_["PipetaskErrorType"]
-            except KeyError as msg:  # pragma: no cover
+            except KeyError as msg:
                 raise CMYamlParseError(
                     f"Expecting PipetaskErrorType items not: {error_type_.keys()})",
                 ) from msg

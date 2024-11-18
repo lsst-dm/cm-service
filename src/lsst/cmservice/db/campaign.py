@@ -160,10 +160,10 @@ class Campaign(Base, ElementMixin):
             try:
                 spec_name = kwargs["spec_name"]
                 spec_block_name = kwargs.get("spec_block_name", "campaign")
-            except KeyError as msg:
+            except KeyError as e:
                 raise CMMissingRowCreateInputError(
-                    "Either spec_block_assoc_name or spec_name required",
-                ) from msg
+                    "Spec_name required",
+                ) from e
         else:
             tokens = spec_block_assoc_name.split("#")
             if len(tokens) != 2:

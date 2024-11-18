@@ -161,8 +161,8 @@ class Script(Base, NodeMixin):
             parent_name = kwargs["parent_name"]
             name = kwargs["name"]
             spec_block_name = kwargs["spec_block_name"]
-        except KeyError as msg:
-            raise CMMissingRowCreateInputError(f"Missing input to create Script: {msg}") from msg
+        except KeyError as e:
+            raise CMMissingRowCreateInputError(f"Missing input to create Script: {e}") from e
         attempt = kwargs.get("attempt", 0)
         parent_level = kwargs.get("parent_level", None)
         if parent_level is None:

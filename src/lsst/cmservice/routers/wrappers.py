@@ -66,7 +66,7 @@ def get_rows_no_parent_function(
         try:
             async with session.begin():
                 return await db_class.get_rows(session, skip=skip, limit=limit)
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -121,7 +121,7 @@ def get_rows_function(
                     limit=limit,
                     parent_class=db.Production,
                 )
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -168,7 +168,7 @@ def get_row_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -215,7 +215,7 @@ def get_row_by_fullname_function(
         except CMMissingFullnameError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -262,7 +262,7 @@ def get_row_by_name_function(
         except CMMissingFullnameError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -311,7 +311,7 @@ def post_row_function(
         try:
             async with session.begin():
                 return await db_class.create_row(session, **row_create.model_dump())
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -354,9 +354,9 @@ def delete_row_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:
-            logger.error(msg, exc_info=True)
-            raise HTTPException(status_code=500, detail=str(msg)) from msg
+        except Exception as e:
+            logger.error(e, exc_info=True)
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     return delete_row
 
@@ -406,7 +406,7 @@ def put_row_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -450,7 +450,7 @@ def get_node_spec_block_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -494,7 +494,7 @@ def get_node_specification_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -542,7 +542,7 @@ def get_node_parent_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -586,7 +586,7 @@ def get_node_resolved_collections_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -630,7 +630,7 @@ def get_node_collections_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -674,7 +674,7 @@ def get_node_child_config_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -718,7 +718,7 @@ def get_node_data_dict_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -762,7 +762,7 @@ def get_node_spec_aliases_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -812,7 +812,7 @@ def update_node_status_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -862,7 +862,7 @@ def update_node_collections_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -911,7 +911,7 @@ def update_node_child_config_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -960,7 +960,7 @@ def update_node_data_dict_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -1009,7 +1009,7 @@ def update_node_spec_aliases_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -1053,7 +1053,7 @@ def get_node_check_prerequisites_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -1102,9 +1102,9 @@ def get_node_reject_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:
-            logger.error(msg, exc_info=True)
-            raise HTTPException(status_code=500, detail=str(msg)) from msg
+        except Exception as e:
+            logger.error(e, exc_info=True)
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     return node_reject
 
@@ -1151,9 +1151,9 @@ def get_node_accept_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:
-            logger.error(msg, exc_info=True)
-            raise HTTPException(status_code=500, detail=str(msg)) from msg
+        except Exception as e:
+            logger.error(e, exc_info=True)
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     return node_accept
 
@@ -1201,9 +1201,9 @@ def get_node_reset_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:
-            logger.error(msg, exc_info=True)
-            raise HTTPException(status_code=500, detail=str(msg)) from msg
+        except Exception as e:
+            logger.error(e, exc_info=True)
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     return node_reset
 
@@ -1246,7 +1246,7 @@ def get_node_process_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -1291,7 +1291,7 @@ def get_node_run_check_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -1337,7 +1337,7 @@ def get_element_get_scripts_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -1382,7 +1382,7 @@ def get_element_get_all_scripts_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -1427,7 +1427,7 @@ def get_element_get_jobs_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -1476,7 +1476,7 @@ def get_element_retry_script_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -1528,7 +1528,7 @@ def get_element_estimate_sleep_time_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -1573,7 +1573,7 @@ def get_element_wms_task_reports_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -1618,7 +1618,7 @@ def get_element_tasks_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 
@@ -1663,7 +1663,7 @@ def get_element_products_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:  # pragma: no cover
+        except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
 

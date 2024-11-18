@@ -1,13 +1,17 @@
 """cm-service specific error types"""
 
+from typing import Any, TypeVar
+
 from sqlalchemy.exc import IntegrityError
+
+T = TypeVar("T")
 
 
 class CMBashCheckError(KeyError):
     """Raised when bash checking fails"""
 
 
-class CMBashSubmitError(KeyError):
+class CMBashSubmitError(RuntimeError):
     """Raised when bash submisison fails"""
 
 
@@ -19,7 +23,7 @@ class CMBadStateTransitionError(ValueError):
     """Raised when requesting a bad transition states for a Node"""
 
 
-class CMBadExecutionMethodError(ValueError):
+class CMBadExecutionMethodError(RuntimeError):
     """Raised when requesting a bed execution method for a Node"""
 
 
@@ -67,7 +71,7 @@ class CMResolveCollectionsError(KeyError):
     """Raised when the collection name resolution fails"""
 
 
-class CMSlurmSubmitError(KeyError):
+class CMSlurmSubmitError(RuntimeError):
     """Raised when slurm submisison fails"""
 
 
@@ -75,7 +79,7 @@ class CMSlurmCheckError(KeyError):
     """Raised when slurm checking fails"""
 
 
-class CMHTCondorSubmitError(KeyError):
+class CMHTCondorSubmitError(RuntimeError):
     """Raised when htcondor submission fails"""
 
 
@@ -83,11 +87,11 @@ class CMHTCondorCheckError(KeyError):
     """Raised when htcondor checking fails"""
 
 
-class CMNoButlerError(KeyError):
+class CMNoButlerError(RuntimeError):
     """Raised when no butler is present"""
 
 
-class CMButlerCallError(KeyError):
+class CMButlerCallError(RuntimeError):
     """Raised when a call to butler fails"""
 
 
@@ -109,3 +113,9 @@ class CMTooManyActiveScriptsError(KeyError):
 
 class CMYamlParseError(KeyError):
     """Raised when parsing a yaml file fails"""
+
+
+def test_type_and_raise(object: Any, expected_type: type[T], var_name: str) -> T:
+    if not isinstance(object, expected_type):
+        raise CMBadParameterTypeError(f"{var_name} expected type {expected_type} got {type(object)}")
+    return object

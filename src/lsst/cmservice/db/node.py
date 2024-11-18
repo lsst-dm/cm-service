@@ -150,10 +150,7 @@ class NodeMixin(RowMixin):
             The handler in question
         """
         spec_block = await self.get_spec_block(session)
-        if self.handler:  # pragma: no cover
-            handler_class = self.handler
-        else:
-            handler_class = spec_block.handler
+        handler_class = self.handler if self.handler else spec_block.handler
         return Handler.get_handler(
             spec_block.id,
             handler_class,
@@ -236,10 +233,10 @@ class NodeMixin(RowMixin):
                         f1 = val_
                     try:
                         resolved_collections[name_].append(f1.format(**name_dict))
-                    except KeyError as msg:
+                    except KeyError as e:
                         raise CMResolveCollectionsError(
                             f"Failed to resolve collection {name_} {f1} using: {name_dict!s}",
-                        ) from msg
+                        ) from e
                 resolved_collections[name_] = ",".join(resolved_collections[name_])
             else:
                 try:
@@ -248,7 +245,7 @@ class NodeMixin(RowMixin):
                     f1 = val_
                 try:
                     resolved_collections[name_] = f1.format(**name_dict)
-                except KeyError as msg:  # pragma: no cover
+                except KeyError as msg:
                     raise CMResolveCollectionsError(
                         f"Failed to resolve collection {name_}, {f1} using: {name_dict!s}",
                     ) from msg
@@ -448,11 +445,11 @@ class NodeMixin(RowMixin):
             else:
                 self.child_config = kwargs.copy()
             await session.commit()
-        except IntegrityError as e:  # pragma: no cover
+        except IntegrityError as msg:
             if TYPE_CHECKING:
-                assert e.orig  # for mypy
+                assert msg.orig  # for mypy
             await session.rollback()
-            raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
+            raise CMIntegrityError(params=msg.params, orig=msg.orig, statement=msg.statement) from msg
         return self
 
     async def update_collections(
@@ -492,10 +489,10 @@ class NodeMixin(RowMixin):
             else:
                 self.collections = kwargs.copy()
             await session.commit()
-        except IntegrityError as e:  # pragma: no cover
+        except IntegrityError as msg:
             if TYPE_CHECKING:
-                assert e.orig  # for mypy
-            raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
+                assert msg.orig  # for mypy
+            raise CMIntegrityError(params=msg.params, orig=msg.orig, statement=msg.statement) from msg
         return self
 
     async def update_spec_aliases(
@@ -535,11 +532,11 @@ class NodeMixin(RowMixin):
             else:
                 self.spec_aliases = kwargs.copy()
             await session.commit()
-        except IntegrityError as e:  # pragma: no cover
+        except IntegrityError as msg:
             if TYPE_CHECKING:
-                assert e.orig  # for mypy
+                assert msg.orig  # for mypy
             await session.rollback()
-            raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
+            raise CMIntegrityError(params=msg.params, orig=msg.orig, statement=msg.statement) from msg
         return self
 
     async def update_data_dict(
@@ -579,11 +576,11 @@ class NodeMixin(RowMixin):
             else:  # pragma: no cover
                 self.data = kwargs.copy()
             await session.commit()
-        except IntegrityError as e:  # pragma: no cover
+        except IntegrityError as msg:
             if TYPE_CHECKING:
-                assert e.orig  # for mypy
+                assert msg.orig  # for mypy
             await session.rollback()
-            raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
+            raise CMIntegrityError(params=msg.params, orig=msg.orig, statement=msg.statement) from msg
         return self
 
     async def check_prerequisites(

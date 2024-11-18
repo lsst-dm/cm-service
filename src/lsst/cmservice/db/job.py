@@ -10,7 +10,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
 from ..common.enums import LevelEnum, StatusEnum
-from ..common.errors import CMBadParameterTypeError, CMIntegrityError, CMMissingRowCreateInputError
+from ..common.errors import (
+    CMIntegrityError,
+    CMMissingRowCreateInputError,
+    test_type_and_raise,
+)
 from ..models.merged_product_set import MergedProductSet, MergedProductSetDict
 from ..models.merged_task_set import MergedTaskSet, MergedTaskSetDict
 from ..models.merged_wms_task_report import MergedWmsTaskReport, MergedWmsTaskReportDict
@@ -202,8 +206,8 @@ class Job(Base, ElementMixin):
             parent_name = kwargs["parent_name"]
             name = kwargs["name"]
             spec_block_name = kwargs["spec_block_name"]
-        except KeyError as msg:
-            raise CMMissingRowCreateInputError(f"Missing input to create Job: {msg}") from msg
+        except KeyError as e:
+            raise CMMissingRowCreateInputError(f"Missing input to create Job: {e}") from e
         attempt = kwargs.get("attempt", 0)
         parent = await Group.get_row_by_fullname(session, parent_name)
         spec_aliases = await parent.get_spec_aliases(session)
@@ -258,9 +262,7 @@ class Job(Base, ElementMixin):
 
         fullname = f"{parent.fullname}/{self.name}_{attempt:03}"
         if self.data:
-            if not isinstance(self.data, dict):  # pragma: no cover
-                raise CMBadParameterTypeError(f"job.data should be dict | None, not {type(self.data)}")
-            data = self.data.copy()
+            data = test_type_and_raise(self.data, dict, "job.data").copy()
         else:  # pragma: no cover
             data = {}
         data["rescue"] = True
@@ -284,11 +286,11 @@ class Job(Base, ElementMixin):
         async with session.begin_nested():
             try:
                 session.add(new_job)
-            except IntegrityError as e:  # pragma: no cover
+            except IntegrityError as msg:
                 await session.rollback()
                 if TYPE_CHECKING:
-                    assert e.orig  # for mypy
-                raise CMIntegrityError(params=e.params, orig=e.orig, statement=e.statement) from e
+                    assert msg.orig  # for mypy
+                raise CMIntegrityError(params=msg.params, orig=msg.orig, statement=msg.statement) from msg
 
         await session.refresh(new_job)
         return new_job
