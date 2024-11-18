@@ -1131,7 +1131,7 @@ def get_element_parent_command(
     Returns
     -------
     the_function: Callable
-        Function that gets the scripts assocaited to an element
+        Function that gets the scripts associated to an element
     """
 
     @group_command(name="parent")
@@ -1143,7 +1143,7 @@ def get_element_parent_command(
         row_id: int,
         output: options.OutputEnum | None,
     ) -> None:
-        """Get the scripts assocaited to an element"""
+        """Get the scripts associated to an element"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_parent(row_id=row_id)
         output_pydantic_object(result, output, db_parent_class.col_names_for_table)
@@ -1155,7 +1155,7 @@ def get_element_scripts_command(
     group_command: Callable,
     sub_client_name: str,
 ) -> Callable:
-    """Return a function that gets the scripts assocaited to an element
+    """Return a function that gets the scripts associated to an element
 
     Parameters
     ----------
@@ -1168,7 +1168,7 @@ def get_element_scripts_command(
     Returns
     -------
     the_function: Callable
-        Function that gets the scripts assocaited to an element
+        Function that gets the scripts associated to an element
     """
 
     @group_command(name="scripts")
@@ -1182,7 +1182,7 @@ def get_element_scripts_command(
         script_name: str,
         output: options.OutputEnum | None,
     ) -> None:
-        """Get the scripts assocaited to an element"""
+        """Get the scripts associated to an element"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_scripts(row_id=row_id, script_name=script_name)
         output_pydantic_list(result, output, Script.col_names_for_table)
@@ -1194,7 +1194,7 @@ def get_element_all_scripts_command(
     group_command: Callable,
     sub_client_name: str,
 ) -> Callable:
-    """Return a function that gets the scripts assocaited to an element
+    """Return a function that gets the scripts associated to an element
 
     Parameters
     ----------
@@ -1206,7 +1206,7 @@ def get_element_all_scripts_command(
     Returns
     -------
     the_function: Callable
-        Function that gets the scripts assocaited to an element
+        Function that gets the scripts associated to an element
     """
 
     @group_command(name="all_scripts")
@@ -1218,7 +1218,7 @@ def get_element_all_scripts_command(
         row_id: int,
         output: options.OutputEnum | None,
     ) -> None:
-        """Get the scripts assocaited to an element"""
+        """Get the scripts associated to an element"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_all_scripts(row_id=row_id)
         output_pydantic_list(result, output, Script.col_names_for_table)
@@ -1230,7 +1230,7 @@ def get_element_jobs_command(
     group_command: Callable,
     sub_client_name: str,
 ) -> Callable:
-    """Return a function that gets the jobs assocaited to an element
+    """Return a function that gets the jobs associated to an element
 
     Parameters
     ----------
@@ -1243,7 +1243,7 @@ def get_element_jobs_command(
     Returns
     -------
     the_function: Callable
-        Function that gets the jobs assocaited to an element
+        Function that gets the jobs associated to an element
     """
 
     @group_command(name="jobs")
@@ -1255,7 +1255,7 @@ def get_element_jobs_command(
         row_id: int,
         output: options.OutputEnum | None,
     ) -> None:
-        """Get the scripts assocaited to an element"""
+        """Get the scripts associated to an element"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_jobs(row_id=row_id)
         output_pydantic_list(result, output, Job.col_names_for_table)
@@ -1297,7 +1297,7 @@ def get_element_retry_script_command(
         *,
         fake_reset: bool = False,
     ) -> None:
-        """Get the scripts assocaited to an element"""
+        """Get the scripts associated to an element"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.retry_script(row_id=row_id, script_name=script_name, fake_reset=fake_reset)
         output_pydantic_object(result, output, Script.col_names_for_table)
@@ -1346,7 +1346,7 @@ def get_element_wms_task_reports_command(
     group_command: Callable,
     sub_client_name: str,
 ) -> Callable:
-    """Return a function that gets the WmsTaskReports assocaited to an element
+    """Return a function that gets the WmsTaskReports associated to an element
 
     Parameters
     ----------
@@ -1359,7 +1359,7 @@ def get_element_wms_task_reports_command(
     Returns
     -------
     the_function: Callable
-        Function that gets the WmsTaskReports assocaited to an element
+        Function that gets the WmsTaskReports associated to an element
     """
 
     @group_command(name="wms_task_reports")
@@ -1371,7 +1371,7 @@ def get_element_wms_task_reports_command(
         row_id: int,
         output: options.OutputEnum | None,
     ) -> None:
-        """Get the WmsTaskReports assocaited to an element"""
+        """Get the WmsTaskReports associated to an element"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_wms_task_reports(row_id=row_id)
         col_names = [
@@ -1398,7 +1398,7 @@ def get_element_tasks_command(
     group_command: Callable,
     sub_client_name: str,
 ) -> Callable:
-    """Return a function that gets the TaskSets assocaited to an element
+    """Return a function that gets the TaskSets associated to an element
 
     Parameters
     ----------
@@ -1411,7 +1411,7 @@ def get_element_tasks_command(
     Returns
     -------
     the_function: Callable
-        Function that gets the TaskSets assocaited to an element
+        Function that gets the TaskSets associated to an element
     """
 
     @group_command(name="tasks")
@@ -1423,7 +1423,7 @@ def get_element_tasks_command(
         row_id: int,
         output: options.OutputEnum | None,
     ) -> None:
-        """Get the scripts assocaited to an element"""
+        """Get the scripts associated to an element"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_tasks(row_id=row_id)
         col_names = ["name", "n_expected", "n_done", "n_failed", "n_failed_upstream"]
@@ -1436,7 +1436,7 @@ def get_element_products_command(
     group_command: Callable,
     sub_client_name: str,
 ) -> Callable:
-    """Return a function that gets the ProductSets assocaited to an element
+    """Return a function that gets the ProductSets associated to an element
 
     Parameters
     ----------
@@ -1449,7 +1449,7 @@ def get_element_products_command(
     Returns
     -------
     the_function: Callable
-        Function that gets the ProductSets assocaited to an element
+        Function that gets the ProductSets associated to an element
     """
 
     @group_command(name="products")
@@ -1461,7 +1461,7 @@ def get_element_products_command(
         row_id: int,
         output: options.OutputEnum | None,
     ) -> None:
-        """Get the scripts assocaited to an element"""
+        """Get the scripts associated to an element"""
         sub_client = getattr(client, sub_client_name)
         result = sub_client.get_products(row_id=row_id)
         col_names = ["name", "n_expected", "n_done", "n_failed", "n_failed_upstream", "n_missing"]
