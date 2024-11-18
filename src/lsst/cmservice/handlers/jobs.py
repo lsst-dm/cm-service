@@ -357,7 +357,7 @@ class BpsReportHandler(FunctionHandler):
         fake_status = kwargs.get("fake_status", None)
 
         try:
-            wms_svc = self._get_wms_svc()
+            wms_svc = self._get_wms_svc(config={})
         except ImportError as msg:
             if not fake_status:  # pragma: no cover
                 raise msg
