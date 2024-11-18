@@ -642,7 +642,7 @@ async def load_wms_reports(
     if wms_run_report is None:
         return job
     if wms_run_report.job_summary is None:
-        wms_run_report.job_summary = compile_job_summary(wms_run_report.jobs)
+        compile_job_summary(wms_run_report)
     for task_name, job_summary in wms_run_report.job_summary.items():
         fullname = f"{job.fullname}/{task_name}"
         wms_dict = {f"n_{wms_state_.name.lower()}": count_ for wms_state_, count_ in job_summary.items()}
