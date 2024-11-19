@@ -13,6 +13,7 @@ from ..common.errors import (
     CMBadStateTransitionError,
     CMIntegrityError,
     CMResolveCollectionsError,
+    test_type_and_raise,
 )
 from .handler import Handler
 from .row import RowMixin
@@ -151,6 +152,7 @@ class NodeMixin(RowMixin):
         """
         spec_block = await self.get_spec_block(session)
         handler_class = self.handler if self.handler else spec_block.handler
+        handler_class = test_type_and_raise(handler_class, str, "Node.get_handler handler_class")
         return Handler.get_handler(
             spec_block.id,
             handler_class,
