@@ -9,7 +9,7 @@
 aiosqlite
 asgi-lifespan
 coverage[toml]
-greenlet==3.0.3  # Pin back to allow playwright 1.47
+greenlet
 httpx
 mypy
 pre-commit
