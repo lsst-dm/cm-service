@@ -112,7 +112,7 @@
                  alert(`Cannot reset a script from ${currentStatus} status`);
                  return;
              }
-             modal.classList.remove("hidden");
+             modal.showModal();
             });
         }
 
@@ -123,7 +123,7 @@
 
     const closeModal = () => {
       const modal = document.querySelector("#modalDialog");
-      modal.classList.add("hidden");
+      modal.close();
     };
 
     const updateStatus = () => {
@@ -131,7 +131,7 @@
       const rowIndex = Number(document.querySelector("#rowIndex").innerText);
       const newStatus = document.querySelector("#targetStatus").value;
       scriptGridApi.getRowNode(rowIndex).setDataValue("status", newStatus);
-      modal.classList.add("hidden");
+      modal.close();
     };
 
     const scriptsGridOptions = {
