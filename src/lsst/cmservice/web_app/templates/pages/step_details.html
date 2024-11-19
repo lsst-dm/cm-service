@@ -1,6 +1,7 @@
 {% extends "pages/base.html" %}
 {% block title %} Step Details {% endblock %}
 {% block content %}
+{% include "partials/reset_script_modal.html" %}
 <script>
     class GroupNameRenderer {
         eGui;
@@ -70,12 +71,82 @@
      }
     }
 
+    // list of statuses to reset to if current status is failed or rejected
+    const resetFromRejected = {
+        WAITING: 0,
+        READY: 1,
+        PREPARED: 2
+    };
+
+    const resetFromReviewable = {
+        ACCEPTED: 5,
+        REJECTED: -3,
+    };
+    class ButtonCellRenderer {
+        init(params) {
+            this.params = params;
+            this.eGui = document.createElement('button');
+            this.eGui.innerText = 'Reset';
+            this.eGui.setAttribute('class', 'mt-2 rounded bg-white px-2 py-1 text-xs font-semibold text-teal-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50');
+
+            this.eGui.addEventListener('click', () => {
+             const modal = document.querySelector("#modalDialog");
+             document.querySelector("#rowIndex").innerText = params.node.rowIndex;
+             let statusDropdown = document.querySelector("#targetStatus");
+             let currentStatus = params.data.status;
+             if(currentStatus === "FAILED" || currentStatus === "REJECTED"){
+                 Object.keys(resetFromRejected).forEach(state => {
+                     let option = document.createElement('option');
+                     option.setAttribute('value', resetFromRejected[state]);
+                     option.innerText = state;
+                     statusDropdown.add(option);
+                 });
+             } else if (currentStatus === "REVIEWABLE") {
+                 Object.keys(resetFromReviewable).forEach(state => {
+                     let option = document.createElement('option');
+                     option.setAttribute('value', resetFromReviewable[state]);
+                     option.innerText = state;
+                     statusDropdown.add(option);
+                 });
+             } else {
+                 alert(`Cannot reset a script from ${currentStatus} status`);
+                 return;
+             }
+             modal.classList.remove("hidden");
+            });
+        }
+
+        getGui() {
+            return this.eGui;
+      }
+    }
+
+    const closeModal = () => {
+      const modal = document.querySelector("#modalDialog");
+      modal.classList.add("hidden");
+    };
+
+    const updateStatus = () => {
+      const modal = document.querySelector("#modalDialog");
+      const rowIndex = Number(document.querySelector("#rowIndex").innerText);
+      const newStatus = document.querySelector("#targetStatus").value;
+      scriptGridApi.getRowNode(rowIndex).setDataValue("status", newStatus);
+      modal.classList.add("hidden");
+    };
+
     const scriptsGridOptions = {
         // rowData: scriptsJson,
         columnDefs: [
             {field: "name", flex: 1, cellRenderer: ScriptNameRenderer,},
             {field: "status", flex: 1},
-            {field: "superseded", flex: 1}
+            {field: "superseded", flex: 1},
+            {
+                headerName: 'Actions',
+                field: 'editButton',
+                cellRenderer: ButtonCellRenderer,
+                editable: false,
+                width: 200,
+              },
         ]
     };
     const groupsGridOptions = {
@@ -91,10 +162,12 @@
             {field: "spec_aliases", flex: 2, cellRenderer: DictRenderer},
         ]
     };
+
+    let scriptGridApi;
     const populateScriptGrid = (scriptsJson) => {
         scriptsGridOptions.rowData = scriptsJson;
         const scriptsGridElement = document.getElementById("scriptsGrid");
-        agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
+        scriptGridApi = agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
     };
 
     const populateGroupsGrid = (groupsJson) => {
