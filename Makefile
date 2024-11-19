@@ -88,8 +88,7 @@ run-worker-usdf-dev: CM_DATABASE_HOST=$(shell kubectl --cluster=usdf-cm-dev -n c
 run-worker-usdf-dev: export CM_DATABASE_URL=postgresql://cm-service@${CM_DATABASE_HOST}:5432/cm-service
 run-worker-usdf-dev: export CM_DATABASE_PASSWORD=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get secret/cm-pg-app -o jsonpath='{.data.password}' | base64 --decode)
 run-worker-usdf-dev: export CM_DATABASE_ECHO=true
-run-worker-usdf-dev: run-compose
-	cm-service init
+run-worker-usdf-dev:
 	cm-worker
 
 .PHONY: run-usdf-dev
