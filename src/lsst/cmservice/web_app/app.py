@@ -8,6 +8,8 @@ from fastapi import APIRouter, Depends, FastAPI, Form, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+
+# from pydantic import BaseModel
 from safir.dependencies.db_session import db_session_dependency
 from safir.dependencies.http_client import http_client_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -257,3 +259,38 @@ async def get_script(
 @web_app.get("/layout/", response_class=HTMLResponse)
 async def test_layout(request: Request) -> HTMLResponse:
     return templates.TemplateResponse("pages/mockup.html", {"request": request})
+
+
+@web_app.get("/test-ag-grid/", response_class=HTMLResponse)
+async def test_ag_grid(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse("pages/test-ag-grid.html", {"request": request})
+
+
+# NOT WORKING
+# @web_app.post("/my-reset-script/", response_class=JSONResponse)
+# async def my_reset_script(
+#         request: Request,
+#         response: Response,
+#         # script_id: Annotated[int, Form()],
+#         targetStatus: Annotated[str, Form()],
+#         session: async_scoped_session = Depends(db_session_dependency)
+# ) -> dict:
+#     print(f"Resetting script to {targetStatus}")
+#     data = {"status": targetStatus}
+#     response.status_code = status.HTTP_201_CREATED
+#     return data
+
+
+# WORKING
+# class ResetScriptRequest(BaseModel):
+#     id: int
+#     to_status: int
+#
+#
+# @web_app.post("/my-reset-script/", response_class=JSONResponse)
+# async def my_reset_script(request: ResetScriptRequest):
+#     # Example response
+#     return JSONResponse(
+#         content={"id": request.id, "status": request.to_status},
+#         status_code=201
+#     )

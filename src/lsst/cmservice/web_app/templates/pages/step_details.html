@@ -94,24 +94,44 @@
              document.querySelector("#rowIndex").innerText = params.node.rowIndex;
              let statusDropdown = document.querySelector("#targetStatus");
              let currentStatus = params.data.status;
-             if(currentStatus === "FAILED" || currentStatus === "REJECTED"){
-                 Object.keys(resetFromRejected).forEach(state => {
+             // if(currentStatus === "FAILED" || currentStatus === "REJECTED"){
+             //     Object.keys(resetFromRejected).forEach(state => {
+             //         let option = document.createElement('option');
+             //         option.setAttribute('value', resetFromRejected[state]);
+             //         option.innerText = state;
+             //         statusDropdown.add(option);
+             //     });
+             // } else if (currentStatus === "REVIEWABLE") {
+             //     Object.keys(resetFromReviewable).forEach(state => {
+             //         let option = document.createElement('option');
+             //         option.setAttribute('value', resetFromReviewable[state]);
+             //         option.innerText = state;
+             //         statusDropdown.add(option);
+             //     });
+             // } else {
+             //     alert(`Cannot reset a script from ${currentStatus} status`);
+             //     return;
+             // }
+                Object.keys(resetFromRejected).forEach(state => {
+                    // ajax form submit
+                    // var xhr = new XMLHttpRequest();
+                    // xhr.open("POST", '/server', true);
+                    //
+                    // //Send the proper header information along with the request
+                    // xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                    //
+                    // xhr.onreadystatechange = function() { // Call a function when the state changes.
+                    //     if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                    //         // Request finished. Do processing here.
+                    //     }
+                    // }
+                    // xhr.send("foo=bar&lorem=ipsum");
+
                      let option = document.createElement('option');
                      option.setAttribute('value', resetFromRejected[state]);
                      option.innerText = state;
                      statusDropdown.add(option);
                  });
-             } else if (currentStatus === "REVIEWABLE") {
-                 Object.keys(resetFromReviewable).forEach(state => {
-                     let option = document.createElement('option');
-                     option.setAttribute('value', resetFromReviewable[state]);
-                     option.innerText = state;
-                     statusDropdown.add(option);
-                 });
-             } else {
-                 alert(`Cannot reset a script from ${currentStatus} status`);
-                 return;
-             }
              modal.showModal();
             });
         }
@@ -127,15 +147,42 @@
     };
 
     const updateStatus = () => {
-      const modal = document.querySelector("#modalDialog");
-      const rowIndex = Number(document.querySelector("#rowIndex").innerText);
-      const newStatus = document.querySelector("#targetStatus").value;
-      scriptGridApi.getRowNode(rowIndex).setDataValue("status", newStatus);
-      modal.close();
+        const modal = document.querySelector("#modalDialog");
+
+        let resetObj = {
+            fullname: "HSC_DRP-RC2/w_2024_26_DM-45061/step1/prepare_000",       // Ensure this matches the FastAPI schema
+            status: -4 // Ensure this matches the FastAPI schema
+        };
+
+        let resetJson = JSON.stringify(resetObj);
+        console.log(resetJson);
+
+        const url = "{{url_for('reset_script')}}";
+        let xhr = new XMLHttpRequest();
+        xhr.open('POST', url, true);
+        xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+        xhr.onload = function () {
+            console.log(xhr.responseText);
+
+            if (xhr.status === 201) {
+                console.log("Post successfully created!");
+                const rowIndex = Number(document.querySelector("#rowIndex").innerText);
+                const newStatus = document.querySelector("#targetStatus").value;
+                scriptGridApi.getRowNode(rowIndex).setDataValue("status", newStatus);
+                modal.close();
+            } else {
+                console.error("Error:", xhr.responseText);
+                modal.close();
+            }
+        };
+        xhr.onerror = function () {
+            console.error("Request failed");
+            modal.close();
+        };
+        xhr.send(resetJson);
     };
 
     const scriptsGridOptions = {
-        // rowData: scriptsJson,
         columnDefs: [
             {field: "name", flex: 1, cellRenderer: ScriptNameRenderer,},
             {field: "status", flex: 1},
@@ -150,7 +197,6 @@
         ]
     };
     const groupsGridOptions = {
-        // rowData: groupsJson,
         rowHeight: 120,
         columnDefs: [
             {field: "name", flex: 1, filter: true, cellRenderer: GroupNameRenderer},
@@ -213,7 +259,8 @@
 </nav>
 <div id="step_content" class="w-full"
      hx-get="{{ url_for('get_step', campaign_id=campaign_id, step_id=step.id) }}"
-     hx-trigger="every 20s" hx-select="#step_content" hx-swap="outerHTML">
+     hx-trigger="every 20s"
+     hx-select="#step_content" hx-swap="outerHTML">
     <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
         <div class="htmx-indicator">Updating...</div>
         <div class="flex items-center">
