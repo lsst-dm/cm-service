@@ -1,7 +1,11 @@
 {% extends "pages/base.html" %}
 {% block title %} Job Details {% endblock %}
 {% block content %}
+{% include "partials/reset_script_modal.html" %}
+{% include "partials/error_modal.html" %}
+<script src="{{ url_for('static', path='/js/script-grid-utils.js') }}"></script>
 <script>
+    const reset_script_endpoint = "{{url_for('reset_script')}}";
     class ScriptNameRenderer {
         eGui;
 
@@ -24,11 +28,17 @@
     }
 
     const scriptsGridOptions = {
-        // rowData: jobScripts,
         columnDefs: [
-             {field: "name", flex: 1, cellRenderer: ScriptNameRenderer,},
-             {field: "status", flex: 1},
-             {field: "superseded", flex: 1}
+            {field: "name", flex: 1, cellRenderer: ScriptNameRenderer,},
+            {field: "status", flex: 1},
+            {field: "superseded", flex: 1},
+            {
+                headerName: 'Actions',
+                field: 'resetButton',
+                cellRenderer: ResetButtonCellRenderer,
+                editable: false,
+                width: 200,
+            },
         ]
     };
     const populateScriptsGrid = (scriptsJson) => {
@@ -41,7 +51,6 @@
     const formatWMSColumn = (params) => params.value === 0 ? "" : params.value;
 
     const productsGridOptions = {
-        // rowData: jobProducts,
         columnDefs: [
             {field: "name", headerName: "Name", flex: 2,},
             {field: "n_expected", headerName: "Expected", valueFormatter: formatWMSColumn},
@@ -61,7 +70,6 @@
     // WMS task report
 
     const wmsReportOptions = {
-        // rowData: wmsReport,
         defaultColDef: {
             resizable: false,
             width: 100,

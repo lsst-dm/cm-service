@@ -1,7 +1,11 @@
 {% extends "pages/base.html" %}
 {% block title %} Group Details {% endblock %}
 {% block content %}
+{% include "partials/reset_script_modal.html" %}
+{% include "partials/error_modal.html" %}
+<script src="{{ url_for('static', path='/js/script-grid-utils.js') }}"></script>
 <script>
+    const reset_script_endpoint = "{{url_for('reset_script')}}";
     class JobNameRenderer {
         eGui;
 
@@ -44,16 +48,21 @@
     }
 
     const scriptsGridOptions = {
-        // rowData: scriptsJson,
         columnDefs: [
             {field: "name", flex: 1, cellRenderer: ScriptNameRenderer,},
             {field: "status", flex: 1},
-            {field: "superseded", flex: 1}
+            {field: "superseded", flex: 1},
+            {
+                headerName: 'Actions',
+                field: 'resetButton',
+                cellRenderer: ResetButtonCellRenderer,
+                editable: false,
+                width: 200,
+            },
         ]
     };
 
     const jobsGridOptions = {
-        // rowData: jobsJson,
         columnDefs: [
             {field: "name", flex: 1, cellRenderer: JobNameRenderer},
             {field: "status", flex: 1},
@@ -65,7 +74,6 @@
     };
     const formatWMSColumn = (params) => params.value === 0 ? "" : params.value;
     const wmsReportOptions = {
-        // rowData: wmsReportJson,
         defaultColDef: {
             resizable: false,
             width: 100,
