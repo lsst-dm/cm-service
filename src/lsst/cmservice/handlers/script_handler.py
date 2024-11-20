@@ -593,7 +593,7 @@ class ScriptHandler(BaseScriptHandler):
         if script.stamp_url and os.path.exists(script.stamp_url):
             os.unlink(script.stamp_url)
         if to_status.value <= StatusEnum.ready.value:
-            if script.script_url:
+            if script.script_url and os.path.exists(script.script_url):
                 os.unlink(script.script_url)
             update_fields["script_url"] = None
             update_fields["log_url"] = None
