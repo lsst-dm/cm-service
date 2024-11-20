@@ -2,6 +2,7 @@
 {% block title %} Step Details {% endblock %}
 {% block content %}
 {% include "partials/reset_script_modal.html" %}
+{% include "partials/error_modal.html" %}
 <script>
     class GroupNameRenderer {
         eGui;
@@ -82,6 +83,12 @@
         ACCEPTED: 5,
         REJECTED: -3,
     };
+
+    const resetScriptModal = document.querySelector("#modalDialog");
+    const errorModal = document.querySelector("#errorModal");
+    const closeErrModalBtn = document.querySelector("[close-error-modal]");
+    closeErrModalBtn.addEventListener("click", () => errorModal.close());
+
     class ButtonCellRenderer {
         init(params) {
             this.params = params;
@@ -90,7 +97,7 @@
             this.eGui.setAttribute('class', 'mt-2 rounded bg-white px-2 py-1 text-xs font-semibold text-teal-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50');
 
             this.eGui.addEventListener('click', () => {
-             const modal = document.querySelector("#modalDialog");
+
              document.querySelector("#rowIndex").innerText = params.node.rowIndex;
              document.querySelector("#scriptFullname").innerText = params.data.fullname;
              let statusDropdown = document.querySelector("#targetStatus");
@@ -110,7 +117,8 @@
                      statusDropdown.add(option);
                  });
              } else {
-                 alert(`Cannot reset a script from ${currentStatus} status`);
+                 document.querySelector("#errorModal").showModal();
+                 // alert(`Cannot reset a script from ${currentStatus} status`);
                  return;
              }
              //    Object.keys(resetFromRejected).forEach(state => {
@@ -133,7 +141,7 @@
              //         option.innerText = state;
              //         statusDropdown.add(option);
              //     });
-             modal.showModal();
+             resetScriptModal.showModal();
             });
         }
 
@@ -143,13 +151,10 @@
     }
 
     const closeModal = () => {
-      const modal = document.querySelector("#modalDialog");
-      modal.close();
+      resetScriptModal.close();
     };
 
     const updateStatus = () => {
-        const modal = document.querySelector("#modalDialog");
-
         let resetObj = {
             fullname: String(document.querySelector("#scriptFullname").innerText),
             status: parseInt(document.querySelector("#targetStatus").value),
@@ -169,16 +174,16 @@
                 const rowIndex = Number(document.querySelector("#rowIndex").innerText);
                 const newStatus = document.querySelector("#targetStatus").value;
                 scriptGridApi.getRowNode(rowIndex).setDataValue("status", newStatus);
-                modal.close();
+                resetScriptModal.close();
             } else {
                 console.error("Error:", xhr.responseText);
                 alert("Error resetting the script");
-                modal.close();
+                resetScriptModal.close();
             }
         };
         xhr.onerror = function () {
             console.error("Request failed");
-            modal.close();
+            resetScriptModal.close();
         };
         xhr.send(resetJson);
     };
