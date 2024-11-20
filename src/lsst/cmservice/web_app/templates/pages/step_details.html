@@ -2,6 +2,7 @@
 {% block title %} Step Details {% endblock %}
 {% block content %}
 {% include "partials/reset_script_modal.html" %}
+{% include "partials/error_modal.html" %}
 <script>
     class GroupNameRenderer {
         eGui;
@@ -82,6 +83,13 @@
         ACCEPTED: 5,
         REJECTED: -3,
     };
+
+    const resetScriptModal = document.querySelector("#modalDialog");
+    const errorModal = document.querySelector("#errorModal");
+    const closeErrModalBtn = document.querySelector("[close-error-modal]");
+    closeErrModalBtn.addEventListener("click", () => errorModal.close());
+    const errorMessage = document.querySelector("[error-message]")
+
     class ButtonCellRenderer {
         init(params) {
             this.params = params;
@@ -90,7 +98,7 @@
             this.eGui.setAttribute('class', 'mt-2 rounded bg-white px-2 py-1 text-xs font-semibold text-teal-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50');
 
             this.eGui.addEventListener('click', () => {
-             const modal = document.querySelector("#modalDialog");
+
              document.querySelector("#rowIndex").innerText = params.node.rowIndex;
              document.querySelector("#scriptFullname").innerText = params.data.fullname;
              let statusDropdown = document.querySelector("#targetStatus");
@@ -110,30 +118,31 @@
                      statusDropdown.add(option);
                  });
              } else {
-                 alert(`Cannot reset a script from ${currentStatus} status`);
+                 errorModal.showModal();
+                 errorMessage.innerText = `Cannot reset a script from ${currentStatus} status`;
                  return;
              }
-             //    Object.keys(resetFromRejected).forEach(state => {
-             //        // ajax form submit
-             //        // var xhr = new XMLHttpRequest();
-             //        // xhr.open("POST", '/server', true);
-             //        //
-             //        // //Send the proper header information along with the request
-             //        // xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-             //        //
-             //        // xhr.onreadystatechange = function() { // Call a function when the state changes.
-             //        //     if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
-             //        //         // Request finished. Do processing here.
-             //        //     }
-             //        // }
-             //        // xhr.send("foo=bar&lorem=ipsum");
-             //
-             //         let option = document.createElement('option');
-             //         option.setAttribute('value', resetFromRejected[state]);
-             //         option.innerText = state;
-             //         statusDropdown.add(option);
-             //     });
-             modal.showModal();
+                // Object.keys(resetFromRejected).forEach(state => {
+                //     // ajax form submit
+                //     // var xhr = new XMLHttpRequest();
+                //     // xhr.open("POST", '/server', true);
+                //     //
+                //     // //Send the proper header information along with the request
+                //     // xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                //     //
+                //     // xhr.onreadystatechange = function() { // Call a function when the state changes.
+                //     //     if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                //     //         // Request finished. Do processing here.
+                //     //     }
+                //     // }
+                //     // xhr.send("foo=bar&lorem=ipsum");
+                //
+                //      let option = document.createElement('option');
+                //      option.setAttribute('value', resetFromRejected[state]);
+                //      option.innerText = state;
+                //      statusDropdown.add(option);
+                //  });
+             resetScriptModal.showModal();
             });
         }
 
@@ -143,13 +152,10 @@
     }
 
     const closeModal = () => {
-      const modal = document.querySelector("#modalDialog");
-      modal.close();
+      resetScriptModal.close();
     };
 
     const updateStatus = () => {
-        const modal = document.querySelector("#modalDialog");
-
         let resetObj = {
             fullname: String(document.querySelector("#scriptFullname").innerText),
             status: parseInt(document.querySelector("#targetStatus").value),
@@ -169,16 +175,17 @@
                 const rowIndex = Number(document.querySelector("#rowIndex").innerText);
                 const newStatus = document.querySelector("#targetStatus").value;
                 scriptGridApi.getRowNode(rowIndex).setDataValue("status", newStatus);
-                modal.close();
+                resetScriptModal.close();
             } else {
-                console.error("Error:", xhr.responseText);
-                alert("Error resetting the script");
-                modal.close();
+                resetScriptModal.close();
+                errorModal.showModal();
+                errorMessage.innerText = 'Error resetting script!';
             }
         };
         xhr.onerror = function () {
             console.error("Request failed");
-            modal.close();
+            alert('Error resetting script!');
+            resetScriptModal.close();
         };
         xhr.send(resetJson);
     };
