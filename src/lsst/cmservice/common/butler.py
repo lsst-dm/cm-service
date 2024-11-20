@@ -1,7 +1,7 @@
 """Utility functions for working with butler commands"""
 
 from lsst.cmservice.common import errors
-from lsst.daf.butler import Butler
+from lsst.daf.butler import Butler, MissingCollectionError
 
 
 def remove_run_collections(
@@ -31,6 +31,8 @@ def remove_run_collections(
         raise errors.CMNoButlerError(e) from e  # pragma: no cover
     try:  # pragma: no cover
         butler.registry.removeCollection(collection_name)
+    except MissingCollectionError:
+        pass
     except Exception as msg:
         raise errors.CMButlerCallError(msg) from msg
 
