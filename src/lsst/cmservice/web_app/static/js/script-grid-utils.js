@@ -10,11 +10,38 @@ const resetFromReviewable = {
     REJECTED: -3,
 };
 
-const resetScriptModal = document.querySelector("#modalDialog");
-const errorModal = document.querySelector("#errorModal");
-const closeErrModalBtn = document.querySelector("[close-error-modal]");
-closeErrModalBtn.addEventListener("click", () => errorModal.close());
-const errorMessage = document.querySelector("[error-message]")
+const updateStatus = () => {
+    let resetObj = {
+        fullname: String(document.querySelector("#scriptFullname").innerText),
+        status: parseInt(document.querySelector("#targetStatus").value),
+    };
+
+    let resetJson = JSON.stringify(resetObj);
+
+    let xhr = new XMLHttpRequest();
+    xhr.open('POST', reset_script_endpoint, true);
+    xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+    xhr.onload = function () {
+        console.log(xhr.responseText);
+
+        if (xhr.status === 201) {
+            const rowIndex = Number(document.querySelector("#rowIndex").innerText);
+            const newStatus = resetObj.status;
+            scriptGridApi.getRowNode(rowIndex).setDataValue("status", newStatus);
+            resetScriptModal.close();
+        } else {
+            resetScriptModal.close();
+            errorModal.showModal();
+            errorMessage.innerText = 'Error resetting script!';
+        }
+    };
+    xhr.onerror = function () {
+        console.error("Request failed");
+        alert('Error resetting script!');
+        resetScriptModal.close();
+    };
+    xhr.send(resetJson);
+};
 
 class ResetButtonCellRenderer {
     init(params) {
@@ -52,26 +79,6 @@ class ResetButtonCellRenderer {
              errorMessage.innerText = `Cannot reset a script from ${currentStatus} status`;
              return;
          }
-            // Object.keys(resetFromRejected).forEach(state => {
-            //     // ajax form submit
-            //     // var xhr = new XMLHttpRequest();
-            //     // xhr.open("POST", '/server', true);
-            //     //
-            //     // //Send the proper header information along with the request
-            //     // xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-            //     //
-            //     // xhr.onreadystatechange = function() { // Call a function when the state changes.
-            //     //     if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
-            //     //         // Request finished. Do processing here.
-            //     //     }
-            //     // }
-            //     // xhr.send("foo=bar&lorem=ipsum");
-            //
-            //      let option = document.createElement('option');
-            //      option.setAttribute('value', resetFromRejected[state]);
-            //      option.innerText = state;
-            //      statusDropdown.add(option);
-            //  });
          resetScriptModal.showModal();
         });
     }
@@ -81,42 +88,15 @@ class ResetButtonCellRenderer {
   }
 }
 
-const closeModal = () => {
-    resetScriptModal.close();
-};
 
-const updateStatus = () => {
-    let resetObj = {
-        fullname: String(document.querySelector("#scriptFullname").innerText),
-        status: parseInt(document.querySelector("#targetStatus").value),
-    };
+const resetScriptModal = document.querySelector("#modalDialog");
+const closeResetModalBtn = document.querySelector("[close-reset-modal]");
+closeResetModalBtn.addEventListener("click", () => resetScriptModal.close());
 
-    let resetJson = JSON.stringify(resetObj);
-    console.log(resetJson);
+const confirmResetBtn = document.querySelector("[confirm-reset]");
+confirmResetBtn.addEventListener("click", updateStatus);
 
-    const url = reset_script_endpoint;
-    console.log(url);
-    let xhr = new XMLHttpRequest();
-    xhr.open('POST', url, true);
-    xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
-    xhr.onload = function () {
-        console.log(xhr.responseText);
-
-        if (xhr.status === 201) {
-            const rowIndex = Number(document.querySelector("#rowIndex").innerText);
-            const newStatus = resetObj.status;// document.querySelector("#targetStatus").value;
-            scriptGridApi.getRowNode(rowIndex).setDataValue("status", newStatus);
-            resetScriptModal.close();
-        } else {
-            resetScriptModal.close();
-            errorModal.showModal();
-            errorMessage.innerText = 'Error resetting script!';
-        }
-    };
-    xhr.onerror = function () {
-        console.error("Request failed");
-        alert('Error resetting script!');
-        resetScriptModal.close();
-    };
-    xhr.send(resetJson);
-};
+const errorModal = document.querySelector("#errorModal");
+const closeErrModalBtn = document.querySelector("[close-error-modal]");
+closeErrModalBtn.addEventListener("click", () => errorModal.close());
+const errorMessage = document.querySelector("[error-message]")
