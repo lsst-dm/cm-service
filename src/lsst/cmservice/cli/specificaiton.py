@@ -2,7 +2,13 @@
 
 from .. import db
 from . import options, wrappers
-from .commands import specification_group
+from .commands import client_top
+
+
+@client_top.group(name="specification")
+def specification_group() -> None:
+    """Manage Specification table"""
+
 
 # Template specialization
 # Specify the cli path to attach these commands to

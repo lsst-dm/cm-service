@@ -2,7 +2,13 @@
 
 from .. import db
 from . import options, wrappers
-from .commands import script_template_group
+from .commands import client_top
+
+
+@client_top.group(name="script_template")
+def script_template_group() -> None:
+    """Manage ScriptTemplate table"""
+
 
 # Template specialization
 # Specify the cli path to attach these commands to

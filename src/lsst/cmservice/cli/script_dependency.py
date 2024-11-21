@@ -2,7 +2,13 @@
 
 from .. import db
 from . import options, wrappers
-from .commands import script_dependency_group
+from .commands import client_top
+
+
+@client_top.group(name="script_dependency")
+def script_dependency_group() -> None:
+    """Manage ScriptDependency table"""
+
 
 # Template specialization
 # Specify the cli path to attach these commands to

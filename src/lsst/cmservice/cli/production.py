@@ -2,7 +2,13 @@
 
 from .. import db
 from . import options, wrappers
-from .commands import production_group
+from .commands import client_top
+
+
+@client_top.group(name="production")
+def production_group() -> None:
+    """Manage production table"""
+
 
 # Template specialization
 # Specify the cli path to attach these commands to

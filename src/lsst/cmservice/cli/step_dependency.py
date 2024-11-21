@@ -2,7 +2,13 @@
 
 from .. import db
 from . import options, wrappers
-from .commands import step_dependency_group
+from .commands import client_top
+
+
+@client_top.group(name="step_dependency")
+def step_dependency_group() -> None:
+    """Manage StepDependency table"""
+
 
 # Template specialization
 # Specify the cli path to attach these commands to

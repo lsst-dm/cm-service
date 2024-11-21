@@ -2,7 +2,13 @@
 
 from .. import db
 from . import options, wrappers
-from .commands import task_set_group
+from .commands import client_top
+
+
+@client_top.group(name="task_set")
+def task_set_group() -> None:
+    """Manage TaskSet table"""
+
 
 # Template specialization
 # Specify the cli path to attach these commands to

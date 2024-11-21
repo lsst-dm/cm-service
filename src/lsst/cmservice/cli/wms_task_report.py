@@ -2,7 +2,13 @@
 
 from .. import db
 from . import options, wrappers
-from .commands import wms_task_report_group
+from .commands import client_top
+
+
+@client_top.group(name="wms_task_report")
+def wms_task_report_group() -> None:
+    """Manage WmsTaskReport table"""
+
 
 # Template specialization
 # Specify the cli path to attach these commands to
