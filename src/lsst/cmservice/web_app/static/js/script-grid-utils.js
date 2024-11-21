@@ -115,38 +115,3 @@ const updateStatus = () => {
     };
     xhr.send(resetJson);
 };
-
-class ScriptNameRenderer {
-    eGui;
-    init(params) {
-        let scriptName = document.createElement('a');
-        scriptName.textContent = params.data.name;
-        scriptName.href = `{{url_for("get_script", campaign_id=campaign_id, step_id=step.id, script_id="${params.data.id}")}}`;
-        scriptName.setAttribute('class', 'font-bold text-teal-700 underline underline-offset-4 decoration-2 hover:text-gray-500');
-        this.eGui = document.createElement('span');
-        this.eGui.appendChild(scriptName)
-    }
-
-     getGui() {
-        return this.eGui;
-     }
-
-     refresh(params) {
-        return false;
-     }
-}
-
-const scriptsGridOptions = {
-    columnDefs: [
-        {field: "name", flex: 1, cellRenderer: ScriptNameRenderer,},
-        {field: "status", flex: 1},
-        {field: "superseded", flex: 1},
-        {
-            headerName: 'Actions',
-            field: 'editButton',
-            cellRenderer: ResetButtonCellRenderer,
-            editable: false,
-            width: 200,
-        },
-    ]
-};
