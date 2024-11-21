@@ -27,8 +27,12 @@ class ResetButtonCellRenderer {
 
          document.querySelector("#rowIndex").innerText = params.node.rowIndex;
          document.querySelector("#scriptFullname").innerText = params.data.fullname;
+
          let statusDropdown = document.querySelector("#targetStatus");
+         statusDropdown.options.length = 0;
+
          let currentStatus = params.data.status;
+
          if(currentStatus === "FAILED" || currentStatus === "REJECTED"){
              Object.keys(resetFromRejected).forEach(state => {
                  let option = document.createElement('option');
@@ -78,7 +82,7 @@ class ResetButtonCellRenderer {
 }
 
 const closeModal = () => {
-  resetScriptModal.close();
+    resetScriptModal.close();
 };
 
 const updateStatus = () => {
@@ -90,7 +94,8 @@ const updateStatus = () => {
     let resetJson = JSON.stringify(resetObj);
     console.log(resetJson);
 
-    const url = "{{url_for('reset_script')}}";
+    const url = reset_script_endpoint;
+    console.log(url);
     let xhr = new XMLHttpRequest();
     xhr.open('POST', url, true);
     xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
@@ -99,7 +104,7 @@ const updateStatus = () => {
 
         if (xhr.status === 201) {
             const rowIndex = Number(document.querySelector("#rowIndex").innerText);
-            const newStatus = document.querySelector("#targetStatus").value;
+            const newStatus = resetObj.status;// document.querySelector("#targetStatus").value;
             scriptGridApi.getRowNode(rowIndex).setDataValue("status", newStatus);
             resetScriptModal.close();
         } else {
