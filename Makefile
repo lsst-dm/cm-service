@@ -1,3 +1,8 @@
+PY_VENV := .venv/
+UV_LOCKFILE := uv.lock
+REQUIREMENTS_MAIN := requirements/main.txt
+REQUIREMENTS_DEV := requirements/dev.txt
+
 #------------------------------------------------------------------------------
 # Default help target (thanks ChatGPT)
 #------------------------------------------------------------------------------
@@ -6,6 +11,42 @@ help:
 	@echo "Available targets:"
 	@awk -F':' '/^[a-zA-Z0-9\._-]+:/ && !/^[ \t]*\.PHONY/ {print $$1}' $(MAKEFILE_LIST) | sort -u | column
 
+
+#------------------------------------------------------------------------------
+# DX: Use uv to bootstrap project
+#------------------------------------------------------------------------------
+
+$(UV_LOCKFILE):
+	uv lock --build-isolation
+
+$(PY_VENV): $(UV_LOCKFILE)
+	uv sync
+
+.PHONY: $(REQUIREMENTS_MAIN)
+$(REQUIREMENTS_MAIN):
+	uv export --no-group dev --frozen > requirements/main.txt
+
+.PHONY: $(REQUIREMENTS_DEV)
+$(REQUIREMENTS_DEV):
+	uv export --only-group dev --frozen > requirements/dev.txt
+
+.PHONY: bootstrap
+bootstrap: $(PY_VENV)
+	uv run pre-commit install
+
+.PHONY: uv-update-pip-requirements
+uv-update-pip-requirements: $(REQUIREMENTS_MAIN) $(REQUIREMENTS_DEV)
+
+.PHONY: uv-update-deps
+uv-update-deps:
+	uv lock --upgrade --build-isolation
+
+.PHONY: uv-update
+uv-update: uv-update-deps uv-update-pip-requirements bootstrap
+
+.PHONY: clean
+clean:
+	rm -rf $(PY_VENV)
 
 #------------------------------------------------------------------------------
 # The usual dependency/environment management targets for Safir...
