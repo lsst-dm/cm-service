@@ -33,5 +33,12 @@ def run(port: int) -> None:  # pragma: no cover
     uvicorn.run("lsst.cmservice.main:app", host="0.0.0.0", port=port, reload=True, reload_dirs=["src"])
 
 
+# Build the client CLI
+@click.group(name="client")
+@click.version_option(package_name="lsst-cm-service")
+def client_top() -> None:
+    """Administrative command-line interface client-side commands."""
+
+
 if __name__ == "__main__":
     server()

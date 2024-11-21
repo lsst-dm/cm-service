@@ -18,24 +18,76 @@ classifiers = [
     "Typing :: Typed",
 ]
 requires-python = ">=3.11"
-# Use requirements/main.in for runtime dependencies instead.
-dependencies = []
 dynamic = ["version"]
+
+dependencies = [
+    "alembic==1.14.*",
+    "asyncpg==0.30.*",
+    "click==8.1.*",
+    "fastapi==0.115.*",
+    "greenlet==3.1.*",
+    "htcondor==24.0.2; sys_platform == 'linux'",
+    "jinja2==3.1.*",
+    "lsst-ctrl-bps>=28.2024.4900",
+    "lsst-ctrl-bps-htcondor>=28.2024.4900; sys_platform == 'linux'",
+    "lsst-ctrl-bps-panda>=28.2024.4900",
+    "lsst-daf-butler>=28.2024.4900",
+    "lsst-pipe-base>=28.2024.4900",
+    "numpy==2.1.*",
+    "pause==0.3.*",
+    "psycopg2-binary==2.9.*",
+    "pydantic==2.10.*",
+    "pydantic-settings==2.6.*",
+    "python-multipart==0.0.*",
+    "starlette==0.41.*",
+    "structlog==24.4.*",
+    "tabulate==0.9.*",
+    "sqlalchemy[asyncio]==2.0.*",
+    "safir[db]==7.0.*",
+    "uvicorn[standard]==0.32.*",
+]
+
+[dependency-groups]
+dev = [
+    "aiosqlite>=0.20.0",
+    "asgi-lifespan>=2.1.0",
+    "coverage[toml]>=7.6.7",
+    "greenlet>=3.1.1",
+    "httpx>=0.27.2",
+    "mypy>=1.13.0",
+    "pre-commit>=4.0.1",
+    "pytest>=8.3.3",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "pytest-playwright>=0.5.2",
+    "pytest-timeout>=2.3.1",
+    "ruff>=0.7.4",
+    "python-semantic-release==9.14.*",
+    "sqlalchemy[mypy]>=2.0.36",
+    "types-pyyaml>=6.0.12.20240917",
+    "types-tabulate>=0.9.0.20240106",
+]
 
 [project.scripts]
 cm-service = "lsst.cmservice.cli.server:server"
 cm-client = "lsst.cmservice.cli.client:client_top"
-cm-worker = "lsst.cmservice.daemon:main"
 
 [project.urls]
 Homepage = "https://cm-service.lsst.io"
 Source = "https://github.com/lsst-dm/cm-service"
 
-[build-system]
-requires = ["setuptools>=61", "wheel", "setuptools_scm[toml]>=6.2"]
-build-backend = "setuptools.build_meta"
+[tool.uv]
 
-[tool.setuptools_scm]
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/lsst"]
+
+[tool.hatch.version]
+path = "src/lsst/cmservice/__init__.py"
+fallback-version = "0.0.0"
 
 [tool.coverage.run]
 parallel = true
@@ -149,26 +201,30 @@ add-ignore = [
     "D106",
 ]
 
-[tool.pylint]
-disable = [
-    "abstract-method",
-    "invalid-name",
-    "too-many-statements",
-    "missing-module-docstring",
-    "missing-class-docstring",
-    "missing-function-docstring",
-    "too-few-public-methods",
-    "too-many-lines",
-    "broad-exception-caught",
-    "use-dict-literal",
-    "too-many-arguments",
-    "too-many-positional-arguments",
-    "duplicate-code"
-]
-max-line-length = 110
-max-locals = 50
-max-branches = 25
-max-public-methods = 50
+[tool.semantic_release]
+version_variables = ["src/lsst/cmservice/__init__.py:__version__"]
+commit_author = {env = "GIT_COMMIT_AUTHOR"}
+tag_format = "{version}"
 
-[tool.pylint.'MESSAGES CONTROL']
-extension-pkg-whitelist = "pydantic"
+[tool.semantic_release.branches.main]
+match = "main"
+prerelease = false
+
+[tool.semantic_release.branches.ticket]
+match = "^tickets/DM-\\d+(.*)$"
+prerelease_token = "rc"
+prerelease = true
+
+[tool.semantic_release.branches.user]
+match = "^u/(.*)/(.*)$"
+prerelease_token = "alpha"
+prerelease = true
+
+[tool.semantic_release.changelog]
+
+[tool.semantic_release.publish]
+upload_to_vcs_release = false
+
+[tool.semantic_release.remote]
+name = "origin"
+type = "github"

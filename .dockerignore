@@ -1,0 +1,8 @@
+# Ignore Everything
+*
+
+# Except
+!pyproject.toml
+!uv.lock
+!src/lsst/
+!examples/
