@@ -82,6 +82,7 @@ async def get_job_scripts(session: async_scoped_session, job: Job) -> list[dict]
                 "fullname": script.fullname,
                 "superseded": script.superseded,
                 "status": str(script.status.name).upper(),
+                "log_url": script.log_url,
             },
         )
     return job_scripts

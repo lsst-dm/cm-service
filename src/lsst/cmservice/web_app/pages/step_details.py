@@ -53,6 +53,7 @@ async def get_step_scripts(session: async_scoped_session, step: Step) -> list[di
                 "fullname": script.fullname,
                 "superseded": script.superseded,
                 "status": str(script.status.name).upper(),
+                "log_url": script.log_url,
             },
         )
     return step_scripts
