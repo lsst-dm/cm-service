@@ -21,27 +21,27 @@ requires-python = ">=3.11"
 dynamic = ["version"]
 
 dependencies = [
-    "asyncpg>=0.30.0",
-    "click>=8.1.7",
-    "fastapi>=0.115.5",
-    "greenlet>=3.1.1",
-    "jinja2>=3.1.4",
+    "asyncpg==0.30.*",
+    "click==8.1.*",
+    "fastapi==0.115.*",
+    "greenlet==3.1.*",
+    "jinja2==3.1.*",
     "lsst-ctrl-bps>=28.2024.4700",
     "lsst-ctrl-bps-panda>=27.2024.4400",
     "lsst-daf-butler>=28.2024.4700",
     "lsst-pipe-base>=28.2024.4700",
-    "numpy>=2.1.3",
-    "pause>=0.3",
-    "psycopg2-binary>=2.9.10",
-    "pydantic>=2.10.0",
-    "pydantic-settings>=2.6.1",
-    "python-multipart>=0.0.17",
-    "starlette>=0.41.3",
-    "structlog>=24.4.0",
-    "tabulate>=0.9.0",
-    "sqlalchemy[asyncio]>=2.0.36",
-    "safir[db]>=7.0.0",
-    "uvicorn[standard]>=0.32.1",
+    "numpy==2.1.*",
+    "pause==0.3.*",
+    "psycopg2-binary==2.9.*",
+    "pydantic==2.10.*",
+    "pydantic-settings==2.6.*",
+    "python-multipart==0.0.*",
+    "starlette==0.41.*",
+    "structlog==24.4.*",
+    "tabulate==0.9.*",
+    "sqlalchemy[asyncio]==2.0.*",
+    "safir[db]==7.0.*",
+    "uvicorn[standard]==0.32.*",
 ]
 
 [dependency-groups]
@@ -74,11 +74,21 @@ cm-worker = "lsst.cmservice.daemon:main"
 Homepage = "https://cm-service.lsst.io"
 Source = "https://github.com/lsst-dm/cm-service"
 
-[build-system]
-requires = ["setuptools>=61", "wheel", "setuptools_scm[toml]>=6.2"]
-build-backend = "setuptools.build_meta"
+[tool.uv]
 
-[tool.setuptools_scm]
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/lsst"]
+
+[tool.hatch.version]
+source = "vcs"
+fallback-version = "0.0.0"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/lsst/cmservice/_version.py"
 
 [tool.coverage.run]
 parallel = true

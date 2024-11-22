@@ -46,3 +46,6 @@ test_cm.db
 
 # temporary secrets files (do not commit these to git!)
 .secrets/
+
+build/
+bruno/
