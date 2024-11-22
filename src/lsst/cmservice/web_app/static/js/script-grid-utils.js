@@ -54,6 +54,17 @@ class ResetButtonCellRenderer {
 
          document.querySelector("#rowIndex").innerText = params.node.rowIndex;
          document.querySelector("#scriptFullname").innerText = params.data.fullname;
+         const scriptLogElement = document.querySelector("#scriptLogUrl");
+         scriptLogElement.innerHTML = "";
+         if(params.data.log_url) {
+             let logUrlHref = document.createElement('a');
+             logUrlHref.setAttribute('class', 'text-teal-700 underline underline-offset-4 decoration-1 hover:text-gray-500');
+             logUrlHref.href = params.data.log_url;
+             logUrlHref.innerText = params.data.log_url;
+             scriptLogElement.appendChild(logUrlHref);
+         } else {
+             scriptLogElement.innerText = "-";
+         }
 
          let statusDropdown = document.querySelector("#targetStatus");
          statusDropdown.options.length = 0;
