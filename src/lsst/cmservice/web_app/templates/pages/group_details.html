@@ -94,10 +94,12 @@
             {field: "n_pruned", headerName: "Pruned", valueFormatter: formatWMSColumn},
         ]
     };
+
+    let scriptGridApi;
     const populateScriptsGrid = (scriptsJson) => {
         scriptsGridOptions.rowData = scriptsJson;
         const scriptsGridElement = document.getElementById("scriptsGrid");
-        agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
+        scriptGridApi = agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
     };
 
     // jobs
@@ -114,14 +116,12 @@
         agGrid.createGrid(wmsReportGridElement, wmsReportOptions);
     };
 
+    let groupScripts;
+    let groupJobs;
+    let wmsReport;
     const populateGrids = () => {
-        const groupScripts = {{scripts|tojson}};
         populateScriptsGrid(groupScripts);
-
-        const groupJobs = {{jobs|tojson}};
         populateJobsGrid(groupJobs);
-
-        const wmsReport = {{group.wms_report|tojson}};
         populateWMSReportGrid(wmsReport);
     };
 
@@ -163,6 +163,11 @@
 <div class="w-full" id="group_content"
      hx-get="{{ url_for('get_group', campaign_id=group.campaign_id, step_id=group.step_id, group_id=group.id) }}"
      hx-trigger="every 20s" hx-select="#group_content" hx-swap="outerHTML">
+    <script>
+        groupScripts = {{scripts|sort(attribute="id")|tojson}};
+        groupJobs = {{jobs|sort(attribute="id")|tojson}};
+        wmsReport = {{group.wms_report|tojson}};
+    </script>
     <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
         <div class="flex items-center">
             <span class="text-2xl font-bold">{{group.name}}</span>

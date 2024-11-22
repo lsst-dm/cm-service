@@ -41,10 +41,11 @@
             },
         ]
     };
+    let scriptGridApi;
     const populateScriptsGrid = (scriptsJson) => {
         scriptsGridOptions.rowData = scriptsJson;
         const scriptsGridElement = document.getElementById("scriptsGrid");
-        agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
+        scriptGridApi = agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
     }
 
     // products
@@ -96,14 +97,12 @@
         agGrid.createGrid(wmsReportGridElement, wmsReportOptions);
     };
 
+    let jobScripts;
+    let jobProducts;
+    let wmsReport;
     const populateGrids = () => {
-        const jobScripts = {{scripts|tojson}};
         populateScriptsGrid(jobScripts);
-
-        const jobProducts = {{job.products|tojson}};
         populateProductsGrid(jobProducts);
-
-        const wmsReport = {{job.wms_report|tojson}};
         populateWMSReportGrid(wmsReport);
     };
 
@@ -157,6 +156,12 @@
      hx-trigger="every 20s"
      hx-select="#job_content"
      hx-swap="outerHTML">
+    <script>
+        // moved here to make sure data is refreshed with every htmx request
+        jobScripts = {{scripts|sort(attribute="id")|tojson}};
+        jobProducts = {{job.products|tojson}};
+        wmsReport = {{job.wms_report|tojson}};
+    </script>
     <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
         <div class="flex items-center">
             <span class="text-2xl font-bold">{{job.name}}</span>
