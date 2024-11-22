@@ -99,8 +99,8 @@
           extra_qgraph_options: >
             -c parameters:sasquatch_dataset_identifier=HSC/RC2
             -c parameters:sasquatch_timestamp_version=reference_package_timestamp
-          hips_pipeline_yaml_path: 'stack_files/highres_hips_rc2.yaml'
-          hips_pipeline_config_path: 'stack_files/gen_hips_both_rc2.yaml'
+          hips_pipeline_yaml_path: '/stack_files/highres_hips_rc2.yaml'
+          hips_pipeline_config_path: '/stack_files/gen_hips_both_rc2.yaml'
 - Specification:   # This is just a look up table.
       name: HSC_DRP-RC2_panda
       spec_aliases:

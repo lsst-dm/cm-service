@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import textwrap
 from typing import Any
 
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -574,28 +575,35 @@ class HipsMapsScriptHandler(ScriptHandler):
         gen_hips_both_yaml = os.path.abspath(
             os.path.expandvars("${CM_CONFIGS}") + data_dict["hips_pipeline_config_path"]
         )
-        # First we get the output of the generated pixels and then format it so
-        # the output of the first command can be used as input to the next.
-        command = f"""output=$(build-high-resolution-hips-qg segment -b {butler_repo} -p {hips_pipeline_yaml}
-        -i {resolved_cols["campaign_output"]} -o 1);
-        pixels=$(echo '$output' | grep -Eo '[0-9]+' | tr '\n' ' ');
-        """
-        # Take pixels from previous commands and use to build the hips maps
-        # graph.
-        command += f"""build-high-resolution-hips-qg build -b {butler_repo} -p {hips_pipeline_yaml}
-        -i {resolved_cols["campaign_output"]} --output {resolved_cols["campaign_hips_maps"]}
+
+        command = f"""# First we get the output of the generated pixels and then format it so the output of
+        # the first command can be used as input to the next.
+        output=$(build-high-resolution-hips-qg segment -b {butler_repo} \
+        -p {hips_pipeline_yaml} -i {resolved_cols["campaign_output"]} -o 1);
+        # Then, we take pixels from previous commands and use to build the hips maps graph.
+        pixels=$(echo '$output' | grep -Eo '[0-9]+' | tr '\\n' ' ');
+        build-high-resolution-hips-qg build -b {butler_repo} -p {hips_pipeline_yaml} \
+        -i {resolved_cols["campaign_output"]} --output {resolved_cols["campaign_hips_maps"]} \
         --pixels $pixels -q {hips_maps_graph_url};
-        """
         # Now we pipetask run the graph
-        command += f"""pipetask --long-log --log-level=INFO run -j 16 -b {butler_repo}
+        pipetask --long-log --log-level=INFO run -j 16 -b {butler_repo} \
         --output {resolved_cols["campaign_hips_maps"]} --register-dataset-types -g {hips_maps_graph_url};
-        """
         # Generate HIPS 9-level .png images
-        command += f"""pipetask --long-log --log-level=INFO run -j 16 -b {butler_repo}
-        -i {resolved_cols["campaign_output"]} --output {resolved_cols["campaign_hips_maps"]}
-        -p {gen_hips_both_yaml} -c 'generateHips:hips_base_uri=
-        /sdf/group/rubin{butler_repo}/{resolved_cols["campaign_hips_maps"]}' --register-dataset-types
+        pipetask --long-log --log-level=INFO run -j 16 -b {butler_repo} \
+        -i {resolved_cols["campaign_output"]} --output {resolved_cols["campaign_hips_maps"]} \
+        -p {gen_hips_both_yaml} -c 'generateHips:hips_base_uri= \
+        /sdf/group/rubin/{butler_repo.lstrip('/')}/{resolved_cols["campaign_hips_maps"]}' \
+        --register-dataset-types
         """
+        # Note: a '/' is inserted and removed in case butler repo is something
+        # like "embargo" and does not begin with a '/'
+
+        # Remove indentation from multiline string
+        command = textwrap.dedent(command)
+        # Remove additional whitespace
+        command = command.replace(9 * " ", " ")
+        # Strip leading/trailing spaces just in case
+        command = "\n".join([line.strip() for line in command.splitlines()])
 
         write_bash_script(script_url, command, prepend=prepend)
 

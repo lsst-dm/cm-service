@@ -5,15 +5,15 @@ import os
 dry_run = False
 
 prod_dict = {
-    # "trivial": "trivial",
-    # "HSC_DRP-Prod": "HSC_DRP-Prod",
+    "trivial": "trivial",
+    "HSC_DRP-Prod": "HSC_DRP-Prod",
     "HSC_DRP-RC2": "HSC_DRP-RC2",
-    # "HSC_DRP-RC2_subset": "HSC_DRP-RC2_subset",
-    # "hsc_micro": "hsc_micro",
-    # "LATISS_DRP": "LATISS_DRP",
-    # "LSSTCam-imSim_DRP-test-med-1": "LSSTCam-imSim_DRP-test-med-1",
-    # "LSSTComCamSim_DRP": "LSSTComCamSim_DRP",
-    # "LSSTComCamSim_nightly-validation": "LSSTComCamSim_nightly-validation",
+    "HSC_DRP-RC2_subset": "HSC_DRP-RC2_subset",
+    "hsc_micro": "hsc_micro",
+    "LATISS_DRP": "LATISS_DRP",
+    "LSSTCam-imSim_DRP-test-med-1": "LSSTCam-imSim_DRP-test-med-1",
+    "LSSTComCamSim_DRP": "LSSTComCamSim_DRP",
+    "LSSTComCamSim_nightly-validation": "LSSTComCamSim_nightly-validation",
 }
 
 
@@ -40,5 +40,6 @@ for wms in ["panda", "htcondor"]:
         com2 = f"cm-client action process --fullname {key}/{test_name}_{wms} --fake_status accepted"
         print(com2)
         if not dry_run:
-            os.system(com2)
-            os.system("sleep 30")
+            pass
+            # os.system(com2)
+            # os.system("sleep 30")
