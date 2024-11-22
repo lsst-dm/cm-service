@@ -109,6 +109,7 @@ async def get_group_scripts(session: async_scoped_session, group: Group) -> list
                 "fullname": script.fullname,
                 "superseded": script.superseded,
                 "status": str(script.status.name).upper(),
+                "log_url": script.log_url,
             },
         )
     return step_scripts
