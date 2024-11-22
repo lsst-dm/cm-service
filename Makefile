@@ -1,7 +1,5 @@
 PY_VENV := .venv/
 UV_LOCKFILE := uv.lock
-REQUIREMENTS_MAIN := requirements/main.txt
-REQUIREMENTS_DEV := requirements/dev.txt
 
 #------------------------------------------------------------------------------
 # Default help target (thanks ChatGPT)
@@ -22,56 +20,19 @@ $(UV_LOCKFILE):
 $(PY_VENV): $(UV_LOCKFILE)
 	uv sync
 
-.PHONY: $(REQUIREMENTS_MAIN)
-$(REQUIREMENTS_MAIN):
-	uv export --no-group dev --frozen > requirements/main.txt
-
-.PHONY: $(REQUIREMENTS_DEV)
-$(REQUIREMENTS_DEV):
-	uv export --only-group dev --frozen > requirements/dev.txt
-
-.PHONY: bootstrap
-bootstrap: $(PY_VENV)
-	uv run pre-commit install
-
-.PHONY: uv-update-pip-requirements
-uv-update-pip-requirements: $(REQUIREMENTS_MAIN) $(REQUIREMENTS_DEV)
-
-.PHONY: uv-update-deps
-uv-update-deps:
-	uv lock --upgrade --build-isolation
-
-.PHONY: uv-update
-uv-update: uv-update-deps uv-update-pip-requirements bootstrap
-
 .PHONY: clean
 clean:
 	rm -rf $(PY_VENV)
 
-#------------------------------------------------------------------------------
-# The usual dependency/environment management targets for Safir...
-#------------------------------------------------------------------------------
-
 .PHONY: update-deps
 update-deps:
-	pip install --upgrade pip-tools pip setuptools
-	pip-compile --upgrade --build-isolation --generate-hashes --output-file requirements/main.txt requirements/main.in
-	pip-compile --upgrade --build-isolation --generate-hashes --output-file requirements/dev.txt requirements/dev.in
-
-# Useful for testing against a Git version of Safir.
-.PHONY: update-deps-no-hashes
-update-deps-no-hashes:
-	pip install --upgrade pip-tools pip setuptools
-	pip-compile --upgrade --build-isolation --allow-unsafe --output-file requirements/main.txt requirements/main.in
-	pip-compile --upgrade --build-isolation --allow-unsafe --output-file requirements/dev.txt requirements/dev.in
+	uv lock --upgrade --build-isolation
+	uv sync
 
 .PHONY: init
-init:
-	pip install --editable .
-	pip install --upgrade -r requirements/main.txt -r requirements/dev.txt
-	playwright install
-	pip install --upgrade pre-commit
-	pre-commit install
+init: $(PY_VENV)
+	uv run playwright install
+	uv run pre-commit install
 
 .PHONY: update
 update: update-deps init
@@ -133,8 +94,9 @@ run-worker: run-compose
 	cm-service init
 	cm-worker
 
+
 #------------------------------------------------------------------------------
-# Targets for develpers to debug running against local sqlite.  Can be used on
+# Targets for developers to debug running against local sqlite.  Can be used on
 # local machines or USDF dev nodes. FIXME: This should probably be the norm for
 # development/debug, but the pytest suite does not yet run correctly against
 # sqlite...
