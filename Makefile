@@ -18,7 +18,7 @@ $(UV_LOCKFILE):
 	uv lock --build-isolation
 
 $(PY_VENV): $(UV_LOCKFILE)
-	uv sync
+	uv sync --frozen
 
 .PHONY: clean
 clean:
@@ -27,7 +27,6 @@ clean:
 .PHONY: update-deps
 update-deps:
 	uv lock --upgrade --build-isolation
-	uv sync
 
 .PHONY: init
 init: $(PY_VENV)
