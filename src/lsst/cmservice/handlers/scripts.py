@@ -569,10 +569,10 @@ class HipsMapsScriptHandler(ScriptHandler):
             prepend += f"\n{custom_lsst_setup}"
 
         hips_pipeline_yaml = os.path.abspath(
-            os.path.expandvars("${CM_CONFIGS}") + "/stack_files/highres_hips.yaml"
+            os.path.expandvars("${CM_CONFIGS}") + data_dict["hips_pipeline_yaml_path"]
         )
         gen_hips_both_yaml = os.path.abspath(
-            os.path.expandvars("${CM_CONFIGS}") + "/stack_files/gen_hips_both.yaml"
+            os.path.expandvars("${CM_CONFIGS}") + data_dict["hips_pipeline_config_path"]
         )
         # First we get the output of the generated pixels and then format it so
         # the output of the first command can be used as input to the next.
@@ -602,7 +602,12 @@ class HipsMapsScriptHandler(ScriptHandler):
         return StatusEnum.prepared
 
     async def _purge_products(
-        self, session: async_scoped_session, script: Script, to_status: StatusEnum
+        self,
+        session: async_scoped_session,
+        script: Script,
+        to_status: StatusEnum,
+        *,
+        fake_reset: bool = False,
     ) -> None:
         """When the script is reset or the campaign is deleted, cleanup
         hips maps products."""
