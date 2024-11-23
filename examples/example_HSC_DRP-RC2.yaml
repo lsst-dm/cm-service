@@ -6,7 +6,7 @@
       name: HSC_DRP-RC2_campaign
       includes: ["base_campaign"]
       collections:
-          campaign_source: HSC/raw/RC2
+          campaign_source: "HSC/runs/RC2/w_2024_38/DM-46429,HSC/raw/RC2"
           campaign_ancillary_inputs:
               - HSC/calib
               - HSC/masks
@@ -15,22 +15,8 @@
               - skymaps
       steps:
           - Step:
-                name: step1
-                spec_block: HSC_DRP-RC2_step1
-                child_config:
-                    split_method: split_by_query
-                    split_min_groups: 3
-
-          - Step:
-                name: step2a
-                spec_block: HSC_DRP-RC2_step2a
-                prerequisites: ['step1']
-                child_config:
-                    split_method: no_split
-          - Step:
-                name: step2b
-                spec_block: HSC_DRP-RC2_step2b
-                prerequisites: ['step2a']
+                name: injected_step3
+                spec_block: HSC_DRP-RC2_injected_step3
                 child_config:
                     split_method: split_by_vals
                     split_vals:
@@ -38,61 +24,17 @@
                         - 9697
                         - 9813
           - Step:
-                name: step2cde
-                spec_block: HSC_DRP-RC2_step2cde
-                prerequisites: ['step2b']
-                child_config:
-                    split_method: no_split
-          - Step:
-                name: step3
-                spec_block: HSC_DRP-RC2_step3
-                prerequisites: ['step2cde']
+                name: injected_coadd_analysis
+                spec_block: HSC_DRP-RC2_injected_coadd_analysis
+                prerequisites: ['injected_step3']
                 child_config:
                     split_method: split_by_vals
                     split_vals:
                         - 9615
                         - 9697
                         - 9813
-          - Step:
-                name: step4
-                spec_block: HSC_DRP-RC2_step4
-                prerequisites: ['step3']
-                child_config:
-                    split_method: split_by_query
-                    split_min_groups: 3
-                data:
-                    extra_qgraph_options: >
-                        -c parameters:sasquatch_dataset_identifier=HSC/RC2
-                        -c parameters:sasquatch_timestamp_version=reference_package_timestamp
-                        --dataset-query-constraint finalVisitSummary
-
-          - Step:
-                name: step5
-                spec_block: HSC_DRP-RC2_step5
-                prerequisites: ['step4']
-                child_config:
-                    split_method: split_by_vals
-                    split_vals:
-                        - 9615
-                        - 9697
-                        - 9813
-          - Step:
-                name: step6
-                spec_block: HSC_DRP-RC2_step6
-                prerequisites: ['step4']
-                child_config:
-                    split_method: split_by_query
-                    split_min_groups: 3
-                    split_dataset: calexp
-                    split_field: visit
-          - Step:
-                name: step7
-                spec_block: HSC_DRP-RC2_step7
-                prerequisites: ['step3']
-                child_config:
-                    split_method: no_split
       data:
-          butler_repo: '/repo/main+sasquatch_dev'
+          butler_repo: '/repo/main'
           prod_area: 'output/archive'  # Change this to /sdf/group/shared/campaigns
           data_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1' and band in ('g', 'r', 'i', 'z', 'y')"
           bps_wms_clustering_file: "${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml"

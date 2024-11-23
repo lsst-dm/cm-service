@@ -68,3 +68,8 @@ class QueueUpdate(QueueBase):
     time_updated: datetime | None = None
     # When processing of this element completed
     time_finished: datetime | None = None
+
+    # Id of node to add
+    node_id: int
+    # Which type of node to add
+    node_level: LevelEnum
