@@ -502,6 +502,9 @@ class ResourceUsageScriptHandler(ScriptHandler):
             custom_lsst_setup = data_dict["custom_lsst_setup"]
             prepend += f"\n{custom_lsst_setup}"
 
+        # Strip leading/trailing spaces just in case
+        prepend = "\n".join([line.strip() for line in prepend.splitlines()])
+
         command = f"build-gather-resource-usage-qg {butler_repo} {usage_graph_url} "
         command += f"{resolved_cols['campaign_output']} --output {resolved_cols['campaign_resource_usage']};"
         command += f"pipetask run -b {butler_repo} -g {usage_graph_url} "
@@ -569,6 +572,9 @@ class HipsMapsScriptHandler(ScriptHandler):
             custom_lsst_setup = data_dict["custom_lsst_setup"]
             prepend += f"\n{custom_lsst_setup}"
 
+        # Strip leading/trailing spaces just in case
+        prepend = "\n".join([line.strip() for line in prepend.splitlines()])
+
         hips_pipeline_yaml = os.path.abspath(
             os.path.expandvars("${CM_CONFIGS}") + data_dict["hips_pipeline_yaml_path"]
         )
@@ -591,17 +597,16 @@ class HipsMapsScriptHandler(ScriptHandler):
         # Generate HIPS 9-level .png images
         pipetask --long-log --log-level=INFO run -j 16 -b {butler_repo} \
         -i {resolved_cols["campaign_output"]} --output {resolved_cols["campaign_hips_maps"]} \
-        -p {gen_hips_both_yaml} -c 'generateHips:hips_base_uri= \
-        /sdf/group/rubin/{butler_repo.lstrip('/')}/{resolved_cols["campaign_hips_maps"]}' \
+        -p {gen_hips_both_yaml} -c 'generateHips:hips_base_uri=\
+        s3://rubin-hips/{resolved_cols["campaign_hips_maps"]}' \
+        -c 'generateColorHips:hips_base_uri=s3://rubin-hips/{resolved_cols["campaign_hips_maps"]}' \
         --register-dataset-types
         """
-        # Note: a '/' is inserted and removed in case butler repo is something
-        # like "embargo" and does not begin with a '/'
 
         # Remove indentation from multiline string
         command = textwrap.dedent(command)
         # Remove additional whitespace
-        command = command.replace(9 * " ", " ")
+        command = command.replace(8 * " ", "")
         # Strip leading/trailing spaces just in case
         command = "\n".join([line.strip() for line in command.splitlines()])
 

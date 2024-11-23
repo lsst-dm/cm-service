@@ -484,6 +484,9 @@ class ManifestReportScriptHandler(ScriptHandler):
             custom_lsst_setup = data_dict["custom_lsst_setup"]
             prepend += f"\n{custom_lsst_setup}"
 
+        # Strip leading/trailing spaces just in case
+        prepend = "\n".join([line.strip() for line in prepend.splitlines()])
+
         command = f"pipetask report --full-output-filename {report_url} {butler_repo} {graph_url}"
         write_bash_script(script_url, command, prepend=prepend)
 
