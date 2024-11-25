@@ -114,6 +114,7 @@ async def test_handlers_campaign_level_db(
             campaign_source="campaign_source",
             campaign_output="campaign_output",
             campaign_resource_usage="campaign_resource_usage",
+            campaign_hips_maps="campaign_hips_maps",
             inputs="inputs",
             input="input",
             output="{campaign_output}",
@@ -122,6 +123,9 @@ async def test_handlers_campaign_level_db(
         data = dict(
             lsst_distrib_dir="lsst_distrib_dir",
             resource_usage_script_template="stack_script_template",
+            hips_maps_script_template="stack_script_template",
+            hips_pipeline_yaml_path="/stack_files/highres_hips_rc2.yaml",
+            hips_pipeline_config_path="/stack_files/gen_hips_both_rc2.yaml",
         )
 
         await check_run_script(session, campaign, "run", "run_steps", collections=collections)
@@ -156,6 +160,10 @@ async def test_handlers_campaign_level_db(
 
         await check_script(
             session, campaign, "resource_usage", "resource_usage_script", collections=collections, data=data
+        )
+
+        await check_script(
+            session, campaign, "hips_maps", "hips_maps_script", collections=collections, data=data
         )
 
         await cleanup(session, check_cascade=True)

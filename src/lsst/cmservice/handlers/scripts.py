@@ -548,7 +548,6 @@ class HipsMapsScriptHandler(ScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        # breakpoint()
         specification = await script.get_specification(session)
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
@@ -568,7 +567,7 @@ class HipsMapsScriptHandler(ScriptHandler):
             lsst_version,
         )
         prepend = prepend.replace("{lsst_distrib_dir}", lsst_distrib_dir)
-        if "custom_lsst_setup" in data_dict:
+        if "custom_lsst_setup" in data_dict:  # pragma: no cover
             custom_lsst_setup = data_dict["custom_lsst_setup"]
             prepend += f"\n{custom_lsst_setup}"
 
@@ -581,6 +580,13 @@ class HipsMapsScriptHandler(ScriptHandler):
         gen_hips_both_yaml = os.path.abspath(
             os.path.expandvars("${CM_CONFIGS}") + data_dict["hips_pipeline_config_path"]
         )
+
+        # Note: The pipetask command below features a `-j 16` which requests
+        # 16 nodes to run. This will guarantee that the HIPS maps generate at
+        # a reasonable rate. However, when allocating nodes for HTCondor,
+        # the user should allocate at least 16 so that this can execute
+        # properly. Future effort should be devoted to getting a number like
+        # this out of a campaign data dict and managing it in cm-service.
 
         command = f"""# First we get the output of the generated pixels and then format it so the output of
         # the first command can be used as input to the next.
@@ -627,15 +633,15 @@ class HipsMapsScriptHandler(ScriptHandler):
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
         parent = await script.get_parent(session)
-        if parent.level != LevelEnum.campaign:
+        if parent.level != LevelEnum.campaign:  # pragma: no cover
             raise CMBadExecutionMethodError(f"Script parent is a {parent.level}, not a LevelEnum.campaign")
         try:
-            resource_coll = resolved_cols["campaign_hips_maps"]
+            hips_maps_coll = resolved_cols["campaign_hips_maps"]
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:
+        except KeyError as msg:  # pragma: no cover
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         if to_status.value < StatusEnum.running.value:
-            remove_run_collections(butler_repo, resource_coll)
+            remove_run_collections(butler_repo, hips_maps_coll, fake_reset=fake_reset)
         return await super()._purge_products(session, script, to_status)
 
 
