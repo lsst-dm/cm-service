@@ -133,9 +133,7 @@ class ResetButtonCellRenderer {
              });
          } else if (currentStatus === "REVIEWABLE") {
              accept_script_endpoint = `/cm-service/v1/script/action/${params.data.id}/accept`;
-             console.log((accept_script_endpoint));
              reject_script_endpoint = `/cm-service/v1/script/action/${params.data.id}/reject`;
-             console.log((reject_script_endpoint));
              Object.keys(resetFromReviewable).forEach(state => {
                  let option = document.createElement('option');
                  option.setAttribute('value', resetFromReviewable[state]);
