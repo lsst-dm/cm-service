@@ -110,3 +110,7 @@
 - SpecBlock:
       name: resource_usage_script
       handler: lsst.cmservice.handlers.scripts.ResourceUsageScriptHandler
+# Run a script to generate HIPS maps
+- SpecBlock:
+      name: hips_maps_script
+      handler: lsst.cmservice.handlers.scripts.HipsMapsScriptHandler

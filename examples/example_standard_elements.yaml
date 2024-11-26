@@ -195,3 +195,130 @@
           resource_usage_script_template: stack_script_template
           lsst_version: MUST_OVERRIDE
           lsst_distrib_dir: /cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib
+# Campaign template for base campaign+hips maps
+- SpecBlock:
+      name: base_campaign+hips
+      handler: lsst.cmservice.handlers.element_handler.CampaignHandler
+      collections:
+          out: MUST_OVERRIDE
+          campaign_source: MUST_OVERRIDE
+          campaign_tagged_input: "{out}/tagged_input"
+          campaign_input: "{out}/input"
+          campaign_output: "{out}/output"
+          campaign_public_output: "{out}"
+          campaign_ancillary: "{out}/ancillary"
+          campaign_validation: "{out}/validate"
+          campaign_resource_usage: "{out}/resource_usage"
+          campaign_hips_maps: "{out}/hips_maps"
+      scripts:
+          - Script:
+                name: tag_inputs
+                spec_block: tag_inputs_script
+                collections:
+                    input: "{campaign_source}"
+                    output: "{campaign_tagged_input}"
+          - Script:
+                name: ancillary
+                spec_block: chain_create_script
+                collections:
+                    inputs: "{campaign_ancillary_inputs}"
+                    output: "{campaign_ancillary}"
+          - Script:
+                name: chain_input
+                spec_block: chain_create_script
+                prerequisites: ['tag_inputs', 'ancillary']
+                collections:
+                    inputs: ["{campaign_tagged_input}", "{campaign_ancillary}"]
+                    output: "{campaign_input}"
+          - Script:
+                name: run
+                spec_block: run_steps
+                prerequisites: ['chain_input']
+          - Script:
+                name: collect_steps
+                prerequisites: ['run']
+                spec_block: chain_collect_steps_script
+                collections:
+                    inputs: []
+                    output: "{campaign_output}"
+          - Script:
+                name: hips_maps
+                prerequisites: ["collect_steps"]
+                spec_block: hips_maps_script
+                collections:
+                    inputs: "{campaign_output}"
+                    output: "{campaign_hips_maps}"
+          - Script:
+                name: resource_usage
+                prerequisites: ["collect_steps"]
+                spec_block: resource_usage_script
+                collections:
+                    inputs: "{campaign_output}"
+                    output: "{campaign_resource_usage}"
+          - Script:
+                name: make_campaign_public_output
+                prerequisites: ['resource_usage', 'hips_maps']
+                spec_block: chain_create_script
+                collections:
+                    inputs: ["{campaign_output}", "{campaign_input}", "{campaign_resource_usage}", "{campaign_hips_maps}"]
+                    output: "{campaign_public_output}"
+      data:
+          bps_core_script_template: bps_core_script_template
+          bps_core_yaml_template: bps_core_yaml_template
+          manifest_script_template: stack_script_template
+          resource_usage_script_template: stack_script_template
+          hips_maps_script_template: stack_script_template
+          lsst_version: MUST_OVERRIDE
+          lsst_distrib_dir: /cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib
+# Campaign Template for fixed inputs which also generates HIPS maps
+# This assumes that the input data is already set, it will run the steps and then collect the outputs
+# Note that the steps are not defined here.
+- SpecBlock:
+      name: base_campaign_fixed_input+hips
+      handler: lsst.cmservice.handlers.element_handler.CampaignHandler
+      collections:
+          out: MUST_OVERRIDE
+          campaign_input: MUST_OVERRIDE
+          campaign_output: "{out}/output"
+          campaign_public_output: "{out}"
+          campaign_validation: "{out}/validate"
+      scripts:
+          - Script:
+                name: run
+                spec_block: run_steps
+          - Script:
+                name: collect_steps
+                prerequisites: ['run']
+                spec_block: chain_collect_steps_script
+                collections:
+                    inputs: []
+                    output: "{campaign_output}"
+          - Script:
+                name: hips_maps
+                prerequisites: ["collect_steps"]
+                spec_block: hips_maps_script
+                collections:
+                    inputs: "{campaign_output}"
+                    output: "{campaign_hips_maps}"
+          - Script:
+                name: resource_usage
+                prerequisites: ["collect_steps"]
+                spec_block: resource_usage_script
+                collections:
+                    inputs: "{campaign_output}"
+                    output: "{campaign_resource_usage}"
+          - Script:
+                name: make_campaign_public_output
+                prerequisites: ['resource_usage', 'hips_maps']
+                spec_block: chain_create_script
+                collections:
+                    inputs: ["{campaign_output}", "{campaign_input}", "{campaign_resource_usage}", "{campaign_hips_maps}"]
+                    output: "{campaign_public_output}"
+      data:
+          bps_core_script_template: bps_core_script_template
+          bps_core_yaml_template: bps_core_yaml_template
+          manifest_script_template: stack_script_template
+          resource_usage_script_template: stack_script_template
+          hips_maps_script_template: stack_script_template
+          lsst_version: MUST_OVERRIDE
+          lsst_distrib_dir: /cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib

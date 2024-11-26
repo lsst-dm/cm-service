@@ -2,9 +2,10 @@
       - "${CM_CONFIGS}/example_standard_scripts.yaml"
       - "${CM_CONFIGS}/example_standard_elements.yaml"
       - "${CM_CONFIGS}/example_HSC_DRP-RC2_steps.yaml"
+# SpecBlock for the HSC_DRP-RC2 campaign
 - SpecBlock:
       name: HSC_DRP-RC2_campaign
-      includes: ["base_campaign"]
+      includes: ["base_campaign+hips"]
       collections:
           campaign_source: HSC/raw/RC2
           campaign_ancillary_inputs:
@@ -20,7 +21,6 @@
                 child_config:
                     split_method: split_by_query
                     split_min_groups: 3
-
           - Step:
                 name: step2a
                 spec_block: HSC_DRP-RC2_step2a
@@ -65,7 +65,6 @@
                         -c parameters:sasquatch_dataset_identifier=HSC/RC2
                         -c parameters:sasquatch_timestamp_version=reference_package_timestamp
                         --dataset-query-constraint finalVisitSummary
-
           - Step:
                 name: step5
                 spec_block: HSC_DRP-RC2_step5
@@ -100,6 +99,8 @@
           extra_qgraph_options: >
             -c parameters:sasquatch_dataset_identifier=HSC/RC2
             -c parameters:sasquatch_timestamp_version=reference_package_timestamp
+          hips_pipeline_yaml_path: '/stack_files/highres_hips_rc2.yaml'
+          hips_pipeline_config_path: '/stack_files/gen_hips_both_rc2.yaml'
 - Specification:   # This is just a look up table.
       name: HSC_DRP-RC2_panda
       spec_aliases:
