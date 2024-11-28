@@ -164,8 +164,8 @@
      hx-get="{{ url_for('get_group', campaign_id=group.campaign_id, step_id=group.step_id, group_id=group.id) }}"
      hx-trigger="every 20s" hx-select="#group_content" hx-swap="outerHTML">
     <script>
-        groupScripts = {{scripts|tojson}};
-        groupJobs = {{jobs|tojson}};
+        groupScripts = {{scripts|sort(attribute="id")|tojson}};
+        groupJobs = {{jobs|sort(attribute="id")|tojson}};
         wmsReport = {{group.wms_report|tojson}};
     </script>
     <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">

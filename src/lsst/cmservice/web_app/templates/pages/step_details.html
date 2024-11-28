@@ -153,8 +153,8 @@
      hx-trigger="every 20s"
      hx-select="#step_content" hx-swap="outerHTML">
     <script>
-        stepScripts = {{scripts|tojson}};
-        stepGroups = {{groups|tojson}};
+        stepScripts = {{scripts|sort(attribute="id")|tojson}};
+        stepGroups = {{groups|sort(attribute="id")|tojson}};
     </script>
     <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
         <div class="htmx-indicator">Updating...</div>

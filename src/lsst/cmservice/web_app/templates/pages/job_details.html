@@ -158,7 +158,7 @@
      hx-swap="outerHTML">
     <script>
         // moved here to make sure data is refreshed with every htmx request
-        jobScripts = {{scripts|tojson}};
+        jobScripts = {{scripts|sort(attribute="id")|tojson}};
         jobProducts = {{job.products|tojson}};
         wmsReport = {{job.wms_report|tojson}};
     </script>
