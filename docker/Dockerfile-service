@@ -16,21 +16,29 @@ FROM base-image AS build-image
 # Configure UV
 ENV UV_PYTHON_PREFERENCE=system
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
+ENV UV_FROZEN=1
+ENV UV_LINK_MODE=copy
 
 # Install frontend
 WORKDIR /workdir
 COPY . .
 RUN ./docker/scripts/install-fe.sh
 
-RUN <<ENDRUN
+RUN --mount=type=cache,target=/root/.cache/uv <<ENDRUN
     set -e
-    $HOME/.local/bin/uv sync --no-group dev --no-editable
+    $HOME/.local/bin/uv sync --no-group dev --no-install-project --no-editable
 ENDRUN
 
 #==============================================================================
 # RUNTIME IMAGE
 
 FROM base-image AS runtime-image
+
+# Expose the frontend port
+EXPOSE 8080
+
+# Make sure frontend output won't go into the layer store
+VOLUME /output
 
 # Create and switch to lsstsvc1 user
 COPY docker/scripts/create-lsstsvc1-user.sh /
@@ -41,16 +49,20 @@ USER lsstsvc1
 COPY --from=build-image /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Copy the frontend configs
-COPY examples /examples
-ENV CM_CONFIGS=/examples
+WORKDIR /opt/app
 
-# Make sure frontend output won't go into the layer store
-VOLUME /output
-
-# Expose the frontend port
-EXPOSE 8080
+# Copy the application and examples
+ENV CM_CONFIGS=/opt/app/examples
+COPY examples ./examples
+COPY src/lsst ./lsst
 
 # Run the frontend
-COPY docker/scripts/start-frontend.sh /
-CMD ["/start-frontend.sh"]
+COPY --chmod=755 <<EOF ./docker-entrypoint.sh
+#!/bin/bash
+set -euo pipefail
+
+python -Wignore -m lsst.cmservice.cli.commands init
+uvicorn lsst.cmservice.main:app --host 0.0.0.0 --port 8080
+EOF
+
+CMD ["/opt/app/docker-entrypoint.sh"]
