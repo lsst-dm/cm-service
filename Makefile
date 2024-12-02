@@ -174,3 +174,13 @@ run-worker-usdf-dev: export CM_DATABASE_PASSWORD=$(shell kubectl --cluster=usdf-
 run-worker-usdf-dev: export CM_DATABASE_ECHO=true
 run-worker-usdf-dev:
 	cm-worker
+
+get-env-%: CM_DATABASE_HOST=$(shell kubectl --cluster=$* -n cm-service get svc/cm-pg-lb -o jsonpath='{..ingress[0].ip}')
+get-env-%: export CM_DATABASE_URL=postgresql://cm-service@${CM_DATABASE_HOST}:5432/cm-service
+get-env-%: export CM_DATABASE_PASSWORD=$(shell kubectl --cluster=$* -n cm-service get secret/cm-pg-app -o jsonpath='{.data.password}' | base64 --decode)
+get-env-%: export CM_DATABASE_ECHO=true
+get-env-%:
+	rm -f .env.$*
+	echo CM_DATABASE_URL=$${CM_DATABASE_URL} > .env.$*
+	echo CM_DATABASE_ECHO=$${CM_DATABASE_ECHO} >> .env.$*
+	echo CM_DATABASE_PASSWORD=$${CM_DATABASE_PASSWORD} >> .env.$*
