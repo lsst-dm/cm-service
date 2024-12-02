@@ -1,11 +1,12 @@
 """CLI to manage PipetaskError table"""
 
+import click
+
 from .. import db
 from . import options, wrappers
-from .commands import client_top
 
 
-@client_top.group(name="pipetask_error")
+@click.group(name="pipetask_error")
 def pipetask_error_group() -> None:
     """Manage PipetaskError table"""
 

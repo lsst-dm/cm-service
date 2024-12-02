@@ -1,12 +1,13 @@
 """CLI to manage Job table"""
 
+import click
+
 from .. import db
 from ..client.client import CMClient
 from . import options, wrappers
-from .commands import client_top
 
 
-@client_top.group(name="job")
+@click.group(name="job")
 def job_group() -> None:
     """Manage Job table"""
 

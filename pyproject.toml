@@ -23,8 +23,8 @@ dependencies = []
 dynamic = ["version"]
 
 [project.scripts]
-cm-service = "lsst.cmservice.cli.commands:server"
-cm-client = "lsst.cmservice.cli.commands:client_top"
+cm-service = "lsst.cmservice.cli.server:server"
+cm-client = "lsst.cmservice.cli.client:client_top"
 cm-worker = "lsst.cmservice.daemon:main"
 
 [project.urls]
