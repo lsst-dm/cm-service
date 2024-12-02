@@ -1,19 +1,34 @@
-# Start with a light linux distro with python 3.11
-FROM python:3.11.9-slim-bookworm AS base-image
+# syntax=docker/dockerfile:1
+
+#==============================================================================
+# BASE IMAGE
+FROM python:3.11-slim-bookworm AS base-image
 
 # Install base packages
 COPY docker/scripts/install-fe-base.sh /
 RUN /install-fe-base.sh && rm /install-fe-base.sh
 
 #==============================================================================
+# BUILDER IMAGE
 
 FROM base-image AS build-image
 
+# Configure UV
+ENV UV_PYTHON_PREFERENCE=system
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv
+
 # Install frontend
-COPY . /workdir
-RUN /workdir/docker/scripts/install-fe.sh
+WORKDIR /workdir
+COPY . .
+RUN ./docker/scripts/install-fe.sh
+
+RUN <<ENDRUN
+    set -e
+    $HOME/.local/bin/uv sync --no-group dev --no-editable
+ENDRUN
 
 #==============================================================================
+# RUNTIME IMAGE
 
 FROM base-image AS runtime-image
 
