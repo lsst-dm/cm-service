@@ -16,6 +16,9 @@ services:
       CM_DATABASE_PASSWORD: INSECURE-PASSWORD
     ports:
       - "8080:8080"
+    depends_on:
+      postgresql:
+        condition: service_healthy
 
   postgresql:
     image: "postgres:latest"

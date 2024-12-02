@@ -26,6 +26,12 @@ follows:
   will launch a subsidiary Postgres instance locally in a Docker container via Docker Compose. The foreground
   debug service instance will log to stdout and will dynamically reload as you edit and save source files.
 
+  * You may also choose to run both the service and the database in Docker by running `docker compose --profile full up`;
+    in particular this will exercise the Docker build process.
+
+  * You may choose to (re)build the service container with `docker compose build [--no-cache] cmservice` to build, but not
+    start, the service container (with `--no-cache` invalidating the build cache if needed).
+
 * Access the monitoring web application at http://localhost:8080/web_app/campaigns/
 
 * Exit your debug instance with `^C`.  The subsidiary Postgres container launched under Docker Compose will
@@ -72,6 +78,7 @@ Additional developer conveniences:
 
 * `uv` uses a global package cache for speed and efficiency; you manage this cache with `uv cache prune` or
   `uv cache clean` for the nuclear option.
+
 ## Debugging
 
 ### VSCode
