@@ -59,6 +59,7 @@ dev = [
     "pytest-playwright>=0.5.2",
     "pytest-timeout>=2.3.1",
     "ruff>=0.7.4",
+    "python-semantic-release==9.14.*",
     "sqlalchemy[mypy]>=2.0.36",
     "types-pyyaml>=6.0.12.20240917",
     "types-tabulate>=0.9.0.20240106",
@@ -77,18 +78,15 @@ Source = "https://github.com/lsst-dm/cm-service"
 [tool.uv]
 
 [build-system]
-requires = ["hatchling", "hatch-vcs"]
+requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/lsst"]
 
 [tool.hatch.version]
-source = "vcs"
+path = "src/lsst/cmservice/__init__.py"
 fallback-version = "0.0.0"
-
-[tool.hatch.build.hooks.vcs]
-version-file = "src/lsst/cmservice/_version.py"
 
 [tool.coverage.run]
 parallel = true
@@ -225,3 +223,31 @@ max-public-methods = 50
 
 [tool.pylint.'MESSAGES CONTROL']
 extension-pkg-whitelist = "pydantic"
+
+[tool.semantic_release]
+version_variables = ["src/lsst/cmservice/__init__.py:__version__"]
+commit_author = {env = "GIT_COMMIT_AUTHOR"}
+tag_format = "{version}"
+
+[tool.semantic_release.branches.main]
+match = "main"
+prerelease = false
+
+[tool.semantic_release.branches.ticket]
+match = "^ticket/DM-\\d+(.*)$"
+prerelease_token = "rc"
+prerelease = true
+
+[tool.semantic_release.branches.user]
+match = "^u/(.*)/(.*)$"
+prerelease_token = "alpha"
+prerelease = true
+
+[tool.semantic_release.changelog]
+
+[tool.semantic_release.publish]
+upload_to_vcs_release = false
+
+[tool.semantic_release.remote]
+name = "origin"
+type = "github"
