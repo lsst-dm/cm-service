@@ -1,11 +1,12 @@
 """CLI to manage Campaign table"""
 
+import click
+
 from .. import db
 from . import options, wrappers
-from .commands import client_top
 
 
-@client_top.group(name="campaign")
+@click.group(name="campaign")
 def campaign_group() -> None:
     """Manage Campaign table"""
 

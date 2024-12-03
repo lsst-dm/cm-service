@@ -1,11 +1,12 @@
 """CLI to manage Step table"""
 
+import click
+
 from .. import db
 from . import options, wrappers
-from .commands import client_top
 
 
-@client_top.group(name="step")
+@click.group(name="step")
 def step_group() -> None:
     """Manage Step table"""
 

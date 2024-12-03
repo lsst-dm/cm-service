@@ -1,18 +1,19 @@
 from typing import Any
 
+import click
+
 from .. import db
 from ..client.client import CMClient
 from . import options
-from .commands import client_top
 from .wrappers import output_pydantic_list, output_pydantic_object
 
 
-@client_top.group()
-def load() -> None:
+@click.group(name="load")
+def load_group() -> None:
     """Read a yaml file and add stuff to the DB"""
 
 
-@load.command()
+@load_group.command()
 @options.cmclient()
 @options.output()
 @options.yaml_file()
@@ -41,7 +42,7 @@ def specification(
         output_pydantic_list(script_templates, output, db.ScriptTemplate.col_names_for_table)
 
 
-@load.command(name="campaign")
+@load_group.command(name="campaign")
 @options.cmclient()
 @options.output()
 @options.campaign_yaml()
@@ -66,7 +67,7 @@ def campaign(
     output_pydantic_object(result, output, db.Campaign.col_names_for_table)
 
 
-@load.command()
+@load_group.command()
 @options.cmclient()
 @options.output()
 @options.yaml_file()
@@ -81,7 +82,7 @@ def error_types(
     output_pydantic_list(result, output, db.PipetaskErrorType.col_names_for_table)
 
 
-@load.command()
+@load_group.command()
 @options.cmclient()
 @options.output()
 @options.fullname()

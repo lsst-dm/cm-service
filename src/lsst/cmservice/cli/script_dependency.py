@@ -1,11 +1,12 @@
 """CLI to manage ScriptDependency table"""
 
+import click
+
 from .. import db
 from . import options, wrappers
-from .commands import client_top
 
 
-@client_top.group(name="script_dependency")
+@click.group(name="script_dependency")
 def script_dependency_group() -> None:
     """Manage ScriptDependency table"""
 

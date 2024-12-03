@@ -1,11 +1,12 @@
 """CLI to manage TaskSet table"""
 
+import click
+
 from .. import db
 from . import options, wrappers
-from .commands import client_top
 
 
-@client_top.group(name="task_set")
+@click.group(name="task_set")
 def task_set_group() -> None:
     """Manage TaskSet table"""
 

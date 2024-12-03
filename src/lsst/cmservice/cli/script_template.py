@@ -1,11 +1,12 @@
 """CLI to manage ScriptTemplate table"""
 
+import click
+
 from .. import db
 from . import options, wrappers
-from .commands import client_top
 
 
-@client_top.group(name="script_template")
+@click.group(name="script_template")
 def script_template_group() -> None:
     """Manage ScriptTemplate table"""
 

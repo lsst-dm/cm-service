@@ -15,30 +15,3 @@ action: specfic database actions
 load: reading yaml files an loading objects into the database
 query: getting objects from the database
 """
-
-
-from . import (
-    action,
-    campaign,
-    commands,
-    group,
-    job,
-    load,
-    options,
-    pipetask_error,
-    pipetask_error_type,
-    product_set,
-    production,
-    queue,
-    script,
-    script_dependency,
-    script_error,
-    script_template,
-    spec_block,
-    specificaiton,
-    step,
-    step_dependency,
-    task_set,
-    wms_task_report,
-    wrappers,
-)

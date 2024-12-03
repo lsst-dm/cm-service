@@ -1,11 +1,12 @@
 """CLI to manage WmsTaskReport table"""
 
+import click
+
 from .. import db
 from . import options, wrappers
-from .commands import client_top
 
 
-@client_top.group(name="wms_task_report")
+@click.group(name="wms_task_report")
 def wms_task_report_group() -> None:
     """Manage WmsTaskReport table"""
 

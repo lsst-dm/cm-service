@@ -1,11 +1,12 @@
 """CLI to manage ProductSet table"""
 
+import click
+
 from .. import db
 from . import options, wrappers
-from .commands import client_top
 
 
-@client_top.group(name="product_set")
+@click.group(name="product_set")
 def product_set_group() -> None:
     """Manage ProductSet table"""
 

@@ -1,11 +1,12 @@
 """CLI to manage Specification table"""
 
+import click
+
 from .. import db
 from . import options, wrappers
-from .commands import client_top
 
 
-@client_top.group(name="specification")
+@click.group(name="specification")
 def specification_group() -> None:
     """Manage Specification table"""
 

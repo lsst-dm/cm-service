@@ -1,12 +1,13 @@
 """CLI to manage Group table"""
 
+import click
+
 from .. import db
 from ..client.client import CMClient
 from . import options, wrappers
-from .commands import client_top
 
 
-@client_top.group(name="group")
+@click.group(name="group")
 def group_group() -> None:
     """Manage Group table"""
 

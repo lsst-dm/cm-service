@@ -1,11 +1,12 @@
 """CLI to manage Group table"""
 
+import click
+
 from .. import db
 from . import options, wrappers
-from .commands import client_top
 
 
-@client_top.group(name="step_dependency")
+@click.group(name="step_dependency")
 def step_dependency_group() -> None:
     """Manage StepDependency table"""
 

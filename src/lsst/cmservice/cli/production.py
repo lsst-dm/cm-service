@@ -1,11 +1,12 @@
 """CLI to manage Production table"""
 
+import click
+
 from .. import db
 from . import options, wrappers
-from .commands import client_top
 
 
-@client_top.group(name="production")
+@click.group(name="production")
 def production_group() -> None:
     """Manage production table"""
 

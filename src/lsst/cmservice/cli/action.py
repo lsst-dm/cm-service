@@ -1,19 +1,20 @@
 from typing import Any
 
+import click
+
 from .. import db
 from ..client.client import CMClient
 from ..common.enums import StatusEnum
 from . import options
-from .commands import client_top
 from .wrappers import output_dict, output_pydantic_list, output_pydantic_object
 
 
-@client_top.group()
-def action() -> None:
+@click.group(name="action")
+def action_group() -> None:
     """Do something"""
 
 
-@action.command()
+@action_group.command()
 @options.cmclient()
 @options.fullname()
 @options.fake_status()
@@ -36,7 +37,7 @@ def process(
     output_dict({"changed": changed, "status": status}, output)
 
 
-@action.command()
+@action_group.command()
 @options.cmclient()
 @options.fullname()
 @options.status()
@@ -59,7 +60,7 @@ def reset_script(
     output_pydantic_object(result, output, db.Script.col_names_for_table)
 
 
-@action.command()
+@action_group.command()
 @options.cmclient()
 @options.fullname()
 @options.output()
@@ -78,7 +79,7 @@ def rescue_job(
     output_pydantic_object(result, output, db.Job.col_names_for_table)
 
 
-@action.command()
+@action_group.command()
 @options.cmclient()
 @options.fullname()
 @options.output()
@@ -98,7 +99,7 @@ def mark_job_rescued(
     output_pydantic_list(result, output, db.Job.col_names_for_table)
 
 
-@action.command()
+@action_group.command()
 @options.cmclient()
 @options.rematch()
 @options.output()

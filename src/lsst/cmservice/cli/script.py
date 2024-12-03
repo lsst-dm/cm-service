@@ -1,12 +1,13 @@
 """CLI to manage Script table"""
 
+import click
+
 from .. import db
 from ..client.client import CMClient
 from . import options, wrappers
-from .commands import client_top
 
 
-@client_top.group(name="script")
+@click.group(name="script")
 def script_group() -> None:
     """Manage Script table"""
 

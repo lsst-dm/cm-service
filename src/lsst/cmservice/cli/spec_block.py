@@ -1,11 +1,12 @@
 """CLI to manage SpecBlock table"""
 
+import click
+
 from .. import db
 from . import options, wrappers
-from .commands import client_top
 
 
-@client_top.group(name="spec_block")
+@click.group(name="spec_block")
 def spec_block_group() -> None:
     """Manage SpecBlock table"""
 

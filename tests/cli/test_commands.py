@@ -1,7 +1,8 @@
 from click.testing import CliRunner
 from safir.testing.uvicorn import UvicornProcess
 
-from lsst.cmservice.cli.commands import client_top, server
+from lsst.cmservice.cli.client import client_top
+from lsst.cmservice.cli.server import server
 from lsst.cmservice.client.clientconfig import client_config
 from lsst.cmservice.config import config
 
