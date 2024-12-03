@@ -32,6 +32,3 @@ apt-get -y install --no-install-recommends build-essential git libffi-dev curl
 # Delete cached files we don't need anymore:
 apt-get clean
 rm -rf /var/lib/apt/lists/*
-
-# Install and configure uv@latest
-curl -LsSf https://astral.sh/uv/install.sh | sh

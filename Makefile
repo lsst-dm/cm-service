@@ -1,3 +1,6 @@
+SHELL := /bin/bash
+GIT_BRANCH := $(shell git branch --show-current)
+PRERELEASE := $(shell if [[ $(GIT_BRANCH) =~ tickets.* ]]; then echo '--patch'; else echo '--prerelease --no-tag'; fi)
 PY_VENV := .venv/
 UV_LOCKFILE := uv.lock
 
@@ -39,15 +42,14 @@ update: update-deps init
 #------------------------------------------------------------------------------
 # Target to create a "release" that consists of an increment of the version
 # patch level in the appropriate file, a git commit and a matching git tag when
-# the branch is "main"; otherwise a prerelease version is created and no tag
+# the branch is "tickets/*"; otherwise a prerelease version is created and no tag
 # is made.
 #------------------------------------------------------------------------------
+
 .PHONY: release
 release: export GIT_COMMIT_AUTHOR="$(shell git config user.name) <$(shell git config user.email)>"
-release: export GIT_BRANCH="$(shell git branch --show-current)"
-release: export PRERELEASE=$(shell test '${GIT_BRANCH}' = 'main' || echo '--prerelease --no-tag')
 release:
-	uv run semantic-release --noop version $${PRERELEASE:---patch} --no-push --no-vcs-release --skip-build --no-changelog
+	uv run semantic-release --noop version $(PRERELEASE) --no-push --no-vcs-release --skip-build --no-changelog
 
 #------------------------------------------------------------------------------
 # Convenience targets to run pre-commit hooks ("lint") and mypy ("typing")
