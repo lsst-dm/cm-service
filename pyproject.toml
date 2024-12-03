@@ -63,7 +63,6 @@ dev = [
     "sqlalchemy[mypy]>=2.0.36",
     "types-pyyaml>=6.0.12.20240917",
     "types-tabulate>=0.9.0.20240106",
-    "pylint>=3.3.1",
 ]
 
 [project.scripts]
@@ -200,30 +199,6 @@ add-ignore = [
     "D106",
 ]
 
-[tool.pylint]
-disable = [
-    "abstract-method",
-    "invalid-name",
-    "too-many-statements",
-    "missing-module-docstring",
-    "missing-class-docstring",
-    "missing-function-docstring",
-    "too-few-public-methods",
-    "too-many-lines",
-    "broad-exception-caught",
-    "use-dict-literal",
-    "too-many-arguments",
-    "too-many-positional-arguments",
-    "duplicate-code"
-]
-max-line-length = 110
-max-locals = 50
-max-branches = 25
-max-public-methods = 50
-
-[tool.pylint.'MESSAGES CONTROL']
-extension-pkg-whitelist = "pydantic"
-
 [tool.semantic_release]
 version_variables = ["src/lsst/cmservice/__init__.py:__version__"]
 commit_author = {env = "GIT_COMMIT_AUTHOR"}
@@ -234,9 +209,9 @@ match = "main"
 prerelease = false
 
 [tool.semantic_release.branches.ticket]
-match = "^ticket/DM-\\d+(.*)$"
+match = "^tickets/DM-\\d+(.*)$"
 prerelease_token = "rc"
-prerelease = true
+prerelease = false
 
 [tool.semantic_release.branches.user]
 match = "^u/(.*)/(.*)$"

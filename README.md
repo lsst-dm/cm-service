@@ -79,6 +79,24 @@ Additional developer conveniences:
 * `uv` uses a global package cache for speed and efficiency; you manage this cache with `uv cache prune` or
   `uv cache clean` for the nuclear option.
 
+## Release Management
+
+This project uses `python-semantic-release` to manage releases. A release should be triggered by any ticket branch
+being merged into `main`. A release must increment the application version according to semantic versioning (i.e.,
+the use of major-minor-patch version tokens); and must create a matching git tag.
+
+Note: At this time, release management is not producing changelogs or creating Github "releases". Ideally, the release
+management would occur in the context of CI, but it is presently a manual operation.
+
+The `make release` target is designed to shepherd the manual release management process:
+
+1. The version number in `src/lsst/cmservice/__init__.py:__version__` is written according to the new version.
+
+1. The updated version file is committed to git.
+
+1. If on a ticket branch, a git tag is created. Git tags are not created for prerelease versions (releases made on
+   user branches.)
+
 ## Debugging
 
 ### VSCode
@@ -88,7 +106,7 @@ in a debug context by creating a `.vscode/launch.json` file in the Workspace. Th
 tells VSCode how to start an application for debugging, after which VSCode's breakpoints and other debug tools
 are available.
 
-This example `launch.json` file illustrates the launch of a debuggable CM Service instance using `usdf-cm-dev`
+This example `launch.json` file illustrates the launch of a debuggable CM Service and Daemon instances using `usdf-cm-dev`
 resources:
 
 ```
@@ -104,7 +122,23 @@ resources:
         "--port", "8080", "--reload",
         "lsst.cmservice.main:app"
       ],
-      "envFile": "${workspaceFolder}/.env.usdf-cm-dev",
+      "envFile": "${workspaceFolder}/.env.usdf-cm-dev"
+    },
+    {
+      "name": "Debug: Daemon [usdf-cm-dev]",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "lsst.cmservice.cli.client",
+      "args": ["queue", "daemon", "--row_id", "${input:rowID}"],
+      "envFile": "${workspaceFolder}/.env.usdf-cm-dev"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "rowID",
+      "description": "A Campaign Row ID for the debug client queue",
+      "type": "promptString",
+      "default": "1"
     }
   ]
 }
@@ -115,3 +149,6 @@ Note that this configuration references an `envFile`; there is a `make` target f
 (e.g., `make get-env-usdf-cm-dev` will produce a file `.env.usdf-cm-dev` with environment variables
 set to values appropriate for services running in the named Kubernetes cluster). Otherwise, you may
 create a custom `.env` file and reference it from Launch Configuration instead.
+
+The debug Daemon is launched using a prompted value for the `--row_id` parameter, which will cause
+VSCode to open a prompt for this input.

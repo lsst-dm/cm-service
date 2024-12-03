@@ -1,19 +1,28 @@
 # syntax=docker/dockerfile:1
 
+ARG PYTHON_VERSION=3.11
+ARG UV_VERSION=0.5
+
+#==============================================================================
+# UV SOURCE IMAGE
+FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
+
+
 #==============================================================================
 # BASE IMAGE
-FROM python:3.11-slim-bookworm AS base-image
+FROM python:${PYTHON_VERSION}-slim-bookworm AS base-image
 
 # Install base packages
 COPY docker/scripts/install-fe-base.sh /
 RUN /install-fe-base.sh && rm /install-fe-base.sh
 
+
 #==============================================================================
 # BUILDER IMAGE
-
 FROM base-image AS build-image
 
-# Configure UV
+# Install and Configure UV
+COPY --from=uv /uv /bin/uv
 ENV UV_PYTHON_PREFERENCE=system
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
 ENV UV_FROZEN=1
@@ -26,7 +35,7 @@ RUN ./docker/scripts/install-fe.sh
 
 RUN --mount=type=cache,target=/root/.cache/uv <<ENDRUN
     set -e
-    $HOME/.local/bin/uv sync --no-group dev --no-install-project --no-editable
+    /bin/uv sync --no-group dev --no-install-project --no-editable
 ENDRUN
 
 #==============================================================================
