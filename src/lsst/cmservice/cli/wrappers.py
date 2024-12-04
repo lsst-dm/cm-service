@@ -10,6 +10,7 @@ apply to all RowMixin, NodeMixin and ElementMixin classes.
 
 import json
 from collections.abc import Callable, Sequence
+from enum import Enum
 from typing import Any, TypeAlias
 
 import click
@@ -21,6 +22,16 @@ from ..client.client import CMClient
 from ..common.enums import StatusEnum
 from ..db import Job, Script, SpecBlock, Specification
 from . import options
+
+
+class CustomJSONEncoder(json.JSONEncoder):
+    """A custom JSON decoder that can serialize Enums."""
+
+    def default(self, o: Any) -> Any:
+        if isinstance(o, Enum):
+            return {"name": o.name, "value": o.value}
+        else:
+            return super().default(o)
 
 
 def output_pydantic_object(
@@ -43,7 +54,7 @@ def output_pydantic_object(
     """
     match output:
         case options.OutputEnum.json:
-            click.echo(json.dumps(model.model_dump(), indent=4))
+            click.echo(json.dumps(model.model_dump(), cls=CustomJSONEncoder, indent=4))
         case options.OutputEnum.yaml:
             click.echo(yaml.dump(model.model_dump()))
         case _:
@@ -69,19 +80,20 @@ def output_pydantic_list(
     col_names: list[str]
         Names for columns in tabular representation
     """
+    json_list = []
     yaml_list = []
     the_table = []
     for model_ in models:
         match output:
             case options.OutputEnum.json:
-                click.echo(json.dumps(model_.model_dump(), indent=4))
+                json_list.append(model_.model_dump())
             case options.OutputEnum.yaml:
                 yaml_list.append(model_.model_dump())
             case _:
                 the_table.append([str(getattr(model_, col_)) for col_ in col_names])
     match output:
         case options.OutputEnum.json:
-            pass
+            click.echo(json.dumps(json_list, cls=CustomJSONEncoder, indent=4))
         case options.OutputEnum.yaml:
             click.echo(yaml.dump(yaml_list))
         case _:
@@ -104,7 +116,7 @@ def output_dict(
     """
     match output:
         case options.OutputEnum.json:
-            click.echo(json.dumps(the_dict, indent=4))
+            click.echo(json.dumps(the_dict, cls=CustomJSONEncoder, indent=4))
         case options.OutputEnum.yaml:
             click.echo(yaml.dump(the_dict))
         case _:

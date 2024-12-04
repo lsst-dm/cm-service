@@ -47,13 +47,13 @@ async def test_campaign_cli(uvicorn: UvicornProcess) -> None:
 
     # test other output cases
     result = runner.invoke(client_top, "campaign list --output json")
-    assert result.exit_code == 1  # FIXME. StatusEnum is not JSON serializable
+    assert result.exit_code == 0
 
     result = runner.invoke(client_top, "campaign list")
     assert result.exit_code == 0
 
     result = runner.invoke(client_top, f"campaign get all --row_id {entry.id} --output json")
-    assert result.exit_code == 1  # FIXME. StatusEnum is not JSON serializable
+    assert result.exit_code == 0
 
     result = runner.invoke(client_top, f"campaign get all --row_id {entry.id}")
     assert result.exit_code == 0
