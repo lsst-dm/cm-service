@@ -22,21 +22,13 @@ Campaign:
               child_config:
                   split_method: split_by_query
                   split_min_groups: 2
-        # Add another predefined step
-        - Step:
-              name: characterizeImage
-              spec_block: hsc_micro_characterizeImage
-              prerequisites: ['isr']
-              child_config:
-                  split_method: split_by_query
-                  split_min_groups: 2
         # Add a custom step
         - Step:
-              name: calibrate
+              name: calibrateImage
               spec_block: step
-              prerequisites: ['characterizeImage']
+              prerequisites: ['isr']
               data:
-                  pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#calibrate"
+                  pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#calibrateImage"
               child_config:
                   base_query: "instrument = 'HSC'"
                   split_dataset: raw
