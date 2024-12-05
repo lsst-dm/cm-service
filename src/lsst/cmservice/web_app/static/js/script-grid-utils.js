@@ -10,102 +10,61 @@ const resetFromReviewable = {
     REJECTED: -3,
 };
 
-let accept_script_endpoint = "";
-let reject_script_endpoint = "";
-
 const updateStatus = () => {
     const rowIndex = parseInt(document.querySelector("#rowIndex").innerText);
     const newStatus = parseInt(document.querySelector("#targetStatus").value);
     const fullname = String(document.querySelector("#scriptFullname").innerText)
+    const scriptId = scriptGridApi.getRowNode(rowIndex).data.id;
 
+    let url;
+    let resetJson = null;
+
+    // accept script
     if(newStatus === 5){
-        let xhr = new XMLHttpRequest();
-        xhr.open('POST', accept_script_endpoint, true);
-        xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
-        xhr.onload = function () {
-            console.log(xhr.responseText);
-
-            if (xhr.status === 201) {
-                scriptGridApi.getRowNode(rowIndex).setDataValue("status", document.querySelector("#targetStatus").selectedOptions[0].text);
-                scriptGridApi.refreshCells({
-                    force: true,
-                    suppressFlash: false,
-                  });
-                resetScriptModal.close();
-            } else {
-                resetScriptModal.close();
-                errorModal.showModal();
-                errorMessage.innerText = 'Error accepting script!';
-            }
-        };
-        xhr.onerror = function () {
-            console.error("Request failed");
-            alert('Error accepting script!');
-            resetScriptModal.close();
-        };
-        xhr.send();
+        url = `/cm-service/v1/script/action/${scriptId}/accept`;
     }
+    // reject script
     else if(newStatus === -3){
-        let xhr = new XMLHttpRequest();
-        xhr.open('POST', reject_script_endpoint, true);
-        xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
-        xhr.onload = function () {
-            console.log(xhr.responseText);
-
-            if (xhr.status === 201) {
-                scriptGridApi.getRowNode(rowIndex).setDataValue("status", document.querySelector("#targetStatus").selectedOptions[0].text);
-                scriptGridApi.refreshCells({
-                    force: true,
-                    suppressFlash: false,
-                  });
-                resetScriptModal.close();
-            } else {
-                resetScriptModal.close();
-                errorModal.showModal();
-                errorMessage.innerText = 'Error rejecting script!';
-            }
-        };
-        xhr.onerror = function () {
-            console.error("Request failed");
-            alert('Error rejecting script!');
-            resetScriptModal.close();
-        };
-        xhr.send();
+        url = `/cm-service/v1/script/action/${scriptId}/reject`;
     }
+    // reset script
     else {
         let resetObj = {
             fullname: fullname,
             status: newStatus,
         };
 
-        let resetJson = JSON.stringify(resetObj);
-
-        let xhr = new XMLHttpRequest();
-        xhr.open('POST', reset_script_endpoint, true);
-        xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
-        xhr.onload = function () {
-            console.log(xhr.responseText);
-
-            if (xhr.status === 201) {
-                scriptGridApi.getRowNode(rowIndex).setDataValue("status", newStatus);
-                scriptGridApi.refreshCells({
-                    force: true,
-                    suppressFlash: false,
-                  });
-                resetScriptModal.close();
-            } else {
-                resetScriptModal.close();
-                errorModal.showModal();
-                errorMessage.innerText = 'Error resetting script!';
-            }
-        };
-        xhr.onerror = function () {
-            console.error("Request failed");
-            alert('Error resetting script!');
-            resetScriptModal.close();
-        };
-        xhr.send(resetJson);
+        resetJson = JSON.stringify(resetObj);
+        url = reset_script_endpoint;
     }
+
+    // send request
+    let xhr = new XMLHttpRequest();
+    xhr.open('POST', url, true);
+    xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+    xhr.onload = function () {
+        console.log(xhr.responseText);
+
+        if (xhr.status === 201) {
+            scriptGridApi.getRowNode(rowIndex).setDataValue("status", document.querySelector("#targetStatus").selectedOptions[0].text);
+            scriptGridApi.refreshCells({
+                force: true,
+                suppressFlash: false,
+              });
+            resetScriptModal.close();
+        } else {
+            resetScriptModal.close();
+            errorModal.showModal();
+            errorMessage.innerText = 'Error accepting script!';
+        }
+    };
+    xhr.onerror = function () {
+        console.error("Request failed");
+        alert('Error accepting script!');
+        resetScriptModal.close();
+    };
+    xhr.send(resetJson);
+
 };
 
 class ResetButtonCellRenderer {
@@ -156,8 +115,6 @@ class ResetButtonCellRenderer {
                  });
              } else if (currentStatus === "REVIEWABLE") {
                  document.querySelector('#modal-title').innerText = "Review Script";
-                 accept_script_endpoint = `/cm-service/v1/script/action/${params.data.id}/accept`;
-                 reject_script_endpoint = `/cm-service/v1/script/action/${params.data.id}/reject`;
                  Object.keys(resetFromReviewable).forEach(state => {
                      let option = document.createElement('option');
                      option.setAttribute('value', resetFromReviewable[state]);
