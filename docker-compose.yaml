@@ -6,9 +6,18 @@ services:
   cmservice:
     profiles:
       - full
+      - server
     build:
       context: .
-      dockerfile: docker/Dockerfile-service
+      dockerfile: docker/Dockerfile
+    entrypoint:
+      - ./docker-entrypoint.sh
+    command:
+      - lsst.cmservice.main:app
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "8080"
     environment:
       CM_DATABASE_HOST: postgresql
       CM_DATABASE_ECHO: true
@@ -16,6 +25,27 @@ services:
       CM_DATABASE_PASSWORD: INSECURE-PASSWORD
     ports:
       - "8080:8080"
+    depends_on:
+      postgresql:
+        condition: service_healthy
+
+  cmworker:
+    profiles:
+      - full
+      - worker
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    entrypoint:
+      - /opt/venv/bin/python3
+      - -m
+    command:
+      - lsst.cmservice.daemon
+    environment:
+      CM_DATABASE_HOST: postgresql
+      CM_DATABASE_ECHO: true
+      CM_DATABASE_URL: postgresql://cm-service@postgresql:5432/cm-service
+      CM_DATABASE_PASSWORD: INSECURE-PASSWORD
     depends_on:
       postgresql:
         condition: service_healthy

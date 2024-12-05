@@ -2,10 +2,7 @@
 *
 
 # Except
-!docker/scripts/
 !pyproject.toml
 !uv.lock
 !src/lsst/
 !examples/
-!LICENSE
-!README.md

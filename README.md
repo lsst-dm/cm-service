@@ -1,4 +1,6 @@
 # cm-service
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 
 This is the Rubin Observatory data processing campaign management ReST service. `cm-service` is developed with
 [FastAPI](https://fastapi.tiangolo.com) and [Safir](https://safir.lsst.io). Learn more at
@@ -80,6 +82,20 @@ Additional developer conveniences:
   `uv cache clean` for the nuclear option.
 
 ## Release Management
+
+This project is developed using a Trunk-Based Development pattern, where the trunk branch is named `main`.
+Developers should work in short-lived feature branches and commit their work to the trunk in accordance with
+the [LSST Development Workflow](https://developer.lsst.io/work/flow.html).
+
+Releases are performed at an unspecified cadence, to be no shorter than 1 week and subject to these rules:
+
+- Releases are named according to their semantic version (major.minor.patch).
+- Releases are made by adding a named tag to the trunk branch.
+- Each release will increment the minor version and set the patch level to 0, e.g., `1.0.12` -> `1.1.0`
+- If a bugfix commit needs to be added to a release, then a retroactive branch will be created from the
+  release tag; the commit is cherry-picked into the release branch and a new tag is written with an incremented
+  patch level, e.g., `1.23.0` -> `1.23.1`.
+- The major version is incremented only in the presence of user-facing breaking changes.
 
 This project uses `python-semantic-release` to manage releases. A release should be triggered by any ticket branch
 being merged into `main`. A release must increment the application version according to semantic versioning (i.e.,
