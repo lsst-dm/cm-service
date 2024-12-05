@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import contextlib
 import os
+import shutil
 import types
 from typing import Any
 
 import yaml
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from lsst.cmservice.common.bash import write_bash_script
@@ -112,7 +114,7 @@ class BpsScriptHandler(ScriptHandler):
 
         submit_path = os.path.abspath(f"{prod_area}/{parent.fullname}/submit")
         try:
-            os.rmdir(submit_path)
+            await run_in_threadpool(shutil.rmtree, submit_path)
         except FileNotFoundError:
             pass
 
@@ -127,7 +129,7 @@ class BpsScriptHandler(ScriptHandler):
             prepend += f"\n{custom_lsst_setup}\n"
         prepend += bps_wms_script_template_.data["text"]
 
-        write_bash_script(script_url, command, prepend=prepend)
+        await run_in_threadpool(write_bash_script, script_url, command, prepend=prepend)
 
         workflow_config = bps_core_yaml_template_.data.copy()
 
@@ -180,7 +182,7 @@ class BpsScriptHandler(ScriptHandler):
             workflow_config.update(**bps_extra_config)
 
         with contextlib.suppress(OSError):
-            os.makedirs(os.path.dirname(script_url))
+            await run_in_threadpool(os.makedirs, os.path.dirname(script_url), exist_ok=True)
 
         with open(config_url, "w", encoding="utf-8") as fout:
             yaml.dump(workflow_config, fout)
@@ -277,16 +279,16 @@ class BpsScriptHandler(ScriptHandler):
             "/submit",
         )
         try:
-            os.unlink(json_url)
-        except FileNotFoundError:
-            pass
-        try:
-            os.unlink(config_url)
+            await run_in_threadpool(os.unlink, json_url)
         except FileNotFoundError:  # pragma: no cover
             pass
         try:
-            os.rmdir(submit_path)
-        except FileNotFoundError:
+            await run_in_threadpool(os.unlink, config_url)
+        except FileNotFoundError:  # pragma: no cover
+            pass
+        try:
+            await run_in_threadpool(shutil.rmtree, submit_path)
+        except FileNotFoundError:  # pragma: no cover
             pass
         return update_fields
 
