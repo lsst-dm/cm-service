@@ -6,6 +6,7 @@ services:
   cmservice:
     profiles:
       - full
+      - worker
     build:
       context: .
       dockerfile: docker/Dockerfile-service
@@ -16,6 +17,21 @@ services:
       CM_DATABASE_PASSWORD: INSECURE-PASSWORD
     ports:
       - "8080:8080"
+    depends_on:
+      postgresql:
+        condition: service_healthy
+
+  cmworker:
+    profiles:
+      - worker
+    build:
+      context: .
+      dockerfile: docker/Dockerfile-worker
+    environment:
+      CM_DATABASE_HOST: postgresql
+      CM_DATABASE_ECHO: true
+      CM_DATABASE_URL: postgresql://cm-service@postgresql:5432/cm-service
+      CM_DATABASE_PASSWORD: INSECURE-PASSWORD
     depends_on:
       postgresql:
         condition: service_healthy
