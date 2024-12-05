@@ -1,3 +1,9 @@
+SHELL := /bin/bash
+GIT_BRANCH := $(shell git branch --show-current)
+PRERELEASE := $(shell if [[ $(GIT_BRANCH) =~ tickets.* ]]; then echo '--patch'; else echo '--prerelease --no-tag'; fi)
+PY_VENV := .venv/
+UV_LOCKFILE := uv.lock
+
 #------------------------------------------------------------------------------
 # Default help target (thanks ChatGPT)
 #------------------------------------------------------------------------------
@@ -8,33 +14,42 @@ help:
 
 
 #------------------------------------------------------------------------------
-# The usual dependency/environment management targets for Safir...
+# DX: Use uv to bootstrap project
 #------------------------------------------------------------------------------
+
+$(UV_LOCKFILE):
+	uv lock --build-isolation
+
+$(PY_VENV): $(UV_LOCKFILE)
+	uv sync --frozen
+
+.PHONY: clean
+clean:
+	rm -rf $(PY_VENV)
 
 .PHONY: update-deps
 update-deps:
-	pip install --upgrade pip-tools pip setuptools
-	pip-compile --upgrade --build-isolation --generate-hashes --output-file requirements/main.txt requirements/main.in
-	pip-compile --upgrade --build-isolation --generate-hashes --output-file requirements/dev.txt requirements/dev.in
-
-# Useful for testing against a Git version of Safir.
-.PHONY: update-deps-no-hashes
-update-deps-no-hashes:
-	pip install --upgrade pip-tools pip setuptools
-	pip-compile --upgrade --build-isolation --allow-unsafe --output-file requirements/main.txt requirements/main.in
-	pip-compile --upgrade --build-isolation --allow-unsafe --output-file requirements/dev.txt requirements/dev.in
+	uv lock --upgrade --build-isolation
 
 .PHONY: init
-init:
-	pip install --editable .
-	pip install --upgrade -r requirements/main.txt -r requirements/dev.txt
-	playwright install
-	pip install --upgrade pre-commit
-	pre-commit install
+init: $(PY_VENV)
+	uv run playwright install
+	uv run pre-commit install
 
 .PHONY: update
 update: update-deps init
 
+#------------------------------------------------------------------------------
+# Target to create a "release" that consists of an increment of the version
+# patch level in the appropriate file, a git commit and a matching git tag when
+# the branch is "tickets/*"; otherwise a prerelease version is created and no tag
+# is made.
+#------------------------------------------------------------------------------
+
+.PHONY: release
+release: export GIT_COMMIT_AUTHOR="$(shell git config user.name) <$(shell git config user.email)>"
+release:
+	uv run semantic-release --noop version $(PRERELEASE) --no-push --no-vcs-release --skip-build --no-changelog
 
 #------------------------------------------------------------------------------
 # Convenience targets to run pre-commit hooks ("lint") and mypy ("typing")
@@ -92,8 +107,9 @@ run-worker: run-compose
 	cm-service init
 	cm-worker
 
+
 #------------------------------------------------------------------------------
-# Targets for develpers to debug running against local sqlite.  Can be used on
+# Targets for developers to debug running against local sqlite.  Can be used on
 # local machines or USDF dev nodes. FIXME: This should probably be the norm for
 # development/debug, but the pytest suite does not yet run correctly against
 # sqlite...
@@ -160,3 +176,13 @@ run-worker-usdf-dev: export CM_DATABASE_PASSWORD=$(shell kubectl --cluster=usdf-
 run-worker-usdf-dev: export CM_DATABASE_ECHO=true
 run-worker-usdf-dev:
 	cm-worker
+
+get-env-%: CM_DATABASE_HOST=$(shell kubectl --cluster=$* -n cm-service get svc/cm-pg-lb -o jsonpath='{..ingress[0].ip}')
+get-env-%: export CM_DATABASE_URL=postgresql://cm-service@${CM_DATABASE_HOST}:5432/cm-service
+get-env-%: export CM_DATABASE_PASSWORD=$(shell kubectl --cluster=$* -n cm-service get secret/cm-pg-app -o jsonpath='{.data.password}' | base64 --decode)
+get-env-%: export CM_DATABASE_ECHO=true
+get-env-%:
+	rm -f .env.$*
+	echo CM_DATABASE_URL=$${CM_DATABASE_URL} > .env.$*
+	echo CM_DATABASE_ECHO=$${CM_DATABASE_ECHO} >> .env.$*
+	echo CM_DATABASE_PASSWORD=$${CM_DATABASE_PASSWORD} >> .env.$*
