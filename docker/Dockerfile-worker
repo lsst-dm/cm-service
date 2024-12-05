@@ -1,35 +1,106 @@
+# syntax=docker/dockerfile:1
+
+ARG UV_VERSION=0.5
+
+#==============================================================================
+# UV SOURCE IMAGE
+FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
+
+#==============================================================================
 # Start from Rubin Alma9 base image
 FROM ghcr.io/lsst-dm/docker-scipipe:9-latest AS base-image
 
 # Create and become lsstsvc1 user
-COPY docker/scripts/create-lsstsvc1-user.sh /
-RUN /create-lsstsvc1-user.sh && rm /create-lsstsvc1-user.sh
+RUN <<ENDRUN
+set -euo pipefail
+
+groupadd --gid 1126 gu
+groupadd --gid 4085 rubin-users
+groupadd --gid 2218 lsst
+groupadd --gid 3967 lsstsvc1
+
+useradd lsstsvc1 --uid 17951 --no-user-group --gid gu --groups rubin-users,lsst,lsstsvc1 --create-home --shell /bin/bash
+ENDRUN
+
 USER lsstsvc1
+
+COPY <<EOF /home/lsstsvc1/.condarc
+pkgs_dir:
+    - /opt/conda/pkgs
+EOF
+
+WORKDIR /stack
+
+# Install partial Rubin Stack
+RUN --mount=type=cache,target=/opt/conda/pkgs <<ENDRUN
+set -eo pipefail
+curl -sSL "https://ls.st/lsstinstall" | bash -s -- -S -v 9.0.0
+source ./loadLSST.bash
+
+conda clean -a -y
+mamba clean -a -y
+ENDRUN
+
+# INSTALL Stack Components from most recent weekly release
+RUN <<ENDRUN
+set -eo pipefail
+source /stack/loadLSST.bash
+
+EUPS_PKGROOT=${EUPS_PKGROOT:-https://eups.lsst.codes/stack/src}
+eups distrib install --no-server-tags "ctrl_bps" -t "w_latest"
+eups distrib install --no-server-tags "lsst_bps_plugins" -t "w_latest"
+
+# Strip binaries and remove unneeded files to lower layer size
+find . -exec strip --strip-unneeded --preserve-dates {} + > /dev/null 2>&1 || true
+find . -maxdepth 5 -name tests -type d -exec rm -rf {} + > /dev/null 2>&1 || true
+find . -maxdepth 6 \( -path "*doc/html" -o -path "*doc/xml" \) -type d -exec rm -rf {} + > /dev/null 2>&1 || true
+find . -maxdepth 5 -name src -type d -exec rm -rf {} + > /dev/null 2>&1 || true
+
+curl -sSL "https://raw.githubusercontent.com/lsst/shebangtron/master/shebangtron" | python
+ENDRUN
+
 WORKDIR /home/lsstsvc1
 
-# Install partial Rubin stack
-COPY docker/scripts/install-worker-stack.sh .
-RUN ./install-worker-stack.sh && rm ./install-worker-stack.sh
-
 #==============================================================================
-
+# BUILD IMAGE
 FROM base-image AS build-image
 
+USER root
+
+# Install and Configure UV
+COPY --from=uv /uv /bin/uv
+ENV UV_PYTHON_PREFERENCE=system
+ENV UV_PROJECT_ENVIRONMENT=/workdir/venv
+ENV UV_FROZEN=1
+ENV UV_LINK_MODE=copy
+
 # Install worker
-COPY --chown=lsstsvc1:gu . ./workdir
-RUN ./workdir/docker/scripts/install-worker.sh
+COPY --chown=lsstsvc1:gu uv.lock pyproject.toml .
+RUN <<ENDRUN
+set -eo pipefail
+
+# Use stack environment
+source /stack/loadLSST.bash
+
+/bin/uv sync --no-group dev --no-install-project --no-editable
+
+ENDRUN
 
 #==============================================================================
-
+# RUNTIME IMAGE
 FROM base-image AS runtime-image
 
 # Copy the worker virtual environment
-COPY --from=build-image /home/lsstsvc1/venv /home/lsstsvc1/venv
-ENV PATH="/home/lsstsvc1/venv/bin:$PATH"
+COPY --from=build-image /workdir/venv /opt/venv
+
+# Copy the application
+USER lsstsvc1
+COPY src/lsst ./lsst
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Make sure worker output won't go into the layer store
 VOLUME /output
 
 # Run the worker
-COPY docker/scripts/start-worker.sh /
-CMD ["/start-worker.sh"]
+ENTRYPOINT ["/opt/venv/bin/python3", "-m"]
+CMD ["lsst.cmservice.daemon"]

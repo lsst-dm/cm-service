@@ -50,8 +50,17 @@ EXPOSE 8080
 VOLUME /output
 
 # Create and switch to lsstsvc1 user
-COPY docker/scripts/create-lsstsvc1-user.sh /
-RUN /create-lsstsvc1-user.sh && rm /create-lsstsvc1-user.sh
+# Create and become lsstsvc1 user
+RUN <<ENDRUN
+set -e
+
+groupadd --gid 1126 gu
+groupadd --gid 4085 rubin-users
+groupadd --gid 2218 lsst
+groupadd --gid 3967 lsstsvc1
+
+useradd lsstsvc1 --uid 17951 --no-user-group --gid gu --groups rubin-users,lsst,lsstsvc1 --create-home --shell /bin/bash
+ENDRUN
 USER lsstsvc1
 
 # Copy the frontend virtual environment
@@ -70,7 +79,7 @@ COPY --chmod=755 <<EOF ./docker-entrypoint.sh
 #!/bin/bash
 set -euo pipefail
 
-python -Wignore -m lsst.cmservice.cli.commands init
+python -m lsst.cmservice.cli.server init
 uvicorn lsst.cmservice.main:app --host 0.0.0.0 --port 8080
 EOF
 
