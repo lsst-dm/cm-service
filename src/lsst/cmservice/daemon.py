@@ -5,8 +5,8 @@ from time import sleep
 import structlog
 from safir.database import create_async_session, create_database_engine
 
-from lsst.cmservice.common.daemon import daemon_iteration
-from lsst.cmservice.config import config
+from .common.daemon import daemon_iteration
+from .config import config
 
 
 async def main_loop() -> None:
