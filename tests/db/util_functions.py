@@ -408,7 +408,7 @@ async def check_get_methods(
         await interface.get_row_by_table_and_id(session, entry.id, TableEnum.n_tables)
 
     with pytest.raises(errors.CMMissingFullnameError):
-        await interface.get_row_by_table_and_id(session, -99, TableEnum[entry.__tablename__])
+        await interface.get_row_by_table_and_id(session, -99, TableEnum[entry.__tablename__])  # type: ignore
 
     with pytest.raises(errors.CMBadEnumError):
         await interface.get_node_by_level_and_id(session, entry.id, LevelEnum.n_levels)
@@ -419,7 +419,7 @@ async def check_get_methods(
     check = await interface.get_row_by_table_and_id(
         session,
         entry.id,
-        TableEnum[entry.__tablename__],
+        TableEnum[entry.__tablename__],  # type: ignore
     )
     assert check.fullname == entry.fullname
 
@@ -436,14 +436,14 @@ async def check_get_methods(
     specification_check = await entry.get_specification(session)
     assert specification_check.name
 
-    check = await entry.get_tasks(session)
-    assert len(check.reports) == 0, "length of tasks should be 0"
+    check1 = await entry.get_tasks(session)
+    assert len(check1.reports) == 0, "length of tasks should be 0"
 
-    check = await entry.get_wms_reports(session)
-    assert len(check.reports) == 0, "length of reports should be 0"
+    check2 = await entry.get_wms_reports(session)
+    assert len(check2.reports) == 0, "length of reports should be 0"
 
-    check = await entry.get_products(session)
-    assert len(check.reports) == 0, "length of products should be 0"
+    check3 = await entry.get_products(session)
+    assert len(check3.reports) == 0, "length of products should be 0"
 
     sleep_time = await entry.estimate_sleep_time(session)
     assert sleep_time == 10, "Wrong sleep time"
