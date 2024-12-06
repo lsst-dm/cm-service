@@ -119,7 +119,7 @@ python_files = ["tests/*.py", "tests/*/*.py"]
 [tool.mypy]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
-ignore_missing_imports = true
+# ignore_missing_imports = true
 local_partial_types = true
 no_implicit_reexport = true
 show_error_codes = true
