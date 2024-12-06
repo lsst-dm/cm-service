@@ -33,7 +33,7 @@ def add_scripts(
     runner: CliRunner,
     client_top: BaseCommand,
     element: models.ElementMixin,
-) -> tuple[list[models.Script], models.Dependency]:
+) -> tuple[list[models.Script], models.Dependency | None]:
     result = runner.invoke(
         client_top,
         "script create "
@@ -444,7 +444,7 @@ def check_get_methods(
     check_get = check_and_parse_result(result, entry_class)
 
     assert check_get.id == entry.id, "pulled row should be identical"
-    assert check_get.level == entry.level, "pulled row db_id should be identical"
+    assert check_get.level == entry.level, "pulled row db_id should be identical"  # type: ignore
 
     result = runner.invoke(client_top, f"{entry_class_name} get by_name --output yaml --name {entry.name}")
     check_get = check_and_parse_result(result, entry_class)

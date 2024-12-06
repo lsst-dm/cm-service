@@ -4,8 +4,8 @@ from time import sleep
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.future import select
 
-from lsst.cmservice.db.queue import Queue
-from lsst.cmservice.db.script import Script
+from ..db.queue import Queue
+from ..db.script import Script
 
 
 async def daemon_iteration(session: async_scoped_session) -> None:

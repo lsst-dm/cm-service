@@ -67,14 +67,14 @@ async def test_step_db(engine: AsyncEngine) -> None:
             await db.Step.delete_row(session, -99)
 
         # run step specific method tests
-        check = await entry.get_campaign(session)
-        assert check.name == f"camp0_{uuid_int}", "should return same name as camp0"
+        check1 = await entry.get_campaign(session)
+        assert check1.name == f"camp0_{uuid_int}", "should return same name as camp0"
 
-        check = await entry.get_all_prereqs(session)
-        assert len(check) == 1, "should be one prereq"
+        check2 = await entry.get_all_prereqs(session)
+        assert len(check2) == 1, "should be one prereq"
 
-        check = await entry.children(session)
-        assert len(list(check)) == 5, "length of children should be 5"
+        check3 = await entry.children(session)
+        assert len(list(check3)) == 5, "length of children should be 5"
 
         # check update methods
         await check_update_methods(session, entry, db.Step)

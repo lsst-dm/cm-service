@@ -35,7 +35,7 @@ async def add_scripts(
     prep_script_model = models.ScriptCreate(
         name="prepare",
         parent_name=element.fullname,
-        parent_level=element.level.value,
+        parent_level=element.level.value,  # type: ignore
         spec_block_name="null_script",
     )
 
@@ -48,7 +48,7 @@ async def add_scripts(
     collect_script_model = models.ScriptCreate(
         name="collect",
         parent_name=element.fullname,
-        parent_level=element.level.value,
+        parent_level=element.level.value,  # type: ignore
         spec_block_name="null_script",
     )
     response = await client.post(
@@ -432,7 +432,7 @@ async def check_update_methods(
     check_process = check_and_parse_response(response, tuple[bool, StatusEnum])
     assert check_process[1] == StatusEnum.running
 
-    process_query.fake_status = StatusEnum.running
+    process_query.fake_status = StatusEnum.running.value
     response = await client.post(
         f"{config.prefix}/actions/process",
         content=process_query.model_dump_json(),
@@ -540,20 +540,20 @@ async def check_scripts(
     no_scripts = check_and_parse_response(response, list[models.Script])
     assert len(no_scripts) == 0, "get_scripts with bad script_name did not return []"
 
-    query_model = models.ScriptQuery(
+    query_model1 = models.ScriptQuery(
         fullname=entry.fullname,
         script_name=None,
     )
     response = await client.get(
         f"{config.prefix}/{entry_class_name}/get/{entry.id}/all_scripts",
-        params=query_model.model_dump(),
+        params=query_model1.model_dump(),
     )
     all_scripts = check_and_parse_response(response, list[models.Script])
     assert len(all_scripts) != 0, "get_all_scripts with failed"
 
     response = await client.get(
         f"{config.prefix}/{entry_class_name}/get/-1/all_scripts",
-        params=query_model.model_dump(),
+        params=query_model1.model_dump(),
     )
     expect_failed_response(response, 404)
 
@@ -597,7 +597,7 @@ async def check_scripts(
     )
     expect_failed_response(response, 404)
 
-    query_model = models.RetryScriptQuery(
+    query_model2 = models.RetryScriptQuery(
         fullname=entry.fullname,
         script_name="prepare",
         fake_reset=True,
@@ -606,14 +606,14 @@ async def check_scripts(
 
     response = await client.post(
         f"{config.prefix}/{entry_class_name}/action/{entry.id}/retry_script",
-        content=query_model.model_dump_json(),
+        content=query_model2.model_dump_json(),
     )
     retry_check = check_and_parse_response(response, models.Script)
     assert retry_check.status == StatusEnum.waiting
 
     response = await client.post(
         f"{config.prefix}/{entry_class_name}/action/-1/retry_script",
-        content=query_model.model_dump_json(),
+        content=query_model2.model_dump_json(),
     )
     expect_failed_response(response, 404)
 
@@ -685,7 +685,7 @@ async def check_get_methods(
     check_get = check_and_parse_response(response, entry_class)
 
     assert check_get.id == entry.id, "pulled row should be identical"
-    assert check_get.level == entry.level, "pulled row db_id should be identical"
+    assert check_get.level == entry.level, "pulled row db_id should be identical"  # type: ignore
 
     response = await client.get(f"{config.prefix}/{entry_class_name}/get/-1")
     expect_failed_response(response, 404)
@@ -745,8 +745,8 @@ async def check_get_methods(
     response = await client.get(
         f"{config.prefix}/{entry_class_name}/get/{entry.id}/tasks",
     )
-    check = check_and_parse_response(response, models.MergedTaskSetDict)
-    assert len(check.reports) == 0, "length of tasks should be 0"
+    check1 = check_and_parse_response(response, models.MergedTaskSetDict)
+    assert len(check1.reports) == 0, "length of tasks should be 0"
 
     response = await client.get(f"{config.prefix}/{entry_class_name}/get/-1/tasks")
     expect_failed_response(response, 404)
@@ -754,17 +754,17 @@ async def check_get_methods(
     response = await client.get(
         f"{config.prefix}/{entry_class_name}/get/{entry.id}/wms_task_reports",
     )
-    check = check_and_parse_response(response, models.MergedWmsTaskReportDict)
+    check2 = check_and_parse_response(response, models.MergedWmsTaskReportDict)
 
-    assert len(check.reports) == 0, "length of reports should be 0"
+    assert len(check2.reports) == 0, "length of reports should be 0"
     response = await client.get(f"{config.prefix}/{entry_class_name}/get/-1/wms_task_reports")
     expect_failed_response(response, 404)
 
     response = await client.get(
         f"{config.prefix}/{entry_class_name}/get/{entry.id}/products",
     )
-    check = check_and_parse_response(response, models.MergedProductSetDict)
-    assert len(check.reports) == 0, "length of products should be 0"
+    check3 = check_and_parse_response(response, models.MergedProductSetDict)
+    assert len(check3.reports) == 0, "length of products should be 0"
 
     response = await client.get(f"{config.prefix}/{entry_class_name}/get/-1/products")
     expect_failed_response(response, 404)
