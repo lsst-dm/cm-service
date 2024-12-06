@@ -371,7 +371,7 @@ async def test_handlers_job_level_db(
         )
         assert status == StatusEnum.waiting
 
-        assert jobs.PandaScriptHandler.get_job_id({"Run Id": 322}) == 322
+        assert jobs.PandaScriptHandler.get_job_id({"Run Id": 322}) == 322  # type: ignore
         assert jobs.HTCondorScriptHandler.get_job_id({"Submit dir": "dummy"}) == "dummy"
 
         await cleanup(session, check_cascade=True)

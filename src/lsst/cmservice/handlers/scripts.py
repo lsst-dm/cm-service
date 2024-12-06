@@ -6,9 +6,6 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-from lsst.cmservice.db.element import ElementMixin
-from lsst.cmservice.db.script import Script
-
 from ..common.bash import write_bash_script
 from ..common.butler import (
     remove_collection_from_chain,
@@ -18,6 +15,8 @@ from ..common.butler import (
 )
 from ..common.enums import LevelEnum, ScriptMethodEnum, StatusEnum
 from ..common.errors import CMBadExecutionMethodError, CMMissingScriptInputError, test_type_and_raise
+from ..db.element import ElementMixin
+from ..db.script import Script
 from ..db.step import Step
 from .script_handler import ScriptHandler
 
@@ -435,7 +434,7 @@ class PrepareStepScriptHandler(ScriptHandler):
 
         prereq_colls: list[str] = []
 
-        all_prereqs = await parent.get_all_prereqs(session)
+        all_prereqs = await parent.get_all_prereqs(session)  # type: ignore
         for prereq_step in all_prereqs:
             prereq_step_colls = await prereq_step.resolve_collections(session)
             prereq_colls.append(prereq_step_colls["step_public_output"])
@@ -493,7 +492,7 @@ class ResourceUsageScriptHandler(ScriptHandler):
             session,
             data_dict["resource_usage_script_template"],
         )
-        prepend = resource_usage_script_template.data["text"].replace(
+        prepend = resource_usage_script_template.data["text"].replace(  # type: ignore
             "{lsst_version}",
             lsst_version,
         )
@@ -562,7 +561,7 @@ class HipsMapsScriptHandler(ScriptHandler):
             session,
             data_dict["hips_maps_script_template"],
         )
-        prepend = hips_maps_script_template.data["text"].replace(
+        prepend = hips_maps_script_template.data["text"].replace(  # type: ignore
             "{lsst_version}",
             lsst_version,
         )
