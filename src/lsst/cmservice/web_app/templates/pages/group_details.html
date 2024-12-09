@@ -3,6 +3,8 @@
 {% block content %}
 {% include "partials/reset_script_modal.html" %}
 {% include "partials/error_modal.html" %}
+{% include "partials/script_log_modal.html" %}
+
 <script src="{{ url_for('static', path='/js/script-grid-utils.js') }}"></script>
 <script>
     const reset_script_endpoint = "{{url_for('reset_script')}}";
