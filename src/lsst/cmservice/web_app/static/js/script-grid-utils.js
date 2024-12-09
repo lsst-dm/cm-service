@@ -43,10 +43,12 @@ const updateStatus = () => {
     xhr.open('POST', url, true);
     xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
     xhr.onload = function () {
-        console.log(xhr.responseText);
-
         if (xhr.status === 201) {
-            scriptGridApi.getRowNode(rowIndex).setDataValue("status", document.querySelector("#targetStatus").selectedOptions[0].text);
+            // update script status in grid
+            scriptGridApi
+                .getRowNode(rowIndex)
+                .setDataValue("status", document.querySelector("#targetStatus").selectedOptions[0].text);
+            // refresh grid cells on client side to disable/enable reset button according to new status
             scriptGridApi.refreshCells({
                 force: true,
                 suppressFlash: false,
@@ -55,13 +57,14 @@ const updateStatus = () => {
         } else {
             resetScriptModal.close();
             errorModal.showModal();
-            errorMessage.innerText = 'Error accepting script!';
+            errorMessage.innerText = JSON.parse(xhr.responseText).detail;
         }
     };
     xhr.onerror = function () {
-        console.error("Request failed");
-        alert('Error accepting script!');
+        console.error("Error:", xhr.status, xhr.responseText);
         resetScriptModal.close();
+        errorModal.showModal();
+        errorMessage.innerText = xhr.responseText;
     };
     xhr.send(resetJson);
 
@@ -77,6 +80,7 @@ const readScriptLog = (log_url) => {
         if (xhr.readyState === XMLHttpRequest.DONE) {
             if (xhr.status === 200) {
                 const response = JSON.parse(xhr.responseText);
+                // show file content from response in the textarea
                 document.querySelector('#scriptLogContent').value = response.content;
                 scriptLogModal.showModal();
             } else {
@@ -99,19 +103,20 @@ class ResetButtonCellRenderer {
     init(params) {
         this.params = params;
         this.eGui = document.createElement('button');
-        this.eGui.innerText = 'Reset';
+        // change button text and also enable/disable according to status
         let currentStatus = params.data.status;
-
         if(currentStatus === "FAILED" || currentStatus === "REJECTED") {
             this.eGui.innerText = 'Reset';
         } else if(currentStatus === "REVIEWABLE") {
             this.eGui.innerText = 'Review';
         } else {
+            // button is disabled if the current status isn't FAILED/REJECTED/REVIEWABLE
+            this.eGui.innerText = 'Reset';
             this.eGui.disabled = true;
             this.eGui.setAttribute('class', 'mt-2 rounded bg-white px-2 py-1 text-xs font-semibold text-gray-500 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50');
             return;
         }
-
+        // enable reset/review button
         this.eGui.disabled = false;
         this.eGui.setAttribute('class', 'mt-2 rounded bg-white px-2 py-1 text-xs font-semibold text-teal-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50');
 
@@ -132,7 +137,6 @@ class ResetButtonCellRenderer {
                  showLogBtn.innerText = 'Show Log';
                  showLogBtn.setAttribute('class', 'mt-2 rounded bg-white px-2 py-1 text-xs font-semibold text-teal-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50');
                  showLogBtn.addEventListener('click', (e) => {
-                     console.log(e);
                      readScriptLog(params.data.log_url);
                  });
                  scriptLogElement.appendChild(showLogBtn);
@@ -140,7 +144,7 @@ class ResetButtonCellRenderer {
              } else {
                  scriptLogElement.innerText = "-";
              }
-
+             // create target status dropdown according to current status
              let statusDropdown = document.querySelector("#targetStatus");
              statusDropdown.options.length = 0;
              let currentStatus = params.data.status;
@@ -160,10 +164,6 @@ class ResetButtonCellRenderer {
                      option.innerText = state;
                      statusDropdown.add(option);
                  });
-             } else {
-                 errorModal.showModal();
-                 errorMessage.innerText = `Cannot reset a script from ${currentStatus} status`;
-                 return;
              }
              resetScriptModal.showModal();
         });
