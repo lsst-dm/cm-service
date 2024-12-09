@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING, Any
 
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from ..common.bash import check_stamp_file, get_diagnostic_message, run_bash_job
@@ -589,12 +590,12 @@ class ScriptHandler(BaseScriptHandler):
         update_fields: dict[str, Any] = {}
         update_fields["stamp_url"] = None
         if script.log_url and os.path.exists(script.log_url):  # pragma: no cover
-            os.unlink(script.log_url)
+            await run_in_threadpool(os.unlink, script.log_url)
         if script.stamp_url and os.path.exists(script.stamp_url):
-            os.unlink(script.stamp_url)
+            await run_in_threadpool(os.unlink, script.stamp_url)
         if to_status.value <= StatusEnum.ready.value:
             if script.script_url and os.path.exists(script.script_url):
-                os.unlink(script.script_url)
+                await run_in_threadpool(os.unlink, script.script_url)
             update_fields["script_url"] = None
             update_fields["log_url"] = None
         update_fields["status"] = to_status
