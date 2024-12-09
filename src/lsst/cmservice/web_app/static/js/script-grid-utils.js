@@ -21,6 +21,7 @@ const updateStatus = () => {
 
     // accept script
     if(newStatus === 5){
+        // TODO: change hard coded endpoints
         url = `/cm-service/v1/script/action/${scriptId}/accept`;
     }
     // reject script
@@ -67,6 +68,34 @@ const updateStatus = () => {
 
 };
 
+const readScriptLog = (log_url) => {
+
+    const xhr = new XMLHttpRequest();
+
+    const url = "/web_app/read-script-log";
+
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+            if (xhr.status === 200) {
+                const response = JSON.parse(xhr.responseText);
+                document.querySelector('#scriptLogContent').value = response.content;
+                scriptLogModal.showModal();
+            } else {
+                console.error("Error:", xhr.status, xhr.responseText);
+                errorModal.showModal();
+                errorMessage.innerText = JSON.parse(xhr.responseText).detail;
+            }
+        }
+    };
+
+    xhr.open("POST", url, true);
+
+    xhr.setRequestHeader("Content-Type", "application/json");
+
+    const requestData = JSON.stringify({ log_path: log_url});//'/home/eman/PycharmProjects/cm-service/output/archive/HSC_DRP-Prod/test_htcondor/step1/group1/job_000/bps_submit_000_bps_config.yaml' });
+    xhr.send(requestData);
+}
+
 class ResetButtonCellRenderer {
     init(params) {
         this.params = params;
@@ -90,14 +119,25 @@ class ResetButtonCellRenderer {
         this.eGui.addEventListener('click', () => {
             document.querySelector("#rowIndex").innerText = params.node.rowIndex;
              document.querySelector("#scriptFullname").innerText = params.data.fullname;
+
+             // show script log path if it isn't null, otherwise show "-"
              const scriptLogElement = document.querySelector("#scriptLogUrl");
              scriptLogElement.innerHTML = "";
              if(params.data.log_url) {
-                 let logUrlHref = document.createElement('a');
-                 logUrlHref.setAttribute('class', 'text-teal-700 underline underline-offset-4 decoration-1 hover:text-gray-500');
-                 logUrlHref.href = params.data.log_url;
-                 logUrlHref.innerText = params.data.log_url;
-                 scriptLogElement.appendChild(logUrlHref);
+                 let logUrl = document.createElement('span');
+                 logUrl.innerText = params.data.log_url;
+                 scriptLogElement.appendChild(logUrl);
+
+                 // add a button to show log content dialog
+                 let showLogBtn = document.createElement('button');
+                 showLogBtn.innerText = 'Show Log';
+                 showLogBtn.setAttribute('class', 'mt-2 rounded bg-white px-2 py-1 text-xs font-semibold text-teal-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50');
+                 showLogBtn.addEventListener('click', (e) => {
+                     console.log(e);
+                     readScriptLog(params.data.log_url);
+                 });
+                 scriptLogElement.appendChild(showLogBtn);
+
              } else {
                  scriptLogElement.innerText = "-";
              }
@@ -147,3 +187,7 @@ const errorModal = document.querySelector("#errorModal");
 const closeErrModalBtn = document.querySelector("[close-error-modal]");
 closeErrModalBtn.addEventListener("click", () => errorModal.close());
 const errorMessage = document.querySelector("[error-message]")
+
+const scriptLogModal = document.querySelector("#scriptLogModal");
+const closeLogModalBtn = document.querySelector("[close-log-modal]");
+closeLogModalBtn.addEventListener("click", () => scriptLogModal.close());
