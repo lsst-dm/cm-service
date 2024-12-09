@@ -27,18 +27,8 @@ apt-get update
 # build-essential: sometimes needed to build Python modules
 # git: required by setuptools_scm
 # libffi-dev: sometimes needed to build cffi, a cryptography dependency
-apt-get -y install --no-install-recommends build-essential git libffi-dev
+apt-get -y install --no-install-recommends build-essential git libffi-dev curl
 
 # Delete cached files we don't need anymore:
 apt-get clean
 rm -rf /var/lib/apt/lists/*
-
-# Create and activate a venv for the frontend
-python -m venv /opt/venv
-. /opt/venv/bin/activate
-
-# Upgrade pip, setuptools, wheel; install deps; install app
-PIP_PROGRESS_BAR=off
-pip install --upgrade --no-cache-dir pip setuptools wheel
-pip install --quiet --no-cache-dir -r /workdir/requirements/main.txt
-pip install --no-cache-dir /workdir
