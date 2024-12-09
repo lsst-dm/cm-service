@@ -20,21 +20,21 @@ async def test_others_cli(uvicorn: UvicornProcess) -> None:
     assert len(check) == 0
 
     result = runner.invoke(client_top, "product_set list --output yaml")
-    check = check_and_parse_result(result, list[models.ProductSet])
+    check = check_and_parse_result(result, list[models.ProductSet])  # type: ignore
     assert len(check) == 0
 
     result = runner.invoke(client_top, "script_dependency list --output yaml")
-    check = check_and_parse_result(result, list[models.Dependency])
+    check = check_and_parse_result(result, list[models.Dependency])  # type: ignore
     assert len(check) == 0
 
     result = runner.invoke(client_top, "script_error list --output yaml")
-    check = check_and_parse_result(result, list[models.ScriptError])
+    check = check_and_parse_result(result, list[models.ScriptError])  # type: ignore
     assert len(check) == 0
 
     result = runner.invoke(client_top, "task_set list --output yaml")
-    check = check_and_parse_result(result, list[models.TaskSet])
+    check = check_and_parse_result(result, list[models.TaskSet])  # type: ignore
     assert len(check) == 0
 
     result = runner.invoke(client_top, "wms_task_report list --output yaml")
-    check = check_and_parse_result(result, list[models.WmsTaskReport])
+    check = check_and_parse_result(result, list[models.WmsTaskReport])  # type: ignore
     assert len(check) == 0

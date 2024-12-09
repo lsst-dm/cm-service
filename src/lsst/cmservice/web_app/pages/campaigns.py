@@ -24,7 +24,7 @@ async def get_campaign_details(session: async_scoped_session, campaign: Campaign
     campaign_details = {
         "id": campaign.id,
         "name": campaign.name,
-        "lsst_version": campaign.data["lsst_version"],
+        "lsst_version": campaign.data["lsst_version"],  # type: ignore
         "out": collections["out"],
         "source": collections.get("campaign_source", ""),
         "status": map_status(campaign.status),

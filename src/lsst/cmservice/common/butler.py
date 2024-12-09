@@ -1,7 +1,8 @@
 """Utility functions for working with butler commands"""
 
-from lsst.cmservice.common import errors
 from lsst.daf.butler import Butler, MissingCollectionError
+
+from ..common import errors
 
 
 def remove_run_collections(

@@ -6,15 +6,15 @@ from typing import Any
 import numpy as np
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-from lsst.cmservice.db.campaign import Campaign
-from lsst.cmservice.db.element import ElementMixin
-from lsst.cmservice.db.group import Group
-from lsst.cmservice.db.job import Job
-from lsst.cmservice.db.script import Script
 from lsst.daf.butler import Butler
 
 from ..common.enums import StatusEnum
 from ..common.errors import CMMissingScriptInputError, test_type_and_raise
+from ..db.campaign import Campaign
+from ..db.element import ElementMixin
+from ..db.group import Group
+from ..db.job import Job
+from ..db.script import Script
 from .script_handler import FunctionHandler
 
 
