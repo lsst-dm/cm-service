@@ -126,9 +126,9 @@ def test_group_details_page() -> None:
             ),
         ).not_to_be_empty()
         # check wms task progress
-        expect(page.locator(".bg-teal-700").nth(1)).to_have_attribute("style", "width: 101%")
-        expect(page.locator(".bg-teal-700").nth(1)).to_have_text("Running 8858")
-        expect(page.locator(".bg-teal-700").nth(1).locator(".tooltip")).to_contain_text("Running")
+        expect(page.locator(".bg-teal-700").nth(2)).to_have_attribute("style", "width: 101%")
+        expect(page.locator(".bg-teal-700").nth(2)).to_have_text("Running 8858")
+        expect(page.locator(".bg-teal-700").nth(2).locator(".tooltip")).to_contain_text("Running")
         expect(page.locator(".bg-green-500")).to_have_attribute("style", "width: 1%")
         expect(page.locator(".bg-green-500")).to_have_text("Succeeded 1")
         expect(page.locator(".bg-green-500").locator(".tooltip")).to_contain_text("Succeeded")
