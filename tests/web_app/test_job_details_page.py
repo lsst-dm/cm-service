@@ -108,9 +108,9 @@ def test_job_details_page() -> None:
             page.get_by_text("job_run: 2.2i/runs/test-med-1/w_2024_28/DM-45212d/step1/group1/job_000"),
         ).not_to_be_empty()
         # check wms task progress
-        expect(page.locator(".bg-teal-700").nth(1)).to_have_attribute("style", "width: 95%")
-        expect(page.locator(".bg-teal-700").nth(1)).to_have_text("Running 4940")
-        expect(page.locator(".bg-teal-700").nth(1).locator(".tooltip")).to_contain_text("Running")
+        expect(page.locator(".bg-teal-700").nth(2)).to_have_attribute("style", "width: 95%")
+        expect(page.locator(".bg-teal-700").nth(2)).to_have_text("Running 4940")
+        expect(page.locator(".bg-teal-700").nth(2).locator(".tooltip")).to_contain_text("Running")
         expect(page.locator(".bg-green-500")).to_have_attribute("style", "width: 7%")
         expect(page.locator(".bg-green-500")).to_have_text("Succeeded 331")
         expect(page.locator(".bg-green-500").locator(".tooltip")).to_contain_text("Succeeded")
@@ -138,7 +138,7 @@ def test_job_details_page() -> None:
             "href",
             "http://0.0.0.0:8080/web_app/script/13/117/75/75/540/",
         )
-        expect(page.locator("#scriptsGrid").get_by_role("row").nth(3)).to_contain_text("IN_PROGRESS")
+        expect(page.locator("#scriptsGrid").get_by_role("row").nth(3)).to_contain_text("WAITING")
         # check scripts grid exists
         expect(page.locator("#productsGrid")).to_be_visible()
         # check number of step scripts (only 1 header row)
