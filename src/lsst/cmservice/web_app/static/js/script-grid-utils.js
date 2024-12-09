@@ -21,7 +21,6 @@ const updateStatus = () => {
 
     // accept script
     if(newStatus === 5){
-        // TODO: change hard coded endpoints
         url = `/cm-service/v1/script/action/${scriptId}/accept`;
     }
     // reject script
