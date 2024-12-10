@@ -4,10 +4,11 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, FastAPI, Form, Request
+from fastapi import APIRouter, Depends, FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
 from safir.dependencies.db_session import db_session_dependency
 from safir.dependencies.http_client import http_client_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -257,3 +258,23 @@ async def get_script(
 @web_app.get("/layout/", response_class=HTMLResponse)
 async def test_layout(request: Request) -> HTMLResponse:
     return templates.TemplateResponse("pages/mockup.html", {"request": request})
+
+
+class ReadScriptLogRequest(BaseModel):
+    log_path: str
+
+
+@web_app.post("/read-script-log")
+async def read_script_log(request: ReadScriptLogRequest) -> dict[str, str]:
+    file_path = Path(request.log_path)
+
+    # Check if the file exists
+    if not file_path.is_file():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    try:
+        # Read the content of the file
+        content = file_path.read_text()
+        return {"content": content}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
