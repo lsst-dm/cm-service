@@ -265,7 +265,7 @@ class ReadScriptLogRequest(BaseModel):
 
 
 @web_app.post("/read-script-log")
-async def read_script_log(request: ReadScriptLogRequest):
+async def read_script_log(request: ReadScriptLogRequest) -> dict[str, str]:
     file_path = Path(request.log_path)
 
     # Check if the file exists
