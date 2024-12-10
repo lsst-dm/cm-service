@@ -70,7 +70,6 @@ dev = [
 [project.scripts]
 cm-service = "lsst.cmservice.cli.server:server"
 cm-client = "lsst.cmservice.cli.client:client_top"
-cm-worker = "lsst.cmservice.daemon:main"
 
 [project.urls]
 Homepage = "https://cm-service.lsst.io"
@@ -212,12 +211,12 @@ prerelease = false
 
 [tool.semantic_release.branches.ticket]
 match = "^tickets/DM-\\d+(.*)$"
-prerelease_token = "rc"
-prerelease = false
+prerelease_token = "ticket"
+prerelease = true
 
 [tool.semantic_release.branches.user]
 match = "^u/(.*)/(.*)$"
-prerelease_token = "alpha"
+prerelease_token = "user"
 prerelease = true
 
 [tool.semantic_release.changelog]

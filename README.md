@@ -101,17 +101,14 @@ This project uses `python-semantic-release` to manage releases. A release should
 being merged into `main`. A release must increment the application version according to semantic versioning (i.e.,
 the use of major-minor-patch version tokens); and must create a matching git tag.
 
-Note: At this time, release management is not producing changelogs or creating Github "releases". Ideally, the release
-management would occur in the context of CI, but it is presently a manual operation.
-
 The `make release` target is designed to shepherd the manual release management process:
 
 1. The version number in `src/lsst/cmservice/__init__.py:__version__` is written according to the new version.
 
 1. The updated version file is committed to git.
 
-1. If on a ticket branch, a git tag is created. Git tags are not created for prerelease versions (releases made on
-   user branches.)
+1. If on `main`, a git tag is created. Git tags are not created for prerelease versions (releases made on
+   user or ticket branches.)
 
 ## Debugging
 
@@ -141,11 +138,18 @@ resources:
       "envFile": "${workspaceFolder}/.env.usdf-cm-dev"
     },
     {
-      "name": "Debug: Daemon [usdf-cm-dev]",
+      "name": "Debug: User Daemon [usdf-cm-dev]",
       "type": "debugpy",
       "request": "launch",
       "module": "lsst.cmservice.cli.client",
       "args": ["queue", "daemon", "--row_id", "${input:rowID}"],
+      "envFile": "${workspaceFolder}/.env.usdf-cm-dev"
+    },
+    {
+      "name": "Debug: System Daemon [usdf-cm-dev]",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "lsst.cmservice.daemon",
       "envFile": "${workspaceFolder}/.env.usdf-cm-dev"
     }
   ],
