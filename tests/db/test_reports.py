@@ -98,7 +98,7 @@ async def test_reports_db(engine: AsyncEngine) -> None:
             status=StatusEnum.rescuable,
         )
 
-        job2 = await parent.rescue_job(session)
+        job2 = await parent.rescue_job(session)  # type: ignore
 
         await interface.load_manifest_report(
             session,
@@ -117,7 +117,7 @@ async def test_reports_db(engine: AsyncEngine) -> None:
         assert status_check == StatusEnum.failed
         await db.Job.update_row(session, job2.id, superseded=True)
 
-        job3 = await parent.rescue_job(session)
+        job3 = await parent.rescue_job(session)  # type: ignore
 
         await interface.load_manifest_report(
             session,
@@ -137,7 +137,7 @@ async def test_reports_db(engine: AsyncEngine) -> None:
 
         await db.Job.update_row(session, job3.id, status=StatusEnum.rescuable)
 
-        job4 = await parent.rescue_job(session)
+        job4 = await parent.rescue_job(session)  # type: ignore
         await interface.load_manifest_report(
             session,
             "examples/manifest_report_accept_error.yaml",
@@ -154,7 +154,7 @@ async def test_reports_db(engine: AsyncEngine) -> None:
         )
         assert status_check == StatusEnum.accepted
 
-        await parent.mark_job_rescued(session)
+        await parent.mark_job_rescued(session)  # type: ignore
 
         # cleanup
         await cleanup(session)

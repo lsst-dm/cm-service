@@ -70,8 +70,8 @@ async def test_group_db(engine: AsyncEngine) -> None:
         check = await entry.get_campaign(session)
         assert check.name == f"camp0_{uuid_int}", "should return same name as camp0"
 
-        check = await entry.children(session)
-        assert len(list(check)) == 1, "length of children should be 1"
+        check = await entry.children(session)  # type: ignore
+        assert len(list(check)) == 1, "length of children should be 1"  # type: ignore
 
         # check update methods
         await check_update_methods(session, entry, db.Group)

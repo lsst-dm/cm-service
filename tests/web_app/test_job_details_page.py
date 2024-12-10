@@ -29,7 +29,7 @@ async def test_get_job_by_id(engine: AsyncEngine) -> None:
         await create_tree(session, LevelEnum.job, uuid_int)
 
         job, job_scripts = await get_job_by_id(session, 1)
-        assert len(job_scripts) == 2
+        assert job_scripts is not None and len(job_scripts) == 2
 
         assert job == {
             "id": 1,

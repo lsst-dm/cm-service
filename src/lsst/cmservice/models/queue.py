@@ -8,7 +8,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from lsst.cmservice.common.enums import LevelEnum
+from ..common.enums import LevelEnum
 
 
 class QueueBase(BaseModel):

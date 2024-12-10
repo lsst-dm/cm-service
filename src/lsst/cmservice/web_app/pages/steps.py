@@ -17,7 +17,7 @@ async def get_campaign_steps(session: async_scoped_session, campaign_id: int) ->
 
 async def get_step_details(session: async_scoped_session, step: Step) -> dict:
     step_groups = await step.children(session)
-    no_groups = len(step_groups)
+    no_groups = len(list(step_groups))
     no_groups_completed = len([group for group in step_groups if group.status == StatusEnum.accepted])
     no_groups_need_attention = len(
         [group for group in step_groups if map_status(group.status) == "NEED_ATTENTION"],
@@ -36,7 +36,7 @@ async def get_step_details(session: async_scoped_session, step: Step) -> dict:
     return step_details
 
 
-async def get_campaign_by_id(session: async_scoped_session, campaign_id: int) -> Campaign:
+async def get_campaign_by_id(session: async_scoped_session, campaign_id: int) -> Campaign | None:
     q = select(Campaign).where(Campaign.id == campaign_id)
     async with session.begin_nested():
         results = await session.scalars(q)

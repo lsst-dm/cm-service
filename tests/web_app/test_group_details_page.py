@@ -29,8 +29,8 @@ async def test_get_group_details_by_id(engine: AsyncEngine) -> None:
         await create_tree(session, LevelEnum.job, uuid_int)
 
         group, group_jobs, group_scripts = await get_group_by_id(session, 1)
-        assert len(group_scripts) == 2
-        assert len(group_jobs) == 1
+        assert group_scripts is not None and len(group_scripts) == 2
+        assert group_jobs is not None and len(group_jobs) == 1
 
         assert group == {
             "id": 1,
