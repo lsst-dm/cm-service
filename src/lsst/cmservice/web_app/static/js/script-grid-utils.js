@@ -20,11 +20,11 @@ const updateStatus = () => {
     let resetJson = null;
 
     // accept script
-    if(newStatus === 5){
+    if(newStatus === resetFromReviewable.ACCEPTED){
         url = `/cm-service/v1/script/action/${scriptId}/accept`;
     }
     // reject script
-    else if(newStatus === -3){
+    else if(newStatus === resetFromReviewable.REJECTED){
         url = `/cm-service/v1/script/action/${scriptId}/reject`;
     }
     // reset script
@@ -61,7 +61,6 @@ const updateStatus = () => {
         }
     };
     xhr.onerror = function () {
-        console.error("Error:", xhr.status, xhr.responseText);
         resetScriptModal.close();
         errorModal.showModal();
         errorMessage.innerText = xhr.responseText;
@@ -84,7 +83,6 @@ const readScriptLog = (log_url) => {
                 document.querySelector('#scriptLogContent').value = response.content;
                 scriptLogModal.showModal();
             } else {
-                console.error("Error:", xhr.status, xhr.responseText);
                 errorModal.showModal();
                 errorMessage.innerText = JSON.parse(xhr.responseText).detail;
             }
@@ -95,7 +93,7 @@ const readScriptLog = (log_url) => {
 
     xhr.setRequestHeader("Content-Type", "application/json");
 
-    const requestData = JSON.stringify({ log_path: log_url});//'/home/eman/PycharmProjects/cm-service/output/archive/HSC_DRP-Prod/test_htcondor/step1/group1/job_000/bps_submit_000_bps_config.yaml' });
+    const requestData = JSON.stringify({ log_path: log_url});
     xhr.send(requestData);
 }
 

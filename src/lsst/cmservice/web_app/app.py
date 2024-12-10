@@ -12,7 +12,6 @@ from pydantic import BaseModel
 from safir.dependencies.db_session import db_session_dependency
 from safir.dependencies.http_client import http_client_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
-from starlette.responses import JSONResponse
 
 from lsst.cmservice import db
 from lsst.cmservice.config import config
@@ -261,54 +260,12 @@ async def test_layout(request: Request) -> HTMLResponse:
     return templates.TemplateResponse("pages/mockup.html", {"request": request})
 
 
-@web_app.get("/test-ag-grid/", response_class=HTMLResponse)
-async def test_ag_grid(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse("pages/test-ag-grid.html", {"request": request})
-
-
-@web_app.get("/modal", response_class=HTMLResponse)
-async def modal(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse(
-        name="partials/test_modal.html",
-        request=request,
-        context={"script": {"id": 1, "fullname": "fullname", "log_url": "/hello/script"}},
-    )
-
-
-# WORKING
-class ResetScriptRequest(BaseModel):
-    id: Annotated[str, Form()]
-    fullname: Annotated[str, Form()]
-    to_status: Annotated[str, Form()]
-
-
-@web_app.post("/my-reset-script/", response_class=JSONResponse)
-async def my_reset_script(
-    request: Request,
-    id: Annotated[str, Form()],
-    fullname: Annotated[str, Form()],
-    to_status: Annotated[str, Form()],
-):
-    print(f"reset script: {id}, {fullname} to {to_status}")
-    # Example response
-    return JSONResponse(content={"id": id, "status": to_status}, status_code=201)
-
-
-@web_app.get("/reset_modal", response_class=HTMLResponse)
-async def reset_modal(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse(
-        name="partials/test_reset_modal.html",
-        request=request,
-        context={"script": {"id": 1, "fullname": "fullname", "log_url": "/hello/script"}},
-    )
-
-
 class ReadScriptLogRequest(BaseModel):
     log_path: str
 
 
 @web_app.post("/read-script-log")
-async def read_script_log(request: ReadScriptLogRequest):
+async def read_script_log(request: ReadScriptLogRequest) -> dict[str, str]:
     file_path = Path(request.log_path)
 
     # Check if the file exists
