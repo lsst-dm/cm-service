@@ -31,25 +31,23 @@ jobs:
 
       - uses: actions/checkout@v4
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.5.x"
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Install packages for testing
-        env:
-          PIP_PROGRESS_BAR: "off"
-        run: |
-          pip install -r requirements/main.txt -r requirements/dev.txt
-          pip install -e .
+        run: uv sync --dev
 
       - name: Run tests
-        env:
-          PIP_PROGRESS_BAR: "off"
         run: |
-          pip install pytest-playwright
-          playwright install
-          make test
+          uv run playwright install
+          uv run make test
 
   mypy:
     runs-on: ubuntu-latest
@@ -57,21 +55,22 @@ jobs:
 
       - uses: actions/checkout@v4
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.5.x"
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: Install packages for testing
-        env:
-          PIP_PROGRESS_BAR: "off"
-        run: |
-          pip install -r requirements/main.txt -r requirements/dev.txt
-          pip install -e .
+        run: uv sync --dev
 
       - name: Run tests
         run: |
-          make typing
+          uv run make typing
 
   build:
     runs-on: ubuntu-latest
@@ -96,18 +95,10 @@ jobs:
       - uses: lsst-sqre/build-and-push-to-ghcr@v1
         id: build-service
         with:
-          dockerfile: docker/Dockerfile-service
+          dockerfile: docker/Dockerfile
           image: ${{ github.repository }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: lsst-sqre/build-and-push-to-ghcr@v1
-        id: build-worker
-        with:
-          dockerfile: docker/Dockerfile-worker
-          image: ${{ github.repository }}-worker
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Report result
         run: |
           echo Pushed ghcr.io/${{ github.repository }}:${{ steps.build-service.outputs.tag }}
-          echo Pushed ghcr.io/${{ github.repository }}-worker:${{ steps.build-worker.outputs.tag }}
