@@ -139,9 +139,37 @@ def test_job_details_page() -> None:
             "http://0.0.0.0:8080/web_app/script/13/117/75/75/540/",
         )
         expect(page.locator("#scriptsGrid").get_by_role("row").nth(3)).to_contain_text("WAITING")
-        # check scripts grid exists
+        # check first reset button is disabled
+        expect(page.locator("#scriptsGrid").get_by_role("row").nth(1).get_by_role("button")).to_be_disabled()
+        # check third reset button is enabled and has test "Reset"
+        expect(page.locator("#scriptsGrid").get_by_role("row").nth(2).get_by_role("button")).to_be_enabled()
+        expect(page.locator("#scriptsGrid").get_by_role("row").nth(2).get_by_role("button")).to_have_text(
+            "Reset"
+        )
+        # Reset modal dialog should be visible after clicking "Reset" button
+        page.locator("#scriptsGrid").get_by_role("row").nth(2).get_by_role("button").click()
+        expect(page.locator("#modalDialog")).to_be_visible()
+        # Reset modal dialog should have title "Reset Script"
+        expect(page.locator("#reset-modal-title")).to_have_text("Reset Script")
+        # Target Status dropdown in Reset modal dialog
+        # should have a first option "WAITING"
+        expect(page.locator("#targetStatus").locator("option").first).to_have_text("WAITING")
+        # Reset Modal should not be visible after clicking the cancel button
+        page.locator("[close-reset-modal]").click()
+        expect(page.locator("#modalDialog")).not_to_be_visible()
+        # Script status should be changed to "WAITING" and Reset button
+        # should be disabled after resetting to "WAITING" in the reset modal
+        expect(page.locator("#scriptsGrid").get_by_role("row").nth(2)).to_contain_text("FAILED")
+        page.locator("#scriptsGrid").get_by_role("row").nth(2).get_by_role("button").click()
+        expect(page.locator("#targetStatus")).to_have_value("0")
+        page.locator("[confirm-reset]").click()
+        expect(page.locator("#modalDialog")).not_to_be_visible()
+        expect(page.locator("#scriptsGrid").get_by_role("row").nth(3)).to_contain_text("WAITING")
+        expect(page.locator("#scriptsGrid").get_by_role("row").nth(2).get_by_role("button")).to_be_disabled()
+
+        # check products grid exists
         expect(page.locator("#productsGrid")).to_be_visible()
-        # check number of step scripts (only 1 header row)
+        # check number of step products (only 1 header row)
         expect(page.locator("#productsGrid").get_by_role("row")).to_have_count(1)
         context.close()
         browser.close()

@@ -149,7 +149,7 @@ class ResetButtonCellRenderer {
              statusDropdown.options.length = 0;
              let currentStatus = params.data.status;
              if(currentStatus === "FAILED" || currentStatus === "REJECTED"){
-                 document.querySelector('#modal-title').innerText = "Reset Script";
+                 document.querySelector('#reset-modal-title').innerText = "Reset Script";
                  Object.keys(resetFromRejected).forEach(state => {
                      let option = document.createElement('option');
                      option.setAttribute('value', resetFromRejected[state]);
@@ -157,7 +157,7 @@ class ResetButtonCellRenderer {
                      statusDropdown.add(option);
                  });
              } else if (currentStatus === "REVIEWABLE") {
-                 document.querySelector('#modal-title').innerText = "Review Script";
+                 document.querySelector('#reset-modal-title').innerText = "Review Script";
                  Object.keys(resetFromReviewable).forEach(state => {
                      let option = document.createElement('option');
                      option.setAttribute('value', resetFromReviewable[state]);
