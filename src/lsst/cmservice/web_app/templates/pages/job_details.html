@@ -1,7 +1,12 @@
 {% extends "pages/base.html" %}
 {% block title %} Job Details {% endblock %}
 {% block content %}
+{% include "partials/reset_script_modal.html" %}
+{% include "partials/error_modal.html" %}
+{% include "partials/script_log_modal.html" %}
+<script src="{{ url_for('static', path='/js/script-grid-utils.js') }}"></script>
 <script>
+    const reset_script_endpoint = "{{url_for('reset_script')}}";
     class ScriptNameRenderer {
         eGui;
 
@@ -24,24 +29,30 @@
     }
 
     const scriptsGridOptions = {
-        // rowData: jobScripts,
         columnDefs: [
-             {field: "name", flex: 1, cellRenderer: ScriptNameRenderer,},
-             {field: "status", flex: 1},
-             {field: "superseded", flex: 1}
+            {field: "name", flex: 1, cellRenderer: ScriptNameRenderer,},
+            {field: "status", flex: 1},
+            {field: "superseded", flex: 1},
+            {
+                headerName: 'Actions',
+                field: 'resetButton',
+                cellRenderer: ResetButtonCellRenderer,
+                editable: false,
+                width: 200,
+            },
         ]
     };
+    let scriptGridApi;
     const populateScriptsGrid = (scriptsJson) => {
         scriptsGridOptions.rowData = scriptsJson;
         const scriptsGridElement = document.getElementById("scriptsGrid");
-        agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
+        scriptGridApi = agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
     }
 
     // products
     const formatWMSColumn = (params) => params.value === 0 ? "" : params.value;
 
     const productsGridOptions = {
-        // rowData: jobProducts,
         columnDefs: [
             {field: "name", headerName: "Name", flex: 2,},
             {field: "n_expected", headerName: "Expected", valueFormatter: formatWMSColumn},
@@ -61,7 +72,6 @@
     // WMS task report
 
     const wmsReportOptions = {
-        // rowData: wmsReport,
         defaultColDef: {
             resizable: false,
             width: 100,
@@ -88,14 +98,12 @@
         agGrid.createGrid(wmsReportGridElement, wmsReportOptions);
     };
 
+    let jobScripts;
+    let jobProducts;
+    let wmsReport;
     const populateGrids = () => {
-        const jobScripts = {{scripts|tojson}};
         populateScriptsGrid(jobScripts);
-
-        const jobProducts = {{job.products|tojson}};
         populateProductsGrid(jobProducts);
-
-        const wmsReport = {{job.wms_report|tojson}};
         populateWMSReportGrid(wmsReport);
     };
 
@@ -149,6 +157,12 @@
      hx-trigger="every 20s"
      hx-select="#job_content"
      hx-swap="outerHTML">
+    <script>
+        // moved here to make sure data is refreshed with every htmx request
+        jobScripts = {{scripts|sort(attribute="id")|tojson}};
+        jobProducts = {{job.products|tojson}};
+        wmsReport = {{job.wms_report|tojson}};
+    </script>
     <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
         <div class="flex items-center">
             <span class="text-2xl font-bold">{{job.name}}</span>

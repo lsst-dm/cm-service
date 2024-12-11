@@ -176,11 +176,50 @@ def test_step_details_page() -> None:
                 name="instrument='HSC' and skymap='hsc_rings_v1' AND (38944 <= exposure)",
             ),
         ).to_be_visible()
+
+        # scripts grid
+        # check first reset button is enabled and has test "Review"
+        expect(page.locator("#scriptsGrid").get_by_role("row").nth(1).get_by_role("button")).to_be_enabled()
+        expect(page.locator("#scriptsGrid").get_by_role("row").nth(1).get_by_role("button")).to_have_text(
+            "Review"
+        )
+        # Reset modal dialog should be visible after clicking "Review" button
+        page.locator("#scriptsGrid").get_by_role("row").nth(1).get_by_role("button").click()
+        expect(page.locator("#modalDialog")).to_be_visible()
+        # Reset modal dialog should have title "Review Script"
+        expect(page.locator("#reset-modal-title")).to_have_text("Review Script")
+        # Target Status dropdown in Reset modal dialog
+        # should have a first option "ACCEPTED"
+        expect(page.locator("#targetStatus").locator("option").first).to_have_text("ACCEPTED")
+        # script log path should have this text
+        expect(page.locator("#scriptLogUrl")).to_contain_text(
+            "/sdf/group/rubin/shared/campaigns/HSC-RC2/output/archive/"
+            "HSC_DRP-RC2/w_2024_30_DM-45425c/step1/prepare_000.log",
+        )
+        page.get_by_role("button", name="Show Log").click()
+        expect(page.locator("#errorModal")).to_be_in_viewport()
+        expect(page.locator("[error-message]")).to_have_text("File not found")
+        page.locator("[close-error-modal]").click()
+        expect(page.locator("#errorModal")).not_to_be_visible()
+        # Reset Modal should not be visible after clicking the cancel button
+        page.locator("[close-reset-modal]").click()
+        expect(page.locator("#modalDialog")).not_to_be_visible()
+        # Script status should be changed to "ACCEPTED" and Reset button
+        # should be disabled after resetting to "ACCEPTED" in the reset modal
+        expect(page.locator("#scriptsGrid").get_by_role("row").nth(1)).to_contain_text("REVIEWABLE")
+        page.locator("#scriptsGrid").get_by_role("row").nth(1).get_by_role("button").click()
+        expect(page.locator("#targetStatus")).to_have_value("5")
+        page.locator("[confirm-reset]").click()
+        expect(page.locator("#modalDialog")).not_to_be_visible()
+        expect(page.locator("#scriptsGrid").get_by_role("row").nth(1)).to_contain_text("ACCEPTED")
+        expect(page.locator("#scriptsGrid").get_by_role("row").nth(1).get_by_role("button")).to_be_disabled()
+
         # click "group0"
         page.get_by_role("link", name="group0").click()
         # check group details page is open and correct values displayed
         expect(page).to_have_url("http://0.0.0.0:8080/web_app/group/17/171/95/")
         expect(page.get_by_text("group0", exact=True)).to_be_visible()
         expect(page.get_by_text("HSC_DRP-RC2/w_2024_30_DM-45425c/step1/group0")).to_be_visible()
+
         context.close()
         browser.close()
