@@ -1,5 +1,5 @@
+import asyncio
 from datetime import datetime, timedelta
-from time import sleep
 
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.future import select
@@ -32,4 +32,4 @@ async def daemon_iteration(session: async_scoped_session) -> None:
 async def daemon_loop(session: async_scoped_session) -> None:  # pragma: no cover
     while True:
         await daemon_iteration(session)
-        sleep(15)
+        await asyncio.sleep(15)
