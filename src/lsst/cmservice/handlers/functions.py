@@ -1,7 +1,9 @@
+import asyncio
 import os
 from collections.abc import Mapping
 from typing import Any
 
+import aiofiles
 import yaml
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -237,8 +239,15 @@ async def load_specification(
         loaded_specs = {}
 
     specification = None
-    with open(yaml_file, encoding="utf-8") as fin:
-        spec_data = yaml.safe_load(fin)
+    if not os.path.exists(yaml_file):
+        raise CMYamlParseError(f"Specification does not exist at path {yaml_file}")
+    try:
+        async with aiofiles.open(yaml_file, encoding="utf-8") as fin:
+            spec_data = await asyncio.to_thread(yaml.safe_load(fin))
+    except yaml.YAMLError as yaml_error:
+        raise CMYamlParseError(f"Error parsing specification {yaml_file}; threw {yaml_error}") from yaml_error
+    except Exception as e:
+        raise CMYamlParseError(f"{e}") from e
 
     for config_item in spec_data:
         if "Imports" in config_item:
@@ -437,10 +446,17 @@ async def load_manifest_report(
     job = await Job.get_row_by_fullname(session, job_name)
     if fake_status is not None:
         return job
-
-    with open(yaml_file, encoding="utf-8") as fin:
-        manifest_data = yaml.safe_load(fin)
-
+    if not os.path.exists(yaml_file):
+        raise CMYamlParseError(f"Manifest report yaml does not exist at path {yaml_file}")
+    try:
+        async with aiofiles.open(yaml_file, encoding="utf-8") as fin:
+            manifest_data = await asyncio.to_thread(yaml.safe_load(fin))
+    except yaml.YAMLError as yaml_error:
+        raise CMYamlParseError(
+            f"Error parsing manifest report yaml at path {yaml_file}; threw {yaml_error}"
+        ) from yaml_error
+    except Exception as e:
+        raise CMYamlParseError(f"{e}") from e
     for task_name_, task_data_ in manifest_data.items():
         failed_quanta = task_data_.get("failed_quanta", {})
         outputs = task_data_.get("outputs", {})
@@ -682,8 +698,17 @@ async def load_error_types(
     error_types : list[PipetaskErrorType]
         Newly loaded error types
     """
-    with open(yaml_file, encoding="utf-8") as fin:
-        error_types = yaml.safe_load(fin)
+    if not os.path.exists(yaml_file):
+        raise CMYamlParseError(f"Error type yaml does not exist at path {yaml_file}")
+    try:
+        async with aiofiles.open(yaml_file, encoding="utf-8") as fin:
+            error_types = await asyncio.to_thread(yaml.safe_load(fin))
+    except yaml.YAMLError as yaml_error:
+        raise CMYamlParseError(
+            f"Error parsing error type yaml at path {yaml_file}; threw {yaml_error}"
+        ) from yaml_error
+    except Exception as e:
+        raise CMYamlParseError(f"{e}") from e
 
     ret_list: list[PipetaskErrorType] = []
     for error_type_ in error_types:

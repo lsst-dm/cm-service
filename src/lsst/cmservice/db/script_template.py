@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+import asyncio
 import os
 from typing import TYPE_CHECKING, Any
 
+import aiofiles
 import yaml
 from sqlalchemy import JSON
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column
 
+from ..common.errors import CMYamlParseError
 from .base import Base
 from .row import RowMixin
 
@@ -78,9 +81,15 @@ class ScriptTemplate(Base, RowMixin):
             Newly created `ScriptTemplate`
         """
         full_file_path = os.path.abspath(os.path.expandvars(file_path))
-        with open(full_file_path, encoding="utf-8") as fin:
-            data = yaml.safe_load(fin)
-
+        if not os.path.exists(full_file_path):
+            raise CMYamlParseError(f"Script template does not exist at path {file_path}")
+        try:
+            async with aiofiles.open(full_file_path, encoding="utf-8") as fin:
+                data = await asyncio.to_thread(yaml.safe_load(fin))
+        except yaml.YAMLError as yaml_error:
+            raise CMYamlParseError(f"Error parsing YAML file: {yaml_error}") from yaml_error
+        except Exception as e:
+            raise CMYamlParseError(f"{e}") from e
         return await cls.create_row(session, name=name, data=data)
 
     async def update_from_file(
@@ -108,7 +117,16 @@ class ScriptTemplate(Base, RowMixin):
             Newly updated `ScriptTemplate`
         """
         full_file_path = os.path.abspath(os.path.expandvars(file_path))
-        with open(full_file_path, encoding="utf-8") as fin:
-            data = yaml.safe_load(fin)
+        if not os.path.exists(full_file_path):
+            raise CMYamlParseError(f"Script template does not exist at path {file_path}")
 
+        try:
+            with aiofiles.open(full_file_path, encoding="utf-8") as fin:
+                data = await asyncio.to_thread(yaml.safe_load(fin))
+        except yaml.YAMLError as yaml_error:
+            raise CMYamlParseError(
+                f"Error parsing YAML file at {file_path}; throws {yaml_error}"
+            ) from yaml_error
+        except Exception as e:
+            raise CMYamlParseError(f"{e}") from e
         return await self.update_values(session, name=name, data=data)

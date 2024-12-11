@@ -1,6 +1,5 @@
 import asyncio
 from datetime import datetime, timedelta
-from time import sleep
 
 import structlog
 from safir.database import create_async_session, create_database_engine
@@ -26,7 +25,7 @@ async def main_loop() -> None:
                 logger.info(f"Daemon completed {iteration_count} iterations in {delta_seconds} seconds.")
                 last_log_time = datetime.now()
             await daemon_iteration(session)
-            sleep(15)
+            await asyncio.sleep(15)
 
 
 def main() -> None:

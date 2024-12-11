@@ -5,6 +5,7 @@ import os
 import subprocess
 from typing import Any
 
+import aiofiles
 import yaml
 
 from .enums import StatusEnum
@@ -16,11 +17,16 @@ async def get_diagnostic_message(
 ) -> str:
     """Read the last line of a log file, aspirational hoping
     that it contains a diagnostic error message"""
-    with open(log_url, encoding="utf-8") as fin:
-        lines = fin.readlines()
-        if lines:
-            return lines[-1].strip()
-        return "Empty log file"
+    if not os.path.exists(log_url):
+        return f"Log file {log_url} does not exist"
+    try:
+        async with aiofiles.open(log_url, encoding="utf-8") as fin:
+            lines = await fin.readlines()
+            if lines:
+                return lines[-1].strip()
+            return "Empty log file"
+    except Exception as e:
+        return f"Error reading log file: {e}"
 
 
 def parse_bps_stdout(url: str) -> dict[str, str]:

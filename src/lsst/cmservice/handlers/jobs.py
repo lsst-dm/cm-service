@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import os
 import shutil
 import types
 from typing import Any
 
+import aiofiles
 import yaml
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -183,8 +185,11 @@ class BpsScriptHandler(ScriptHandler):
         with contextlib.suppress(OSError):
             await run_in_threadpool(os.makedirs, os.path.dirname(script_url), exist_ok=True)
 
-        with open(config_url, "w", encoding="utf-8") as fout:
-            yaml.dump(workflow_config, fout)
+        try:
+            async with aiofiles.open(config_url, "w", encoding="utf-8") as fout:
+                await asyncio.to_thread(yaml.dump(workflow_config, fout))
+        except yaml.YAMLError as yaml_error:
+            raise yaml.YAMLError(f"Error writing a script to run BPS job {script}; threw {yaml_error}")
         return StatusEnum.prepared
 
     async def _check_slurm_job(
