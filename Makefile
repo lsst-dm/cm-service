@@ -100,7 +100,7 @@ test: export DB__URL=postgresql://cm-service@localhost:${PGPORT}/cm-service
 test: export DB__PASSWORD=INSECURE-PASSWORD
 test: export DB__SCHEMA=cm_service_test
 test: run-compose
-	python3 -m lsst.cmservice.cli.server init
+	alembic upgrade head
 	pytest -vvv --asyncio-mode=auto --cov=lsst.cmservice --cov-branch --cov-report=term --cov-report=html ${PYTEST_ARGS}
 
 .PHONY: run
@@ -109,7 +109,7 @@ run: export DB__URL=postgresql://cm-service@localhost:${PGPORT}/cm-service
 run: export DB__PASSWORD=INSECURE-PASSWORD
 run: export DB__ECHO=true
 run: run-compose
-	python3 -m lsst.cmservice.cli.server init
+	alembic upgrade head
 	python3 -m lsst.cmservice.cli.server run
 
 .PHONY: run-worker
@@ -118,8 +118,18 @@ run-worker: export DB__URL=postgresql://cm-service@localhost:${PGPORT}/cm-servic
 run-worker: export DB__PASSWORD=INSECURE-PASSWORD
 run-worker: export DB__ECHO=true
 run-worker: run-compose
-	python3 -m lsst.cmservice.cli.server init
+	alembic upgrade head
 	python3 -m lsst.cmservice.daemon
+
+.PHONY: migrate
+migrate: export PGUSER=cm-service
+migrate: export PGDATABASE=cm-service
+migrate: export PGHOST=localhost
+migrate: export CM_DATABASE_PORT=$(shell docker compose port postgresql 5432 | cut -d: -f2)
+migrate: export CM_DATABASE_PASSWORD=INSECURE-PASSWORD
+migrate: export CM_DATABASE_URL=postgresql://${PGHOST}/${PGDATABASE}
+migrate: run-compose
+	alembic upgrade head
 
 
 #------------------------------------------------------------------------------
@@ -130,21 +140,21 @@ run-worker: run-compose
 .PHONY: test-sqlite
 test-sqlite: export DB__URL=sqlite+aiosqlite://///test_cm.db
 test-sqlite:
-	python3 -m lsst.cmservice.cli.server init
+	alembic -x cm_database_url=sqlite:///test_cm.db upgrade head
 	pytest -vvv --asyncio-mode=auto --cov=lsst.cmservice --cov-branch --cov-report=term --cov-report=html ${PYTEST_ARGS}
 
 .PHONY: run-sqlite
 run-sqlite: export DB__URL=sqlite+aiosqlite://///test_cm.db
 run-sqlite: export DB__ECHO=true
 run-sqlite:
-	python3 -m lsst.cmservice.cli.server init
+	alembic -x cm_database_url=sqlite:///test_cm.db upgrade head
 	python3 -m lsst.cmservice.cli.server run
 
 .PHONY: run-worker-sqlite
 run-worker-sqlite: export DB__URL=sqlite+aiosqlite://///test_cm.db
 run-worker-sqlite: export DB__ECHO=true
 run-worker-sqlite:
-	python3 -m lsst.cmservice.cli.server init
+	alembic -x cm_database_url=sqlite:///test_cm.db upgrade head
 	python3 -m lsst.cmservice.daemon
 
 
@@ -180,7 +190,7 @@ run-usdf-dev: export DB__URL=postgresql://cm-service@${DB__HOST}:5432/cm-service
 run-usdf-dev: export DB__PASSWORD=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get secret/cm-pg-app -o jsonpath='{.data.password}' | base64 --decode)
 run-usdf-dev: export DB__ECHO=true
 run-usdf-dev:
-	python3 -m lsst.cmservice.cli.server init
+	alembic upgrade head
 	python3 -m lsst.cmservice.cli.server run
 
 .PHONY: run-worker-usdf-dev

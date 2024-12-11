@@ -1,11 +1,8 @@
 import click
-import structlog
 import uvicorn
 from safir.asyncio import run_with_asyncio
-from safir.database import create_database_engine, initialize_database
 
-from .. import __version__, db
-from ..config import config
+from .. import __version__
 
 
 # build the server CLI
@@ -15,15 +12,16 @@ def server() -> None:
     """Administrative command-line interface for cm-service."""
 
 
-@server.command()
+@server.command(deprecated=True)
 @click.option("--reset", is_flag=True, help="Delete all existing database data.")
 @run_with_asyncio
 async def init(*, reset: bool) -> None:  # pragma: no cover
-    """Initialize the service database."""
-    logger = structlog.get_logger(__name__)
-    engine = create_database_engine(config.db.url, config.db.password)
-    await initialize_database(engine, logger, schema=db.Base.metadata, reset=reset)
-    await engine.dispose()
+    """Initialize the service database.
+
+    .. deprecated:: v1.5.0
+        The `init` command is deprecated in v0.2.0; it is replaced by alembic.
+    """
+    print("Use `alembic upgrade head` instead.")
 
 
 @server.command()
