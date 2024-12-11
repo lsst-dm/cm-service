@@ -104,7 +104,7 @@ class CMButlerCallError(RuntimeError):
 
 
 class CMSpecficiationError(KeyError):
-    """Raised when Specification calls out an non-existing fragement"""
+    """Raised when Specification calls out an non-existing fragment"""
 
 
 class CMTooFewAcceptedJobsError(KeyError):

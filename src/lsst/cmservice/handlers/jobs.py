@@ -23,6 +23,7 @@ from ..common.errors import (
     CMMissingScriptInputError,
     test_type_and_raise,
 )
+from ..common.utils import yaml_dump
 from ..config import config
 from ..db.element import ElementMixin
 from ..db.job import Job
@@ -187,8 +188,10 @@ class BpsScriptHandler(ScriptHandler):
         with contextlib.suppress(OSError):
             await run_in_threadpool(os.makedirs, os.path.dirname(script_url), exist_ok=True)
 
-        with open(config_url, "w", encoding="utf-8") as fout:
-            yaml.dump(workflow_config, fout)
+        try:
+            await run_in_threadpool(yaml_dump, workflow_config, config_url)
+        except yaml.YAMLError as yaml_error:
+            raise yaml.YAMLError(f"Error writing a script to run BPS job {script}; threw {yaml_error}")
         return StatusEnum.prepared
 
     async def _check_slurm_job(
@@ -347,7 +350,7 @@ class BpsReportHandler(FunctionHandler):
     ) -> StatusEnum | None:
         """Load the job processing info
 
-        Paramters
+        Parameters
         ---------
         job: Job
             Job in question

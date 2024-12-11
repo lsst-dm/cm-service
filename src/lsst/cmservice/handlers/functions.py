@@ -3,6 +3,7 @@ from collections.abc import Mapping
 from typing import Any
 
 import yaml
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
 
@@ -11,7 +12,7 @@ from lsst.ctrl.bps.wms_service import WmsJobReport, WmsRunReport, WmsStates
 
 from ..common.enums import StatusEnum
 from ..common.errors import CMMissingFullnameError, CMYamlParseError
-from ..common.utils import update_include_dict
+from ..common.utils import update_include_dict, yaml_safe_load
 from ..config import config
 from ..db.campaign import Campaign
 from ..db.job import Job
@@ -238,8 +239,14 @@ async def load_specification(
         loaded_specs = {}
 
     specification = None
-    with open(yaml_file, encoding="utf-8") as fin:
-        spec_data = yaml.safe_load(fin)
+    if not os.path.exists(yaml_file):
+        raise CMYamlParseError(f"Specification does not exist at path {yaml_file}")
+    try:
+        spec_data = await run_in_threadpool(yaml_safe_load, yaml_file)
+    except yaml.YAMLError as yaml_error:
+        raise CMYamlParseError(f"Error parsing specification {yaml_file}; threw {yaml_error}") from yaml_error
+    except Exception as e:
+        raise CMYamlParseError(f"{e}") from e
 
     for config_item in spec_data:
         if "Imports" in config_item:
@@ -439,10 +446,16 @@ async def load_manifest_report(
     fake_status = fake_status or config.mock_status
     if fake_status is not None:
         return job
-
-    with open(yaml_file, encoding="utf-8") as fin:
-        manifest_data = yaml.safe_load(fin)
-
+    if not os.path.exists(yaml_file):
+        raise CMYamlParseError(f"Manifest report yaml does not exist at path {yaml_file}")
+    try:
+        manifest_data = await run_in_threadpool(yaml_safe_load, yaml_file)
+    except yaml.YAMLError as yaml_error:
+        raise CMYamlParseError(
+            f"Error parsing manifest report yaml at path {yaml_file}; threw {yaml_error}"
+        ) from yaml_error
+    except Exception as e:
+        raise CMYamlParseError(f"{e}") from e
     for task_name_, task_data_ in manifest_data.items():
         failed_quanta = task_data_.get("failed_quanta", {})
         outputs = task_data_.get("outputs", {})
@@ -684,8 +697,16 @@ async def load_error_types(
     error_types : list[PipetaskErrorType]
         Newly loaded error types
     """
-    with open(yaml_file, encoding="utf-8") as fin:
-        error_types = yaml.safe_load(fin)
+    if not os.path.exists(yaml_file):
+        raise CMYamlParseError(f"Error type yaml does not exist at path {yaml_file}")
+    try:
+        error_types = await run_in_threadpool(yaml_safe_load, yaml_file)
+    except yaml.YAMLError as yaml_error:
+        raise CMYamlParseError(
+            f"Error parsing error type yaml at path {yaml_file}; threw {yaml_error}"
+        ) from yaml_error
+    except Exception as e:
+        raise CMYamlParseError(f"{e}") from e
 
     ret_list: list[PipetaskErrorType] = []
     for error_type_ in error_types:

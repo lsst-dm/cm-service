@@ -6,6 +6,7 @@ import subprocess
 from typing import Any
 
 import yaml
+from fastapi.concurrency import run_in_threadpool
 
 from ..config import config
 from .enums import StatusEnum
@@ -16,16 +17,60 @@ async def get_diagnostic_message(
     log_url: str,
 ) -> str:
     """Read the last line of a log file, aspirational hoping
-    that it contains a diagnostic error message"""
-    with open(log_url, encoding="utf-8") as fin:
-        lines = fin.readlines()
+    that it contains a diagnostic error message
+
+    Parameters
+    ----------
+    log_url : `str`
+        The url of the log which may contain a diagnostic message
+
+    Returns
+    -------
+    The last line of the log file, potentially containing a diagnostic message.
+    """
+    if not os.path.exists(log_url):
+        return f"Log file {log_url} does not exist"
+    try:
+        lines = await run_in_threadpool(read_lines, log_url)
         if lines:
             return lines[-1].strip()
         return "Empty log file"
+    except Exception as e:
+        return f"Error reading log file: {e}"
 
 
-def parse_bps_stdout(url: str) -> dict[str, str]:
-    """Parse the std from a bps submit job"""
+async def parse_bps_stdout(url: str) -> dict[str, str]:
+    """Parse the std from a bps submit job. Wraps the synchronous function
+    and passes to `fastapi.concurrency.run_in_threadpool`
+
+    Parameters
+    ----------
+    url : `str`
+        url for BPS submit stdout
+
+    Returns
+    -------
+    out_dict `str`
+        a dictionary containing the stdout from BPS submit
+    """
+    out_dict = await run_in_threadpool(sync_parse_bps_stdout, url)
+    return out_dict
+
+
+def sync_parse_bps_stdout(url: str) -> dict[str, str]:
+    """Parse the std from a bps submit job. Synchronous function using
+    standard readline.
+
+    Parameters
+    ----------
+    url : `str`
+        url for BPS submit stdout
+
+    Returns
+    -------
+    out_dict `str`
+        a dictionary containing the stdout from BPS submit
+    """
     out_dict = {}
     with open(url, encoding="utf8") as fin:
         line = fin.readline()
