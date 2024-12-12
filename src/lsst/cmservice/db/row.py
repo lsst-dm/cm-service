@@ -16,9 +16,8 @@ from ..common.errors import (
     CMMissingFullnameError,
     CMMissingIDError,
 )
-from ..config import config
 
-logger = get_logger(config.logger_name)
+logger = get_logger(__name__)
 
 T = TypeVar("T", bound="RowMixin")
 

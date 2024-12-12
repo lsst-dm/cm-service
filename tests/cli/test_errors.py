@@ -21,7 +21,7 @@ async def test_error_create_cli(uvicorn: UvicornProcess) -> None:
     fake error which is not in the database.
     """
 
-    client_config.service_url = f"{uvicorn.url}{config.prefix}"
+    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}"
     runner = CliRunner()
 
     result = runner.invoke(
@@ -41,7 +41,7 @@ async def test_error_create_cli(uvicorn: UvicornProcess) -> None:
 async def test_load_error_types_cli(uvicorn: UvicornProcess) -> None:
     """Test `error_type` db table."""
 
-    client_config.service_url = f"{uvicorn.url}{config.prefix}"
+    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}"
     runner = CliRunner()
 
     result = runner.invoke(client_top, "load error-types --yaml_file examples/error_types.yaml")

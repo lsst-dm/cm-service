@@ -10,7 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from lsst.cmservice import db
 from lsst.cmservice.common.daemon import daemon_iteration
 from lsst.cmservice.common.enums import StatusEnum
-from lsst.cmservice.config import config
 from lsst.cmservice.handlers import interface
 
 from .util_functions import cleanup
@@ -20,7 +19,7 @@ from .util_functions import cleanup
 async def test_daemon_db(engine: AsyncEngine) -> None:
     """Test creating a job, add it to the work queue, and start processing."""
 
-    logger = structlog.get_logger(config.logger_name)
+    logger = structlog.get_logger(__name__)
     async with engine.begin():
         session = await create_async_session(engine, logger)
         CM_CONFIGS = "examples"

@@ -17,7 +17,7 @@ from .util_functions import (
 async def test_cli_trivial_campaign(uvicorn: UvicornProcess) -> None:
     """Test fake end to end run using example/example_trivial.yaml"""
 
-    client_config.service_url = f"{uvicorn.url}{config.prefix}"
+    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}"
     runner = CliRunner()
 
     yaml_file = "examples/example_trivial.yaml"

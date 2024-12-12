@@ -31,7 +31,7 @@ async def test_campaign_routes(client: AsyncClient) -> None:
     # intialize a tree down to one level lower
     await create_tree(client, LevelEnum.step, uuid_int)
 
-    response = await client.get(f"{config.prefix}/campaign/list")
+    response = await client.get(f"{config.asgi.prefix}/campaign/list")
     campaigns = check_and_parse_response(response, list[models.Campaign])
     entry = campaigns[0]
 
@@ -41,7 +41,7 @@ async def test_campaign_routes(client: AsyncClient) -> None:
     )
 
     response = await client.post(
-        f"{config.prefix}/load/steps",
+        f"{config.asgi.prefix}/load/steps",
         content=add_steps_query.model_dump_json(),
     )
     campaign_check = check_and_parse_response(response, models.Campaign)

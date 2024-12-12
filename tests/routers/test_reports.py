@@ -27,7 +27,7 @@ async def test_report_routes(client: AsyncClient) -> None:
     # intialize a tree down to one level lower
     await create_tree(client, LevelEnum.job, uuid_int)
 
-    response = await client.get(f"{config.prefix}/job/list")
+    response = await client.get(f"{config.asgi.prefix}/job/list")
     jobs = check_and_parse_response(response, list[models.Job])
     entry = jobs[0]
 
@@ -37,7 +37,7 @@ async def test_report_routes(client: AsyncClient) -> None:
     )
 
     response = await client.post(
-        f"{config.prefix}/load/manifest_report",
+        f"{config.asgi.prefix}/load/manifest_report",
         content=manifest_report_query.model_dump_json(),
     )
     assert response.is_success

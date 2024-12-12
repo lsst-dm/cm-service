@@ -33,7 +33,7 @@ async def test_job_routes(client: AsyncClient) -> None:
     # intialize a tree down to one level lower
     await create_tree(client, LevelEnum.job, uuid_int)
 
-    response = await client.get(f"{config.prefix}/job/list")
+    response = await client.get(f"{config.asgi.prefix}/job/list")
     jobs = check_and_parse_response(response, list[models.Job])
     entry = jobs[0]
 
@@ -51,18 +51,18 @@ async def test_job_routes(client: AsyncClient) -> None:
 
     # test some job-specific stuff
     response = await client.get(
-        f"{config.prefix}/job/get/{entry.id}/parent",
+        f"{config.asgi.prefix}/job/get/{entry.id}/parent",
     )
     parent = check_and_parse_response(response, models.Group)
 
     response = await client.get(
-        f"{config.prefix}/job/get/{entry.id}/errors",
+        f"{config.asgi.prefix}/job/get/{entry.id}/errors",
     )
     check_errors = check_and_parse_response(response, list[models.PipetaskError])
     assert len(check_errors) == 0
 
     response = await client.get(
-        f"{config.prefix}/job/get/-1/errors",
+        f"{config.asgi.prefix}/job/get/-1/errors",
     )
     expect_failed_response(response, 404)
 
@@ -71,67 +71,67 @@ async def test_job_routes(client: AsyncClient) -> None:
         status=StatusEnum.rescuable,
     )
     response = await client.put(
-        f"{config.prefix}/job/update/{entry.id}",
+        f"{config.asgi.prefix}/job/update/{entry.id}",
         content=update_model.model_dump_json(),
     )
 
     response = await client.put(
-        f"{config.prefix}/job/update/-1",
+        f"{config.asgi.prefix}/job/update/-1",
         content=update_model.model_dump_json(),
     )
     expect_failed_response(response, 404)
 
     response = await client.post(
-        f"{config.prefix}/group/action/{parent.id}/rescue_job",
+        f"{config.asgi.prefix}/group/action/{parent.id}/rescue_job",
     )
     rescue_job = check_and_parse_response(response, models.Job)
     assert rescue_job.attempt == 1
 
     response = await client.put(
-        f"{config.prefix}/job/update/{rescue_job.id}",
+        f"{config.asgi.prefix}/job/update/{rescue_job.id}",
         content=update_model.model_dump_json(),
     )
 
     rescue_node_model = models.NodeQuery(fullname=parent.fullname)
 
     response = await client.post(
-        f"{config.prefix}/actions/rescue_job", content=rescue_node_model.model_dump_json()
+        f"{config.asgi.prefix}/actions/rescue_job", content=rescue_node_model.model_dump_json()
     )
     rescue_job = check_and_parse_response(response, models.Job)
     assert rescue_job.attempt == 2
 
     response = await client.get(
-        f"{config.prefix}/group/get/{parent.id}/jobs",
+        f"{config.asgi.prefix}/group/get/{parent.id}/jobs",
     )
     check_jobs = check_and_parse_response(response, list[models.Job])
     assert len(check_jobs) == 3
     new_job = check_jobs[-1]
 
     response = await client.get(
-        f"{config.prefix}/group/get/-1/jobs",
+        f"{config.asgi.prefix}/group/get/-1/jobs",
     )
     expect_failed_response(response, 404)
 
     update_model.status = StatusEnum.accepted
     response = await client.put(
-        f"{config.prefix}/job/update/{new_job.id}",
+        f"{config.asgi.prefix}/job/update/{new_job.id}",
         content=update_model.model_dump_json(),
     )
 
     response = await client.post(
-        f"{config.prefix}/group/action/{parent.id}/mark_rescued",
+        f"{config.asgi.prefix}/group/action/{parent.id}/mark_rescued",
     )
     check_jobs = check_and_parse_response(response, list[models.Job])
     assert len(check_jobs) == 2
 
     update_model.status = StatusEnum.rescuable
     response = await client.put(
-        f"{config.prefix}/job/update/{entry.id}",
+        f"{config.asgi.prefix}/job/update/{entry.id}",
         content=update_model.model_dump_json(),
     )
 
     response = await client.post(
-        f"{config.prefix}/actions/mark_job_rescued",
+        f"{config.asgi.prefix}/actions/mark_job_rescued",
         content=rescue_node_model.model_dump_json(),
     )
     check_jobs = check_and_parse_response(response, list[models.Job])

@@ -89,34 +89,34 @@ run-compose:
 	docker compose up --wait
 
 .PHONY: psql
-psql: CM_DATABASE_PORT=$(shell docker compose port postgresql 5432 | cut -d: -f2)
-psql: export CM_DATABASE_PASSWORD=INSECURE-PASSWORD
+psql: PGPORT=$(shell docker compose port postgresql 5432 | cut -d: -f2)
+psql: export DB__PASSWORD=INSECURE-PASSWORD
 psql: run-compose
-	psql postgresql://cm-service:${CM_DATABASE_PASSWORD}@localhost:${CM_DATABASE_PORT}/cm-service
+	psql postgresql://cm-service:${DB__PASSWORD}@localhost:${PGPORT}/cm-service
 
 .PHONY: test
-test: CM_DATABASE_PORT=$(shell docker compose port postgresql 5432 | cut -d: -f2)
-test: export CM_DATABASE_URL=postgresql://cm-service@localhost:${CM_DATABASE_PORT}/cm-service
-test: export CM_DATABASE_PASSWORD=INSECURE-PASSWORD
-test: export CM_DATABASE_SCHEMA=cm_service_test
+test: PGPORT=$(shell docker compose port postgresql 5432 | cut -d: -f2)
+test: export DB__URL=postgresql://cm-service@localhost:${PGPORT}/cm-service
+test: export DB__PASSWORD=INSECURE-PASSWORD
+test: export DB__SCHEMA=cm_service_test
 test: run-compose
 	python3 -m lsst.cmservice.cli.server init
 	pytest -vvv --asyncio-mode=auto --cov=lsst.cmservice --cov-branch --cov-report=term --cov-report=html ${PYTEST_ARGS}
 
 .PHONY: run
-run: CM_DATABASE_PORT=$(shell docker compose port postgresql 5432 | cut -d: -f2)
-run: export CM_DATABASE_URL=postgresql://cm-service@localhost:${CM_DATABASE_PORT}/cm-service
-run: export CM_DATABASE_PASSWORD=INSECURE-PASSWORD
-run: export CM_DATABASE_ECHO=true
+run: PGPORT=$(shell docker compose port postgresql 5432 | cut -d: -f2)
+run: export DB__URL=postgresql://cm-service@localhost:${PGPORT}/cm-service
+run: export DB__PASSWORD=INSECURE-PASSWORD
+run: export DB__ECHO=true
 run: run-compose
 	python3 -m lsst.cmservice.cli.server init
 	python3 -m lsst.cmservice.cli.server run
 
 .PHONY: run-worker
-run-worker: CM_DATABASE_PORT=$(shell docker compose port postgresql 5432 | cut -d: -f2)
-run-worker: export CM_DATABASE_URL=postgresql://cm-service@localhost:${CM_DATABASE_PORT}/cm-service
-run-worker: export CM_DATABASE_PASSWORD=INSECURE-PASSWORD
-run-worker: export CM_DATABASE_ECHO=true
+run-worker: PGPORT=$(shell docker compose port postgresql 5432 | cut -d: -f2)
+run-worker: export DB__URL=postgresql://cm-service@localhost:${PGPORT}/cm-service
+run-worker: export DB__PASSWORD=INSECURE-PASSWORD
+run-worker: export DB__ECHO=true
 run-worker: run-compose
 	python3 -m lsst.cmservice.cli.server init
 	python3 -m lsst.cmservice.daemon
@@ -128,21 +128,21 @@ run-worker: run-compose
 #------------------------------------------------------------------------------
 
 .PHONY: test-sqlite
-test-sqlite: export CM_DATABASE_URL=sqlite+aiosqlite://///test_cm.db
+test-sqlite: export DB__URL=sqlite+aiosqlite://///test_cm.db
 test-sqlite:
 	python3 -m lsst.cmservice.cli.server init
 	pytest -vvv --asyncio-mode=auto --cov=lsst.cmservice --cov-branch --cov-report=term --cov-report=html ${PYTEST_ARGS}
 
 .PHONY: run-sqlite
-run-sqlite: export CM_DATABASE_URL=sqlite+aiosqlite://///test_cm.db
-run-sqlite: export CM_DATABASE_ECHO=true
+run-sqlite: export DB__URL=sqlite+aiosqlite://///test_cm.db
+run-sqlite: export DB__ECHO=true
 run-sqlite:
 	python3 -m lsst.cmservice.cli.server init
 	python3 -m lsst.cmservice.cli.server run
 
 .PHONY: run-worker-sqlite
-run-worker-sqlite: export CM_DATABASE_URL=sqlite+aiosqlite://///test_cm.db
-run-worker-sqlite: export CM_DATABASE_ECHO=true
+run-worker-sqlite: export DB__URL=sqlite+aiosqlite://///test_cm.db
+run-worker-sqlite: export DB__ECHO=true
 run-worker-sqlite:
 	python3 -m lsst.cmservice.cli.server init
 	python3 -m lsst.cmservice.daemon
@@ -167,36 +167,36 @@ psql-usdf-dev: ## Connect psql client to backend Postgres (shared USDF)
 	psql
 
 .PHONY: test-usdf-dev
-test-usdf-dev: CM_DATABASE_HOST=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get svc/cm-pg-lb -o jsonpath='{..ingress[0].ip}')'
-test-usdf-dev: export CM_DATABASE_URL=postgresql://cm-service@${CM_DATABASE_HOST}:5432/cm-service
-test-usdf-dev: export CM_DATABASE_PASSWORD=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get secret/cm-pg-app -o jsonpath='{.data.password}' | base64 --decode)
-test-usdf-dev: export CM_DATABASE_SCHEMA=cm_service_test
+test-usdf-dev: DB__HOST=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get svc/cm-pg-lb -o jsonpath='{..ingress[0].ip}')'
+test-usdf-dev: export DB__URL=postgresql://cm-service@${DB__HOST}:5432/cm-service
+test-usdf-dev: export DB__PASSWORD=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get secret/cm-pg-app -o jsonpath='{.data.password}' | base64 --decode)
+test-usdf-dev: export DB__SCHEMA=cm_service_test
 test-usdf-dev:
 	pytest -vvv --cov=lsst.cmservice --cov-branch --cov-report=term --cov-report=html ${PYTEST_ARGS}
 
 .PHONY: run-usdf-dev
-run-usdf-dev:CM_DATABASE_HOST=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get svc/cm-pg-lb -o jsonpath='{..ingress[0].ip}')'
-run-usdf-dev: export CM_DATABASE_URL=postgresql://cm-service@${CM_DATABASE_HOST}:5432/cm-service
-run-usdf-dev: export CM_DATABASE_PASSWORD=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get secret/cm-pg-app -o jsonpath='{.data.password}' | base64 --decode)
-run-usdf-dev: export CM_DATABASE_ECHO=true
+run-usdf-dev:DB__HOST=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get svc/cm-pg-lb -o jsonpath='{..ingress[0].ip}')'
+run-usdf-dev: export DB__URL=postgresql://cm-service@${DB__HOST}:5432/cm-service
+run-usdf-dev: export DB__PASSWORD=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get secret/cm-pg-app -o jsonpath='{.data.password}' | base64 --decode)
+run-usdf-dev: export DB__ECHO=true
 run-usdf-dev:
 	python3 -m lsst.cmservice.cli.server init
 	python3 -m lsst.cmservice.cli.server run
 
 .PHONY: run-worker-usdf-dev
-run-worker-usdf-dev: CM_DATABASE_HOST=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get svc/cm-pg-lb -o jsonpath='{..ingress[0].ip}')
-run-worker-usdf-dev: export CM_DATABASE_URL=postgresql://cm-service@${CM_DATABASE_HOST}:5432/cm-service
-run-worker-usdf-dev: export CM_DATABASE_PASSWORD=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get secret/cm-pg-app -o jsonpath='{.data.password}' | base64 --decode)
-run-worker-usdf-dev: export CM_DATABASE_ECHO=true
+run-worker-usdf-dev: DB__HOST=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get svc/cm-pg-lb -o jsonpath='{..ingress[0].ip}')
+run-worker-usdf-dev: export DB__URL=postgresql://cm-service@${DB__HOST}:5432/cm-service
+run-worker-usdf-dev: export DB__PASSWORD=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get secret/cm-pg-app -o jsonpath='{.data.password}' | base64 --decode)
+run-worker-usdf-dev: export DB__ECHO=true
 run-worker-usdf-dev:
 	python3 -m lsst.cmservice.daemon
 
-get-env-%: CM_DATABASE_HOST=$(shell kubectl --cluster=$* -n cm-service get svc/cm-pg-lb -o jsonpath='{..ingress[0].ip}')
-get-env-%: export CM_DATABASE_URL=postgresql://cm-servicer@${CM_DATABASE_HOST}:5432/cm-service
-get-env-%: export CM_DATABASE_PASSWORD=$(shell kubectl --cluster=$* -n cm-service get secret/cm-pg-app -o jsonpath='{.data.password}' | base64 --decode)
-get-env-%: export CM_DATABASE_ECHO=true
+get-env-%: DB__HOST=$(shell kubectl --cluster=$* -n cm-service get svc/cm-pg-lb -o jsonpath='{..ingress[0].ip}')
+get-env-%: export DB__URL=postgresql://cm-servicer@${DB__HOST}:5432/cm-service
+get-env-%: export DB__PASSWORD=$(shell kubectl --cluster=$* -n cm-service get secret/cm-pg-app -o jsonpath='{.data.password}' | base64 --decode)
+get-env-%: export DB__ECHO=true
 get-env-%:
 	rm -f .env.$*
-	echo CM_DATABASE_URL=$${CM_DATABASE_URL} > .env.$*
-	echo CM_DATABASE_ECHO=$${CM_DATABASE_ECHO} >> .env.$*
-	echo CM_DATABASE_PASSWORD=$${CM_DATABASE_PASSWORD} >> .env.$*
+	echo DB__URL=$${DB__URL} > .env.$*
+	echo DB__ECHO=$${DB__ECHO} >> .env.$*
+	echo DB__PASSWORD=$${DB__PASSWORD} >> .env.$*

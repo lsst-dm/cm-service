@@ -3,6 +3,7 @@
 import subprocess
 from typing import Any
 
+from ..config import config
 from .enums import StatusEnum
 from .errors import CMHTCondorCheckError, CMHTCondorSubmitError
 
@@ -49,9 +50,9 @@ def write_htcondor_script(
         should_transfer_files="Yes",
         when_to_transfer_output="ON_EXIT",
         get_env=True,
-        request_cpus=1,
-        request_memory="512M",
-        request_disk="1G",
+        request_cpus=config.htcondor.request_cpus,
+        request_memory=config.htcondor.request_mem,
+        request_disk=config.htcondor.request_disk,
     )
     options.update(**kwargs)
 
@@ -86,16 +87,16 @@ def submit_htcondor_job(
     try:
         with subprocess.Popen(
             [
-                "condor_submit",
+                config.htcondor.condor_submit_bin,
                 htcondor_script_path,
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-        ) as sbatch:  # pragma: no cover
-            sbatch.wait()
-            if sbatch.returncode != 0:
-                assert sbatch.stderr
-                msg = sbatch.stderr.read().decode()
+        ) as condor_submit:  # pragma: no cover
+            condor_submit.wait()
+            if condor_submit.returncode != 0:
+                assert condor_submit.stderr
+                msg = condor_submit.stderr.read().decode()
                 raise CMHTCondorSubmitError(f"Bad htcondor submit: {msg}")
     except Exception as e:
         raise CMHTCondorSubmitError(f"Bad htcondor submit: {e}") from e
@@ -126,7 +127,7 @@ def check_htcondor_job(
         if htcondor_id is None:  # pragma: no cover
             raise CMHTCondorCheckError("No htcondor_id")
         with subprocess.Popen(
-            ["condor_q", "-userlog", htcondor_id, "-af", "JobStatus", "ExitCode"],
+            [config.htcondor.condor_q_bin, "-userlog", htcondor_id, "-af", "JobStatus", "ExitCode"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         ) as condor_q:  # pragma: no cover

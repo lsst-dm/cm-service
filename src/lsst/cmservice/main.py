@@ -36,8 +36,8 @@ from .web_app import web_app
 
 __all__ = ["app", "config"]
 
-configure_logging(profile=config.profile, log_level=config.log_level, name=config.logger_name)
-configure_uvicorn_logging(config.log_level)
+configure_logging(profile=config.logging.profile, log_level=config.logging.level, name=__name__)
+configure_uvicorn_logging(config.logging.level)
 
 
 tags_metadata = [
@@ -121,9 +121,9 @@ tags_metadata = [
 async def lifespan(_: FastAPI) -> AsyncGenerator:
     """Hook FastAPI init/cleanups."""
     # Dependency inits before app starts running
-    await db_session_dependency.initialize(config.database_url, config.database_password)
-    assert db_session_dependency._engine is not None  # pylint: disable=protected-access
-    db_session_dependency._engine.echo = config.database_echo  # pylint: disable=protected-access
+    await db_session_dependency.initialize(config.db.url, config.db.password)
+    assert db_session_dependency._engine is not None
+    db_session_dependency._engine.echo = config.db.echo
 
     # App runs here...
     yield
@@ -135,43 +135,43 @@ async def lifespan(_: FastAPI) -> AsyncGenerator:
 
 app = FastAPI(
     lifespan=lifespan,
-    title="cm-service",
+    title=config.asgi.title,
     version=__version__,
-    openapi_url=f"{config.prefix}/openapi.json",
+    openapi_url=f"{config.asgi.prefix}/openapi.json",
     openapi_tags=tags_metadata,
-    docs_url=f"{config.prefix}/docs",
-    redoc_url=f"{config.prefix}/redoc",
+    docs_url=f"{config.asgi.prefix}/docs",
+    redoc_url=f"{config.asgi.prefix}/redoc",
 )
 
 app.add_middleware(XForwardedMiddleware)
 
 
 app.include_router(index.router)
-app.include_router(loaders.router, prefix=config.prefix)
-app.include_router(actions.router, prefix=config.prefix)
+app.include_router(loaders.router, prefix=config.asgi.prefix)
+app.include_router(actions.router, prefix=config.asgi.prefix)
 
-app.include_router(productions.router, prefix=config.prefix)
-app.include_router(campaigns.router, prefix=config.prefix)
-app.include_router(steps.router, prefix=config.prefix)
-app.include_router(groups.router, prefix=config.prefix)
-app.include_router(jobs.router, prefix=config.prefix)
-app.include_router(scripts.router, prefix=config.prefix)
+app.include_router(productions.router, prefix=config.asgi.prefix)
+app.include_router(campaigns.router, prefix=config.asgi.prefix)
+app.include_router(steps.router, prefix=config.asgi.prefix)
+app.include_router(groups.router, prefix=config.asgi.prefix)
+app.include_router(jobs.router, prefix=config.asgi.prefix)
+app.include_router(scripts.router, prefix=config.asgi.prefix)
 
-app.include_router(specifications.router, prefix=config.prefix)
-app.include_router(spec_blocks.router, prefix=config.prefix)
-app.include_router(script_templates.router, prefix=config.prefix)
+app.include_router(specifications.router, prefix=config.asgi.prefix)
+app.include_router(spec_blocks.router, prefix=config.asgi.prefix)
+app.include_router(script_templates.router, prefix=config.asgi.prefix)
 
-app.include_router(pipetask_error_types.router, prefix=config.prefix)
-app.include_router(pipetask_errors.router, prefix=config.prefix)
-app.include_router(script_errors.router, prefix=config.prefix)
+app.include_router(pipetask_error_types.router, prefix=config.asgi.prefix)
+app.include_router(pipetask_errors.router, prefix=config.asgi.prefix)
+app.include_router(script_errors.router, prefix=config.asgi.prefix)
 
-app.include_router(task_sets.router, prefix=config.prefix)
-app.include_router(product_sets.router, prefix=config.prefix)
-app.include_router(wms_task_reports.router, prefix=config.prefix)
+app.include_router(task_sets.router, prefix=config.asgi.prefix)
+app.include_router(product_sets.router, prefix=config.asgi.prefix)
+app.include_router(wms_task_reports.router, prefix=config.asgi.prefix)
 
-app.include_router(script_dependencies.router, prefix=config.prefix)
-app.include_router(step_dependencies.router, prefix=config.prefix)
-app.include_router(queues.router, prefix=config.prefix)
+app.include_router(script_dependencies.router, prefix=config.asgi.prefix)
+app.include_router(step_dependencies.router, prefix=config.asgi.prefix)
+app.include_router(queues.router, prefix=config.asgi.prefix)
 
 # Start the frontend web application.
-app.mount("/web_app", web_app)
+app.mount(config.asgi.frontend_prefix, web_app)

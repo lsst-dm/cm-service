@@ -2,6 +2,7 @@
 
 import subprocess
 
+from ..config import config
 from .enums import StatusEnum
 from .errors import CMSlurmCheckError, CMSlurmSubmitError
 
@@ -62,15 +63,15 @@ def submit_slurm_job(
     try:
         with subprocess.Popen(
             [
-                "sbatch",
+                config.slurm.sbatch_bin,
                 "-o",
                 log_url,
                 "--mem",
-                "16448",
+                config.slurm.memory,
                 "--account",
-                "rubin:production",
+                config.slurm.account,
                 "-p",
-                "milano",
+                config.slurm.partition,
                 "--parsable",
                 script_url,
             ],
@@ -114,7 +115,7 @@ def check_slurm_job(
         return StatusEnum.running
     try:
         with subprocess.Popen(
-            ["sacct", "--parsable", "-b", "-j", slurm_id], stdout=subprocess.PIPE
+            [config.slurm.sacct_bin, "--parsable", "-b", "-j", slurm_id], stdout=subprocess.PIPE
         ) as sacct:  # pragma: no cover
             sacct.wait()
             if sacct.returncode != 0:

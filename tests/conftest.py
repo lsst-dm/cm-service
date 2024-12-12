@@ -19,8 +19,8 @@ from lsst.cmservice.config import config
 @pytest_asyncio.fixture(name="engine")
 async def engine_fixture() -> AsyncIterator[AsyncEngine]:
     """Return a SQLAlchemy AsyncEngine configured to talk to the app db."""
-    logger = structlog.get_logger(config.logger_name)
-    the_engine = create_database_engine(config.database_url, config.database_password)
+    logger = structlog.get_logger(__name__)
+    the_engine = create_database_engine(config.db.url, config.db.password)
     await initialize_database(the_engine, logger, schema=db.Base.metadata, reset=True)
     yield the_engine
     await the_engine.dispose()

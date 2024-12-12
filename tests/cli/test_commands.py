@@ -9,7 +9,7 @@ from lsst.cmservice.config import config
 
 def test_commands_cli(uvicorn: UvicornProcess) -> None:
     """Test miscellaneous CLI commands"""
-    client_config.service_url = f"{uvicorn.url}{config.prefix}"
+    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}"
     runner = CliRunner()
 
     result = runner.invoke(server, "--version")

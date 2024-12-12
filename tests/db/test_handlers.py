@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncEngine, async_scoped_session
 
 from lsst.cmservice import db
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum
-from lsst.cmservice.config import config
 from lsst.cmservice.handlers import interface, jobs
 
 from .util_functions import cleanup, create_tree
@@ -94,7 +93,7 @@ async def test_handlers_campaign_level_db(
     """Test to run the write and purge methods of various scripts"""
     temp_dir = str(tmp_path / "archive")
 
-    logger = structlog.get_logger(config.logger_name)
+    logger = structlog.get_logger(__name__)
     async with engine.begin():
         session = await create_async_session(engine, logger)
         os.environ["CM_CONFIGS"] = "examples"
@@ -177,7 +176,7 @@ async def test_handlers_step_level_db(
     """Test to run the write and purge methods of various scripts"""
     temp_dir = str(tmp_path / "archive")
 
-    logger = structlog.get_logger(config.logger_name)
+    logger = structlog.get_logger(__name__)
     async with engine.begin():
         session = await create_async_session(engine, logger)
         os.environ["CM_CONFIGS"] = "examples"
@@ -215,7 +214,7 @@ async def test_handlers_group_level_db(
     """Test to run the write and purge methods of various scripts"""
     temp_dir = str(tmp_path / "archive")
 
-    logger = structlog.get_logger(config.logger_name)
+    logger = structlog.get_logger(__name__)
     async with engine.begin():
         session = await create_async_session(engine, logger)
         os.environ["CM_CONFIGS"] = "examples"
@@ -273,7 +272,7 @@ async def test_handlers_job_level_db(
     """Test to run the write and purge methods of various scripts"""
     temp_dir = str(tmp_path / "archive")
 
-    logger = structlog.get_logger(config.logger_name)
+    logger = structlog.get_logger(__name__)
     async with engine.begin():
         session = await create_async_session(engine, logger)
         os.environ["CM_CONFIGS"] = "examples"

@@ -18,10 +18,10 @@ services:
       - lsst.cmservice.cli.server
       - init
     environment: &cmenv
-      CM_DATABASE_HOST: postgresql
-      CM_DATABASE_ECHO: true
-      CM_DATABASE_URL: postgresql://cm-service@postgresql:5432/cm-service
-      CM_DATABASE_PASSWORD: INSECURE-PASSWORD
+      DB__HOST: postgresql
+      DB__ECHO: true
+      DB__URL: postgresql://cm-service@postgresql:5432/cm-service
+      DB__PASSWORD: INSECURE-PASSWORD
     depends_on:
       postgresql:
         condition: service_healthy
