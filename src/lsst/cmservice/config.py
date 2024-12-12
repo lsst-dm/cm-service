@@ -1,7 +1,10 @@
+from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 __all__ = ["Configuration", "config"]
+
+load_dotenv()
 
 
 class BpsConfiguration(BaseModel):
@@ -171,6 +174,18 @@ class LoggingConfiguration(BaseModel):
     )
 
 
+class DaemonConfiguration(BaseModel):
+    """Settings for the Daemon nested model.
+
+    Set according to DAEMON__FIELD environment variables.
+    """
+
+    iteration_duration: int = Field(
+        default=300,
+        description="The number of seconds to wait between daemon interations.",
+    )
+
+
 class DatabaseConfiguration(BaseModel):
     """Database configuration nested model.
 
@@ -217,6 +232,7 @@ class Configuration(BaseSettings):
     asgi: AsgiConfiguration = AsgiConfiguration()
     bps: BpsConfiguration = BpsConfiguration()
     butler: ButlerConfiguration = ButlerConfiguration()
+    daemon: DaemonConfiguration = DaemonConfiguration()
     db: DatabaseConfiguration = DatabaseConfiguration()
     htcondor: HTCondorConfiguration = HTCondorConfiguration()
     logging: LoggingConfiguration = LoggingConfiguration()
