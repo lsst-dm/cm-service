@@ -92,10 +92,29 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: lsst-sqre/build-and-push-to-ghcr@v1
+      - uses: lsst-sqre/build-and-push-to-ghcr@tickets/DM-48192
         id: build-service
         with:
           dockerfile: docker/Dockerfile
+          target: cmservice
+          build-args: |
+            "PYTHON_VERSION=3.11"
+            "UV_VERSION=0.5"
+          image: ${{ github.repository }}
+          additional-tags: |
+            latest
+            "0"
+            "0.1"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: lsst-sqre/build-and-push-to-ghcr@tickets/DM-48192
+        id: build-worker
+        with:
+          dockerfile: docker/Dockerfile
+          target: cmworker
+          build-args: |
+            "PYTHON_VERSION=3.11"
+            "UV_VERSION=0.5"
           image: ${{ github.repository }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
 

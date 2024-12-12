@@ -1,11 +1,16 @@
 # syntax=docker/dockerfile:1
 
-ARG PYTHON_VERSION=3.11
-ARG UV_VERSION=0.5
+ARG PYTHON_VERSION
+ARG UV_VERSION
 
 #==============================================================================
 # UV SOURCE IMAGE
 FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
+
+
+# HTCONDOR SOURCE IMAGE
+FROM continuumio/miniconda3:latest AS htcondor
+RUN conda create -p /opt/htcondor -c conda-forge htcondor-utils --no-default-packages
 
 
 #==============================================================================
@@ -69,8 +74,8 @@ ENDRUN
 
 
 #==============================================================================
-# RUNTIME IMAGE
-FROM base-image AS runtime-image
+# RUNTIME IMAGE - CM-Service
+FROM base-image AS cmservice
 
 # Expose the API port
 EXPOSE 8080
@@ -105,5 +110,12 @@ EOF
 ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["lsst.cmservice.main:app", "--host", "0.0.0.0", "--port", "8080"]
 
-# ENTRYPOINT ["/opt/venv/bin/python3", "-m"]
-# CMD ["lsst.cmservice.daemon"]
+
+#==============================================================================
+# RUNTIME IMAGE - Daemon
+FROM cmservice AS cmworker
+
+COPY --from=htcondor /opt/htcondor /opt/htcondor
+
+ENTRYPOINT ["/opt/venv/bin/python3", "-m"]
+CMD ["lsst.cmservice.daemon"]
