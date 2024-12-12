@@ -14,6 +14,7 @@ follows:
 
 * Ensure `uv` is installed (via Homebrew (macOS), `pipx`, or a preferred alternative method).
 
+  - You may run `make uv` to bootstrap uv in your environment.
   - Suggested: set `UV_PYTHON_PREFERENCE=only-managed` to prevent non-`uv` Pythons from being used.
   - USDF: set `UV_NATIVE_TLS=true` for compatibility with the Squid proxy.
 

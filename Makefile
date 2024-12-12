@@ -49,6 +49,11 @@ build:
 	docker compose build cmservice
 	docker compose build cmworker
 
+.PHONY: uv
+uv:
+	script/bootstrap_uv
+
+
 #------------------------------------------------------------------------------
 # Target to create a "release" that consists of an increment of the version
 # patch level in the appropriate file, a git commit and a matching git tag on

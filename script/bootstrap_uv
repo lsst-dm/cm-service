@@ -1,0 +1,47 @@
+#!/bin/sh
+
+# script/boostrap_uv: Install the `uv` tool if it is not present on the system,
+#                     preferring a Homebrew recipe on macOS and a binary download
+#                     on Linux.
+
+set -eo pipefail
+
+cd "$(dirname "$0")/.."
+
+if [ -n "$(which uv 2>/dev/null)" ]; then
+    echo "==> UV already installed"
+    uv --version
+    exit 0
+fi
+
+if [ "$(uname -s)" = "Darwin" ]; then
+    brew install uv
+    exit 0
+fi
+
+UV_OS="$(uname -s)"
+UV_ARCH="$(uname -m)"
+UV_VERSION="0.5.8"
+UV_RELEASE="https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-${UV_ARCH}-unknown-linux-gnu.tar.gz"
+XDG_BIN_HOME=${XDG_BIN_HOME:-$HOME/.local/bin}
+XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}
+
+echo "==> Downloading uv version ${UV_VERSION}"
+mkdir -p ${XDG_BIN_HOME}
+curl -qL "${UV_RELEASE}" | tar -xzC ${XDG_BIN_HOME} --file=- --strip-components=1
+
+echo "==> Writing UV Configuration File at ${XDG_CONFIG_HOME}/uv/uv.toml"
+mkdir -p ${XDG_CONFIG_HOME}
+cat << EOF > ${XDG_CONFIG_HOME}/uv/uv.toml
+python-preference = "only-managed"
+EOF
+
+if [ -n "${HTTPS_PROXY}" ]; then
+echo "native-tls = true" >> ${XDG_CONFIG_HOME}/uv/uv.toml
+fi
+
+echo "==> UV has been installed at ${XDG_BIN_HOME}"
+echo " "
+echo "    Be sure to add this location to your \$PATH"
+echo "    and review the default configuration file"
+echo "    at ${XDG_CONFIG_HOME}/uv/uv.toml"
