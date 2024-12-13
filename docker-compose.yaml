@@ -73,7 +73,7 @@ services:
       POSTGRES_USER: "cm-service"
       POSTGRES_DB: "cm-service"
     ports:
-      - "65432:5432"
+      - "5432"
     volumes:
       - "pgsql:/var/lib/postgresql/data"
     healthcheck:
