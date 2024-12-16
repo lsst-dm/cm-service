@@ -1,6 +1,5 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from importlib.metadata import metadata, version
 
 from fastapi import FastAPI
 from safir.dependencies.db_session import db_session_dependency
@@ -8,6 +7,7 @@ from safir.dependencies.http_client import http_client_dependency
 from safir.logging import configure_logging, configure_uvicorn_logging
 from safir.middleware.x_forwarded import XForwardedMiddleware
 
+from . import __version__
 from .config import config
 from .routers import (
     actions,
@@ -136,8 +136,7 @@ async def lifespan(_: FastAPI) -> AsyncGenerator:
 app = FastAPI(
     lifespan=lifespan,
     title="cm-service",
-    description=metadata("lsst-cm-service")["Summary"],
-    version=version("lsst-cm-service"),
+    version=__version__,
     openapi_url=f"{config.prefix}/openapi.json",
     openapi_tags=tags_metadata,
     docs_url=f"{config.prefix}/docs",

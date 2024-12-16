@@ -3,8 +3,70 @@
 
 name: "${USER}-cm-service"
 services:
+  init-db:
+    profiles:
+      - full
+      - server
+      - daemon
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    entrypoint:
+      - python3
+      - -m
+    command:
+      - lsst.cmservice.cli.server
+      - init
+    environment: &cmenv
+      CM_DATABASE_HOST: postgresql
+      CM_DATABASE_ECHO: true
+      CM_DATABASE_URL: postgresql://cm-service@postgresql:5432/cm-service
+      CM_DATABASE_PASSWORD: INSECURE-PASSWORD
+    depends_on:
+      postgresql:
+        condition: service_healthy
+
+  cmservice:
+    profiles:
+      - full
+      - server
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    entrypoint:
+      - uvicorn
+    command:
+      - lsst.cmservice.main:app
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "8080"
+    environment: *cmenv
+    ports:
+      - "8080:8080"
+    depends_on:
+      init-db:
+        condition: service_completed_successfully
+
+  cmworker:
+    profiles:
+      - full
+      - worker
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    entrypoint:
+      - /opt/venv/bin/python3
+      - -m
+    command:
+      - lsst.cmservice.daemon
+    environment: *cmenv
+    depends_on:
+      init-db:
+        condition: service_completed_successfully
+
   postgresql:
-    image: "postgres:latest"
+    image: "postgres:16"
     hostname: "postgresql"
     environment:
       POSTGRES_PASSWORD: "INSECURE-PASSWORD"
@@ -12,6 +74,8 @@ services:
       POSTGRES_DB: "cm-service"
     ports:
       - "5432"
+    volumes:
+      - "pgsql:/var/lib/postgresql/data"
     healthcheck:
       test: >-
         psql postgresql://cm-service:INSECURE-PASSWORD@127.0.0.1/cm-service
@@ -20,3 +84,6 @@ services:
       timeout: 1s
       retries: 30
       start_period: 1s
+
+volumes:
+  pgsql:
