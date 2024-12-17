@@ -6,6 +6,18 @@
 {% include "partials/script_log_modal.html" %}
 <script src="{{ url_for('static', path='/js/script-grid-utils.js') }}"></script>
 <script>
+    let jobScripts;
+    let jobProducts;
+    let wmsReport;
+</script>
+<script hx-swap-oob="outerHTML:#grid_handling" id="grid_handling">
+    // Update data objects with every htmx reload
+    // to reflect any db changes
+    jobScripts = {{scripts|sort(attribute="id")|tojson}};
+    jobProducts = {{job.products|tojson}};
+    wmsReport = {{job.wms_report|tojson}};
+</script>
+<script>
     const reset_script_endpoint = "{{url_for('reset_script')}}";
     class ScriptNameRenderer {
         eGui;
@@ -97,10 +109,6 @@
         const wmsReportGridElement = document.getElementById("wmsReportGrid");
         agGrid.createGrid(wmsReportGridElement, wmsReportOptions);
     };
-
-    let jobScripts;
-    let jobProducts;
-    let wmsReport;
     const populateGrids = () => {
         populateScriptsGrid(jobScripts);
         populateProductsGrid(jobProducts);
@@ -157,12 +165,6 @@
      hx-trigger="every 20s"
      hx-select="#job_content"
      hx-swap="outerHTML">
-    <script>
-        // moved here to make sure data is refreshed with every htmx request
-        jobScripts = {{scripts|sort(attribute="id")|tojson}};
-        jobProducts = {{job.products|tojson}};
-        wmsReport = {{job.wms_report|tojson}};
-    </script>
     <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
         <div class="flex items-center">
             <span class="text-2xl font-bold">{{job.name}}</span>

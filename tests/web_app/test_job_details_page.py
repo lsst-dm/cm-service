@@ -140,9 +140,11 @@ def test_job_details_page() -> None:
         )
         expect(page.locator("#scriptsGrid").get_by_role("row").nth(3)).to_contain_text("WAITING")
         # check first reset button is disabled
-        expect(page.locator("#scriptsGrid").get_by_role("row").nth(1).get_by_role("button")).to_be_disabled()
+        expect(
+            page.locator("#scriptsGrid").get_by_role("row").nth(1).get_by_role("button")
+        ).not_to_be_visible()
         # check third reset button is enabled and has test "Reset"
-        expect(page.locator("#scriptsGrid").get_by_role("row").nth(2).get_by_role("button")).to_be_enabled()
+        expect(page.locator("#scriptsGrid").get_by_role("row").nth(2).get_by_role("button")).to_be_visible()
         expect(page.locator("#scriptsGrid").get_by_role("row").nth(2).get_by_role("button")).to_have_text(
             "Reset"
         )
@@ -165,7 +167,9 @@ def test_job_details_page() -> None:
         page.locator("[confirm-reset]").click()
         expect(page.locator("#modalDialog")).not_to_be_visible()
         expect(page.locator("#scriptsGrid").get_by_role("row").nth(3)).to_contain_text("WAITING")
-        expect(page.locator("#scriptsGrid").get_by_role("row").nth(2).get_by_role("button")).to_be_disabled()
+        expect(
+            page.locator("#scriptsGrid").get_by_role("row").nth(2).get_by_role("button")
+        ).not_to_be_visible()
 
         # check products grid exists
         expect(page.locator("#productsGrid")).to_be_visible()
