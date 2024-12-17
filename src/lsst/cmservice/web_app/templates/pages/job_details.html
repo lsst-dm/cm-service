@@ -1,7 +1,24 @@
 {% extends "pages/base.html" %}
 {% block title %} Job Details {% endblock %}
 {% block content %}
+{% include "partials/reset_script_modal.html" %}
+{% include "partials/error_modal.html" %}
+{% include "partials/script_log_modal.html" %}
+<script src="{{ url_for('static', path='/js/script-grid-utils.js') }}"></script>
 <script>
+    let jobScripts;
+    let jobProducts;
+    let wmsReport;
+</script>
+<script hx-swap-oob="outerHTML:#grid_data" id="grid_data">
+    // Update data objects with every htmx reload
+    // to reflect any db changes
+    jobScripts = {{scripts|sort(attribute="id")|tojson}};
+    jobProducts = {{job.products|tojson}};
+    wmsReport = {{job.wms_report|tojson}};
+</script>
+<script>
+    const reset_script_endpoint = "{{url_for('reset_script')}}";
     class ScriptNameRenderer {
         eGui;
 
@@ -24,24 +41,30 @@
     }
 
     const scriptsGridOptions = {
-        // rowData: jobScripts,
         columnDefs: [
-             {field: "name", flex: 1, cellRenderer: ScriptNameRenderer,},
-             {field: "status", flex: 1},
-             {field: "superseded", flex: 1}
+            {field: "name", flex: 1, cellRenderer: ScriptNameRenderer,},
+            {field: "status", flex: 1},
+            {field: "superseded", flex: 1},
+            {
+                headerName: 'Actions',
+                field: 'resetButton',
+                cellRenderer: ResetButtonCellRenderer,
+                editable: false,
+                width: 200,
+            },
         ]
     };
+    let scriptGridApi;
     const populateScriptsGrid = (scriptsJson) => {
         scriptsGridOptions.rowData = scriptsJson;
         const scriptsGridElement = document.getElementById("scriptsGrid");
-        agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
+        scriptGridApi = agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
     }
 
     // products
     const formatWMSColumn = (params) => params.value === 0 ? "" : params.value;
 
     const productsGridOptions = {
-        // rowData: jobProducts,
         columnDefs: [
             {field: "name", headerName: "Name", flex: 2,},
             {field: "n_expected", headerName: "Expected", valueFormatter: formatWMSColumn},
@@ -61,7 +84,6 @@
     // WMS task report
 
     const wmsReportOptions = {
-        // rowData: wmsReport,
         defaultColDef: {
             resizable: false,
             width: 100,
@@ -87,15 +109,9 @@
         const wmsReportGridElement = document.getElementById("wmsReportGrid");
         agGrid.createGrid(wmsReportGridElement, wmsReportOptions);
     };
-
     const populateGrids = () => {
-        const jobScripts = {{scripts|tojson}};
         populateScriptsGrid(jobScripts);
-
-        const jobProducts = {{job.products|tojson}};
         populateProductsGrid(jobProducts);
-
-        const wmsReport = {{job.wms_report|tojson}};
         populateWMSReportGrid(wmsReport);
     };
 

@@ -1,7 +1,22 @@
 {% extends "pages/base.html" %}
 {% block title %} Step Details {% endblock %}
 {% block content %}
+{% include "partials/reset_script_modal.html" %}
+{% include "partials/error_modal.html" %}
+{% include "partials/script_log_modal.html" %}
+<script src="{{ url_for('static', path='/js/script-grid-utils.js') }}"></script>
 <script>
+    let stepScripts;
+    let stepGroups;
+</script>
+<script hx-swap-oob="outerHTML:#grid_data" id="grid_data">
+    // Update data objects with every htmx reload
+    // to reflect any db changes
+    stepScripts = {{scripts|sort(attribute="id")|tojson}};
+    stepGroups = {{groups|sort(attribute="id")|tojson}};
+</script>
+<script>
+    const reset_script_endpoint = "{{url_for('reset_script')}}";
     class GroupNameRenderer {
         eGui;
 
@@ -24,25 +39,24 @@
     }
     // scripts
     class ScriptNameRenderer {
-        eGui;
-
-     init(params) {
-       let scriptName = document.createElement('a');
-       scriptName.textContent = params.data.name;
-       scriptName.href = `{{url_for("get_script", campaign_id=campaign_id, step_id=step.id, script_id="${params.data.id}")}}`;
-       scriptName.setAttribute('class', 'font-bold text-teal-700 underline underline-offset-4 decoration-2 hover:text-gray-500');
-       this.eGui = document.createElement('span');
-       this.eGui.appendChild(scriptName)
-     }
+    eGui;
+    init(params) {
+        let scriptName = document.createElement('a');
+        scriptName.textContent = params.data.name;
+        scriptName.href = `{{url_for("get_script", campaign_id=campaign_id, step_id=step.id, script_id="${params.data.id}")}}`;
+        scriptName.setAttribute('class', 'font-bold text-teal-700 underline underline-offset-4 decoration-2 hover:text-gray-500');
+        this.eGui = document.createElement('span');
+        this.eGui.appendChild(scriptName)
+    }
 
      getGui() {
-       return this.eGui;
+        return this.eGui;
      }
 
      refresh(params) {
-         return false
+        return false;
      }
-    }
+}
 
     // groups
     class DictRenderer {
@@ -71,15 +85,21 @@
     }
 
     const scriptsGridOptions = {
-        // rowData: scriptsJson,
         columnDefs: [
             {field: "name", flex: 1, cellRenderer: ScriptNameRenderer,},
             {field: "status", flex: 1},
-            {field: "superseded", flex: 1}
+            {field: "superseded", flex: 1},
+            {
+                headerName: 'Actions',
+                field: 'resetButton',
+                cellRenderer: ResetButtonCellRenderer,
+                editable: false,
+                width: 200,
+            },
         ]
     };
+
     const groupsGridOptions = {
-        // rowData: groupsJson,
         rowHeight: 120,
         columnDefs: [
             {field: "name", flex: 1, filter: true, cellRenderer: GroupNameRenderer},
@@ -91,10 +111,12 @@
             {field: "spec_aliases", flex: 2, cellRenderer: DictRenderer},
         ]
     };
+
+    let scriptGridApi;
     const populateScriptGrid = (scriptsJson) => {
         scriptsGridOptions.rowData = scriptsJson;
         const scriptsGridElement = document.getElementById("scriptsGrid");
-        agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
+        scriptGridApi = agGrid.createGrid(scriptsGridElement, scriptsGridOptions);
     };
 
     const populateGroupsGrid = (groupsJson) => {
@@ -104,10 +126,7 @@
     };
 
     const populateGrids = () => {
-        const stepScripts = {{scripts|tojson}};
         populateScriptGrid(stepScripts);
-
-        const stepGroups = {{groups|tojson}};
         populateGroupsGrid(stepGroups)
     };
     window.addEventListener("DOMContentLoaded", function() {
@@ -140,8 +159,10 @@
 </nav>
 <div id="step_content" class="w-full"
      hx-get="{{ url_for('get_step', campaign_id=campaign_id, step_id=step.id) }}"
-     hx-trigger="every 20s" hx-select="#step_content" hx-swap="outerHTML">
+     hx-trigger="every 20s"
+     hx-select="#step_content" hx-swap="outerHTML">
     <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
+        <div class="htmx-indicator">Updating...</div>
         <div class="flex items-center">
             <span class="text-2xl font-bold">{{step.name}}</span>
         </div>
