@@ -16,16 +16,9 @@
                     split_method: split_by_query
                     split_min_groups: 2
           - Step:
-                name: characterizeImage
-                spec_block: hsc_micro_characterizeImage
+                name: calibrateImage
+                spec_block: hsc_micro_calibrateImage
                 prerequisites: ['isr']
-                child_config:
-                    split_method: split_by_query
-                    split_min_groups: 2
-          - Step:
-                name: calibrate
-                spec_block: hsc_micro_calibrate
-                prerequisites: ['characterizeImage']
                 child_config:
                     split_method: split_by_query
                     split_min_groups: 2
