@@ -44,7 +44,7 @@ class NullScriptHandler(ScriptHandler):
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {e}") from e
 
         command = f"echo trivial {butler_repo} {output_coll}"
-        write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -96,7 +96,7 @@ class ChainCreateScriptHandler(ScriptHandler):
                 command += f" {input_coll}"
         else:
             command += f" {input_colls}"
-        write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -151,7 +151,7 @@ class ChainPrependScriptHandler(ScriptHandler):
             f"{config.butler.butler_bin} collection-chain "
             f"{butler_repo} {output_coll} --mode prepend {input_coll}"
         )
-        write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -224,7 +224,7 @@ class ChainCollectScriptHandler(ScriptHandler):
             command += f" {collect_coll_}"
         for input_coll_ in input_colls:
             command += f" {input_coll_}"
-        write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -279,7 +279,7 @@ class TagInputsScriptHandler(ScriptHandler):
         command = f"{config.butler.butler_bin} associate {butler_repo} {output_coll}"
         command += f" --collections {input_coll}"
         command += f' --where "{data_query}"' if data_query else ""
-        write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -326,7 +326,7 @@ class TagCreateScriptHandler(ScriptHandler):
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"{config.butler.butler_bin} associate {butler_repo} {output_coll}"
-        write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
         await script.update_values(session, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -377,7 +377,7 @@ class TagAssociateScriptHandler(ScriptHandler):
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"{config.butler.butler_bin} associate {butler_repo} {output_coll}"
         command += f" --collections {input_coll}"
-        write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -449,7 +449,7 @@ class PrepareStepScriptHandler(ScriptHandler):
         command = f"{config.butler.butler_bin} collection-chain {butler_repo} {output_coll}"
         for prereq_coll_ in prereq_colls:
             command += f" {prereq_coll_}"
-        write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -515,7 +515,7 @@ class ResourceUsageScriptHandler(ScriptHandler):
             f"-o {resolved_cols['campaign_resource_usage']} --register-dataset-types -j {config.bps.n_jobs}"
         )
 
-        write_bash_script(script_url, command, prepend=prepend)
+        await write_bash_script(script_url, command, prepend=prepend)
 
         return StatusEnum.prepared
 
@@ -621,7 +621,7 @@ class HipsMapsScriptHandler(ScriptHandler):
         # Strip leading/trailing spaces just in case
         command = "\n".join([line.strip() for line in command.splitlines()])
 
-        write_bash_script(script_url, command, prepend=prepend)
+        await write_bash_script(script_url, command, prepend=prepend)
 
         return StatusEnum.prepared
 
@@ -676,7 +676,7 @@ class ValidateScriptHandler(ScriptHandler):
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"{config.bps.pipetask_bin} validate {butler_repo} {input_coll} {output_coll}"
-        write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 

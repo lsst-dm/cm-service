@@ -4,6 +4,7 @@ import contextlib
 import os
 import sys
 from collections.abc import Iterator, Mapping
+from pathlib import Path
 from typing import Any
 
 import yaml
@@ -101,3 +102,52 @@ def read_lines(filename: str) -> list:
     with open(filename, encoding="utf-8") as fin:
         lines = fin.readlines()
         return lines
+
+
+def check_file_exists(file: str | Path) -> bool:
+    """`pathlib.Path.exists`, to be wrapped in
+    `fastapi.concurrency.run_in_threadpool`
+
+    Parameters
+    ----------
+    file : `str` | `pathlib.Path`
+        The path to the file.
+
+    Returns
+    -------
+    A boolean value: does the file exist?
+    """
+    if isinstance(file, str):
+        file = Path(file)
+    return file.exists()
+
+
+def write_string(contents: str, file: str | Path) -> None:
+    """Write string to a file. To be wrapped in
+    `fastapi.concurrency.run_in_threadpool`
+
+    Parameters
+    ----------
+    contents : `str`
+        The contents to be written.
+    file : `str | Path`
+        The path to write the file.
+    """
+    with open(file, "w") as fout:
+        fout.write(contents)
+
+
+def unlink_path(file: str | Path) -> None:
+    """Check that a file exists, then delete the file using
+    `pathlib.Path.unlink`. To be wrapped in
+    `fastapi.concurrency.run_in_threadpool`.
+
+    Parameters
+    ----------
+    file : `str | Path`
+        The path to the file to be deleted.
+    """
+    if isinstance(file, str):
+        file = Path(file)
+    if file.exists():
+        file.unlink()

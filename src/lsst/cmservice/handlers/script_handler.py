@@ -345,7 +345,7 @@ class ScriptHandler(BaseScriptHandler):
         """
         fake_status = fake_status or config.mock_status
         default_status = script.status if fake_status is None else fake_status
-        status = check_stamp_file(stamp_file, default_status)
+        status = await check_stamp_file(stamp_file, default_status)
         await script.update_values(session, status=status)
         return status
 
@@ -465,7 +465,7 @@ class ScriptHandler(BaseScriptHandler):
         if script_method == ScriptMethodEnum.bash:
             if not script.stamp_url:  # pragma: no cover
                 raise CMMissingNodeUrlError(f"log_url is not set for {script}")
-            run_bash_job(script.script_url, script.log_url, script.stamp_url, **kwargs)
+            await run_bash_job(script.script_url, script.log_url, script.stamp_url, **kwargs)
             status = StatusEnum.running
             await script.update_values(session, status=status)
         elif script_method == ScriptMethodEnum.slurm:

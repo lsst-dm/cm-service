@@ -133,7 +133,7 @@ class BpsScriptHandler(ScriptHandler):
             prepend += f"\n{custom_lsst_setup}\n"
         prepend += bps_wms_script_template_.data["text"]  # type: ignore
 
-        await run_in_threadpool(write_bash_script, script_url, command, prepend=prepend)
+        await write_bash_script(script_url, command, prepend=prepend)
 
         workflow_config = bps_core_yaml_template_.data.copy()  # type: ignore
 
@@ -217,7 +217,7 @@ class BpsScriptHandler(ScriptHandler):
         if fake_status is not None:
             wms_job_id = "fake_job"
         else:  # pragma: no cover
-            bps_dict = parse_bps_stdout(script.log_url)  # type: ignore
+            bps_dict = await parse_bps_stdout(script.log_url)  # type: ignore
             wms_job_id = self.get_job_id(bps_dict)
         await parent.update_values(session, wms_job_id=wms_job_id)
         return slurm_status
@@ -244,7 +244,7 @@ class BpsScriptHandler(ScriptHandler):
             if fake_status is not None:
                 wms_job_id = "fake_job"
             else:  # pragma: no cover
-                bps_dict = parse_bps_stdout(script.log_url)  # type: ignore
+                bps_dict = await parse_bps_stdout(script.log_url)  # type: ignore
                 wms_job_id = self.get_job_id(bps_dict)
             await parent.update_values(session, wms_job_id=wms_job_id)
         return htcondor_status
@@ -500,7 +500,7 @@ class ManifestReportScriptHandler(ScriptHandler):
         command = (
             f"{config.bps.pipetask_bin} report --full-output-filename {report_url} {butler_repo} {graph_url}"
         )
-        write_bash_script(script_url, command, prepend=prepend)
+        await write_bash_script(script_url, command, prepend=prepend)
 
         return StatusEnum.prepared
 
