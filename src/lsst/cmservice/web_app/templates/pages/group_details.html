@@ -7,6 +7,18 @@
 
 <script src="{{ url_for('static', path='/js/script-grid-utils.js') }}"></script>
 <script>
+    let groupScripts;
+    let groupJobs;
+    let wmsReport;
+</script>
+<script hx-swap-oob="outerHTML:#grid_data" id="grid_data">
+    // Update data objects with every htmx reload
+    // to reflect any db changes
+    groupScripts = {{scripts|sort(attribute="id")|tojson}};
+    groupJobs = {{jobs|sort(attribute="id")|tojson}};
+    wmsReport = {{group.wms_report|tojson}};
+</script>
+<script>
     const reset_script_endpoint = "{{url_for('reset_script')}}";
     class JobNameRenderer {
         eGui;
@@ -118,9 +130,6 @@
         agGrid.createGrid(wmsReportGridElement, wmsReportOptions);
     };
 
-    let groupScripts;
-    let groupJobs;
-    let wmsReport;
     const populateGrids = () => {
         populateScriptsGrid(groupScripts);
         populateJobsGrid(groupJobs);
@@ -165,11 +174,6 @@
 <div class="w-full" id="group_content"
      hx-get="{{ url_for('get_group', campaign_id=group.campaign_id, step_id=group.step_id, group_id=group.id) }}"
      hx-trigger="every 20s" hx-select="#group_content" hx-swap="outerHTML">
-    <script>
-        groupScripts = {{scripts|sort(attribute="id")|tojson}};
-        groupJobs = {{jobs|sort(attribute="id")|tojson}};
-        wmsReport = {{group.wms_report|tojson}};
-    </script>
     <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
         <div class="flex items-center">
             <span class="text-2xl font-bold">{{group.name}}</span>

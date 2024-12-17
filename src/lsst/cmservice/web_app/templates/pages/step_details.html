@@ -6,6 +6,16 @@
 {% include "partials/script_log_modal.html" %}
 <script src="{{ url_for('static', path='/js/script-grid-utils.js') }}"></script>
 <script>
+    let stepScripts;
+    let stepGroups;
+</script>
+<script hx-swap-oob="outerHTML:#grid_data" id="grid_data">
+    // Update data objects with every htmx reload
+    // to reflect any db changes
+    stepScripts = {{scripts|sort(attribute="id")|tojson}};
+    stepGroups = {{groups|sort(attribute="id")|tojson}};
+</script>
+<script>
     const reset_script_endpoint = "{{url_for('reset_script')}}";
     class GroupNameRenderer {
         eGui;
@@ -115,8 +125,6 @@
         agGrid.createGrid(groupsGridElement, groupsGridOptions);
     };
 
-    let stepScripts;
-    let stepGroups;
     const populateGrids = () => {
         populateScriptGrid(stepScripts);
         populateGroupsGrid(stepGroups)
@@ -153,10 +161,6 @@
      hx-get="{{ url_for('get_step', campaign_id=campaign_id, step_id=step.id) }}"
      hx-trigger="every 20s"
      hx-select="#step_content" hx-swap="outerHTML">
-    <script>
-        stepScripts = {{scripts|sort(attribute="id")|tojson}};
-        stepGroups = {{groups|sort(attribute="id")|tojson}};
-    </script>
     <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
         <div class="htmx-indicator">Updating...</div>
         <div class="flex items-center">

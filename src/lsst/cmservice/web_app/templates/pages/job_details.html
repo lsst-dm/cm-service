@@ -10,7 +10,7 @@
     let jobProducts;
     let wmsReport;
 </script>
-<script hx-swap-oob="outerHTML:#grid_handling" id="grid_handling">
+<script hx-swap-oob="outerHTML:#grid_data" id="grid_data">
     // Update data objects with every htmx reload
     // to reflect any db changes
     jobScripts = {{scripts|sort(attribute="id")|tojson}};
