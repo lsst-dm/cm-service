@@ -20,7 +20,6 @@ from ..models.merged_task_set import MergedTaskSetDict
 from ..models.merged_wms_task_report import MergedWmsTaskReportDict
 from .base import Base
 from .element import ElementMixin
-from .enums import SqlStatusEnum
 from .spec_block import SpecBlock
 from .step import Step
 
@@ -53,7 +52,7 @@ class Group(Base, ElementMixin):
     parent_id: Mapped[int] = mapped_column(ForeignKey("step.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(index=True)
     fullname: Mapped[str] = mapped_column(unique=True)
-    status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting, type_=SqlStatusEnum)  # Status flag
+    status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting)
     superseded: Mapped[bool] = mapped_column(default=False)  # Has this been supersede
     handler: Mapped[str | None] = mapped_column()
     data: Mapped[dict | list | None] = mapped_column(type_=JSON)
