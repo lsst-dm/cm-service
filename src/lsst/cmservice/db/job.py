@@ -20,7 +20,6 @@ from ..models.merged_task_set import MergedTaskSet, MergedTaskSetDict
 from ..models.merged_wms_task_report import MergedWmsTaskReport, MergedWmsTaskReportDict
 from .base import Base
 from .element import ElementMixin
-from .enums import SqlStatusEnum
 from .group import Group
 from .step import Step
 
@@ -58,7 +57,7 @@ class Job(Base, ElementMixin):
     name: Mapped[str] = mapped_column(index=True)
     attempt: Mapped[int] = mapped_column()
     fullname: Mapped[str] = mapped_column(unique=True)
-    status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting, type_=SqlStatusEnum)
+    status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting)
     superseded: Mapped[bool] = mapped_column(default=False)
     handler: Mapped[str | None] = mapped_column()
     data: Mapped[dict | list | None] = mapped_column(type_=JSON)
