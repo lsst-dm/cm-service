@@ -10,7 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from lsst.cmservice import db
 from lsst.cmservice.common import errors
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum
-from lsst.cmservice.config import config
 from lsst.cmservice.handlers import interface
 
 from .util_functions import (
@@ -29,7 +28,7 @@ async def test_job_db(engine: AsyncEngine) -> None:
 
     # generate a uuid to avoid collisions
     uuid_int = uuid.uuid1().int
-    logger = structlog.get_logger(config.logger_name)
+    logger = structlog.get_logger(__name__)
     async with engine.begin():
         session = await create_async_session(engine, logger)
         os.environ["CM_CONFIGS"] = "examples"

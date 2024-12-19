@@ -31,7 +31,7 @@ async def test_group_routes(client: AsyncClient) -> None:
     # intialize a tree down to one level lower
     await create_tree(client, LevelEnum.job, uuid_int)
 
-    response = await client.get(f"{config.prefix}/group/list")
+    response = await client.get(f"{config.asgi.prefix}/group/list")
     groups = check_and_parse_response(response, list[models.Group])
     entry = groups[0]
 

@@ -20,8 +20,8 @@ def server() -> None:
 @run_with_asyncio
 async def init(*, reset: bool) -> None:  # pragma: no cover
     """Initialize the service database."""
-    logger = structlog.get_logger(config.logger_name)
-    engine = create_database_engine(config.database_url, config.database_password)
+    logger = structlog.get_logger(__name__)
+    engine = create_database_engine(config.db.url, config.db.password)
     await initialize_database(engine, logger, schema=db.Base.metadata, reset=reset)
     await engine.dispose()
 

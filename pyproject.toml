@@ -124,14 +124,14 @@ target-version = "py311"
 
 [tool.ruff.lint]
 ignore = [
-    "COM812",
-    "N802",
-    "N803",
-    "N806",
-    "N812",
-    "N813",
-    "N815",
-    "N816",
+    "COM812",  # missing-trailing-comma
+    "N802",  # invalid-function-name
+    "N803",  # invalid-argument-name
+    "N806",  # non-lowercase-variable-in-function
+    "N812",  # lowercase-imported-as-non-lowercase
+    "N813",  # camelcase-imported-as-constant
+    "N815",  # mixed-case-variable-in-class-scope
+    "N816",  # mixed-case-variable-in-global-scope
 ]
 select = [
     "E",  # pycodestyle

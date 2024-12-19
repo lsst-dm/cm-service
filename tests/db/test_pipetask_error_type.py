@@ -7,7 +7,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from lsst.cmservice import db
-from lsst.cmservice.config import config
 from lsst.cmservice.handlers import functions, interface
 
 from .util_functions import cleanup, delete_all_rows
@@ -21,7 +20,7 @@ async def test_error_match_db(engine: AsyncEngine) -> None:
     fake error which is not in the database.
     """
 
-    logger = structlog.get_logger(config.logger_name)
+    logger = structlog.get_logger(__name__)
     async with engine.begin():
         session = await create_async_session(engine, logger)
         os.environ["CM_CONFIGS"] = "examples"
@@ -112,7 +111,7 @@ async def test_error_match_db(engine: AsyncEngine) -> None:
 async def test_error_type_db(engine: AsyncEngine) -> None:
     """Test `error_type` db table."""
 
-    logger = structlog.get_logger(config.logger_name)
+    logger = structlog.get_logger(__name__)
     async with engine.begin():
         session = await create_async_session(engine, logger)
         os.environ["CM_CONFIGS"] = "examples"

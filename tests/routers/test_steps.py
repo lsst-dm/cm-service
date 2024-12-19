@@ -31,7 +31,7 @@ async def test_step_routes(client: AsyncClient) -> None:
     # intialize a tree down to one level lower
     await create_tree(client, LevelEnum.group, uuid_int)
 
-    response = await client.get(f"{config.prefix}/step/list")
+    response = await client.get(f"{config.asgi.prefix}/step/list")
     steps = check_and_parse_response(response, list[models.Step])
     entry = steps[0]
 

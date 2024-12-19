@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from lsst.cmservice import db
 from lsst.cmservice.common.enums import LevelEnum
-from lsst.cmservice.config import config
 from lsst.cmservice.web_app.pages.group_details import get_group_by_id
 from tests.db.util_functions import create_tree, delete_all_productions
 
@@ -20,7 +19,7 @@ async def test_get_group_details_by_id(engine: AsyncEngine) -> None:
 
     # generate a uuid to avoid collisions
     uuid_int = uuid.uuid1().int
-    logger = structlog.get_logger(config.logger_name)
+    logger = structlog.get_logger(__name__)
     async with engine.begin():
         session = await create_async_session(engine, logger)
         os.environ["CM_CONFIGS"] = "examples"

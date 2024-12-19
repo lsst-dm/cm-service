@@ -15,7 +15,7 @@ from .util_functions import cleanup, create_tree
 async def test_production_cli(uvicorn: UvicornProcess) -> None:
     """Test `production` CLI command"""
 
-    client_config.service_url = f"{uvicorn.url}{config.prefix}"
+    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}"
     runner = CliRunner()
 
     # generate a uuid to avoid collisions

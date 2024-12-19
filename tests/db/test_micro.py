@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from lsst.cmservice.common import errors
 from lsst.cmservice.common.enums import ScriptMethodEnum, StatusEnum
-from lsst.cmservice.config import config
 from lsst.cmservice.handlers import interface
 from lsst.cmservice.handlers.script_handler import ScriptHandler
 
@@ -29,7 +28,7 @@ async def test_micro_db(
     orig_method = ScriptHandler.default_method
     ScriptHandler.default_method = script_method
 
-    logger = structlog.get_logger(config.logger_name)
+    logger = structlog.get_logger(__name__)
     async with engine.begin():
         session = await create_async_session(engine, logger)
         os.environ["CM_CONFIGS"] = "examples"

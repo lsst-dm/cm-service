@@ -23,7 +23,7 @@ from .util_functions import (
 async def test_group_cli(uvicorn: UvicornProcess) -> None:
     """Test `group` CLI command"""
 
-    client_config.service_url = f"{uvicorn.url}{config.prefix}"
+    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}"
     runner = CliRunner()
 
     # generate a uuid to avoid collisions

@@ -12,7 +12,7 @@ from .util_functions import check_and_parse_result
 async def test_others_cli(uvicorn: UvicornProcess) -> None:
     """Test `other` CLI command"""
 
-    client_config.service_url = f"{uvicorn.url}{config.prefix}"
+    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}"
     runner = CliRunner()
 
     result = runner.invoke(client_top, "pipetask_error list --output yaml")

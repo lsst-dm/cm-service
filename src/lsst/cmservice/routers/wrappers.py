@@ -20,9 +20,8 @@ from structlog import get_logger
 from .. import db, models
 from ..common.enums import StatusEnum
 from ..common.errors import CMMissingFullnameError, CMMissingIDError
-from ..config import config
 
-logger = get_logger(config.logger_name)
+logger = get_logger(__name__)
 
 
 def get_rows_no_parent_function(

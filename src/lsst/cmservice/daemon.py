@@ -10,8 +10,8 @@ from .config import config
 
 
 async def main_loop() -> None:
-    logger = structlog.get_logger(config.logger_name)
-    engine = create_database_engine(config.database_url, config.database_password)
+    logger = structlog.get_logger(__name__)
+    engine = create_database_engine(config.db.url, config.db.password)
 
     async with engine.begin():
         session = await create_async_session(engine, logger)
