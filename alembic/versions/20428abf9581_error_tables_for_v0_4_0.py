@@ -7,9 +7,9 @@ Create Date: 2024-12-13 22:07:55.828266+00:00
 """
 
 from collections.abc import Sequence
+from enum import Enum
 
 import sqlalchemy as sa
-from sqlalchemy import MetaData
 
 from alembic import op
 
@@ -21,49 +21,18 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
+    # DB model uses mapped columns with Python Enum types, but we do not care
+    # to use native enums in the database, so when we have such a column, this
+    # defintion will produce a VARCHAR instead.
+    enum_column_as_varchar = sa.Enum(Enum, native_enum=False, check_constraint=False)
+
     # Create table for Pipetask Error Types
     op.create_table(
         "pipetask_error_type",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column(
-            "error_source",
-            sa.Enum(
-                "cmservice",
-                "local_script",
-                "manifest",
-                name="errorsourceenum",
-                create_type=False,
-                metadata=MetaData(),
-            ),
-            nullable=False,
-        ),
-        sa.Column(
-            "error_flavor",
-            sa.Enum(
-                "infrastructure",
-                "configuration",
-                "pipelines",
-                name="errorflavorenum",
-                create_type=False,
-                metadata=MetaData(),
-            ),
-            nullable=False,
-        ),
-        sa.Column(
-            "error_action",
-            sa.Enum(
-                "fail",
-                "requeue_and_pause",
-                "rescue",
-                "auto_retry",
-                "review",
-                "accept",
-                name="erroractionenum",
-                create_type=False,
-                metadata=MetaData(),
-            ),
-            nullable=False,
-        ),
+        sa.Column("error_source", enum_column_as_varchar, nullable=False),
+        sa.Column("error_flavor", enum_column_as_varchar, nullable=False),
+        sa.Column("error_action", enum_column_as_varchar, nullable=False),
         sa.Column("task_name", sa.String(), nullable=False),
         sa.Column("diagnostic_message", sa.String(), nullable=False),
         sa.PrimaryKeyConstraint("id"),

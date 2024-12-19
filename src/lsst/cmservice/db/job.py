@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import JSON, and_, select
+from sqlalchemy import JSON, Enum, and_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -20,7 +20,6 @@ from ..models.merged_task_set import MergedTaskSet, MergedTaskSetDict
 from ..models.merged_wms_task_report import MergedWmsTaskReport, MergedWmsTaskReportDict
 from .base import Base
 from .element import ElementMixin
-from .enums import SqlStatusEnum
 from .group import Group
 from .step import Step
 
@@ -58,7 +57,9 @@ class Job(Base, ElementMixin):
     name: Mapped[str] = mapped_column(index=True)
     attempt: Mapped[int] = mapped_column()
     fullname: Mapped[str] = mapped_column(unique=True)
-    status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting, type_=SqlStatusEnum)
+    status: Mapped[StatusEnum] = mapped_column(
+        Enum(StatusEnum, native_enum=False), default=StatusEnum.waiting
+    )
     superseded: Mapped[bool] = mapped_column(default=False)
     handler: Mapped[str | None] = mapped_column()
     data: Mapped[dict | list | None] = mapped_column(type_=JSON)

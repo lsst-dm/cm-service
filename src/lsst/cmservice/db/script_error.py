@@ -1,9 +1,9 @@
+from sqlalchemy import Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
 from ..common.enums import ErrorSourceEnum
 from .base import Base
-from .enums import SqlErrorSourceEnum
 from .row import RowMixin
 from .script import Script
 
@@ -16,7 +16,7 @@ class ScriptError(Base, RowMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     script_id: Mapped[int | None] = mapped_column(ForeignKey("script.id", ondelete="CASCADE"), index=True)
-    source: Mapped[ErrorSourceEnum] = mapped_column(type_=SqlErrorSourceEnum)
+    source: Mapped[ErrorSourceEnum] = mapped_column(Enum(ErrorSourceEnum, native_enum=False))
     diagnostic_message: Mapped[str] = mapped_column()
 
     script_: Mapped["Script"] = relationship("Script", viewonly=True)

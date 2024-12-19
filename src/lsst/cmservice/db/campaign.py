@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import JSON
+from sqlalchemy import JSON, Enum
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey, UniqueConstraint
@@ -15,7 +15,6 @@ from ..models.merged_task_set import MergedTaskSetDict
 from ..models.merged_wms_task_report import MergedWmsTaskReportDict
 from .base import Base
 from .element import ElementMixin
-from .enums import SqlStatusEnum
 from .production import Production
 from .spec_block import SpecBlock
 from .specification import Specification
@@ -56,7 +55,9 @@ class Campaign(Base, ElementMixin):
     parent_id: Mapped[int] = mapped_column(ForeignKey("production.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(index=True)
     fullname: Mapped[str] = mapped_column(unique=True)
-    status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting, type_=SqlStatusEnum)
+    status: Mapped[StatusEnum] = mapped_column(
+        Enum(StatusEnum, native_enum=False), default=StatusEnum.waiting
+    )
     superseded: Mapped[bool] = mapped_column(default=False)
     handler: Mapped[str | None] = mapped_column()
     data: Mapped[dict | list | None] = mapped_column(type_=JSON)
