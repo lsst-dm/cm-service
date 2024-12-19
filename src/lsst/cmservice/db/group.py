@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import JSON, Enum
+from sqlalchemy import JSON
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -52,9 +52,7 @@ class Group(Base, ElementMixin):
     parent_id: Mapped[int] = mapped_column(ForeignKey("step.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(index=True)
     fullname: Mapped[str] = mapped_column(unique=True)
-    status: Mapped[StatusEnum] = mapped_column(
-        Enum(StatusEnum, native_enum=False), default=StatusEnum.waiting
-    )
+    status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting)
     superseded: Mapped[bool] = mapped_column(default=False)  # Has this been supersede
     handler: Mapped[str | None] = mapped_column()
     data: Mapped[dict | list | None] = mapped_column(type_=JSON)

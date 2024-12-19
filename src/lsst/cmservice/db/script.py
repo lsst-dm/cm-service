@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import JSON, Enum
+from sqlalchemy import JSON
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
@@ -40,7 +40,7 @@ class Script(Base, NodeMixin):
         ForeignKey("spec_block.id", ondelete="CASCADE"),
         index=True,
     )
-    parent_level: Mapped[LevelEnum] = mapped_column(Enum(LevelEnum, native_enum=False))
+    parent_level: Mapped[LevelEnum] = mapped_column()
     parent_id: Mapped[int] = mapped_column()
     c_id: Mapped[int | None] = mapped_column(ForeignKey("campaign.id", ondelete="CASCADE"), index=True)
     s_id: Mapped[int | None] = mapped_column(ForeignKey("step.id", ondelete="CASCADE"), index=True)
@@ -49,12 +49,8 @@ class Script(Base, NodeMixin):
     name: Mapped[str] = mapped_column(index=True)
     attempt: Mapped[int] = mapped_column(default=0)
     fullname: Mapped[str] = mapped_column(unique=True)
-    status: Mapped[StatusEnum] = mapped_column(
-        Enum(StatusEnum, native_enum=False), default=StatusEnum.waiting
-    )
-    method: Mapped[ScriptMethodEnum] = mapped_column(
-        Enum(ScriptMethodEnum, native_enum=False), default=ScriptMethodEnum.default
-    )
+    status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting)
+    method: Mapped[ScriptMethodEnum] = mapped_column(default=ScriptMethodEnum.default)
     superseded: Mapped[bool] = mapped_column(default=False)  # Has this been superseded
     handler: Mapped[str | None] = mapped_column()
     data: Mapped[dict | list | None] = mapped_column(type_=JSON)

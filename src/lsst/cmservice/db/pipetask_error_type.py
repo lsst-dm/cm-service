@@ -1,7 +1,6 @@
 import re
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Enum
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import UniqueConstraint
@@ -23,9 +22,9 @@ class PipetaskErrorType(Base, RowMixin):
     __table_args__ = (UniqueConstraint("task_name", "diagnostic_message"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    error_source: Mapped[ErrorSourceEnum] = mapped_column(Enum(ErrorSourceEnum, native_enum=False))
-    error_flavor: Mapped[ErrorFlavorEnum] = mapped_column(Enum(ErrorFlavorEnum, native_enum=False))
-    error_action: Mapped[ErrorActionEnum] = mapped_column(Enum(ErrorActionEnum, native_enum=False))
+    error_source: Mapped[ErrorSourceEnum] = mapped_column()
+    error_flavor: Mapped[ErrorFlavorEnum] = mapped_column()
+    error_action: Mapped[ErrorActionEnum] = mapped_column()
     task_name: Mapped[str] = mapped_column()
     diagnostic_message: Mapped[str] = mapped_column()
 
