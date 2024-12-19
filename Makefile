@@ -125,9 +125,9 @@ run-worker: run-compose
 migrate: export PGUSER=cm-service
 migrate: export PGDATABASE=cm-service
 migrate: export PGHOST=localhost
-migrate: export CM_DATABASE_PORT=$(shell docker compose port postgresql 5432 | cut -d: -f2)
-migrate: export CM_DATABASE_PASSWORD=INSECURE-PASSWORD
-migrate: export CM_DATABASE_URL=postgresql://${PGHOST}/${PGDATABASE}
+migrate: export DB__PORT=$(shell docker compose port postgresql 5432 | cut -d: -f2)
+migrate: export DB__PASSWORD=INSECURE-PASSWORD
+migrate: export DB__URL=postgresql://${PGHOST}/${PGDATABASE}
 migrate: run-compose
 	alembic upgrade head
 

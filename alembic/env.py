@@ -44,7 +44,7 @@ def run_migrations_offline() -> None:
         (
             u
             for u in [
-                os.getenv("CM_DATABASE_URL"),
+                os.getenv("DB__URL"),
                 context.get_x_argument(as_dictionary=True).get("cm_database_url"),
                 config.get_main_option("sqlalchemy.url", default=None),
                 "sqlite://",
@@ -71,7 +71,7 @@ def run_migrations_online() -> None:
 
     The database engine URI is consumed in descending order from:
     - An `-x cm_database_url=...` CLI argument
-    - A `CM_DATABASE_URL` environment variable
+    - A `DB__URL` environment variable
     - The value of `sqlalchemy.url` specified in the alembic.ini
     - A sqlite :memory: database
     """
@@ -80,7 +80,7 @@ def run_migrations_online() -> None:
             u
             for u in [
                 context.get_x_argument(as_dictionary=True).get("cm_database_url"),
-                os.getenv("CM_DATABASE_URL"),
+                os.getenv("DB__URL"),
                 config.get_main_option("sqlalchemy.url", default=None),
                 "sqlite://",
             ]
@@ -88,10 +88,10 @@ def run_migrations_online() -> None:
         ),
     )
 
-    # Set PG* environment variables from CM_* environment variables to capture
+    # Set PG* environment variables from DB__* environment variables to capture
     # any that are not part of the URL
-    os.environ["PGPASSWORD"] = os.getenv("CM_DATABASE_PASSWORD", "")
-    os.environ["PGPORT"] = os.getenv("CM_DATABASE_PORT", "5432")
+    os.environ["PGPASSWORD"] = os.getenv("DB__PASSWORD", "")
+    os.environ["PGPORT"] = os.getenv("DB__PORT", "5432")
 
     connectable = create_engine(url, poolclass=pool.NullPool)
 
