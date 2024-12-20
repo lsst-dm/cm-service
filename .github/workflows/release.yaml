@@ -1,0 +1,63 @@
+# Workflow makes a new release on demand or when a pull request is merged to main.
+# The release consists of bumping the version of the application, creating a
+# tag, committing and pushing these changes.
+---
+name: "Make Release"
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+
+env:
+  GIT_USERNAME: github_actions[bot]
+  GIT_USEREMAIL: 41898282+github_actions[bot]@users.noreply.github.com
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: >-
+      github.event_name == 'pull_request'
+      && github.event.action == 'closed'
+      && github.event.pull_request.merged == true
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+
+      - name: Force correct release branch
+        run: git checkout -B ${{ github.ref_name }} ${{ github.sha }}
+
+      - name: Make Release
+        id: release
+        uses: python-semantic-release/python-semantic-release@v9.15.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          git_committer_name: ${{ env.GIT_USERNAME}}
+          git_committer_email: ${{ env.GIT_USEREMAIL}}
+          build: false
+          changelog: false
+          vcs_release: false
+
+      # The release step pushes a new tag, but this won't trigger any new workflows
+      # instead, we manually trigger the build-push workflow after a release is made.
+      - name: Trigger Build-Push Workflow
+        uses: actions/github-script@v7
+        if: >-
+          steps.release.outputs.released == 'true'
+        env:
+          TAG_REF: ${{ steps.release.outputs.tag }}
+        with:
+          script: |
+            github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'build_and_push.yaml',
+              ref: `${ process.env.TAG_REF }`
+            })

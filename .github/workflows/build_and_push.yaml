@@ -1,0 +1,52 @@
+# A workflow that builds and (optionally) pushes the Docker container image
+# artifacts for the application. The build action occurs on pull request events
+# that target the `main` branch, and the push action occurs only with tagged releases
+# and ticket branches.
+---
+name: "Build and Push"
+
+"on":
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'src/lsst/cmservice/**'
+  push:
+    tags:
+      - "*"
+  workflow_dispatch:
+
+jobs:
+  ci:
+    uses:
+      ./.github/workflows/ci.yaml
+
+  build:
+    name: "Build and Push Application Container Images"
+    needs:
+      - ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: lsst-sqre/build-and-push-to-ghcr@v1
+        id: build-service
+        with:
+          dockerfile: docker/Dockerfile
+          target: cmservice
+          image: ${{ github.repository }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          push: ${{ github.ref_type == 'tag' || (github.ref_type == 'branch' && startsWith(github.ref_name, 'tickets/DM-')) }}
+
+      - uses: lsst-sqre/build-and-push-to-ghcr@v1
+        id: build-worker
+        with:
+          dockerfile: docker/Dockerfile
+          target: cmworker
+          image: ${{ github.repository }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          push: ${{ github.ref_type == 'tag' || (github.ref_type == 'branch' && startsWith(github.ref_name, 'tickets/DM-')) }}
