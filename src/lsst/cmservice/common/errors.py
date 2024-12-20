@@ -7,12 +7,20 @@ from sqlalchemy.exc import IntegrityError
 T = TypeVar("T")
 
 
-class CMBashCheckError(KeyError):
+class CMCheckError(KeyError):
+    """Raised when script checking fails"""
+
+
+class CMBashCheckError(CMCheckError):
     """Raised when bash checking fails"""
 
 
-class CMBashSubmitError(RuntimeError):
-    """Raised when bash submisison fails"""
+class CMHTCondorCheckError(CMCheckError):
+    """Raised when htcondor checking fails"""
+
+
+class CMSlurmCheckError(CMCheckError):
+    """Raised when slurm checking fails"""
 
 
 class CMBadFullnameError(ValueError):
@@ -71,20 +79,20 @@ class CMResolveCollectionsError(KeyError):
     """Raised when the collection name resolution fails"""
 
 
-class CMSlurmSubmitError(RuntimeError):
-    """Raised when slurm submisison fails"""
+class CMSubmitError(RuntimeError):
+    """Raised when a submission fails"""
 
 
-class CMSlurmCheckError(KeyError):
-    """Raised when slurm checking fails"""
-
-
-class CMHTCondorSubmitError(RuntimeError):
+class CMHTCondorSubmitError(CMSubmitError):
     """Raised when htcondor submission fails"""
 
 
-class CMHTCondorCheckError(KeyError):
-    """Raised when htcondor checking fails"""
+class CMSlurmSubmitError(CMSubmitError):
+    """Raised when slurm submisison fails"""
+
+
+class CMBashSubmitError(CMSubmitError):
+    """Raised when bash submisison fails"""
 
 
 class CMNoButlerError(RuntimeError):
