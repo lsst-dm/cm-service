@@ -7,7 +7,6 @@ from sqlalchemy.schema import UniqueConstraint
 
 from ..common.enums import ErrorActionEnum, ErrorFlavorEnum, ErrorSourceEnum
 from .base import Base
-from .enums import SqlErrorActionEnum, SqlErrorFlavorEnum, SqlErrorSourceEnum
 from .row import RowMixin
 
 if TYPE_CHECKING:
@@ -23,9 +22,9 @@ class PipetaskErrorType(Base, RowMixin):
     __table_args__ = (UniqueConstraint("task_name", "diagnostic_message"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    error_source: Mapped[ErrorSourceEnum] = mapped_column(type_=SqlErrorSourceEnum)
-    error_flavor: Mapped[ErrorFlavorEnum] = mapped_column(type_=SqlErrorFlavorEnum)
-    error_action: Mapped[ErrorActionEnum] = mapped_column(type_=SqlErrorActionEnum)
+    error_source: Mapped[ErrorSourceEnum] = mapped_column()
+    error_flavor: Mapped[ErrorFlavorEnum] = mapped_column()
+    error_action: Mapped[ErrorActionEnum] = mapped_column()
     task_name: Mapped[str] = mapped_column()
     diagnostic_message: Mapped[str] = mapped_column()
 

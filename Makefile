@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 GIT_BRANCH := $(shell git branch --show-current)
-PRERELEASE := $(shell if [[ $(GIT_BRANCH) =~ main ]]; then echo '--minor'; else echo '--prerelease --no-tag --no-commit'; fi)
+PRERELEASE := $(shell if [[ $(GIT_BRANCH) =~ main ]]; then echo '--minor'; else echo '--no-tag --no-commit'; fi)
 PY_VENV := .venv/
 UV_LOCKFILE := uv.lock
 
