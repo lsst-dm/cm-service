@@ -192,13 +192,6 @@ class CMStepClient:
         "retry_script",
     )
 
-    estimate_sleep_time = wrappers.get_node_post_query_function(
-        int,
-        models.SleepTimeQuery,
-        f"{router_string}/get",
-        "sleep_time",
-    )
-
     get_wms_task_reports = wrappers.get_node_property_function(
         models.MergedWmsTaskReportDict,
         f"{router_string}/get",

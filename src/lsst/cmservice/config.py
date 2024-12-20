@@ -180,9 +180,12 @@ class DaemonConfiguration(BaseModel):
     Set according to DAEMON__FIELD environment variables.
     """
 
-    iteration_duration: int = Field(
+    processing_interval: int = Field(
         default=300,
-        description="The number of seconds to wait between daemon interations.",
+        description=(
+            "The maximum wait time (seconds) between daemon processing intervals. "
+            "An element in a running state may shorten this time."
+        ),
     )
 
 

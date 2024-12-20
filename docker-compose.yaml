@@ -81,7 +81,7 @@ services:
       POSTGRES_USER: "cm-service"
       POSTGRES_DB: "cm-service"
     ports:
-      - "5432"
+      - "65432:5432"
     networks:
       - cmservice
     volumes:
