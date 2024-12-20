@@ -768,8 +768,8 @@ class NodeMixin(RowMixin):
     ) -> int:
         """Estimate how long to sleep before calling process again.
 
-        If a job is running, use the daemon config interval value, otherwise
-        sleep the minimum 10 seconds.
+        If a node is running, use the greater of minimum sleep time or 10% of
+        the configured daemon processing interval.
 
         Parameters
         ----------
@@ -781,8 +781,7 @@ class NodeMixin(RowMixin):
         sleep_time : int
             Time to sleep in seconds
         """
-        sleep_time = minimum_sleep_time
         await session.refresh(self, attribute_names=["status"])
         if self.status == StatusEnum.running:
-            sleep_time = max(config.daemon.iteration_duration, sleep_time)
+            sleep_time = max(config.daemon.processing_interval // 10, minimum_sleep_time)
         return sleep_time

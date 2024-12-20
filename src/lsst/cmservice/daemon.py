@@ -63,7 +63,7 @@ async def main_loop() -> None:
     engine = create_database_engine(config.db.url, config.db.password)
 
     startup_time = datetime.now(UTC)
-    sleep_time = timedelta(seconds=config.daemon.iteration_duration)
+    sleep_time = timedelta(seconds=config.daemon.processing_interval)
 
     async with engine.begin():
         session = await create_async_session(engine, logger)

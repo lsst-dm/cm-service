@@ -65,7 +65,7 @@ async def test_job_db(engine: AsyncEngine) -> None:
 
         await db.Job.update_row(session, entry.id, status=StatusEnum.running)
         sleep_time = await parent.estimate_sleep_time(session)
-        assert sleep_time == 150
+        assert sleep_time == 300
         await db.Job.update_row(session, entry.id, status=StatusEnum.waiting)
 
         await check_get_methods(session, entry, db.Job, db.Group)

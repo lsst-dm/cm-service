@@ -1482,58 +1482,6 @@ def get_element_retry_script_function(
     return element_retry_script
 
 
-def get_element_estimate_sleep_time_function(
-    router: APIRouter,
-    db_class: TypeAlias = db.ElementMixin,
-) -> Callable:
-    """Return a function that will estimate how long to sleep before
-    calling process again
-
-    Parameters
-    ----------
-    router: APIRouter
-        Router to attach the function to
-
-    db_class: TypeAlias = db.ElementMixin
-        Underlying database class
-
-    Returns
-    -------
-    the_function: Callable
-        Function that will estimate how long to sleep before
-        calling process again
-    """
-
-    @router.post(
-        "/get/{row_id}/sleep_time",
-        status_code=201,
-        response_model=int,
-        summary=f"Retry a script associated to a {db_class.class_string}",
-    )
-    async def element_estimate_sleep_time(
-        row_id: int,
-        query: models.SleepTimeQuery,
-        session: async_scoped_session = Depends(db_session_dependency),
-    ) -> int:
-        try:
-            async with session.begin():
-                the_element = await db_class.get_row(session, row_id)
-                sleep_time = await the_element.estimate_sleep_time(
-                    session,
-                    job_sleep=query.job_sleep,
-                    script_sleep=query.script_sleep,
-                )
-            return sleep_time
-        except CMMissingIDError as msg:
-            logger.info(msg)
-            raise HTTPException(status_code=404, detail=str(msg)) from msg
-        except Exception as msg:
-            logger.error(msg, exc_info=True)
-            raise HTTPException(status_code=500, detail=str(msg)) from msg
-
-    return element_estimate_sleep_time
-
-
 def get_element_wms_task_reports_function(
     router: APIRouter,
     db_class: TypeAlias = db.ElementMixin,

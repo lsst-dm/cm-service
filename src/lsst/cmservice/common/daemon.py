@@ -30,6 +30,6 @@ async def daemon_iteration(session: async_scoped_session) -> None:
             sleep_time = await queue_entry.node_sleep_time(session)
         else:
             # Put this entry to sleep for a while
-            sleep_time = config.daemon.iteration_duration
+            sleep_time = config.daemon.processing_interval
         queue_entry.time_next_check = iteration_start + timedelta(seconds=sleep_time)
     await session.commit()

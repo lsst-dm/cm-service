@@ -191,6 +191,7 @@ class Queue(Base, NodeMixin):
         node = await self.get_node(session)
         return await node.estimate_sleep_time(session)
 
+    # TODO: who is asking? Not the daemon.
     def waiting(
         self,
     ) -> bool:
@@ -206,6 +207,7 @@ class Queue(Base, NodeMixin):
         now = datetime.now()
         return now < next_check
 
+    # TODO remove this method, we don't need it, see `process_node_loop`
     def pause_until_next_check(
         self,
         estimated_wait_time: int,
@@ -251,6 +253,7 @@ class Queue(Base, NodeMixin):
             node.status.is_processable_script()
         return node.status.is_processable_element()
 
+    # TODO we do not need a method that just calls another method.
     async def process_node(
         self,
         session: async_scoped_session,
@@ -258,6 +261,7 @@ class Queue(Base, NodeMixin):
         """Process associated node"""
         return await self._process_and_update(session)
 
+    # TODO remove this method, why is it here?
     async def process_node_loop(
         self,
         session: async_scoped_session,
