@@ -22,6 +22,8 @@ services:
       DB__ECHO: true
       DB__URL: postgresql://cm-service@postgresql:5432/cm-service
       DB__PASSWORD: INSECURE-PASSWORD
+    networks:
+      - cmservice
     depends_on:
       postgresql:
         condition: service_healthy
@@ -33,6 +35,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
+      target: cmservice
     entrypoint:
       - uvicorn
     command:
@@ -44,6 +47,8 @@ services:
     environment: *cmenv
     ports:
       - "8080:8080"
+    networks:
+      - cmservice
     depends_on:
       init-db:
         condition: service_completed_successfully
@@ -55,12 +60,15 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
+      target: cmworker
     entrypoint:
       - /opt/venv/bin/python3
       - -m
     command:
       - lsst.cmservice.daemon
     environment: *cmenv
+    networks:
+      - cmservice
     depends_on:
       init-db:
         condition: service_completed_successfully
@@ -74,6 +82,8 @@ services:
       POSTGRES_DB: "cm-service"
     ports:
       - "5432"
+    networks:
+      - cmservice
     volumes:
       - "pgsql:/var/lib/postgresql/data"
     healthcheck:
@@ -87,3 +97,7 @@ services:
 
 volumes:
   pgsql:
+
+networks:
+  cmservice:
+    driver: bridge

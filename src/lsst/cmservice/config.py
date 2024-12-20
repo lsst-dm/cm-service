@@ -1,38 +1,96 @@
+from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 __all__ = ["Configuration", "config"]
+
+load_dotenv()
+
+
+class BpsConfiguration(BaseModel):
+    """Configuration settings for bps client operations.
+
+    Set via BPS__FIELD environment variables.
+    """
+
+    bps_bin: str = Field(
+        description="Name of a bps client binary",
+        default="bps",
+    )
+
+
+class ButlerConfiguration(BaseModel):
+    """Configuration settings for butler client operations.
+
+    Set via BUTLER__FIELD environment variables.
+    """
+
+    butler_bin: str = Field(
+        description="Name of a butler client binary",
+        default="butler",
+    )
 
 
 class HTCondorConfiguration(BaseModel):
     """Configuration settings for htcondor client operations.
 
     Set via HTCONDOR__FIELD environment variables.
+
+    Fields with `exclude=True` are not included when a `model_dump` is called
+    on this model; included fields will be represented by their field name or
+    their serialization alias.
     """
 
     condor_submit_bin: str = Field(
         description="Name of condor_submit client binary",
         default="condor_submit",
+        exclude=True,
     )
 
     condor_q_bin: str = Field(
         description="Name of condor_q client binary",
         default="condor_q",
+        exclude=True,
     )
 
     request_cpus: int = Field(
         description="Number of cores to request when submitting an htcondor job.",
         default=1,
+        exclude=True,
     )
 
     request_mem: str = Field(
         description="Amount of memory requested when submitting an htcondor job.",
         default="512M",
+        exclude=True,
     )
 
     request_disk: str = Field(
         description="Amount of disk space requested when submitting an htcondor job.",
         default="1G",
+        exclude=True,
+    )
+
+    collector_host: str = Field(
+        description="Name of an htcondor collector host.",
+        default="localhost",
+        serialization_alias="_condor_COLLECTOR_HOST",
+    )
+
+    schedd_host: str = Field(
+        description="Name of an htcondor schedd host.",
+        default="localhost",
+        serialization_alias="_condor_SCHEDD_HOST",
+    )
+
+    authn_methods: str = Field(
+        description="Secure client authentication methods, as comma-delimited strings",
+        default="FS,FS_REMOTE",
+        serialization_alias="_condor_SEC_CLIENT_AUTHENTICATION_METHODS",
+    )
+
+    dagman_job_append_get_env: bool = Field(
+        description="...", default=True, serialization_alias="_condor_DAGMAN_MANAGER_JOB_APPEND_GETENV"
     )
 
 
@@ -116,6 +174,18 @@ class LoggingConfiguration(BaseModel):
     )
 
 
+class DaemonConfiguration(BaseModel):
+    """Settings for the Daemon nested model.
+
+    Set according to DAEMON__FIELD environment variables.
+    """
+
+    iteration_duration: int = Field(
+        default=300,
+        description="The number of seconds to wait between daemon interations.",
+    )
+
+
 class DatabaseConfiguration(BaseModel):
     """Database configuration nested model.
 
@@ -160,6 +230,9 @@ class Configuration(BaseSettings):
 
     # Nested Models
     asgi: AsgiConfiguration = AsgiConfiguration()
+    bps: BpsConfiguration = BpsConfiguration()
+    butler: ButlerConfiguration = ButlerConfiguration()
+    daemon: DaemonConfiguration = DaemonConfiguration()
     db: DatabaseConfiguration = DatabaseConfiguration()
     htcondor: HTCondorConfiguration = HTCondorConfiguration()
     logging: LoggingConfiguration = LoggingConfiguration()
