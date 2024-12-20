@@ -1,10 +1,18 @@
+from typing import Annotated
+
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, BeforeValidator, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from .common.enums import ScriptMethodEnum
 
 __all__ = ["Configuration", "config"]
 
 load_dotenv()
+
+
+ScriptMethodByName = Annotated[ScriptMethodEnum, BeforeValidator(lambda n: ScriptMethodEnum[n])]
+"""A type annotation to validate an enum by its name instead of its value."""
 
 
 class BpsConfiguration(BaseModel):
@@ -240,6 +248,12 @@ class Configuration(BaseSettings):
     htcondor: HTCondorConfiguration = HTCondorConfiguration()
     logging: LoggingConfiguration = LoggingConfiguration()
     slurm: SlurmConfiguration = SlurmConfiguration()
+
+    # Root fields
+    script_handler: ScriptMethodByName = Field(
+        description="The default external script handler",
+        default=ScriptMethodEnum.htcondor,
+    )
 
 
 config = Configuration()
