@@ -11,16 +11,14 @@ from ..common.enums import ErrorSourceEnum, ScriptMethodEnum, StatusEnum
 from ..common.errors import (
     CMBadExecutionMethodError,
     CMBadStateTransitionError,
-    CMBashSubmitError,
-    CMHTCondorCheckError,
-    CMHTCondorSubmitError,
+    CMCheckError,
     CMMissingNodeUrlError,
     CMMissingScriptInputError,
-    CMSlurmCheckError,
-    CMSlurmSubmitError,
+    CMSubmitError,
 )
 from ..common.htcondor import check_htcondor_job, submit_htcondor_job, write_htcondor_script
 from ..common.slurm import check_slurm_job, submit_slurm_job
+from ..config import config
 from ..db.element import ElementMixin
 from ..db.handler import Handler
 from ..db.node import NodeMixin
@@ -73,11 +71,7 @@ class BaseScriptHandler(Handler):
                     diagnostic_message=str(msg),
                 )
                 status = StatusEnum.failed
-            except (
-                CMHTCondorSubmitError,
-                CMSlurmSubmitError,
-                CMBashSubmitError,
-            ) as msg:  # pragma: no cover
+            except CMSubmitError as msg:  # pragma: no cover
                 _new_error = await ScriptError.create_row(
                     session,
                     script_id=node.id,
@@ -96,10 +90,7 @@ class BaseScriptHandler(Handler):
                     diagnostic_message=str(msg),
                 )
                 status = StatusEnum.failed
-            except (
-                CMHTCondorCheckError,
-                CMSlurmCheckError,
-            ) as msg:  # pragma: no cover
+            except CMCheckError as msg:  # pragma: no cover
                 _new_error = await ScriptError.create_row(
                     session,
                     script_id=node.id,
@@ -318,7 +309,7 @@ class BaseScriptHandler(Handler):
 class ScriptHandler(BaseScriptHandler):
     """SubClass of Handler to deal with script operations using real scripts"""
 
-    default_method = ScriptMethodEnum.htcondor
+    default_method = config.script_handler
 
     @staticmethod
     async def _check_stamp_file(  # pylint: disable=unused-argument

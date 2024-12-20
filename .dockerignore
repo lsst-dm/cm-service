@@ -4,5 +4,7 @@
 # Except
 !pyproject.toml
 !uv.lock
+!alembic.ini
 !src/lsst/
 !examples/
+!alembic/

@@ -1,5 +1,6 @@
 from fastapi import APIRouter
-from safir.metadata import Metadata, get_metadata
+
+from .. import __version__
 
 router = APIRouter()
 
@@ -11,16 +12,16 @@ router = APIRouter()
         " is not exposed outside the cluster and therefore cannot be used by external clients."
     ),
     include_in_schema=False,
-    response_model=Metadata,
+    response_model=dict[str, str],
     response_model_exclude_none=True,
     summary="Application metadata",
 )
-async def get_index() -> Metadata:
+async def get_index() -> dict:
     """GET ``/`` (the app's internal root).
 
     By convention, this endpoint returns only the application's metadata.
     """
-    return get_metadata(
-        package_name="lsst-cm-service",
-        application_name="cm-service",
-    )
+    return {
+        "name": "lsst-cm-service",
+        "version": __version__,
+    }

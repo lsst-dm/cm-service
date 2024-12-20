@@ -11,12 +11,12 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
+      target: cmservice
     entrypoint:
-      - python3
-      - -m
+      - alembic
     command:
-      - lsst.cmservice.cli.server
-      - init
+      - upgrade
+      - head
     environment: &cmenv
       DB__HOST: postgresql
       DB__ECHO: true
@@ -36,14 +36,6 @@ services:
       context: .
       dockerfile: docker/Dockerfile
       target: cmservice
-    entrypoint:
-      - uvicorn
-    command:
-      - lsst.cmservice.main:app
-      - --host
-      - "0.0.0.0"
-      - --port
-      - "8080"
     environment: *cmenv
     ports:
       - "8080:8080"
@@ -61,11 +53,6 @@ services:
       context: .
       dockerfile: docker/Dockerfile
       target: cmworker
-    entrypoint:
-      - /opt/venv/bin/python3
-      - -m
-    command:
-      - lsst.cmservice.daemon
     environment: *cmenv
     networks:
       - cmservice

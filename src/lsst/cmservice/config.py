@@ -1,6 +1,10 @@
+from warnings import warn
+
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from .common.enums import ScriptMethodEnum
 
 __all__ = ["Configuration", "config"]
 
@@ -28,6 +32,11 @@ class ButlerConfiguration(BaseModel):
     butler_bin: str = Field(
         description="Name of a butler client binary",
         default="butler",
+    )
+
+    mock: bool = Field(
+        description="Whether to mock out Butler calls. Equivalent to setting `fake_status`",
+        default=False,
     )
 
 
@@ -159,6 +168,11 @@ class AsgiConfiguration(BaseModel):
         default="/web_app",
     )
 
+    reload: bool = Field(
+        description="Whether to support ASGI server reload on content change.",
+        default=False,
+    )
+
 
 class LoggingConfiguration(BaseModel):
     """Configuration for the application's logging facility."""
@@ -240,6 +254,26 @@ class Configuration(BaseSettings):
     htcondor: HTCondorConfiguration = HTCondorConfiguration()
     logging: LoggingConfiguration = LoggingConfiguration()
     slurm: SlurmConfiguration = SlurmConfiguration()
+
+    # Root fields
+    script_handler: ScriptMethodEnum = Field(
+        description="The default external script handler",
+        default=ScriptMethodEnum.htcondor,
+    )
+
+    @field_validator("script_handler", mode="before")
+    @classmethod
+    def validate_script_method_by_name(cls, value: str | ScriptMethodEnum) -> ScriptMethodEnum:
+        """Use a string value to resolve an enum by its name, falling back to
+        the default value if an invalid input is provided.
+        """
+        if isinstance(value, ScriptMethodEnum):
+            return value
+        try:
+            return ScriptMethodEnum[value]
+        except KeyError:
+            warn(f"Invalid script handler ({value}) provided to config, using default.")
+            return ScriptMethodEnum.htcondor
 
 
 config = Configuration()

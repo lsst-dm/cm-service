@@ -25,11 +25,13 @@ async def daemon_iteration(session: async_scoped_session) -> None:
             if isinstance(queued_node, Script)
             else queued_node.status.is_processable_element()
         ):
-            logger.info(f"Processing queue_entry f{queued_node.fullname}")
+            logger.info(f"Processing queue_entry {queued_node.fullname}")
             await queue_entry.process_node(session)
             sleep_time = await queue_entry.node_sleep_time(session)
         else:
             # Put this entry to sleep for a while
             sleep_time = config.daemon.processing_interval
-        queue_entry.time_next_check = iteration_start + timedelta(seconds=sleep_time)
+        time_next_check = iteration_start + timedelta(seconds=sleep_time)
+        queue_entry.time_next_check = time_next_check
+        logger.info(f"Next check for {queued_node.fullname} at {time_next_check}")
     await session.commit()

@@ -1,6 +1,7 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
+import uvicorn
 from fastapi import FastAPI
 from safir.dependencies.db_session import db_session_dependency
 from safir.dependencies.http_client import http_client_dependency
@@ -13,6 +14,7 @@ from .routers import (
     actions,
     campaigns,
     groups,
+    healthz,
     index,
     jobs,
     loaders,
@@ -34,11 +36,8 @@ from .routers import (
 )
 from .web_app import web_app
 
-__all__ = ["app", "config"]
-
-configure_logging(profile=config.logging.profile, log_level=config.logging.level, name=__name__)
 configure_uvicorn_logging(config.logging.level)
-
+configure_logging(profile=config.logging.profile, log_level=config.logging.level, name=config.asgi.title)
 
 tags_metadata = [
     {
@@ -118,8 +117,9 @@ tags_metadata = [
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncGenerator:
+async def lifespan(app: FastAPI) -> AsyncGenerator:
     """Hook FastAPI init/cleanups."""
+    app.state.tasks = set()
     # Dependency inits before app starts running
     await db_session_dependency.initialize(config.db.url, config.db.password)
     assert db_session_dependency._engine is not None
@@ -145,7 +145,7 @@ app = FastAPI(
 
 app.add_middleware(XForwardedMiddleware)
 
-
+app.include_router(healthz.health_router)
 app.include_router(index.router)
 app.include_router(loaders.router, prefix=config.asgi.prefix)
 app.include_router(actions.router, prefix=config.asgi.prefix)
@@ -175,3 +175,9 @@ app.include_router(queues.router, prefix=config.asgi.prefix)
 
 # Start the frontend web application.
 app.mount(config.asgi.frontend_prefix, web_app)
+
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "lsst.cmservice.main:app", host=config.asgi.host, port=config.asgi.port, reload=config.asgi.reload
+    )

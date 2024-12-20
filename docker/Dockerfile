@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 
-ARG PYTHON_VERSION
-ARG UV_VERSION
-ARG ASGI_PORT="8081"
+ARG PYTHON_VERSION="3.11"
+ARG UV_VERSION="0.5"
+ARG ASGI_PORT="8080"
 
 #==============================================================================
 # UV SOURCE IMAGE
@@ -23,6 +23,7 @@ RUN conda create -p /opt/htcondor -c conda-forge htcondor-utils --no-default-pac
 #   created. This can be extended into include any *runtime* system dependencies
 #   during the apt-get step.
 FROM python:${PYTHON_VERSION}-slim-bookworm AS base-image
+ARG ASGI_PORT
 
 # Upgrade base packages
 RUN <<ENDRUN
@@ -45,6 +46,9 @@ groupadd --gid 2218 lsst
 groupadd --gid 3967 lsstsvc1
 useradd lsstsvc1 --uid 17951 --no-user-group --gid gu --groups rubin-users,lsst,lsstsvc1 --create-home --shell /bin/bash
 ENDRUN
+
+# Expose the API port
+EXPOSE ${ASGI_PORT}
 
 
 #==============================================================================
@@ -83,10 +87,6 @@ ENDRUN
 #==============================================================================
 # RUNTIME IMAGE - CM-Service
 FROM base-image AS cmservice
-ARG ASGI_PORT
-
-# Expose the API port
-EXPOSE ${ASGI_PORT}
 
 # Make sure frontend output won't go into the layer store
 VOLUME /output
@@ -104,9 +104,11 @@ WORKDIR /home/lsstsvc1
 ENV CM_CONFIGS=/home/lsstsvc1/examples
 COPY examples ./examples
 COPY src/lsst ./lsst
+COPY alembic ./alembic
+COPY alembic.ini .
 
-ENTRYPOINT ["uvicorn"]
-CMD ["lsst.cmservice.main:app", "--host", "0.0.0.0", "--port", "${ASGI_PORT}"]
+ENTRYPOINT ["/opt/venv/bin/python3", "-m"]
+CMD ["lsst.cmservice.main"]
 
 
 #==============================================================================
@@ -117,5 +119,4 @@ USER ROOT
 COPY --from=htcondor /opt/htcondor /opt/htcondor
 
 USER lsstsvc1
-ENTRYPOINT ["/opt/venv/bin/python3", "-m"]
 CMD ["lsst.cmservice.daemon"]

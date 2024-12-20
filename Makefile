@@ -110,7 +110,7 @@ run: export DB__PASSWORD=INSECURE-PASSWORD
 run: export DB__ECHO=true
 run: run-compose
 	alembic upgrade head
-	python3 -m lsst.cmservice.cli.server run
+	python3 -m lsst.cmservice.main
 
 .PHONY: run-worker
 run-worker: PGPORT=$(shell docker compose port postgresql 5432 | cut -d: -f2)
@@ -148,7 +148,7 @@ run-sqlite: export DB__URL=sqlite+aiosqlite://///test_cm.db
 run-sqlite: export DB__ECHO=true
 run-sqlite:
 	alembic -x cm_database_url=sqlite:///test_cm.db upgrade head
-	python3 -m lsst.cmservice.cli.server run
+	python3 -m lsst.cmservice.main
 
 .PHONY: run-worker-sqlite
 run-worker-sqlite: export DB__URL=sqlite+aiosqlite://///test_cm.db
@@ -191,7 +191,7 @@ run-usdf-dev: export DB__PASSWORD=$(shell kubectl --cluster=usdf-cm-dev -n cm-se
 run-usdf-dev: export DB__ECHO=true
 run-usdf-dev:
 	alembic upgrade head
-	python3 -m lsst.cmservice.cli.server run
+	python3 -m lsst.cmservice.main
 
 .PHONY: run-worker-usdf-dev
 run-worker-usdf-dev: DB__HOST=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get svc/cm-pg-lb -o jsonpath='{..ingress[0].ip}')
