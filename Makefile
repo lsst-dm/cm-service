@@ -98,7 +98,7 @@ psql: run-compose
 test: PGPORT=$(shell docker compose port postgresql 5432 | cut -d: -f2)
 test: export DB__URL=postgresql://cm-service@localhost:${PGPORT}/cm-service
 test: export DB__PASSWORD=INSECURE-PASSWORD
-test: export DB__SCHEMA=cm_service_test
+test: export DB__TABLE_SCHEMA=cm_service_test
 test: run-compose
 	alembic upgrade head
 	pytest -vvv --asyncio-mode=auto --cov=lsst.cmservice --cov-branch --cov-report=term --cov-report=html ${PYTEST_ARGS}

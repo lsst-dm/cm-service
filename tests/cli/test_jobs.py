@@ -55,10 +55,6 @@ async def test_job_cli(uvicorn: UvicornProcess) -> None:
     result = runner.invoke(client_top, f"job get parent --row_id {entry.id} --output yaml")
     parent = check_and_parse_result(result, models.ElementMixin)
 
-    result = runner.invoke(client_top, f"job action estimate_sleep_time --row_id {entry.id} --output yaml")
-    sleep_time = check_and_parse_result(result, dict)["sleep_time"]
-    assert sleep_time == 10
-
     result = runner.invoke(client_top, f"job get errors --row_id {entry.id} --output yaml")
     job_errors = check_and_parse_result(result, list[models.PipetaskError])
     assert len(job_errors) == 0

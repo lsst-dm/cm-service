@@ -22,6 +22,7 @@ dynamic = ["version"]
 
 dependencies = [
     "alembic==1.14.*",
+    "anyio==4.7.*",
     "asyncpg==0.30.*",
     "click==8.1.*",
     "fastapi==0.115.*",
@@ -37,9 +38,8 @@ dependencies = [
     "pause==0.3.*",
     "psycopg2-binary==2.9.*",
     "pydantic==2.10.*",
-    "pydantic-settings==2.6.*",
+    "pydantic-settings==2.7.*",
     "python-multipart==0.0.*",
-    "starlette==0.41.*",
     "structlog==24.4.*",
     "tabulate==0.9.*",
     "sqlalchemy[asyncio]==2.0.*",
@@ -61,7 +61,7 @@ dev = [
     "pytest-cov>=6.0.0",
     "pytest-playwright>=0.5.2",
     "pytest-timeout>=2.3.1",
-    "ruff>=0.7.4",
+    "ruff>=0.8.0",
     "python-semantic-release==9.14.*",
     "sqlalchemy[mypy]>=2.0.36",
     "types-pyyaml>=6.0.12.20240917",

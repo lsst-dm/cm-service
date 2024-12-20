@@ -15,6 +15,7 @@ from ..common.butler import (
 )
 from ..common.enums import LevelEnum, ScriptMethodEnum, StatusEnum
 from ..common.errors import CMBadExecutionMethodError, CMMissingScriptInputError, test_type_and_raise
+from ..config import config
 from ..db.element import ElementMixin
 from ..db.script import Script
 from ..db.step import Step
@@ -87,7 +88,7 @@ class ChainCreateScriptHandler(ScriptHandler):
             butler_repo = data_dict["butler_repo"]
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
-        command = f"butler collection-chain {butler_repo} {output_coll}"
+        command = f"{config.butler.butler_bin} collection-chain {butler_repo} {output_coll}"
         # This is here out of paranoia.
         # script.resolved_collections should convert the list to a string
         if isinstance(input_colls, list):  # pragma: no cover
@@ -146,7 +147,10 @@ class ChainPrependScriptHandler(ScriptHandler):
             butler_repo = data_dict["butler_repo"]
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
-        command = f"butler collection-chain {butler_repo} {output_coll} --mode prepend {input_coll}"
+        command = (
+            f"{config.butler.butler_bin} collection-chain "
+            f"{butler_repo} {output_coll} --mode prepend {input_coll}"
+        )
         write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
@@ -215,7 +219,7 @@ class ChainCollectScriptHandler(ScriptHandler):
             )
         script_url = await self._set_script_files(session, script, data_dict["prod_area"])
         butler_repo = data_dict["butler_repo"]
-        command = f"butler collection-chain {butler_repo} {output_coll}"
+        command = f"{config.butler.butler_bin} collection-chain {butler_repo} {output_coll}"
         for collect_coll_ in collect_colls:
             command += f" {collect_coll_}"
         for input_coll_ in input_colls:
@@ -272,7 +276,7 @@ class TagInputsScriptHandler(ScriptHandler):
             data_query = data_dict.get("data_query")
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
-        command = f"butler associate {butler_repo} {output_coll}"
+        command = f"{config.butler.butler_bin} associate {butler_repo} {output_coll}"
         command += f" --collections {input_coll}"
         command += f' --where "{data_query}"' if data_query else ""
         write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
@@ -321,7 +325,7 @@ class TagCreateScriptHandler(ScriptHandler):
             butler_repo = data_dict["butler_repo"]
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
-        command = f"butler associate {butler_repo} {output_coll}"
+        command = f"{config.butler.butler_bin} associate {butler_repo} {output_coll}"
         write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
         await script.update_values(session, status=StatusEnum.prepared)
         return StatusEnum.prepared
@@ -371,7 +375,7 @@ class TagAssociateScriptHandler(ScriptHandler):
             butler_repo = data_dict["butler_repo"]
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
-        command = f"butler associate {butler_repo} {output_coll}"
+        command = f"{config.butler.butler_bin} associate {butler_repo} {output_coll}"
         command += f" --collections {input_coll}"
         write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
@@ -442,7 +446,7 @@ class PrepareStepScriptHandler(ScriptHandler):
         if not prereq_colls:
             prereq_colls.append(resolved_cols["global_inputs"])
 
-        command = f"butler collection-chain {butler_repo} {output_coll}"
+        command = f"{config.butler.butler_bin} collection-chain {butler_repo} {output_coll}"
         for prereq_coll_ in prereq_colls:
             command += f" {prereq_coll_}"
         write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)

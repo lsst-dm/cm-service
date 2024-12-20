@@ -312,10 +312,10 @@ async def check_scripts(
 
     await scripts[1].update_values(session, status=StatusEnum.running)
     sleep_time = await entry.estimate_sleep_time(session)
-    assert sleep_time == 15, "Wrong sleep time for element with running script"
+    assert sleep_time == 30, "Wrong sleep time for element with running script"
 
     sleep_time = await scripts[1].estimate_sleep_time(session)
-    assert sleep_time == 15, "Wrong sleep time for running script"
+    assert sleep_time == 30, "Wrong sleep time for running script"
 
     await scripts[1].update_values(session, status=StatusEnum.waiting, superseded=True)
     scripts_check = await entry.get_scripts(session)

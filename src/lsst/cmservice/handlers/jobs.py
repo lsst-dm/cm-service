@@ -23,6 +23,7 @@ from ..common.errors import (
     CMMissingScriptInputError,
     test_type_and_raise,
 )
+from ..config import config
 from ..db.element import ElementMixin
 from ..db.job import Job
 from ..db.script import Script
@@ -118,7 +119,10 @@ class BpsScriptHandler(ScriptHandler):
             pass
 
         # build up the bps wrapper script
-        command = f"bps --log-file {json_url} --no-log-tty submit {os.path.abspath(config_url)} > {log_url}"
+        command = (
+            f"{config.bps.bps_bin} --log-file {json_url} --no-log-tty submit "
+            f"{os.path.abspath(config_url)} > {log_url}"
+        )
 
         prepend = bps_core_script_template_.data["text"].replace("{lsst_version}", lsst_version)  # type: ignore
         prepend = prepend.replace("{lsst_distrib_dir}", lsst_distrib_dir)
