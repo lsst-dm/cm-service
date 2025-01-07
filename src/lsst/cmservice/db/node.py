@@ -783,5 +783,5 @@ class NodeMixin(RowMixin):
         """
         await session.refresh(self, attribute_names=["status"])
         if self.status == StatusEnum.running:
-            sleep_time = max(config.daemon.processing_interval // 10, minimum_sleep_time)
-        return sleep_time
+            minimum_sleep_time = max(config.daemon.processing_interval // 10, minimum_sleep_time)
+        return minimum_sleep_time

@@ -4,7 +4,6 @@ import click
 from safir.asyncio import run_with_asyncio
 
 from .. import __version__
-from ..main import main as run_server
 
 
 # build the server CLI
@@ -40,7 +39,6 @@ def run(port: int) -> None:  # pragma: no cover
         module entrypoint instead.
     """
     warnings.warn("Use `python3 -m lsst.cmservice.main` instead.", DeprecationWarning)
-    run_server()
 
 
 # Build the client CLI
