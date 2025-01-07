@@ -13,8 +13,10 @@ from .util_functions import (
 
 
 @pytest.mark.asyncio()
+@pytest.mark.parametrize("api_version", ["v1"])
 async def test_routers_trivial_campaign(
     client: AsyncClient,
+    api_version: str,
 ) -> None:
     """Test fake end to end run using example/example_trivial.yaml"""
 
@@ -25,7 +27,7 @@ async def test_routers_trivial_campaign(
     )
 
     response = await client.post(
-        f"{config.asgi.prefix}/load/specification",
+        f"{config.asgi.prefix}/{api_version}/load/specification",
         content=spec_load_model.model_dump_json(),
     )
     specification = check_and_parse_response(response, models.Specification)
@@ -39,11 +41,11 @@ async def test_routers_trivial_campaign(
     )
 
     response = await client.post(
-        f"{config.asgi.prefix}/load/campaign",
+        f"{config.asgi.prefix}/{api_version}/load/campaign",
         content=campaign_load_model.model_dump_json(),
     )
     campaign = check_and_parse_response(response, models.Campaign)
     assert campaign.name == "test"
 
     # delete everything we just made in the session
-    await cleanup(client)
+    await cleanup(client, api_version)

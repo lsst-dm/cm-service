@@ -11,28 +11,9 @@ from safir.middleware.x_forwarded import XForwardedMiddleware
 from . import __version__
 from .config import config
 from .routers import (
-    actions,
-    campaigns,
-    groups,
     healthz,
     index,
-    jobs,
-    loaders,
-    pipetask_error_types,
-    pipetask_errors,
-    product_sets,
-    productions,
-    queues,
-    script_dependencies,
-    script_errors,
-    script_templates,
-    scripts,
-    spec_blocks,
-    specifications,
-    step_dependencies,
-    steps,
-    task_sets,
-    wms_task_reports,
+    v1,
 )
 from .web_app import web_app
 
@@ -137,41 +118,17 @@ app = FastAPI(
     lifespan=lifespan,
     title=config.asgi.title,
     version=__version__,
-    openapi_url=f"{config.asgi.prefix}/openapi.json",
+    openapi_url="/openapi.json",
     openapi_tags=tags_metadata,
-    docs_url=f"{config.asgi.prefix}/docs",
-    redoc_url=f"{config.asgi.prefix}/redoc",
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
 app.add_middleware(XForwardedMiddleware)
 
-app.include_router(healthz.health_router)
-app.include_router(index.router)
-app.include_router(loaders.router, prefix=config.asgi.prefix)
-app.include_router(actions.router, prefix=config.asgi.prefix)
-
-app.include_router(productions.router, prefix=config.asgi.prefix)
-app.include_router(campaigns.router, prefix=config.asgi.prefix)
-app.include_router(steps.router, prefix=config.asgi.prefix)
-app.include_router(groups.router, prefix=config.asgi.prefix)
-app.include_router(jobs.router, prefix=config.asgi.prefix)
-app.include_router(scripts.router, prefix=config.asgi.prefix)
-
-app.include_router(specifications.router, prefix=config.asgi.prefix)
-app.include_router(spec_blocks.router, prefix=config.asgi.prefix)
-app.include_router(script_templates.router, prefix=config.asgi.prefix)
-
-app.include_router(pipetask_error_types.router, prefix=config.asgi.prefix)
-app.include_router(pipetask_errors.router, prefix=config.asgi.prefix)
-app.include_router(script_errors.router, prefix=config.asgi.prefix)
-
-app.include_router(task_sets.router, prefix=config.asgi.prefix)
-app.include_router(product_sets.router, prefix=config.asgi.prefix)
-app.include_router(wms_task_reports.router, prefix=config.asgi.prefix)
-
-app.include_router(script_dependencies.router, prefix=config.asgi.prefix)
-app.include_router(step_dependencies.router, prefix=config.asgi.prefix)
-app.include_router(queues.router, prefix=config.asgi.prefix)
+app.include_router(healthz.health_router, prefix="")
+app.include_router(index.router, prefix="")
+app.include_router(v1.router, prefix=config.asgi.prefix)
 
 # Start the frontend web application.
 app.mount(config.asgi.frontend_prefix, web_app)
