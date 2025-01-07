@@ -1,3 +1,4 @@
+import pytest
 from click.testing import CliRunner
 from safir.testing.uvicorn import UvicornProcess
 
@@ -9,10 +10,11 @@ from lsst.cmservice.config import config
 from .util_functions import check_and_parse_result
 
 
-async def test_others_cli(uvicorn: UvicornProcess) -> None:
+@pytest.mark.parametrize("api_version", ["v1"])
+async def test_others_cli(uvicorn: UvicornProcess, api_version: str) -> None:
     """Test `other` CLI command"""
 
-    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}"
+    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}/{api_version}"
     runner = CliRunner()
 
     result = runner.invoke(client_top, "pipetask_error list --output yaml")

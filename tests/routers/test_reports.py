@@ -16,7 +16,8 @@ from .util_functions import (
 
 @pytest.mark.asyncio()
 @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
-async def test_report_routes(client: AsyncClient) -> None:
+@pytest.mark.parametrize("api_version", ["v1"])
+async def test_report_routes(client: AsyncClient, api_version: str) -> None:
     """Test `/job` API endpoint."""
 
     # generate a uuid to avoid collisions
@@ -25,9 +26,9 @@ async def test_report_routes(client: AsyncClient) -> None:
     os.environ["CM_CONFIGS"] = "examples"
 
     # intialize a tree down to one level lower
-    await create_tree(client, LevelEnum.job, uuid_int)
+    await create_tree(client, api_version, LevelEnum.job, uuid_int)
 
-    response = await client.get(f"{config.asgi.prefix}/job/list")
+    response = await client.get(f"{config.asgi.prefix}/{api_version}/job/list")
     jobs = check_and_parse_response(response, list[models.Job])
     entry = jobs[0]
 
@@ -37,7 +38,7 @@ async def test_report_routes(client: AsyncClient) -> None:
     )
 
     response = await client.post(
-        f"{config.asgi.prefix}/load/manifest_report",
+        f"{config.asgi.prefix}/{api_version}/load/manifest_report",
         content=manifest_report_query.model_dump_json(),
     )
     assert response.is_success

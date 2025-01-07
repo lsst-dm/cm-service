@@ -14,14 +14,15 @@ from .util_functions import (
 
 
 @pytest.mark.asyncio()
-async def test_error_create_cli(uvicorn: UvicornProcess) -> None:
+@pytest.mark.parametrize("api_version", ["v1"])
+async def test_error_create_cli(uvicorn: UvicornProcess, api_version: str) -> None:
     """Test error matching in pipetask_error_type.match.
 
     Correctly match a real error to the error_type database and fail to match a
     fake error which is not in the database.
     """
 
-    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}"
+    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}/{api_version}"
     runner = CliRunner()
 
     result = runner.invoke(
@@ -38,10 +39,11 @@ async def test_error_create_cli(uvicorn: UvicornProcess) -> None:
 
 
 @pytest.mark.asyncio()
-async def test_load_error_types_cli(uvicorn: UvicornProcess) -> None:
+@pytest.mark.parametrize("api_version", ["v1"])
+async def test_load_error_types_cli(uvicorn: UvicornProcess, api_version: str) -> None:
     """Test `error_type` db table."""
 
-    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}"
+    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}/{api_version}"
     runner = CliRunner()
 
     result = runner.invoke(client_top, "load error-types --yaml_file examples/error_types.yaml")

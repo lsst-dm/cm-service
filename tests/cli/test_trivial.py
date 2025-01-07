@@ -14,10 +14,11 @@ from .util_functions import (
 
 
 @pytest.mark.asyncio()
-async def test_cli_trivial_campaign(uvicorn: UvicornProcess) -> None:
+@pytest.mark.parametrize("api_version", ["v1"])
+async def test_cli_trivial_campaign(uvicorn: UvicornProcess, api_version: str) -> None:
     """Test fake end to end run using example/example_trivial.yaml"""
 
-    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}"
+    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}/{api_version}"
     runner = CliRunner()
 
     yaml_file = "examples/example_trivial.yaml"

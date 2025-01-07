@@ -1,3 +1,4 @@
+import pytest
 from click.testing import CliRunner
 from safir.testing.uvicorn import UvicornProcess
 
@@ -6,9 +7,10 @@ from lsst.cmservice.client.clientconfig import client_config
 from lsst.cmservice.config import config
 
 
-def test_commands_cli(uvicorn: UvicornProcess) -> None:
+@pytest.mark.parametrize("api_version", ["v1"])
+def test_commands_cli(uvicorn: UvicornProcess, api_version: str) -> None:
     """Test miscellaneous CLI commands"""
-    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}"
+    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}/{api_version}"
     runner = CliRunner()
 
     result = runner.invoke(client_top, "production list")

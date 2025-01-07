@@ -11,7 +11,8 @@ from .util_functions import (
 
 @pytest.mark.asyncio()
 @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
-async def test_load_error_types_routes(client: AsyncClient) -> None:
+@pytest.mark.parametrize("api_version", ["v1"])
+async def test_load_error_types_routes(client: AsyncClient, api_version: str) -> None:
     """Test `/job` API endpoint."""
 
     yaml_file_query = models.YamlFileQuery(
@@ -19,7 +20,7 @@ async def test_load_error_types_routes(client: AsyncClient) -> None:
     )
 
     response = await client.post(
-        f"{config.asgi.prefix}/load/error_types",
+        f"{config.asgi.prefix}/{api_version}/load/error_types",
         content=yaml_file_query.model_dump_json(),
     )
     error_types = check_and_parse_response(response, list[models.PipetaskErrorType])
@@ -29,7 +30,7 @@ async def test_load_error_types_routes(client: AsyncClient) -> None:
         rematch=True,
     )
     response = await client.post(
-        f"{config.asgi.prefix}/actions/rematch_errors",
+        f"{config.asgi.prefix}/{api_version}/actions/rematch_errors",
         content=rematch_query.model_dump_json(),
     )
     matched_errors = check_and_parse_response(response, list[models.PipetaskError])

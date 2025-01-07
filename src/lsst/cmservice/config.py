@@ -194,7 +194,7 @@ class AsgiConfiguration(BaseModel):
 
     prefix: str = Field(
         description="The URL prefix for the cm-service API",
-        default="/cm-service/v1",
+        default="/cmservice",
     )
 
     frontend_prefix: str = Field(

@@ -20,7 +20,8 @@ from .util_functions import (
 
 
 @pytest.mark.asyncio()
-async def test_campaign_routes(client: AsyncClient) -> None:
+@pytest.mark.parametrize("api_version", ["v1"])
+async def test_campaign_routes(client: AsyncClient, api_version: str) -> None:
     """Test `/campaign` API endpoint."""
 
     # generate a uuid to avoid collisions
@@ -29,9 +30,9 @@ async def test_campaign_routes(client: AsyncClient) -> None:
     os.environ["CM_CONFIGS"] = "examples"
 
     # intialize a tree down to one level lower
-    await create_tree(client, LevelEnum.step, uuid_int)
+    await create_tree(client, api_version, LevelEnum.step, uuid_int)
 
-    response = await client.get(f"{config.asgi.prefix}/campaign/list")
+    response = await client.get(f"{config.asgi.prefix}/{api_version}/campaign/list")
     campaigns = check_and_parse_response(response, list[models.Campaign])
     entry = campaigns[0]
 
@@ -41,23 +42,23 @@ async def test_campaign_routes(client: AsyncClient) -> None:
     )
 
     response = await client.post(
-        f"{config.asgi.prefix}/load/steps",
+        f"{config.asgi.prefix}/{api_version}/load/steps",
         content=add_steps_query.model_dump_json(),
     )
     campaign_check = check_and_parse_response(response, models.Campaign)
     assert entry.id == campaign_check.id
 
     # check get methods
-    await check_get_methods(client, entry, "campaign", models.Campaign)
+    await check_get_methods(client, api_version, entry, "campaign", models.Campaign)
 
     # check update methods
-    await check_update_methods(client, entry, "campaign", models.Campaign)
+    await check_update_methods(client, api_version, entry, "campaign", models.Campaign)
 
     # check scripts
-    await check_scripts(client, entry, "campaign")
+    await check_scripts(client, api_version, entry, "campaign")
 
     # check queues
-    await check_queue(client, entry)
+    await check_queue(client, api_version, entry)
 
     # delete everything we just made in the session
-    await cleanup(client, check_cascade=True)
+    await cleanup(client, api_version, check_cascade=True)
