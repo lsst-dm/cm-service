@@ -22,6 +22,7 @@ services:
       DB__ECHO: true
       DB__URL: postgresql://cm-service@postgresql:5432/cm-service
       DB__PASSWORD: INSECURE-PASSWORD
+      DB__TABLE_SCHEMA: public
     networks:
       - cmservice
     depends_on:
@@ -36,6 +37,9 @@ services:
       context: .
       dockerfile: docker/Dockerfile
       target: cmservice
+    env_file:
+      - path: .env
+        required: false
     environment: *cmenv
     ports:
       - "8080:8080"
@@ -53,7 +57,12 @@ services:
       context: .
       dockerfile: docker/Dockerfile
       target: cmworker
+    env_file:
+      - path: .env
+        required: false
     environment: *cmenv
+    volumes:
+      - "./prod_area:/prod_area"
     networks:
       - cmservice
     depends_on:

@@ -82,6 +82,7 @@ def submit_htcondor_job(
         If set, don't actually submit the job
 
     """
+    fake_status = fake_status or config.mock_status
     if fake_status is not None:
         return
     try:
@@ -121,6 +122,7 @@ def check_htcondor_job(
     status: StatusEnum
         HTCondor job status
     """
+    fake_status = fake_status or config.mock_status
     if fake_status is not None:
         return StatusEnum.reviewable if fake_status.value >= StatusEnum.reviewable.value else fake_status
     try:

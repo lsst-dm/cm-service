@@ -508,10 +508,12 @@ class ResourceUsageScriptHandler(ScriptHandler):
         # Strip leading/trailing spaces just in case
         prepend = "\n".join([line.strip() for line in prepend.splitlines()])
 
-        command = f"build-gather-resource-usage-qg {butler_repo} {usage_graph_url} "
-        command += f"{resolved_cols['campaign_output']} --output {resolved_cols['campaign_resource_usage']};"
-        command += f"pipetask run -b {butler_repo} -g {usage_graph_url} "
-        command += f"-o {resolved_cols['campaign_resource_usage']} --register-dataset-types -j 16"
+        command = (
+            f"{config.bps.resource_usage_bin} {butler_repo} {usage_graph_url} "
+            f"{resolved_cols['campaign_output']} --output {resolved_cols['campaign_resource_usage']};"
+            f"{config.bps.pipetask_bin} run -b {butler_repo} -g {usage_graph_url} "
+            f"-o {resolved_cols['campaign_resource_usage']} --register-dataset-types -j {config.bps.n_jobs}"
+        )
 
         write_bash_script(script_url, command, prepend=prepend)
 
@@ -584,8 +586,8 @@ class HipsMapsScriptHandler(ScriptHandler):
             os.path.expandvars("${CM_CONFIGS}") + data_dict["hips_pipeline_config_path"]
         )
 
-        # Note: The pipetask command below features a `-j 16` which requests
-        # 16 nodes to run. This will guarantee that the HIPS maps generate at
+        # Note: The pipetask command below features a `-j N` which requests
+        # N nodes to run. This will guarantee that the HIPS maps generate at
         # a reasonable rate. However, when allocating nodes for HTCondor,
         # the user should allocate at least 16 so that this can execute
         # properly. Future effort should be devoted to getting a number like
@@ -593,22 +595,22 @@ class HipsMapsScriptHandler(ScriptHandler):
 
         command = f"""# First we get the output of the generated pixels and then format it so the output of
         # the first command can be used as input to the next.
-        output=$(build-high-resolution-hips-qg segment -b {butler_repo} \
+        output=$({config.hips.high_res_bin} segment -b {butler_repo} \
         -p {hips_pipeline_yaml} -i {resolved_cols["campaign_output"]} -o 1);
         # Then, we take pixels from previous commands and use to build the hips maps graph.
         pixels=$(echo '$output' | grep -Eo '[0-9]+' | tr '\\n' ' ');
-        build-high-resolution-hips-qg build -b {butler_repo} -p {hips_pipeline_yaml} \
+        {config.hips.high_res_bin} build -b {butler_repo} -p {hips_pipeline_yaml} \
         -i {resolved_cols["campaign_output"]} --output {resolved_cols["campaign_hips_maps"]} \
         --pixels $pixels -q {hips_maps_graph_url};
         # Now we pipetask run the graph
-        pipetask --long-log --log-level=INFO run -j 16 -b {butler_repo} \
+        {config.bps.pipetask_bin} --long-log --log-level=INFO run -j {config.bps.n_jobs} -b {butler_repo} \
         --output {resolved_cols["campaign_hips_maps"]} --register-dataset-types -g {hips_maps_graph_url};
         # Generate HIPS 9-level .png images
-        pipetask --long-log --log-level=INFO run -j 16 -b {butler_repo} \
+        {config.bps.pipetask_bin} --long-log --log-level=INFO run -j {config.bps.n_jobs} -b {butler_repo} \
         -i {resolved_cols["campaign_output"]} --output {resolved_cols["campaign_hips_maps"]} \
         -p {gen_hips_both_yaml} -c 'generateHips:hips_base_uri=\
-        s3://rubin-hips/{resolved_cols["campaign_hips_maps"]}' \
-        -c 'generateColorHips:hips_base_uri=s3://rubin-hips/{resolved_cols["campaign_hips_maps"]}' \
+        {config.hips.uri}/{resolved_cols["campaign_hips_maps"]}' \
+        -c 'generateColorHips:hips_base_uri={config.hips.uri}/{resolved_cols["campaign_hips_maps"]}' \
         --register-dataset-types
         """
 
@@ -673,7 +675,7 @@ class ValidateScriptHandler(ScriptHandler):
             butler_repo = data_dict["butler_repo"]
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
-        command = f"pipetask validate {butler_repo} {input_coll} {output_coll}"
+        command = f"{config.bps.pipetask_bin} validate {butler_repo} {input_coll} {output_coll}"
         write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared

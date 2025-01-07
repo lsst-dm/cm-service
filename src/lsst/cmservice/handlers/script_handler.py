@@ -249,7 +249,7 @@ class BaseScriptHandler(Handler):
         status : StatusEnum
             The status of the processing
         """
-        fake_status = kwargs.get("fake_status", None)
+        fake_status = kwargs.get("fake_status", config.mock_status)
         return script.status if fake_status is None else fake_status
 
     async def reset_script(
@@ -343,6 +343,7 @@ class ScriptHandler(BaseScriptHandler):
         status : StatusEnum
             The status of the processing
         """
+        fake_status = fake_status or config.mock_status
         default_status = script.status if fake_status is None else fake_status
         status = check_stamp_file(stamp_file, default_status)
         await script.update_values(session, status=status)
@@ -497,7 +498,7 @@ class ScriptHandler(BaseScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        fake_status = kwargs.get("fake_status", None)
+        fake_status = kwargs.get("fake_status", config.mock_status)
 
         script_method = self.default_method if script.method == ScriptMethodEnum.default else script.method
 
@@ -521,7 +522,7 @@ class ScriptHandler(BaseScriptHandler):
                 diagnostic_message = "Fake failure"
             else:  # pragma: no cover
                 diagnostic_message = await get_diagnostic_message(script.log_url)
-            _new_error = await ScriptError.create_row(
+            _ = await ScriptError.create_row(
                 session,
                 script_id=script.id,
                 source=ErrorSourceEnum.local_script,

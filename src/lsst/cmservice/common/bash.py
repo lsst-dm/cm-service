@@ -7,6 +7,7 @@ from typing import Any
 
 import yaml
 
+from ..config import config
 from .enums import StatusEnum
 from .errors import CMBashSubmitError
 
@@ -60,9 +61,10 @@ def run_bash_job(
     fake_status: StatusEnum | None,
         If set, don't actually submit the job
     """
+    fake_status = fake_status or config.mock_status
     if fake_status is not None:
         with open(stamp_url, "w", encoding="utf-8") as fstamp:
-            fields = dict(status="reviewable")
+            fields = dict(status=StatusEnum.reviewable.name)
             yaml.dump(fields, fstamp)
         return
     try:

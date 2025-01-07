@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from .common.enums import ScriptMethodEnum
+from .common.enums import ScriptMethodEnum, StatusEnum
 
 __all__ = ["Configuration", "config"]
 
@@ -15,11 +15,28 @@ class BpsConfiguration(BaseModel):
     """Configuration settings for bps client operations.
 
     Set via BPS__FIELD environment variables.
+
+    FIXME: rename LsstConfiguration?
     """
 
     bps_bin: str = Field(
         description="Name of a bps client binary",
         default="bps",
+    )
+
+    pipetask_bin: str = Field(
+        description="Name of a pipetask client binary",
+        default="pipetask",
+    )
+
+    resource_usage_bin: str = Field(
+        description="Name of a resource usage gathering binary",
+        default="build-gather-resource-usage-qg",
+    )
+
+    n_jobs: int = Field(
+        description="Parallelization factor for jobs (-j N)",
+        default=16,
     )
 
 
@@ -35,8 +52,25 @@ class ButlerConfiguration(BaseModel):
     )
 
     mock: bool = Field(
-        description="Whether to mock out Butler calls. Equivalent to setting `fake_status`",
+        description="Whether to mock out Butler calls.",
         default=False,
+    )
+
+
+class HipsConfiguration(BaseModel):
+    """Configuration settings for HiPS operations.
+
+    Set via HIPS__FIELD environment variables.
+    """
+
+    high_res_bin: str = Field(
+        description="Name of a high resolution QG builder bin",
+        default="build-high-resolution-hips-qg",
+    )
+
+    uri: str = Field(
+        description="URI for HiPS maps destination",
+        default="s3://rubin-hips",
     )
 
 
@@ -251,6 +285,7 @@ class Configuration(BaseSettings):
     butler: ButlerConfiguration = ButlerConfiguration()
     daemon: DaemonConfiguration = DaemonConfiguration()
     db: DatabaseConfiguration = DatabaseConfiguration()
+    hips: HipsConfiguration = HipsConfiguration()
     htcondor: HTCondorConfiguration = HTCondorConfiguration()
     logging: LoggingConfiguration = LoggingConfiguration()
     slurm: SlurmConfiguration = SlurmConfiguration()
@@ -260,6 +295,22 @@ class Configuration(BaseSettings):
         description="The default external script handler",
         default=ScriptMethodEnum.htcondor,
     )
+
+    mock_status: StatusEnum | None = Field(
+        description="A fake status to return from all operations",
+        default=None,
+    )
+
+    @field_validator("mock_status", mode="before")
+    @classmethod
+    def validate_mock_status_by_name(cls, value: str | StatusEnum) -> StatusEnum | None:
+        if isinstance(value, StatusEnum) or value is None:
+            return value
+        try:
+            return StatusEnum[value]
+        except KeyError:
+            warn(f"Invalid mock status ({value}) provided to config, using default.")
+            return None
 
     @field_validator("script_handler", mode="before")
     @classmethod
