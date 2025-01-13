@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import contextlib
 import os
 import shutil
 import types
 from typing import Any
 
 import yaml
+from anyio import Path
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.ext.asyncio import async_scoped_session
 
@@ -23,7 +23,6 @@ from ..common.errors import (
     CMMissingScriptInputError,
     test_type_and_raise,
 )
-from ..common.utils import yaml_dump
 from ..config import config
 from ..db.element import ElementMixin
 from ..db.job import Job
@@ -78,8 +77,6 @@ class BpsScriptHandler(ScriptHandler):
             bps_wms_script_template = data_dict["bps_wms_script_template"]
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
-
-        script_url = await self._set_script_files(session, script, prod_area)
 
         # optional stuff from data_dict
         rescue = data_dict.get("rescue", False)
@@ -185,11 +182,11 @@ class BpsScriptHandler(ScriptHandler):
         if bps_extra_config:  # pragma: no cover
             workflow_config.update(**bps_extra_config)  # type: ignore
 
-        with contextlib.suppress(OSError):
-            await run_in_threadpool(os.makedirs, os.path.dirname(script_url), exist_ok=True)
+        await Path(script_url).parent.mkdir(parents=True, exist_ok=True)
 
         try:
-            await run_in_threadpool(yaml_dump, workflow_config, config_url)
+            yaml_output = yaml.dump(workflow_config)
+            await Path(config_url).write_text(yaml_output)
         except yaml.YAMLError as yaml_error:
             raise yaml.YAMLError(f"Error writing a script to run BPS job {script}; threw {yaml_error}")
         return StatusEnum.prepared

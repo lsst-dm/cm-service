@@ -3,22 +3,25 @@ import sys
 from typing import Any
 
 import pytest
-from fastapi.concurrency import run_in_threadpool
+from anyio import Path
 
-from ..common.bash import (
-    add_sys_path,
+from lsst.cmservice.common.bash import (
     check_stamp_file,
     get_diagnostic_message,
     parse_bps_stdout,
     run_bash_job,
-    update_include_dict,
     write_bash_script,
 )
-from ..common.enums import LevelEnum, StatusEnum, TableEnum
-from ..common.errors import CMHTCondorCheckError, CMHTCondorSubmitError, CMSlurmCheckError, CMSlurmSubmitError
-from ..common.htcondor import check_htcondor_job, submit_htcondor_job, write_htcondor_script
-from ..common.slurm import check_slurm_job, submit_slurm_job
-from ..common.utils import unlink_path
+from lsst.cmservice.common.enums import LevelEnum, StatusEnum, TableEnum
+from lsst.cmservice.common.errors import (
+    CMHTCondorCheckError,
+    CMHTCondorSubmitError,
+    CMSlurmCheckError,
+    CMSlurmSubmitError,
+)
+from lsst.cmservice.common.htcondor import check_htcondor_job, submit_htcondor_job, write_htcondor_script
+from lsst.cmservice.common.slurm import check_slurm_job, submit_slurm_job
+from lsst.cmservice.common.utils import add_sys_path, update_include_dict
 
 
 @pytest.mark.asyncio()
@@ -41,12 +44,9 @@ async def test_common_bash() -> None:
     status = await check_stamp_file("bad.stamp", StatusEnum.running)
     assert status == StatusEnum.running
 
-    await run_in_threadpool(unlink_path, "temp.sh")
-    await run_in_threadpool(unlink_path, "temp.stamp")
-
-    # This used to have an existence check, but I just put one in
-    # `utils.unlink_path` before it does anything.
-    await run_in_threadpool(unlink_path, "temp.log")
+    await Path("temp.sh").unlink(missing_ok=True)
+    await Path("temp.stamp").unlink(missing_ok=True)
+    await Path("temp.log").unlink(missing_ok=True)
 
     bps_dict = await parse_bps_stdout("examples/bps_stdout.log")
     assert bps_dict["run_id"].strip() == "334"

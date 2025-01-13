@@ -1,12 +1,13 @@
 """Utility functions for working with bash scripts"""
 
-import subprocess
-from pathlib import Path
+import pathlib
+from collections import deque
 from typing import Any
 
-from fastapi.concurrency import run_in_threadpool
+import yaml
+from anyio import Path, open_file, open_process
+from anyio.streams.text import TextReceiveStream
 
-from ..common.utils import check_file_exists, read_lines, write_string, yaml_dump, yaml_safe_load
 from ..config import config
 from .enums import StatusEnum
 from .errors import CMBashSubmitError
@@ -27,36 +28,23 @@ async def get_diagnostic_message(
     -------
     The last line of the log file, potentially containing a diagnostic message.
     """
-    if not await run_in_threadpool(check_file_exists, log_url):
+    log_path = Path(log_url)
+    last_line: deque[str] = deque(maxlen=1)
+    if not await log_path.exists():
         return f"Log file {log_url} does not exist"
     try:
-        lines = await run_in_threadpool(read_lines, log_url)
-        if lines:
-            return lines[-1].strip()
+        async with await open_file(log_url) as f:
+            async for line in f:
+                last_line.append(line)
+
+        if last_line:
+            return last_line.pop().strip()
         return "Empty log file"
     except Exception as e:
         return f"Error reading log file: {e}"
 
 
 async def parse_bps_stdout(url: str) -> dict[str, str]:
-    """Parse the std from a bps submit job. Wraps the synchronous function
-    and passes to `fastapi.concurrency.run_in_threadpool`
-
-    Parameters
-    ----------
-    url : `str`
-        url for BPS submit stdout
-
-    Returns
-    -------
-    out_dict `str`
-        a dictionary containing the stdout from BPS submit
-    """
-    out_dict = await run_in_threadpool(sync_parse_bps_stdout, url)
-    return out_dict
-
-
-def sync_parse_bps_stdout(url: str) -> dict[str, str]:
     """Parse the std from a bps submit job. Synchronous function using
     standard readline. More work should be done to make this function work in
     the async world.
@@ -72,27 +60,23 @@ def sync_parse_bps_stdout(url: str) -> dict[str, str]:
         a dictionary containing the stdout from BPS submit
     """
     out_dict = {}
-    with open(url, encoding="utf8") as fin:
-        line = fin.readline()
-        while line:
+    async with await open_file(url, encoding="utf8") as f:
+        async for line in f:
             tokens = line.split(":")
             if len(tokens) != 2:  # pragma: no cover
-                line = fin.readline()
                 continue
             out_dict[tokens[0]] = tokens[1]
-            line = fin.readline()
     return out_dict
 
 
 async def run_bash_job(
-    script_url: str,
+    script_url: str | Path,
     log_url: str,
-    stamp_url: str,
+    stamp_url: str | Path,
     fake_status: StatusEnum | None = None,
 ) -> None:
-    """Run a bash job. Most of the work is done in subprocesses run in a
-    companion synchronous function, `sync_submit_file_to_run_in_bash`, which is
-    wrapped in `fastapi.concurrency.run_in_threadpool`.
+    """Run a bash job and write a "stamp file" with the value of the script's
+    resulting status.
 
     Parameters
     ----------
@@ -102,7 +86,7 @@ async def run_bash_job(
     log_url: str
         Location of log file to write
 
-    log_url: str
+    stamp_url: str | anyio.Path
         Location of stamp file to write
 
     fake_status: StatusEnum | None,
@@ -110,51 +94,52 @@ async def run_bash_job(
     """
     fake_status = fake_status or config.mock_status
     if fake_status is not None:
-        with open(stamp_url, "w", encoding="utf-8") as fstamp:
-            fields = dict(status=StatusEnum.reviewable.name)
-            await run_in_threadpool(yaml_dump, fields, stamp_url)
+        yaml_output = yaml.dump(dict(status=StatusEnum.reviewable.name))
+        await Path(stamp_url).write_text(yaml_output)
         return
     try:
-        await run_in_threadpool(sync_submit_file_to_run_in_bash, script_url, log_url)
+        await submit_file_to_run_in_bash(script_url, log_url)
     except Exception as msg:
         raise CMBashSubmitError(f"Bad bash submit: {msg}") from msg
-    fields = dict(status="accepted")
-    await run_in_threadpool(yaml_dump, fields, stamp_url)
+    fields = dict(status=StatusEnum.accepted.name)
+    yaml_output = yaml.dump(fields)
+    await Path(stamp_url).write_text(yaml_output)
 
 
-def sync_submit_file_to_run_in_bash(script_url: str, log_url: str) -> None:
-    """Make a script executable, then submit to run in bash. To be wrapped in
-    `fastapi.concurrency.run_in_threadpool` by the asynchronous function above,
-    `run_bash_job`. Just a quick attempt to wrap the process; more work should
-    be done here to make this function async-friendly.
+async def submit_file_to_run_in_bash(script_url: str | Path, log_url: str | pathlib.Path) -> None:
+    """Make a script executable, then submit to run in bash.
 
     Parameters
     ----------
-    script_url : `str`
-        Path to the script to run.
-    log_url : `str`
-        Path to output the logs.
+    script_url : `str | anyio.Path`
+        Path to the script to run. Must be or will be cast as an async Path.
+    log_url : `str | pathlib.Path`
+        Path to output the logs. Must be or will be case as a sync Path.
     """
-    with open(log_url, "w", encoding="utf-8") as fout:
-        script_path = Path(script_url)
-        if script_path.exists():
-            script_path.chmod(0o755)
-        else:
-            raise CMBashSubmitError(f"No script at path {script_url}")
-        with subprocess.Popen(
-            [script_path.resolve()],
-            stdout=fout,
-            stderr=fout,
-        ) as process:
-            process.wait()
-            if process.returncode != 0:  # pragma: no cover
-                assert process.stderr
-                msg = process.stderr.read().decode()
-                raise CMBashSubmitError(f"Bad bash submit: {msg}")
+    script_path = Path(script_url)
+    log_path = Path(log_url)
+
+    if await script_path.exists():
+        await script_path.chmod(0o755)
+    else:
+        raise CMBashSubmitError(f"No script at path {script_url}")
+
+    script_command = await script_path.resolve()
+
+    async with await open_process([script_command]) as process:
+        assert process.stdout
+        assert process.stderr
+        async with await open_file(log_path, "w") as log_out:
+            async for text in TextReceiveStream(process.stdout):
+                await log_out.write(text)
+            async for text in TextReceiveStream(process.stderr):
+                await log_out.write(text)
+        if process.returncode != 0:  # pragma: no cover
+            raise CMBashSubmitError("Bad bash submit, check log file.")
 
 
 async def check_stamp_file(
-    stamp_file: str | None,
+    stamp_file: str | Path | None,
     default_status: StatusEnum,
 ) -> StatusEnum:
     """Check a 'stamp' file for a status code.
@@ -174,15 +159,16 @@ async def check_stamp_file(
     """
     if stamp_file is None:
         return default_status
-    file_exists = await run_in_threadpool(check_file_exists, stamp_file)
-    if not file_exists:
+    stamp_file = Path(stamp_file)
+    if not await stamp_file.exists():
         return default_status
-    fields = await run_in_threadpool(yaml_safe_load, stamp_file)
+    stamp = await Path(stamp_file).read_text()
+    fields = yaml.safe_load(stamp)
     return StatusEnum[fields["status"]]
 
 
 async def write_bash_script(
-    script_url: str,
+    script_url: str | Path,
     command: str,
     **kwargs: Any,
 ) -> Path:
@@ -190,7 +176,7 @@ async def write_bash_script(
 
     Parameters
     ----------
-    script_url: `str`
+    script_url: `str | anyio.Path`
         Location to write the script
 
     command: `str`
@@ -215,30 +201,26 @@ async def write_bash_script(
 
     rollback: `str | Path | None`
         Prefix to script_url used when rolling back
-        processing
+        processing. Will default to CWD (".").
 
     Returns
     -------
-    script_url : `str`
+    script_url : `anyio.Path`
         The path to the newly written script
     """
     prepend = kwargs.get("prepend")
     append = kwargs.get("append")
     fake = kwargs.get("fake")
-    rollback_prefix = kwargs.get("rollback", "")
+    rollback_prefix = Path(kwargs.get("rollback", "."))
 
-    if isinstance(rollback_prefix, Path):
-        script_path = rollback_prefix / script_url
-    else:
-        script_path = Path(f"{rollback_prefix}{script_url}")
-    script_path.parent.mkdir(parents=True, exist_ok=True)
-    # I chose not to make the directory `with contextlib.suppress(OSError)`
-    # because cm-service under-reports a lot of the issues it might run into
-    # that we need to respond to better. I think most relevant situations will
-    # be handled by `parents=True, exist_ok=True`, but will revert to the above
-    # suppression if I am wrong.
+    script_path = rollback_prefix / script_url
+
     if fake:
         command = f"echo '{command}'"
+
+    await script_path.parent.mkdir(parents=True, exist_ok=True)
     contents = (prepend if prepend else "") + "\n" + command + "\n" + (append if append else "")
-    await run_in_threadpool(write_string, contents, script_path)
+
+    async with await open_file(script_path, "w") as fout:
+        await fout.write(contents)
     return script_path

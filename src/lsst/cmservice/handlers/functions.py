@@ -3,7 +3,7 @@ from collections.abc import Mapping
 from typing import Any
 
 import yaml
-from fastapi.concurrency import run_in_threadpool
+from anyio import Path
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
 
@@ -12,7 +12,7 @@ from lsst.ctrl.bps.wms_service import WmsJobReport, WmsRunReport, WmsStates
 
 from ..common.enums import StatusEnum
 from ..common.errors import CMMissingFullnameError, CMYamlParseError
-from ..common.utils import update_include_dict, yaml_safe_load
+from ..common.utils import update_include_dict
 from ..config import config
 from ..db.campaign import Campaign
 from ..db.job import Job
@@ -207,7 +207,7 @@ async def upsert_specification(
 
 async def load_specification(
     session: async_scoped_session,
-    yaml_file: str,
+    yaml_file: str | Path,
     loaded_specs: dict | None = None,
     *,
     allow_update: bool = False,
@@ -221,7 +221,7 @@ async def load_specification(
     session: async_scoped_session
         DB session manager
 
-    yaml_file: str
+    yaml_file: str | anyio.Path
         File in question
 
     loaded_specs: dict
@@ -239,10 +239,12 @@ async def load_specification(
         loaded_specs = {}
 
     specification = None
-    if not os.path.exists(yaml_file):
+    yaml_file = Path(yaml_file)
+    if not await yaml_file.exists():
         raise CMYamlParseError(f"Specification does not exist at path {yaml_file}")
     try:
-        spec_data = await run_in_threadpool(yaml_safe_load, yaml_file)
+        spec_yaml = await yaml_file.read_bytes()
+        spec_data = yaml.safe_load(spec_yaml)
     except yaml.YAMLError as yaml_error:
         raise CMYamlParseError(f"Error parsing specification {yaml_file}; threw {yaml_error}") from yaml_error
     except Exception as e:
@@ -413,7 +415,7 @@ async def match_pipetask_error(
 async def load_manifest_report(
     session: async_scoped_session,
     job_name: str,
-    yaml_file: str,
+    yaml_file: str | Path,
     fake_status: StatusEnum | None = None,
     *,
     allow_update: bool = False,
@@ -428,7 +430,7 @@ async def load_manifest_report(
     job_name: str
         Name of associated Job
 
-    yaml_file: str
+    yaml_file: str | anyio.Path
         Pipetask report yaml file
 
     fake_status: StatusEnum | None
@@ -444,12 +446,14 @@ async def load_manifest_report(
     """
     job = await Job.get_row_by_fullname(session, job_name)
     fake_status = fake_status or config.mock_status
+    yaml_file = Path(yaml_file)
     if fake_status is not None:
         return job
-    if not os.path.exists(yaml_file):
+    if not await yaml_file.exists():
         raise CMYamlParseError(f"Manifest report yaml does not exist at path {yaml_file}")
     try:
-        manifest_data = await run_in_threadpool(yaml_safe_load, yaml_file)
+        manifest_yaml = await yaml_file.read_bytes()
+        manifest_data = yaml.safe_load(manifest_yaml)
     except yaml.YAMLError as yaml_error:
         raise CMYamlParseError(
             f"Error parsing manifest report yaml at path {yaml_file}; threw {yaml_error}"
@@ -680,7 +684,7 @@ async def load_wms_reports(
 
 async def load_error_types(
     session: async_scoped_session,
-    yaml_file: str,
+    yaml_file: str | Path,
 ) -> list[PipetaskErrorType]:
     """Parse and load error types
 
@@ -689,7 +693,7 @@ async def load_error_types(
     session: async_scoped_session
         DB session manager
 
-    yaml_file: str
+    yaml_file: str | anyio.Path
         Error type definition yaml file
 
     Returns
@@ -697,10 +701,12 @@ async def load_error_types(
     error_types : list[PipetaskErrorType]
         Newly loaded error types
     """
-    if not os.path.exists(yaml_file):
+    yaml_file = Path(yaml_file)
+    if not await yaml_file.exists():
         raise CMYamlParseError(f"Error type yaml does not exist at path {yaml_file}")
     try:
-        error_types = await run_in_threadpool(yaml_safe_load, yaml_file)
+        error_yaml = await yaml_file.read_bytes()
+        error_types = yaml.safe_load(error_yaml)
     except yaml.YAMLError as yaml_error:
         raise CMYamlParseError(
             f"Error parsing error type yaml at path {yaml_file}; threw {yaml_error}"
