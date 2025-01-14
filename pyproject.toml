@@ -35,7 +35,6 @@ dependencies = [
     "lsst-daf-butler>=28.2024.5000",
     "lsst-pipe-base>=28.2024.5000",
     "numpy==2.1.*",
-    "pause==0.3.*",
     "psycopg2-binary==2.9.*",
     "pydantic==2.10.*",
     "pydantic-settings==2.7.*",
