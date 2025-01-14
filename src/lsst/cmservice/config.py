@@ -16,7 +16,7 @@ class BpsConfiguration(BaseModel):
 
     Set via BPS__FIELD environment variables.
 
-    FIXME: rename LsstConfiguration?
+    FIXME: rename to LsstConfiguration and consolidate multiple models?
     """
 
     bps_bin: str = Field(
@@ -229,10 +229,11 @@ class DaemonConfiguration(BaseModel):
     """
 
     processing_interval: int = Field(
-        default=300,
+        default=30,
         description=(
-            "The maximum wait time (seconds) between daemon processing intervals. "
-            "An element in a running state may shorten this time."
+            "The maximum wait time (seconds) between daemon processing intervals "
+            "and the minimum time between element processing attepts. This "
+            "duration may be lengthened depending on the element type."
         ),
     )
 

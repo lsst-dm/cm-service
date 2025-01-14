@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Any
 
-import pause
 from sqlalchemy import JSON, DateTime, and_, select
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -207,20 +206,7 @@ class Queue(Base, NodeMixin):
         now = datetime.now()
         return now < next_check
 
-    # TODO remove this method, we don't need it, see `process_node_loop`
-    def pause_until_next_check(
-        self,
-        estimated_wait_time: int,
-    ) -> None:  # pragma: no cover
-        """Sleep until the next time check"""
-        wait_time = min(estimated_wait_time, self.interval)
-        delta_t = timedelta(seconds=wait_time)
-        next_check = self.time_updated + delta_t
-        now = datetime.now()
-        if now < next_check:
-            pause.until(next_check)
-
-    async def _process_and_update(
+    async def process_node(
         self,
         session: async_scoped_session,
     ) -> bool:  # pragma: no cover
@@ -252,27 +238,3 @@ class Queue(Base, NodeMixin):
         if node.level == LevelEnum.script:
             node.status.is_processable_script()
         return node.status.is_processable_element()
-
-    # TODO we do not need a method that just calls another method.
-    async def process_node(
-        self,
-        session: async_scoped_session,
-    ) -> bool:  # pragma: no cover
-        """Process associated node"""
-        return await self._process_and_update(session)
-
-    # TODO remove this method, why is it here?
-    async def process_node_loop(
-        self,
-        session: async_scoped_session,
-    ) -> None:  # pragma: no cover
-        """Process associated node until it is done or requires
-        intervention
-
-        FIXME: see about adding this to unit tests
-        """
-        can_continue = True
-        while can_continue:
-            estimated_wait_time = await self.node_sleep_time(session)
-            self.pause_until_next_check(estimated_wait_time)
-            can_continue = await self._process_and_update(session)

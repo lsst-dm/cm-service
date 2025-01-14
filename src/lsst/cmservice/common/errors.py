@@ -88,11 +88,11 @@ class CMHTCondorSubmitError(CMSubmitError):
 
 
 class CMSlurmSubmitError(CMSubmitError):
-    """Raised when slurm submisison fails"""
+    """Raised when slurm submission fails"""
 
 
 class CMBashSubmitError(CMSubmitError):
-    """Raised when bash submisison fails"""
+    """Raised when bash submission fails"""
 
 
 class CMNoButlerError(RuntimeError):

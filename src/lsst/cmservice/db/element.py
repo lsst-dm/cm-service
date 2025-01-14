@@ -219,8 +219,8 @@ class ElementMixin(NodeMixin):
             Time to sleep in seconds
         """
         sleep_time = minimum_sleep_time
-        job_sleep = config.daemon.processing_interval
-        script_sleep = job_sleep // 10
+        script_sleep = config.daemon.processing_interval
+        job_sleep = script_sleep * 10
         if self.level == LevelEnum.job:
             all_jobs = []
         else:
