@@ -608,7 +608,7 @@ class NodeMixin(RowMixin):
         """
         try:
             await session.refresh(self, attribute_names=["prereqs_"])
-        except Exception:  # pylint: disable=broad-exception-caught
+        except Exception:
             return True
         for prereq_ in self.prereqs_:
             is_done = await prereq_.is_done(session)
@@ -688,7 +688,7 @@ class NodeMixin(RowMixin):
         await self.update_values(session, status=StatusEnum.waiting, superseded=False)
         return self
 
-    async def _clean_up_node(  # pylint: disable=unused-argument
+    async def _clean_up_node(
         self,
         session: async_scoped_session,
         *,

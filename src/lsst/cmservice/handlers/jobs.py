@@ -120,9 +120,7 @@ class BpsScriptHandler(ScriptHandler):
             pass
 
         # build up the bps wrapper script
-        command = (
-            f"{config.bps.bps_bin} --log-file {json_url} --no-log-tty submit " f"{config_path} > {log_url}"
-        )
+        command = f"{config.bps.bps_bin} --log-file {json_url} --no-log-tty submit {config_path} > {log_url}"
 
         prepend = bps_core_script_template_.data["text"].replace("{lsst_version}", lsst_version)  # type: ignore
         prepend = prepend.replace("{lsst_distrib_dir}", lsst_distrib_dir)

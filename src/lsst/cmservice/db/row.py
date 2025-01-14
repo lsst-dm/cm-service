@@ -216,7 +216,7 @@ class RowMixin:
         await cls._delete_hook(session, row_id)
 
     @classmethod
-    async def _delete_hook(  # pylint: disable=unused-argument
+    async def _delete_hook(
         cls,
         session: async_scoped_session,
         row_id: int,
@@ -332,7 +332,7 @@ class RowMixin:
     @classmethod
     async def get_create_kwargs(
         cls: type[T],
-        session: async_scoped_session,  # pylint: disable=unused-argument
+        session: async_scoped_session,
         **kwargs: Any,
     ) -> dict:
         """Get additional keywords needed to create a row

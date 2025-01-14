@@ -51,6 +51,11 @@ class ButlerConfiguration(BaseModel):
         default="butler",
     )
 
+    repository_index: str = Field(
+        description="Fully qualified path to a butler repository index.",
+        default="/sdf/group/rubin/shared/data-repos.yaml",
+    )
+
     mock: bool = Field(
         description="Whether to mock out Butler calls.",
         default=False,
@@ -194,7 +199,7 @@ class AsgiConfiguration(BaseModel):
 
     prefix: str = Field(
         description="The URL prefix for the cm-service API",
-        default="/cmservice",
+        default="/cm-service",
     )
 
     frontend_prefix: str = Field(

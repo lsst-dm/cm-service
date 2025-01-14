@@ -126,7 +126,7 @@ class Splitter:
     """Class to split Steps into Groups"""
 
     @classmethod
-    async def split(  # pylint: disable=unused-argument
+    async def split(
         cls,
         session: async_scoped_session,
         script: Script,

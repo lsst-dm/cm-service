@@ -49,11 +49,12 @@ follows:
 Additional developer conveniences:
 
 * Browse the integrated online ReST API documentation while the service is running at
-  http://localhost:8080/cm-service/v1/docs.
+  http://localhost:8080/docs.
 
 * Run the pytest test suite at any point with `make test`.  This will launch subsidiary containers if
   necessary via Docker Compose, or will make use of any that may already be running.  Tests are performed in
   their own Postgres schema, so as not interfere with debugging state in a running debug service instance.
+  (You may run `docker compose down -v` to clean up completely between runs.)
 
 * To run the playwright tests, add `--run-playwright` to the pytest arguments
 
@@ -83,95 +84,3 @@ Additional developer conveniences:
 
 * `uv` uses a global package cache for speed and efficiency; you manage this cache with `uv cache prune` or
   `uv cache clean` for the nuclear option.
-
-## Release Management
-
-This project is developed using a Trunk-Based Development pattern, where the trunk branch is named `main`.
-Developers should work in short-lived feature branches and commit their work to the trunk in accordance with
-the [LSST Development Workflow](https://developer.lsst.io/work/flow.html).
-
-Releases are performed at an unspecified cadence, to be no shorter than 1 week and subject to these rules:
-
-- Releases are named according to their semantic version (major.minor.patch).
-- Releases are made by adding a named tag to the trunk branch.
-- Each release will increment the minor version and set the patch level to 0, e.g., `1.0.12` -> `1.1.0`
-- If a bugfix commit needs to be added to a release, then a retroactive branch will be created from the
-  release tag; the commit is cherry-picked into the release branch and a new tag is written with an incremented
-  patch level, e.g., `1.23.0` -> `1.23.1`.
-- The major version is incremented only in the presence of user-facing breaking changes.
-
-This project uses `python-semantic-release` to manage releases. A release should be triggered by any ticket branch
-being merged into `main`. A release must increment the application version according to semantic versioning (i.e.,
-the use of major-minor-patch version tokens); and must create a matching git tag.
-
-The `make release` target is designed to shepherd the manual release management process:
-
-1. The version number in `src/lsst/cmservice/__init__.py:__version__` is written according to the new version.
-
-1. The updated version file is committed to git.
-
-1. If on `main`, a git tag is created. Git tags are not created for prerelease versions (releases made on
-   user or ticket branches.)
-
-## Debugging
-
-### VSCode
-
-When using VSCode, you can use the debugger built into the Python extension to start an instance of the service
-in a debug context by creating a `.vscode/launch.json` file in the Workspace. This configuration file
-tells VSCode how to start an application for debugging, after which VSCode's breakpoints and other debug tools
-are available.
-
-This example `launch.json` file illustrates the launch of a debuggable CM Service and Daemon instances using `usdf-cm-dev`
-resources:
-
-```
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Debug: CM-Service [usdf-cm-dev]",
-      "type": "debugpy",
-      "request": "launch",
-      "module": "uvicorn",
-      "args": [
-        "--port", "8080", "--reload",
-        "lsst.cmservice.main:app"
-      ],
-      "envFile": "${workspaceFolder}/.env.usdf-cm-dev"
-    },
-    {
-      "name": "Debug: User Daemon [usdf-cm-dev]",
-      "type": "debugpy",
-      "request": "launch",
-      "module": "lsst.cmservice.cli.client",
-      "args": ["queue", "daemon", "--row_id", "${input:rowID}"],
-      "envFile": "${workspaceFolder}/.env.usdf-cm-dev"
-    },
-    {
-      "name": "Debug: System Daemon [usdf-cm-dev]",
-      "type": "debugpy",
-      "request": "launch",
-      "module": "lsst.cmservice.daemon",
-      "envFile": "${workspaceFolder}/.env.usdf-cm-dev"
-    }
-  ],
-  "inputs": [
-    {
-      "id": "rowID",
-      "description": "A Campaign Row ID for the debug client queue",
-      "type": "promptString",
-      "default": "1"
-    }
-  ]
-}
-```
-
-Note that this configuration references an `envFile`; there is a `make` target for generating
-`.env` files that can be consumed by VSCode debug configurations: `make get-env-<k8s cluster>`
-(e.g., `make get-env-usdf-cm-dev` will produce a file `.env.usdf-cm-dev` with environment variables
-set to values appropriate for services running in the named Kubernetes cluster). Otherwise, you may
-create a custom `.env` file and reference it from Launch Configuration instead.
-
-The debug Daemon is launched using a prompted value for the `--row_id` parameter, which will cause
-VSCode to open a prompt for this input.

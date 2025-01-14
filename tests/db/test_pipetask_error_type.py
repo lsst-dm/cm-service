@@ -57,15 +57,15 @@ async def test_error_match_db(engine: AsyncEngine) -> None:
         # Here we test that the same error with a different pipetask name will
         # not match. Let's consider the same error, but on task "isr"
 
-        assert (
-            e1.match("isr", known_error["diagnostic_message"]) is False
-        ), "Failure to identify non-matching pipetask name"
+        assert e1.match("isr", known_error["diagnostic_message"]) is False, (
+            "Failure to identify non-matching pipetask name"
+        )
 
         # Here we test that the same pipetask name but different error does not
         # match.
-        assert (
-            e1.match(known_error["task_name"], "A different error message") is False
-        ), "Failure to identify separate errors with the same associated pipetask"
+        assert e1.match(known_error["task_name"], "A different error message") is False, (
+            "Failure to identify separate errors with the same associated pipetask"
+        )
 
         # Here we test that a different valid PipetaskError does not match to
         # the wrong PipetaskErrorType

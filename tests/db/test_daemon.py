@@ -1,7 +1,7 @@
 import os
+from asyncio import sleep
 from datetime import datetime
 
-import pause
 import pytest
 import structlog
 from safir.database import create_async_session
@@ -52,7 +52,7 @@ async def test_daemon_db(engine: AsyncEngine) -> None:
 
         assert campaign.status.value >= StatusEnum.running.value
 
-        pause.sleep(2)
+        await sleep(2)
         await queue_entry.update_values(
             session,
             time_next_check=datetime.now(),

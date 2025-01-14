@@ -31,7 +31,7 @@ from .wms_task_reports import CMWmsTaskReportClient
 __all__ = ["CMClient"]
 
 
-class CMClient:  # pylint: disable=too-many-instance-attributes
+class CMClient:
     """Interface for accessing remote cm-service."""
 
     def __init__(self: CMClient) -> None:
