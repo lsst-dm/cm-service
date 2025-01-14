@@ -1,6 +1,7 @@
 import os
 import uuid
 
+import pytest
 from click.testing import CliRunner
 from safir.testing.uvicorn import UvicornProcess
 
@@ -12,10 +13,11 @@ from lsst.cmservice.config import config
 from .util_functions import cleanup, create_tree
 
 
-async def test_production_cli(uvicorn: UvicornProcess) -> None:
+@pytest.mark.parametrize("api_version", ["v1"])
+async def test_production_cli(uvicorn: UvicornProcess, api_version: str) -> None:
     """Test `production` CLI command"""
 
-    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}"
+    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}/{api_version}"
     runner = CliRunner()
 
     # generate a uuid to avoid collisions
