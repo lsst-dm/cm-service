@@ -144,7 +144,7 @@ class BpsScriptHandler(ScriptHandler):
                 to_include_ = os.path.expandvars(to_include_)
                 if "$" not in to_include_:
                     to_include_ = await Path(to_include_).resolve()
-                include_configs.append(to_include_)
+                include_configs.append(str(to_include_))
         include_configs += bps_wms_extra_files
 
         workflow_config["includeConfigs"] = include_configs  # type: ignore
@@ -153,7 +153,7 @@ class BpsScriptHandler(ScriptHandler):
         workflow_config["project"] = parent.p_.name  # type: ignore
         workflow_config["campaign"] = parent.c_.name  # type: ignore
 
-        workflow_config["submitPath"] = submit_path  # type: ignore
+        workflow_config["submitPath"] = str(submit_path)  # type: ignore
 
         workflow_config["LSST_VERSION"] = os.path.expandvars(lsst_version)  # type: ignore
         if custom_lsst_setup:  # pragma: no cover
@@ -310,7 +310,7 @@ class BpsScriptHandler(ScriptHandler):
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
-        remove_run_collections(butler_repo, run_coll, fake_reset=fake_reset)
+        await remove_run_collections(butler_repo, run_coll, fake_reset=fake_reset)
 
 
 class BpsReportHandler(FunctionHandler):

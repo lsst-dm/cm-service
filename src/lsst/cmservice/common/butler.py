@@ -1,11 +1,15 @@
 """Utility functions for working with butler commands"""
 
+from functools import partial
+
+from anyio import to_thread
+
 from lsst.daf.butler import Butler, MissingCollectionError
 
 from ..common import errors
 
 
-def remove_run_collections(
+async def remove_run_collections(
     butler_repo: str,
     collection_name: str,
     *,
@@ -25,20 +29,27 @@ def remove_run_collections(
         Allow for missing butler
     """
     try:
-        butler = Butler.from_config(butler_repo, collections=[collection_name], without_datastore=True)
+        butler_f = partial(
+            Butler.from_config,
+            butler_repo,
+            collections=[collection_name],
+            without_datastore=True,
+        )
+        butler = await to_thread.run_sync(butler_f)
     except Exception as e:
         if fake_reset:
             return
         raise errors.CMNoButlerError(e) from e  # pragma: no cover
     try:  # pragma: no cover
-        butler.registry.removeCollection(collection_name)
+        await to_thread.run_sync(butler.registry.removeCollection, collection_name)
     except MissingCollectionError:
         pass
     except Exception as msg:
         raise errors.CMButlerCallError(msg) from msg
 
 
-def remove_non_run_collections(
+# FIXME how is this different to `remove_run_collections`?
+async def remove_non_run_collections(
     butler_repo: str,
     collection_name: str,
     *,
@@ -58,18 +69,24 @@ def remove_non_run_collections(
         Allow for missing butler
     """
     try:
-        butler = Butler.from_config(butler_repo, collections=[collection_name], without_datastore=True)
+        butler_f = partial(
+            Butler.from_config,
+            butler_repo,
+            collections=[collection_name],
+            without_datastore=True,
+        )
+        butler = await to_thread.run_sync(butler_f)
     except Exception as e:
         if fake_reset:
             return
         raise errors.CMNoButlerError(e) from e  # pragma: no cover
     try:  # pragma: no cover
-        butler.registry.removeCollection(collection_name)
+        await to_thread.run_sync(butler.registry.removeCollection, collection_name)
     except Exception as msg:
         raise errors.CMButlerCallError(msg) from msg
 
 
-def remove_collection_from_chain(  # pylint: disable=unused-argument
+async def remove_collection_from_chain(
     butler_repo: str,
     chain_collection: str,
     collection_name: str,
@@ -97,7 +114,7 @@ def remove_collection_from_chain(  # pylint: disable=unused-argument
     raise NotImplementedError
 
 
-def remove_datasets_from_collections(  # pylint: disable=unused-argument
+async def remove_datasets_from_collections(
     butler_repo: str,
     tagged_collection: str,
     collection_name: str,

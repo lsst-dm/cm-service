@@ -117,7 +117,7 @@ class ChainCreateScriptHandler(ScriptHandler):
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
-        remove_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
+        await remove_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
 
 
 class ChainPrependScriptHandler(ScriptHandler):
@@ -173,7 +173,7 @@ class ChainPrependScriptHandler(ScriptHandler):
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
-        remove_collection_from_chain(butler_repo, input_coll, output_coll, fake_reset=fake_reset)
+        await remove_collection_from_chain(butler_repo, input_coll, output_coll, fake_reset=fake_reset)
 
 
 class ChainCollectScriptHandler(ScriptHandler):
@@ -245,7 +245,7 @@ class ChainCollectScriptHandler(ScriptHandler):
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
-        remove_non_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
+        await remove_non_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
 
 
 class TagInputsScriptHandler(ScriptHandler):
@@ -300,7 +300,7 @@ class TagInputsScriptHandler(ScriptHandler):
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
-        remove_non_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
+        await remove_non_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
 
 
 class TagCreateScriptHandler(ScriptHandler):
@@ -347,7 +347,7 @@ class TagCreateScriptHandler(ScriptHandler):
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
-        remove_non_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
+        await remove_non_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
 
 
 class TagAssociateScriptHandler(ScriptHandler):
@@ -399,7 +399,7 @@ class TagAssociateScriptHandler(ScriptHandler):
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
-        remove_datasets_from_collections(butler_repo, input_coll, output_coll, fake_reset=fake_reset)
+        await remove_datasets_from_collections(butler_repo, input_coll, output_coll, fake_reset=fake_reset)
 
 
 class PrepareStepScriptHandler(ScriptHandler):
@@ -470,7 +470,7 @@ class PrepareStepScriptHandler(ScriptHandler):
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
-        remove_non_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
+        await remove_non_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
 
 
 class ResourceUsageScriptHandler(ScriptHandler):
@@ -540,7 +540,7 @@ class ResourceUsageScriptHandler(ScriptHandler):
             butler_repo = data_dict["butler_repo"]
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
-        remove_run_collections(butler_repo, resource_coll, fake_reset=fake_reset)
+        await remove_run_collections(butler_repo, resource_coll, fake_reset=fake_reset)
         return await super()._purge_products(session, script, to_status, fake_reset=fake_reset)
 
 
@@ -647,7 +647,7 @@ class HipsMapsScriptHandler(ScriptHandler):
         except KeyError as msg:  # pragma: no cover
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         if to_status.value < StatusEnum.running.value:
-            remove_run_collections(butler_repo, hips_maps_coll, fake_reset=fake_reset)
+            await remove_run_collections(butler_repo, hips_maps_coll, fake_reset=fake_reset)
         return await super()._purge_products(session, script, to_status)
 
 
@@ -697,4 +697,4 @@ class ValidateScriptHandler(ScriptHandler):
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
-        remove_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
+        await remove_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
