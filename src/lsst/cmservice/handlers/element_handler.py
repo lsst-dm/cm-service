@@ -224,7 +224,7 @@ class ElementHandler(Handler):
         await element.update_values(session, status=StatusEnum.running)
         return (changed, StatusEnum.running)
 
-    async def review(  # pylint: disable=unused-argument
+    async def review(
         self,
         session: async_scoped_session,
         element: ElementMixin,
@@ -401,7 +401,7 @@ class ElementHandler(Handler):
         await element.update_values(session, status=status)
         return (True, status)
 
-    async def _post_check(  # pylint: disable=unused-argument
+    async def _post_check(
         self,
         session: async_scoped_session,
         element: ElementMixin,

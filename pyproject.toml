@@ -210,6 +210,10 @@ tag_format = "{version}"
 match = "main"
 prerelease = false
 
+[tool.semantic_release.branches.release]
+match = "^tickets/DM-\\d+(.*)/release$"
+prerelease = false
+
 [tool.semantic_release.branches.ticket]
 match = "^tickets/DM-\\d+(.*)$"
 prerelease_token = "rc"

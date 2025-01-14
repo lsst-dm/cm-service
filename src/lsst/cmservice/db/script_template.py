@@ -55,7 +55,7 @@ class ScriptTemplate(Base, RowMixin):
         }
 
     @classmethod
-    async def load(  # pylint: disable=too-many-arguments
+    async def load(
         cls,
         session: async_scoped_session,
         name: str,

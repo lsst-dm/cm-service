@@ -100,7 +100,7 @@ class Group(Base, ElementMixin):
 
     async def children(
         self,
-        session: async_scoped_session,  # pylint: disable=unused-argument
+        session: async_scoped_session,
     ) -> Iterable:
         """Maps self.g_ to self.children() for consistency"""
         await session.refresh(self, attribute_names=["jobs_"])
