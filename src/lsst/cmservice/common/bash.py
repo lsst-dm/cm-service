@@ -127,6 +127,7 @@ async def submit_file_to_run_in_bash(script_url: str | Path, log_url: str | path
     script_command = await script_path.resolve()
 
     async with await open_process([script_command]) as process:
+        await process.wait()
         assert process.stdout
         assert process.stderr
         async with await open_file(log_path, "w") as log_out:

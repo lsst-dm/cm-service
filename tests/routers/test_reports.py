@@ -34,7 +34,7 @@ async def test_report_routes(client: AsyncClient, api_version: str) -> None:
 
     manifest_report_query = models.LoadManifestReport(
         fullname=entry.fullname,
-        yaml_file=os.path.abspath("examples/manifest_report_2.yaml"),
+        yaml_file="examples/manifest_report_2.yaml",
     )
 
     response = await client.post(

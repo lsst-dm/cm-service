@@ -92,9 +92,11 @@ class BpsScriptHandler(ScriptHandler):
 
         # Get the output file paths
         script_url = await self._set_script_files(session, script, prod_area)
-        json_url = os.path.abspath(os.path.expandvars(f"{prod_area}/{script.fullname}_log.json"))
-        config_url = os.path.abspath(os.path.expandvars(f"{prod_area}/{script.fullname}_bps_config.yaml"))
-        log_url = os.path.abspath(os.path.expandvars(f"{prod_area}/{script.fullname}.log"))
+        json_url = await Path(os.path.expandvars(f"{prod_area}/{script.fullname}_log.json")).resolve()
+        config_url = await Path(
+            os.path.expandvars(f"{prod_area}/{script.fullname}_bps_config.yaml")
+        ).resolve()
+        log_url = await Path(os.path.expandvars(f"{prod_area}/{script.fullname}.log")).resolve()
 
         # get the requested templates
         bps_core_script_template_ = await specification.get_script_template(
@@ -110,7 +112,8 @@ class BpsScriptHandler(ScriptHandler):
             bps_wms_script_template,
         )
 
-        submit_path = os.path.abspath(f"{prod_area}/{parent.fullname}/submit")
+        config_path = await Path(config_url).resolve()
+        submit_path = await Path(f"{prod_area}/{parent.fullname}/submit").resolve()
         try:
             await run_in_threadpool(shutil.rmtree, submit_path)
         except FileNotFoundError:
@@ -118,8 +121,7 @@ class BpsScriptHandler(ScriptHandler):
 
         # build up the bps wrapper script
         command = (
-            f"{config.bps.bps_bin} --log-file {json_url} --no-log-tty submit "
-            f"{os.path.abspath(config_url)} > {log_url}"
+            f"{config.bps.bps_bin} --log-file {json_url} --no-log-tty submit " f"{config_path} > {log_url}"
         )
 
         prepend = bps_core_script_template_.data["text"].replace("{lsst_version}", lsst_version)  # type: ignore
@@ -141,7 +143,7 @@ class BpsScriptHandler(ScriptHandler):
                 # envvars that are not yet expanded
                 to_include_ = os.path.expandvars(to_include_)
                 if "$" not in to_include_:
-                    to_include_ = os.path.abspath(to_include_)
+                    to_include_ = await Path(to_include_).resolve()
                 include_configs.append(to_include_)
         include_configs += bps_wms_extra_files
 
@@ -283,14 +285,9 @@ class BpsScriptHandler(ScriptHandler):
             os.path.basename(script.script_url),
             "/submit",
         )
-        try:
-            await run_in_threadpool(os.unlink, json_url)
-        except FileNotFoundError:  # pragma: no cover
-            pass
-        try:
-            await run_in_threadpool(os.unlink, config_url)
-        except FileNotFoundError:  # pragma: no cover
-            pass
+
+        await Path(json_url).unlink(missing_ok=True)
+        await Path(config_url).unlink(missing_ok=True)
         try:
             await run_in_threadpool(shutil.rmtree, submit_path)
         except FileNotFoundError:  # pragma: no cover
@@ -478,8 +475,8 @@ class ManifestReportScriptHandler(ScriptHandler):
         job_run_coll = resolved_cols["job_run"]
         qgraph_file = f"{job_run_coll}.qgraph".replace("/", "_")
 
-        graph_url = os.path.abspath(f"{prod_area}/{parent.fullname}/submit/{qgraph_file}")
-        report_url = os.path.abspath(f"{prod_area}/{parent.fullname}/submit/manifest_report.yaml")
+        graph_url = await Path(f"{prod_area}/{parent.fullname}/submit/{qgraph_file}").resolve()
+        report_url = await Path(f"{prod_area}/{parent.fullname}/submit/manifest_report.yaml").resolve()
 
         manifest_script_template = await specification.get_script_template(
             session,

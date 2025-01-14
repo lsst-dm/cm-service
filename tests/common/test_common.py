@@ -106,10 +106,13 @@ def test_common_status_enums() -> None:
             )
 
 
-def test_common_htcondor() -> None:
+# FIXME this test should patch the htcondor runner to produce an actual result
+#       from a fixture.
+@pytest.mark.asyncio()
+async def test_common_htcondor() -> None:
     """Test common.htcondor functions"""
 
-    _ht_condor_log = write_htcondor_script(
+    _ht_condor_log = await write_htcondor_script(
         "htcondor_temp.sh",
         "htcondor_temp.log",
         "script_temp.sh",
@@ -117,22 +120,25 @@ def test_common_htcondor() -> None:
     )
 
     with pytest.raises(CMHTCondorSubmitError):
-        submit_htcondor_job("htcondor_temp.sh")
+        await submit_htcondor_job("htcondor_temp.sh")
 
     with pytest.raises(CMHTCondorCheckError):
-        check_htcondor_job("htcondor_temp.log")
+        await check_htcondor_job("htcondor_temp.log")
 
     os.unlink("htcondor_temp.sh")
 
 
-def test_common_slurm() -> None:
+# FIXME this test should patch the htcondor runner to produce an actual result
+#       from a fixture.
+@pytest.mark.asyncio()
+async def test_common_slurm() -> None:
     """Test common.slurm functions"""
 
     with pytest.raises(CMSlurmSubmitError):
-        submit_slurm_job("slurm_temp.sh", "slurm_temp.log")
+        await submit_slurm_job("slurm_temp.sh", "slurm_temp.log")
 
     with pytest.raises(CMSlurmCheckError):
-        check_slurm_job("slurm_temp.log")
+        await check_slurm_job("slurm_temp.log")
 
 
 def test_add_sys_path() -> None:

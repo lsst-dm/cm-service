@@ -388,6 +388,6 @@ class RowMixin:
         except IntegrityError as msg:
             await session.rollback()
             if TYPE_CHECKING:
-                assert msg.orig  # for mypy
+                assert msg.orig
             raise CMIntegrityError(params=msg.params, orig=msg.orig, statement=msg.statement) from msg
         return self

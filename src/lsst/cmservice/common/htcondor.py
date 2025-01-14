@@ -1,7 +1,9 @@
 """Utility functions for working with htcondor jobs"""
 
-import subprocess
 from typing import Any
+
+from anyio import Path, open_process
+from anyio.streams.text import TextReceiveStream
 
 from ..config import config
 from .enums import StatusEnum
@@ -18,27 +20,27 @@ htcondor_status_map = {
 }
 
 
-def write_htcondor_script(
-    htcondor_script_path: str,
-    htcondor_log: str,
-    script_url: str,
-    log_url: str,
+async def write_htcondor_script(
+    htcondor_script_path: str | Path,
+    htcondor_log: str | Path,
+    script_url: str | Path,
+    log_url: str | Path,
     **kwargs: Any,
-) -> str:
+) -> Path:
     """Write a submit wrapper script for htcondor
 
     Parameters
     ----------
-    htcondor_script_path: str
+    htcondor_script_path: str | anyio.Path
         Path for the wrapper file written by this function
 
-    htcondor_log: str
+    htcondor_log: str | anyio.Path
         Path for the wrapper log
 
-    script_url: str
+    script_url: str | anyio.Path
         Script to submit
 
-    log_url: str
+    log_url: str | anyio.Path
         Location of job log file to write
 
     Returns
@@ -56,26 +58,29 @@ def write_htcondor_script(
     )
     options.update(**kwargs)
 
-    with open(htcondor_script_path, "w", encoding="utf8") as fout:
-        fout.write(f"executable = {script_url}\n")
-        fout.write(f"log = {htcondor_log}\n")
-        fout.write(f"output = {log_url}\n")
-        fout.write(f"error = {log_url}\n")
-        for key, val in options.items():
-            fout.write(f"{key} = {val}\n")
-        fout.write("queue\n")
-    return htcondor_log
+    htcondor_script_contents = [
+        f"executable = {script_url}",
+        f"log = {htcondor_log}",
+        f"output = {log_url}",
+        f"error = {log_url}",
+    ]
+    for key, val in options.items():
+        htcondor_script_contents.append(f"{key} = {val}")
+    htcondor_script_contents.append("queue")
+
+    await Path(htcondor_script_path).write_text("\n".join(htcondor_script_contents))
+    return Path(htcondor_log)
 
 
-def submit_htcondor_job(
-    htcondor_script_path: str,
+async def submit_htcondor_job(
+    htcondor_script_path: str | Path,
     fake_status: StatusEnum | None = None,
 ) -> None:
     """Submit a  `Script` to htcondor
 
     Parameters
     ----------
-    htcondor_script_path: str
+    htcondor_script_path: str | anyio.Path
         Path to the script to submit
 
     fake_status: StatusEnum | None,
@@ -85,25 +90,23 @@ def submit_htcondor_job(
     fake_status = fake_status or config.mock_status
     if fake_status is not None:
         return
+
     try:
-        with subprocess.Popen(
-            [
-                config.htcondor.condor_submit_bin,
-                htcondor_script_path,
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        ) as condor_submit:  # pragma: no cover
-            condor_submit.wait()
-            if condor_submit.returncode != 0:
+        async with await open_process(
+            [config.htcondor.condor_submit_bin, htcondor_script_path]
+        ) as condor_submit:
+            if await condor_submit.wait() != 0:  # pragma: no cover
                 assert condor_submit.stderr
-                msg = condor_submit.stderr.read().decode()
-                raise CMHTCondorSubmitError(f"Bad htcondor submit: {msg}")
+                stderr_msg = ""
+                async for text in TextReceiveStream(condor_submit.stderr):
+                    stderr_msg += text
+                raise CMHTCondorSubmitError(f"Bad htcondor submit: f{stderr_msg}")
+
     except Exception as e:
         raise CMHTCondorSubmitError(f"Bad htcondor submit: {e}") from e
 
 
-def check_htcondor_job(
+async def check_htcondor_job(
     htcondor_id: str | None,
     fake_status: StatusEnum | None = None,
 ) -> StatusEnum:
@@ -128,21 +131,22 @@ def check_htcondor_job(
     try:
         if htcondor_id is None:  # pragma: no cover
             raise CMHTCondorCheckError("No htcondor_id")
-        with subprocess.Popen(
+        async with await open_process(
             [config.htcondor.condor_q_bin, "-userlog", htcondor_id, "-af", "JobStatus", "ExitCode"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
         ) as condor_q:  # pragma: no cover
-            condor_q.wait()
-            if condor_q.returncode != 0:
+            if await condor_q.wait() != 0:
                 assert condor_q.stderr
-                msg = condor_q.stderr.read().decode()
-                raise CMHTCondorCheckError(f"Bad htcondor check: {msg}")
+                stderr_msg = ""
+                async for text in TextReceiveStream(condor_q.stderr):
+                    stderr_msg += text
+                raise CMHTCondorCheckError(f"Bad htcondor check: {stderr_msg}")
             try:
                 assert condor_q.stdout
-                lines = condor_q.stdout.read().decode().split("\n")
+                lines = ""
+                async for text in TextReceiveStream(condor_q.stdout):
+                    lines += text
                 # condor_q puts an extra newline, we use 2nd to the last line
-                tokens = lines[-2].split()
+                tokens = lines.split("\n")[-2].split()
                 assert len(tokens) == 2
                 htcondor_status = int(tokens[0])
                 exit_code = tokens[1]

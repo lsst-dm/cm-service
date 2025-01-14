@@ -254,9 +254,10 @@ async def load_specification(
         if "Imports" in config_item:
             imports = config_item["Imports"]
             for import_ in imports:
+                import_path = await Path(os.path.expandvars(import_)).resolve()
                 await load_specification(
                     session,
-                    os.path.abspath(os.path.expandvars(import_)),
+                    import_path,
                     loaded_specs,
                     allow_update=allow_update,
                 )

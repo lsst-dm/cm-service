@@ -4,6 +4,7 @@ import os
 import textwrap
 from typing import Any
 
+from anyio import Path
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from ..common.bash import write_bash_script
@@ -579,12 +580,12 @@ class HipsMapsScriptHandler(ScriptHandler):
         # Strip leading/trailing spaces just in case
         prepend = "\n".join([line.strip() for line in prepend.splitlines()])
 
-        hips_pipeline_yaml = os.path.abspath(
+        hips_pipeline_yaml = await Path(
             os.path.expandvars("${CM_CONFIGS}") + data_dict["hips_pipeline_yaml_path"]
-        )
-        gen_hips_both_yaml = os.path.abspath(
+        ).resolve()
+        gen_hips_both_yaml = await Path(
             os.path.expandvars("${CM_CONFIGS}") + data_dict["hips_pipeline_config_path"]
-        )
+        ).resolve()
 
         # Note: The pipetask command below features a `-j N` which requests
         # N nodes to run. This will guarantee that the HIPS maps generate at

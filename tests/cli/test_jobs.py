@@ -2,6 +2,7 @@ import os
 import uuid
 
 import pytest
+from anyio import Path
 from click.testing import CliRunner
 from safir.testing.uvicorn import UvicornProcess
 
@@ -130,7 +131,7 @@ async def test_job_cli(uvicorn: UvicornProcess, api_version: str) -> None:
     check_changed = check_and_parse_result(result, dict)["changed"]
     assert not check_changed
 
-    fullpath = os.path.abspath("examples/manifest_report_2.yaml")
+    fullpath = await Path("examples/manifest_report_2.yaml").resolve()
     result = runner.invoke(
         client_top, f"load manifest-report --fullname {entry.fullname} --yaml_file {fullpath}"
     )
