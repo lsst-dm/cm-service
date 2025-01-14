@@ -1,5 +1,6 @@
+import warnings
+
 import click
-import uvicorn
 from safir.asyncio import run_with_asyncio
 
 from .. import __version__
@@ -9,7 +10,11 @@ from .. import __version__
 @click.group()
 @click.version_option(version=__version__)
 def server() -> None:
-    """Administrative command-line interface for cm-service."""
+    """Administrative command-line interface for cm-service.
+
+    .. deprecated:: v0.2.0
+        The `server` command is deprecated in v0.2.0
+    """
 
 
 @server.command(deprecated=True)
@@ -18,17 +23,22 @@ def server() -> None:
 async def init(*, reset: bool) -> None:  # pragma: no cover
     """Initialize the service database.
 
-    .. deprecated:: v1.5.0
+    .. deprecated:: v0.2.0
         The `init` command is deprecated in v0.2.0; it is replaced by alembic.
     """
-    print("Use `alembic upgrade head` instead.")
+    warnings.warn("Use `alembic upgrade head` instead.", DeprecationWarning)
 
 
 @server.command()
 @click.option("--port", default=8080, type=int, help="Port to run the application on.")
 def run(port: int) -> None:  # pragma: no cover
-    """Run the service application (for testing only)."""
-    uvicorn.run("lsst.cmservice.main:app", host="0.0.0.0", port=port, reload=True, reload_dirs=["src"])
+    """Run the service application (for testing only).
+
+    .. deprecated:: v0.2.0
+        The `run` command is deprecated in v0.2.0. Launch the server with a
+        module entrypoint instead.
+    """
+    warnings.warn("Use `python3 -m lsst.cmservice.main` instead.", DeprecationWarning)
 
 
 # Build the client CLI

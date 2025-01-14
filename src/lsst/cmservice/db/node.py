@@ -15,6 +15,7 @@ from ..common.errors import (
     CMResolveCollectionsError,
     test_type_and_raise,
 )
+from ..config import config
 from .handler import Handler
 from .row import RowMixin
 from .spec_block import SpecBlock
@@ -228,6 +229,8 @@ class NodeMixin(RowMixin):
             if isinstance(val_, list):  # pragma: no cover
                 # FIXME, see if this is now being tested
                 resolved_collections[name_] = []
+                # FIXME disambiguate what types val_, item_ and f1 are supposed
+                #       to be
                 for item_ in val_:
                     try:
                         f1 = item_.format(**collection_dict)
@@ -761,29 +764,24 @@ class NodeMixin(RowMixin):
     async def estimate_sleep_time(
         self,
         session: async_scoped_session,
-        job_sleep: int = 150,  # pylint: disable=unused-argument
-        script_sleep: int = 15,
+        minimum_sleep_time: int = 10,
     ) -> int:
-        """Estimate how long to sleep before calling process again
+        """Estimate how long to sleep before calling process again.
+
+        If a node is running, use the greater of minimum sleep time or
+        the configured daemon processing interval.
 
         Parameters
         ----------
         session : async_scoped_session
             DB session manager
 
-        job_sleep: int = 150
-            Time to sleep if jobs are running
-
-        script_sleep: int = 15
-            Time to sleep if scripts are running
-
         Returns
         -------
         sleep_time : int
             Time to sleep in seconds
         """
-        sleep_time = 10
         await session.refresh(self, attribute_names=["status"])
         if self.status == StatusEnum.running:
-            sleep_time = max(script_sleep, sleep_time)
-        return sleep_time
+            minimum_sleep_time = max(config.daemon.processing_interval, minimum_sleep_time)
+        return minimum_sleep_time

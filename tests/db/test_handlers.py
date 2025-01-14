@@ -4,6 +4,7 @@ from typing import Any
 
 import pytest
 import structlog
+from _pytest.monkeypatch import MonkeyPatch
 from safir.database import create_async_session
 from sqlalchemy.ext.asyncio import AsyncEngine, async_scoped_session
 
@@ -172,8 +173,10 @@ async def test_handlers_campaign_level_db(
 async def test_handlers_step_level_db(
     engine: AsyncEngine,
     tmp_path: Path,
+    monkeypatch: MonkeyPatch,
 ) -> None:
     """Test to run the write and purge methods of various scripts"""
+    monkeypatch.setattr("lsst.cmservice.config.config.butler.mock", True)
     temp_dir = str(tmp_path / "archive")
 
     logger = structlog.get_logger(__name__)
@@ -210,8 +213,10 @@ async def test_handlers_step_level_db(
 async def test_handlers_group_level_db(
     engine: AsyncEngine,
     tmp_path: Path,
+    monkeypatch: MonkeyPatch,
 ) -> None:
     """Test to run the write and purge methods of various scripts"""
+    monkeypatch.setattr("lsst.cmservice.config.config.butler.mock", True)
     temp_dir = str(tmp_path / "archive")
 
     logger = structlog.get_logger(__name__)

@@ -91,9 +91,9 @@ class RowMixin:
             if parent_class is not None:
                 q = q.where(parent_class.id == cls.parent_id)  # type: ignore
             if parent_name is not None:
-                q = q.where(parent_class.fullname == parent_name)
+                q = q.where(parent_class.fullname == parent_name)  # type: ignore
             if parent_id is not None:
-                q = q.where(parent_class.id == parent_id)
+                q = q.where(parent_class.id == parent_id)  # type: ignore
         q = q.offset(skip).limit(limit)
         results = await session.scalars(q)
         return results.all()

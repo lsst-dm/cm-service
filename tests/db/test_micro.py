@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 import structlog
+from _pytest.monkeypatch import MonkeyPatch
 from safir.database import create_async_session
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -22,8 +23,10 @@ async def test_micro_db(
     engine: AsyncEngine,
     tmp_path: Path,
     script_method: ScriptMethodEnum,
+    monkeypatch: MonkeyPatch,
 ) -> None:
     """Test fake end to end run using example/example_micro.yaml"""
+    monkeypatch.setattr("lsst.cmservice.config.config.butler.mock", True)
 
     orig_method = ScriptHandler.default_method
     ScriptHandler.default_method = script_method

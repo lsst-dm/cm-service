@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 
 from ..common.enums import LevelEnum, StatusEnum
 from ..common.errors import CMYamlParseError, test_type_and_raise
+from ..config import config
 from ..db.campaign import Campaign
 from ..db.element import ElementMixin
 from ..db.handler import Handler
@@ -394,7 +395,7 @@ class ElementHandler(Handler):
             return (changed, status)
 
         status = await self._post_check(session, element, **kwargs)
-        fake_status = kwargs.get("fake_status", None)
+        fake_status = kwargs.get("fake_status", config.mock_status)
         if fake_status:
             status = fake_status
         await element.update_values(session, status=status)

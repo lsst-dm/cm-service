@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1
 
-ARG PYTHON_VERSION=3.11
-ARG UV_VERSION=0.5
+ARG PYTHON_VERSION="3.11"
+ARG UV_VERSION="0.5"
+ARG ASGI_PORT="8080"
 
 #==============================================================================
 # UV SOURCE IMAGE
@@ -9,8 +10,20 @@ FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
 
 
 #==============================================================================
+# HTCONDOR SOURCE IMAGE
+# - The easiest way to obtain an architecture-appropriate set of htcondor client
+#   binaries is to install them into an otherwise bare conda environment.
+FROM continuumio/miniconda3:latest AS htcondor
+RUN conda create -p /opt/htcondor -c conda-forge htcondor-utils --no-default-packages
+
+
+#==============================================================================
 # BASE IMAGE
+# - The base image is an updated debian python container with a nonroot user
+#   created. This can be extended into include any *runtime* system dependencies
+#   during the apt-get step.
 FROM python:${PYTHON_VERSION}-slim-bookworm AS base-image
+ARG ASGI_PORT
 
 # Upgrade base packages
 RUN <<ENDRUN
@@ -33,6 +46,9 @@ groupadd --gid 2218 lsst
 groupadd --gid 3967 lsstsvc1
 useradd lsstsvc1 --uid 17951 --no-user-group --gid gu --groups rubin-users,lsst,lsstsvc1 --create-home --shell /bin/bash
 ENDRUN
+
+# Expose the API port
+EXPOSE ${ASGI_PORT}
 
 
 #==============================================================================
@@ -69,11 +85,8 @@ ENDRUN
 
 
 #==============================================================================
-# RUNTIME IMAGE
-FROM base-image AS runtime-image
-
-# Expose the API port
-EXPOSE 8080
+# RUNTIME IMAGE - CM-Service
+FROM base-image AS cmservice
 
 # Make sure frontend output won't go into the layer store
 VOLUME /output
@@ -91,19 +104,19 @@ WORKDIR /home/lsstsvc1
 ENV CM_CONFIGS=/home/lsstsvc1/examples
 COPY examples ./examples
 COPY src/lsst ./lsst
+COPY alembic ./alembic
+COPY alembic.ini .
 
-# Run the Server
-# TODO refactor module main to start unicorn instead of using a bash script
-#      after eliminating db migration requirement here
-COPY --chmod=755 <<EOF ./docker-entrypoint.sh
-#!/bin/bash
-python -m lsst.cmservice.cli.server init
-uvicorn "\$@"
-EOF
+ENTRYPOINT ["/opt/venv/bin/python3", "-m"]
+CMD ["lsst.cmservice.main"]
 
-# Both the entrypoint and cmd can be disambiguated in the Helm chart / Compose file
-ENTRYPOINT ["./docker-entrypoint.sh"]
-CMD ["lsst.cmservice.main:app", "--host", "0.0.0.0", "--port", "8080"]
 
-# ENTRYPOINT ["/opt/venv/bin/python3", "-m"]
-# CMD ["lsst.cmservice.daemon"]
+#==============================================================================
+# RUNTIME IMAGE - Daemon
+FROM cmservice AS cmworker
+
+USER ROOT
+COPY --from=htcondor /opt/htcondor /opt/htcondor
+
+USER lsstsvc1
+CMD ["lsst.cmservice.daemon"]

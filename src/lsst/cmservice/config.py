@@ -1,38 +1,139 @@
-from pydantic import BaseModel, Field
+from warnings import warn
+
+from dotenv import load_dotenv
+from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from .common.enums import ScriptMethodEnum, StatusEnum
+
 __all__ = ["Configuration", "config"]
+
+load_dotenv()
+
+
+class BpsConfiguration(BaseModel):
+    """Configuration settings for bps client operations.
+
+    Set via BPS__FIELD environment variables.
+
+    FIXME: rename to LsstConfiguration and consolidate multiple models?
+    """
+
+    bps_bin: str = Field(
+        description="Name of a bps client binary",
+        default="bps",
+    )
+
+    pipetask_bin: str = Field(
+        description="Name of a pipetask client binary",
+        default="pipetask",
+    )
+
+    resource_usage_bin: str = Field(
+        description="Name of a resource usage gathering binary",
+        default="build-gather-resource-usage-qg",
+    )
+
+    n_jobs: int = Field(
+        description="Parallelization factor for jobs (-j N)",
+        default=16,
+    )
+
+
+class ButlerConfiguration(BaseModel):
+    """Configuration settings for butler client operations.
+
+    Set via BUTLER__FIELD environment variables.
+    """
+
+    butler_bin: str = Field(
+        description="Name of a butler client binary",
+        default="butler",
+    )
+
+    mock: bool = Field(
+        description="Whether to mock out Butler calls.",
+        default=False,
+    )
+
+
+class HipsConfiguration(BaseModel):
+    """Configuration settings for HiPS operations.
+
+    Set via HIPS__FIELD environment variables.
+    """
+
+    high_res_bin: str = Field(
+        description="Name of a high resolution QG builder bin",
+        default="build-high-resolution-hips-qg",
+    )
+
+    uri: str = Field(
+        description="URI for HiPS maps destination",
+        default="s3://rubin-hips",
+    )
 
 
 class HTCondorConfiguration(BaseModel):
     """Configuration settings for htcondor client operations.
 
     Set via HTCONDOR__FIELD environment variables.
+
+    Fields with `exclude=True` are not included when a `model_dump` is called
+    on this model; included fields will be represented by their field name or
+    their serialization alias.
     """
 
     condor_submit_bin: str = Field(
         description="Name of condor_submit client binary",
         default="condor_submit",
+        exclude=True,
     )
 
     condor_q_bin: str = Field(
         description="Name of condor_q client binary",
         default="condor_q",
+        exclude=True,
     )
 
     request_cpus: int = Field(
         description="Number of cores to request when submitting an htcondor job.",
         default=1,
+        exclude=True,
     )
 
     request_mem: str = Field(
         description="Amount of memory requested when submitting an htcondor job.",
         default="512M",
+        exclude=True,
     )
 
     request_disk: str = Field(
         description="Amount of disk space requested when submitting an htcondor job.",
         default="1G",
+        exclude=True,
+    )
+
+    collector_host: str = Field(
+        description="Name of an htcondor collector host.",
+        default="localhost",
+        serialization_alias="_condor_COLLECTOR_HOST",
+    )
+
+    schedd_host: str = Field(
+        description="Name of an htcondor schedd host.",
+        default="localhost",
+        serialization_alias="_condor_SCHEDD_HOST",
+    )
+
+    authn_methods: str = Field(
+        description="Secure client authentication methods, as comma-delimited strings",
+        default="FS,FS_REMOTE",
+        serialization_alias="_condor_SEC_CLIENT_AUTHENTICATION_METHODS",
+    )
+
+    dagman_job_append_get_env: bool = Field(
+        description="...", default=True, serialization_alias="_condor_DAGMAN_MANAGER_JOB_APPEND_GETENV"
     )
 
 
@@ -101,6 +202,11 @@ class AsgiConfiguration(BaseModel):
         default="/web_app",
     )
 
+    reload: bool = Field(
+        description="Whether to support ASGI server reload on content change.",
+        default=False,
+    )
+
 
 class LoggingConfiguration(BaseModel):
     """Configuration for the application's logging facility."""
@@ -113,6 +219,22 @@ class LoggingConfiguration(BaseModel):
     profile: str = Field(
         default="development",
         title="Application logging profile",
+    )
+
+
+class DaemonConfiguration(BaseModel):
+    """Settings for the Daemon nested model.
+
+    Set according to DAEMON__FIELD environment variables.
+    """
+
+    processing_interval: int = Field(
+        default=30,
+        description=(
+            "The maximum wait time (seconds) between daemon processing intervals "
+            "and the minimum time between element processing attepts. This "
+            "duration may be lengthened depending on the element type."
+        ),
     )
 
 
@@ -160,10 +282,50 @@ class Configuration(BaseSettings):
 
     # Nested Models
     asgi: AsgiConfiguration = AsgiConfiguration()
+    bps: BpsConfiguration = BpsConfiguration()
+    butler: ButlerConfiguration = ButlerConfiguration()
+    daemon: DaemonConfiguration = DaemonConfiguration()
     db: DatabaseConfiguration = DatabaseConfiguration()
+    hips: HipsConfiguration = HipsConfiguration()
     htcondor: HTCondorConfiguration = HTCondorConfiguration()
     logging: LoggingConfiguration = LoggingConfiguration()
     slurm: SlurmConfiguration = SlurmConfiguration()
+
+    # Root fields
+    script_handler: ScriptMethodEnum = Field(
+        description="The default external script handler",
+        default=ScriptMethodEnum.htcondor,
+    )
+
+    mock_status: StatusEnum | None = Field(
+        description="A fake status to return from all operations",
+        default=None,
+    )
+
+    @field_validator("mock_status", mode="before")
+    @classmethod
+    def validate_mock_status_by_name(cls, value: str | StatusEnum) -> StatusEnum | None:
+        if isinstance(value, StatusEnum) or value is None:
+            return value
+        try:
+            return StatusEnum[value]
+        except KeyError:
+            warn(f"Invalid mock status ({value}) provided to config, using default.")
+            return None
+
+    @field_validator("script_handler", mode="before")
+    @classmethod
+    def validate_script_method_by_name(cls, value: str | ScriptMethodEnum) -> ScriptMethodEnum:
+        """Use a string value to resolve an enum by its name, falling back to
+        the default value if an invalid input is provided.
+        """
+        if isinstance(value, ScriptMethodEnum):
+            return value
+        try:
+            return ScriptMethodEnum[value]
+        except KeyError:
+            warn(f"Invalid script handler ({value}) provided to config, using default.")
+            return ScriptMethodEnum.htcondor
 
 
 config = Configuration()

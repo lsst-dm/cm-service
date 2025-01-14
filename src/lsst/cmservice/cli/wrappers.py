@@ -1317,43 +1317,6 @@ def get_element_retry_script_command(
     return retry_script
 
 
-def get_element_estimate_sleep_time_command(
-    group_command: Callable,
-    sub_client_name: str,
-) -> Callable:
-    """Return a function estimates the sleep time before calling process
-
-    Parameters
-    ----------
-    group_command: Callable
-        CLI decorator from the CLI group to attach to
-
-    sub_client_name: str
-        Name of python API sub-client to use
-
-    Returns
-    -------
-    the_function: Callable
-        Function that estimates the sleep time before calling process
-    """
-
-    @group_command(name="estimate_sleep_time")
-    @options.cmclient()
-    @options.row_id()
-    @options.output()
-    def estimate_sleep_time(
-        client: CMClient,
-        row_id: int,
-        output: options.OutputEnum | None,
-    ) -> None:
-        """Estimates the sleep time before calling process"""
-        sub_client = getattr(client, sub_client_name)
-        result = sub_client.estimate_sleep_time(row_id=row_id)
-        output_dict({"sleep_time": result}, output)
-
-    return estimate_sleep_time
-
-
 def get_element_wms_task_reports_command(
     group_command: Callable,
     sub_client_name: str,

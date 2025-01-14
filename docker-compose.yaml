@@ -11,17 +11,20 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
+      target: cmservice
     entrypoint:
-      - python3
-      - -m
+      - alembic
     command:
-      - lsst.cmservice.cli.server
-      - init
+      - upgrade
+      - head
     environment: &cmenv
       DB__HOST: postgresql
       DB__ECHO: true
       DB__URL: postgresql://cm-service@postgresql:5432/cm-service
       DB__PASSWORD: INSECURE-PASSWORD
+      DB__TABLE_SCHEMA: public
+    networks:
+      - cmservice
     depends_on:
       postgresql:
         condition: service_healthy
@@ -33,17 +36,15 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    entrypoint:
-      - uvicorn
-    command:
-      - lsst.cmservice.main:app
-      - --host
-      - "0.0.0.0"
-      - --port
-      - "8080"
+      target: cmservice
+    env_file:
+      - path: .env
+        required: false
     environment: *cmenv
     ports:
       - "8080:8080"
+    networks:
+      - cmservice
     depends_on:
       init-db:
         condition: service_completed_successfully
@@ -55,12 +56,15 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    entrypoint:
-      - /opt/venv/bin/python3
-      - -m
-    command:
-      - lsst.cmservice.daemon
+      target: cmworker
+    env_file:
+      - path: .env
+        required: false
     environment: *cmenv
+    volumes:
+      - "./prod_area:/prod_area"
+    networks:
+      - cmservice
     depends_on:
       init-db:
         condition: service_completed_successfully
@@ -73,7 +77,9 @@ services:
       POSTGRES_USER: "cm-service"
       POSTGRES_DB: "cm-service"
     ports:
-      - "5432"
+      - "65432:5432"
+    networks:
+      - cmservice
     volumes:
       - "pgsql:/var/lib/postgresql/data"
     healthcheck:
@@ -87,3 +93,7 @@ services:
 
 volumes:
   pgsql:
+
+networks:
+  cmservice:
+    driver: bridge

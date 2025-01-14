@@ -12,6 +12,7 @@ from lsst.ctrl.bps.wms_service import WmsJobReport, WmsRunReport, WmsStates
 from ..common.enums import StatusEnum
 from ..common.errors import CMMissingFullnameError, CMYamlParseError
 from ..common.utils import update_include_dict
+from ..config import config
 from ..db.campaign import Campaign
 from ..db.job import Job
 from ..db.pipetask_error import PipetaskError
@@ -435,6 +436,7 @@ async def load_manifest_report(
         Associated Job
     """
     job = await Job.get_row_by_fullname(session, job_name)
+    fake_status = fake_status or config.mock_status
     if fake_status is not None:
         return job
 
@@ -570,7 +572,7 @@ def status_from_bps_report(
         The status to set for the bps_report script
     """
     if wms_run_report is None:
-        return fake_status
+        return fake_status or config.mock_status
 
     the_state = wms_run_report.state
     # We treat RUNNING as running from the CM point of view,

@@ -770,24 +770,6 @@ async def check_get_methods(
     response = await client.get(f"{config.asgi.prefix}/{entry_class_name}/get/-1/products")
     expect_failed_response(response, 404)
 
-    sleep_time_query = models.SleepTimeQuery(
-        fullname=entry.fullname,
-        job_sleep=150,
-        script_sleep=15,
-    )
-
-    response = await client.post(
-        f"{config.asgi.prefix}/{entry_class_name}/get/{entry.id}/sleep_time",
-        content=sleep_time_query.model_dump_json(),
-    )
-    check_sleep_time = check_and_parse_response(response, int)
-    assert check_sleep_time == 10
-
-    response = await client.post(
-        f"{config.asgi.prefix}/{entry_class_name}/get/-1/sleep_time",
-        content=sleep_time_query.model_dump_json(),
-    )
-
     expect_failed_response(response, 404)
 
 

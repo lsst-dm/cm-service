@@ -10,6 +10,7 @@ from lsst.daf.butler import Butler
 
 from ..common.enums import StatusEnum
 from ..common.errors import CMMissingScriptInputError, test_type_and_raise
+from ..config import config
 from ..db.campaign import Campaign
 from ..db.element import ElementMixin
 from ..db.group import Group
@@ -107,7 +108,7 @@ class RunJobsScriptHandler(RunElementScriptHandler):
         **kwargs: Any,
     ) -> StatusEnum:
         jobs = await parent.get_jobs(session, remaining_only=not kwargs.get("force_check", False))
-        fake_status = kwargs.get("fake_status", None)
+        fake_status = kwargs.get("fake_status", config.mock_status)
         for job_ in jobs:
             job_status = job_.status if fake_status is None else fake_status
             if job_status.value < StatusEnum.accepted.value:
@@ -194,6 +195,8 @@ class SplitByQuery(Splitter):
     to get the total number values of a particular field
     and then constructing queries to split those values
     into a number of groups.
+
+    FIXME calling sync butler query from async function
     """
 
     @classmethod
@@ -214,8 +217,10 @@ class SplitByQuery(Splitter):
         split_dataset = kwargs["split_dataset"]
         split_min_groups = kwargs.get("split_min_groups", 1)
         split_max_group_size = kwargs.get("split_max_group_size", 100000000)
-        fake_status = kwargs.get("fake_status", None)
-        if not fake_status:  # pragma: no cover
+        mock_butler: bool = kwargs.get("fake_status", config.butler.mock)
+        if mock_butler:
+            sorted_field_values = np.arange(10)
+        else:
             butler = Butler.from_config(
                 butler_repo,
                 collections=[input_coll, campaign_input_coll],
@@ -223,8 +228,6 @@ class SplitByQuery(Splitter):
             )
             itr = butler.registry.queryDataIds([split_field], datasets=split_dataset).subset(unique=True)
             sorted_field_values = np.sort(np.array([x_[split_field] for x_ in itr]))
-        else:
-            sorted_field_values = np.arange(10)
         n_matched = sorted_field_values.size
 
         step_size = min(split_max_group_size, int(n_matched / split_min_groups))
@@ -274,14 +277,13 @@ class RunGroupsScriptHandler(RunElementScriptHandler):
         if spec_block_name is None:  # pragma: no cover
             raise CMMissingScriptInputError(f"child_config for {script.fullname} does not contain spec_block")
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
-        fake_status = kwargs.get("fake_status")
 
         split_method = child_config.pop("split_method", "no_split")
         splitter = SPLIT_CLASSES[split_method]
 
         i = 0
 
-        group_gen = splitter.split(session, script, parent, fake_status=fake_status, **child_config)
+        group_gen = splitter.split(session, script, parent, **child_config)
 
         async for group_dict_ in group_gen:
             _new_group = await Group.create_row(

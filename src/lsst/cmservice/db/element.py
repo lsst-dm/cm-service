@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 
 from ..common.enums import LevelEnum, NodeTypeEnum, StatusEnum
 from ..common.errors import CMBadStateTransitionError, CMTooManyActiveScriptsError
+from ..config import config
 from ..models.merged_product_set import MergedProductSetDict
 from ..models.merged_task_set import MergedTaskSetDict
 from ..models.merged_wms_task_report import MergedWmsTaskReportDict
@@ -200,28 +201,26 @@ class ElementMixin(NodeMixin):
     async def estimate_sleep_time(
         self,
         session: async_scoped_session,
-        job_sleep: int = 150,
-        script_sleep: int = 15,
+        minimum_sleep_time: int = 10,
     ) -> int:
-        """Estimate how long to sleep before calling process again
+        """Estimate how long to sleep before calling process again.
+
+        Jobs may sleep up to the configured value for the Daemon iteration
+        duration; scripts may sleep up to 10% of this value.
 
         Parameters
         ----------
         session : async_scoped_session
             DB session manager
 
-        job_sleep: int = 150
-            Time to sleep if jobs are running
-
-        script_sleep: int = 15
-            Time to sleep if scripts are running
-
         Returns
         -------
         sleep_time : int
             Time to sleep in seconds
         """
-        sleep_time = 10
+        sleep_time = minimum_sleep_time
+        script_sleep = config.daemon.processing_interval
+        job_sleep = script_sleep * 10
         if self.level == LevelEnum.job:
             all_jobs = []
         else:

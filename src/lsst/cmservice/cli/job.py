@@ -129,8 +129,6 @@ get_all_scripts = wrappers.get_element_all_scripts_command(get_command, sub_clie
 
 action_retry_script = wrappers.get_element_retry_script_command(action_command, sub_client)
 
-get_sleep_time = wrappers.get_element_estimate_sleep_time_command(action_command, sub_client)
-
 get_wms_task_reports = wrappers.get_element_wms_task_reports_command(get_command, sub_client)
 
 get_tasks = wrappers.get_element_tasks_command(get_command, sub_client)

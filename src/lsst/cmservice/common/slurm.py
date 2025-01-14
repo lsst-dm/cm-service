@@ -58,6 +58,7 @@ def submit_slurm_job(
     job_id : str
         Slurm job id
     """
+    fake_status = fake_status or config.mock_status
     if fake_status is not None:
         return "fake_job"
     try:

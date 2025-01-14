@@ -23,6 +23,7 @@ from ..common.errors import (
     CMMissingScriptInputError,
     test_type_and_raise,
 )
+from ..config import config
 from ..db.element import ElementMixin
 from ..db.job import Job
 from ..db.script import Script
@@ -118,7 +119,10 @@ class BpsScriptHandler(ScriptHandler):
             pass
 
         # build up the bps wrapper script
-        command = f"bps --log-file {json_url} --no-log-tty submit {os.path.abspath(config_url)} > {log_url}"
+        command = (
+            f"{config.bps.bps_bin} --log-file {json_url} --no-log-tty submit "
+            f"{os.path.abspath(config_url)} > {log_url}"
+        )
 
         prepend = bps_core_script_template_.data["text"].replace("{lsst_version}", lsst_version)  # type: ignore
         prepend = prepend.replace("{lsst_distrib_dir}", lsst_distrib_dir)
@@ -195,6 +199,7 @@ class BpsScriptHandler(ScriptHandler):
         parent: ElementMixin,
         fake_status: StatusEnum | None = None,
     ) -> StatusEnum:
+        fake_status = fake_status or config.mock_status
         slurm_status = await ScriptHandler._check_slurm_job(
             self,
             session,
@@ -222,6 +227,7 @@ class BpsScriptHandler(ScriptHandler):
         parent: ElementMixin,
         fake_status: StatusEnum | None = None,
     ) -> StatusEnum:
+        fake_status = fake_status or config.mock_status
         htcondor_status = await ScriptHandler._check_htcondor_job(
             self,
             session,
@@ -354,7 +360,7 @@ class BpsReportHandler(FunctionHandler):
         status: StatusEnum | None
             Status of requested job
         """
-        fake_status = kwargs.get("fake_status", None)
+        fake_status = kwargs.get("fake_status", config.mock_status)
 
         try:
             wms_svc = self._get_wms_svc(config={})
@@ -362,7 +368,7 @@ class BpsReportHandler(FunctionHandler):
             if not fake_status:  # pragma: no cover
                 raise msg
         try:
-            if fake_status or wms_workflow_id is None:
+            if fake_status is not None or wms_workflow_id is None:
                 wms_run_report = None
             else:  # pragma: no cover
                 wms_run_report = wms_svc.report(wms_workflow_id=wms_workflow_id.strip())[0][0]
@@ -488,7 +494,9 @@ class ManifestReportScriptHandler(ScriptHandler):
         # Strip leading/trailing spaces just in case
         prepend = "\n".join([line.strip() for line in prepend.splitlines()])
 
-        command = f"pipetask report --full-output-filename {report_url} {butler_repo} {graph_url}"
+        command = (
+            f"{config.bps.pipetask_bin} report --full-output-filename {report_url} {butler_repo} {graph_url}"
+        )
         write_bash_script(script_url, command, prepend=prepend)
 
         return StatusEnum.prepared
@@ -521,7 +529,7 @@ class ManifestReportLoadHandler(FunctionHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        fake_status = kwargs.get("fake_status", None)
+        fake_status = kwargs.get("fake_status", config.mock_status)
         status = await self._load_pipetask_report(session, parent, script.stamp_url, fake_status=fake_status)  # type: ignore
         status = status if fake_status is None else fake_status
         await script.update_values(session, status=status)

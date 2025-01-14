@@ -81,7 +81,6 @@ run_check = wrappers.get_node_run_check_function(router, DbClass)
 get_scripts = wrappers.get_element_get_scripts_function(router, DbClass)
 get_all_scripts = wrappers.get_element_get_all_scripts_function(router, DbClass)
 retry_script = wrappers.get_element_retry_script_function(router, DbClass)
-estimate_sleep_time = wrappers.get_element_estimate_sleep_time_function(router, DbClass)
 
 get_wms_task_reports = wrappers.get_element_wms_task_reports_function(router, DbClass)
 get_tasks = wrappers.get_element_tasks_function(router, DbClass)
