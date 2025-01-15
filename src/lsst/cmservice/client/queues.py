@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from time import sleep
 from typing import TYPE_CHECKING
 
 import httpx
-import pause
 from pydantic import TypeAdapter, ValidationError
 
 from .. import db, models
@@ -133,7 +133,7 @@ class CMQueueClient:
             # In unit tests we set queue.interval to zero
             # so don't ever get to these lines
             print("pausing")
-            pause.until(next_check)
+            sleep(sleep_time)
 
     def daemon(
         self,

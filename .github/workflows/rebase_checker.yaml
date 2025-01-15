@@ -1,7 +1,8 @@
 ---
 name: Rebase Checker
 
-on: pull_request
+"on":
+  workflow_call:
 
 jobs:
   call-workflow:

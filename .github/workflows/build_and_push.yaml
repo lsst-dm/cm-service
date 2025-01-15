@@ -1,31 +1,28 @@
-# A workflow that builds and (optionally) pushes the Docker container image
-# artifacts for the application. The build action occurs on pull request events
-# that target the `main` branch, and the push action occurs only with tagged releases
-# and ticket branches.
+# A workflow that builds and pushes the Docker container image artifacts for
+# the application. The action occurs on new tags and when called from another
+# workflow.
 ---
 name: "Build and Push"
 
 "on":
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'src/lsst/cmservice/**'
   push:
     tags:
       - "*"
+  workflow_call:
   workflow_dispatch:
 
 jobs:
-  ci:
-    uses:
-      ./.github/workflows/ci.yaml
 
   build:
     name: "Build and Push Application Container Images"
-    needs:
-      - ci
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        include:
+          - target: cmservice
+            image: ${{ github.repository_owner }}/cm-service
+          - target: cmworker
+            image: ${{ github.repository_owner }}/cm-worker
     timeout-minutes: 20
 
     steps:
@@ -34,19 +31,10 @@ jobs:
           fetch-depth: 0
 
       - uses: lsst-sqre/build-and-push-to-ghcr@v1
-        id: build-service
         with:
           dockerfile: docker/Dockerfile
-          target: cmservice
-          image: ${{ github.repository }}
+          target: ${{ matrix.target }}
+          platforms: linux/amd64,linux/arm64
+          image: ${{ matrix.image }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          push: ${{ github.ref_type == 'tag' || (github.ref_type == 'branch' && startsWith(github.ref_name, 'tickets/DM-')) }}
-
-      - uses: lsst-sqre/build-and-push-to-ghcr@v1
-        id: build-worker
-        with:
-          dockerfile: docker/Dockerfile
-          target: cmworker
-          image: ${{ github.repository }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          push: ${{ github.ref_type == 'tag' || (github.ref_type == 'branch' && startsWith(github.ref_name, 'tickets/DM-')) }}
+          push: true
