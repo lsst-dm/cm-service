@@ -44,14 +44,12 @@ async def get_diagnostic_message(
         return f"Error reading log file: {e}"
 
 
-async def parse_bps_stdout(url: str) -> dict[str, str]:
-    """Parse the std from a bps submit job. Synchronous function using
-    standard readline. More work should be done to make this function work in
-    the async world.
+async def parse_bps_stdout(url: str | Path) -> dict[str, str]:
+    """Parse the stdout from a bps submit job.
 
     Parameters
     ----------
-    url : `str`
+    url : `str | anyio.Path`
         url for BPS submit stdout
 
     Returns
