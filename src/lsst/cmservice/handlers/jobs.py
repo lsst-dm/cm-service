@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import contextlib
 import os
 import shutil
 import types
 from typing import Any
 
 import yaml
+from anyio import Path
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.ext.asyncio import async_scoped_session
 
@@ -78,8 +78,6 @@ class BpsScriptHandler(ScriptHandler):
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
-        script_url = await self._set_script_files(session, script, prod_area)
-
         # optional stuff from data_dict
         rescue = data_dict.get("rescue", False)
         skip_colls = data_dict.get("skip_colls", "")
@@ -94,9 +92,11 @@ class BpsScriptHandler(ScriptHandler):
 
         # Get the output file paths
         script_url = await self._set_script_files(session, script, prod_area)
-        json_url = os.path.abspath(os.path.expandvars(f"{prod_area}/{script.fullname}_log.json"))
-        config_url = os.path.abspath(os.path.expandvars(f"{prod_area}/{script.fullname}_bps_config.yaml"))
-        log_url = os.path.abspath(os.path.expandvars(f"{prod_area}/{script.fullname}.log"))
+        json_url = await Path(os.path.expandvars(f"{prod_area}/{script.fullname}_log.json")).resolve()
+        config_url = await Path(
+            os.path.expandvars(f"{prod_area}/{script.fullname}_bps_config.yaml")
+        ).resolve()
+        log_url = await Path(os.path.expandvars(f"{prod_area}/{script.fullname}.log")).resolve()
 
         # get the requested templates
         bps_core_script_template_ = await specification.get_script_template(
@@ -112,7 +112,8 @@ class BpsScriptHandler(ScriptHandler):
             bps_wms_script_template,
         )
 
-        submit_path = os.path.abspath(f"{prod_area}/{parent.fullname}/submit")
+        config_path = await Path(config_url).resolve()
+        submit_path = await Path(f"{prod_area}/{parent.fullname}/submit").resolve()
         try:
             await run_in_threadpool(shutil.rmtree, submit_path)
         except FileNotFoundError:
@@ -120,8 +121,7 @@ class BpsScriptHandler(ScriptHandler):
 
         # build up the bps wrapper script
         command = (
-            f"{config.bps.bps_bin} --log-file {json_url} --no-log-tty submit "
-            f"{os.path.abspath(config_url)} > {log_url}"
+            f"{config.bps.bps_bin} --log-file {json_url} --no-log-tty submit " f"{config_path} > {log_url}"
         )
 
         prepend = bps_core_script_template_.data["text"].replace("{lsst_version}", lsst_version)  # type: ignore
@@ -132,7 +132,7 @@ class BpsScriptHandler(ScriptHandler):
             prepend += f"\n{custom_lsst_setup}\n"
         prepend += bps_wms_script_template_.data["text"]  # type: ignore
 
-        await run_in_threadpool(write_bash_script, script_url, command, prepend=prepend)
+        await write_bash_script(script_url, command, prepend=prepend)
 
         workflow_config = bps_core_yaml_template_.data.copy()  # type: ignore
 
@@ -143,8 +143,8 @@ class BpsScriptHandler(ScriptHandler):
                 # envvars that are not yet expanded
                 to_include_ = os.path.expandvars(to_include_)
                 if "$" not in to_include_:
-                    to_include_ = os.path.abspath(to_include_)
-                include_configs.append(to_include_)
+                    to_include_ = await Path(to_include_).resolve()
+                include_configs.append(str(to_include_))
         include_configs += bps_wms_extra_files
 
         workflow_config["includeConfigs"] = include_configs  # type: ignore
@@ -153,7 +153,7 @@ class BpsScriptHandler(ScriptHandler):
         workflow_config["project"] = parent.p_.name  # type: ignore
         workflow_config["campaign"] = parent.c_.name  # type: ignore
 
-        workflow_config["submitPath"] = submit_path  # type: ignore
+        workflow_config["submitPath"] = str(submit_path)  # type: ignore
 
         workflow_config["LSST_VERSION"] = os.path.expandvars(lsst_version)  # type: ignore
         if custom_lsst_setup:  # pragma: no cover
@@ -184,11 +184,13 @@ class BpsScriptHandler(ScriptHandler):
         if bps_extra_config:  # pragma: no cover
             workflow_config.update(**bps_extra_config)  # type: ignore
 
-        with contextlib.suppress(OSError):
-            await run_in_threadpool(os.makedirs, os.path.dirname(script_url), exist_ok=True)
+        await Path(script_url).parent.mkdir(parents=True, exist_ok=True)
 
-        with open(config_url, "w", encoding="utf-8") as fout:
-            yaml.dump(workflow_config, fout)
+        try:
+            yaml_output = yaml.dump(workflow_config)
+            await Path(config_url).write_text(yaml_output)
+        except yaml.YAMLError as yaml_error:
+            raise yaml.YAMLError(f"Error writing a script to run BPS job {script}; threw {yaml_error}")
         return StatusEnum.prepared
 
     async def _check_slurm_job(
@@ -214,7 +216,7 @@ class BpsScriptHandler(ScriptHandler):
         if fake_status is not None:
             wms_job_id = "fake_job"
         else:  # pragma: no cover
-            bps_dict = parse_bps_stdout(script.log_url)  # type: ignore
+            bps_dict = await parse_bps_stdout(script.log_url)  # type: ignore
             wms_job_id = self.get_job_id(bps_dict)
         await parent.update_values(session, wms_job_id=wms_job_id)
         return slurm_status
@@ -241,7 +243,7 @@ class BpsScriptHandler(ScriptHandler):
             if fake_status is not None:
                 wms_job_id = "fake_job"
             else:  # pragma: no cover
-                bps_dict = parse_bps_stdout(script.log_url)  # type: ignore
+                bps_dict = await parse_bps_stdout(script.log_url)  # type: ignore
                 wms_job_id = self.get_job_id(bps_dict)
             await parent.update_values(session, wms_job_id=wms_job_id)
         return htcondor_status
@@ -283,14 +285,9 @@ class BpsScriptHandler(ScriptHandler):
             os.path.basename(script.script_url),
             "/submit",
         )
-        try:
-            await run_in_threadpool(os.unlink, json_url)
-        except FileNotFoundError:  # pragma: no cover
-            pass
-        try:
-            await run_in_threadpool(os.unlink, config_url)
-        except FileNotFoundError:  # pragma: no cover
-            pass
+
+        await Path(json_url).unlink(missing_ok=True)
+        await Path(config_url).unlink(missing_ok=True)
         try:
             await run_in_threadpool(shutil.rmtree, submit_path)
         except FileNotFoundError:  # pragma: no cover
@@ -313,7 +310,7 @@ class BpsScriptHandler(ScriptHandler):
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
-        remove_run_collections(butler_repo, run_coll, fake_reset=fake_reset)
+        await remove_run_collections(butler_repo, run_coll, fake_reset=fake_reset)
 
 
 class BpsReportHandler(FunctionHandler):
@@ -347,7 +344,7 @@ class BpsReportHandler(FunctionHandler):
     ) -> StatusEnum | None:
         """Load the job processing info
 
-        Paramters
+        Parameters
         ---------
         job: Job
             Job in question
@@ -478,8 +475,8 @@ class ManifestReportScriptHandler(ScriptHandler):
         job_run_coll = resolved_cols["job_run"]
         qgraph_file = f"{job_run_coll}.qgraph".replace("/", "_")
 
-        graph_url = os.path.abspath(f"{prod_area}/{parent.fullname}/submit/{qgraph_file}")
-        report_url = os.path.abspath(f"{prod_area}/{parent.fullname}/submit/manifest_report.yaml")
+        graph_url = await Path(f"{prod_area}/{parent.fullname}/submit/{qgraph_file}").resolve()
+        report_url = await Path(f"{prod_area}/{parent.fullname}/submit/manifest_report.yaml").resolve()
 
         manifest_script_template = await specification.get_script_template(
             session,
@@ -497,7 +494,7 @@ class ManifestReportScriptHandler(ScriptHandler):
         command = (
             f"{config.bps.pipetask_bin} report --full-output-filename {report_url} {butler_repo} {graph_url}"
         )
-        write_bash_script(script_url, command, prepend=prepend)
+        await write_bash_script(script_url, command, prepend=prepend)
 
         return StatusEnum.prepared
 

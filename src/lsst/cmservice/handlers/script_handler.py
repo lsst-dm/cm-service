@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import os
 from typing import TYPE_CHECKING, Any
 
-from fastapi.concurrency import run_in_threadpool
+from anyio import Path
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from ..common.bash import check_stamp_file, get_diagnostic_message, run_bash_job
@@ -345,7 +344,7 @@ class ScriptHandler(BaseScriptHandler):
         """
         fake_status = fake_status or config.mock_status
         default_status = script.status if fake_status is None else fake_status
-        status = check_stamp_file(stamp_file, default_status)
+        status = await check_stamp_file(stamp_file, default_status)
         await script.update_values(session, status=status)
         return status
 
@@ -381,7 +380,7 @@ class ScriptHandler(BaseScriptHandler):
         status : StatusEnum
             The status of the processing
         """
-        status = check_slurm_job(slurm_id, fake_status)
+        status = await check_slurm_job(slurm_id, fake_status)
         await script.update_values(session, status=status)
         return status
 
@@ -417,7 +416,7 @@ class ScriptHandler(BaseScriptHandler):
         status : StatusEnum
             The status of the processing
         """
-        status = check_htcondor_job(htcondor_id, fake_status)
+        status = await check_htcondor_job(htcondor_id, fake_status)
         await script.update_values(session, status=status)
         return status
 
@@ -465,27 +464,29 @@ class ScriptHandler(BaseScriptHandler):
         if script_method == ScriptMethodEnum.bash:
             if not script.stamp_url:  # pragma: no cover
                 raise CMMissingNodeUrlError(f"log_url is not set for {script}")
-            run_bash_job(script.script_url, script.log_url, script.stamp_url, **kwargs)
+            await run_bash_job(script.script_url, script.log_url, script.stamp_url, **kwargs)
             status = StatusEnum.running
             await script.update_values(session, status=status)
         elif script_method == ScriptMethodEnum.slurm:
-            job_id = submit_slurm_job(script.script_url, script.log_url, **kwargs)
+            job_id = await submit_slurm_job(script.script_url, script.log_url, **kwargs)
             status = StatusEnum.running
             await script.update_values(session, stamp_url=job_id, status=status)
         elif script_method == ScriptMethodEnum.htcondor:
-            job_id_base = os.path.abspath(os.path.splitext(script.script_url)[0])
-            htcondor_script_path = f"{job_id_base}.sub"
-            htcondor_log = f"{job_id_base}.condorlog"
-            htcondor_sublog = f"{job_id_base}_condorsub.log"
-            write_htcondor_script(
+            job_script_path = await Path(script.script_url).resolve()
+            htcondor_script_path = job_script_path.with_suffix(".sub")
+            htcondor_log = job_script_path.with_suffix(".condorlog")
+            htcondor_sublog = job_script_path.with_stem(f"{job_script_path.stem}_condorsub").with_suffix(
+                ".log"
+            )
+            await write_htcondor_script(
                 htcondor_script_path,
                 htcondor_log,
-                os.path.abspath(script.script_url),
-                os.path.abspath(htcondor_sublog),
+                script_url=await Path(script.script_url).resolve(),
+                log_url=await Path(htcondor_sublog).resolve(),
             )
-            submit_htcondor_job(htcondor_script_path, **kwargs)
+            await submit_htcondor_job(htcondor_script_path, **kwargs)
             status = StatusEnum.running
-            await script.update_values(session, stamp_url=htcondor_log, status=status)
+            await script.update_values(session, stamp_url=str(htcondor_log), status=status)
         else:  # pragma: no cover
             raise CMBadExecutionMethodError(f"Method {script_method} not valid for {script}")
         await script.update_values(session, status=status)
@@ -581,13 +582,13 @@ class ScriptHandler(BaseScriptHandler):
     ) -> dict[str, Any]:
         update_fields: dict[str, Any] = {}
         update_fields["stamp_url"] = None
-        if script.log_url and os.path.exists(script.log_url):  # pragma: no cover
-            await run_in_threadpool(os.unlink, script.log_url)
-        if script.stamp_url and os.path.exists(script.stamp_url):
-            await run_in_threadpool(os.unlink, script.stamp_url)
+        if script.log_url:  # pragma: no cover
+            await Path(script.log_url).unlink(missing_ok=True)
+        if script.stamp_url:
+            await Path(script.stamp_url).unlink(missing_ok=True)
         if to_status.value <= StatusEnum.ready.value:
-            if script.script_url and os.path.exists(script.script_url):
-                await run_in_threadpool(os.unlink, script.script_url)
+            if script.script_url:
+                await Path(script.script_url).unlink(missing_ok=True)
             update_fields["script_url"] = None
             update_fields["log_url"] = None
         update_fields["status"] = to_status

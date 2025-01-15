@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+from functools import partial
 from typing import Any
 
 import numpy as np
+from anyio import to_thread
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from lsst.daf.butler import Butler
@@ -152,7 +154,7 @@ class Splitter:
 
 
 class NoSplit(Splitter):
-    """Class create a single Group for a Step"""
+    """Create a single Group for a Step"""
 
     @classmethod
     async def split(
@@ -169,8 +171,8 @@ class NoSplit(Splitter):
 
 
 class SplitByVals(Splitter):
-    """Class create groups from a Step by using
-    a provided set of lists to make DB queries
+    """Create groups from a Step by using a provided set of lists to make DB
+    queries.
     """
 
     @classmethod
@@ -191,12 +193,9 @@ class SplitByVals(Splitter):
 
 
 class SplitByQuery(Splitter):
-    """Class create groups from a Step by making a DB query
-    to get the total number values of a particular field
-    and then constructing queries to split those values
-    into a number of groups.
-
-    FIXME calling sync butler query from async function
+    """Create groups from a Step by making a DB query to get the total number
+    of values of a particular field, then construct queries to split those
+    values into a number of groups.
     """
 
     @classmethod
@@ -221,12 +220,24 @@ class SplitByQuery(Splitter):
         if mock_butler:
             sorted_field_values = np.arange(10)
         else:
-            butler = Butler.from_config(
+            butler_f = partial(
+                Butler.from_config,
                 butler_repo,
                 collections=[input_coll, campaign_input_coll],
                 without_datastore=True,
             )
-            itr = butler.registry.queryDataIds([split_field], datasets=split_dataset).subset(unique=True)
+            butler = await to_thread.run_sync(butler_f)
+            itr_q_f = partial(
+                butler.registry.queryDataIds,
+                [split_field],
+                datasets=split_dataset,
+            )
+            itr_q = await to_thread.run_sync(itr_q_f)
+            itr_f = partial(
+                itr_q.subset,
+                unique=True,
+            )
+            itr = await to_thread.run_sync(itr_f)
             sorted_field_values = np.sort(np.array([x_[split_field] for x_ in itr]))
         n_matched = sorted_field_values.size
 
@@ -254,7 +265,7 @@ class SplitByQuery(Splitter):
             yield ret_dict
 
 
-SPLIT_CLASSES = {
+SPLIT_CLASSES: dict[str, type[Splitter]] = {
     "no_split": NoSplit,
     "split_by_query": SplitByQuery,
     "split_by_vals": SplitByVals,
@@ -278,15 +289,12 @@ class RunGroupsScriptHandler(RunElementScriptHandler):
             raise CMMissingScriptInputError(f"child_config for {script.fullname} does not contain spec_block")
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
 
-        split_method = child_config.pop("split_method", "no_split")
-        splitter = SPLIT_CLASSES[split_method]
+        split_method: str = child_config.pop("split_method", "no_split")
+        splitter: type[Splitter] = SPLIT_CLASSES[split_method]
 
         i = 0
-
-        group_gen = splitter.split(session, script, parent, **child_config)
-
-        async for group_dict_ in group_gen:
-            _new_group = await Group.create_row(
+        async for group_dict_ in splitter.split(session, script, parent, **child_config):
+            _ = await Group.create_row(
                 session,
                 name=f"group{i}",
                 spec_block_name=spec_block_name,

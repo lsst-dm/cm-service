@@ -3,6 +3,7 @@ from collections.abc import Mapping
 from typing import Any
 
 import yaml
+from anyio import Path
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
 
@@ -206,7 +207,7 @@ async def upsert_specification(
 
 async def load_specification(
     session: async_scoped_session,
-    yaml_file: str,
+    yaml_file: str | Path,
     loaded_specs: dict | None = None,
     *,
     allow_update: bool = False,
@@ -220,7 +221,7 @@ async def load_specification(
     session: async_scoped_session
         DB session manager
 
-    yaml_file: str
+    yaml_file: str | anyio.Path
         File in question
 
     loaded_specs: dict
@@ -238,16 +239,25 @@ async def load_specification(
         loaded_specs = {}
 
     specification = None
-    with open(yaml_file, encoding="utf-8") as fin:
-        spec_data = yaml.safe_load(fin)
+    yaml_file = Path(yaml_file)
+    if not await yaml_file.exists():
+        raise CMYamlParseError(f"Specification does not exist at path {yaml_file}")
+    try:
+        spec_yaml = await yaml_file.read_bytes()
+        spec_data = yaml.safe_load(spec_yaml)
+    except yaml.YAMLError as yaml_error:
+        raise CMYamlParseError(f"Error parsing specification {yaml_file}; threw {yaml_error}") from yaml_error
+    except Exception as e:
+        raise CMYamlParseError(f"{e}") from e
 
     for config_item in spec_data:
         if "Imports" in config_item:
             imports = config_item["Imports"]
             for import_ in imports:
+                import_path = await Path(os.path.expandvars(import_)).resolve()
                 await load_specification(
                     session,
-                    os.path.abspath(os.path.expandvars(import_)),
+                    import_path,
                     loaded_specs,
                     allow_update=allow_update,
                 )
@@ -406,7 +416,7 @@ async def match_pipetask_error(
 async def load_manifest_report(
     session: async_scoped_session,
     job_name: str,
-    yaml_file: str,
+    yaml_file: str | Path,
     fake_status: StatusEnum | None = None,
     *,
     allow_update: bool = False,
@@ -421,7 +431,7 @@ async def load_manifest_report(
     job_name: str
         Name of associated Job
 
-    yaml_file: str
+    yaml_file: str | anyio.Path
         Pipetask report yaml file
 
     fake_status: StatusEnum | None
@@ -437,12 +447,20 @@ async def load_manifest_report(
     """
     job = await Job.get_row_by_fullname(session, job_name)
     fake_status = fake_status or config.mock_status
+    yaml_file = Path(yaml_file)
     if fake_status is not None:
         return job
-
-    with open(yaml_file, encoding="utf-8") as fin:
-        manifest_data = yaml.safe_load(fin)
-
+    if not await yaml_file.exists():
+        raise CMYamlParseError(f"Manifest report yaml does not exist at path {yaml_file}")
+    try:
+        manifest_yaml = await yaml_file.read_bytes()
+        manifest_data = yaml.safe_load(manifest_yaml)
+    except yaml.YAMLError as yaml_error:
+        raise CMYamlParseError(
+            f"Error parsing manifest report yaml at path {yaml_file}; threw {yaml_error}"
+        ) from yaml_error
+    except Exception as e:
+        raise CMYamlParseError(f"{e}") from e
     for task_name_, task_data_ in manifest_data.items():
         failed_quanta = task_data_.get("failed_quanta", {})
         outputs = task_data_.get("outputs", {})
@@ -667,7 +685,7 @@ async def load_wms_reports(
 
 async def load_error_types(
     session: async_scoped_session,
-    yaml_file: str,
+    yaml_file: str | Path,
 ) -> list[PipetaskErrorType]:
     """Parse and load error types
 
@@ -676,7 +694,7 @@ async def load_error_types(
     session: async_scoped_session
         DB session manager
 
-    yaml_file: str
+    yaml_file: str | anyio.Path
         Error type definition yaml file
 
     Returns
@@ -684,8 +702,18 @@ async def load_error_types(
     error_types : list[PipetaskErrorType]
         Newly loaded error types
     """
-    with open(yaml_file, encoding="utf-8") as fin:
-        error_types = yaml.safe_load(fin)
+    yaml_file = Path(yaml_file)
+    if not await yaml_file.exists():
+        raise CMYamlParseError(f"Error type yaml does not exist at path {yaml_file}")
+    try:
+        error_yaml = await yaml_file.read_bytes()
+        error_types = yaml.safe_load(error_yaml)
+    except yaml.YAMLError as yaml_error:
+        raise CMYamlParseError(
+            f"Error parsing error type yaml at path {yaml_file}; threw {yaml_error}"
+        ) from yaml_error
+    except Exception as e:
+        raise CMYamlParseError(f"{e}") from e
 
     ret_list: list[PipetaskErrorType] = []
     for error_type_ in error_types:

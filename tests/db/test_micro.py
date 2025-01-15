@@ -39,10 +39,10 @@ async def test_micro_db(
         check2 = await specification.get_block(session, "campaign")
         assert check2.name == "campaign"
 
-        with pytest.raises(errors.CMSpecficiationError):
+        with pytest.raises(errors.CMSpecificationError):
             await specification.get_block(session, "bad")
 
-        with pytest.raises(errors.CMSpecficiationError):
+        with pytest.raises(errors.CMSpecificationError):
             await specification.get_script_template(session, "bad")
 
         script_template = await specification.get_script_template(session, "bps_core_script_template")

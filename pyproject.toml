@@ -141,6 +141,7 @@ select = [
     "COM", # pyflakes-commas
     "FBT", # flake8-boolean-trap
     "UP", # pyupgrade
+    "ASYNC", # flake8-async
 ]
 extend-select = [
     "RUF100", # Warn about unused noqa

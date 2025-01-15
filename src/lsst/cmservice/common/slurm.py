@@ -1,6 +1,7 @@
 """Utility functions for working with slurm jobs"""
 
-import subprocess
+from anyio import Path, open_process
+from anyio.streams.text import TextReceiveStream
 
 from ..config import config
 from .enums import StatusEnum
@@ -35,19 +36,19 @@ slurm_status_map = {
 }
 
 
-def submit_slurm_job(
-    script_url: str,
-    log_url: str,
+async def submit_slurm_job(
+    script_url: str | Path,
+    log_url: str | Path,
     fake_status: StatusEnum | None = None,
 ) -> str:
     """Submit a  `Script` to slurm
 
     Parameters
     ----------
-    script_url: str
+    script_url: str | anyio.Path
         Script to submit
 
-    log_url: str
+    log_url: str | anyio.Path
         Location of log file to write
 
     fake_status: StatusEnum | None,
@@ -62,7 +63,7 @@ def submit_slurm_job(
     if fake_status is not None:
         return "fake_job"
     try:
-        with subprocess.Popen(
+        async with await open_process(
             [
                 config.slurm.sbatch_bin,
                 "-o",
@@ -76,22 +77,24 @@ def submit_slurm_job(
                 "--parsable",
                 script_url,
             ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        ) as sbatch:  # pragma: no cover
-            sbatch.wait()
-            if sbatch.returncode != 0:
-                assert sbatch.stderr
-                msg = sbatch.stderr.read().decode()
-                raise CMSlurmSubmitError(f"Bad slurm submit: {msg}")
-            assert sbatch.stdout
-            line = sbatch.stdout.read().decode().strip()
-            return line.split("|")[0]
+        ) as slurm_submit:  # pragma: no cover
+            await slurm_submit.wait()
+            if slurm_submit.returncode != 0:
+                assert slurm_submit.stderr
+                stderr_msg = ""
+                async for text in TextReceiveStream(slurm_submit.stderr):
+                    stderr_msg += text
+                raise CMSlurmSubmitError(f"Bad slurm submit: {stderr_msg}")
+            assert slurm_submit.stdout
+            stdout_msg = ""
+            async for text in TextReceiveStream(slurm_submit.stdout):
+                stdout_msg += text
+            return stdout_msg.split("|")[0]
     except Exception as e:
         raise CMSlurmSubmitError(f"Bad slurm submit: {e}") from e
 
 
-def check_slurm_job(
+async def check_slurm_job(
     slurm_id: str | None,
     fake_status: StatusEnum | None = None,
 ) -> StatusEnum:
@@ -115,17 +118,22 @@ def check_slurm_job(
     if slurm_id is None:  # pragma: no cover
         return StatusEnum.running
     try:
-        with subprocess.Popen(
-            [config.slurm.sacct_bin, "--parsable", "-b", "-j", slurm_id], stdout=subprocess.PIPE
-        ) as sacct:  # pragma: no cover
-            sacct.wait()
-            if sacct.returncode != 0:
-                assert sacct.stderr
-                msg = sacct.stderr.read().decode()
-                raise CMSlurmCheckError(f"Bad slurm check: {msg}")
+        async with await open_process(
+            [config.slurm.sacct_bin, "--parsable", "-b", "-j", slurm_id]
+        ) as slurm_check:  # pragma: no cover
+            await slurm_check.wait()
+            if slurm_check.returncode != 0:
+                assert slurm_check.stderr
+                stderr_msg = ""
+                async for text in TextReceiveStream(slurm_check.stderr):
+                    stderr_msg += text
+                raise CMSlurmCheckError(f"Bad slurm check: {stderr_msg}")
             try:
-                assert sacct.stdout
-                lines = sacct.stdout.read().decode().split("\n")
+                assert slurm_check.stdout
+                stdout_msg = ""
+                async for text in TextReceiveStream(slurm_check.stdout):
+                    stdout_msg += text
+                lines = stdout_msg.split("\n")
                 if len(lines) < 2:
                     return slurm_status_map["PENDING"]
                 tokens = lines[1].split("|")
