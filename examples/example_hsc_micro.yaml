@@ -16,16 +16,9 @@
                     split_method: split_by_query
                     split_min_groups: 2
           - Step:
-                name: characterizeImage
-                spec_block: hsc_micro_characterizeImage
+                name: calibrateImage
+                spec_block: hsc_micro_calibrateImage
                 prerequisites: ['isr']
-                child_config:
-                    split_method: split_by_query
-                    split_min_groups: 2
-          - Step:
-                name: calibrate
-                spec_block: hsc_micro_calibrate
-                prerequisites: ['characterizeImage']
                 child_config:
                     split_method: split_by_query
                     split_min_groups: 2
@@ -33,7 +26,7 @@
           butler_repo: '/repo/main'
           prod_area: 'output/archive'
           data_query: "instrument = 'HSC' AND exposure in (30504, 30502) AND detector in (45, 46, 47, 48)"
-          lsst_version: w_2023_46
+          lsst_version: w_2025_01
           bps_wms_clustering_file: "${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml"
           bps_wms_resources_file: "${DRP_PIPE_DIR}/bps/resources/HSC/DRP-RC2.yaml"
 - Specification:

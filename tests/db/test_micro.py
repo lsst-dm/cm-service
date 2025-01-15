@@ -58,7 +58,7 @@ async def test_micro_db(
             session,
             "examples/example_hsc_micro.yaml",
             "hsc_micro_panda",
-            "w_2023_41",
+            "w_2025_01",
             "hsc_micro_panda#campaign",
         )
 
@@ -78,7 +78,7 @@ async def test_micro_db(
 
         changed, status = await interface.process(
             session,
-            "hsc_micro_panda/w_2023_41",
+            "hsc_micro_panda/w_2025_01",
             fake_status=StatusEnum.accepted,
         )
 
@@ -89,7 +89,7 @@ async def test_micro_db(
             session,
             remaining_only=False,
         )
-        assert len(jobs) == 6
+        assert len(jobs) == 4
 
         changed, status = await campaign.run_check(
             session,
