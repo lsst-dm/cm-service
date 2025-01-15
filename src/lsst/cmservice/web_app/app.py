@@ -278,3 +278,21 @@ async def read_script_log(request: ReadScriptLogRequest) -> dict[str, str]:
         return {"content": content}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
+
+
+@web_app.get("/edit-collections-modal", response_class=HTMLResponse)
+async def edit_collections(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse(name="partials/edit_collections_modal_content.html", request=request)
+
+
+#
+# @web_app.get("/test-ag-grid/", response_class=HTMLResponse)
+# async def test_ag_grid(request: Request) -> HTMLResponse:
+#     return templates.TemplateResponse
+#     ("pages/test-ag-grid.html", {"request": request})
+#
+#
+# @web_app.get("/modal", response_class=HTMLResponse)
+# async def modal(request: Request) -> HTMLResponse:
+#     return templates.TemplateResponse
+#     ("partials/test_reset_modal.html", {"request": request})

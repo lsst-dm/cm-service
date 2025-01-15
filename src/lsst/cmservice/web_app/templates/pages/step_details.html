@@ -4,6 +4,7 @@
 {% include "partials/reset_script_modal.html" %}
 {% include "partials/error_modal.html" %}
 {% include "partials/script_log_modal.html" %}
+{% include "partials/edit_collections_modal.html" %}
 <script src="{{ url_for('static', path='/js/script-grid-utils.js') }}"></script>
 <script>
     let stepScripts;
@@ -12,6 +13,7 @@
 <script hx-swap-oob="outerHTML:#grid_data" id="grid_data">
     // Update data objects with every htmx reload
     // to reflect any db changes
+    //TODO: add null check before calling sort
     stepScripts = {{scripts|sort(attribute="id")|tojson}};
     stepGroups = {{groups|sort(attribute="id")|tojson}};
 </script>
@@ -131,11 +133,15 @@
     };
     window.addEventListener("DOMContentLoaded", function() {
         populateGrids();
+        document.querySelector("#editCollectionsBtn").addEventListener("click", () => {
+            document.querySelector("#edit-collection-modal").showModal();
+        });
     }, false);
 
     htmx.on('htmx:afterRequest', (evt) => {
         populateGrids();
     });
+
 </script>
 
 {% set fullname = step.fullname.split('/') %}
@@ -157,12 +163,8 @@
     </li>
   </ol>
 </nav>
-<div id="step_content" class="w-full"
-     hx-get="{{ url_for('get_step', campaign_id=campaign_id, step_id=step.id) }}"
-     hx-trigger="every 20s"
-     hx-select="#step_content" hx-swap="outerHTML">
+<div class="w-full">
     <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
-        <div class="htmx-indicator">Updating...</div>
         <div class="flex items-center">
             <span class="text-2xl font-bold">{{step.name}}</span>
         </div>
@@ -170,7 +172,15 @@
             <span class="text-sm font-normal">{{step.fullname}}</span>
         </div>
         <div class="block items-center pt-2">
-            <span class="text-sm font-bold">Collections</span>
+            <span class="text-sm font-bold align-top">Collections</span>
+            <button id="editCollectionsBtn">
+            <span class="inline-flex h-5 w-5 hover:text-teal-600">
+               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
+                  <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
+                  <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" />
+                </svg>
+            </span>
+            </button>
             {% for key, value in step.collections|items %}
             <div class="block text-sm">{{key}}: {{value}}</div>
             {% endfor %}
@@ -187,34 +197,44 @@
             <div class="block text-sm">{{key}}: {{value}}</div>
             {% endfor %}
         </div>
-        {% if step.no_groups != 0 %}
-        <div class="flex pt-2">
-            <div class="has-tooltip bg-green-500 h-5
-                {% if step.no_groups_completed == 0 %}hidden{%endif%}"
-                 style="width: {{ '{:.0%}'.format((step.no_groups_completed/step.no_groups) + 0.01) }}">
-                <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Completed</span>
-                <span class="text-xs">{{step.no_groups_completed}}</span>
+        <div id="group-progress"
+             hx-get="{{ url_for('get_step', campaign_id=campaign_id, step_id=step.id) }}"
+             hx-trigger="every 20s"
+             hx-select="#group-progress" hx-swap="outerHTML">
+            {% if step.no_groups != 0 %}
+            <div class="flex pt-2">
+                <div class="has-tooltip bg-green-500 h-5
+                    {% if step.no_groups_completed == 0 %}hidden{%endif%}"
+                     style="width: {{ '{:.0%}'.format((step.no_groups_completed/step.no_groups) + 0.01) }}">
+                    <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Completed</span>
+                    <span class="text-xs">{{step.no_groups_completed}}</span>
+                </div>
+                <div class="has-tooltip bg-yellow-300 h-5
+                    {% if step.no_groups_need_attention == 0 %}hidden{%endif%}"
+                     style="width: {{ '{:.0%}'.format((step.no_groups_need_attention/step.no_groups) + 0.01) }}">
+                    <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Need Attention</span>
+                    <span class="text-xs">{{step.no_groups_need_attention}}</span>
+                </div>
+                <div class="has-tooltip bg-red-600 h-5
+                    {% if step.no_groups_failed == 0 %}hidden{%endif%}"
+                     style="width: {{ '{:.0%}'.format((step.no_groups_failed/step.no_groups) + 0.01) }}">
+                    <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Failed</span>
+                    <span class="text-xs">{{step.no_groups_failed}}</span>
+                </div>
+                <div class="bg-gray-100 h-5
+                    {% if no_status_groups == 0 %}hidden{%endif%}"
+                     style="width: {{ '{:.0%}'.format((no_status_groups/step.no_groups) + 0.01) }}">
+                </div>
             </div>
-            <div class="has-tooltip bg-yellow-300 h-5
-                {% if step.no_groups_need_attention == 0 %}hidden{%endif%}"
-                 style="width: {{ '{:.0%}'.format((step.no_groups_need_attention/step.no_groups) + 0.01) }}">
-                <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Need Attention</span>
-                <span class="text-xs">{{step.no_groups_need_attention}}</span>
-            </div>
-            <div class="has-tooltip bg-red-600 h-5
-                {% if step.no_groups_failed == 0 %}hidden{%endif%}"
-                 style="width: {{ '{:.0%}'.format((step.no_groups_failed/step.no_groups) + 0.01) }}">
-                <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Failed</span>
-                <span class="text-xs">{{step.no_groups_failed}}</span>
-            </div>
-            <div class="bg-gray-100 h-5
-                {% if no_status_groups == 0 %}hidden{%endif%}"
-                 style="width: {{ '{:.0%}'.format((no_status_groups/step.no_groups) + 0.01) }}">
-            </div>
+            <div class="items-center text-xs font-normal">{{step.no_groups}} Groups ({{step.no_groups_completed}} FINISHED, {{step.no_groups_need_attention}} NEED ATTENTION, {{step.no_groups_failed}} FAILED)</div>
+            {% endif %}
         </div>
-        <div class="items-center text-xs font-normal">{{step.no_groups}} Groups ({{step.no_groups_completed}} FINISHED, {{step.no_groups_need_attention}} NEED ATTENTION, {{step.no_groups_failed}} FAILED)</div>
-        {% endif %}
     </div>
+</div>
+<div id="step_content"
+         hx-get="{{ url_for('get_step', campaign_id=campaign_id, step_id=step.id) }}"
+         hx-trigger="every 20s"
+         hx-select="#step_content" hx-swap="outerHTML">
     <div class="w-full px-4 py-5 sm:p-6">
         <div class="flex items-center">
             <span class="text-large font-bold">Scripts</span>
