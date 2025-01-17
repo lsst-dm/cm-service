@@ -141,6 +141,12 @@ class HTCondorConfiguration(BaseModel):
         description="...", default=True, serialization_alias="_condor_DAGMAN_MANAGER_JOB_APPEND_GETENV"
     )
 
+    alias_path: str | None = Field(
+        description="The alias path to use in htcondor submission files instead of a campaign's prod_area",
+        default=None,
+        exclude=True,
+    )
+
 
 class SlurmConfiguration(BaseModel):
     """Configuration settings for slurm client operations.

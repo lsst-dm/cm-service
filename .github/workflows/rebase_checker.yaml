@@ -3,6 +3,7 @@ name: Rebase Checker
 
 "on":
   workflow_call:
+  pull_request:
 
 jobs:
   call-workflow:

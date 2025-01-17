@@ -113,10 +113,10 @@ async def test_common_htcondor() -> None:
     """Test common.htcondor functions"""
 
     _ht_condor_log = await write_htcondor_script(
-        "htcondor_temp.sh",
-        "htcondor_temp.log",
-        "script_temp.sh",
-        "script_temp.log",
+        Path("htcondor_temp.sh"),
+        Path("htcondor_temp.log"),
+        Path("script_temp.sh"),
+        Path("script_temp.log"),
     )
 
     with pytest.raises(CMHTCondorSubmitError):
