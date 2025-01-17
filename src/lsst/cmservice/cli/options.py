@@ -93,7 +93,7 @@ class DictParamType(click.ParamType):
 
     name = "dictionary"
 
-    def convert(  # pylint:  disable=inconsistent-return-statements
+    def convert(
         self,
         value: Any,
         param: click.Parameter | None,
@@ -168,8 +168,8 @@ class PartialOption:
 class OutputEnum(Enum):
     """Options for output format"""
 
-    yaml = auto()  # pylint: disable=invalid-name
-    json = auto()  # pylint: disable=invalid-name
+    yaml = auto()
+    json = auto()
 
 
 output = PartialOption(

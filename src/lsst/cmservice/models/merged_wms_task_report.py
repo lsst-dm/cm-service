@@ -5,7 +5,7 @@ from copy import deepcopy
 from pydantic import BaseModel, ConfigDict
 
 
-class MergedWmsTaskReport(BaseModel):  # pylint: disable=too-many-instance-attributes
+class MergedWmsTaskReport(BaseModel):
     """Pydantic model for combining data on WmsTasks"""
 
     model_config = ConfigDict(from_attributes=True)

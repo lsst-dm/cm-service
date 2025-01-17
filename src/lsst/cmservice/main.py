@@ -118,10 +118,10 @@ app = FastAPI(
     lifespan=lifespan,
     title=config.asgi.title,
     version=__version__,
-    openapi_url="/openapi.json",
+    openapi_url="/docs/openapi.json",
     openapi_tags=tags_metadata,
     docs_url="/docs",
-    redoc_url="/redoc",
+    redoc_url=None,
 )
 
 app.add_middleware(XForwardedMiddleware)

@@ -51,6 +51,11 @@ class ButlerConfiguration(BaseModel):
         default="butler",
     )
 
+    repository_index: str = Field(
+        description="Fully qualified path to a butler repository index.",
+        default="/sdf/group/rubin/shared/data-repos.yaml",
+    )
+
     mock: bool = Field(
         description="Whether to mock out Butler calls.",
         default=False,
@@ -136,6 +141,12 @@ class HTCondorConfiguration(BaseModel):
         description="...", default=True, serialization_alias="_condor_DAGMAN_MANAGER_JOB_APPEND_GETENV"
     )
 
+    alias_path: str | None = Field(
+        description="The alias path to use in htcondor submission files instead of a campaign's prod_area",
+        default=None,
+        exclude=True,
+    )
+
 
 class SlurmConfiguration(BaseModel):
     """Configuration settings for slurm client operations.
@@ -194,7 +205,7 @@ class AsgiConfiguration(BaseModel):
 
     prefix: str = Field(
         description="The URL prefix for the cm-service API",
-        default="/cmservice",
+        default="/cm-service",
     )
 
     frontend_prefix: str = Field(
