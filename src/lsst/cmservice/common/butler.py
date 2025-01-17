@@ -7,6 +7,7 @@ from anyio import to_thread
 from lsst.daf.butler import Butler, MissingCollectionError
 
 from ..common import errors
+from ..config import config
 
 
 async def remove_run_collections(
@@ -28,6 +29,7 @@ async def remove_run_collections(
     fake_reset: bool
         Allow for missing butler
     """
+    fake_reset = fake_reset or config.butler.mock
     try:
         butler_f = partial(
             Butler.from_config,
@@ -68,6 +70,7 @@ async def remove_non_run_collections(
     fake_reset: bool
         Allow for missing butler
     """
+    fake_reset = fake_reset or config.butler.mock
     try:
         butler_f = partial(
             Butler.from_config,
@@ -109,6 +112,7 @@ async def remove_collection_from_chain(
     fake_reset: bool
         Allow for missing butler
     """
+    fake_reset = fake_reset or config.butler.mock
     if fake_reset:
         return
     raise NotImplementedError
@@ -137,6 +141,7 @@ async def remove_datasets_from_collections(
     fake_reset: bool
         Allow for missing butler
     """
+    fake_reset = fake_reset or config.butler.mock
     if fake_reset:
         return
     raise NotImplementedError

@@ -21,26 +21,26 @@ htcondor_status_map = {
 
 
 async def write_htcondor_script(
-    htcondor_script_path: str | Path,
-    htcondor_log: str | Path,
-    script_url: str | Path,
-    log_url: str | Path,
+    htcondor_script_path: Path,
+    htcondor_log: Path,
+    script_url: Path,
+    log_url: Path,
     **kwargs: Any,
 ) -> Path:
     """Write a submit wrapper script for htcondor
 
     Parameters
     ----------
-    htcondor_script_path: str | anyio.Path
+    htcondor_script_path: anyio.Path
         Path for the wrapper file written by this function
 
-    htcondor_log: str | anyio.Path
+    htcondor_log: anyio.Path
         Path for the wrapper log
 
-    script_url: str | anyio.Path
+    script_url: anyio.Path
         Script to submit
 
-    log_url: str | anyio.Path
+    log_url: anyio.Path
         Location of job log file to write
 
     Returns
@@ -58,6 +58,13 @@ async def write_htcondor_script(
     )
     options.update(**kwargs)
 
+    if config.htcondor.alias_path is not None:
+        _alias = Path(config.htcondor.alias_path)
+        # FIXME can we use the actual campaign prod_area here
+        script_url = _alias / script_url.relative_to("/output")
+        htcondor_log = _alias / htcondor_log.relative_to("/output")
+        log_url = _alias / log_url.relative_to("/output")
+
     htcondor_script_contents = [
         f"executable = {script_url}",
         f"log = {htcondor_log}",
@@ -66,7 +73,7 @@ async def write_htcondor_script(
     ]
     for key, val in options.items():
         htcondor_script_contents.append(f"{key} = {val}")
-    htcondor_script_contents.append("queue")
+    htcondor_script_contents.append("queue\n")
 
     await Path(htcondor_script_path).write_text("\n".join(htcondor_script_contents))
     return Path(htcondor_log)
@@ -93,7 +100,7 @@ async def submit_htcondor_job(
 
     try:
         async with await open_process(
-            [config.htcondor.condor_submit_bin, htcondor_script_path]
+            [config.htcondor.condor_submit_bin, "-disable", "-file", htcondor_script_path]
         ) as condor_submit:
             if await condor_submit.wait() != 0:  # pragma: no cover
                 assert condor_submit.stderr
