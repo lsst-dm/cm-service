@@ -41,6 +41,12 @@ class CMClient:
             client_kwargs["headers"] = {"Authorization": f"Bearer {client_config.auth_token}"}
         if "timeout" in client_config.model_fields_set:  # pragma: no cover
             client_kwargs["timeout"] = client_config.timeout
+        if "cookies" in client_config.model_fields_set:  # pragma: no cover
+            cookies = httpx.Cookies()
+            if client_config.cookies:
+                for cookie in client_config.cookies:
+                    cookies.set(name=cookie.name, value=cookie.value)
+            client_kwargs["cookies"] = cookies
         self._client = httpx.Client(**client_kwargs)
 
         self.production = CMProductionClient(self)
