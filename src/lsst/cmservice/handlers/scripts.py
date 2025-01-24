@@ -83,6 +83,7 @@ class ChainCreateScriptHandler(ScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
+        setup_stack = kwargs.get("setup_stack", False)
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
         try:
@@ -92,6 +93,7 @@ class ChainCreateScriptHandler(ScriptHandler):
             butler_repo = data_dict["butler_repo"]
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        prepend = self._prepend_htcondor_job(setup_stack=setup_stack)
         command = f"{config.butler.butler_bin} collection-chain {butler_repo} {output_coll}"
         # This is here out of paranoia.
         # script.resolved_collections should convert the list to a string
@@ -100,7 +102,7 @@ class ChainCreateScriptHandler(ScriptHandler):
                 command += f" {input_coll}"
         else:
             command += f" {input_colls}"
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+        await write_bash_script(script_url, command, prepend=prepend, **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -142,6 +144,7 @@ class ChainPrependScriptHandler(ScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
+        setup_stack = kwargs.get("setup_stack", False)
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
         try:
@@ -151,11 +154,12 @@ class ChainPrependScriptHandler(ScriptHandler):
             butler_repo = data_dict["butler_repo"]
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        prepend = self._prepend_htcondor_job(setup_stack=setup_stack)
         command = (
             f"{config.butler.butler_bin} collection-chain "
             f"{butler_repo} {output_coll} --mode prepend {input_coll}"
         )
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+        await write_bash_script(script_url, command, prepend=prepend, **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -198,6 +202,7 @@ class ChainCollectScriptHandler(ScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
+        setup_stack = kwargs.get("setup_stack", False)
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
         try:
@@ -223,12 +228,13 @@ class ChainCollectScriptHandler(ScriptHandler):
             )
         script_url = await self._set_script_files(session, script, data_dict["prod_area"])
         butler_repo = data_dict["butler_repo"]
+        prepend = self._prepend_htcondor_job(setup_stack=setup_stack)
         command = f"{config.butler.butler_bin} collection-chain {butler_repo} {output_coll}"
         for collect_coll_ in collect_colls:
             command += f" {collect_coll_}"
         for input_coll_ in input_colls:
             command += f" {input_coll_}"
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+        await write_bash_script(script_url, command, prepend=prepend, **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -270,6 +276,7 @@ class TagInputsScriptHandler(ScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
+        setup_stack = kwargs.get("setup_stack", False)
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
         try:
@@ -280,10 +287,11 @@ class TagInputsScriptHandler(ScriptHandler):
             data_query = data_dict.get("data_query")
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        prepend = self._prepend_htcondor_job(setup_stack=setup_stack)
         command = f"{config.butler.butler_bin} associate {butler_repo} {output_coll}"
         command += f" --collections {input_coll}"
         command += f' --where "{data_query}"' if data_query else ""
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+        await write_bash_script(script_url, command, prepend=prepend, **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -321,6 +329,7 @@ class TagCreateScriptHandler(ScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
+        setup_stack = kwargs.get("setup_stack", False)
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
         try:
@@ -329,8 +338,9 @@ class TagCreateScriptHandler(ScriptHandler):
             butler_repo = data_dict["butler_repo"]
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        prepend = self._prepend_htcondor_job(setup_stack=setup_stack)
         command = f"{config.butler.butler_bin} associate {butler_repo} {output_coll}"
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+        await write_bash_script(script_url, command, prepend=prepend, **data_dict)
         await script.update_values(session, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -370,6 +380,7 @@ class TagAssociateScriptHandler(ScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
+        setup_stack = kwargs.get("setup_stack", False)
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
         try:
@@ -379,9 +390,10 @@ class TagAssociateScriptHandler(ScriptHandler):
             butler_repo = data_dict["butler_repo"]
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        prepend = self._prepend_htcondor_job(setup_stack=setup_stack)
         command = f"{config.butler.butler_bin} associate {butler_repo} {output_coll}"
         command += f" --collections {input_coll}"
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+        await write_bash_script(script_url, command, prepend=prepend, **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -431,6 +443,7 @@ class PrepareStepScriptHandler(ScriptHandler):
     ) -> StatusEnum:
         test_type_and_raise(parent, Step, "PrepareStepScriptHandler._write_script parent")
 
+        setup_stack = kwargs.get("setup_stack", False)
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
         try:
@@ -450,10 +463,11 @@ class PrepareStepScriptHandler(ScriptHandler):
         if not prereq_colls:
             prereq_colls.append(resolved_cols["global_inputs"])
 
+        prepend = self._prepend_htcondor_job(setup_stack=setup_stack)
         command = f"{config.butler.butler_bin} collection-chain {butler_repo} {output_coll}"
         for prereq_coll_ in prereq_colls:
             command += f" {prereq_coll_}"
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+        await write_bash_script(script_url, command, prepend=prepend, **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -670,6 +684,7 @@ class ValidateScriptHandler(ScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
+        setup_stack = kwargs.get("setup_stack", False)
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
         try:
@@ -679,8 +694,9 @@ class ValidateScriptHandler(ScriptHandler):
             butler_repo = data_dict["butler_repo"]
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        prepend = self._prepend_htcondor_job(setup_stack=setup_stack)
         command = f"{config.bps.pipetask_bin} validate {butler_repo} {input_coll} {output_coll}"
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+        await write_bash_script(script_url, command, prepend=prepend, **data_dict)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 

@@ -1,5 +1,6 @@
 """Utility functions for working with htcondor jobs"""
 
+from collections.abc import Mapping
 from typing import Any
 
 from anyio import Path, open_process
@@ -49,6 +50,8 @@ async def write_htcondor_script(
         Path to the log wrapper log
     """
     options = dict(
+        initialdir=config.htcondor.working_directory,
+        batch_name=config.htcondor.batch_name,
         should_transfer_files="Yes",
         when_to_transfer_output="ON_EXIT",
         get_env=True,
@@ -57,13 +60,6 @@ async def write_htcondor_script(
         request_disk=config.htcondor.request_disk,
     )
     options.update(**kwargs)
-
-    if config.htcondor.alias_path is not None:
-        _alias = Path(config.htcondor.alias_path)
-        # FIXME can we use the actual campaign prod_area here
-        script_url = _alias / script_url.relative_to("/output")
-        htcondor_log = _alias / htcondor_log.relative_to("/output")
-        log_url = _alias / log_url.relative_to("/output")
 
     htcondor_script_contents = [
         f"executable = {script_url}",
@@ -100,7 +96,8 @@ async def submit_htcondor_job(
 
     try:
         async with await open_process(
-            [config.htcondor.condor_submit_bin, "-disable", "-file", htcondor_script_path]
+            [config.htcondor.condor_submit_bin, "-file", htcondor_script_path],
+            env=build_htcondor_submit_environment(),
         ) as condor_submit:
             if await condor_submit.wait() != 0:  # pragma: no cover
                 assert condor_submit.stderr
@@ -140,6 +137,7 @@ async def check_htcondor_job(
             raise CMHTCondorCheckError("No htcondor_id")
         async with await open_process(
             [config.htcondor.condor_q_bin, "-userlog", htcondor_id, "-af", "JobStatus", "ExitCode"],
+            env=build_htcondor_submit_environment(),
         ) as condor_q:  # pragma: no cover
             if await condor_q.wait() != 0:
                 assert condor_q.stderr
@@ -169,3 +167,42 @@ async def check_htcondor_job(
         else:
             status = StatusEnum.failed
     return status  # pragma: no cover
+
+
+def build_htcondor_submit_environment() -> Mapping[str, str]:
+    """Construct an environment to apply to the subprocess shell when
+    submitting an htcondor job.
+
+    The condor job will inherit this specific environment via the submit file
+    command `get_env = True`, so it must satisfy the requirements of any work
+    being performed in the submitted job.
+
+    This primarily means that if the job is to run a butler command, the
+    necessary environment variables to support butler must be present; if the
+    job is to run a bps command, the environment variables must support it.
+
+    This also means that the environment constructed here is fundamentally
+    different to the environment in which the service or daemon operates and
+    should closer match the environment of an interactive sdfianaXXX user at
+    SLAC.
+    """
+    return dict(
+        CONDOR_CONFIG="ONLY_ENV",
+        _CONDOR_CONDOR_HOST=config.htcondor.collector_host,
+        _CONDOR_COLLECTOR_HOST=config.htcondor.collector_host,
+        _CONDOR_SCHEDD_HOST=config.htcondor.schedd_host,
+        _CONDOR_SEC_CLIENT_AUTHENTICATION_METHODS=config.htcondor.authn_methods,
+        DAF_BUTLER_REPOSITORY_INDEX="/sdf/group/rubin/shared/data-repos.yaml",
+        FS_REMOTE_DIR=config.htcondor.fs_remote_dir,
+        HOME="/sdf/home/l/lsstsvc1",
+        LSST_VERSION="w_latest",
+        LSST_DISTRIB_DIR="/sdf/group/rubin/sw",
+        # LSST_DISTRIB_DIR="/cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib",
+        PGPASSFILE="/sdf/home/l/lsstsvc1/.lsst/postgres-credentials.txt",
+        PGUSER="rubin",
+        PATH=(
+            "/sdf/home/l/lsstsvc1/.local/bin:/sdf/home/l/lsstsvc1/bin:"
+            "/opt/slurm/slurm-curr/bin:/usr/local/bin:/usr/bin:"
+            "/usr/local/sbin:/usr/sbin"
+        ),
+    )

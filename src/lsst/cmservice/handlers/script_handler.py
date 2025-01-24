@@ -420,6 +420,13 @@ class ScriptHandler(BaseScriptHandler):
         await script.update_values(session, status=status)
         return status
 
+    @staticmethod
+    def _prepend_htcondor_job(*, setup_stack: bool = False) -> str:
+        prepend = "#!/usr/bin/env bash\n"
+        if setup_stack:
+            prepend += "source ${LSST_DISTRIB_DIR}/${LSST_VERSION}/loadLSST.bash\nsetup lsst_distrib\n"
+        return prepend
+
     async def prepare(
         self,
         session: async_scoped_session,
@@ -437,7 +444,7 @@ class ScriptHandler(BaseScriptHandler):
         elif script_method == ScriptMethodEnum.slurm:
             status = await self._write_script(session, script, parent, **kwargs)
         elif script_method == ScriptMethodEnum.htcondor:
-            status = await self._write_script(session, script, parent, **kwargs)
+            status = await self._write_script(session, script, parent, setup_stack=True, **kwargs)
         else:  # pragma: no cover
             raise CMBadExecutionMethodError(f"Bad script method {script_method}")
         await script.update_values(session, status=status)

@@ -89,6 +89,13 @@ class HTCondorConfiguration(BaseModel):
     their serialization alias.
     """
 
+    condor_home: str = Field(
+        description=("Path to the Condor home directory. Equivalent to the condor ``RELEASE_DIR`` macro."),
+        default="/opt/htcondor",
+        serialization_alias="_CONDOR_RELEASE_DIR",
+    )
+
+    # TODO retire these in favor of a path relative to condor_home
     condor_submit_bin: str = Field(
         description="Name of condor_submit client binary",
         default="condor_submit",
@@ -98,6 +105,33 @@ class HTCondorConfiguration(BaseModel):
     condor_q_bin: str = Field(
         description="Name of condor_q client binary",
         default="condor_q",
+        exclude=True,
+    )
+
+    universe: str = Field(
+        description="HTCondor Universe into which a job will be submitted.",
+        default="vanilla",
+        serialization_alias="_CONDOR_DEFAULT_UNIVERSE",
+    )
+
+    working_directory: str = Field(
+        description=(
+            "Path to a working directory to use when submitting condor jobs. "
+            "This path must be available to both the submitting service and "
+            "the access point receiving the job. Corresponds to the "
+            "`initialdir` submit file command."
+        ),
+        default=".",
+        exclude=True,
+    )
+
+    batch_name: str = Field(
+        description=(
+            "Name to use in identifying condor jobs. Corresponds to "
+            "the `condor_submit` `-batch-name` parameter or submit file "
+            "`batch_name` command."
+        ),
+        default="usdf-cm-dev",
         exclude=True,
     )
 
@@ -122,29 +156,29 @@ class HTCondorConfiguration(BaseModel):
     collector_host: str = Field(
         description="Name of an htcondor collector host.",
         default="localhost",
-        serialization_alias="_condor_COLLECTOR_HOST",
+        serialization_alias="_CONDOR_COLLECTOR_HOST",
     )
 
     schedd_host: str = Field(
         description="Name of an htcondor schedd host.",
         default="localhost",
-        serialization_alias="_condor_SCHEDD_HOST",
+        serialization_alias="_CONDOR_SCHEDD_HOST",
     )
 
     authn_methods: str = Field(
         description="Secure client authentication methods, as comma-delimited strings",
         default="FS,FS_REMOTE",
-        serialization_alias="_condor_SEC_CLIENT_AUTHENTICATION_METHODS",
+        serialization_alias="_CONDOR_SEC_CLIENT_AUTHENTICATION_METHODS",
+    )
+
+    fs_remote_dir: str = Field(
+        description="...",
+        default=".",
+        serialization_alias="FS_REMOTE_DIR",
     )
 
     dagman_job_append_get_env: bool = Field(
-        description="...", default=True, serialization_alias="_condor_DAGMAN_MANAGER_JOB_APPEND_GETENV"
-    )
-
-    alias_path: str | None = Field(
-        description="The alias path to use in htcondor submission files instead of a campaign's prod_area",
-        default=None,
-        exclude=True,
+        description="...", default=True, serialization_alias="_CONDOR_DAGMAN_MANAGER_JOB_APPEND_GETENV"
     )
 
 
@@ -158,6 +192,11 @@ class SlurmConfiguration(BaseModel):
     Default SBATCH_* variables could work just as well, but it is useful to
     have this as a document of what settings are actually used.
     """
+
+    home: str = Field(
+        description="Location of the installed slurm client binaries",
+        default="",
+    )
 
     sacct_bin: str = Field(
         description="Name of sacct slurm client binary",
