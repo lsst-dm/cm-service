@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+{%- if wms == "htcondor" %}
+
+# setup LSST env.
+export LSST_VERSION='{{ lsst_version }}'
+export LSST_DISTRIB_DIR='{{ lsst_distrib_dir }}'
+source ${LSST_DISTRIB_DIR}/${LSST_VERSION}/loadLSST.bash
+setup lsst_distrib
+{%- endif %}
+{%- if wms == "panda" %}
+
+# setup PanDA env.
+latest_panda=$(ls -td /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v* | head -1)
+source ${latest_panda}/setup_panda_usdf.sh ${WEEKLY}
+panda_auth status
+{%- endif %}
+{{ custom_lsst_setup }}
+
+{{ command }}
+
+{%- if append %}
+
+{{ append }}
+{%- endif %}

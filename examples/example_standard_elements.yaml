@@ -145,10 +145,6 @@
                     inputs: ["{campaign_output}", "{campaign_input}", "{campaign_resource_usage}"]
                     output: "{campaign_public_output}"
       data:
-          bps_core_script_template: bps_core_script_template
-          bps_core_yaml_template: bps_core_yaml_template
-          manifest_script_template: stack_script_template
-          resource_usage_script_template: stack_script_template
           lsst_version: MUST_OVERRIDE
           lsst_distrib_dir: /cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib
 # Campagin Template for fixed inputs
@@ -189,10 +185,6 @@
                     inputs: ["{campaign_output}", "{campaign_input}"]
                     output: "{campaign_public_output}"
       data:
-          bps_core_script_template: bps_core_script_template
-          bps_core_yaml_template: bps_core_yaml_template
-          manifest_script_template: stack_script_template
-          resource_usage_script_template: stack_script_template
           lsst_version: MUST_OVERRIDE
           lsst_distrib_dir: /cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib
 # Campaign template for base campaign+hips maps
@@ -263,11 +255,6 @@
                     inputs: ["{campaign_output}", "{campaign_input}", "{campaign_resource_usage}", "{campaign_hips_maps}"]
                     output: "{campaign_public_output}"
       data:
-          bps_core_script_template: bps_core_script_template
-          bps_core_yaml_template: bps_core_yaml_template
-          manifest_script_template: stack_script_template
-          resource_usage_script_template: stack_script_template
-          hips_maps_script_template: stack_script_template
           lsst_version: MUST_OVERRIDE
           lsst_distrib_dir: /cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib
 # Campaign Template for fixed inputs which also generates HIPS maps
@@ -315,10 +302,5 @@
                     inputs: ["{campaign_output}", "{campaign_input}", "{campaign_resource_usage}", "{campaign_hips_maps}"]
                     output: "{campaign_public_output}"
       data:
-          bps_core_script_template: bps_core_script_template
-          bps_core_yaml_template: bps_core_yaml_template
-          manifest_script_template: stack_script_template
-          resource_usage_script_template: stack_script_template
-          hips_maps_script_template: stack_script_template
           lsst_version: MUST_OVERRIDE
           lsst_distrib_dir: /cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib

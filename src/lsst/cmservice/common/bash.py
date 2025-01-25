@@ -7,6 +7,7 @@ from typing import Any
 import yaml
 from anyio import Path, open_file, open_process
 from anyio.streams.text import TextReceiveStream
+from jinja2 import Environment, PackageLoader
 
 from ..config import config
 from .enums import StatusEnum
@@ -169,6 +170,7 @@ async def check_stamp_file(
 async def write_bash_script(
     script_url: str | Path,
     command: str,
+    values: dict,
     **kwargs: Any,
 ) -> Path:
     """Utility function to write a bash script for later execution.
@@ -181,20 +183,11 @@ async def write_bash_script(
     command: `str`
         Main command line(s) in the script
 
+    values: `dict`
+        Mapping of potential template variables to values.
+
     Keywords
     --------
-    prepend: `str | None`
-        Text to prepend before command
-
-    append: `str | None`
-        Test to append after command
-
-    stamp: `str | None`
-        Text to echo to stamp file when script completes
-
-    stamp_url: `str | None`
-        Stamp file to write to when script completes
-
     fake: `str | None`
         Echo command instead of running it
 
@@ -202,13 +195,16 @@ async def write_bash_script(
         Prefix to script_url used when rolling back
         processing. Will default to CWD (".").
 
+
     Returns
     -------
     script_url : `anyio.Path`
         The path to the newly written script
     """
-    prepend = kwargs.get("prepend")
-    append = kwargs.get("append")
+    # Get the yaml template using package lookup
+    template_environment = Environment(loader=PackageLoader("lsst.cmservice"))
+    bash_template = template_environment.get_template("wms_submit_sh.j2")
+
     fake = kwargs.get("fake")
     rollback_prefix = Path(kwargs.get("rollback", "."))
 
@@ -218,8 +214,17 @@ async def write_bash_script(
         command = f"echo '{command}'"
 
     await script_path.parent.mkdir(parents=True, exist_ok=True)
-    contents = (prepend if prepend else "") + "\n" + command + "\n" + (append if append else "")
 
-    async with await open_file(script_path, "w") as fout:
-        await fout.write(contents)
+    template_values = {
+        "command": command,
+        **values,
+    }
+
+    try:
+        # Render bash script template to `script_path`
+        bash_output = bash_template.render(template_values)
+        await Path(script_path).write_text(bash_output)
+    except Exception as e:
+        raise RuntimeError(f"Error writing a script to run BPS job {script_url}; threw {e}")
+
     return script_path

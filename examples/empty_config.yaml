@@ -29,9 +29,6 @@
           prod_area: 'output/archive'
           data_query: "instrument = 'HSC'"
           lsst_version: "${WEEKLY}"
-          bps_script_template: bps_panda_script_template
-          bps_yaml_template: bps_yaml_template
-          manifest_script_template: manifest_script_template
 - Specification:
       name: base
       spec_aliases:

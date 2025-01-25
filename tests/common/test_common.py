@@ -31,9 +31,8 @@ async def test_common_bash() -> None:
     the_script = await write_bash_script(
         "temp.sh",
         "ls",
-        prepend="#!/usr/bin/env bash",
-        append="# have a nice day",
         fake=True,
+        values=dict(append="# have a nice day"),
     )
 
     await run_bash_job(the_script, "temp.log", "temp.stamp")

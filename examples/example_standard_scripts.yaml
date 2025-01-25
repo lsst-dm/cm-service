@@ -1,23 +1,3 @@
-# Template shell script fragment for running BPS
-- ScriptTemplate:
-      name: bps_core_script_template
-      file_path: ${CM_CONFIGS}/templates/example_bps_core_script_template.yaml
-# Template shell script fragment for running BPS under PANDA
-- ScriptTemplate:
-      name: bps_panda_script_template
-      file_path: ${CM_CONFIGS}/templates/example_bps_panda_script_template.yaml
-# Template shell script fragment for running BPS under HTCondor
-- ScriptTemplate:
-      name: bps_htcondor_script_template
-      file_path: ${CM_CONFIGS}/templates/example_bps_htcondor_script_template.yaml
-# Template shell script fragment for using stack
-- ScriptTemplate:
-      name: stack_script_template
-      file_path: ${CM_CONFIGS}/templates/example_stack_script_template.yaml
-# Template yaml config for running bps
-- ScriptTemplate:
-      name: bps_core_yaml_template
-      file_path: ${CM_CONFIGS}/templates/example_bps_core_yaml_template.yaml
 # define the null Script
 - SpecBlock:
       name: null_script
@@ -69,8 +49,8 @@
       name: bps_panda_submit_script
       handler: lsst.cmservice.handlers.jobs.PandaScriptHandler
       data:
+          wms: panda
           bps_wms_yaml_file: "${CTRL_BPS_PANDA_DIR}/config/bps_usdf.yaml"
-          bps_wms_script_template: bps_panda_script_template
 # Run a bps report script
 - SpecBlock:
       name: bps_panda_report_script
@@ -80,8 +60,7 @@
       name: bps_htcondor_submit_script
       handler: lsst.cmservice.handlers.jobs.HTCondorScriptHandler
       data:
-          bps_wms_yaml_file: "${CM_CONFIGS}/stack_files/bps_htcondor_usdf.yaml"
-          bps_wms_script_template: bps_htcondor_script_template
+          wms: htcondor
 # Run a bps report script
 - SpecBlock:
       name: bps_htcondor_report_script

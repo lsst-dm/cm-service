@@ -122,8 +122,6 @@ async def test_handlers_campaign_level_db(
 
         data = dict(
             lsst_distrib_dir="lsst_distrib_dir",
-            resource_usage_script_template="stack_script_template",
-            hips_maps_script_template="stack_script_template",
             hips_pipeline_yaml_path="/stack_files/highres_hips_rc2.yaml",
             hips_pipeline_config_path="/stack_files/gen_hips_both_rc2.yaml",
         )
@@ -245,10 +243,6 @@ async def test_handlers_group_level_db(
 
         dict(
             lsst_distrib_dir="lsst_distrib_dir",
-            bps_core_yaml_template="bps_core_yaml_template",
-            bps_core_script_template="stack_script_template",
-            bps_panda_script_template="bps_panda_script_template",
-            manifest_script_template="stack_script_template",
         )
 
         run_jobs = await check_run_script(session, group, "run", "run_jobs", collections=collections)
@@ -302,10 +296,6 @@ async def test_handlers_job_level_db(
 
         data = dict(
             lsst_distrib_dir="lsst_distrib_dir",
-            bps_core_yaml_template="bps_core_yaml_template",
-            bps_core_script_template="stack_script_template",
-            bps_panda_script_template="bps_panda_script_template",
-            manifest_script_template="stack_script_template",
         )
 
         await check_script(
