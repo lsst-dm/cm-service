@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 
 from lsst.daf.butler import Butler
 
+from ..common.butler import get_butler_config
 from ..common.enums import StatusEnum
 from ..common.errors import CMMissingScriptInputError, test_type_and_raise
 from ..config import config
@@ -220,9 +221,10 @@ class SplitByQuery(Splitter):
         if mock_butler:
             sorted_field_values = np.arange(10)
         else:
+            butler_config = await get_butler_config(butler_repo, without_datastore=True)
             butler_f = partial(
                 Butler.from_config,
-                butler_repo,
+                butler_config,
                 collections=[input_coll, campaign_input_coll],
                 without_datastore=True,
             )

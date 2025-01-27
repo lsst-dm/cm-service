@@ -1,13 +1,72 @@
 """Utility functions for working with butler commands"""
 
-from functools import partial
+from functools import lru_cache, partial
 
-from anyio import to_thread
+import yaml
+from anyio import Path, to_thread
+from sqlalchemy.engine import url
 
-from lsst.daf.butler import Butler, MissingCollectionError
+from lsst.daf.butler import Butler, ButlerConfig, ButlerRepoIndex
+from lsst.daf.butler._exceptions import MissingCollectionError
+from lsst.utils.db_auth import DbAuth
 
-from ..common import errors
 from ..config import config
+from . import errors
+from .logging import LOGGER
+
+logger = LOGGER.bind(module=__name__)
+
+
+BUTLER_REPO_INDEX = ButlerRepoIndex()
+"""An index of all known butler repositories, as populated by the
+DAF_BUTLER_REPOSITORIES environment variable.
+"""
+
+
+@lru_cache
+async def get_butler_config(repo: str, *, without_datastore: bool = False) -> ButlerConfig:
+    """Create a butler config object for a repo known to the service's
+    environment.
+    """
+
+    try:
+        repo_uri = BUTLER_REPO_INDEX.get_repo_uri(label=repo)
+    except KeyError:
+        # No such repo known to the service
+        logger.warning("Butler repo %s not known to environment.", repo)
+        repo_uri = repo
+
+    try:
+        bc_f = partial(
+            ButlerConfig,
+            other=repo_uri,
+            without_datastore=without_datastore,
+        )
+        bc = await to_thread.run_sync(bc_f)
+    except FileNotFoundError:
+        # No such repo known to Butler
+        logger.error("Butler repo %s not known.", repo)
+        raise RuntimeError("Unknown Butler Repo %s", repo)
+
+    try:
+        db_auth_info = yaml.safe_load(await Path(config.butler.authentication_file).read_text())
+    except FileNotFoundError:
+        logger.error("No Butler Registry authentication secrets found.")
+        # delegate db auth info discovery to normal toolchain
+        return bc
+
+    db_url = url.make_url(bc["registry"]["db"])
+    db_auth = DbAuth(authList=db_auth_info).getAuth(
+        dialectname=db_url.drivername,
+        username=db_url.username,
+        host=db_url.host,
+        port=db_url.port,
+        database=db_url.database,
+    )
+
+    bc[".registry.username"] = db_auth[0]
+    bc[".registry.password"] = db_auth[1]
+    return bc
 
 
 async def remove_run_collections(

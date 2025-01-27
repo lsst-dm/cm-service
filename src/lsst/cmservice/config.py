@@ -56,6 +56,16 @@ class ButlerConfiguration(BaseModel):
         default="/sdf/group/rubin/shared/data-repos.yaml",
     )
 
+    authentication_file: str = Field(
+        description="Path and name of a db-auth.yaml to use with Butler",
+        default="~/.lsst/db-auth.yaml",
+    )
+
+    access_token: str | None = Field(
+        description=("Gafaelfawr access token used to authenticate to a Butler server."),
+        default=None,
+    )
+
     mock: bool = Field(
         description="Whether to mock out Butler calls.",
         default=False,
@@ -177,6 +187,7 @@ class HTCondorConfiguration(BaseModel):
         serialization_alias="FS_REMOTE_DIR",
     )
 
+    # FIXME: unclear if this is at all necessary
     dagman_job_append_get_env: bool = Field(
         description="...", default=True, serialization_alias="_CONDOR_DAGMAN_MANAGER_JOB_APPEND_GETENV"
     )
