@@ -16,11 +16,14 @@ from ..common.butler import (
 )
 from ..common.enums import LevelEnum, ScriptMethodEnum, StatusEnum
 from ..common.errors import CMBadExecutionMethodError, CMMissingScriptInputError, test_type_and_raise
+from ..common.logging import LOGGER
 from ..config import config
 from ..db.element import ElementMixin
 from ..db.script import Script
 from ..db.step import Step
 from .script_handler import ScriptHandler
+
+logger = LOGGER.bind(module=__name__)
 
 
 class NullScriptHandler(ScriptHandler):

@@ -216,6 +216,11 @@ class AsgiConfiguration(BaseModel):
 class LoggingConfiguration(BaseModel):
     """Configuration for the application's logging facility."""
 
+    handle: str = Field(
+        default="cm-service",
+        title="Handle or name of the root logger",
+    )
+
     level: str = Field(
         default="INFO",
         title="Log level of the application's logger",
