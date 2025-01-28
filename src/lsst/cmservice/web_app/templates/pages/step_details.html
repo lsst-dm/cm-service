@@ -134,12 +134,21 @@
     window.addEventListener("DOMContentLoaded", function() {
         populateGrids();
         document.querySelector("#editCollectionsBtn").addEventListener("click", () => {
-            document.querySelector("#edit-collection-modal").showModal();
+            let step_status = "{{step.status}}";
+            if(step_status !== "COMPLETE") {
+                document.querySelector("#edit-collection-modal").showModal();
+            } else {
+                errorMessage.innerText = "Cannot update collections for a running step!";
+                errorModal.showModal();
+            }
         });
     }, false);
 
     htmx.on('htmx:afterRequest', (evt) => {
-        populateGrids();
+        // don't populate grids upon updating the collections
+        if(evt.detail.target.id !== "update-collections-form" ){
+            populateGrids();
+        }
     });
 
 </script>
@@ -200,7 +209,8 @@
         <div id="group-progress"
              hx-get="{{ url_for('get_step', campaign_id=campaign_id, step_id=step.id) }}"
              hx-trigger="every 20s"
-             hx-select="#group-progress" hx-swap="outerHTML">
+             hx-select="#group-progress"
+             hx-swap="outerHTML">
             {% if step.no_groups != 0 %}
             <div class="flex pt-2">
                 <div class="has-tooltip bg-green-500 h-5
@@ -232,9 +242,10 @@
     </div>
 </div>
 <div id="step_content"
-         hx-get="{{ url_for('get_step', campaign_id=campaign_id, step_id=step.id) }}"
-         hx-trigger="every 20s"
-         hx-select="#step_content" hx-swap="outerHTML">
+     hx-get="{{ url_for('get_step', campaign_id=campaign_id, step_id=step.id) }}"
+     hx-trigger="every 20s"
+     hx-select="#step_content"
+     hx-swap="outerHTML">
     <div class="w-full px-4 py-5 sm:p-6">
         <div class="flex items-center">
             <span class="text-large font-bold">Scripts</span>
