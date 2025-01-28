@@ -19,6 +19,16 @@ class BpsConfiguration(BaseModel):
     FIXME: rename to LsstConfiguration and consolidate multiple models?
     """
 
+    lsst_version: str = Field(
+        description="Default LSST version",
+        default="w_latest",
+    )
+
+    lsst_distrib_dir: str = Field(
+        description="Default distribution directory from which to setup lsst",
+        default="/sdf/group/rubin/sw",
+    )
+
     bps_bin: str = Field(
         description="Name of a bps client binary",
         default="bps",
@@ -61,6 +71,11 @@ class ButlerConfiguration(BaseModel):
         default="~/.lsst/db-auth.yaml",
     )
 
+    default_username: str = Field(
+        description="Default username to use for Butler registry authentication",
+        default="rubin",
+    )
+
     access_token: str | None = Field(
         description=("Gafaelfawr access token used to authenticate to a Butler server."),
         default=None,
@@ -98,6 +113,11 @@ class HTCondorConfiguration(BaseModel):
     on this model; included fields will be represented by their field name or
     their serialization alias.
     """
+
+    user_home: str = Field(
+        description=("Path to the user's home directory, as resolvable from an htcondor access node."),
+        default="/sdf/home/l/lsstsvc1",
+    )
 
     condor_home: str = Field(
         description=("Path to the Condor home directory. Equivalent to the condor ``RELEASE_DIR`` macro."),
@@ -193,6 +213,8 @@ class HTCondorConfiguration(BaseModel):
     )
 
 
+# TODO deprecate and remove "slurm"-specific logic from cm-service; it is
+#      unlikely that interfacing with slurm directly from k8s will be possible.
 class SlurmConfiguration(BaseModel):
     """Configuration settings for slurm client operations.
 
@@ -202,21 +224,14 @@ class SlurmConfiguration(BaseModel):
     ----
     Default SBATCH_* variables could work just as well, but it is useful to
     have this as a document of what settings are actually used.
+
+    These settings should also apply to htcondor resource allocation jobs
+    that are equivalent to "allocateNodes"
     """
 
     home: str = Field(
         description="Location of the installed slurm client binaries",
-        default="",
-    )
-
-    sacct_bin: str = Field(
-        description="Name of sacct slurm client binary",
-        default="sacct",
-    )
-
-    sbatch_bin: str = Field(
-        description="Name of sbatch slurm client binary",
-        default="sbatch",
+        default="/opt/slurm/slurm-curr/bin",
     )
 
     memory: str = Field(

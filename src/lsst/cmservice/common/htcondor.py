@@ -192,17 +192,17 @@ def build_htcondor_submit_environment() -> Mapping[str, str]:
         _CONDOR_COLLECTOR_HOST=config.htcondor.collector_host,
         _CONDOR_SCHEDD_HOST=config.htcondor.schedd_host,
         _CONDOR_SEC_CLIENT_AUTHENTICATION_METHODS=config.htcondor.authn_methods,
-        DAF_BUTLER_REPOSITORY_INDEX="/sdf/group/rubin/shared/data-repos.yaml",
+        _CONDOR_DAGMAN_MANAGER_JOB_APPEND_GETENV=str(config.htcondor.dagman_job_append_get_env),
+        DAF_BUTLER_REPOSITORY_INDEX=config.butler.repository_index,
         FS_REMOTE_DIR=config.htcondor.fs_remote_dir,
-        HOME="/sdf/home/l/lsstsvc1",
-        LSST_VERSION="w_latest",
-        LSST_DISTRIB_DIR="/sdf/group/rubin/sw",
-        # LSST_DISTRIB_DIR="/cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib",
-        PGPASSFILE="/sdf/home/l/lsstsvc1/.lsst/postgres-credentials.txt",
-        PGUSER="rubin",
+        HOME=config.htcondor.user_home,
+        LSST_VERSION=config.bps.lsst_version,
+        LSST_DISTRIB_DIR=config.bps.lsst_distrib_dir,
+        # FIX: because there is no db-auth.yaml in lsstsvc1's home directory
+        PGPASSFILE=f"{config.htcondor.user_home}/.lsst/postgres-credentials.txt",
+        PGUSER=config.butler.default_username,
         PATH=(
-            "/sdf/home/l/lsstsvc1/.local/bin:/sdf/home/l/lsstsvc1/bin:"
-            "/opt/slurm/slurm-curr/bin:/usr/local/bin:/usr/bin:"
-            "/usr/local/sbin:/usr/sbin"
+            f"{config.htcondor.user_home}/.local/bin:{config.htcondor.user_home}/bin:{config.slurm.home}:"
+            f"/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin"
         ),
     )

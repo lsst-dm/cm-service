@@ -65,7 +65,7 @@ async def submit_slurm_job(
     try:
         async with await open_process(
             [
-                config.slurm.sbatch_bin,
+                f"{config.slurm.home}/sbatch",
                 "-o",
                 log_url,
                 "--mem",
@@ -119,7 +119,7 @@ async def check_slurm_job(
         return StatusEnum.running
     try:
         async with await open_process(
-            [config.slurm.sacct_bin, "--parsable", "-b", "-j", slurm_id]
+            [f"{config.slurm.home}/sacct", "--parsable", "-b", "-j", slurm_id]
         ) as slurm_check:  # pragma: no cover
             await slurm_check.wait()
             if slurm_check.returncode != 0:

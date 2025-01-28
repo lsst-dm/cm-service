@@ -246,9 +246,8 @@ async def test_handlers_group_level_db(
         dict(
             lsst_distrib_dir="lsst_distrib_dir",
             bps_core_yaml_template="bps_core_yaml_template",
-            bps_core_script_template="bps_core_script_template",
+            bps_core_script_template="stack_script_template",
             bps_panda_script_template="bps_panda_script_template",
-            bps_htcondor_script_template="bps_htcondor_script_template",
             manifest_script_template="stack_script_template",
         )
 
@@ -304,9 +303,8 @@ async def test_handlers_job_level_db(
         data = dict(
             lsst_distrib_dir="lsst_distrib_dir",
             bps_core_yaml_template="bps_core_yaml_template",
-            bps_core_script_template="bps_core_script_template",
+            bps_core_script_template="stack_script_template",
             bps_panda_script_template="bps_panda_script_template",
-            bps_htcondor_script_template="bps_htcondor_script_template",
             manifest_script_template="stack_script_template",
         )
 

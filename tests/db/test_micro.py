@@ -45,13 +45,13 @@ async def test_micro_db(
         with pytest.raises(errors.CMSpecificationError):
             await specification.get_script_template(session, "bad")
 
-        script_template = await specification.get_script_template(session, "bps_core_script_template")
-        assert script_template.name == "bps_core_script_template", "Script template name mismatch"
+        script_template = await specification.get_script_template(session, "stack_script_template")
+        assert script_template.name == "stack_script_template", "Script template name mismatch"
 
         await script_template.update_from_file(
             session,
             script_template.name,
-            "examples/templates/example_bps_core_script_template.yaml",
+            "examples/templates/example_stack_script_template.yaml",
         )
 
         campaign = await interface.load_and_create_campaign(
