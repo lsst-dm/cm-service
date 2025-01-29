@@ -76,11 +76,6 @@ class ButlerConfiguration(BaseModel):
         default="rubin",
     )
 
-    access_token: str | None = Field(
-        description=("Gafaelfawr access token used to authenticate to a Butler server."),
-        default=None,
-    )
-
     mock: bool = Field(
         description="Whether to mock out Butler calls.",
         default=False,

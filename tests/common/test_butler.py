@@ -1,8 +1,9 @@
+import json
 from typing import Any
 
 import pytest
 
-from lsst.cmservice.common.butler import get_butler_config, parse_butler_repos_from_environment
+from lsst.cmservice.common.butler import get_butler_config
 from lsst.cmservice.config import config
 from lsst.daf.butler.registry import RegistryConfig
 
@@ -31,13 +32,12 @@ registry:
 """
     repo_mockgres_butler_yaml.write_text(repo_yaml)
 
-    monkeypatch.setenv("BUTLER__REPO__0__NAME", "/repo/mock")
-    monkeypatch.setenv("BUTLER__REPO__0__URI", f"{repo_mock_path}")
-    monkeypatch.setenv("BUTLER__REPO__1__NAME", "/repo/mockgres")
-    monkeypatch.setenv("BUTLER__REPO__1__URI", f"{repo_mockgres_butler_yaml}")
-    monkeypatch.setenv("BUTLER__REPO__2__NAME", "mockbargo")
-    monkeypatch.setenv("BUTLER__REPO__2__URI", "s3://bucket/prefix/object.yaml")
-    monkeypatch.setenv("BUTLER__REPO__3__NAME", "nosuchrepo")
+    daf_butler_repositories = {
+        "/repo/mock": f"{repo_mock_path}",
+        "/repo/mockgres": f"{repo_mockgres_butler_yaml}",
+        "mockbargo": "s3://bucket/prefix/object.yaml",
+    }
+    monkeypatch.setenv("DAF_BUTLER_REPOSITORIES", json.dumps(daf_butler_repositories))
 
 
 @pytest.fixture
@@ -50,11 +50,6 @@ def mock_db_auth_file(tmp_path: Any, monkeypatch: Any) -> None:
     """)
 
     monkeypatch.setattr(config.butler, "authentication_file", str(mock_auth_path))
-
-
-def test_parse_butler_config_from_environment(mock_butler_environment: Any) -> None:
-    repos = parse_butler_repos_from_environment()
-    assert len(repos.keys()) == 3
 
 
 @pytest.mark.asyncio

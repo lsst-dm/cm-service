@@ -19,7 +19,7 @@ jobs:
       ./.github/workflows/rebase_checker.yaml
 
   lint:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     needs:
       - rebase-checker
     steps:
@@ -36,7 +36,7 @@ jobs:
         uses: pre-commit/action@v3.0.1
 
   mypy:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.11"]
@@ -60,7 +60,7 @@ jobs:
         run: uv run make typing
 
   test:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.11"]

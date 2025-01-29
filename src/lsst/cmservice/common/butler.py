@@ -1,6 +1,6 @@
 """Utility functions for working with butler commands"""
 
-from functools import lru_cache, partial
+from functools import partial
 
 import yaml
 from anyio import Path, to_thread
@@ -8,6 +8,7 @@ from sqlalchemy.engine import url
 
 from lsst.daf.butler import Butler, ButlerConfig, ButlerRepoIndex
 from lsst.daf.butler._exceptions import MissingCollectionError
+from lsst.resources import ResourcePathExpression
 from lsst.utils.db_auth import DbAuth
 
 from ..config import config
@@ -23,14 +24,13 @@ DAF_BUTLER_REPOSITORIES environment variable.
 """
 
 
-@lru_cache
 async def get_butler_config(repo: str, *, without_datastore: bool = False) -> ButlerConfig:
     """Create a butler config object for a repo known to the service's
     environment.
     """
 
     try:
-        repo_uri = BUTLER_REPO_INDEX.get_repo_uri(label=repo)
+        repo_uri: ResourcePathExpression = BUTLER_REPO_INDEX.get_repo_uri(label=repo)
     except KeyError:
         # No such repo known to the service
         logger.warning("Butler repo %s not known to environment.", repo)
