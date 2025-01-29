@@ -2,7 +2,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-from lsst.cmservice.db import Step
+from lsst.cmservice.db import NodeMixin, Step
 from lsst.cmservice.web_app.pages.steps import get_step_details
 from lsst.cmservice.web_app.utils.utils import map_status
 
@@ -59,7 +59,9 @@ async def get_step_scripts(session: async_scoped_session, step: Step) -> list[di
     return step_scripts
 
 
-async def update_collections(session: async_scoped_session, step_id: int, step_collections: dict) -> None:
+async def update_collections(
+    session: async_scoped_session, step_id: int, step_collections: dict
+) -> NodeMixin:
     step = await Step.get_row(session, step_id)
     updated_step = await step.update_collections(session, **step_collections)
     return updated_step
