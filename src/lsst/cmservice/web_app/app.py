@@ -19,7 +19,7 @@ from lsst.cmservice.web_app.pages.campaigns import get_campaign_details, search_
 from lsst.cmservice.web_app.pages.group_details import get_group_by_id
 from lsst.cmservice.web_app.pages.job_details import get_job_by_id
 from lsst.cmservice.web_app.pages.script_details import get_script_by_id
-from lsst.cmservice.web_app.pages.step_details import get_step_details_by_id, update_s_collections
+from lsst.cmservice.web_app.pages.step_details import get_step_details_by_id, update_collections
 from lsst.cmservice.web_app.pages.steps import (
     get_campaign_by_id,
     get_campaign_steps,
@@ -285,11 +285,6 @@ async def edit_collections(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(name="partials/edit_collections_modal_content.html", request=request)
 
 
-class UpdateCollectionsRequest(BaseModel):
-    element_id: int
-    collections: dict
-
-
 @web_app.post("/step/update-collections/{step_id}", response_class=HTMLResponse)
 async def update_step_collections(
     request: Request,
@@ -298,18 +293,13 @@ async def update_step_collections(
 ) -> HTMLResponse:
     collection_data = await request.form()
     collection_dict = {key: value for key, value in collection_data.items()}
-    await update_s_collections(session=session, step_id=step_id, step_collections=collection_dict)
-    return templates.TemplateResponse(name="partials/edit_collections_modal_content.html", request=request)
-
-
-#
-# @web_app.get("/test-ag-grid/", response_class=HTMLResponse)
-# async def test_ag_grid(request: Request) -> HTMLResponse:
-#     return templates.TemplateResponse
-#     ("pages/test-ag-grid.html", {"request": request})
-#
-#
-# @web_app.get("/modal", response_class=HTMLResponse)
-# async def modal(request: Request) -> HTMLResponse:
-#     return templates.TemplateResponse
-#     ("partials/test_reset_modal.html", {"request": request})
+    updated_step = await update_collections(
+        session=session, step_id=step_id, step_collections=collection_dict
+    )
+    return templates.TemplateResponse(
+        name="partials/step_collections.html",
+        request=request,
+        context={
+            "step": updated_step,
+        },
+    )

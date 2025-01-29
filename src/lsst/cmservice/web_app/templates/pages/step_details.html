@@ -190,9 +190,9 @@
                 </svg>
             </span>
             </button>
-            {% for key, value in step.collections|items %}
-            <div class="block text-sm">{{key}}: {{value}}</div>
-            {% endfor %}
+            <div id="step-collections">
+                {% include "partials/step_collections.html" %}
+            </div>
         </div>
         <div class="block items-center pt-2">
             <span class="text-sm font-bold">Data</span>

@@ -1,4 +1,3 @@
-<!-- TODO: use oob swaps to update collections here whenever the page is reloaded -->
 <dialog
         id="edit-collection-modal"
         aria-labelledby="modal-title"
@@ -15,7 +14,11 @@
             <h2 class="text-base font-semibold text-gray-900 pb-4">Edit Collections</h2>
         </div>
         <div>
-            <form id="update-collections-form" hx-post="{{ url_for('update_step_collections', step_id=step.id)}}" hx-swap="none" method="POST">
+            <form id="update-collections-form"
+                  hx-post="{{ url_for('update_step_collections', step_id=step.id)}}"
+                  hx-swap="innerHTML"
+                  hx-target="#step-collections"
+                  method="POST">
                 {% for key, value in step.collections|items %}
                 <div class="flex flex-row">
                     <div class="basis-1/3"><label class="pr-2 text-sm/6 font-medium text-gray-900">{{key}}</label></div>
