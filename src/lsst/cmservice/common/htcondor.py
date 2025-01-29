@@ -1,6 +1,10 @@
 """Utility functions for working with htcondor jobs"""
 
+import importlib.util
+import os
+import sys
 from collections.abc import Mapping
+from types import ModuleType
 from typing import Any
 
 from anyio import Path, open_process
@@ -9,6 +13,10 @@ from anyio.streams.text import TextReceiveStream
 from ..config import config
 from .enums import StatusEnum
 from .errors import CMHTCondorCheckError, CMHTCondorSubmitError
+from .logging import LOGGER
+
+logger = LOGGER.bind(module=__name__)
+
 
 htcondor_status_map = {
     1: StatusEnum.running,
@@ -186,23 +194,51 @@ def build_htcondor_submit_environment() -> Mapping[str, str]:
     should closer match the environment of an interactive sdfianaXXX user at
     SLAC.
     """
+    # TODO use all configured htcondor config settings
+    # condor_environment = config.htcondor.model_dump(by_alias=True)
+    # TODO we should not always use the same schedd host. We could get a list
+    # of all schedds from the collector and pick one at random.
     return dict(
-        CONDOR_CONFIG="ONLY_ENV",
+        CONDOR_CONFIG=config.htcondor.config_source,
         _CONDOR_CONDOR_HOST=config.htcondor.collector_host,
         _CONDOR_COLLECTOR_HOST=config.htcondor.collector_host,
         _CONDOR_SCHEDD_HOST=config.htcondor.schedd_host,
         _CONDOR_SEC_CLIENT_AUTHENTICATION_METHODS=config.htcondor.authn_methods,
-        _CONDOR_DAGMAN_MANAGER_JOB_APPEND_GETENV=str(config.htcondor.dagman_job_append_get_env),
-        DAF_BUTLER_REPOSITORY_INDEX=config.butler.repository_index,
+        _CONDOR_DAGMAN_MANAGER_JOB_APPEND_GETENV="True",
         FS_REMOTE_DIR=config.htcondor.fs_remote_dir,
-        HOME=config.htcondor.user_home,
+        DAF_BUTLER_REPOSITORY_INDEX=config.butler.repository_index,
+        HOME=config.htcondor.remote_user_home,
         LSST_VERSION=config.bps.lsst_version,
         LSST_DISTRIB_DIR=config.bps.lsst_distrib_dir,
         # FIX: because there is no db-auth.yaml in lsstsvc1's home directory
-        PGPASSFILE=f"{config.htcondor.user_home}/.lsst/postgres-credentials.txt",
+        PGPASSFILE=f"{config.htcondor.remote_user_home}/.lsst/postgres-credentials.txt",
         PGUSER=config.butler.default_username,
         PATH=(
-            f"{config.htcondor.user_home}/.local/bin:{config.htcondor.user_home}/bin:{config.slurm.home}:"
+            f"{config.htcondor.remote_user_home}/.local/bin:{config.htcondor.remote_user_home}/bin:{config.slurm.home}:"
             f"/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin"
         ),
     )
+
+
+def import_htcondor() -> ModuleType | None:
+    """Import and return the htcondor module if it is available. Ensure the
+    the current configuration is loaded.
+    """
+    if (htcondor := sys.modules.get("htcondor")) is not None:
+        pass
+    elif (importlib.util.find_spec("htcondor")) is not None:
+        htcondor = importlib.import_module("htcondor")
+
+    if htcondor is None:
+        logger.warning("HTcondor not available.")
+        return None
+
+    # Ensure environment is configured for htcondor operations
+    # FIXME: the python process needs the correct condor env set up. Alternate
+    # to setting these values JIT in the os.environ would be to hack a way to
+    # have the config.htcondor submodel's validation_alias match the
+    # serialization_alias, e.g., "_CONDOR_value"
+    os.environ |= config.htcondor.model_dump(by_alias=True)
+    htcondor.reload_config()
+
+    return htcondor
