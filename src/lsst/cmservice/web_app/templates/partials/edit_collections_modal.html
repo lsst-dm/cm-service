@@ -4,9 +4,6 @@
         role="dialog"
         aria-modal="true"
         class="rounded-lg w-1/2">
-<!--        hx-get="{{ url_for('edit_collections') }}"-->
-<!--        hx-trigger="load"-->
-<!--        hx-swap="innerHTML">-->
 
     <div class="relative transform overflow-hidden bg-white px-4 pb-4 pt-5 text-left">
     <div>
@@ -47,5 +44,6 @@
     });
     document.querySelector("#cancel-edit-collections").addEventListener("click", () => {
         document.querySelector("#edit-collection-modal").close();
+        document.querySelector("#update-collections-form").reset();
     });
 </script>

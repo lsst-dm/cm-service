@@ -65,3 +65,15 @@ async def update_collections(
     step = await Step.get_row(session, step_id)
     updated_step = await step.update_collections(session, **step_collections)
     return updated_step
+
+
+async def update_child_config(session: async_scoped_session, step_id: int, child_config: dict) -> NodeMixin:
+    step = await Step.get_row(session, step_id)
+    updated_step = await step.update_child_config(session, **child_config)
+    return updated_step
+
+
+async def update_data_dict(session: async_scoped_session, step_id: int, data_dict: dict) -> NodeMixin:
+    step = await Step.get_row(session, step_id)
+    updated_step = await step.update_data_dict(session, **data_dict)
+    return updated_step

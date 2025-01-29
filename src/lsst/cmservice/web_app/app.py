@@ -19,7 +19,11 @@ from lsst.cmservice.web_app.pages.campaigns import get_campaign_details, search_
 from lsst.cmservice.web_app.pages.group_details import get_group_by_id
 from lsst.cmservice.web_app.pages.job_details import get_job_by_id
 from lsst.cmservice.web_app.pages.script_details import get_script_by_id
-from lsst.cmservice.web_app.pages.step_details import get_step_details_by_id, update_collections
+from lsst.cmservice.web_app.pages.step_details import (
+    get_step_details_by_id,
+    update_child_config,
+    update_collections,
+)
 from lsst.cmservice.web_app.pages.steps import (
     get_campaign_by_id,
     get_campaign_steps,
@@ -280,24 +284,37 @@ async def read_script_log(request: ReadScriptLogRequest) -> dict[str, str]:
         raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
 
 
-@web_app.get("/edit-collections-modal", response_class=HTMLResponse)
-async def edit_collections(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse(name="partials/edit_collections_modal_content.html", request=request)
-
-
 @web_app.post("/step/update-collections/{step_id}", response_class=HTMLResponse)
 async def update_step_collections(
     request: Request,
     step_id: int,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> HTMLResponse:
-    collection_data = await request.form()
-    collection_dict = {key: value for key, value in collection_data.items()}
+    collections = await request.form()
+    collection_dict = {key: value for key, value in collections.items()}
     updated_step = await update_collections(
         session=session, step_id=step_id, step_collections=collection_dict
     )
     return templates.TemplateResponse(
         name="partials/step_collections.html",
+        request=request,
+        context={
+            "step": updated_step,
+        },
+    )
+
+
+@web_app.post("/step/update-child-config/{step_id}", response_class=HTMLResponse)
+async def update_step_child_config(
+    request: Request,
+    step_id: int,
+    session: async_scoped_session = Depends(db_session_dependency),
+) -> HTMLResponse:
+    child_config = await request.form()
+    child_config_dict = {key: value for key, value in child_config.items()}
+    updated_step = await update_child_config(session=session, step_id=step_id, child_config=child_config_dict)
+    return templates.TemplateResponse(
+        name="partials/step_child_config.html",
         request=request,
         context={
             "step": updated_step,
