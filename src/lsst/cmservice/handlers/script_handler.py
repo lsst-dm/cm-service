@@ -309,6 +309,7 @@ class ScriptHandler(BaseScriptHandler):
     """SubClass of Handler to deal with script operations using real scripts"""
 
     default_method = config.script_handler
+    default_compute_site = config.compute_site
 
     @staticmethod
     async def _check_stamp_file(

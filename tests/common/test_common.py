@@ -32,7 +32,7 @@ async def test_common_bash() -> None:
         "temp.sh",
         "ls",
         fake=True,
-        values=dict(append="# have a nice day"),
+        values=dict(append="# have a nice day", script_method="bash"),
     )
 
     await run_bash_job(the_script, "temp.log", "temp.stamp")

@@ -248,7 +248,7 @@ class WmsMethodEnum(enum.Enum):
     panda = 1
         Runs under PanDA
 
-    ht_condor = 2
+    htcondor = 2
         Runs under HTCondor
 
     More methods to come...
@@ -257,4 +257,14 @@ class WmsMethodEnum(enum.Enum):
     default = -1
     bash = 0
     panda = 1
-    ht_condor = 2
+    htcondor = 2
+
+
+class WmsComputeSite(enum.Enum):
+    """Define a potential compute site"""
+
+    default = -1
+    usdf = 1
+    lanc = 2
+    ral = 3
+    in2p3 = 4

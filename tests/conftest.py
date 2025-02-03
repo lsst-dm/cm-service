@@ -13,14 +13,21 @@ from safir.testing.uvicorn import UvicornProcess, spawn_uvicorn
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from lsst.cmservice import db, main
-from lsst.cmservice.config import config
+from lsst.cmservice.common.enums import ScriptMethodEnum
+from lsst.cmservice.config import config as config_
+
+
+@pytest.fixture(autouse=True)
+def set_app_config(monkeypatch: Any) -> None:
+    """Set any required app configuration for testing."""
+    config_.script_handler = ScriptMethodEnum.bash
 
 
 @pytest_asyncio.fixture(name="engine")
 async def engine_fixture() -> AsyncIterator[AsyncEngine]:
     """Return a SQLAlchemy AsyncEngine configured to talk to the app db."""
     logger = structlog.get_logger(__name__)
-    the_engine = create_database_engine(config.db.url, config.db.password)
+    the_engine = create_database_engine(config_.db.url, config_.db.password)
     await initialize_database(the_engine, logger, schema=db.Base.metadata, reset=True)
     yield the_engine
     await the_engine.dispose()

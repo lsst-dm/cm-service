@@ -1,9 +1,0 @@
-text: "#!/usr/bin/env bash\n
-
-# setup LSST env.\n
-export LSST_VERSION='{lsst_version}'\n
-export LSST_DISTRIB_DIR='{lsst_distrib_dir}'\n
-source ${LSST_DISTRIB_DIR}/${LSST_VERSION}/loadLSST.bash\n
-setup lsst_distrib\n
-
-"

@@ -9,6 +9,7 @@ from sqlalchemy.schema import ForeignKey
 
 from ..common.enums import LevelEnum, NodeTypeEnum, ScriptMethodEnum, StatusEnum
 from ..common.errors import CMBadEnumError, CMMissingRowCreateInputError
+from ..config import config
 from .base import Base
 from .campaign import Campaign
 from .element import ElementMixin
@@ -88,6 +89,16 @@ class Script(Base, NodeMixin):
         "status",
         "superseded",
     ]
+
+    @property
+    def run_method(self) -> ScriptMethodEnum:
+        """Get a ``ScriptMethodEnum`` for the script, resolving the default
+        method as necessary.
+        """
+        if self.method is ScriptMethodEnum.default:
+            return config.script_handler
+        else:
+            return self.method
 
     @property
     def level(self) -> LevelEnum:

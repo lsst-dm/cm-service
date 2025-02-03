@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from .common.enums import ScriptMethodEnum, StatusEnum
+from .common.enums import ScriptMethodEnum, StatusEnum, WmsComputeSite
 
 __all__ = ["Configuration", "config"]
 
@@ -373,6 +373,11 @@ class Configuration(BaseSettings):
         default=ScriptMethodEnum.htcondor,
     )
 
+    compute_site: WmsComputeSite = Field(
+        description="The default WMS compute site",
+        default=WmsComputeSite.usdf,
+    )
+
     mock_status: StatusEnum | None = Field(
         description="A fake status to return from all operations",
         default=None,
@@ -389,6 +394,7 @@ class Configuration(BaseSettings):
             warn(f"Invalid mock status ({value}) provided to config, using default.")
             return None
 
+    # TODO refactor these identical field validators with type generics
     @field_validator("script_handler", mode="before")
     @classmethod
     def validate_script_method_by_name(cls, value: str | ScriptMethodEnum) -> ScriptMethodEnum:
@@ -402,6 +408,20 @@ class Configuration(BaseSettings):
         except KeyError:
             warn(f"Invalid script handler ({value}) provided to config, using default.")
             return ScriptMethodEnum.htcondor
+
+    @field_validator("compute_site", mode="before")
+    @classmethod
+    def validate_compute_site_by_name(cls, value: str | WmsComputeSite) -> WmsComputeSite:
+        """Use a string value to resolve an enum by its name, falling back to
+        the default value if an invalid input is provided.
+        """
+        if isinstance(value, WmsComputeSite):
+            return value
+        try:
+            return WmsComputeSite[value]
+        except KeyError:
+            warn(f"Invalid script handler ({value}) provided to config, using default.")
+            return WmsComputeSite.usdf
 
 
 config = Configuration()

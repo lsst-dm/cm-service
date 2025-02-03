@@ -139,6 +139,16 @@ migrate: export DB__URL=postgresql://${PGHOST}/${PGDATABASE}
 migrate: run-compose
 	alembic upgrade head
 
+.PHONY: unmigrate
+unmigrate: export PGUSER=cm-service
+unmigrate: export PGDATABASE=cm-service
+unmigrate: export PGHOST=localhost
+unmigrate: export DB__PORT=$(shell docker compose port postgresql 5432 | cut -d: -f2)
+unmigrate: export DB__PASSWORD=INSECURE-PASSWORD
+unmigrate: export DB__URL=postgresql://${PGHOST}/${PGDATABASE}
+unmigrate: run-compose
+	alembic downgrade base
+
 
 #------------------------------------------------------------------------------
 # Targets for developers to debug running against local sqlite.  Can be used on
