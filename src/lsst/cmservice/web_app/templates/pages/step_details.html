@@ -15,7 +15,6 @@
 <script hx-swap-oob="outerHTML:#grid_data" id="grid_data">
     // Update data objects with every htmx reload
     // to reflect any db changes
-    //TODO: add null check before calling sort
     stepScripts = {{scripts|sort(attribute="id")|tojson}};
     stepGroups = {{groups|sort(attribute="id")|tojson}};
 </script>
@@ -137,6 +136,7 @@
         populateGrids();
         document.querySelector("#editCollectionsBtn").addEventListener("click", () => {
             let step_status = "{{step.status}}";
+            // TODO: revisit status mapping between frontend and backend
             if(step_status !== "COMPLETE") {
                 document.querySelector("#edit-collection-modal").showModal();
             } else {
@@ -147,12 +147,29 @@
 
         document.querySelector("#editChildConfigBtn").addEventListener("click", () => {
             let step_status = "{{step.status}}";
+            // TODO: revisit status mapping between frontend and backend
             if(step_status !== "COMPLETE") {
                 document.querySelector("#edit-child-config-modal").showModal();
             } else {
                 errorMessage.innerText = "Cannot update child config for a running step!";
                 errorModal.showModal();
             }
+        });
+
+        document.querySelector("#confirm-edit-collections").addEventListener("click", () => {
+        document.querySelector("#edit-collection-modal").close();
+        });
+        document.querySelector("#cancel-edit-collections").addEventListener("click", () => {
+            document.querySelector("#edit-collection-modal").close();
+            document.querySelector("#update-collections-form").reset();
+        });
+
+        document.querySelector("#confirm-edit-child-config").addEventListener("click", () => {
+        document.querySelector("#edit-child-config-modal").close();
+        });
+        document.querySelector("#cancel-edit-child-config").addEventListener("click", () => {
+            document.querySelector("#edit-child-config-modal").close();
+            document.querySelector("#update-child_config-form").reset();
         });
     }, false);
 
