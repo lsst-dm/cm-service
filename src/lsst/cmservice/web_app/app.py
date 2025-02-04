@@ -13,8 +13,8 @@ from safir.dependencies.db_session import db_session_dependency
 from safir.dependencies.http_client import http_client_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-from lsst.cmservice import db
 from lsst.cmservice.config import config
+from lsst.cmservice.routers.campaigns import get_rows as get_campaigns_api
 from lsst.cmservice.web_app.pages.campaigns import get_campaign_details, search_campaigns
 from lsst.cmservice.web_app.pages.group_details import get_group_by_id
 from lsst.cmservice.web_app.pages.job_details import get_job_by_id
@@ -60,23 +60,61 @@ router = APIRouter(
 
 web_app.mount("/static", StaticFiles(directory=str(Path(BASE_DIR, "static"))), name="static")
 
+#
+# @web_app.get("/campaigns/", response_class=HTMLResponse)
+# async def get_campaigns(
+#     request: Request,
+#     session: async_scoped_session = Depends(db_session_dependency),
+# ) -> HTMLResponse:
+#     try:
+#         async with session.begin():
+#             production_list = {}
+#             productions = await db.Production.get_rows(session)
+#             for p in productions:
+#                 children = await p.children(session)
+#                 production_campaigns = []
+#                 for c in children:
+#                     campaign_details = await get_campaign_details(session, c)
+#                     production_campaigns.append(campaign_details)
+#                 production_list[p.name] = production_campaigns
+#
+#         return templates.TemplateResponse(
+#             name="pages/campaigns.html",
+#             request=request,
+#             context={
+#                 "recent_campaigns": None,
+#                 "productions": production_list,
+#             },
+#         )
+#     except Exception as e:
+#         print(e)
+#         traceback.print_tb(e.__traceback__)
+#         return templates.TemplateResponse(f"Something went wrong:  {e}")
+
 
 @web_app.get("/campaigns/", response_class=HTMLResponse)
-async def get_campaigns(
-    request: Request,
-    session: async_scoped_session = Depends(db_session_dependency),
-) -> HTMLResponse:
+async def get_campaigns(request: Request, session: async_scoped_session = Depends(db_session_dependency)):
     try:
-        async with session.begin():
-            production_list = {}
-            productions = await db.Production.get_rows(session)
-            for p in productions:
-                children = await p.children(session)
-                production_campaigns = []
-                for c in children:
-                    campaign_details = await get_campaign_details(session, c)
-                    production_campaigns.append(campaign_details)
-                production_list[p.name] = production_campaigns
+        production_list = {}
+        # productions = await get_productions(session=session)
+        # for production in productions:
+        #     # couldn't find an endpoint to get
+        #     # campaigns in a certain production
+        #     campaigns = await production.children(session)
+        #     production_campaigns = []
+        #     for c in campaigns:
+        #         campaign_details = await get_campaign_details(session, c)
+        #         production_campaigns.append(campaign_details)
+        #     production_list[production.name] = production_campaigns
+
+        campaigns = await get_campaigns_api(session=session)
+        for campaign in campaigns:
+            campaign_details = await get_campaign_details(session, campaign)
+            production_name = campaign.fullname.split("/")[0]
+            if production_name in production_list:
+                production_list[production_name].append(campaign_details)
+            else:
+                production_list[production_name] = [campaign_details]
 
         return templates.TemplateResponse(
             name="pages/campaigns.html",
@@ -86,10 +124,11 @@ async def get_campaigns(
                 "productions": production_list,
             },
         )
+
     except Exception as e:
         print(e)
         traceback.print_tb(e.__traceback__)
-        return templates.TemplateResponse(f"Something went wrong:  {e}")
+        raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
 
 
 @web_app.post("/campaigns/", response_class=HTMLResponse)
@@ -296,7 +335,7 @@ async def update_step_collections(
         session=session, step_id=step_id, step_collections=collection_dict
     )
     return templates.TemplateResponse(
-        name="partials/step_collections.html",
+        name="partials/edit_collections_response.html",
         request=request,
         context={
             "step": updated_step,
@@ -314,7 +353,7 @@ async def update_step_child_config(
     child_config_dict = {key: value for key, value in child_config.items()}
     updated_step = await update_child_config(session=session, step_id=step_id, child_config=child_config_dict)
     return templates.TemplateResponse(
-        name="partials/step_child_config.html",
+        name="partials/edit_child_config_response.html",
         request=request,
         context={
             "step": updated_step,

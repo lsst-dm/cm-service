@@ -233,7 +233,7 @@
                     </svg>
                 </span>
             </button>
-            <div id="step-data-dict">
+            <div id="step-data-dict" hx-swap-oob="outerHTML:#step-data-dict">
                 {% include "partials/step_data_dict.html" %}
             </div>
         </div>
@@ -247,7 +247,7 @@
                     </svg>
                 </span>
             </button>
-            <div id="step-child-config">
+            <div id="step-child-config" hx-swap-oob="outerHTML:#step-child-config">
                 {% include "partials/step_child_config.html" %}
             </div>
         </div>
