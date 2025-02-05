@@ -1,4 +1,6 @@
+import importlib
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -10,7 +12,6 @@ from sqlalchemy.ext.asyncio import AsyncEngine, async_scoped_session
 
 from lsst.cmservice import db
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum
-from lsst.cmservice.handlers import interface, jobs
 
 from .util_functions import cleanup, create_tree
 
@@ -23,6 +24,7 @@ async def check_run_script(
     spec_block_name: str,
     **kwargs: Any,
 ) -> db.Script:
+    interface = sys.modules["lsst.cmservice.handlers"].interface
     script = await db.Script.create_row(
         session,
         parent_name=parent.fullname,
@@ -51,6 +53,7 @@ async def check_script(
     spec_block_name: str,
     **kwargs: Any,
 ) -> db.Script:
+    interface = sys.modules["lsst.cmservice.handlers"].interface
     script = await db.Script.create_row(
         session,
         parent_name=parent.fullname,
@@ -90,6 +93,7 @@ async def check_script(
 async def test_handlers_campaign_level_db(
     engine: AsyncEngine,
     tmp_path: Path,
+    import_deps: Any,
 ) -> None:
     """Test to run the write and purge methods of various scripts"""
     temp_dir = str(tmp_path / "archive")
@@ -171,6 +175,7 @@ async def test_handlers_campaign_level_db(
 async def test_handlers_step_level_db(
     engine: AsyncEngine,
     tmp_path: Path,
+    import_deps: Any,
     monkeypatch: MonkeyPatch,
 ) -> None:
     """Test to run the write and purge methods of various scripts"""
@@ -211,6 +216,7 @@ async def test_handlers_step_level_db(
 async def test_handlers_group_level_db(
     engine: AsyncEngine,
     tmp_path: Path,
+    import_deps: Any,
     monkeypatch: MonkeyPatch,
 ) -> None:
     """Test to run the write and purge methods of various scripts"""
@@ -268,6 +274,8 @@ async def test_handlers_job_level_db(
     tmp_path: Path,
 ) -> None:
     """Test to run the write and purge methods of various scripts"""
+    interface = importlib.import_module("lsst.cmservice.handlers.interface")
+    jobs = importlib.import_module("lsst.cmservice.handlers.jobs")
     temp_dir = str(tmp_path / "archive")
 
     logger = structlog.get_logger(__name__)
@@ -363,7 +371,7 @@ async def test_handlers_job_level_db(
         )
         assert status == StatusEnum.waiting
 
-        assert jobs.PandaScriptHandler.get_job_id({"Run Id": 322}) == 322  # type: ignore
+        assert jobs.PandaScriptHandler.get_job_id({"Run Id": 322}) == 322
         assert jobs.HTCondorScriptHandler.get_job_id({"Submit dir": "dummy"}) == "dummy"
 
         await cleanup(session, check_cascade=True)

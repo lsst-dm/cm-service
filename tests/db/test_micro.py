@@ -1,3 +1,4 @@
+import importlib
 import os
 from pathlib import Path
 
@@ -9,8 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from lsst.cmservice.common import errors
 from lsst.cmservice.common.enums import ScriptMethodEnum, StatusEnum
-from lsst.cmservice.handlers import interface
-from lsst.cmservice.handlers.script_handler import ScriptHandler
 
 from .util_functions import cleanup
 
@@ -26,6 +25,8 @@ async def test_micro_db(
     monkeypatch: MonkeyPatch,
 ) -> None:
     """Test fake end to end run using example/example_micro.yaml"""
+    ScriptHandler = importlib.import_module("lsst.cmservice.handlers.script_handler").ScriptHandler
+    interface = importlib.import_module("lsst.cmservice.handlers.interface")
     monkeypatch.setattr("lsst.cmservice.config.config.butler.mock", True)
 
     orig_method = ScriptHandler.default_method
