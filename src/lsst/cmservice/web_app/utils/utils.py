@@ -1,4 +1,7 @@
+from sqlalchemy.ext.asyncio import async_scoped_session
+
 from lsst.cmservice.common.enums import StatusEnum
+from lsst.cmservice.db import NodeMixin
 
 
 def map_status(status: StatusEnum) -> str | None:
@@ -12,3 +15,8 @@ def map_status(status: StatusEnum) -> str | None:
         case StatusEnum.accepted | StatusEnum.reviewable:
             return "COMPLETE"
     return None
+
+
+async def update_data_dict(session: async_scoped_session, element: NodeMixin, data_dict: dict) -> NodeMixin:
+    updated_element = await element.update_data_dict(session, **data_dict)
+    return updated_element

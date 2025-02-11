@@ -73,11 +73,6 @@ async def update_child_config(session: async_scoped_session, step_id: int, child
     return updated_step
 
 
-async def get_step_db(session: async_scoped_session, step_id: int) -> NodeMixin:
+async def get_step_node(session: async_scoped_session, step_id: int) -> NodeMixin:
     step = await Step.get_row(session, step_id)
     return step
-
-
-async def update_data_dict(session: async_scoped_session, element: NodeMixin, data_dict: dict) -> NodeMixin:
-    updated_element = await element.update_data_dict(session, **data_dict)
-    return updated_element
