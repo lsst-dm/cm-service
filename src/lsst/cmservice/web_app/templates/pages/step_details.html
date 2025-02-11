@@ -1,11 +1,14 @@
 {% extends "pages/base.html" %}
 {% block title %} Step Details {% endblock %}
 {% block content %}
+{% set element = step %}
+{% set element_type = 'STEP' %}
 {% include "partials/reset_script_modal.html" %}
 {% include "partials/error_modal.html" %}
 {% include "partials/script_log_modal.html" %}
 {% include "partials/edit_collections_modal.html" %}
 {% include "partials/edit_child_config_modal.html" %}
+{% include "partials/edit_data_dict_modal.html" %}
 
 <script src="{{ url_for('static', path='/js/script-grid-utils.js') }}"></script>
 <script>
@@ -156,6 +159,20 @@
             }
         });
 
+        document.querySelector("#editDataBtn").addEventListener("click", () => {
+            let step_status = "{{step.status}}";
+            // TODO: revisit status mapping between frontend and backend
+            if (Object.keys({{step.data}}).length === 0) {
+                errorMessage.innerText = "Data Config is empty!";
+                errorModal.showModal();
+            } else if(step_status !== "COMPLETE") {
+                document.querySelector("#edit-data-dict-modal").showModal();
+            } else {
+                errorMessage.innerText = "Cannot update data for a running step!";
+                errorModal.showModal();
+            }
+        });
+
         document.querySelector("#confirm-edit-collections").addEventListener("click", () => {
         document.querySelector("#edit-collection-modal").close();
         });
@@ -171,11 +188,20 @@
             document.querySelector("#edit-child-config-modal").close();
             document.querySelector("#update-child_config-form").reset();
         });
+
+        document.querySelector("#confirm-edit-data-dict").addEventListener("click", () => {
+        document.querySelector("#edit-data-dict-modal").close();
+        });
+        document.querySelector("#cancel-edit-data-dict").addEventListener("click", () => {
+            document.querySelector("#edit-data-dict-modal").close();
+            document.querySelector("#update-data-dict-form").reset();
+        });
+
     }, false);
 
     htmx.on('htmx:afterRequest', (evt) => {
         // don't populate grids upon updating the dicts
-        if(!["step-child-config", "step-collections"].includes(evt.detail.target.id)){
+        if(!["step-child-config", "step-collections", "data-dict"].includes(evt.detail.target.id)){
             populateGrids();
         }
     });
@@ -209,7 +235,7 @@
         <div class="flex items-center">
             <span class="text-sm font-normal">{{step.fullname}}</span>
         </div>
-        <div class="block items-center pt-2">
+        <div class="block items-center pt-6">
             <span class="text-sm font-bold align-top">Collections</span>
             <button id="editCollectionsBtn">
                 <span class="inline-flex h-5 w-5 hover:text-teal-600">
@@ -223,7 +249,7 @@
                 {% include "partials/step_collections.html" %}
             </div>
         </div>
-        <div class="block items-center pt-2">
+        <div class="block items-center pt-6">
             <span class="text-sm font-bold align-top">Data</span>
             <button id="editDataBtn">
                 <span class="inline-flex h-5 w-5 hover:text-teal-600">
@@ -233,11 +259,11 @@
                     </svg>
                 </span>
             </button>
-            <div id="step-data-dict" hx-swap-oob="outerHTML:#step-data-dict">
-                {% include "partials/step_data_dict.html" %}
+            <div id="data-dict" hx-swap-oob="outerHTML:#data-dict">
+                {% include "partials/data_dict.html" %}
             </div>
         </div>
-        <div class="block items-center pt-2">
+        <div class="block items-center pt-6">
             <span class="text-sm font-bold align-top">Child Config</span>
             <button id="editChildConfigBtn">
                 <span class="inline-flex h-5 w-5 hover:text-teal-600">
@@ -255,7 +281,9 @@
              hx-get="{{ url_for('get_step', campaign_id=campaign_id, step_id=step.id) }}"
              hx-trigger="every 20s"
              hx-select="#group-progress"
-             hx-swap="outerHTML">
+             hx-swap="outerHTML"
+             class="pt-6">
+            <span class="text-sm font-bold align-top">Group Progress</span>
             {% if step.no_groups != 0 %}
             <div class="flex pt-2">
                 <div class="has-tooltip bg-green-500 h-5
@@ -298,7 +326,7 @@
         <div class="items-center pt-4">
             <div id="scriptsGrid" class="ag-theme-alpine h-64"></div>
         </div>
-        <div class="flex items-center pt-4">
+        <div class="flex items-center pt-8">
             <span class="text-large font-bold">Groups</span>
         </div>
         <div class="items-center pt-4">

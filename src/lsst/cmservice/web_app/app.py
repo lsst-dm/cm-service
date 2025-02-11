@@ -16,13 +16,15 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 from lsst.cmservice.config import config
 from lsst.cmservice.routers.campaigns import get_rows as get_campaigns_api
 from lsst.cmservice.web_app.pages.campaigns import get_campaign_details, search_campaigns
-from lsst.cmservice.web_app.pages.group_details import get_group_by_id
+from lsst.cmservice.web_app.pages.group_details import get_group_by_id, get_group_db
 from lsst.cmservice.web_app.pages.job_details import get_job_by_id
 from lsst.cmservice.web_app.pages.script_details import get_script_by_id
 from lsst.cmservice.web_app.pages.step_details import (
+    get_step_db,
     get_step_details_by_id,
     update_child_config,
     update_collections,
+    update_data_dict,
 )
 from lsst.cmservice.web_app.pages.steps import (
     get_campaign_by_id,
@@ -357,5 +359,29 @@ async def update_step_child_config(
         request=request,
         context={
             "step": updated_step,
+        },
+    )
+
+
+@web_app.post("/update-data-dict/{element_type}/{element_id}", response_class=HTMLResponse)
+async def update_element_data_dict(
+    request: Request,
+    element_id: int,
+    element_type: str,
+    session: async_scoped_session = Depends(db_session_dependency),
+) -> HTMLResponse:
+    data = await request.form()
+    data_dict = {key: value for key, value in data.items()}
+    match element_type:
+        case "STEP":
+            element = await get_step_db(session=session, step_id=element_id)
+        case "GROUP":
+            element = await get_group_db(session=session, group_id=element_id)
+    updated_element = await update_data_dict(session=session, element=element, data_dict=data_dict)
+    return templates.TemplateResponse(
+        name="partials/edit_data_dict_response.html",
+        request=request,
+        context={
+            "element": updated_element,
         },
     )
