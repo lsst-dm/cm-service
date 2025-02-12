@@ -109,9 +109,16 @@ class HTCondorConfiguration(BaseModel):
     their serialization alias.
     """
 
-    user_home: str = Field(
+    config_source: str = Field(
+        description="Source of htcondor configuration",
+        default="ONLY_ENV",
+        serialization_alias="CONDOR_CONFIG",
+    )
+
+    remote_user_home: str = Field(
         description=("Path to the user's home directory, as resolvable from an htcondor access node."),
         default="/sdf/home/l/lsstsvc1",
+        exclude=True,
     )
 
     condor_home: str = Field(
@@ -192,19 +199,14 @@ class HTCondorConfiguration(BaseModel):
 
     authn_methods: str = Field(
         description="Secure client authentication methods, as comma-delimited strings",
-        default="FS,FS_REMOTE",
+        default="FS_REMOTE",
         serialization_alias="_CONDOR_SEC_CLIENT_AUTHENTICATION_METHODS",
     )
 
     fs_remote_dir: str = Field(
-        description="...",
-        default=".",
+        description="Shared directory to use with htcondor remote filesystem authentication.",
+        default="/tmp",
         serialization_alias="FS_REMOTE_DIR",
-    )
-
-    # FIXME: unclear if this is at all necessary
-    dagman_job_append_get_env: bool = Field(
-        description="...", default=True, serialization_alias="_CONDOR_DAGMAN_MANAGER_JOB_APPEND_GETENV"
     )
 
 
@@ -242,6 +244,16 @@ class SlurmConfiguration(BaseModel):
     partition: str = Field(
         description="Partition requested when submitting a slurm job.",
         default="milano",
+    )
+
+    platform: str = Field(
+        description="Platform requested when submitting a slurm job.",
+        default="s3df",
+    )
+
+    duration: str = Field(
+        description="Expected Duration for a cmservice script that needs to be scheduled.",
+        default="0-1:0:0",
     )
 
 
@@ -303,6 +315,11 @@ class DaemonConfiguration(BaseModel):
 
     Set according to DAEMON__FIELD environment variables.
     """
+
+    allocate_resources: bool = Field(
+        default=False,
+        description="Whether the daemon should try to allocate its own htcondor or slurm resources.",
+    )
 
     processing_interval: int = Field(
         default=30,
