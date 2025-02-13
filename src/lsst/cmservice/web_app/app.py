@@ -255,7 +255,7 @@ async def get_job(
                 "campaign_id": campaign_id,
                 "step_id": step_id,
                 "group_id": group_id,
-                "job": job_details,
+                "element": job_details,
                 "scripts": scripts,
             },
         )
