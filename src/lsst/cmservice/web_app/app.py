@@ -226,7 +226,7 @@ async def get_group(
             name="pages/group_details.html",
             request=request,
             context={
-                "group": group_details,
+                "element": group_details,
                 "jobs": jobs,
                 "scripts": scripts,
             },

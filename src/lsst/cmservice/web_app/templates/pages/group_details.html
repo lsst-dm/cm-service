@@ -1,11 +1,11 @@
 {% extends "pages/base.html" %}
 {% block title %} Group Details {% endblock %}
 {% block content %}
-{% set element = group %}
-{% set element_type = 'GROUP' %}
 {% include "partials/reset_script_modal.html" %}
 {% include "partials/error_modal.html" %}
 {% include "partials/script_log_modal.html" %}
+{% include "partials/edit_collections_modal.html" %}
+{% include "partials/edit_child_config_modal.html" %}
 {% include "partials/edit_data_dict_modal.html" %}
 
 <script src="{{ url_for('static', path='/js/script-grid-utils.js') }}"></script>
@@ -19,7 +19,7 @@
     // to reflect any db changes
     groupScripts = {{scripts|sort(attribute="id")|tojson}};
     groupJobs = {{jobs|sort(attribute="id")|tojson}};
-    wmsReport = {{group.wms_report|tojson}};
+    wmsReport = {{element.wms_report|tojson}};
 </script>
 <script>
     const reset_script_endpoint = "{{url_for('reset_script')}}";
@@ -29,7 +29,7 @@
      init(params) {
        let jobName = document.createElement('a');
        jobName.textContent = params.data.name;
-       jobName.href = `{{url_for("get_job", campaign_id=group.campaign_id, step_id=group.step_id, group_id=group.id, job_id="${params.data.id}")}}`;
+       jobName.href = `{{url_for("get_job", campaign_id=element.campaign_id, step_id=element.step_id, group_id=element.id, job_id="${params.data.id}")}}`;
        jobName.setAttribute('class', 'font-bold text-teal-700 underline underline-offset-4 decoration-2 hover:text-gray-500');
        this.eGui = document.createElement('span');
        this.eGui.appendChild(jobName)
@@ -49,7 +49,7 @@
      init(params) {
        let scriptName = document.createElement('a');
        scriptName.textContent = params.data.name;
-       scriptName.href = `{{url_for("get_script", campaign_id=group.campaign_id, step_id=group.step_id, group_id=group.id, script_id="${params.data.id}")}}`;
+       scriptName.href = `{{url_for("get_script", campaign_id=element.campaign_id, step_id=element.step_id, group_id=element.id, script_id="${params.data.id}")}}`;
        scriptName.setAttribute('class', 'font-bold text-teal-700 underline underline-offset-4 decoration-2 hover:text-gray-500');
        this.eGui = document.createElement('span');
        this.eGui.appendChild(scriptName)
@@ -143,17 +143,40 @@
         populateGrids();
 
         document.querySelector("#editDataBtn").addEventListener("click", () => {
-            let group_status = "{{group.status}}";
+            let group_status = "{{element.status}}";
             // TODO: revisit status mapping between frontend and backend
-            // if (Object.keys({{group.data}}).length === 0) {
+            // if (Object.keys({{element.data}}).length === 0) {
             //     errorMessage.innerText = "Data Config is empty!";
             //     errorModal.showModal();
-            // } else if(group_status !== "COMPLETE") {
-            document.querySelector("#edit-data-dict-modal").showModal();
-            // } else {
-            //     errorMessage.innerText = "Cannot update data for a running group!";
-            //     errorModal.showModal();
-            // }
+            // } else
+            if(group_status !== "COMPLETE" && group_status !== "IN_PROGRESS") {
+                document.querySelector("#edit-data-dict-modal").showModal();
+            } else {
+                errorMessage.innerText = "Cannot update data for a running group!";
+                errorModal.showModal();
+            }
+        });
+
+        document.querySelector("#editCollectionsBtn").addEventListener("click", () => {
+            let group_status = "{{element.status}}";
+            // TODO: revisit status mapping between frontend and backend
+            if(group_status !== "COMPLETE" && group_status !== "IN_PROGRESS") {
+                document.querySelector("#edit-collection-modal").showModal();
+            } else {
+                errorMessage.innerText = "Cannot update collections for a running group!";
+                errorModal.showModal();
+            }
+        });
+
+        document.querySelector("#editChildConfigBtn").addEventListener("click", () => {
+            let group_status = "{{element.status}}";
+            // TODO: revisit status mapping between frontend and backend
+            if(group_status !== "COMPLETE" && group_status !== "IN_PROGRESS") {
+                document.querySelector("#edit-child-config-modal").showModal();
+            } else {
+                errorMessage.innerText = "Cannot update child config for a running group!";
+                errorModal.showModal();
+            }
         });
 
         document.querySelector("#confirm-edit-data-dict").addEventListener("click", () => {
@@ -163,16 +186,32 @@
             document.querySelector("#edit-data-dict-modal").close();
             document.querySelector("#update-data-dict-form").reset();
         });
+
+        document.querySelector("#confirm-edit-collections").addEventListener("click", () => {
+        document.querySelector("#edit-collection-modal").close();
+        });
+        document.querySelector("#cancel-edit-collections").addEventListener("click", () => {
+            document.querySelector("#edit-collection-modal").close();
+            document.querySelector("#update-collections-form").reset();
+        });
+
+        document.querySelector("#confirm-edit-child-config").addEventListener("click", () => {
+        document.querySelector("#edit-child-config-modal").close();
+        });
+        document.querySelector("#cancel-edit-child-config").addEventListener("click", () => {
+            document.querySelector("#edit-child-config-modal").close();
+            document.querySelector("#update-child_config-form").reset();
+        });
     }, false);
 
     htmx.on('htmx:afterRequest', (evt) => {
-        if(!["data-dict"].includes(evt.detail.target.id)) {
+        if(!["child-config", "collections", "data-dict"].includes(evt.detail.target.id)) {
             populateGrids();
         }
     });
 </script>
 
-{% set fullname = group.fullname.split('/') %}
+{% set fullname = element.fullname.split('/') %}
 <nav class="flex px-2 sm:px-4 lg:px-4" aria-label="Breadcrumb">
   <ol role="list" class="flex items-center space-x-2">
     <li>
@@ -185,7 +224,7 @@
         <svg class="h-5 w-5 flex-shrink-0 text-gray-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
           <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
         </svg>
-        <a href="{{ url_for('get_steps', campaign_id=group.campaign_id) }}" class="underline decoration-2 ml-2 text-sm font-medium text-gray-500 hover:text-gray-700" aria-current="page">{{ fullname[1] }}</a>
+        <a href="{{ url_for('get_steps', campaign_id=element.campaign_id) }}" class="underline decoration-2 ml-2 text-sm font-medium text-gray-500 hover:text-gray-700" aria-current="page">{{ fullname[1] }}</a>
       </div>
     </li>
       <li>
@@ -193,7 +232,7 @@
         <svg class="h-5 w-5 flex-shrink-0 text-gray-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
           <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
         </svg>
-        <a href="{{ url_for('get_step', campaign_id=group.campaign_id, step_id=group.step_id) }}" class="underline decoration-2 ml-2 text-sm font-medium text-gray-500 hover:text-gray-700" aria-current="page">{{ fullname[2] }}</a>
+        <a href="{{ url_for('get_step', campaign_id=element.campaign_id, step_id=element.step_id) }}" class="underline decoration-2 ml-2 text-sm font-medium text-gray-500 hover:text-gray-700" aria-current="page">{{ fullname[2] }}</a>
       </div>
     </li>
   </ol>
@@ -201,10 +240,10 @@
 <div class="w-full">
     <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
         <div class="flex items-center">
-            <span class="text-2xl font-bold">{{group.name}}</span>
+            <span class="text-2xl font-bold">{{element.name}}</span>
         </div>
         <div class="flex items-center">
-            <span class="text-sm font-normal">{{group.fullname}}</span>
+            <span class="text-sm font-normal">{{element.fullname}}</span>
         </div>
         <div class="block items-center pt-6">
             <span class="text-sm font-bold align-top">Collections</span>
@@ -217,9 +256,7 @@
                 </span>
             </button>
             <div id="collections">
-                {% for key, value in group.collections|items %}
-                <div class="block text-sm">{{key}}: {{value}}</div>
-                {% endfor %}
+                {% include "partials/collections.html" %}
             </div>
         </div>
         <div class="block items-center pt-6">
@@ -247,49 +284,47 @@
                 </span>
             </button>
             <div id="child-config">
-                {% for key, value in group.child_config|items %}
-                <div class="block text-sm">{{key}}: {{value}}</div>
-                {% endfor %}
+                {% include "partials/child_config.html" %}
             </div>
         </div>
         <div id="wms-progress"
-             hx-get="{{ url_for('get_group', campaign_id=group.campaign_id, step_id=group.step_id, group_id=group.id) }}"
+             hx-get="{{ url_for('get_group', campaign_id=element.campaign_id, step_id=element.step_id, group_id=element.id) }}"
              hx-trigger="every 20s"
              hx-select="#wms-progress"
              hx-swap="outerHTML"
              class=" pt-6">
             <span class="text-sm font-bold">WMS Task Report</span>
-            {% if group.aggregated_wms_report.expected != 0 %}
+            {% if element.aggregated_wms_report.expected != 0 %}
             <div class="flex pt-2 w-full">
                 <div class="has-tooltip bg-teal-700 h-5
-                    {% if group.aggregated_wms_report.running == 0 %}hidden{%endif%}"
-                     style="width: {{ '{:.0%}'.format((group.aggregated_wms_report.running/group.aggregated_wms_report.expected) + 0.01) }}">
+                    {% if element.aggregated_wms_report.running == 0 %}hidden{%endif%}"
+                     style="width: {{ '{:.0%}'.format((element.aggregated_wms_report.running/element.aggregated_wms_report.expected) + 0.01) }}">
                     <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Running</span>
-                    <span class="text-xs">{{group.aggregated_wms_report.running}}</span>
+                    <span class="text-xs">{{element.aggregated_wms_report.running}}</span>
                 </div>
                 <div class="has-tooltip bg-green-500 h-5
-                    {% if group.aggregated_wms_report.succeeded == 0 %}hidden{%endif%}"
-                     style="width: {{ '{:.0%}'.format((group.aggregated_wms_report.succeeded/group.aggregated_wms_report.expected) + 0.01) }}">
+                    {% if element.aggregated_wms_report.succeeded == 0 %}hidden{%endif%}"
+                     style="width: {{ '{:.0%}'.format((element.aggregated_wms_report.succeeded/element.aggregated_wms_report.expected) + 0.01) }}">
                     <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Succeeded</span>
-                    <span class="text-xs">{{group.aggregated_wms_report.succeeded}}</span>
+                    <span class="text-xs">{{element.aggregated_wms_report.succeeded}}</span>
                 </div>
                 <div class="has-tooltip bg-yellow-300 h-5
-                    {% if group.aggregated_wms_report.pending == 0 %}hidden{%endif%}"
-                     style="width: {{ '{:.0%}'.format((group.aggregated_wms_report.pending/group.aggregated_wms_report.expected) + 0.01) }}">
+                    {% if element.aggregated_wms_report.pending == 0 %}hidden{%endif%}"
+                     style="width: {{ '{:.0%}'.format((element.aggregated_wms_report.pending/element.aggregated_wms_report.expected) + 0.01) }}">
                     <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Pending</span>
-                    <span class="text-xs">{{group.aggregated_wms_report.pending}}</span>
+                    <span class="text-xs">{{element.aggregated_wms_report.pending}}</span>
                 </div>
                 <div class="has-tooltip bg-red-600 h-5
-                    {% if group.aggregated_wms_report.failed == 0 %}hidden{%endif%}"
-                     style="width: {{ '{:.0%}'.format((group.aggregated_wms_report.failed/group.aggregated_wms_report.expected) + 0.01) }}">
+                    {% if element.aggregated_wms_report.failed == 0 %}hidden{%endif%}"
+                     style="width: {{ '{:.0%}'.format((element.aggregated_wms_report.failed/element.aggregated_wms_report.expected) + 0.01) }}">
                     <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Failed</span>
-                    <span class="text-xs">{{group.aggregated_wms_report.failed}}</span>
+                    <span class="text-xs">{{element.aggregated_wms_report.failed}}</span>
                 </div>
                 <div class="has-tooltip bg-gray-300 h-5
-                    {% if group.aggregated_wms_report.other == 0 %}hidden{%endif%}"
-                     style="width: {{ '{:.0%}'.format((group.aggregated_wms_report.other/group.aggregated_wms_report.expected) + 0.01) }}">
+                    {% if element.aggregated_wms_report.other == 0 %}hidden{%endif%}"
+                     style="width: {{ '{:.0%}'.format((element.aggregated_wms_report.other/element.aggregated_wms_report.expected) + 0.01) }}">
                     <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Other</span>
-                    <span class="text-xs">{{group.aggregated_wms_report.other}}</span>
+                    <span class="text-xs">{{element.aggregated_wms_report.other}}</span>
                 </div>
             </div>
             {% endif %}
@@ -297,7 +332,7 @@
     </div>
 </div>
 <div id="group_content"
-     hx-get="{{ url_for('get_group', campaign_id=group.campaign_id, step_id=group.step_id, group_id=group.id) }}"
+     hx-get="{{ url_for('get_group', campaign_id=element.campaign_id, step_id=element.step_id, group_id=element.id) }}"
      hx-trigger="every 20s"
      hx-select="#group_content"
      hx-swap="outerHTML">

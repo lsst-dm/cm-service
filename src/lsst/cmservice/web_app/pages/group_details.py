@@ -72,6 +72,7 @@ async def get_group_by_id(
                 "aggregated_wms_report": aggregated_report_dict,
                 "step_id": s_id,
                 "campaign_id": c_id,
+                "level": group.level.value,
             }
 
         return group_details, jobs, scripts
