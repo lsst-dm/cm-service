@@ -3,7 +3,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-from lsst.cmservice.db import Group, Job, Script, Step
+from lsst.cmservice.db import Group, Job, NodeMixin, Script, Step
 from lsst.cmservice.web_app.utils.utils import map_status
 
 
@@ -68,6 +68,7 @@ async def get_script_by_id(
                 "data": script.data,
                 "collections": filtered_collections,
                 "child_config": script.child_config,
+                "level": script.level,
             }
 
         return script_details
@@ -92,3 +93,8 @@ async def get_job_id_by_fullname(session: async_scoped_session, fullname: str) -
     async with session.begin_nested():
         results = await session.scalars(q)
         return results.one_or_none()
+
+
+async def get_script_node(session: async_scoped_session, script_id: int) -> NodeMixin:
+    script = await Script.get_row(session, script_id)
+    return script

@@ -3,9 +3,6 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum
 from lsst.cmservice.db import NodeMixin
 
-# from lsst.cmservice.web_app.pages.group_details import get_group_node
-# from lsst.cmservice.web_app.pages.step_details import get_step_node
-
 
 def map_status(status: StatusEnum) -> str | None:
     match status:
@@ -42,6 +39,7 @@ async def update_child_config(
 async def get_element(session: async_scoped_session, element_id: int, element_type: int) -> NodeMixin:
     from lsst.cmservice.web_app.pages.group_details import get_group_node
     from lsst.cmservice.web_app.pages.job_details import get_job_node
+    from lsst.cmservice.web_app.pages.script_details import get_script_node
     from lsst.cmservice.web_app.pages.step_details import get_step_node
 
     element = None
@@ -52,5 +50,7 @@ async def get_element(session: async_scoped_session, element_id: int, element_ty
             element = await get_group_node(session=session, group_id=element_id)
         case LevelEnum.job.value:
             element = await get_job_node(session=session, job_id=element_id)
+        case LevelEnum.script.value:
+            element = await get_script_node(session=session, script_id=element_id)
 
     return element

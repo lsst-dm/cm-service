@@ -291,7 +291,7 @@ async def get_script(
             name="pages/script_details.html",
             request=request,
             context={
-                "script": script_details,
+                "element": script_details,
             },
         )
     except Exception as e:
