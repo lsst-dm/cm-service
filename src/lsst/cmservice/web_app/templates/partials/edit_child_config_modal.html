@@ -12,9 +12,9 @@
         </div>
         <div>
             <form id="update-child_config-form"
-                  hx-post="{{ url_for('update_step_child_config', step_id=step.id)}}"
+                  hx-post="{{ url_for('update_element_child_config', element_id=element.id, element_type=element.level)}}"
                   hx-swap="innerHTML"
-                  hx-target="#step-child-config"
+                  hx-target="#child-config"
                   method="POST">
                 <div id="child-config-form-elements">
                     {% include "partials/edit_child_config_form_inputs.html" %}

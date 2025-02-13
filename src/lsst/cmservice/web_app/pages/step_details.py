@@ -59,20 +59,6 @@ async def get_step_scripts(session: async_scoped_session, step: Step) -> list[di
     return step_scripts
 
 
-async def update_collections(
-    session: async_scoped_session, step_id: int, step_collections: dict
-) -> NodeMixin:
-    step = await Step.get_row(session, step_id)
-    updated_step = await step.update_collections(session, **step_collections)
-    return updated_step
-
-
-async def update_child_config(session: async_scoped_session, step_id: int, child_config: dict) -> NodeMixin:
-    step = await Step.get_row(session, step_id)
-    updated_step = await step.update_child_config(session, **child_config)
-    return updated_step
-
-
 async def get_step_node(session: async_scoped_session, step_id: int) -> NodeMixin:
     step = await Step.get_row(session, step_id)
     return step

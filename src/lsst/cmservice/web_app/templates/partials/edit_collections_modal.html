@@ -12,9 +12,9 @@
         </div>
         <div>
             <form id="update-collections-form"
-                  hx-post="{{ url_for('update_step_collections', step_id=step.id)}}"
+                  hx-post="{{ url_for('update_element_collections', element_id=element.id, element_type=element.level)}}"
                   hx-swap="innerHTML"
-                  hx-target="#step-collections"
+                  hx-target="#collections"
                   method="POST">
                 <div id="collections-form-elements">
                     {% include "partials/edit_collections_form_inputs.html" %}

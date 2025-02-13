@@ -1,6 +1,4 @@
-{% for key, value in step.collections|items %}
-<div class="block text-sm">{{key}}: {{value}}</div>
-{% endfor %}
+{% include "partials/collections.html" %}
 <!-- update the forms with updates values so that these updated values show in the form upon resetting -->
 <div id="collections-form-elements" hx-swap-oob="true">
     {% include "partials/edit_collections_form_inputs.html" %}

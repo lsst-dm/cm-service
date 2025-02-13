@@ -16,21 +16,21 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 from lsst.cmservice.config import config
 from lsst.cmservice.routers.campaigns import get_rows as get_campaigns_api
 from lsst.cmservice.web_app.pages.campaigns import get_campaign_details, search_campaigns
-from lsst.cmservice.web_app.pages.group_details import get_group_by_id, get_group_node
+from lsst.cmservice.web_app.pages.group_details import get_group_by_id
 from lsst.cmservice.web_app.pages.job_details import get_job_by_id
 from lsst.cmservice.web_app.pages.script_details import get_script_by_id
-from lsst.cmservice.web_app.pages.step_details import (
-    get_step_details_by_id,
-    get_step_node,
-    update_child_config,
-    update_collections,
-)
+from lsst.cmservice.web_app.pages.step_details import get_step_details_by_id
 from lsst.cmservice.web_app.pages.steps import (
     get_campaign_by_id,
     get_campaign_steps,
     get_step_details,
 )
-from lsst.cmservice.web_app.utils.utils import update_data_dict
+from lsst.cmservice.web_app.utils.utils import (
+    get_element,
+    update_child_config,
+    update_collections,
+    update_data_dict,
+)
 
 
 @asynccontextmanager
@@ -202,7 +202,7 @@ async def get_step(
             request=request,
             context={
                 "campaign_id": campaign_id,
-                "step": step,
+                "element": step,
                 "scripts": step_scripts,
                 "groups": step_groups,
             },
@@ -325,40 +325,44 @@ async def read_script_log(request: ReadScriptLogRequest) -> dict[str, str]:
         raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
 
 
-@web_app.post("/step/update-collections/{step_id}", response_class=HTMLResponse)
-async def update_step_collections(
+@web_app.post("/update-collections/{element_type}/{element_id}", response_class=HTMLResponse)
+async def update_element_collections(
     request: Request,
-    step_id: int,
+    element_id: int,
+    element_type: int,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> HTMLResponse:
     collections = await request.form()
     collection_dict = {key: value for key, value in collections.items()}
-    updated_step = await update_collections(
-        session=session, step_id=step_id, step_collections=collection_dict
-    )
+    element = await get_element(session, element_id, element_type)
+    updated_element = await update_collections(session=session, element=element, collections=collection_dict)
     return templates.TemplateResponse(
         name="partials/edit_collections_response.html",
         request=request,
         context={
-            "step": updated_step,
+            "element": updated_element,
         },
     )
 
 
-@web_app.post("/step/update-child-config/{step_id}", response_class=HTMLResponse)
-async def update_step_child_config(
+@web_app.post("/update-child-config/{element_type}/{element_id}", response_class=HTMLResponse)
+async def update_element_child_config(
     request: Request,
-    step_id: int,
+    element_id: int,
+    element_type: int,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> HTMLResponse:
     child_config = await request.form()
     child_config_dict = {key: value for key, value in child_config.items()}
-    updated_step = await update_child_config(session=session, step_id=step_id, child_config=child_config_dict)
+    element = await get_element(session, element_id, element_type)
+    updated_element = await update_child_config(
+        session=session, element=element, child_config=child_config_dict
+    )
     return templates.TemplateResponse(
         name="partials/edit_child_config_response.html",
         request=request,
         context={
-            "step": updated_step,
+            "element": updated_element,
         },
     )
 
@@ -367,16 +371,12 @@ async def update_step_child_config(
 async def update_element_data_dict(
     request: Request,
     element_id: int,
-    element_type: str,
+    element_type: int,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> HTMLResponse:
     data = await request.form()
     data_dict = {key: value for key, value in data.items()}
-    match element_type:
-        case "STEP":
-            element = await get_step_node(session=session, step_id=element_id)
-        case "GROUP":
-            element = await get_group_node(session=session, group_id=element_id)
+    element = await get_element(session, element_id, element_type)
     updated_element = await update_data_dict(session=session, element=element, data_dict=data_dict)
     return templates.TemplateResponse(
         name="partials/edit_data_dict_response.html",

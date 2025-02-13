@@ -12,7 +12,7 @@
         </div>
         <div>
             <form id="update-data-dict-form"
-                  hx-post="{{ url_for('update_element_data_dict', element_id=element.id, element_type=element_type)}}"
+                  hx-post="{{ url_for('update_element_data_dict', element_id=element.id, element_type=element.level)}}"
                   hx-swap="innerHTML"
                   hx-target="#data-dict"
                   method="POST">
