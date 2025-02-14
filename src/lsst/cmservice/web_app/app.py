@@ -95,9 +95,11 @@ web_app.mount("/static", StaticFiles(directory=str(Path(BASE_DIR, "static"))), n
 
 
 @web_app.get("/campaigns/", response_class=HTMLResponse)
-async def get_campaigns(request: Request, session: async_scoped_session = Depends(db_session_dependency)):
+async def get_campaigns(
+    request: Request, session: async_scoped_session = Depends(db_session_dependency)
+) -> HTMLResponse:
     try:
-        production_list = {}
+        production_list: dict = {}
         # productions = await get_productions(session=session)
         # for production in productions:
         #     # couldn't find an endpoint to get
@@ -332,17 +334,24 @@ async def update_element_collections(
     element_type: int,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> HTMLResponse:
-    collections = await request.form()
-    collection_dict = {key: value for key, value in collections.items()}
-    element = await get_element(session, element_id, element_type)
-    updated_element = await update_collections(session=session, element=element, collections=collection_dict)
-    return templates.TemplateResponse(
-        name="partials/edit_collections_response.html",
-        request=request,
-        context={
-            "element": updated_element,
-        },
-    )
+    try:
+        collections = await request.form()
+        collection_dict = {key: value for key, value in collections.items()}
+        element = await get_element(session, element_id, element_type)
+        if element is None:
+            raise Exception("Element not found")
+        updated_element = await update_collections(
+            session=session, element=element, collections=collection_dict
+        )
+        return templates.TemplateResponse(
+            name="partials/edit_collections_response.html",
+            request=request,
+            context={
+                "element": updated_element,
+            },
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating collections: {str(e)}")
 
 
 @web_app.post("/update-child-config/{element_type}/{element_id}", response_class=HTMLResponse)
@@ -352,19 +361,24 @@ async def update_element_child_config(
     element_type: int,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> HTMLResponse:
-    child_config = await request.form()
-    child_config_dict = {key: value for key, value in child_config.items()}
-    element = await get_element(session, element_id, element_type)
-    updated_element = await update_child_config(
-        session=session, element=element, child_config=child_config_dict
-    )
-    return templates.TemplateResponse(
-        name="partials/edit_child_config_response.html",
-        request=request,
-        context={
-            "element": updated_element,
-        },
-    )
+    try:
+        child_config = await request.form()
+        child_config_dict = {key: value for key, value in child_config.items()}
+        element = await get_element(session, element_id, element_type)
+        if element is None:
+            raise Exception("Element not found")
+        updated_element = await update_child_config(
+            session=session, element=element, child_config=child_config_dict
+        )
+        return templates.TemplateResponse(
+            name="partials/edit_child_config_response.html",
+            request=request,
+            context={
+                "element": updated_element,
+            },
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating child config: {str(e)}")
 
 
 @web_app.post("/update-data-dict/{element_type}/{element_id}", response_class=HTMLResponse)
@@ -374,14 +388,19 @@ async def update_element_data_dict(
     element_type: int,
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> HTMLResponse:
-    data = await request.form()
-    data_dict = {key: value for key, value in data.items()}
-    element = await get_element(session, element_id, element_type)
-    updated_element = await update_data_dict(session=session, element=element, data_dict=data_dict)
-    return templates.TemplateResponse(
-        name="partials/edit_data_dict_response.html",
-        request=request,
-        context={
-            "element": updated_element,
-        },
-    )
+    try:
+        data = await request.form()
+        data_dict = {key: value for key, value in data.items()}
+        element = await get_element(session, element_id, element_type)
+        if element is None:
+            raise Exception("Element not found")
+        updated_element = await update_data_dict(session=session, element=element, data_dict=data_dict)
+        return templates.TemplateResponse(
+            name="partials/edit_data_dict_response.html",
+            request=request,
+            context={
+                "element": updated_element,
+            },
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating data dict: {str(e)}")

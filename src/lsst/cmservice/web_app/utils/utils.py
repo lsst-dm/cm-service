@@ -36,7 +36,7 @@ async def update_child_config(
     return updated_element
 
 
-async def get_element(session: async_scoped_session, element_id: int, element_type: int) -> NodeMixin:
+async def get_element(session: async_scoped_session, element_id: int, element_type: int) -> NodeMixin | None:
     from lsst.cmservice.web_app.pages.group_details import get_group_node
     from lsst.cmservice.web_app.pages.job_details import get_job_node
     from lsst.cmservice.web_app.pages.script_details import get_script_node
