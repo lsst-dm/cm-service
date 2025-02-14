@@ -6,7 +6,7 @@ from _pytest.monkeypatch import MonkeyPatch
 from playwright.sync_api import expect, sync_playwright
 
 from lsst.cmservice import db
-from lsst.cmservice.common.enums import StatusEnum
+from lsst.cmservice.common.enums import LevelEnum, StatusEnum
 from lsst.cmservice.db import Step
 from lsst.cmservice.web_app.pages.steps import get_step_details
 
@@ -60,6 +60,7 @@ async def test_get_step_details(
         "no_groups_completed": 1,
         "no_groups_need_attention": 1,
         "no_groups_failed": 2,
+        "level": LevelEnum.step.value,
     }
 
 

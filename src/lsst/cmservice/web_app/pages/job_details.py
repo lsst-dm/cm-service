@@ -66,7 +66,7 @@ async def get_job_by_id(
                 "wms_report": wms_report,
                 "aggregated_wms_report": aggregated_report_dict,
                 "products": products,
-                "level": job.level,
+                "level": job.level.value,
             }
 
         return job_details, scripts

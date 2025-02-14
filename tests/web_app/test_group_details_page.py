@@ -54,6 +54,7 @@ async def test_get_group_details_by_id(engine: AsyncEngine) -> None:
             },
             "step_id": 2,
             "campaign_id": 1,
+            "level": LevelEnum.group.value,
         }
 
         assert group_jobs == [
