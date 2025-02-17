@@ -4,6 +4,7 @@
 {% include "partials/reset_script_modal.html" %}
 {% include "partials/error_modal.html" %}
 {% include "partials/script_log_modal.html" %}
+{% set element = step %}
 {% include "partials/edit_collections_modal.html" %}
 {% include "partials/edit_child_config_modal.html" %}
 {% include "partials/edit_data_dict_modal.html" %}
@@ -27,7 +28,7 @@
      init(params) {
        let groupName = document.createElement('a');
        groupName.textContent = params.data.name;
-       groupName.href = `{{url_for("get_group", campaign_id=campaign_id, step_id=element.id, group_id="${params.data.id}")}}`;
+       groupName.href = `{{url_for("get_group", campaign_id=campaign_id, step_id=step.id, group_id="${params.data.id}")}}`;
        groupName.setAttribute('class', 'font-bold text-teal-700 underline underline-offset-4 decoration-2 hover:text-gray-500');
        this.eGui = document.createElement('span');
        this.eGui.appendChild(groupName)
@@ -47,7 +48,7 @@
     init(params) {
         let scriptName = document.createElement('a');
         scriptName.textContent = params.data.name;
-        scriptName.href = `{{url_for("get_script", campaign_id=campaign_id, step_id=element.id, script_id="${params.data.id}")}}`;
+        scriptName.href = `{{url_for("get_script", campaign_id=campaign_id, step_id=step.id, script_id="${params.data.id}")}}`;
         scriptName.setAttribute('class', 'font-bold text-teal-700 underline underline-offset-4 decoration-2 hover:text-gray-500');
         this.eGui = document.createElement('span');
         this.eGui.appendChild(scriptName)
@@ -136,7 +137,7 @@
     window.addEventListener("DOMContentLoaded", function() {
         populateGrids();
         document.querySelector("#editCollectionsBtn").addEventListener("click", () => {
-            let step_status = "{{element.status}}";
+            let step_status = "{{step.status}}";
             // TODO: revisit status mapping between frontend and backend
             if(step_status !== "COMPLETE") {
                 document.querySelector("#edit-collection-modal").showModal();
@@ -147,7 +148,7 @@
         });
 
         document.querySelector("#editChildConfigBtn").addEventListener("click", () => {
-            let step_status = "{{element.status}}";
+            let step_status = "{{step.status}}";
             // TODO: revisit status mapping between frontend and backend
             if(step_status !== "COMPLETE") {
                 document.querySelector("#edit-child-config-modal").showModal();
@@ -158,9 +159,9 @@
         });
 
         document.querySelector("#editDataBtn").addEventListener("click", () => {
-            let step_status = "{{element.status}}";
+            let step_status = "{{step.status}}";
             // TODO: revisit status mapping between frontend and backend
-            if (Object.keys({{element.data}}).length === 0) {
+            if (Object.keys({{step.data}}).length === 0) {
                 errorMessage.innerText = "Data Config is empty!";
                 errorModal.showModal();
             } else if(step_status !== "COMPLETE") {
@@ -206,8 +207,8 @@
 
 </script>
 
-{% set fullname = element.fullname.split('/') %}
-{% set no_status_groups = element.no_groups - element.no_groups_failed - element.no_groups_need_attention - element.no_groups_completed %}
+{% set fullname = step.fullname.split('/') %}
+{% set no_status_groups = step.no_groups - step.no_groups_failed - step.no_groups_need_attention - step.no_groups_completed %}
 <nav class="flex px-2 sm:px-4 lg:px-4" aria-label="Breadcrumb">
   <ol role="list" class="flex items-center space-x-2">
     <li>
@@ -228,10 +229,10 @@
 <div class="w-full">
     <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
         <div class="flex items-center">
-            <span class="text-2xl font-bold">{{element.name}}</span>
+            <span class="text-2xl font-bold">{{step.name}}</span>
         </div>
         <div class="flex items-center">
-            <span class="text-sm font-normal">{{element.fullname}}</span>
+            <span class="text-sm font-normal">{{step.fullname}}</span>
         </div>
         <div class="block items-center pt-6">
             <span class="text-sm font-bold align-top">Collections</span>
@@ -276,44 +277,44 @@
             </div>
         </div>
         <div id="group-progress"
-             hx-get="{{ url_for('get_step', campaign_id=campaign_id, step_id=element.id) }}"
+             hx-get="{{ url_for('get_step', campaign_id=campaign_id, step_id=step.id) }}"
              hx-trigger="every 20s"
              hx-select="#group-progress"
              hx-swap="outerHTML"
              class="pt-6">
             <span class="text-sm font-bold">Group Progress</span>
-            {% if element.no_groups != 0 %}
+            {% if step.no_groups != 0 %}
             <div class="flex pt-2">
                 <div class="has-tooltip bg-green-500 h-5
-                    {% if element.no_groups_completed == 0 %}hidden{%endif%}"
-                     style="width: {{ '{:.0%}'.format((element.no_groups_completed/element.no_groups) + 0.01) }}">
+                    {% if step.no_groups_completed == 0 %}hidden{%endif%}"
+                     style="width: {{ '{:.0%}'.format((step.no_groups_completed/step.no_groups) + 0.01) }}">
                     <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Completed</span>
-                    <span class="text-xs">{{element.no_groups_completed}}</span>
+                    <span class="text-xs">{{step.no_groups_completed}}</span>
                 </div>
                 <div class="has-tooltip bg-yellow-300 h-5
-                    {% if element.no_groups_need_attention == 0 %}hidden{%endif%}"
-                     style="width: {{ '{:.0%}'.format((element.no_groups_need_attention/element.no_groups) + 0.01) }}">
+                    {% if step.no_groups_need_attention == 0 %}hidden{%endif%}"
+                     style="width: {{ '{:.0%}'.format((step.no_groups_need_attention/step.no_groups) + 0.01) }}">
                     <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Need Attention</span>
-                    <span class="text-xs">{{element.no_groups_need_attention}}</span>
+                    <span class="text-xs">{{step.no_groups_need_attention}}</span>
                 </div>
                 <div class="has-tooltip bg-red-600 h-5
-                    {% if element.no_groups_failed == 0 %}hidden{%endif%}"
-                     style="width: {{ '{:.0%}'.format((element.no_groups_failed/element.no_groups) + 0.01) }}">
+                    {% if step.no_groups_failed == 0 %}hidden{%endif%}"
+                     style="width: {{ '{:.0%}'.format((step.no_groups_failed/step.no_groups) + 0.01) }}">
                     <span class="tooltip rounded shadow-lg p-1 bg-gray-200 text-sm -mt-8">Failed</span>
-                    <span class="text-xs">{{element.no_groups_failed}}</span>
+                    <span class="text-xs">{{step.no_groups_failed}}</span>
                 </div>
                 <div class="bg-gray-100 h-5
                     {% if no_status_groups == 0 %}hidden{%endif%}"
-                     style="width: {{ '{:.0%}'.format((no_status_groups/element.no_groups) + 0.01) }}">
+                     style="width: {{ '{:.0%}'.format((no_status_groups/step.no_groups) + 0.01) }}">
                 </div>
             </div>
-            <div class="items-center text-xs font-normal">{{element.no_groups}} Groups ({{element.no_groups_completed}} FINISHED, {{element.no_groups_need_attention}} NEED ATTENTION, {{element.no_groups_failed}} FAILED)</div>
+            <div class="items-center text-xs font-normal">{{step.no_groups}} Groups ({{step.no_groups_completed}} FINISHED, {{step.no_groups_need_attention}} NEED ATTENTION, {{step.no_groups_failed}} FAILED)</div>
             {% endif %}
         </div>
     </div>
 </div>
 <div id="step_content"
-     hx-get="{{ url_for('get_step', campaign_id=campaign_id, step_id=element.id) }}"
+     hx-get="{{ url_for('get_step', campaign_id=campaign_id, step_id=step.id) }}"
      hx-trigger="every 20s"
      hx-select="#step_content"
      hx-swap="outerHTML">

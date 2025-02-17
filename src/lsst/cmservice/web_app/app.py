@@ -204,7 +204,7 @@ async def get_step(
             request=request,
             context={
                 "campaign_id": campaign_id,
-                "element": step,
+                "step": step,
                 "scripts": step_scripts,
                 "groups": step_groups,
             },
@@ -228,7 +228,7 @@ async def get_group(
             name="pages/group_details.html",
             request=request,
             context={
-                "element": group_details,
+                "group": group_details,
                 "jobs": jobs,
                 "scripts": scripts,
             },
@@ -257,7 +257,7 @@ async def get_job(
                 "campaign_id": campaign_id,
                 "step_id": step_id,
                 "group_id": group_id,
-                "element": job_details,
+                "job": job_details,
                 "scripts": scripts,
             },
         )
@@ -293,7 +293,7 @@ async def get_script(
             name="pages/script_details.html",
             request=request,
             context={
-                "element": script_details,
+                "script": script_details,
             },
         )
     except Exception as e:

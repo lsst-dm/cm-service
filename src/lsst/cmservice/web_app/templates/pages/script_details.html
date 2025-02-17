@@ -1,7 +1,8 @@
 {% extends "pages/base.html" %}
 {% block title %} Script Details {% endblock %}
 {% block content %}
-{% set fullname = element.fullname.split('/') %}
+{% set fullname = script.fullname.split('/') %}
+{% set element = script %}
 {% include "partials/edit_collections_modal.html" %}
 {% include "partials/edit_child_config_modal.html" %}
 {% include "partials/edit_data_dict_modal.html" %}
@@ -9,12 +10,8 @@
 <script>
     window.addEventListener("DOMContentLoaded", () => {
         document.querySelector("#editDataBtn").addEventListener("click", () => {
-            let group_status = "{{element.status}}";
+            let group_status = "{{script.status}}";
             // TODO: revisit status mapping between frontend and backend
-            // if (Object.keys({{element.data}}).length === 0) {
-            //     errorMessage.innerText = "Data Config is empty!";
-            //     errorModal.showModal();
-            // } else
             if(group_status !== "COMPLETE" && group_status !== "IN_PROGRESS") {
                 document.querySelector("#edit-data-dict-modal").showModal();
             } else {
@@ -24,7 +21,7 @@
         });
 
         document.querySelector("#editCollectionsBtn").addEventListener("click", () => {
-            let script_status = "{{element.status}}";
+            let script_status = "{{script.status}}";
             // TODO: revisit status mapping between frontend and backend
             if(script_status !== "COMPLETE" && script_status !== "IN_PROGRESS") {
                 document.querySelector("#edit-collection-modal").showModal();
@@ -35,7 +32,7 @@
         });
 
         document.querySelector("#editChildConfigBtn").addEventListener("click", () => {
-            let group_status = "{{element.status}}";
+            let group_status = "{{script.status}}";
             // TODO: revisit status mapping between frontend and backend
             if(group_status !== "COMPLETE" && group_status !== "IN_PROGRESS") {
                 document.querySelector("#edit-child-config-modal").showModal();
@@ -79,13 +76,13 @@
           {% if i == 0 %}
           {% set parent_link = url_for('get_campaigns') %}
           {% elif i == 1 %}
-          {% set parent_link = url_for('get_steps', campaign_id=element.campaign_id) %}
+          {% set parent_link = url_for('get_steps', campaign_id=script.campaign_id) %}
           {% elif i == 2 %}
-          {% set parent_link = url_for('get_step', campaign_id=element.campaign_id, step_id=element.step_id) %}
+          {% set parent_link = url_for('get_step', campaign_id=script.campaign_id, step_id=script.step_id) %}
           {% elif i == 3 %}
-          {% set parent_link = url_for('get_group', campaign_id=element.campaign_id, step_id=element.step_id, group_id=element.group_id) %}
+          {% set parent_link = url_for('get_group', campaign_id=script.campaign_id, step_id=script.step_id, group_id=script.group_id) %}
           {% else %}
-          {% set parent_link = url_for('get_job', campaign_id=element.campaign_id, step_id=element.step_id, group_id=element.group_id, job_id=element.job_id) %}
+          {% set parent_link = url_for('get_job', campaign_id=script.campaign_id, step_id=script.step_id, group_id=script.group_id, job_id=script.job_id) %}
           {% endif %}
           <a href="{{ parent_link }}" class="underline decoration-2 ml-2 mr-2 text-sm font-medium text-gray-500 hover:text-gray-700">{{ fullname[i] }}</a>
 
@@ -102,18 +99,18 @@
 <div class="w-full">
     <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
         <div class="flex items-center">
-            <span class="text-2xl font-bold">{{element.name}}</span>
+            <span class="text-2xl font-bold">{{script.name}}</span>
         </div>
         <div class="flex items-center">
-            <span class="text-sm font-normal">{{element.fullname}}</span>
+            <span class="text-sm font-normal">{{script.fullname}}</span>
         </div>
         <div class="flex items-center"
              id="script_status"
-             hx-get="{{ url_for('get_script', campaign_id=element.campaign_id, step_id=element.step_id, group_id=element.group_id, job_id=element.job_id, script_id=element.id) }}"
+             hx-get="{{ url_for('get_script', campaign_id=script.campaign_id, step_id=script.step_id, group_id=script.group_id, job_id=script.job_id, script_id=script.id) }}"
              hx-trigger="every 20s"
              hx-select="#script_status"
              hx-swap="outerHTML">
-            <span class="text-sm font-normal">{{element.status}}</span>
+            <span class="text-sm font-normal">{{script.status}}</span>
         </div>
         <div class="block items-center pt-6">
             <span class="text-sm font-bold align-top">Collections</span>
