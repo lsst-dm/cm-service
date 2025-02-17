@@ -100,16 +100,6 @@ async def get_campaigns(
 ) -> HTMLResponse:
     try:
         production_list: dict = {}
-        # productions = await get_productions(session=session)
-        # for production in productions:
-        #     # couldn't find an endpoint to get
-        #     # campaigns in a certain production
-        #     campaigns = await production.children(session)
-        #     production_campaigns = []
-        #     for c in campaigns:
-        #         campaign_details = await get_campaign_details(session, c)
-        #         production_campaigns.append(campaign_details)
-        #     production_list[production.name] = production_campaigns
 
         campaigns = await get_campaigns_api(session=session)
         for campaign in campaigns:
@@ -335,11 +325,11 @@ async def update_element_collections(
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> HTMLResponse:
     try:
-        collections = await request.form()
-        collection_dict = {key: value for key, value in collections.items()}
         element = await get_element(session, element_id, element_type)
         if element is None:
             raise Exception("Element not found")
+        collections = await request.form()
+        collection_dict = {key: value for key, value in collections.items()}
         updated_element = await update_collections(
             session=session, element=element, collections=collection_dict
         )
@@ -362,11 +352,11 @@ async def update_element_child_config(
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> HTMLResponse:
     try:
-        child_config = await request.form()
-        child_config_dict = {key: value for key, value in child_config.items()}
         element = await get_element(session, element_id, element_type)
         if element is None:
             raise Exception("Element not found")
+        child_config = await request.form()
+        child_config_dict = {key: value for key, value in child_config.items()}
         updated_element = await update_child_config(
             session=session, element=element, child_config=child_config_dict
         )
@@ -389,11 +379,11 @@ async def update_element_data_dict(
     session: async_scoped_session = Depends(db_session_dependency),
 ) -> HTMLResponse:
     try:
-        data = await request.form()
-        data_dict = {key: value for key, value in data.items()}
         element = await get_element(session, element_id, element_type)
         if element is None:
             raise Exception("Element not found")
+        data = await request.form()
+        data_dict = {key: value for key, value in data.items()}
         updated_element = await update_data_dict(session=session, element=element, data_dict=data_dict)
         return templates.TemplateResponse(
             name="partials/edit_data_dict_response.html",
