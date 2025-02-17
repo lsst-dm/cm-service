@@ -91,7 +91,8 @@ web_app.mount("/static", StaticFiles(directory=str(Path(BASE_DIR, "static"))), n
 #     except Exception as e:
 #         print(e)
 #         traceback.print_tb(e.__traceback__)
-#         return templates.TemplateResponse(f"Something went wrong:  {e}")
+#         raise HTTPException(status_code=500,
+#         detail=f"Something went wrong: {str(e)}")
 
 
 @web_app.get("/campaigns/", response_class=HTMLResponse)
@@ -120,9 +121,8 @@ async def get_campaigns(
         )
 
     except Exception as e:
-        print(e)
         traceback.print_tb(e.__traceback__)
-        raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Something went wrong: {e}")
 
 
 @web_app.post("/campaigns/", response_class=HTMLResponse)
@@ -147,9 +147,8 @@ async def search(
             },
         )
     except Exception as e:
-        print(e)
         traceback.print_tb(e.__traceback__)
-        return templates.TemplateResponse(f"Something went wrong:  {e}")
+        raise HTTPException(status_code=500, detail=f"Something went wrong: {e}")
 
 
 @web_app.get("/campaign/{campaign_id}/steps/", response_class=HTMLResponse)
@@ -175,9 +174,8 @@ async def get_steps(
             },
         )
     except Exception as e:
-        print(e)
         traceback.print_tb(e.__traceback__)
-        return templates.TemplateResponse(f"Something went wrong {e}")
+        raise HTTPException(status_code=500, detail=f"Something went wrong: {str(e)}")
 
 
 @web_app.get("/campaign/{campaign_id}/{step_id}/", response_class=HTMLResponse)
@@ -200,9 +198,8 @@ async def get_step(
             },
         )
     except Exception as e:
-        print(e)
         traceback.print_tb(e.__traceback__)
-        return templates.TemplateResponse(f"Something went wrong {e}")
+        raise HTTPException(status_code=500, detail=f"Something went wrong: {e}")
 
 
 @web_app.get("/group/{group_id}/", response_class=HTMLResponse)
@@ -224,9 +221,8 @@ async def get_group(
             },
         )
     except Exception as e:
-        print(e)
         traceback.print_tb(e.__traceback__)
-        return templates.TemplateResponse(f"Something went wrong {e}")
+        raise HTTPException(status_code=500, detail=f"Something went wrong: {e}")
 
 
 @web_app.get("/campaign/{campaign_id}/{step_id}/{group_id}/{job_id}/", response_class=HTMLResponse)
@@ -252,9 +248,8 @@ async def get_job(
             },
         )
     except Exception as e:
-        print(e)
         traceback.print_tb(e.__traceback__)
-        return templates.TemplateResponse(f"Something went wrong {e}")
+        raise HTTPException(status_code=500, detail=f"Something went wrong: {e}")
 
 
 @web_app.get("/script/{campaign_id}/{script_id}/", response_class=HTMLResponse)
@@ -287,9 +282,8 @@ async def get_script(
             },
         )
     except Exception as e:
-        print(e)
         traceback.print_tb(e.__traceback__)
-        return templates.TemplateResponse(f"Something went wrong {e}")
+        raise HTTPException(status_code=500, detail=f"Something went wrong: {e}")
 
 
 @web_app.get("/layout/", response_class=HTMLResponse)
@@ -314,7 +308,8 @@ async def read_script_log(request: ReadScriptLogRequest) -> dict[str, str]:
         content = file_path.read_text()
         return {"content": content}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
+        traceback.print_tb(e.__traceback__)
+        raise HTTPException(status_code=500, detail=f"Error reading file: {e}")
 
 
 @web_app.post("/update-collections/{element_type}/{element_id}", response_class=HTMLResponse)
@@ -341,7 +336,8 @@ async def update_element_collections(
             },
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error updating collections: {str(e)}")
+        traceback.print_tb(e.__traceback__)
+        raise HTTPException(status_code=500, detail=f"Error updating collections: {e}")
 
 
 @web_app.post("/update-child-config/{element_type}/{element_id}", response_class=HTMLResponse)
@@ -368,7 +364,8 @@ async def update_element_child_config(
             },
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error updating child config: {str(e)}")
+        traceback.print_tb(e.__traceback__)
+        raise HTTPException(status_code=500, detail=f"Error updating child config: {e}")
 
 
 @web_app.post("/update-data-dict/{element_type}/{element_id}", response_class=HTMLResponse)
@@ -393,4 +390,5 @@ async def update_element_data_dict(
             },
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error updating data dict: {str(e)}")
+        traceback.print_tb(e.__traceback__)
+        raise HTTPException(status_code=500, detail=f"Error updating data dict: {e}")
