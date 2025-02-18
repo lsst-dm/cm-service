@@ -217,7 +217,7 @@ class BaseScriptHandler(Handler):
         """
         raise NotImplementedError("{type(self)}.check()")
 
-    async def review_script(  # pylint: disable=unused-argument
+    async def review_script(
         self,
         session: async_scoped_session,
         script: Script,
@@ -309,9 +309,10 @@ class ScriptHandler(BaseScriptHandler):
     """SubClass of Handler to deal with script operations using real scripts"""
 
     default_method = config.script_handler
+    default_compute_site = config.compute_site
 
     @staticmethod
-    async def _check_stamp_file(  # pylint: disable=unused-argument
+    async def _check_stamp_file(
         session: async_scoped_session,
         stamp_file: str | None,
         script: Script,
@@ -348,7 +349,7 @@ class ScriptHandler(BaseScriptHandler):
         await script.update_values(session, status=status)
         return status
 
-    async def _check_slurm_job(  # pylint: disable=unused-argument
+    async def _check_slurm_job(
         self,
         session: async_scoped_session,
         slurm_id: str | None,
@@ -384,7 +385,7 @@ class ScriptHandler(BaseScriptHandler):
         await script.update_values(session, status=status)
         return status
 
-    async def _check_htcondor_job(  # pylint: disable=unused-argument
+    async def _check_htcondor_job(
         self,
         session: async_scoped_session,
         htcondor_id: str | None,
@@ -437,7 +438,7 @@ class ScriptHandler(BaseScriptHandler):
         elif script_method == ScriptMethodEnum.slurm:
             status = await self._write_script(session, script, parent, **kwargs)
         elif script_method == ScriptMethodEnum.htcondor:
-            status = await self._write_script(session, script, parent, **kwargs)
+            status = await self._write_script(session, script, parent, setup_stack=True, **kwargs)
         else:  # pragma: no cover
             raise CMBadExecutionMethodError(f"Bad script method {script_method}")
         await script.update_values(session, status=status)
@@ -653,7 +654,7 @@ class FunctionHandler(BaseScriptHandler):
         await script.update_values(session, status=status)
         return status
 
-    async def _do_prepare(  # pylint: disable=unused-argument
+    async def _do_prepare(
         self,
         session: async_scoped_session,
         script: Script,
@@ -680,7 +681,7 @@ class FunctionHandler(BaseScriptHandler):
         """
         raise NotImplementedError
 
-    async def _do_run(  # pylint: disable=unused-argument
+    async def _do_run(
         self,
         session: async_scoped_session,
         script: Script,
@@ -707,7 +708,7 @@ class FunctionHandler(BaseScriptHandler):
         """
         return StatusEnum.running
 
-    async def _do_check(  # pylint: disable=unused-argument
+    async def _do_check(
         self,
         session: async_scoped_session,
         script: Script,

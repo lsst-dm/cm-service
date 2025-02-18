@@ -8,6 +8,7 @@ from typing import Any
 import yaml
 from anyio import Path
 from fastapi.concurrency import run_in_threadpool
+from jinja2 import Environment, PackageLoader
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from lsst.ctrl.bps import BaseWmsService, WmsStates
@@ -23,6 +24,7 @@ from ..common.errors import (
     CMMissingScriptInputError,
     test_type_and_raise,
 )
+from ..common.logging import LOGGER
 from ..config import config
 from ..db.element import ElementMixin
 from ..db.job import Job
@@ -46,6 +48,8 @@ WMS_TO_TASK_STATUS_MAP = {
     WmsStates.PRUNED: TaskStatusEnum.failed,
 }
 
+logger = LOGGER.bind(module=__name__)
+
 
 class BpsScriptHandler(ScriptHandler):
     """Write a script to run bps jobs
@@ -54,6 +58,8 @@ class BpsScriptHandler(ScriptHandler):
     `parent.collections['run']`
     """
 
+    wms_method = WmsMethodEnum.default
+
     async def _write_script(
         self,
         session: async_scoped_session,
@@ -61,9 +67,13 @@ class BpsScriptHandler(ScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        specification = await script.get_specification(session)
-        resolved_cols = await script.resolve_collections(session)
+        # Database operations
+        await session.refresh(parent, attribute_names=["c_", "p_"])
         data_dict = await script.data_dict(session)
+        resolved_cols = await script.resolve_collections(session)
+
+        # Resolve mandatory data element inputs. All of these values must be
+        # provided somewhere along the SpecBlock chain.
         try:
             prod_area = os.path.expandvars(data_dict["prod_area"])
             butler_repo = os.path.expandvars(data_dict["butler_repo"])
@@ -72,23 +82,22 @@ class BpsScriptHandler(ScriptHandler):
             pipeline_yaml = os.path.expandvars(data_dict["pipeline_yaml"])
             run_coll = resolved_cols["run"]
             input_colls = resolved_cols["inputs"]
-            bps_core_yaml_template = data_dict["bps_core_yaml_template"]
-            bps_core_script_template = data_dict["bps_core_script_template"]
-            bps_wms_script_template = data_dict["bps_wms_script_template"]
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
 
-        # optional stuff from data_dict
-        rescue = data_dict.get("rescue", False)
-        skip_colls = data_dict.get("skip_colls", "")
-        custom_lsst_setup = data_dict.get("custom_lsst_setup", None)
-        bps_wms_yaml_file = data_dict.get("bps_wms_yaml_file", None)
-        bps_wms_clustering_file = data_dict.get("bps_wms_clustering_file", None)
-        bps_wms_resources_file = data_dict.get("bps_wms_resources_file", None)
-        bps_wms_extra_files = data_dict.get("bps_wms_extra_files", [])
-        bps_extra_config = data_dict.get("bps_extra_config", None)
-        data_query = data_dict.get("data_query", None)
-        extra_qgraph_options = data_dict.get("extra_qgraph_options", None)
+        # workflow_config is the values dictionary to use while rendering a
+        # yaml template, NOT the yaml template itself!
+        workflow_config: dict[str, Any] = {}
+        workflow_config["project"] = parent.p_.name  # type: ignore
+        workflow_config["campaign"] = parent.c_.name  # type: ignore
+        workflow_config["pipeline_yaml"] = pipeline_yaml
+        workflow_config["lsst_version"] = lsst_version
+        workflow_config["lsst_distrib_dir"] = lsst_distrib_dir
+        workflow_config["wms"] = self.wms_method.name
+        workflow_config["script_method"] = script.run_method.name
+        workflow_config["compute_site"] = data_dict.get("compute_site", self.default_compute_site.name)
+        workflow_config["custom_lsst_setup"] = data_dict.get("custom_lsst_setup", None)
+        workflow_config["extra_qgraph_options"] = data_dict.get("extra_qgraph_options", None)
 
         # Get the output file paths
         script_url = await self._set_script_files(session, script, prod_area)
@@ -97,71 +106,62 @@ class BpsScriptHandler(ScriptHandler):
             os.path.expandvars(f"{prod_area}/{script.fullname}_bps_config.yaml")
         ).resolve()
         log_url = await Path(os.path.expandvars(f"{prod_area}/{script.fullname}.log")).resolve()
-
-        # get the requested templates
-        bps_core_script_template_ = await specification.get_script_template(
-            session,
-            bps_core_script_template,
-        )
-        bps_core_yaml_template_ = await specification.get_script_template(
-            session,
-            bps_core_yaml_template,
-        )
-        bps_wms_script_template_ = await specification.get_script_template(
-            session,
-            bps_wms_script_template,
-        )
-
         config_path = await Path(config_url).resolve()
         submit_path = await Path(f"{prod_area}/{parent.fullname}/submit").resolve()
+        workflow_config["submit_path"] = str(submit_path)
+
         try:
             await run_in_threadpool(shutil.rmtree, submit_path)
         except FileNotFoundError:
             pass
 
-        # build up the bps wrapper script
-        command = (
-            f"{config.bps.bps_bin} --log-file {json_url} --no-log-tty submit " f"{config_path} > {log_url}"
-        )
+        command = f"{config.bps.bps_bin} --log-file {json_url} --no-log-tty submit {config_path} > {log_url}"
+        await write_bash_script(script_url, command, values=workflow_config)
 
-        prepend = bps_core_script_template_.data["text"].replace("{lsst_version}", lsst_version)  # type: ignore
-        prepend = prepend.replace("{lsst_distrib_dir}", lsst_distrib_dir)
-        # Add custom_lsst_setup to the bps submit script
-        # in case it is a change to bps itself
-        if custom_lsst_setup:  # pragma: no cover
-            prepend += f"\n{custom_lsst_setup}\n"
-        prepend += bps_wms_script_template_.data["text"]  # type: ignore
+        # FIXME at this point, how could the following path *not* exist?
+        #       is this meant to be `config_url` instead?
+        await Path(script_url).parent.mkdir(parents=True, exist_ok=True)
 
-        await write_bash_script(script_url, command, prepend=prepend)
-
-        workflow_config = bps_core_yaml_template_.data.copy()  # type: ignore
-
+        workflow_config["extra_yaml_literals"] = []
         include_configs = []
-        for to_include_ in [bps_wms_yaml_file, bps_wms_clustering_file, bps_wms_resources_file]:
+
+        # FIXME `bps_wms_*_file` should be added to the generic list of
+        # `bps_wms_extra_files` instead of being specific keywords. The only
+        # reason they are kept separate is to support overrides of their
+        # specific role
+        bps_wms_extra_files = data_dict.get("bps_wms_extra_files", [])
+        bps_wms_clustering_file = data_dict.get("bps_wms_clustering_file", None)
+        bps_wms_resources_file = data_dict.get("bps_wms_resources_file", None)
+        bps_wms_yaml_file = data_dict.get("bps_wms_yaml_file", None)
+        for to_include_ in [
+            bps_wms_yaml_file,
+            bps_wms_clustering_file,
+            bps_wms_resources_file,
+            *bps_wms_extra_files,
+        ]:
             if to_include_:
                 # We want abspaths, but we need to be careful about
                 # envvars that are not yet expanded
                 to_include_ = os.path.expandvars(to_include_)
-                if "$" not in to_include_:
-                    to_include_ = await Path(to_include_).resolve()
-                include_configs.append(str(to_include_))
-        include_configs += bps_wms_extra_files
+                # If the potential include file has an unexpanded env var, we
+                # delegate that expansion to the bps runtime, since it may
+                # refer to a stack env var we do not understand.
+                if "$" in to_include_:
+                    include_configs.append(str(to_include_))
+                    continue
 
-        workflow_config["includeConfigs"] = include_configs  # type: ignore
+                # Otherwise, instead of including it we should render it out
+                # because it's a path we understand but the bps runtime won't
+                to_include_ = await Path(to_include_).resolve()
 
-        await session.refresh(parent, attribute_names=["c_", "p_"])
-        workflow_config["project"] = parent.p_.name  # type: ignore
-        workflow_config["campaign"] = parent.c_.name  # type: ignore
+                try:
+                    include_yaml_ = yaml.dump(yaml.safe_load(await to_include_.read_text()))
+                    workflow_config["extra_yaml_literals"].append(include_yaml_)
+                except yaml.YAMLError:
+                    logger.exception()
+                    raise
 
-        workflow_config["submitPath"] = str(submit_path)  # type: ignore
-
-        workflow_config["LSST_VERSION"] = os.path.expandvars(lsst_version)  # type: ignore
-        if custom_lsst_setup:  # pragma: no cover
-            workflow_config["custom_lsst_setup"] = custom_lsst_setup  # type: ignore
-        workflow_config["pipelineYaml"] = pipeline_yaml  # type: ignore
-
-        if extra_qgraph_options:  # pragma: no cover
-            workflow_config["extraQgraphOptions"] = extra_qgraph_options.replace("\n", " ").strip()  # type: ignore
+        workflow_config["include_configs"] = include_configs
 
         if isinstance(input_colls, list):  # pragma: no cover
             in_collection = ",".join(input_colls)
@@ -169,25 +169,24 @@ class BpsScriptHandler(ScriptHandler):
             in_collection = input_colls
 
         payload = {
-            "payloadName": parent.c_.name,  # type: ignore
-            "butlerConfig": butler_repo,
-            "outputRun": run_coll,
-            "inCollection": in_collection,
+            "name": parent.c_.name,  # type: ignore
+            "butler_config": butler_repo,
+            "output_run_collection": run_coll,
+            "input_collection": in_collection,
+            "data_query": data_dict.get("data_query", None),
         }
-        if data_query:
-            payload["dataQuery"] = data_query.replace("\n", " ").strip()
-        if rescue:  # pragma: no cover
+        if data_dict.get("rescue", False):  # pragma: no cover
+            skip_colls = data_dict.get("skip_colls", "")
             payload["extra_args"] = f"--skip-existing-in {skip_colls}"
 
-        workflow_config["payload"] = payload  # type: ignore
+        workflow_config["payload"] = payload
 
-        if bps_extra_config:  # pragma: no cover
-            workflow_config.update(**bps_extra_config)  # type: ignore
-
-        await Path(script_url).parent.mkdir(parents=True, exist_ok=True)
-
+        # Get the yaml template using package lookup
+        config_template_environment = Environment(loader=PackageLoader("lsst.cmservice"))
+        config_template = config_template_environment.get_template("bps_submit_yaml.j2")
         try:
-            yaml_output = yaml.dump(workflow_config)
+            # Render bps_submit_yaml template to `config_url`
+            yaml_output = config_template.render(workflow_config)
             await Path(config_url).write_text(yaml_output)
         except yaml.YAMLError as yaml_error:
             raise yaml.YAMLError(f"Error writing a script to run BPS job {script}; threw {yaml_error}")
@@ -435,7 +434,7 @@ class PandaScriptHandler(BpsScriptHandler):
 class HTCondorScriptHandler(BpsScriptHandler):
     """Class to handle running Bps for ht_condor jobs"""
 
-    wms_method = WmsMethodEnum.ht_condor
+    wms_method = WmsMethodEnum.htcondor
 
     @classmethod
     def get_job_id(cls, bps_dict: dict) -> str:
@@ -464,37 +463,26 @@ class ManifestReportScriptHandler(ScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        specification = await script.get_specification(session)
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
         prod_area = os.path.expandvars(data_dict["prod_area"])
         script_url = await self._set_script_files(session, script, prod_area)
         butler_repo = data_dict["butler_repo"]
-        lsst_distrib_dir = data_dict["lsst_distrib_dir"]
-        lsst_version = data_dict["lsst_version"]
         job_run_coll = resolved_cols["job_run"]
         qgraph_file = f"{job_run_coll}.qgraph".replace("/", "_")
 
         graph_url = await Path(f"{prod_area}/{parent.fullname}/submit/{qgraph_file}").resolve()
         report_url = await Path(f"{prod_area}/{parent.fullname}/submit/manifest_report.yaml").resolve()
 
-        manifest_script_template = await specification.get_script_template(
-            session,
-            data_dict["manifest_script_template"],
-        )
-        prepend = manifest_script_template.data["text"].replace("{lsst_version}", lsst_version)  # type: ignore
-        prepend = prepend.replace("{lsst_distrib_dir}", lsst_distrib_dir)
-        if "custom_lsst_setup" in data_dict:  # pragma: no cover
-            custom_lsst_setup = data_dict["custom_lsst_setup"]
-            prepend += f"\n{custom_lsst_setup}"
-
-        # Strip leading/trailing spaces just in case
-        prepend = "\n".join([line.strip() for line in prepend.splitlines()])
+        template_values = {
+            "script_method": script.run_method.name,
+            **data_dict,
+        }
 
         command = (
             f"{config.bps.pipetask_bin} report --full-output-filename {report_url} {butler_repo} {graph_url}"
         )
-        await write_bash_script(script_url, command, prepend=prepend)
+        await write_bash_script(script_url, command, values=template_values)
 
         return StatusEnum.prepared
 

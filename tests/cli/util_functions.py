@@ -237,10 +237,7 @@ def check_update_methods(
 ) -> None:
     result = runner.invoke(
         client_top,
-        f"{entry_class_name} update data_dict "
-        "--output yaml "
-        f"--row_id {entry.id} "
-        "--update_dict test:dummy",
+        f"{entry_class_name} update data_dict --output yaml --row_id {entry.id} --update_dict test:dummy",
     )
     check = check_and_parse_result(result, dict)
     assert check["test"] == "dummy", "update_data_dict failed"
@@ -267,10 +264,7 @@ def check_update_methods(
 
     result = runner.invoke(
         client_top,
-        f"{entry_class_name} update collections "
-        "--output yaml "
-        f"--row_id {entry.id} "
-        "--update_dict test:dummy",
+        f"{entry_class_name} update collections --output yaml --row_id {entry.id} --update_dict test:dummy",
     )
     check = check_and_parse_result(result, dict)
     assert check["test"] == "dummy", "update_collections failed"
@@ -303,20 +297,14 @@ def check_update_methods(
 
     result = runner.invoke(
         client_top,
-        f"{entry_class_name} update child_config "
-        f"--row_id {entry.id} "
-        "--output yaml "
-        "--update_dict test:dummy",
+        f"{entry_class_name} update child_config --row_id {entry.id} --output yaml --update_dict test:dummy",
     )
     check = check_and_parse_result(result, dict)
     assert check["test"] == "dummy", "update_child_config failed"
 
     result = runner.invoke(
         client_top,
-        f"{entry_class_name} update child_config "
-        f"--row_id -1 "
-        "--output yaml "
-        "--update_dict test:dummy",
+        f"{entry_class_name} update child_config --row_id -1 --output yaml --update_dict test:dummy",
     )
     expect_failed_result(result, 1)
 
@@ -331,10 +319,7 @@ def check_update_methods(
 
     result = runner.invoke(
         client_top,
-        f"{entry_class_name} update spec_aliases "
-        "--output yaml "
-        f"--row_id {entry.id} "
-        "--update_dict test:dummy",
+        f"{entry_class_name} update spec_aliases --output yaml --row_id {entry.id} --update_dict test:dummy",
     )
     # FIXME: is this the return type we want?
     check_spec = check_and_parse_result(result, entry_class)

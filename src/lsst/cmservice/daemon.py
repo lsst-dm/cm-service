@@ -2,20 +2,21 @@ from asyncio import create_task
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-import structlog
 import uvicorn
 from anyio import current_time, sleep_until
 from fastapi import FastAPI
 from safir.database import create_async_session, create_database_engine
-from safir.logging import configure_logging, configure_uvicorn_logging
+from safir.logging import configure_uvicorn_logging
 
 from . import __version__
 from .common.daemon import daemon_iteration
+from .common.logging import LOGGER
 from .config import config
 from .routers.healthz import health_router
 
 configure_uvicorn_logging(config.logging.level)
-configure_logging(profile=config.logging.profile, log_level=config.logging.level, name=__name__)
+
+logger = LOGGER.bind(module=__name__)
 
 
 @asynccontextmanager
@@ -34,7 +35,6 @@ async def main_loop() -> None:
     With a database session, perform a single daemon interation and then sleep
     until the next daemon appointment.
     """
-    logger = structlog.get_logger(__name__)
     engine = create_database_engine(config.db.url, config.db.password)
     sleep_time = config.daemon.processing_interval
 

@@ -10,6 +10,7 @@ from sqlalchemy.schema import ForeignKey
 
 from ..common.enums import LevelEnum
 from ..common.errors import CMBadEnumError, CMMissingFullnameError
+from ..common.logging import LOGGER
 from .base import Base
 from .campaign import Campaign
 from .group import Group
@@ -17,6 +18,8 @@ from .job import Job
 from .node import NodeMixin
 from .script import Script
 from .step import Step
+
+logger = LOGGER.bind(module=__name__)
 
 
 class Queue(Base, NodeMixin):
@@ -214,9 +217,11 @@ class Queue(Base, NodeMixin):
         node = await self.get_node(session)
 
         if node.level == LevelEnum.script:
+            logger.debug("Processing a %s", node.level)
             if not node.status.is_processable_script():
                 return False
         if not node.status.is_processable_element():
+            logger.debug("Node %s is not processable", node.name)
             return False
 
         process_kwargs: dict = {}

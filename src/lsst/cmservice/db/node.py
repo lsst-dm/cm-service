@@ -15,6 +15,7 @@ from ..common.errors import (
     CMResolveCollectionsError,
     test_type_and_raise,
 )
+from ..common.logging import LOGGER
 from ..config import config
 from .handler import Handler
 from .row import RowMixin
@@ -24,6 +25,8 @@ from .specification import Specification
 if TYPE_CHECKING:
     from .campaign import Campaign
     from .element import ElementMixin
+
+logger = LOGGER.bind(module=__name__)
 
 
 class NodeMixin(RowMixin):
@@ -608,7 +611,7 @@ class NodeMixin(RowMixin):
         """
         try:
             await session.refresh(self, attribute_names=["prereqs_"])
-        except Exception:  # pylint: disable=broad-exception-caught
+        except Exception:
             return True
         for prereq_ in self.prereqs_:
             is_done = await prereq_.is_done(session)
@@ -688,7 +691,7 @@ class NodeMixin(RowMixin):
         await self.update_values(session, status=StatusEnum.waiting, superseded=False)
         return self
 
-    async def _clean_up_node(  # pylint: disable=unused-argument
+    async def _clean_up_node(
         self,
         session: async_scoped_session,
         *,
@@ -734,6 +737,7 @@ class NodeMixin(RowMixin):
             Status of the processing
         """
         handler = await self.get_handler(session)
+        logger.debug("Processing node with handler %s", handler.get_handler_class_name())
         return await handler.process(session, self, **kwargs)
 
     async def run_check(

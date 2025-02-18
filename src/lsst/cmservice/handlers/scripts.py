@@ -14,19 +14,20 @@ from ..common.butler import (
     remove_non_run_collections,
     remove_run_collections,
 )
-from ..common.enums import LevelEnum, ScriptMethodEnum, StatusEnum
+from ..common.enums import LevelEnum, StatusEnum
 from ..common.errors import CMBadExecutionMethodError, CMMissingScriptInputError, test_type_and_raise
+from ..common.logging import LOGGER
 from ..config import config
 from ..db.element import ElementMixin
 from ..db.script import Script
 from ..db.step import Step
 from .script_handler import ScriptHandler
 
+logger = LOGGER.bind(module=__name__)
+
 
 class NullScriptHandler(ScriptHandler):
     """A no-op script, mostly for testing"""
-
-    default_method = ScriptMethodEnum.bash
 
     async def _write_script(
         self,
@@ -44,8 +45,14 @@ class NullScriptHandler(ScriptHandler):
         except KeyError as e:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {e}") from e
 
+        template_values = {
+            "script_method": script.run_method.name,
+            **data_dict,
+        }
+
         command = f"echo trivial {butler_repo} {output_coll}"
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+
+        await write_bash_script(script_url, command, values=template_values)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -97,7 +104,13 @@ class ChainCreateScriptHandler(ScriptHandler):
                 command += f" {input_coll}"
         else:
             command += f" {input_colls}"
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+
+        template_values = {
+            "script_method": script.run_method.name,
+            **data_dict,
+        }
+
+        await write_bash_script(script_url, command, values=template_values)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -152,7 +165,13 @@ class ChainPrependScriptHandler(ScriptHandler):
             f"{config.butler.butler_bin} collection-chain "
             f"{butler_repo} {output_coll} --mode prepend {input_coll}"
         )
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+
+        template_values = {
+            "script_method": script.run_method.name,
+            **data_dict,
+        }
+
+        await write_bash_script(script_url, command, values=template_values)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -225,7 +244,13 @@ class ChainCollectScriptHandler(ScriptHandler):
             command += f" {collect_coll_}"
         for input_coll_ in input_colls:
             command += f" {input_coll_}"
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+
+        template_values = {
+            "script_method": script.run_method.name,
+            **data_dict,
+        }
+
+        await write_bash_script(script_url, command, values=template_values)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -280,7 +305,13 @@ class TagInputsScriptHandler(ScriptHandler):
         command = f"{config.butler.butler_bin} associate {butler_repo} {output_coll}"
         command += f" --collections {input_coll}"
         command += f' --where "{data_query}"' if data_query else ""
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+
+        template_values = {
+            "script_method": script.run_method.name,
+            **data_dict,
+        }
+
+        await write_bash_script(script_url, command, values=template_values)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -327,7 +358,13 @@ class TagCreateScriptHandler(ScriptHandler):
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"{config.butler.butler_bin} associate {butler_repo} {output_coll}"
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+
+        template_values = {
+            "script_method": script.run_method.name,
+            **data_dict,
+        }
+
+        await write_bash_script(script_url, command, values=template_values)
         await script.update_values(session, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -378,7 +415,13 @@ class TagAssociateScriptHandler(ScriptHandler):
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"{config.butler.butler_bin} associate {butler_repo} {output_coll}"
         command += f" --collections {input_coll}"
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+
+        template_values = {
+            "script_method": script.run_method.name,
+            **data_dict,
+        }
+
+        await write_bash_script(script_url, command, values=template_values)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -450,7 +493,13 @@ class PrepareStepScriptHandler(ScriptHandler):
         command = f"{config.butler.butler_bin} collection-chain {butler_repo} {output_coll}"
         for prereq_coll_ in prereq_colls:
             command += f" {prereq_coll_}"
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+
+        template_values = {
+            "script_method": script.run_method.name,
+            **data_dict,
+        }
+
+        await write_bash_script(script_url, command, values=template_values)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 
@@ -483,31 +532,12 @@ class ResourceUsageScriptHandler(ScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        specification = await script.get_specification(session)
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
         prod_area = os.path.expandvars(data_dict["prod_area"])
         script_url = await self._set_script_files(session, script, prod_area)
         butler_repo = data_dict["butler_repo"]
-        lsst_distrib_dir = data_dict["lsst_distrib_dir"]
-        lsst_version = data_dict["lsst_version"]
         usage_graph_url = os.path.expandvars(f"{prod_area}/{parent.fullname}/resource_usage.qgraph")
-
-        resource_usage_script_template = await specification.get_script_template(
-            session,
-            data_dict["resource_usage_script_template"],
-        )
-        prepend = resource_usage_script_template.data["text"].replace(  # type: ignore
-            "{lsst_version}",
-            lsst_version,
-        )
-        prepend = prepend.replace("{lsst_distrib_dir}", lsst_distrib_dir)
-        if "custom_lsst_setup" in data_dict:  # pragma: no cover
-            custom_lsst_setup = data_dict["custom_lsst_setup"]
-            prepend += f"\n{custom_lsst_setup}"
-
-        # Strip leading/trailing spaces just in case
-        prepend = "\n".join([line.strip() for line in prepend.splitlines()])
 
         command = (
             f"{config.bps.resource_usage_bin} {butler_repo} {usage_graph_url} "
@@ -516,7 +546,12 @@ class ResourceUsageScriptHandler(ScriptHandler):
             f"-o {resolved_cols['campaign_resource_usage']} --register-dataset-types -j {config.bps.n_jobs}"
         )
 
-        await write_bash_script(script_url, command, prepend=prepend)
+        template_values = {
+            "script_method": script.run_method.name,
+            **data_dict,
+        }
+
+        await write_bash_script(script_url, command, values=template_values)
 
         return StatusEnum.prepared
 
@@ -554,31 +589,12 @@ class HipsMapsScriptHandler(ScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        specification = await script.get_specification(session)
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
         prod_area = os.path.expandvars(data_dict["prod_area"])
         script_url = await self._set_script_files(session, script, prod_area)
         butler_repo = data_dict["butler_repo"]
-        lsst_distrib_dir = data_dict["lsst_distrib_dir"]
-        lsst_version = data_dict["lsst_version"]
         hips_maps_graph_url = os.path.expandvars(f"{prod_area}/{parent.fullname}/hips_maps.qgraph")
-
-        hips_maps_script_template = await specification.get_script_template(
-            session,
-            data_dict["hips_maps_script_template"],
-        )
-        prepend = hips_maps_script_template.data["text"].replace(  # type: ignore
-            "{lsst_version}",
-            lsst_version,
-        )
-        prepend = prepend.replace("{lsst_distrib_dir}", lsst_distrib_dir)
-        if "custom_lsst_setup" in data_dict:  # pragma: no cover
-            custom_lsst_setup = data_dict["custom_lsst_setup"]
-            prepend += f"\n{custom_lsst_setup}"
-
-        # Strip leading/trailing spaces just in case
-        prepend = "\n".join([line.strip() for line in prepend.splitlines()])
 
         hips_pipeline_yaml = await Path(
             os.path.expandvars("${CM_CONFIGS}") + data_dict["hips_pipeline_yaml_path"]
@@ -622,7 +638,12 @@ class HipsMapsScriptHandler(ScriptHandler):
         # Strip leading/trailing spaces just in case
         command = "\n".join([line.strip() for line in command.splitlines()])
 
-        await write_bash_script(script_url, command, prepend=prepend)
+        template_values = {
+            "script_method": script.run_method.name,
+            **data_dict,
+        }
+
+        await write_bash_script(script_url, command, values=template_values)
 
         return StatusEnum.prepared
 
@@ -677,7 +698,13 @@ class ValidateScriptHandler(ScriptHandler):
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"{config.bps.pipetask_bin} validate {butler_repo} {input_coll} {output_coll}"
-        await write_bash_script(script_url, command, prepend="#!/usr/bin/env bash\n", **data_dict)
+
+        template_values = {
+            "script_method": script.run_method.name,
+            **data_dict,
+        }
+
+        await write_bash_script(script_url, command, values=template_values)
         await script.update_values(session, script_url=script_url, status=StatusEnum.prepared)
         return StatusEnum.prepared
 

@@ -31,9 +31,8 @@ async def test_common_bash() -> None:
     the_script = await write_bash_script(
         "temp.sh",
         "ls",
-        prepend="#!/usr/bin/env bash",
-        append="# have a nice day",
         fake=True,
+        values=dict(append="# have a nice day", script_method="bash"),
     )
 
     await run_bash_job(the_script, "temp.log", "temp.stamp")
@@ -113,10 +112,10 @@ async def test_common_htcondor() -> None:
     """Test common.htcondor functions"""
 
     _ht_condor_log = await write_htcondor_script(
-        "htcondor_temp.sh",
-        "htcondor_temp.log",
-        "script_temp.sh",
-        "script_temp.log",
+        Path("htcondor_temp.sh"),
+        Path("htcondor_temp.log"),
+        Path("script_temp.sh"),
+        Path("script_temp.log"),
     )
 
     with pytest.raises(CMHTCondorSubmitError):

@@ -1,7 +1,8 @@
 import os
+import uuid
+from asyncio import sleep
 from datetime import datetime
 
-import pause
 import pytest
 import structlog
 from safir.database import create_async_session
@@ -27,8 +28,8 @@ async def test_daemon_db(engine: AsyncEngine) -> None:
 
         campaign = await interface.load_and_create_campaign(
             session,
-            "examples/example_trivial.yaml",
-            "trivial_panda",
+            "tests/fixtures/seeds/example_trivial.yaml",
+            f"trivial_panda_{uuid.uuid1().int}",
             "test_daemon",
             "trivial_panda#campaign",
         )
@@ -52,7 +53,7 @@ async def test_daemon_db(engine: AsyncEngine) -> None:
 
         assert campaign.status.value >= StatusEnum.running.value
 
-        pause.sleep(2)
+        await sleep(2)
         await queue_entry.update_values(
             session,
             time_next_check=datetime.now(),
@@ -60,6 +61,7 @@ async def test_daemon_db(engine: AsyncEngine) -> None:
         await session.commit()
 
         await daemon_iteration(session)
+        await sleep(2)
         await session.refresh(campaign)
 
         assert campaign.status == StatusEnum.accepted

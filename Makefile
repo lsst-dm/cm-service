@@ -1,6 +1,5 @@
 SHELL := /bin/bash
 GIT_BRANCH := $(shell git branch --show-current)
-PRERELEASE := $(shell if [[ $(GIT_BRANCH) =~ main ]]; then echo '--minor'; else echo '--no-tag --no-commit'; fi)
 PY_VENV := .venv/
 UV_LOCKFILE := uv.lock
 
@@ -63,7 +62,16 @@ uv:
 .PHONY: release
 release: export GIT_COMMIT_AUTHOR="$(shell git config user.name) <$(shell git config user.email)>"
 release:
-	uv run semantic-release version $(PRERELEASE) --no-push --no-vcs-release --skip-build --no-changelog
+	semantic-release version --no-push --no-vcs-release --skip-build --no-changelog --no-tag
+
+
+.PHONY: signed-release
+signed-release: release
+signed-release: export RELEASE_TAG=$(shell semantic-release version --print-last-released)
+signed-release:
+	git tag -d "$(RELEASE_TAG)" || true
+	git tag -s "$(RELEASE_TAG)" -m "Release $(RELEASE_TAG)"
+
 
 #------------------------------------------------------------------------------
 # Convenience targets to run pre-commit hooks ("lint") and mypy ("typing")
@@ -131,6 +139,16 @@ migrate: export DB__URL=postgresql://${PGHOST}/${PGDATABASE}
 migrate: run-compose
 	alembic upgrade head
 
+.PHONY: unmigrate
+unmigrate: export PGUSER=cm-service
+unmigrate: export PGDATABASE=cm-service
+unmigrate: export PGHOST=localhost
+unmigrate: export DB__PORT=$(shell docker compose port postgresql 5432 | cut -d: -f2)
+unmigrate: export DB__PASSWORD=INSECURE-PASSWORD
+unmigrate: export DB__URL=postgresql://${PGHOST}/${PGDATABASE}
+unmigrate: run-compose
+	alembic downgrade base
+
 
 #------------------------------------------------------------------------------
 # Targets for developers to debug running against local sqlite.  Can be used on
@@ -168,38 +186,13 @@ run-worker-sqlite:
 # for production and sqlite for development/debug.
 #------------------------------------------------------------------------------
 
-.PHONY: psql-usdf-dev
-psql-usdf-dev: export PGHOST=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get svc/cm-pg-lb -o jsonpath='{..ingress[0].ip}')'
-psql-usdf-dev: export PGPASSWORD=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get secret/cm-pg-app -o jsonpath='{.data.password}' | base64 --decode)
-psql-usdf-dev: export PGUSER=cm-service
-psql-usdf-dev: export PGDATABASE=cm-service
-psql-usdf-dev: ## Connect psql client to backend Postgres (shared USDF)
-	psql
-
-.PHONY: test-usdf-dev
-test-usdf-dev: DB__HOST=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get svc/cm-pg-lb -o jsonpath='{..ingress[0].ip}')'
-test-usdf-dev: export DB__URL=postgresql://cm-service@${DB__HOST}:5432/cm-service
-test-usdf-dev: export DB__PASSWORD=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get secret/cm-pg-app -o jsonpath='{.data.password}' | base64 --decode)
-test-usdf-dev: export DB__SCHEMA=cm_service_test
-test-usdf-dev:
-	pytest -vvv --cov=lsst.cmservice --cov-branch --cov-report=term --cov-report=html ${PYTEST_ARGS}
-
 .PHONY: run-usdf-dev
 run-usdf-dev:DB__HOST=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get svc/cm-pg-lb -o jsonpath='{..ingress[0].ip}')'
 run-usdf-dev: export DB__URL=postgresql://cm-service@${DB__HOST}:5432/cm-service
 run-usdf-dev: export DB__PASSWORD=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get secret/cm-pg-app -o jsonpath='{.data.password}' | base64 --decode)
 run-usdf-dev: export DB__ECHO=true
 run-usdf-dev:
-	alembic upgrade head
 	python3 -m lsst.cmservice.main
-
-.PHONY: run-worker-usdf-dev
-run-worker-usdf-dev: DB__HOST=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get svc/cm-pg-lb -o jsonpath='{..ingress[0].ip}')
-run-worker-usdf-dev: export DB__URL=postgresql://cm-service@${DB__HOST}:5432/cm-service
-run-worker-usdf-dev: export DB__PASSWORD=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get secret/cm-pg-app -o jsonpath='{.data.password}' | base64 --decode)
-run-worker-usdf-dev: export DB__ECHO=true
-run-worker-usdf-dev:
-	python3 -m lsst.cmservice.daemon
 
 get-env-%: DB__HOST=$(shell kubectl --cluster=$* -n cm-service get svc/cm-pg-lb -o jsonpath='{..ingress[0].ip}')
 get-env-%: export DB__URL=postgresql://cm-servicer@${DB__HOST}:5432/cm-service

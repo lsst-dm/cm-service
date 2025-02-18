@@ -151,4 +151,4 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
         await check_queue(session, entry)
 
         # cleanup
-        await cleanup(session)
+        await cleanup(session, check_cascade=True)

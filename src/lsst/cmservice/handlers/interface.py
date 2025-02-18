@@ -531,7 +531,7 @@ async def load_specification(
     return result
 
 
-async def load_and_create_campaign(  # pylint: disable=too-many-arguments
+async def load_and_create_campaign(
     session: async_scoped_session,
     yaml_file: str,
     parent_name: str,
@@ -677,7 +677,7 @@ async def load_manifest_report(
     return result
 
 
-async def match_pipetask_errors(  # pylint: disable=unused-argument
+async def match_pipetask_errors(
     session: async_scoped_session,
     *,
     rematch: bool = False,

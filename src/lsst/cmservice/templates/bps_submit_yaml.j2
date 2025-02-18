@@ -1,0 +1,57 @@
+project: {{ project }}
+campaign: {{ campaign }}
+LSST_VERSION: {{ lsst_version }}
+submitPath: {{ submit_path }}
+{%- if custom_lsst_setup %}
+{{ custom_lsst_setup }}
+{%- endif %}
+pipelineYaml: {{ pipeline_yaml }}
+executionButler:
+  queue: SLAC_Rubin_Merge
+  requestMemory: 64000
+  command2: ''
+  command3: ''
+{%- if include_configs | length > 0 %}
+includeConfigs:
+{%- for config in include_configs %}
+- {{ config }}
+{%- endfor %}
+{%- endif %}
+payload:
+  payloadName: {{ payload.name }}
+  butlerConfig: {{ payload.butler_config }}
+  inCollection: {{ payload.input_collection }}
+  outputRun: {{ payload.output_run_collection }}
+  {%- if payload.data_query %}
+  dataQuery: {{ payload.data_query | replace("\n", " ") | trim }}
+  {%- endif %}
+  {%- if payload.extra_args %}
+  extra_args: {{ payload.extra_args }}
+  {%- endif %}
+pipetaskOutput: ''
+{%- if extra_qgraph_options %}
+extraQgraphOptions: {{ extra_qgraph_options | replace("\n", " ") | trim }}
+{%- endif %}
+{%- if extra_yaml_literals|length > 0 %}
+{%- for yaml_literal in extra_yaml_literals %}
+{{ yaml_literal }}
+{%- endfor %}
+{%- endif %}
+{%- if wms == "htcondor" %}
+wmsServiceClass: lsst.ctrl.bps.htcondor.HTCondorService
+{%- if compute_site == "usdf" %}
+site:
+  s3df:
+    profile:
+      condor:
+        +Walltime: 7200
+memoryMultiplier: 4.
+numberOfRetries: 3
+memoryLimit: 400000
+{%- endif %}
+{%- endif %}
+{%- if wms == "panda" %}
+wmsServiceClass: lsst.ctrl.bps.panda.PanDAService
+{%- if compute_site == "usdf" %}
+{%- endif %}
+{%- endif %}

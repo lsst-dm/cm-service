@@ -1,3 +1,4 @@
+import importlib
 import os
 import uuid
 
@@ -8,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from lsst.cmservice import db
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum
-from lsst.cmservice.handlers import functions, interface
 
 from .util_functions import (
     cleanup,
@@ -19,6 +19,8 @@ from .util_functions import (
 @pytest.mark.asyncio()
 async def test_reports_db(engine: AsyncEngine) -> None:
     """Test `job` db table."""
+    interface = importlib.import_module("lsst.cmservice.handlers.interface")
+    functions = importlib.import_module("lsst.cmservice.handlers.functions")
 
     # generate a uuid to avoid collisions
     uuid_int = uuid.uuid1().int

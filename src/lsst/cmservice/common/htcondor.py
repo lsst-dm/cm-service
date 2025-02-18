@@ -1,5 +1,10 @@
 """Utility functions for working with htcondor jobs"""
 
+import importlib.util
+import os
+import sys
+from collections.abc import Mapping
+from types import ModuleType
 from typing import Any
 
 from anyio import Path, open_process
@@ -8,6 +13,10 @@ from anyio.streams.text import TextReceiveStream
 from ..config import config
 from .enums import StatusEnum
 from .errors import CMHTCondorCheckError, CMHTCondorSubmitError
+from .logging import LOGGER
+
+logger = LOGGER.bind(module=__name__)
+
 
 htcondor_status_map = {
     1: StatusEnum.running,
@@ -21,26 +30,26 @@ htcondor_status_map = {
 
 
 async def write_htcondor_script(
-    htcondor_script_path: str | Path,
-    htcondor_log: str | Path,
-    script_url: str | Path,
-    log_url: str | Path,
+    htcondor_script_path: Path,
+    htcondor_log: Path,
+    script_url: Path,
+    log_url: Path,
     **kwargs: Any,
 ) -> Path:
     """Write a submit wrapper script for htcondor
 
     Parameters
     ----------
-    htcondor_script_path: str | anyio.Path
+    htcondor_script_path: anyio.Path
         Path for the wrapper file written by this function
 
-    htcondor_log: str | anyio.Path
+    htcondor_log: anyio.Path
         Path for the wrapper log
 
-    script_url: str | anyio.Path
+    script_url: anyio.Path
         Script to submit
 
-    log_url: str | anyio.Path
+    log_url: anyio.Path
         Location of job log file to write
 
     Returns
@@ -49,6 +58,8 @@ async def write_htcondor_script(
         Path to the log wrapper log
     """
     options = dict(
+        initialdir=config.htcondor.working_directory,
+        batch_name=config.htcondor.batch_name,
         should_transfer_files="Yes",
         when_to_transfer_output="ON_EXIT",
         get_env=True,
@@ -66,7 +77,7 @@ async def write_htcondor_script(
     ]
     for key, val in options.items():
         htcondor_script_contents.append(f"{key} = {val}")
-    htcondor_script_contents.append("queue")
+    htcondor_script_contents.append("queue\n")
 
     await Path(htcondor_script_path).write_text("\n".join(htcondor_script_contents))
     return Path(htcondor_log)
@@ -93,7 +104,8 @@ async def submit_htcondor_job(
 
     try:
         async with await open_process(
-            [config.htcondor.condor_submit_bin, htcondor_script_path]
+            [config.htcondor.condor_submit_bin, "-file", htcondor_script_path],
+            env=build_htcondor_submit_environment(),
         ) as condor_submit:
             if await condor_submit.wait() != 0:  # pragma: no cover
                 assert condor_submit.stderr
@@ -133,6 +145,7 @@ async def check_htcondor_job(
             raise CMHTCondorCheckError("No htcondor_id")
         async with await open_process(
             [config.htcondor.condor_q_bin, "-userlog", htcondor_id, "-af", "JobStatus", "ExitCode"],
+            env=build_htcondor_submit_environment(),
         ) as condor_q:  # pragma: no cover
             if await condor_q.wait() != 0:
                 assert condor_q.stderr
@@ -162,3 +175,70 @@ async def check_htcondor_job(
         else:
             status = StatusEnum.failed
     return status  # pragma: no cover
+
+
+def build_htcondor_submit_environment() -> Mapping[str, str]:
+    """Construct an environment to apply to the subprocess shell when
+    submitting an htcondor job.
+
+    The condor job will inherit this specific environment via the submit file
+    command `get_env = True`, so it must satisfy the requirements of any work
+    being performed in the submitted job.
+
+    This primarily means that if the job is to run a butler command, the
+    necessary environment variables to support butler must be present; if the
+    job is to run a bps command, the environment variables must support it.
+
+    This also means that the environment constructed here is fundamentally
+    different to the environment in which the service or daemon operates and
+    should closer match the environment of an interactive sdfianaXXX user at
+    SLAC.
+    """
+    # TODO use all configured htcondor config settings
+    # condor_environment = config.htcondor.model_dump(by_alias=True)
+    # TODO we should not always use the same schedd host. We could get a list
+    # of all schedds from the collector and pick one at random.
+    return dict(
+        CONDOR_CONFIG=config.htcondor.config_source,
+        _CONDOR_CONDOR_HOST=config.htcondor.collector_host,
+        _CONDOR_COLLECTOR_HOST=config.htcondor.collector_host,
+        _CONDOR_SCHEDD_HOST=config.htcondor.schedd_host,
+        _CONDOR_SEC_CLIENT_AUTHENTICATION_METHODS=config.htcondor.authn_methods,
+        _CONDOR_DAGMAN_MANAGER_JOB_APPEND_GETENV="True",
+        FS_REMOTE_DIR=config.htcondor.fs_remote_dir,
+        DAF_BUTLER_REPOSITORY_INDEX=config.butler.repository_index,
+        HOME=config.htcondor.remote_user_home,
+        LSST_VERSION=config.bps.lsst_version,
+        LSST_DISTRIB_DIR=config.bps.lsst_distrib_dir,
+        # FIX: because there is no db-auth.yaml in lsstsvc1's home directory
+        PGPASSFILE=f"{config.htcondor.remote_user_home}/.lsst/postgres-credentials.txt",
+        PGUSER=config.butler.default_username,
+        PATH=(
+            f"{config.htcondor.remote_user_home}/.local/bin:{config.htcondor.remote_user_home}/bin:{config.slurm.home}:"
+            f"/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin"
+        ),
+    )
+
+
+def import_htcondor() -> ModuleType | None:
+    """Import and return the htcondor module if it is available. Ensure the
+    the current configuration is loaded.
+    """
+    if (htcondor := sys.modules.get("htcondor")) is not None:
+        pass
+    elif (importlib.util.find_spec("htcondor")) is not None:
+        htcondor = importlib.import_module("htcondor")
+
+    if htcondor is None:
+        logger.warning("HTcondor not available.")
+        return None
+
+    # Ensure environment is configured for htcondor operations
+    # FIXME: the python process needs the correct condor env set up. Alternate
+    # to setting these values JIT in the os.environ would be to hack a way to
+    # have the config.htcondor submodel's validation_alias match the
+    # serialization_alias, e.g., "_CONDOR_value"
+    os.environ |= config.htcondor.model_dump(by_alias=True)
+    htcondor.reload_config()
+
+    return htcondor

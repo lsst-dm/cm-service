@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from .common.enums import ScriptMethodEnum, StatusEnum
+from .common.enums import ScriptMethodEnum, StatusEnum, WmsComputeSite
 
 __all__ = ["Configuration", "config"]
 
@@ -18,6 +18,16 @@ class BpsConfiguration(BaseModel):
 
     FIXME: rename to LsstConfiguration and consolidate multiple models?
     """
+
+    lsst_version: str = Field(
+        description="Default LSST version",
+        default="w_latest",
+    )
+
+    lsst_distrib_dir: str = Field(
+        description="Default distribution directory from which to setup lsst",
+        default="/sdf/group/rubin/sw",
+    )
 
     bps_bin: str = Field(
         description="Name of a bps client binary",
@@ -49,6 +59,21 @@ class ButlerConfiguration(BaseModel):
     butler_bin: str = Field(
         description="Name of a butler client binary",
         default="butler",
+    )
+
+    repository_index: str = Field(
+        description="Fully qualified path to a butler repository index.",
+        default="/sdf/group/rubin/shared/data-repos.yaml",
+    )
+
+    authentication_file: str = Field(
+        description="Path and name of a db-auth.yaml to use with Butler",
+        default="~/.lsst/db-auth.yaml",
+    )
+
+    default_username: str = Field(
+        description="Default username to use for Butler registry authentication",
+        default="rubin",
     )
 
     mock: bool = Field(
@@ -84,6 +109,25 @@ class HTCondorConfiguration(BaseModel):
     their serialization alias.
     """
 
+    config_source: str = Field(
+        description="Source of htcondor configuration",
+        default="ONLY_ENV",
+        serialization_alias="CONDOR_CONFIG",
+    )
+
+    remote_user_home: str = Field(
+        description=("Path to the user's home directory, as resolvable from an htcondor access node."),
+        default="/sdf/home/l/lsstsvc1",
+        exclude=True,
+    )
+
+    condor_home: str = Field(
+        description=("Path to the Condor home directory. Equivalent to the condor ``RELEASE_DIR`` macro."),
+        default="/opt/htcondor",
+        serialization_alias="_CONDOR_RELEASE_DIR",
+    )
+
+    # TODO retire these in favor of a path relative to condor_home
     condor_submit_bin: str = Field(
         description="Name of condor_submit client binary",
         default="condor_submit",
@@ -93,6 +137,33 @@ class HTCondorConfiguration(BaseModel):
     condor_q_bin: str = Field(
         description="Name of condor_q client binary",
         default="condor_q",
+        exclude=True,
+    )
+
+    universe: str = Field(
+        description="HTCondor Universe into which a job will be submitted.",
+        default="vanilla",
+        serialization_alias="_CONDOR_DEFAULT_UNIVERSE",
+    )
+
+    working_directory: str = Field(
+        description=(
+            "Path to a working directory to use when submitting condor jobs. "
+            "This path must be available to both the submitting service and "
+            "the access point receiving the job. Corresponds to the "
+            "`initialdir` submit file command."
+        ),
+        default=".",
+        exclude=True,
+    )
+
+    batch_name: str = Field(
+        description=(
+            "Name to use in identifying condor jobs. Corresponds to "
+            "the `condor_submit` `-batch-name` parameter or submit file "
+            "`batch_name` command."
+        ),
+        default="usdf-cm-dev",
         exclude=True,
     )
 
@@ -117,26 +188,30 @@ class HTCondorConfiguration(BaseModel):
     collector_host: str = Field(
         description="Name of an htcondor collector host.",
         default="localhost",
-        serialization_alias="_condor_COLLECTOR_HOST",
+        serialization_alias="_CONDOR_COLLECTOR_HOST",
     )
 
     schedd_host: str = Field(
         description="Name of an htcondor schedd host.",
         default="localhost",
-        serialization_alias="_condor_SCHEDD_HOST",
+        serialization_alias="_CONDOR_SCHEDD_HOST",
     )
 
     authn_methods: str = Field(
         description="Secure client authentication methods, as comma-delimited strings",
-        default="FS,FS_REMOTE",
-        serialization_alias="_condor_SEC_CLIENT_AUTHENTICATION_METHODS",
+        default="FS_REMOTE",
+        serialization_alias="_CONDOR_SEC_CLIENT_AUTHENTICATION_METHODS",
     )
 
-    dagman_job_append_get_env: bool = Field(
-        description="...", default=True, serialization_alias="_condor_DAGMAN_MANAGER_JOB_APPEND_GETENV"
+    fs_remote_dir: str = Field(
+        description="Shared directory to use with htcondor remote filesystem authentication.",
+        default="/tmp",
+        serialization_alias="FS_REMOTE_DIR",
     )
 
 
+# TODO deprecate and remove "slurm"-specific logic from cm-service; it is
+#      unlikely that interfacing with slurm directly from k8s will be possible.
 class SlurmConfiguration(BaseModel):
     """Configuration settings for slurm client operations.
 
@@ -146,16 +221,14 @@ class SlurmConfiguration(BaseModel):
     ----
     Default SBATCH_* variables could work just as well, but it is useful to
     have this as a document of what settings are actually used.
+
+    These settings should also apply to htcondor resource allocation jobs
+    that are equivalent to "allocateNodes"
     """
 
-    sacct_bin: str = Field(
-        description="Name of sacct slurm client binary",
-        default="sacct",
-    )
-
-    sbatch_bin: str = Field(
-        description="Name of sbatch slurm client binary",
-        default="sbatch",
+    home: str = Field(
+        description="Location of the installed slurm client binaries",
+        default="/opt/slurm/slurm-curr/bin",
     )
 
     memory: str = Field(
@@ -171,6 +244,16 @@ class SlurmConfiguration(BaseModel):
     partition: str = Field(
         description="Partition requested when submitting a slurm job.",
         default="milano",
+    )
+
+    platform: str = Field(
+        description="Platform requested when submitting a slurm job.",
+        default="s3df",
+    )
+
+    duration: str = Field(
+        description="Expected Duration for a cmservice script that needs to be scheduled.",
+        default="0-1:0:0",
     )
 
 
@@ -194,7 +277,7 @@ class AsgiConfiguration(BaseModel):
 
     prefix: str = Field(
         description="The URL prefix for the cm-service API",
-        default="/cmservice",
+        default="/cm-service",
     )
 
     frontend_prefix: str = Field(
@@ -210,6 +293,11 @@ class AsgiConfiguration(BaseModel):
 
 class LoggingConfiguration(BaseModel):
     """Configuration for the application's logging facility."""
+
+    handle: str = Field(
+        default="cm-service",
+        title="Handle or name of the root logger",
+    )
 
     level: str = Field(
         default="INFO",
@@ -227,6 +315,11 @@ class DaemonConfiguration(BaseModel):
 
     Set according to DAEMON__FIELD environment variables.
     """
+
+    allocate_resources: bool = Field(
+        default=False,
+        description="Whether the daemon should try to allocate its own htcondor or slurm resources.",
+    )
 
     processing_interval: int = Field(
         default=30,
@@ -297,6 +390,11 @@ class Configuration(BaseSettings):
         default=ScriptMethodEnum.htcondor,
     )
 
+    compute_site: WmsComputeSite = Field(
+        description="The default WMS compute site",
+        default=WmsComputeSite.usdf,
+    )
+
     mock_status: StatusEnum | None = Field(
         description="A fake status to return from all operations",
         default=None,
@@ -313,6 +411,7 @@ class Configuration(BaseSettings):
             warn(f"Invalid mock status ({value}) provided to config, using default.")
             return None
 
+    # TODO refactor these identical field validators with type generics
     @field_validator("script_handler", mode="before")
     @classmethod
     def validate_script_method_by_name(cls, value: str | ScriptMethodEnum) -> ScriptMethodEnum:
@@ -326,6 +425,20 @@ class Configuration(BaseSettings):
         except KeyError:
             warn(f"Invalid script handler ({value}) provided to config, using default.")
             return ScriptMethodEnum.htcondor
+
+    @field_validator("compute_site", mode="before")
+    @classmethod
+    def validate_compute_site_by_name(cls, value: str | WmsComputeSite) -> WmsComputeSite:
+        """Use a string value to resolve an enum by its name, falling back to
+        the default value if an invalid input is provided.
+        """
+        if isinstance(value, WmsComputeSite):
+            return value
+        try:
+            return WmsComputeSite[value]
+        except KeyError:
+            warn(f"Invalid script handler ({value}) provided to config, using default.")
+            return WmsComputeSite.usdf
 
 
 config = Configuration()

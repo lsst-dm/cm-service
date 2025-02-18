@@ -1,3 +1,4 @@
+import importlib
 from typing import TypeAlias
 
 import pytest
@@ -6,7 +7,6 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 from lsst.cmservice import db
 from lsst.cmservice.common import errors
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum, TableEnum
-from lsst.cmservice.handlers import interface
 
 
 async def add_scripts(
@@ -43,6 +43,7 @@ async def create_tree(
     level: LevelEnum,
     uuid_int: int,
 ) -> None:
+    interface = importlib.import_module("lsst.cmservice.handlers.interface")
     specification = await interface.load_specification(session, "examples/empty_config.yaml")
     _ = await specification.get_block(session, "campaign")
 
@@ -107,7 +108,7 @@ async def create_tree(
     if level.value <= LevelEnum.group.value:
         return
 
-    jobs = [
+    jobs_ = [
         await db.Job.create_row(
             session,
             name=f"job_{uuid_int}",
@@ -117,8 +118,8 @@ async def create_tree(
         for group_ in groups
     ]
 
-    for job_ in jobs:
-        await add_scripts(session, job_)
+    for job in jobs_:
+        await add_scripts(session, job)
 
     return
 
@@ -291,6 +292,7 @@ async def check_scripts(
     session: async_scoped_session,
     entry: db.ElementMixin,
 ) -> None:
+    interface = importlib.import_module("lsst.cmservice.handlers.interface")
     scripts = await entry.get_scripts(session)
     assert len(scripts) == 2, f"Expected exactly two scripts for {entry.fullname} got {len(scripts)}"
 
@@ -376,6 +378,7 @@ async def check_get_methods(
     entry_class: TypeAlias = db.ElementMixin,
     parent_class: TypeAlias = db.ElementMixin,
 ) -> None:
+    interface = importlib.import_module("lsst.cmservice.handlers.interface")
     check_getall_nonefound = await entry_class.get_rows(
         session,
         parent_name="bad",

@@ -10,12 +10,15 @@ from lsst.utils.introspection import get_full_type_name
 
 from ..common.enums import StatusEnum
 from ..common.errors import CMBadHandlerTypeError
+from ..common.logging import LOGGER
 from ..common.utils import add_sys_path
 
 if TYPE_CHECKING:
     from .element import ElementMixin
     from .node import NodeMixin
     from .script import Script
+
+logger = LOGGER.bind(module=__name__)
 
 
 class Handler:
