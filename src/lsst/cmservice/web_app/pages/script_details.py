@@ -1,5 +1,6 @@
 from typing import Any
 
+import starlette.requests
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
 
@@ -21,6 +22,7 @@ def is_script_collection(collection: tuple[str, str]) -> bool:
 async def get_script_by_id(
     session: async_scoped_session,
     script_id: int,
+    request: starlette.requests.Request,
     campaign_id: int | None = None,
     step_id: int | None = None,
     group_id: int | None = None,
@@ -33,6 +35,16 @@ async def get_script_by_id(
         script = results.one()
         script_details = None
 
+        # this block retrieve script parent(s) dynamically
+        # in case parent ids weren't passed in the URL
+        # (like it's the case with script links in campaign cards).
+        # It also builds a list of parent links <parent_list> to be used
+        # for the breadcrumbs in the page
+        parent_list = [
+            request.url_for("get_campaigns"),
+            request.url_for("get_steps", campaign_id=campaign_id),
+        ]
+
         if script is not None:
             fullname = script.fullname.split("/")
             for i in range(2, len(fullname) - 1):
@@ -40,13 +52,29 @@ async def get_script_by_id(
                     case 2:
                         if step_id is None:
                             step_id = await get_step_id_by_fullname(session, "/".join(fullname[:3]))
+                        parent_list.append(
+                            request.url_for("get_step", campaign_id=campaign_id, step_id=step_id)
+                        )
                     case 3:
                         if group_id is None:
                             group_id = await get_group_id_by_fullname(session, "/".join(fullname[:4]))
+                        parent_list.append(
+                            request.url_for(
+                                "get_group", campaign_id=campaign_id, step_id=step_id, group_id=group_id
+                            )
+                        )
                     case 4:
-                        print("getting job id")
                         if job_id is None:
                             job_id = await get_job_id_by_fullname(session, "/".join(fullname[:5]))
+                        parent_list.append(
+                            request.url_for(
+                                "get_job",
+                                campaign_id=campaign_id,
+                                step_id=step_id,
+                                group_id=group_id,
+                                job_id=job_id,
+                            )
+                        )
 
             collections = await script.resolve_collections(session, throw_overrides=False)
             filtered_collections = dict(
@@ -55,6 +83,7 @@ async def get_script_by_id(
                     collections.items(),
                 ),
             )
+
             script_details = {
                 "id": script.id,
                 "name": script.name,
@@ -69,6 +98,7 @@ async def get_script_by_id(
                 "collections": filtered_collections,
                 "child_config": script.child_config,
                 "level": script.level,
+                "parent_list": parent_list,
             }
 
         return script_details

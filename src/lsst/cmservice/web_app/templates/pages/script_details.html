@@ -6,9 +6,15 @@
 {% include "partials/edit_collections_modal.html" %}
 {% include "partials/edit_child_config_modal.html" %}
 {% include "partials/edit_data_dict_modal.html" %}
+{% include "partials/error_modal.html" %}
 
 <script>
     window.addEventListener("DOMContentLoaded", () => {
+        const errorModal = document.querySelector("#errorModal");
+        const closeErrModalBtn = document.querySelector("[close-error-modal]");
+        closeErrModalBtn.addEventListener("click", () => errorModal.close());
+        const errorMessage = document.querySelector("[error-message]")
+
         document.querySelector("#editDataBtn").addEventListener("click", () => {
             let script_status = "{{script.status}}";
             // TODO: revisit status mapping between frontend and backend
@@ -70,21 +76,10 @@
 </script>
 <nav class="flex px-2 sm:px-4 lg:px-4" aria-label="Breadcrumb">
   <ol role="list" class="flex items-center space-x-2">
-      {% for i in range(fullname|length - 1) %}
+      {% for i in range(script.parent_list|length) %}
     <li>
       <div class="flex items-center">
-          {% if i == 0 %}
-          {% set parent_link = url_for('get_campaigns') %}
-          {% elif i == 1 %}
-          {% set parent_link = url_for('get_steps', campaign_id=script.campaign_id) %}
-          {% elif i == 2 %}
-          {% set parent_link = url_for('get_step', campaign_id=script.campaign_id, step_id=script.step_id) %}
-          {% elif i == 3 %}
-          {% set parent_link = url_for('get_group', campaign_id=script.campaign_id, step_id=script.step_id, group_id=script.group_id) %}
-          {% else %}
-          {% set parent_link = url_for('get_job', campaign_id=script.campaign_id, step_id=script.step_id, group_id=script.group_id, job_id=script.job_id) %}
-          {% endif %}
-          <a href="{{ parent_link }}" class="underline decoration-2 ml-2 mr-2 text-sm font-medium text-gray-500 hover:text-gray-700">{{ fullname[i] }}</a>
+          <a href="{{ script.parent_list[i] }}" class="underline decoration-2 ml-2 mr-2 text-sm font-medium text-gray-500 hover:text-gray-700">{{ fullname[i] }}</a>
 
           {% if not loop.last %}
           <svg class="h-5 w-5 flex-shrink-0 text-gray-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
@@ -106,7 +101,7 @@
         </div>
         <div class="flex items-center"
              id="script_status"
-             hx-get="{{ url_for('get_script', campaign_id=script.campaign_id, step_id=script.step_id, group_id=script.group_id, job_id=script.job_id, script_id=script.id) }}"
+             hx-get="{{ url_for('get_script', campaign_id=script.campaign_id, script_id=script.id) }}"
              hx-trigger="every 20s"
              hx-select="#script_status"
              hx-swap="outerHTML">

@@ -78,6 +78,9 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
     logger.error(exc)
     redirect_url = request.url_for("error_page", error_code=exc.status_code)
 
+    # if it's a htmx request, add the HX-Redirect header
+    # to the response to redirect to the error page and
+    # avoid swapping response within the page
     if request.headers.get("HX-Request"):
         response = RedirectResponse(redirect_url, status_code=exc.status_code)
         response.headers["HX-Redirect"] = redirect_url.path
@@ -279,6 +282,7 @@ async def get_script(
             step_id=step_id,
             group_id=group_id,
             job_id=job_id,
+            request=request,
         )
         return templates.TemplateResponse(
             name="pages/script_details.html",
