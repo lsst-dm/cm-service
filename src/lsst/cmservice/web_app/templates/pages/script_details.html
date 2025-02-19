@@ -10,9 +10,9 @@
 <script>
     window.addEventListener("DOMContentLoaded", () => {
         document.querySelector("#editDataBtn").addEventListener("click", () => {
-            let group_status = "{{script.status}}";
+            let script_status = "{{script.status}}";
             // TODO: revisit status mapping between frontend and backend
-            if(group_status !== "COMPLETE" && group_status !== "IN_PROGRESS") {
+            if(script_status !== "COMPLETE" && script_status !== "IN_PROGRESS") {
                 document.querySelector("#edit-data-dict-modal").showModal();
             } else {
                 errorMessage.innerText = "Cannot update data for a running script!";
@@ -32,9 +32,9 @@
         });
 
         document.querySelector("#editChildConfigBtn").addEventListener("click", () => {
-            let group_status = "{{script.status}}";
+            let script_status = "{{script.status}}";
             // TODO: revisit status mapping between frontend and backend
-            if(group_status !== "COMPLETE" && group_status !== "IN_PROGRESS") {
+            if(script_status !== "COMPLETE" && script_status !== "IN_PROGRESS") {
                 document.querySelector("#edit-child-config-modal").showModal();
             } else {
                 errorMessage.innerText = "Cannot update child config for a running script!";
