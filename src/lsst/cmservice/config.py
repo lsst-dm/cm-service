@@ -1,7 +1,10 @@
+from datetime import UTC, datetime
+from typing import Self
+from urllib.parse import urlparse
 from warnings import warn
 
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, computed_field, field_serializer, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from .common.enums import ScriptMethodEnum, StatusEnum, WmsComputeSite
@@ -210,6 +213,144 @@ class HTCondorConfiguration(BaseModel):
     )
 
 
+class PandaConfiguration(BaseModel, validate_assignment=True):
+    """Configuration parameters for the PanDA WMS"""
+
+    tls_url: str | None = Field(
+        description="Base HTTPS URL of PanDA server",
+        serialization_alias="PANDA_URL_SSL",
+        default=None,
+    )
+
+    url: str | None = Field(
+        description="Base HTTP URL of PanDA server",
+        serialization_alias="PANDA_URL",
+        default=None,
+    )
+
+    monitor_url: str | None = Field(
+        description="URL of PanDA monitor",
+        serialization_alias="PANDAMON_URL",
+        default=None,
+    )
+
+    cache_url: str | None = Field(
+        description="Base URL of PanDA sandbox server",
+        serialization_alias="PANDACACHE_URL",
+        default=None,
+    )
+
+    virtual_organization: str = Field(
+        description="Virtual organization name used with Panda OIDC",
+        serialization_alias="PANDA_AUTH_VO",
+        default="Rubin",
+    )
+
+    renew_after: int = Field(
+        description="Minimum auth token lifetime in seconds before renewal attempts are made",
+        default=302_400,
+        exclude=True,
+    )
+
+    # The presence of this environment variable should cause the panda client
+    # to use specified token directly, skipping IO related to reading a token
+    # file.
+    id_token: str | None = Field(
+        description="Current id token for PanDA authentication",
+        serialization_alias="PANDA_AUTH_ID_TOKEN",
+        default=None,
+    )
+
+    refresh_token: str | None = Field(
+        description="Current refresh token for PanDA token operations",
+        default=None,
+        exclude=True,
+    )
+
+    token_expiry: datetime = Field(
+        description="Time at which the current idtoken expires",
+        default=datetime.now(tz=UTC),
+        exclude=True,
+    )
+
+    config_root: str = Field(
+        description="Location of the PanDA .token file",
+        serialization_alias="PANDA_CONFIG_ROOT",
+        default="/var/run/secrets/panda",
+        exclude=True,
+    )
+
+    auth_type: str = Field(
+        description="Panda Auth type",
+        serialization_alias="PANDA_AUTH",
+        default="oidc",
+    )
+
+    behind_lb: bool = Field(
+        description="Whether Panda is behind a loadbalancer",
+        default=False,
+        serialization_alias="PANDA_BEHIND_REAL_LB",
+    )
+
+    verify_host: bool = Field(
+        description="Whether to verify PanDA host TLS",
+        default=True,
+        serialization_alias="PANDA_VERIFY_HOST",
+    )
+
+    use_native_httplib: bool = Field(
+        description="Use native http lib instead of curl",
+        default=True,
+        serialization_alias="PANDA_USE_NATIVE_HTTPLIB",
+    )
+
+    @computed_field(repr=False)  # type: ignore[prop-decorator]
+    @property
+    def auth_config_url(self) -> str | None:
+        """Location of auth config for PanDA VO."""
+        if self.tls_url is None:
+            return None
+        url_parts = urlparse(self.tls_url)
+        return f"{url_parts.scheme}://{url_parts.hostname}:{url_parts.port}/auth/{self.virtual_organization}_auth_config.json"
+
+    @model_validator(mode="after")
+    def set_base_url_fields(self) -> Self:
+        """Set all url fields when only a subset of urls are supplied."""
+        # NOTE: there is a danger of this validator creating a recursion error
+        #       if unbounded field-setters are used. Every update to the model
+        #       will itself trigger this validator because of the
+        #       `validate_assignment` directive on the model itself.
+
+        # If no panda urls have been specified there is no need to continue
+        # with model validation
+        if self.url is None and self.tls_url is None:
+            return self
+        # It does not seem critical that these URLs actually use the scheme
+        # with which they are nominally associated, only that both be set.
+        elif self.url is None:
+            self.url = self.tls_url
+        elif self.tls_url is None:
+            self.tls_url = self.url
+
+        # default the cache url to the tls url
+        if self.cache_url is None:
+            self.cache_url = self.tls_url
+        return self
+
+    @field_validator("token_expiry", mode="after")
+    @classmethod
+    def set_datetime_utc(cls, value: datetime) -> datetime:
+        """Applies UTC timezone to datetime value."""
+        # For tz-naive datetimes, treat the time as UTC in the first place
+        # otherwise coerce the tz-aware datetime into UTC
+        return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(tz=UTC)
+
+    @field_serializer("behind_lb", "verify_host", "use_native_httplib")
+    def serialize_booleans(self, value: bool) -> str:  # noqa: FBT001
+        """Serialize boolean fields as string values."""
+        return "on" if value else "off"
+
+
 # TODO deprecate and remove "slurm"-specific logic from cm-service; it is
 #      unlikely that interfacing with slurm directly from k8s will be possible.
 class SlurmConfiguration(BaseModel):
@@ -383,6 +524,7 @@ class Configuration(BaseSettings):
     htcondor: HTCondorConfiguration = HTCondorConfiguration()
     logging: LoggingConfiguration = LoggingConfiguration()
     slurm: SlurmConfiguration = SlurmConfiguration()
+    panda: PandaConfiguration = PandaConfiguration()
 
     # Root fields
     script_handler: ScriptMethodEnum = Field(

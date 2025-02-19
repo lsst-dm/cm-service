@@ -1,22 +1,23 @@
 #!/usr/bin/env bash
 {%- if script_method == "bash" %}
-# Assuming native environment already setup
-
+{# Assuming native environment already setup #}
 {%- elif script_method == "htcondor" %}
-
-# setup LSST env.
 export LSST_VERSION='{{ lsst_version }}'
 export LSST_DISTRIB_DIR='{{ lsst_distrib_dir }}'
 source ${LSST_DISTRIB_DIR}/${LSST_VERSION}/loadLSST.bash
 setup lsst_distrib
+{%- endif %}
 
-{%- elif script_method == "panda" %}
+{%- if wms == "htcondor" %}
+{%- elif wms == "panda" %}
+{# what value is this LATEST_PANDA path? #}
+{# LATEST_PANDA=$(ls -td /cvmfs/sw.lsst.eu/almalinux-x86_64/panda_env/v* | head -1) #}
+export PANDA_SYS=${CONDA_PREFIX}
+export IDDS_CONFIG=${PANDA_SYS}/etc/idds/idds.cfg.client.template
+export IDDS_MAX_NAME_LENGTH=30000
+export BPS_WMS_SERVICE_CLASS=lsst.ctrl.bps.panda.PanDAService
 
-# setup PanDA env.
-latest_panda=$(ls -td /cvmfs/sw.lsst.eu/linux-x86_64/panda_env/v* | head -1)
-source ${latest_panda}/setup_panda_usdf.sh ${WEEKLY}
-panda_auth status
-
+unset PANDA_CONFIG_ROOT
 {%- endif %}
 {%- if custom_lsst_setup %}
 
