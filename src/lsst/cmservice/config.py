@@ -1,7 +1,9 @@
+from typing import Self
+from urllib.parse import urlparse
 from warnings import warn
 
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from .common.enums import ScriptMethodEnum, StatusEnum, WmsComputeSite
@@ -201,6 +203,7 @@ class HTCondorConfiguration(BaseModel):
         description="Secure client authentication methods, as comma-delimited strings",
         default="FS_REMOTE",
         serialization_alias="_CONDOR_SEC_CLIENT_AUTHENTICATION_METHODS",
+        validation_alias="_CONDOR_SEC_CLIENT_AUTHENTICATION_METHODS",
     )
 
     fs_remote_dir: str = Field(
@@ -208,6 +211,95 @@ class HTCondorConfiguration(BaseModel):
         default="/tmp",
         serialization_alias="FS_REMOTE_DIR",
     )
+
+
+class PandaConfiguration(BaseModel):
+    """Configuration parameters for the PanDA WMS"""
+
+    tls_url: str | None = Field(
+        description="Base HTTPS URL of PanDA server",
+        serialization_alias="PANDA_URL_SSL",
+        default=None,
+    )
+
+    url: str | None = Field(
+        description="Base HTTP URL of PanDA server",
+        serialization_alias="PANDA_URL",
+        default=None,
+    )
+
+    monitor_url: str | None = Field(
+        description="URL of PanDA monitor",
+        serialization_alias="PANDAMON_URL",
+        default=None,
+    )
+
+    virtual_organization: str = Field(
+        description="Virtual organization name used with Panda OIDC",
+        serialization_alias="PANDA_AUTH_VO",
+        default="Rubin",
+    )
+
+    renew_after: int = Field(
+        description="Minimum auth token lifetime in seconds before renewal attempts are made",
+        default=302_400,
+        exclude=True,
+    )
+
+    # The presence of this environment variable should cause the panda client
+    # to use specified token directly, skipping IO related to reading a token
+    # file.
+    id_token: str | None = Field(
+        description="Current id token for PanDA authentication",
+        serialization_alias="PANDA_AUTH_ID_TOKEN",
+        default=None,
+    )
+
+    refresh_token: str | None = Field(
+        description="Current refresh token for PanDA token operations",
+        default=None,
+        exclude=True,
+    )
+
+    config_root: str | None = Field(
+        description="Location of the PanDA .token file",
+        serialization_alias="PANDA_CONFIG_ROOT",
+        default=None,
+    )
+
+    auth_type: str = Field(
+        description="Panda Auth type",
+        serialization_alias="PANDA_AUTH",
+        default="oidc",
+    )
+
+    auth_config_url: str | None = Field(
+        description="Location of auth config for PanDA VO",
+        default=None,
+        exclude=True,
+    )
+
+    @model_validator(mode="after")
+    def set_base_url_fields(self) -> Self:
+        """Set the base url field when only a tls url is configured and vice
+        versa.
+        """
+        # It does not seem critical that these URLs actually use the scheme
+        # with which they are nominally associated, only that both be set.
+        if self.url is None:
+            self.url = self.tls_url
+        elif self.tls_url is None:
+            self.tls_url = self.url
+
+        url_parts = urlparse(self.tls_url)
+        self.auth_config_url = f"{url_parts.scheme}://{url_parts.hostname}:{url_parts.port}/auth/{self.virtual_organization}_auth_config.json"
+        return self
+
+    @field_validator("id_token", mode="after")
+    @classmethod
+    def set_id_token(cls, value: str | None) -> str | None:
+        # TODO read the token file and extract the idtoken
+        return value
 
 
 # TODO deprecate and remove "slurm"-specific logic from cm-service; it is
@@ -383,6 +475,7 @@ class Configuration(BaseSettings):
     htcondor: HTCondorConfiguration = HTCondorConfiguration()
     logging: LoggingConfiguration = LoggingConfiguration()
     slurm: SlurmConfiguration = SlurmConfiguration()
+    panda: PandaConfiguration = PandaConfiguration()
 
     # Root fields
     script_handler: ScriptMethodEnum = Field(
