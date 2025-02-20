@@ -168,6 +168,9 @@ async def get_steps(
 ) -> HTMLResponse:
     try:
         campaign = await get_campaign_by_id(session, campaign_id)
+        if campaign is None:
+            raise Exception(f"Campaign {campaign_id} not found!")
+        campaign_details = await get_campaign_details(session, campaign)
         steps = await get_campaign_steps(session, campaign_id)
         campaign_steps = []
         for step in steps:
@@ -178,7 +181,7 @@ async def get_steps(
             name="pages/steps.html",
             request=request,
             context={
-                "campaign": campaign,
+                "campaign": campaign_details,
                 "steps": campaign_steps,
             },
         )
