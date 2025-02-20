@@ -106,13 +106,24 @@ async def test_get_campaign_details(
         "id": 1,
         "name": "first_campaign",
         "lsst_version": "lsst_version_1",
-        "out": "output_path",
         "source": "",
         "status": "COMPLETE",
         "groups_completed": "2 of 2 groups completed",
         "scripts_completed": "2 of 2 scripts completed",
         "need_attention_groups": [],
         "need_attention_scripts": [],
+        "child_config": None,
+        "collections": {
+            "collection_1": "collection 1",
+            "collection_2": "collection 2",
+            "collection_3": "collection 3",
+            "out": "output_path",
+        },
+        "data": {
+            "lsst_version": "lsst_version_1",
+        },
+        "fullname": "first_production/first_campaign",
+        "level": 1,
     }
 
 

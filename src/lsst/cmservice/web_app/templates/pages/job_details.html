@@ -4,6 +4,11 @@
 {% include "partials/reset_script_modal.html" %}
 {% include "partials/error_modal.html" %}
 {% include "partials/script_log_modal.html" %}
+{% set element = job %}
+{% include "partials/edit_collections_modal.html" %}
+{% include "partials/edit_child_config_modal.html" %}
+{% include "partials/edit_data_dict_modal.html" %}
+
 <script src="{{ url_for('static', path='/js/script-grid-utils.js') }}"></script>
 <script>
     let jobScripts;
@@ -117,10 +122,74 @@
 
     window.addEventListener("DOMContentLoaded", function() {
         populateGrids();
+
+        document.querySelector("#editDataBtn").addEventListener("click", () => {
+            let group_status = "{{job.status}}";
+            // TODO: revisit status mapping between frontend and backend
+            // if (Object.keys({{job.data}}).length === 0) {
+            //     errorMessage.innerText = "Data Config is empty!";
+            //     errorModal.showModal();
+            // } else
+            if(group_status !== "COMPLETE" && group_status !== "IN_PROGRESS") {
+                document.querySelector("#edit-data-dict-modal").showModal();
+            } else {
+                errorMessage.innerText = "Cannot update data for a running job!";
+                errorModal.showModal();
+            }
+        });
+
+        document.querySelector("#editCollectionsBtn").addEventListener("click", () => {
+            let group_status = "{{job.status}}";
+            // TODO: revisit status mapping between frontend and backend
+            if(group_status !== "COMPLETE" && group_status !== "IN_PROGRESS") {
+                document.querySelector("#edit-collection-modal").showModal();
+            } else {
+                errorMessage.innerText = "Cannot update collections for a running job!";
+                errorModal.showModal();
+            }
+        });
+
+        document.querySelector("#editChildConfigBtn").addEventListener("click", () => {
+            let group_status = "{{job.status}}";
+            // TODO: revisit status mapping between frontend and backend
+            if(group_status !== "COMPLETE" && group_status !== "IN_PROGRESS") {
+                document.querySelector("#edit-child-config-modal").showModal();
+            } else {
+                errorMessage.innerText = "Cannot update child config for a running job!";
+                errorModal.showModal();
+            }
+        });
+
+        document.querySelector("#confirm-edit-data-dict").addEventListener("click", () => {
+        document.querySelector("#edit-data-dict-modal").close();
+        });
+        document.querySelector("#cancel-edit-data-dict").addEventListener("click", () => {
+            document.querySelector("#edit-data-dict-modal").close();
+            document.querySelector("#update-data-dict-form").reset();
+        });
+
+        document.querySelector("#confirm-edit-collections").addEventListener("click", () => {
+        document.querySelector("#edit-collection-modal").close();
+        });
+        document.querySelector("#cancel-edit-collections").addEventListener("click", () => {
+            document.querySelector("#edit-collection-modal").close();
+            document.querySelector("#update-collections-form").reset();
+        });
+
+        document.querySelector("#confirm-edit-child-config").addEventListener("click", () => {
+        document.querySelector("#edit-child-config-modal").close();
+        });
+        document.querySelector("#cancel-edit-child-config").addEventListener("click", () => {
+            document.querySelector("#edit-child-config-modal").close();
+            document.querySelector("#update-child_config-form").reset();
+        });
+
     }, false);
 
     htmx.on('htmx:afterRequest', (evt) => {
-        populateGrids();
+        if(!["child-config", "collections", "data-dict"].includes(evt.detail.target.id)) {
+            populateGrids();
+        }
     });
 
 </script>
@@ -159,12 +228,7 @@
     </li>
   </ol>
 </nav>
-<div class="w-full"
-     id="job_content"
-     hx-get="{{ url_for('get_job', campaign_id=campaign_id, step_id=step_id, group_id=group_id, job_id=job.id) }}"
-     hx-trigger="every 20s"
-     hx-select="#job_content"
-     hx-swap="outerHTML">
+<div class="w-full">
     <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
         <div class="flex items-center">
             <span class="text-2xl font-bold">{{job.name}}</span>
@@ -172,25 +236,54 @@
         <div class="flex items-center">
             <span class="text-sm font-normal">{{job.fullname}}</span>
         </div>
-        <div class="block items-center pt-2">
-            <span class="text-sm font-bold">Collections</span>
-            {% for key, value in job.collections|items %}
-            <div class="block text-sm">{{key}}: {{value}}</div>
-            {% endfor %}
+        <div class="block items-center pt-6">
+            <span class="text-sm font-bold align-top">Collections</span>
+            <button id="editCollectionsBtn">
+                <span class="inline-flex h-5 w-5 hover:text-teal-600">
+                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
+                      <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
+                      <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" />
+                    </svg>
+                </span>
+            </button>
+            <div id="collections">
+                {% include "partials/collections.html" %}
+            </div>
         </div>
-        <div class="block items-center pt-2">
-            <span class="text-sm font-bold">Data</span>
-            {% for key, value in job.data|items %}
-            <div class="block text-sm">{{key}}: {{value}}</div>
-            {% endfor %}
+        <div class="block items-center pt-6">
+            <span class="text-sm font-bold align-top">Data</span>
+            <button id="editDataBtn">
+                <span class="inline-flex h-5 w-5 hover:text-teal-600">
+                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
+                      <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
+                      <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" />
+                    </svg>
+                </span>
+            </button>
+            <div id="data-dict">
+                {% include "partials/data_dict.html" %}
+            </div>
         </div>
-        <div class="block items-center pt-2">
-            <span class="text-sm font-bold">Child Config</span>
-            {% for key, value in job.child_config|items %}
-            <div class="block text-sm">{{key}}: {{value}}</div>
-            {% endfor %}
+        <div class="block items-center pt-6">
+            <span class="text-sm font-bold align-top">Child Config</span>
+            <button id="editChildConfigBtn">
+                <span class="inline-flex h-5 w-5 hover:text-teal-600">
+                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
+                      <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
+                      <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" />
+                    </svg>
+                </span>
+            </button>
+            <div id="child-config">
+                {% include "partials/child_config.html" %}
+            </div>
         </div>
-        <div class="items-center pt-2">
+        <div id="wms-progress"
+             hx-get="{{ url_for('get_job', campaign_id=campaign_id, step_id=step_id, group_id=group_id, job_id=job.id) }}"
+             hx-trigger="every 20s"
+             hx-select="#wms-progress"
+             hx-swap="outerHTML"
+             class=" pt-6">
             <span class="text-sm font-bold">WMS Task Report</span>
             {% if job.aggregated_wms_report.expected != 0 %}
             <div class="flex pt-2 w-full">
@@ -228,6 +321,12 @@
             {% endif %}
         </div>
     </div>
+</div>
+<div id="job_content"
+     hx-get="{{ url_for('get_job', campaign_id=campaign_id, step_id=step_id, group_id=group_id, job_id=job.id) }}"
+     hx-trigger="every 20s"
+     hx-select="#job_content"
+     hx-swap="outerHTML">
     <div class="w-full px-4 py-5 sm:p-6">
         <div class="flex items-center">
             <span class="text-large font-bold">Scripts</span>
@@ -235,13 +334,13 @@
         <div class="items-center pt-4">
             <div id="scriptsGrid" class="ag-theme-alpine h-64"></div>
         </div>
-        <div class="flex items-center pt-4">
+        <div class="flex items-center pt-8">
             <span class="text-large font-bold">Products</span>
         </div>
         <div class="items-center pt-4">
             <div id="productsGrid" class="ag-theme-alpine h-64"></div>
         </div>
-        <div class="flex items-center pt-4">
+        <div class="flex items-center pt-8">
             <span class="text-large font-bold">WMS Task Report</span>
         </div>
         <div class="items-center pt-4">

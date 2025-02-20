@@ -49,6 +49,7 @@ async def test_get_step_details_by_id(engine: AsyncEngine) -> None:
                 "step_validation": f"cm/hsc_rc2_micro/step1_{uuid_int}/validate",
             },
             "data": {},
+            "level": LevelEnum.step.value,
         }
 
         assert step_groups == [

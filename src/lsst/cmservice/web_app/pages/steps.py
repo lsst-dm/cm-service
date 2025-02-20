@@ -32,6 +32,7 @@ async def get_step_details(session: async_scoped_session, step: Step) -> dict:
         "no_groups_completed": no_groups_completed,
         "no_groups_need_attention": no_groups_need_attention,
         "no_groups_failed": no_groups_failed,
+        "level": step.level.value,
     }
     return step_details
 
