@@ -101,7 +101,7 @@ async def get_campaigns(
                 production_name = campaign.fullname.split("/")[0]
                 campaign_details = await get_campaign_details(session, campaign)
                 if production_name in production_list:
-                    production_list[production_name].append(campaign)
+                    production_list[production_name].append(campaign_details)
                 else:
                     production_list[production_name] = [campaign_details]
         return templates.TemplateResponse(
@@ -122,11 +122,13 @@ async def error_page(
     request: Request,
     error_code: int,
 ) -> HTMLResponse:
+    referer = request.headers.get("referer")
     response = templates.TemplateResponse(
         name="pages/error.html",
         request=request,
         context={
             "error_code": error_code,
+            "referer": referer if referer is not None else request.url_for("get_campaigns"),
         },
     )
     return response
