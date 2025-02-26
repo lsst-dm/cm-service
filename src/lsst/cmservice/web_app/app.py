@@ -95,7 +95,7 @@ async def get_campaigns(
 ) -> HTMLResponse:
     try:
         async with session.begin():
-            production_list = {}
+            production_list: dict[str, list] = {}
             campaigns = await get_all_campaigns(session)
             for campaign in campaigns:
                 production_name = campaign.fullname.split("/")[0]
