@@ -16,10 +16,9 @@ from safir.dependencies.http_client import http_client_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from lsst.cmservice import db
 from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
-from lsst.cmservice.web_app.pages.campaigns import get_campaign_details, search_campaigns
+from lsst.cmservice.web_app.pages.campaigns import get_all_campaigns, get_campaign_details, search_campaigns
 from lsst.cmservice.web_app.pages.group_details import get_group_by_id
 from lsst.cmservice.web_app.pages.job_details import get_job_by_id
 from lsst.cmservice.web_app.pages.script_details import get_script_by_id
@@ -96,16 +95,15 @@ async def get_campaigns(
 ) -> HTMLResponse:
     try:
         async with session.begin():
-            production_list = {}
-            productions = await db.Production.get_rows(session)
-            for p in productions:
-                children = await p.children(session)
-                production_campaigns = []
-                for c in children:
-                    campaign_details = await get_campaign_details(session, c)
-                    production_campaigns.append(campaign_details)
-                production_list[p.name] = production_campaigns
-
+            production_list: dict[str, list] = {}
+            campaigns = await get_all_campaigns(session)
+            for campaign in campaigns:
+                production_name = campaign.fullname.split("/")[0]
+                campaign_details = await get_campaign_details(session, campaign)
+                if production_name in production_list:
+                    production_list[production_name].append(campaign_details)
+                else:
+                    production_list[production_name] = [campaign_details]
         return templates.TemplateResponse(
             name="pages/campaigns.html",
             request=request,
@@ -124,11 +122,13 @@ async def error_page(
     request: Request,
     error_code: int,
 ) -> HTMLResponse:
+    referer = request.headers.get("referer")
     response = templates.TemplateResponse(
         name="pages/error.html",
         request=request,
         context={
             "error_code": error_code,
+            "referer": referer if referer is not None else request.url_for("get_campaigns"),
         },
     )
     return response
