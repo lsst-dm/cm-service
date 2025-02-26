@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-from lsst.cmservice.common.enums import StatusEnum
+from lsst.cmservice.common.enums import LevelEnum, StatusEnum
 from lsst.cmservice.db import Campaign, Group
 from lsst.cmservice.web_app.utils.utils import map_status
 
@@ -24,14 +24,18 @@ async def get_campaign_details(session: async_scoped_session, campaign: Campaign
     campaign_details = {
         "id": campaign.id,
         "name": campaign.name,
+        "fullname": campaign.fullname,
         "lsst_version": campaign.data["lsst_version"],  # type: ignore
-        "out": collections["out"],
         "source": collections.get("campaign_source", ""),
         "status": map_status(campaign.status),
         "groups_completed": f"{no_groups_completed} of {len(groups)} groups completed",
         "scripts_completed": f"{no_scripts_completed} of {len(scripts)} scripts completed",
         "need_attention_groups": need_attention_groups,
         "need_attention_scripts": need_attention_scripts,
+        "level": LevelEnum.campaign.value,
+        "collections": collections,
+        "data": campaign.data,
+        "child_config": campaign.child_config,
     }
     return campaign_details
 

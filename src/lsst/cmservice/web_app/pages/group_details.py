@@ -3,7 +3,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-from lsst.cmservice.db import Group
+from lsst.cmservice.db import Group, NodeMixin
 from lsst.cmservice.web_app.utils.utils import map_status
 
 
@@ -72,6 +72,7 @@ async def get_group_by_id(
                 "aggregated_wms_report": aggregated_report_dict,
                 "step_id": s_id,
                 "campaign_id": c_id,
+                "level": group.level.value,
             }
 
         return group_details, jobs, scripts
@@ -113,3 +114,8 @@ async def get_group_scripts(session: async_scoped_session, group: Group) -> list
             },
         )
     return step_scripts
+
+
+async def get_group_node(session: async_scoped_session, group_id: int) -> NodeMixin:
+    group = await Group.get_row(session, group_id)
+    return group

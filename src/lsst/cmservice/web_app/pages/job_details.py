@@ -3,7 +3,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-from lsst.cmservice.db import Job
+from lsst.cmservice.db import Job, NodeMixin
 from lsst.cmservice.web_app.utils.utils import map_status
 
 
@@ -66,6 +66,7 @@ async def get_job_by_id(
                 "wms_report": wms_report,
                 "aggregated_wms_report": aggregated_report_dict,
                 "products": products,
+                "level": job.level.value,
             }
 
         return job_details, scripts
@@ -86,3 +87,8 @@ async def get_job_scripts(session: async_scoped_session, job: Job) -> list[dict]
             },
         )
     return job_scripts
+
+
+async def get_job_node(session: async_scoped_session, job_id: int) -> NodeMixin:
+    job = await Job.get_row(session, job_id)
+    return job
