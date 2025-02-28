@@ -3,17 +3,20 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
-from safir.dependencies.db_session import db_session_dependency
+
+# from safir.dependencies.db_session import db_session_dependency
 from safir.dependencies.http_client import http_client_dependency
 from safir.logging import configure_logging, configure_uvicorn_logging
 from safir.middleware.x_forwarded import XForwardedMiddleware
 
 from . import __version__
 from .config import config
+from .db.session import db_session_dependency
 from .routers import (
     healthz,
     index,
     v1,
+    v2,
 )
 from .web_app import web_app
 
@@ -123,6 +126,7 @@ app.add_middleware(XForwardedMiddleware)
 app.include_router(healthz.health_router, prefix="")
 app.include_router(index.router, prefix="")
 app.include_router(v1.router, prefix=config.asgi.prefix)
+app.include_router(v2.router, prefix=config.asgi.prefix)
 
 # Start the frontend web application.
 app.mount(config.asgi.frontend_prefix, web_app)

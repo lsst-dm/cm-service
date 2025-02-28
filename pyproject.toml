@@ -42,6 +42,7 @@ dependencies = [
     "uvicorn[standard]==0.32.*",
     "panda-client>=1.5.82",
     "httpx>=0.27.2",
+    "sqlmodel>=0.0.22",
 ]
 
 [dependency-groups]

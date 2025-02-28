@@ -6,6 +6,8 @@ import sys
 from collections.abc import Iterator, Mapping
 from typing import Any
 
+import yaml
+
 
 @contextlib.contextmanager
 def add_sys_path(path: os.PathLike | str | None) -> Iterator[None]:
@@ -39,3 +41,9 @@ def update_include_dict(
             orig_dict[key].update(val)
         else:
             orig_dict[key] = val
+
+
+def yaml_to_json(yaml_docs: str) -> Any:
+    """Converts a set of yaml documents to a JSON list."""
+    _yamls = yaml.safe_load_all(yaml_docs)
+    yield from _yamls
