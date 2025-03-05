@@ -64,6 +64,9 @@ class ButlerConfiguration(BaseModel):
         default="butler",
     )
 
+    # FIXME this index is used to hydrate a WMS submission environment, so it
+    #       is not used by CM Service to construct Butlers, and may be variable
+    #       between sites, so should be relocated to a facility-specific config
     repository_index: str = Field(
         description="Fully qualified path to a butler repository index.",
         default="/sdf/group/rubin/shared/data-repos.yaml",
@@ -77,6 +80,11 @@ class ButlerConfiguration(BaseModel):
     default_username: str = Field(
         description="Default username to use for Butler registry authentication",
         default="rubin",
+    )
+
+    eager: bool = Field(
+        description="Whether to eagerly instantiate known Butlers at Factory startup",
+        default=True,
     )
 
     mock: bool = Field(
