@@ -262,3 +262,12 @@ class WmsComputeSite(enum.Enum):
     lanc = 2
     ral = 3
     in2p3 = 4
+
+
+class ManifestKind(enum.Enum):
+    """Define a manifest kind"""
+
+    campaign = enum.auto()
+    node = enum.auto()
+    edge = enum.auto()
+    other = enum.auto()

@@ -1,10 +1,12 @@
 from datetime import datetime
-from typing import Any
+from typing import Annotated, Any
 from uuid import NAMESPACE_DNS, UUID, uuid5
 
-from pydantic import ValidationInfo, model_validator
+from pydantic import PlainSerializer, PlainValidator, ValidationInfo, model_validator
 from sqlalchemy.dialects import postgresql
-from sqlmodel import Column, Field, SQLModel, String
+from sqlmodel import Column, Enum, Field, SQLModel, String
+
+from ..common.enums import ManifestKind, StatusEnum
 
 _default_campaign_namespace = uuid5(namespace=NAMESPACE_DNS, name="io.lsst.cmservice")
 """Default UUID5 namespace for campaigns"""
@@ -17,16 +19,31 @@ _default_campaign_namespace = uuid5(namespace=NAMESPACE_DNS, name="io.lsst.cmser
 #   2. the model of the manifest when creating a new object
 #   3. a response model for APIs related to the object
 
+EnumSerializer = PlainSerializer(
+    lambda x: x.name,
+    return_type="str",
+    when_used="always",
+)
+"""A serializer for enums that produces its name, not the value."""
+
+
+StatusEnumValidator = PlainValidator(lambda x: StatusEnum[x] if isinstance(x, str) else StatusEnum(x))
+"""A validator for the StatusEnum that can parse the enum from either a name
+or a value.
+"""
+
 
 class CampaignBase(SQLModel):
     """campaigns_v2 db table"""
-
-    __tablename__: str = "campaigns_v2"
 
     id: UUID = Field(primary_key=True)
     name: str
     namespace: UUID
     owner: str | None = Field(default=None)
+    status: Annotated[StatusEnum, StatusEnumValidator, EnumSerializer] | None = Field(
+        default=StatusEnum.waiting,
+        sa_column=Column("status", Enum(StatusEnum, length=20, native_enum=False, create_constraint=False)),
+    )
     metadata_: dict = Field(
         sa_type=postgresql.JSONB, default_factory=dict, sa_column_kwargs={"name": "metadata"}
     )
@@ -38,9 +55,10 @@ class CampaignModel(CampaignBase):
 
     @model_validator(mode="before")
     @classmethod
-    def generate_id(cls, data: Any, info: ValidationInfo) -> Any:
-        # this feels wrong, mutating the input dictionary? Maybe not.
-        # assume raw input is a dict or can be duck-typed as one
+    def custom_model_validator(cls, data: Any, info: ValidationInfo) -> Any:
+        """Validates the model based on different types of raw inputs,
+        where some default non-optional fields can be auto-populated.
+        """
         if isinstance(data, dict):
             if "name" not in data:
                 raise ValueError("'name' must be specified.")
@@ -51,18 +69,25 @@ class CampaignModel(CampaignBase):
         return data
 
 
-class Campaign(CampaignModel, table=True): ...
+class Campaign(CampaignModel, table=True):
+    __tablename__: str = "campaigns_v2"
 
 
 class NodeBase(SQLModel):
     """nodes_v2 db table"""
 
-    __tablename__: str = "nodes_v2"
-
     id: UUID = Field(primary_key=True)
     name: str
     version: int
     namespace: UUID
+    kind: Annotated[ManifestKind, EnumSerializer] = Field(
+        default=ManifestKind.other,
+        sa_column=Column("kind", Enum(ManifestKind, length=20, native_enum=False, create_constraint=False)),
+    )
+    status: Annotated[StatusEnum, StatusEnumValidator, EnumSerializer] | None = Field(
+        default=StatusEnum.waiting,
+        sa_column=Column("status", Enum(StatusEnum, length=20, native_enum=False, create_constraint=False)),
+    )
     configuration: dict = Field(sa_type=postgresql.JSONB, default_factory=dict)
 
 
@@ -71,9 +96,7 @@ class NodeModel(NodeBase):
 
     @model_validator(mode="before")
     @classmethod
-    def generate_id(cls, data: Any, info: ValidationInfo) -> Any:
-        # if hasattr(data, "_mapping"):
-        #     return data._mapping["Node"]
+    def custom_model_validator(cls, data: Any, info: ValidationInfo) -> Any:
         if isinstance(data, dict):
             if "version" not in data:
                 data["version"] = 1
@@ -86,7 +109,8 @@ class NodeModel(NodeBase):
         return data
 
 
-class Node(NodeModel, table=True): ...
+class Node(NodeModel, table=True):
+    __tablename__: str = "nodes_v2"
 
 
 class EdgeBase(SQLModel):
@@ -107,12 +131,7 @@ class EdgeModel(EdgeBase):
 
     @model_validator(mode="before")
     @classmethod
-    def generate_id(cls, data: Any, info: ValidationInfo) -> Any:
-        # if hasattr(data, "_mapping"):
-        #     try:
-        #         return data._mapping["Edge"]
-        #     except KeyError:
-        #         return data._mapping
+    def custom_model_validator(cls, data: Any, info: ValidationInfo) -> Any:
         if isinstance(data, dict):
             # if "version" not in data:
             #     data["version"] = 1
@@ -142,6 +161,10 @@ class ManifestBase(SQLModel):
     name: str
     version: int
     namespace: UUID
+    kind: Annotated[ManifestKind, EnumSerializer] = Field(
+        default=ManifestKind.other,
+        sa_column=Column("kind", Enum(ManifestKind, length=20, native_enum=False, create_constraint=False)),
+    )
     metadata_: dict = Field(
         sa_type=postgresql.JSONB, default_factory=dict, sa_column_kwargs={"name": "metadata"}
     )
@@ -153,7 +176,7 @@ class ManifestModel(ManifestBase):
 
     @model_validator(mode="before")
     @classmethod
-    def generate_id(cls, data: Any, info: ValidationInfo) -> Any:
+    def custom_model_validator(cls, data: Any, info: ValidationInfo) -> Any:
         # if hasattr(data, "_mapping"):
         #     return data._mapping["Manifest"]
         if isinstance(data, dict):
@@ -187,3 +210,18 @@ class Task(SQLModel, table=True):
     site_affinity: list[str] = Field(sa_column=Column(postgresql.ARRAY(String())))
     status: int
     previous_status: int
+
+
+class ActivityLogBase(SQLModel):
+    __tablename__: str = "activity_log_v2"
+
+    id: UUID = Field(primary_key=True)
+    namespace: UUID
+    node: UUID
+    operator: str
+    from_status: Annotated[StatusEnum, EnumSerializer]
+    to_status: Annotated[StatusEnum, EnumSerializer]
+    detail: dict = Field(sa_type=postgresql.JSONB, default_factory=dict)
+
+
+class ActivityLog(ActivityLogBase, table=True): ...

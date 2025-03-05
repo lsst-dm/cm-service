@@ -4,6 +4,7 @@ The /campaigns endpoint supports a collection resource and single resources
 representing campaign objects within CM-Service.
 """
 
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid5
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
@@ -72,15 +73,87 @@ async def read_campaign_resource(
     campaign = (await session.exec(s)).one_or_none()
     # set the response headers
     if campaign:
-        response.headers["x-self"] = (
+        response.headers["Self"] = (
             f"""{request.url_for("read_campaign_resource", campaign_name=campaign.id)}"""
         )
-        response.headers["x-nodes"] = (
+        response.headers["Nodes"] = (
             f"""{request.url_for("read_campaign_node_collection", campaign_name=campaign.id)}"""
         )
-        response.headers["x-dges"] = (
+        response.headers["Edges"] = (
             f"""{request.url_for("read_campaign_edge_collection", campaign_name=campaign.id)}"""
         )
+    return campaign
+
+
+@router.patch(
+    "/{campaign_name}",
+    summary="Update campaign detail",
+    response_model=Campaign,
+    status_code=202,
+)
+async def update_campaign_resource(
+    request: Request,
+    response: Response,
+    campaign_name: str,
+    patch_data: dict,
+    session: AsyncSession = Depends(db_session_dependency),
+):
+    """Partial update method for campaigns.
+
+    Should primarily be used to set the status of a campaign, e.g., from
+    waiting->ready, in order to trigger any validation rules contained in that
+    transition.
+
+    Another common use case would be to set status to "paused".
+
+    This could be used to update a campaign's metadata, but otherwise the
+    status is the only field available for modification, and even then there is
+    not an imperative "change the status" command, rather a request to evolve
+    the state of a campaign from A to B, which may or may not be successful.
+
+    Rather than manipulating the campaign's record, a change to status should
+    instead create a work item for the task processing queue for an executor
+    to discover and attempt to act upon. Barring that, the work should be
+    delegated to a Background Task. This is why the method returns a 202; the
+    user needs to check back "later" to see if the requested state change has
+    occurred.
+    """
+    use_rfc7396 = False
+    use_rfc6902 = False
+    if request.headers["Content-Type"] == "application/merge-patch+json":
+        use_rfc7396 = True
+    elif request.headers["Content-Type"] == "application/json-patch+json":
+        use_rfc6902 = True
+        raise HTTPException(status_code=501, detail="Not yet implemented.")
+    else:
+        raise HTTPException(status_code=406, detail="Unsupported Content-Type")
+
+    if TYPE_CHECKING:
+        assert use_rfc7396
+        assert not use_rfc6902
+    s = select(Campaign)
+    # The input could be a campaign UUID or it could be a literal name.
+    try:
+        if campaign_id := UUID(campaign_name):
+            s = s.where(Campaign.id == campaign_id)
+    except ValueError:
+        s = s.where(Campaign.name == campaign_name)
+
+    campaign = (await session.exec(s)).one_or_none()
+    if campaign is None:
+        raise HTTPException(status_code=404, detail="No such campaign")
+
+    # update the campaign with the patch data
+    # this is irritating because SQLModels don't validate anything when they
+    # are tables, and partial updates can't be validating models because they
+    # are *partial* and not every field is optional.
+    # FIXME this imperative changing of a campaign is not how this api should
+    #       work
+    campaign_dict = campaign.model_dump()
+    campaign_dict.update(patch_data)
+    session.add(campaign.sqlmodel_update(Campaign.model_validate(campaign_dict)))
+    await session.commit()
+
     return campaign
 
 
@@ -241,11 +314,11 @@ async def create_campaign_resource(
     await session.refresh(campaign)
 
     # set the response headers
-    response.headers["X-Self"] = f"""{request.url_for("read_campaign_resource", campaign_name=campaign.id)}"""
-    response.headers["X-Nodes"] = (
+    response.headers["Self"] = f"""{request.url_for("read_campaign_resource", campaign_name=campaign.id)}"""
+    response.headers["Nodes"] = (
         f"""{request.url_for("read_campaign_node_collection", campaign_name=campaign.id)}"""
     )
-    response.headers["X-Edges"] = (
+    response.headers["Edges"] = (
         f"""{request.url_for("read_campaign_edge_collection", campaign_name=campaign.id)}"""
     )
     return campaign
