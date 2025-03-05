@@ -9,6 +9,7 @@ from safir.logging import configure_logging, configure_uvicorn_logging
 from safir.middleware.x_forwarded import XForwardedMiddleware
 
 from . import __version__
+from .common.butler import BUTLER_FACTORY  # noqa: F401
 from .config import config
 from .routers import (
     healthz,
