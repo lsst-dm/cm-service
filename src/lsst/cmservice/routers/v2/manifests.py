@@ -4,12 +4,14 @@ The /manifests endpoint supports a collection resource and single resources
 representing manifest objects within CM-Service.
 """
 
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid5
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from ...common.enums import ManifestKind
 from ...common.logging import LOGGER
 from ...db.campaigns_v2 import Manifest, ManifestModel, _default_campaign_namespace
 from ...db.manifests_v2 import ManifestWrapper
@@ -112,6 +114,9 @@ async def create_one_or_more_resources(
         elif (_name := manifest.metadata_.pop("name")) is None:
             raise HTTPException(status_code=400, detail="Manifests must have a name set in '.metadata.name'")
 
+        if TYPE_CHECKING:
+            assert isinstance(manifest.kind, ManifestKind)
+
         # TODO match node with jsonschema and validate
 
         # A manifest must exist in the namespace of an existing campaign
@@ -152,6 +157,7 @@ async def create_one_or_more_resources(
             id=uuid5(_namespace_uuid, f"{_name}.{_version}"),
             name=_name,
             namespace=_namespace_uuid,
+            kind=manifest.kind,
             version=_version,
             metadata_=manifest.metadata_,
             spec=manifest.spec,
