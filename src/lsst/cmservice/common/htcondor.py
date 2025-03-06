@@ -13,6 +13,7 @@ from ..config import config
 from .enums import StatusEnum
 from .errors import CMHTCondorCheckError, CMHTCondorSubmitError
 from .logging import LOGGER
+from .panda import get_panda_token
 
 logger = LOGGER.bind(module=__name__)
 
@@ -208,6 +209,13 @@ def build_htcondor_submit_environment() -> Mapping[str, str]:
     # vars for panda. This also allows us to provide our specific panda idtoken
     # as an env var instead of requiring the target process to pick it up from
     # some .token file that may or may not be present or valid.
+
+    # calling the panda refresh token operation is a noop if no panda token is
+    # present or if the panda token does not need to be refreshed yet.
+    _ = get_panda_token()
+    # TODO it could be worthwhile to put the panda check/refresh logic in the
+    #      serializer method of the idtoken field.
+
     return config.panda.model_dump(by_alias=True, exclude_none=True) | dict(
         CONDOR_CONFIG=config.htcondor.config_source,
         _CONDOR_CONDOR_HOST=config.htcondor.collector_host,
