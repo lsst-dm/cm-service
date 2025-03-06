@@ -1,5 +1,6 @@
 import logging
 import traceback
+from collections import defaultdict
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -95,15 +96,13 @@ async def get_campaigns(
 ) -> HTMLResponse:
     try:
         async with session.begin():
-            production_list: dict[str, list] = {}
+            production_list: dict[str, list] = defaultdict(list)
             campaigns = await get_all_campaigns(session)
+
             for campaign in campaigns:
-                production_name = campaign.fullname.split("/")[0]
                 campaign_details = await get_campaign_details(session, campaign)
-                if production_name in production_list:
-                    production_list[production_name].append(campaign_details)
-                else:
-                    production_list[production_name] = [campaign_details]
+                production_list[campaign_details["production_name"]].append(campaign_details)
+
         return templates.TemplateResponse(
             name="pages/campaigns.html",
             request=request,
