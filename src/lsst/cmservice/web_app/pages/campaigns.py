@@ -24,6 +24,7 @@ async def get_campaign_details(session: async_scoped_session, campaign: Campaign
     campaign_details = {
         "id": campaign.id,
         "name": campaign.name,
+        "production_name": campaign.fullname.split("/")[0],
         "fullname": campaign.fullname,
         "lsst_version": campaign.data["lsst_version"],  # type: ignore
         "source": collections.get("campaign_source", ""),

@@ -115,6 +115,7 @@ async def test_get_campaign_details(
         },
         "fullname": "first_production/first_campaign",
         "level": 1,
+        "production_name": "first_production",
     }
 
 
