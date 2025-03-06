@@ -6,6 +6,7 @@ import os
 from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import httpx
 from pandaclient.openidc_utils import decode_id_token
@@ -46,6 +47,10 @@ def refresh_panda_token(url: str, data: dict[str, str]) -> str | None:
     # - update token expiry
     decoded_token = decode_id_token(config.panda.id_token)
     config.panda.token_expiry = float(decoded_token["exp"])  # type: ignore
+    if TYPE_CHECKING:
+        # the validation machinery of the pyantic field handles conversion
+        # from float to datetime.
+        assert isinstance(config.panda.token_expiry, datetime.datetime)
     return config.panda.id_token
 
 
@@ -74,6 +79,10 @@ def get_panda_token() -> str | None:
     determined from the panda url and the oidc VO.
     """
 
+    # If no panda configuration exists in the application, return early
+    if config.panda.url is None:
+        return None
+
     # If a token has been added to the configuration object, use it instead of
     # loading one from disk
     try:
@@ -90,11 +99,15 @@ def get_panda_token() -> str | None:
     # Determine whether the token should be renewed
     # The token expiry time is part of the encoded token
     try:
-        decoded_token = decode_id_token(config.panda.id_token)
-        # TODO if "exp" not in decoded_token: ...
-        config.panda.token_expiry = float(decoded_token["exp"])  # type: ignore
+        if config.panda.token_expiry is None:
+            decoded_token = decode_id_token(config.panda.id_token)
+            config.panda.token_expiry = float(decoded_token["exp"])  # type: ignore
+        if TYPE_CHECKING:
+            # the validation machinery of the pyantic field handles conversion
+            # from float to datetime.
+            assert isinstance(config.panda.token_expiry, datetime.datetime)
     except Exception:
-        # FIXME: this should generally be an AttributeError but the 3rdparty
+        # NOTE: this should generally be an AttributeError but the 3rdparty
         #        function may change its operation.
         # If current id_token is None or otherwise not decodable, we will get a
         # new one from the refresh operation
@@ -104,6 +117,7 @@ def get_panda_token() -> str | None:
     if (config.panda.token_expiry - now_utc) < datetime.timedelta(config.panda.renew_after):
         if config.panda.auth_config_url is None:
             logger.error("There is no PanDA auth config url known to the service, cannot refresh token.")
+            logger.warning("The current PanDA id token may be invalid.")
             return config.panda.id_token
 
         try:

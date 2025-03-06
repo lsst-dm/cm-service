@@ -267,9 +267,9 @@ class PandaConfiguration(BaseModel, validate_assignment=True):
         exclude=True,
     )
 
-    token_expiry: datetime = Field(
+    token_expiry: datetime | None = Field(
         description="Time at which the current idtoken expires",
-        default=datetime.now(tz=UTC),
+        default=None,
         exclude=True,
     )
 

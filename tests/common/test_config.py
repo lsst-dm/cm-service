@@ -1,5 +1,5 @@
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -68,11 +68,14 @@ def test_config_boolean_serialization(monkeypatch: Any) -> None:
 def test_config_datetime() -> None:
     """Test the validation of datetime configuration parameters"""
     config = Configuration()
-    assert type(config.panda.token_expiry) is datetime
+
+    # avoids mypy's narrowing on first assert behavior
+    if not TYPE_CHECKING:
+        assert config.panda.token_expiry is None
 
     # test validation and coercion on assignment
     config.panda.token_expiry = 1740147265  # type: ignore
-    assert type(config.panda.token_expiry) is datetime
+    assert isinstance(config.panda.token_expiry, datetime)
     assert config.panda.token_expiry.tzinfo is UTC
 
     # test coercion to UTC on assignment of tz-naive datetime
