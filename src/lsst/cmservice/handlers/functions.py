@@ -12,6 +12,7 @@ from lsst.ctrl.bps.wms_service import WmsJobReport, WmsRunReport, WmsStates
 
 from ..common.enums import StatusEnum
 from ..common.errors import CMMissingFullnameError, CMYamlParseError
+from ..common.logging import LOGGER
 from ..common.utils import update_include_dict
 from ..config import config
 from ..db.campaign import Campaign
@@ -26,6 +27,8 @@ from ..db.step import Step
 from ..db.step_dependency import StepDependency
 from ..db.task_set import TaskSet
 from ..db.wms_task_report import WmsTaskReport
+
+logger = LOGGER.bind(module=__name__)
 
 
 async def upsert_spec_block(
@@ -573,7 +576,7 @@ async def load_manifest_report(
 
 def status_from_bps_report(
     wms_run_report: WmsRunReport | None,
-    fake_status: StatusEnum | None,
+    fake_status: StatusEnum | None = None,
 ) -> StatusEnum | None:  # pragma: no cover
     """Decide the status for a workflow for a bps report
 
@@ -591,6 +594,8 @@ def status_from_bps_report(
     """
     if wms_run_report is None:
         return fake_status or config.mock_status
+
+    logger.debug(wms_run_report)
 
     the_state = wms_run_report.state
     # We treat RUNNING as running from the CM point of view,
