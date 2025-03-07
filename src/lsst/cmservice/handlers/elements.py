@@ -8,11 +8,10 @@ import numpy as np
 from anyio import to_thread
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-from lsst.daf.butler import Butler
-
-from ..common.butler import get_butler_config
+from ..common.butler import BUTLER_FACTORY
 from ..common.enums import StatusEnum
 from ..common.errors import CMMissingScriptInputError, test_type_and_raise
+from ..common.logging import LOGGER
 from ..config import config
 from ..db.campaign import Campaign
 from ..db.element import ElementMixin
@@ -20,6 +19,8 @@ from ..db.group import Group
 from ..db.job import Job
 from ..db.script import Script
 from .script_handler import FunctionHandler
+
+logger = LOGGER.bind(module=__name__)
 
 
 class RunElementScriptHandler(FunctionHandler):
@@ -221,14 +222,10 @@ class SplitByQuery(Splitter):
         if mock_butler:
             sorted_field_values = np.arange(10)
         else:
-            butler_config = await get_butler_config(butler_repo, without_datastore=True)
-            butler_f = partial(
-                Butler.from_config,
-                butler_config,
-                collections=[input_coll, campaign_input_coll],
-                without_datastore=True,
-            )
-            butler = await to_thread.run_sync(butler_f)
+            butler = BUTLER_FACTORY.get_butler(butler_repo, collections=[input_coll, campaign_input_coll])
+            if butler is None:
+                logger.error(f"butler repo {butler_repo} is not known to the application.")
+                raise RuntimeError("No such butler")
             itr_q_f = partial(
                 butler.registry.queryDataIds,
                 [split_field],
