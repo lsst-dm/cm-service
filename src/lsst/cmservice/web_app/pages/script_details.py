@@ -41,7 +41,6 @@ async def get_script_by_id(
         # It also builds a list of parent links <parent_list> to be used
         # for the breadcrumbs in the page
         parent_list = [
-            request.url_for("get_campaigns"),
             request.url_for("get_steps", campaign_id=campaign_id),
         ]
 

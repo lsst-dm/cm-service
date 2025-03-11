@@ -8,21 +8,13 @@ from playwright.sync_api import expect, sync_playwright
 
 from lsst.cmservice import db
 from lsst.cmservice.common.enums import StatusEnum
-from lsst.cmservice.db import Campaign, Production
+from lsst.cmservice.db import Campaign
 from lsst.cmservice.web_app.pages.campaigns import get_campaign_details
 
 
 @pytest.fixture()
 def mock_session() -> typing.Generator:
     yield Mock()
-
-
-@pytest.fixture()
-def first_production() -> Production:
-    return Production(
-        id=1,
-        name="first_production",
-    )
 
 
 @pytest.fixture()
@@ -53,7 +45,6 @@ def first_campaign(
     campaign = Campaign(
         id=1,
         name="first_campaign",
-        parent_id=1,
         fullname="first_production/first_campaign",
         spec_id=1,
         spec_block_id=1,
@@ -124,6 +115,7 @@ async def test_get_campaign_details(
         },
         "fullname": "first_production/first_campaign",
         "level": 1,
+        "production_name": "first_production",
     }
 
 

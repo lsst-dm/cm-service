@@ -76,10 +76,26 @@
 </script>
 <nav class="flex px-2 sm:px-4 lg:px-4" aria-label="Breadcrumb">
   <ol role="list" class="flex items-center space-x-2">
-      {% for i in range(script.parent_list|length) %}
+      <li>
+          <div class="flex items-center">
+              <a href="{{ url_for('get_campaigns') }}" class="underline decoration-2 ml-2 mr-2 text-sm font-medium text-gray-500 hover:text-gray-700">Campaigns</a>
+              <svg class="h-5 w-5 flex-shrink-0 text-gray-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
+              </svg>
+          </div>
+      </li>
+      <li>
+          <div class="flex items-center">
+              <a href="{{ script.parent_list[0] }}" class="underline decoration-2 ml-2 mr-2 text-sm font-medium text-gray-500 hover:text-gray-700">{{fullname[0]}}/{{fullname[1]}}</a>
+              <svg class="h-5 w-5 flex-shrink-0 text-gray-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
+              </svg>
+          </div>
+      </li>
+      {% for i in range(1, script.parent_list|length ) %}
     <li>
       <div class="flex items-center">
-          <a href="{{ script.parent_list[i] }}" class="underline decoration-2 ml-2 mr-2 text-sm font-medium text-gray-500 hover:text-gray-700">{{ fullname[i] }}</a>
+          <a href="{{ script.parent_list[i] }}" class="underline decoration-2 ml-2 mr-2 text-sm font-medium text-gray-500 hover:text-gray-700">{{ fullname[i+1] }}</a>
 
           {% if not loop.last %}
           <svg class="h-5 w-5 flex-shrink-0 text-gray-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
