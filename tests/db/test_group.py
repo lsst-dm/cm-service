@@ -40,13 +40,13 @@ async def test_group_db(engine: AsyncEngine) -> None:
                 session,
                 name=f"group0_{uuid_int}",
                 spec_block_name="group",
-                parent_name=f"prod0_{uuid_int}/camp0_{uuid_int}/step1_{uuid_int}",
+                parent_name=f"camp0_{uuid_int}/step1_{uuid_int}",
             )
 
         # run row mixin method tests
         check_getall = await db.Group.get_rows(
             session,
-            parent_name=f"prod0_{uuid_int}/camp0_{uuid_int}/step1_{uuid_int}",
+            parent_name=f"camp0_{uuid_int}/step1_{uuid_int}",
             parent_class=db.Step,
         )
         assert len(check_getall) == 5, "length should be 5"

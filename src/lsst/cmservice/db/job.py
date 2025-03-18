@@ -27,7 +27,6 @@ if TYPE_CHECKING:
     from .campaign import Campaign
     from .pipetask_error import PipetaskError
     from .product_set import ProductSet
-    from .production import Production
     from .script import Script
     from .spec_block import SpecBlock
     from .task_set import TaskSet
@@ -80,17 +79,6 @@ class Job(Base, ElementMixin):
         primaryjoin="Job.parent_id==Group.id",
         secondary="join(Group, Step).join(Campaign)",
         secondaryjoin="and_(Group.parent_id==Step.id, Step.parent_id==Campaign.id) ",
-        viewonly=True,
-    )
-    p_: Mapped[Production] = relationship(
-        "Production",
-        primaryjoin="Job.parent_id==Group.id",
-        secondary="join(Group, Step).join(Campaign).join(Production)",
-        secondaryjoin="and_("
-        "Group.parent_id==Step.id, "
-        "Step.parent_id==Campaign.id, "
-        "Campaign.parent_id==Production.id, "
-        ") ",
         viewonly=True,
     )
     parent_: Mapped[Group] = relationship("Group", viewonly=True)

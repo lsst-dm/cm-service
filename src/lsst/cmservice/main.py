@@ -31,11 +31,6 @@ tags_metadata = [
         "In many cases this will result in the creating of new objects in the DB.",
     },
     {
-        "name": "Productions",
-        "description": "Operations with `production`s. A `production` is a container for `campaign`s. "
-        "`production`s must be uniquely named.",
-    },
-    {
         "name": "Campaigns",
         "description": "Operations with `campaign`s. A `campaign` consists of several processing `step`s "
         "which are run sequentially. A `campaign` also holds configuration such as a URL for a butler repo "

@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from lsst.cmservice import db
 from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.web_app.pages.job_details import get_job_by_id
-from tests.db.util_functions import create_tree, delete_all_productions
+from tests.db.util_functions import create_tree, delete_all_artifacts
 
 
 @pytest.mark.asyncio()
@@ -33,8 +33,7 @@ async def test_get_job_by_id(engine: AsyncEngine) -> None:
         assert job == {
             "id": 1,
             "name": f"job_{uuid_int}",
-            "fullname": f"prod0_{uuid_int}/camp0_{uuid_int}/step1_{uuid_int}/"
-            f"group0_{uuid_int}/job_{uuid_int}_000",
+            "fullname": f"camp0_{uuid_int}/step1_{uuid_int}/group0_{uuid_int}/job_{uuid_int}_000",
             "status": "IN_PROGRESS",
             "superseded": False,
             "child_config": {},
@@ -56,13 +55,13 @@ async def test_get_job_by_id(engine: AsyncEngine) -> None:
         }
 
         # delete everything we just made in the session
-        await delete_all_productions(session)
+        await delete_all_artifacts(session)
 
         # confirm cleanup
-        productions = await db.Production.get_rows(
+        campaigns = await db.Campaign.get_rows(
             session,
         )
-        assert len(productions) == 0
+        assert len(campaigns) == 0
         await session.close()
         await session.remove()
 

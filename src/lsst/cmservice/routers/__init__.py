@@ -28,7 +28,6 @@ from . import (
     pipetask_error_types,
     pipetask_errors,
     product_sets,
-    productions,
     queues,
     script_dependencies,
     script_errors,

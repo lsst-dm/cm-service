@@ -15,7 +15,6 @@ from .loaders import CMLoadClient
 from .pipetask_error_types import CMPipetaskErrorTypeClient
 from .pipetask_errors import CMPipetaskErrorClient
 from .product_sets import CMProductSetClient
-from .productions import CMProductionClient
 from .queues import CMQueueClient
 from .script_dependencies import CMScriptDependencyClient
 from .script_errors import CMScriptErrorClient
@@ -48,7 +47,6 @@ class CMClient:
             client_kwargs["cookies"] = cookies
         self._client = httpx.Client(**client_kwargs)
 
-        self.production = CMProductionClient(self)
         self.campaign = CMCampaignClient(self)
         self.step = CMStepClient(self)
         self.group = CMGroupClient(self)

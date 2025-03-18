@@ -35,7 +35,7 @@ class ElementCreateMixin(ElementBase):
     """Parameters that are used to create new rows but not in DB tables"""
 
     # Fullname of the parent Node
-    parent_name: str
+    parent_name: str | None = None
 
 
 class ElementMixin(ElementBase):
@@ -47,7 +47,7 @@ class ElementMixin(ElementBase):
     id: int
 
     # ForeignKey for Parent Node
-    parent_id: int | None
+    parent_id: int | None = None
 
     # Full unique name for this Node
     fullname: str

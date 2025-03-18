@@ -1,5 +1,4 @@
 import os
-import uuid
 
 import pytest
 from httpx import AsyncClient
@@ -10,6 +9,7 @@ from lsst.cmservice.config import config
 
 from .util_functions import (
     check_and_parse_response,
+    # cleanup,
     create_tree,
 )
 
@@ -20,8 +20,7 @@ from .util_functions import (
 async def test_report_routes(client: AsyncClient, api_version: str) -> None:
     """Test `/job` API endpoint."""
 
-    # generate a uuid to avoid collisions
-    uuid_int = uuid.uuid1().int
+    uuid_int = 467858
 
     os.environ["CM_CONFIGS"] = "examples"
 
@@ -30,7 +29,7 @@ async def test_report_routes(client: AsyncClient, api_version: str) -> None:
 
     response = await client.get(f"{config.asgi.prefix}/{api_version}/job/list")
     jobs = check_and_parse_response(response, list[models.Job])
-    entry = jobs[0]
+    entry = [job for job in jobs if str(uuid_int) in job.name][0]
 
     manifest_report_query = models.LoadManifestReport(
         fullname=entry.fullname,
@@ -42,3 +41,6 @@ async def test_report_routes(client: AsyncClient, api_version: str) -> None:
         content=manifest_report_query.model_dump_json(),
     )
     assert response.is_success
+
+    # delete everything we just made in the session
+    # await cleanup(client, api_version, check_cascade=True)

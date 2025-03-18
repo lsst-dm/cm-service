@@ -9,7 +9,6 @@ from .node import NodeMixin
 from .pipetask_error import PipetaskError
 from .pipetask_error_type import PipetaskErrorType
 from .product_set import ProductSet
-from .production import Production
 from .queue import Queue
 from .row import RowMixin
 from .script import Script
@@ -32,7 +31,6 @@ __all__ = [
     "PipetaskError",
     "PipetaskErrorType",
     "ProductSet",
-    "Production",
     "Queue",
     "RowMixin",
     "Script",
