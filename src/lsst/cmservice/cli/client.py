@@ -9,7 +9,6 @@ from .load import load_group
 from .pipetask_error import pipetask_error_group
 from .pipetask_error_type import pipetask_error_type_group
 from .product_set import product_set_group
-from .production import production_group
 from .queue import queue_group
 from .script import script_group
 from .script_dependency import script_dependency_group
@@ -34,7 +33,6 @@ from .wms_task_report import wms_task_report_group
         pipetask_error_group,
         pipetask_error_type_group,
         product_set_group,
-        production_group,
         queue_group,
         script_group,
         script_dependency_group,

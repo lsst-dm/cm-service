@@ -285,21 +285,8 @@ class CMLoadClient:
             config_data = yaml.safe_load(fin)
 
         try:
-            prod_config = config_data["Production"]
-        except KeyError as msg:
-            raise CMYamlParseError(
-                f"Could not find 'Production' tag in {campaign_yaml}",
-            ) from msg
-        try:
-            parent_name = prod_config["name"]
-        except KeyError as msg:
-            raise CMYamlParseError(
-                f"Could not find 'name' tag in {campaign_yaml}#Production",
-            ) from msg
-
-        try:
             camp_config = config_data["Campaign"]
-            camp_config["parent_name"] = parent_name
+            camp_config["parent_name"] = "DEFAULT"
         except KeyError as msg:
             raise CMYamlParseError(
                 f"Could not find 'Campaign' tag in {campaign_yaml}",
@@ -308,7 +295,7 @@ class CMLoadClient:
         assert isinstance(camp_config, dict)
 
         # flush out config_data with kwarg overrides
-        for key in ["name", "parent_name", "spec_name", "handler"]:
+        for key in ["name", "spec_name", "handler"]:
             val = kwargs.get(key, None)
             if val:
                 camp_config[key] = val
@@ -331,10 +318,6 @@ class CMLoadClient:
                 )
         else:
             self.specification_cl(yaml_file, allow_update=allow_update)
-
-        production = self._parent.production.get_row_by_name(parent_name)
-        if not production:  # pragma: no cover
-            self._parent.production.create(name=parent_name)
 
         spec_name = camp_config["spec_name"]
         camp_config["spec_block_assoc_name"] = f"{spec_name}#campaign"

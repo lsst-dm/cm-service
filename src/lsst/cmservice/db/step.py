@@ -21,7 +21,6 @@ from .spec_block import SpecBlock
 if TYPE_CHECKING:
     from .group import Group
     from .job import Job
-    from .production import Production
     from .script import Script
     from .step_dependency import StepDependency
 
@@ -59,13 +58,6 @@ class Step(Base, ElementMixin):
 
     spec_block_: Mapped[SpecBlock] = relationship("SpecBlock", viewonly=True)
     parent_: Mapped[Campaign] = relationship("Campaign", back_populates="s_")
-    p_: Mapped[Production] = relationship(
-        "Production",
-        primaryjoin="Step.parent_id==Campaign.id",
-        secondary="join(Campaign, Production)",
-        secondaryjoin="Campaign.parent_id==Production.id",
-        viewonly=True,
-    )
     g_: Mapped[list[Group]] = relationship("Group", viewonly=True)
     scripts_: Mapped[list[Script]] = relationship("Script", viewonly=True)
     prereqs_: Mapped[list[StepDependency]] = relationship(

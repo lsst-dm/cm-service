@@ -118,7 +118,7 @@ def get_rows_function(
                     parent_id=parent_id,
                     skip=skip,
                     limit=limit,
-                    parent_class=db.Production,
+                    parent_class=db.Campaign,
                 )
         except Exception as msg:
             logger.error(msg, exc_info=True)

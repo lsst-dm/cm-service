@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any, TypeVar
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_scoped_session
-from structlog import get_logger
 
 from ..common.enums import StatusEnum
 from ..common.errors import (
@@ -16,12 +15,13 @@ from ..common.errors import (
     CMMissingFullnameError,
     CMMissingIDError,
 )
+from ..common.logging import LOGGER
 
-logger = get_logger(__name__)
+logger = LOGGER.bind(module=__name__)
 
 T = TypeVar("T", bound="RowMixin")
 
-DELETEABLE_STATES = [
+DELETABLE_STATES = [
     StatusEnum.failed,
     StatusEnum.rejected,
     StatusEnum.waiting,
@@ -30,11 +30,9 @@ DELETEABLE_STATES = [
 
 
 class RowMixin:
-    """Mixin class to define common features of database rows
-    for all the tables we use in CM
+    """Mixin class to define common features of database rows for all tables.
 
-    Here we a just defining the interface to manipulate
-    an sort of table.
+    Defines an interface to manipulate any sort of table.
     """
 
     id: Any  # Primary Key, typically an int
@@ -198,12 +196,15 @@ class RowMixin:
 
         Raises
         ------
-        CMBadStateTransitionError: Row is in use
+        CMBadStateTransitionError: Row is in use (has an active status)
         """
         row = await session.get(cls, row_id)
         if row is None:
             raise CMMissingIDError(f"{cls} {row_id} not found")
-        if hasattr(row, "status") and row.status not in DELETEABLE_STATES:
+        # Parentless rows are deletable irrespective of status
+        if not hasattr(row, "parent_id"):
+            pass
+        elif hasattr(row, "status") and row.status not in DELETABLE_STATES:
             raise CMBadStateTransitionError(
                 f"Can not delete a row because it is in use {row} {row.status}",
             )
@@ -232,6 +233,8 @@ class RowMixin:
             PrimaryKey of the row to delete
 
         """
+        # This may be implemented by child classes.
+        logger.warning(f"Delete hook not implemented by {cls}")
         return
 
     @classmethod

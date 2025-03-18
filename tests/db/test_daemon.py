@@ -1,7 +1,7 @@
 import os
-import uuid
 from asyncio import sleep
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 import structlog
@@ -20,6 +20,7 @@ from .util_functions import cleanup
 async def test_daemon_db(engine: AsyncEngine) -> None:
     """Test creating a job, add it to the work queue, and start processing."""
 
+    fixtures = Path(__file__).parent.parent / "fixtures" / "seeds"
     logger = structlog.get_logger(__name__)
     async with engine.begin():
         session = await create_async_session(engine, logger)
@@ -27,11 +28,10 @@ async def test_daemon_db(engine: AsyncEngine) -> None:
         os.environ["CM_CONFIGS"] = CM_CONFIGS
 
         campaign = await interface.load_and_create_campaign(
-            session,
-            "tests/fixtures/seeds/example_trivial.yaml",
-            f"trivial_panda_{uuid.uuid1().int}",
-            "test_daemon",
-            "trivial_panda#campaign",
+            session=session,
+            yaml_file=f"{fixtures}/example_trivial.yaml",
+            name="test_daemon",
+            spec_block_assoc_name="trivial_panda#campaign",
         )
 
         await campaign.update_collections(

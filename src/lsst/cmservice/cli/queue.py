@@ -64,5 +64,5 @@ def daemon(
     client: CMClient,
     row_id: int,
 ) -> None:
-    """Update a production"""
+    """Update a queue"""
     client.queue.daemon(row_id)

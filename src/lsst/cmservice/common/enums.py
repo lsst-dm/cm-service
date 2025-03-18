@@ -7,7 +7,6 @@ import enum
 class TableEnum(enum.Enum):
     """Keep track of the various tables"""
 
-    production = 0
     campaign = 1
     step = 2
     group = 3
@@ -45,9 +44,6 @@ class LevelEnum(enum.Enum):
 
     The levels are:
 
-    production = 0
-        A family of related campaigns
-
     campaign = 1
         A full data processing campaign
 
@@ -64,7 +60,6 @@ class LevelEnum(enum.Enum):
         A script that does a particular action.  May occur off any other level
     """
 
-    production = 0
     campaign = 1
     step = 2
     group = 3
@@ -78,7 +73,7 @@ class LevelEnum(enum.Enum):
         if fullname.find("script:") == 0:
             return LevelEnum.script
         n_slash = fullname.count("/")
-        return LevelEnum(n_slash)
+        return LevelEnum(n_slash + 1)
 
 
 class StatusEnum(enum.Enum):
