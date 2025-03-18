@@ -57,7 +57,7 @@ async def test_common_bash() -> None:
 def test_common_table_enums() -> None:
     """Test common.enums.TableEnum"""
 
-    for table_val in range(TableEnum.production.value, TableEnum.script_template.value + 1):
+    for table_val in TableEnum:
         table_enum = TableEnum(table_val)
 
         if table_enum.is_node():

@@ -115,51 +115,6 @@ class CMLoadClient:
             steps=block_data.get("steps"),
         )
 
-    def _upsert_script_template(
-        self,
-        config_values: dict,
-        *,
-        allow_update: bool = False,
-    ) -> models.ScriptTemplate:
-        """Upsert and return a ScriptTemplate
-
-        This will create a new ScriptTemplate, or update an existing one
-
-        Parameters
-        ----------
-        config_values: dict
-            Values for the ScriptTemplate
-
-        allow_update: bool
-            Allow updating existing templates
-
-        Returns
-        -------
-        script_template: ScriptTemplate
-            Newly created or updated ScriptTemplate
-        """
-        key = config_values.pop("name")
-        script_template = self._parent.script_template.get_row_by_name(key)
-        if script_template and not allow_update:
-            return script_template
-
-        file_path = config_values["file_path"]
-        full_file_path = os.path.abspath(os.path.expandvars(file_path))
-        with open(full_file_path, encoding="utf-8") as fin:
-            data = yaml.safe_load(fin)
-
-        if script_template is None:
-            return self._parent.script_template.create(
-                name=key,
-                data=data,
-            )
-
-        return self._parent.script_template.update(
-            row_id=script_template.id,
-            name=key,
-            data=data,
-        )
-
     def _upsert_specification(
         self,
         config_values: dict,
@@ -173,7 +128,7 @@ class CMLoadClient:
         Parameters
         ----------
         config_values: dict
-            Values for the ScriptTemplate
+            Values for the Specification
 
         allow_update: bool
             Allow updating existing templates
@@ -232,7 +187,6 @@ class CMLoadClient:
         out_dict: dict[str, list[BaseModel]] = dict(
             Specification=[],
             SpecBlock=[],
-            ScriptTemplate=[],
         )
 
         for config_item in spec_data:
@@ -253,12 +207,6 @@ class CMLoadClient:
                     allow_update=allow_update,
                 )
                 out_dict["SpecBlock"].append(spec_block)
-            elif "ScriptTemplate" in config_item:
-                script_template = self._upsert_script_template(
-                    config_item["ScriptTemplate"],
-                    allow_update=allow_update,
-                )
-                out_dict["ScriptTemplate"].append(script_template)
             elif "Specification" in config_item:
                 specification = self._upsert_specification(
                     config_item["Specification"],
@@ -266,7 +214,7 @@ class CMLoadClient:
                 )
                 out_dict["Specification"].append(specification)
             else:  # pragma: no cover
-                good_keys = "ScriptTemplate | SpecBlock | Specification | Imports"
+                good_keys = "SpecBlock | Specification | Imports"
                 raise CMYamlParseError(f"Expecting one of {good_keys} not: {spec_data.keys()})")
 
         return out_dict

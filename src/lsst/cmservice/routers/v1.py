@@ -13,7 +13,6 @@ from . import (
     queues,
     script_dependencies,
     script_errors,
-    script_templates,
     scripts,
     spec_blocks,
     specifications,
@@ -39,7 +38,6 @@ router.include_router(scripts.router)
 
 router.include_router(specifications.router)
 router.include_router(spec_blocks.router)
-router.include_router(script_templates.router)
 
 router.include_router(pipetask_error_types.router)
 router.include_router(pipetask_errors.router)

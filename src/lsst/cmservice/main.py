@@ -93,7 +93,6 @@ tags_metadata = [
     },
     {"name": "Specifications", "description": "Operations with `specification` table."},
     {"name": "SpecBlocks", "description": "Operations with `spec_block` table."},
-    {"name": "ScriptTemplates", "description": "Operations with `script_template` table."},
 ]
 
 
