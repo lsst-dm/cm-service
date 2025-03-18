@@ -1,6 +1,7 @@
 import importlib
 import os
 import uuid
+from pathlib import Path
 
 import pytest
 import structlog
@@ -19,6 +20,7 @@ from .util_functions import (
 @pytest.mark.asyncio()
 async def test_reports_db(engine: AsyncEngine) -> None:
     """Test `job` db table."""
+    fixtures = Path(__file__).parent.parent / "fixtures" / "seeds"
     interface = importlib.import_module("lsst.cmservice.handlers.interface")
     functions = importlib.import_module("lsst.cmservice.handlers.functions")
 
@@ -46,7 +48,7 @@ async def test_reports_db(engine: AsyncEngine) -> None:
 
         await interface.load_error_types(
             session,
-            "examples/error_types.yaml",
+            f"{fixtures}/error_types.yaml",
         )
 
         status_check = await functions.compute_job_status(
