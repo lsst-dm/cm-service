@@ -78,19 +78,9 @@ def create_tree(
     )
     # check_and_parse_result(result, models.Specification)
 
-    pname = f"prod0_{uuid_int}"
-
-    result = runner.invoke(client_top, f"production create --output yaml --name {pname}")
-    check_and_parse_result(result, models.Production)
-
     cname = f"camp0_{uuid_int}"
     result = runner.invoke(
-        client_top,
-        "campaign create "
-        "--output yaml "
-        f"--name {cname} "
-        "--spec_block_assoc_name base#campaign "
-        f"--parent_name {pname}",
+        client_top, f"campaign create --output yaml --name {cname} --spec_block_assoc_name base#campaign "
     )
     camp = check_and_parse_result(result, models.Campaign)
 
@@ -187,13 +177,13 @@ def delete_all_rows(
             raise ValueError(f"{result} failed with {result.exit_code} {result.output}")
 
 
-def delete_all_productions(
+def delete_all_artifacts(
     runner: CliRunner,
     client_top: BaseCommand,
     *,
     check_cascade: bool = False,
 ) -> None:
-    delete_all_rows(runner, client_top, "production", models.Production)
+    delete_all_rows(runner, client_top, "campaign", models.Campaign)
     if check_cascade:
         result = runner.invoke(client_top, "campaign list --output yaml")
         n_campaigns = len(check_and_parse_result(result, list[models.Campaign]))
@@ -224,7 +214,7 @@ def cleanup(
     *,
     check_cascade: bool = False,
 ) -> None:
-    delete_all_productions(runner, client_top, check_cascade=check_cascade)
+    delete_all_artifacts(runner, client_top, check_cascade=check_cascade)
     delete_all_spec_stuff(runner, client_top)
     delete_all_queues(runner, client_top)
 

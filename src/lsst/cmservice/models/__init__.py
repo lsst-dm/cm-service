@@ -32,7 +32,6 @@ from .merged_wms_task_report import MergedWmsTaskReport, MergedWmsTaskReportDict
 from .pipetask_error import PipetaskError, PipetaskErrorCreate, PipetaskErrorUpdate
 from .pipetask_error_type import PipetaskErrorType, PipetaskErrorTypeCreate, PipetaskErrorTypeUpdate
 from .product_set import ProductSet, ProductSetCreate, ProductSetUpdate
-from .production import Production, ProductionCreate
 from .queue import Queue, QueueCreate, QueueUpdate
 from .row import RowData, RowQuery
 from .script import Script, ScriptCreate, ScriptUpdate
@@ -51,8 +50,6 @@ __all__ = [
     "Group",
     "GroupCreate",
     "GroupUpdate",
-    "Production",
-    "ProductionCreate",
     "Step",
     "StepCreate",
     "StepUpdate",

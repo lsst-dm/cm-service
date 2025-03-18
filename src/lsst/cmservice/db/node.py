@@ -175,21 +175,19 @@ class NodeMixin(RowMixin):
         fields : dict
             Resulting fields
         """
-        fields = {}
+        fields = {"production": "DEFAULT"}
 
         tokens = fullname.split("/")
         if self.node_type == NodeTypeEnum.script:
             fields["script"] = tokens.pop()
         for i, token in enumerate(tokens):
             if i == 0:
-                fields["production"] = token
-            elif i == 1:
                 fields["campaign"] = token
-            elif i == 2:
+            elif i == 1:
                 fields["step"] = token
-            elif i == 3:
+            elif i == 2:
                 fields["group"] = token
-            elif i == 4:
+            elif i == 3:
                 fields["job"] = token
             else:  # pragma: no cover
                 raise CMBadFullnameError(f"Too many fields in {fullname}")
