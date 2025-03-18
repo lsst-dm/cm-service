@@ -1,4 +1,5 @@
 import importlib
+from pathlib import Path
 from typing import TypeAlias
 
 import pytest
@@ -43,8 +44,9 @@ async def create_tree(
     level: LevelEnum,
     uuid_int: int,
 ) -> None:
+    fixtures = Path(__file__).parent.parent / "fixtures" / "seeds"
     interface = importlib.import_module("lsst.cmservice.handlers.interface")
-    specification = await interface.load_specification(session, "examples/empty_config.yaml")
+    specification = await interface.load_specification(session, f"{fixtures}/empty_config.yaml")
     _ = await specification.get_block(session, "campaign")
 
     pname = f"prod0_{uuid_int}"

@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import TypeAlias, TypeVar
 
 from httpx import AsyncClient, Response
@@ -76,8 +77,9 @@ async def create_tree(
     level: LevelEnum,
     uuid_int: int,
 ) -> None:
+    fixtures = Path(__file__).parent.parent / "fixtures" / "seeds"
     specification_load_model = models.SpecificationLoad(
-        yaml_file="examples/empty_config.yaml",
+        yaml_file=f"{fixtures}/empty_config.yaml",
     )
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/load/specification",
