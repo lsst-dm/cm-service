@@ -207,7 +207,6 @@ def delete_all_spec_stuff(
 ) -> None:
     delete_all_rows(runner, client_top, "specification", models.Specification)
     delete_all_rows(runner, client_top, "spec_block", models.SpecBlock)
-    delete_all_rows(runner, client_top, "script_template", models.ScriptTemplate)
 
 
 def delete_all_queues(

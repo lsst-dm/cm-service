@@ -225,7 +225,6 @@ async def delete_all_spec_stuff(
 ) -> None:
     await delete_all_rows(client, api_version, "specification", models.Specification)
     await delete_all_rows(client, api_version, "spec_block", models.SpecBlock)
-    await delete_all_rows(client, api_version, "script_template", models.ScriptTemplate)
 
 
 async def delete_all_queues(

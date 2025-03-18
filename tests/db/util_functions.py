@@ -160,7 +160,6 @@ async def delete_all_spec_stuff(
 ) -> None:
     await delete_all_rows(session, db.Specification)
     await delete_all_rows(session, db.SpecBlock)
-    await delete_all_rows(session, db.ScriptTemplate)
 
 
 async def delete_all_queues(

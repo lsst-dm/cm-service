@@ -32,7 +32,6 @@ from . import (
     queues,
     script_dependencies,
     script_errors,
-    script_templates,
     scripts,
     spec_blocks,
     specifications,
