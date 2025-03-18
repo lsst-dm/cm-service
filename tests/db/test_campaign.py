@@ -1,5 +1,6 @@
 import os
 import uuid
+from pathlib import Path
 
 import pytest
 import structlog
@@ -26,6 +27,7 @@ from .util_functions import (
 async def test_campaign_db(engine: AsyncEngine) -> None:
     """Test `campaign` db table."""
 
+    fixtures = Path(__file__).parent.parent / "fixtures" / "seeds"
     db.handler.Handler.reset_cache()
 
     # generate a uuid to avoid collisions
@@ -39,7 +41,7 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
         await create_tree(session, LevelEnum.step, uuid_int)
 
         # test the upsert mechanism
-        await interface.load_specification(session, "examples/empty_config.yaml", allow_update=True)
+        await interface.load_specification(session, f"{fixtures}/empty_config.yaml", allow_update=True)
 
         with pytest.raises(IntegrityError):
             await db.Campaign.create_row(

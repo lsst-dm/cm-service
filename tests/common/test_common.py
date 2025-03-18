@@ -28,6 +28,7 @@ from lsst.cmservice.common.utils import add_sys_path, update_include_dict
 async def test_common_bash() -> None:
     """Test common.bash utilities"""
 
+    fixtures = Path(__file__).parent.parent / "fixtures" / "logs"
     the_script = await write_bash_script(
         "temp.sh",
         "ls",
@@ -47,10 +48,10 @@ async def test_common_bash() -> None:
     await Path("temp.stamp").unlink(missing_ok=True)
     await Path("temp.log").unlink(missing_ok=True)
 
-    bps_dict = await parse_bps_stdout("examples/bps_stdout.log")
+    bps_dict = await parse_bps_stdout(f"{fixtures}/bps_stdout.log")
     assert bps_dict["run_id"].strip() == "334"
 
-    diag_message = await get_diagnostic_message("examples/bps_stdout.log")
+    diag_message = await get_diagnostic_message(f"{fixtures}/bps_stdout.log")
     assert diag_message == "dummy: ada"
 
 
