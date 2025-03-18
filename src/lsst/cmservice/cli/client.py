@@ -14,7 +14,6 @@ from .queue import queue_group
 from .script import script_group
 from .script_dependency import script_dependency_group
 from .script_error import script_error_group
-from .script_template import script_template_group
 from .spec_block import spec_block_group
 from .specification import specification_group
 from .step import step_group
@@ -40,7 +39,6 @@ from .wms_task_report import wms_task_report_group
         script_group,
         script_dependency_group,
         script_error_group,
-        script_template_group,
         spec_block_group,
         specification_group,
         step_dependency_group,

@@ -8,13 +8,12 @@ from sqlalchemy.orm import Mapped, mapped_column
 from ..common.errors import CMMissingFullnameError, CMSpecificationError
 from .base import Base
 from .row import RowMixin
-from .script_template import ScriptTemplate
 from .spec_block import SpecBlock
 
 
 class Specification(Base, RowMixin):
-    """Database table to manage mapping and grouping of SpecBlock
-    and ScriptTemplate by associating them to a Specification
+    """Database table to manage mapping and grouping SpecBlocks
+    by associating them to a Specification
     """
 
     __tablename__ = "specification"
@@ -67,31 +66,3 @@ class Specification(Base, RowMixin):
             return spec_block
         except CMMissingFullnameError as msg:
             raise CMSpecificationError(f"Could not find spec_block {spec_block_name} in {self}") from msg
-
-    async def get_script_template(
-        self,
-        session: async_scoped_session,
-        script_template_name: str,
-    ) -> ScriptTemplate:
-        """Get a ScriptTemplate associated to this Specification
-
-        Parameters
-        ----------
-        session: async_scoped_session
-            DB session manager
-
-        script_template_name: str
-            Name of the ScriptTemplate to return
-
-        Returns
-        -------
-        script_template: ScriptTemplate
-            Requested ScriptTemplate
-        """
-        try:
-            script_template = await ScriptTemplate.get_row_by_fullname(session, script_template_name)
-            return script_template
-        except KeyError as e:
-            raise CMSpecificationError(
-                f"Could not find ScriptTemplate {script_template_name} in {self}",
-            ) from e

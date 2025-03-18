@@ -15,7 +15,6 @@ from .row import RowMixin
 from .script import Script
 from .script_dependency import ScriptDependency
 from .script_error import ScriptError
-from .script_template import ScriptTemplate
 from .spec_block import SpecBlock
 from .specification import Specification
 from .step import Step
@@ -39,7 +38,6 @@ __all__ = [
     "Script",
     "ScriptDependency",
     "ScriptError",
-    "ScriptTemplate",
     "SpecBlock",
     "Specification",
     "Step",

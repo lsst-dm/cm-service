@@ -37,7 +37,6 @@ from .queue import Queue, QueueCreate, QueueUpdate
 from .row import RowData, RowQuery
 from .script import Script, ScriptCreate, ScriptUpdate
 from .script_error import ScriptError, ScriptErrorCreate, ScriptErrorUpdate
-from .script_template import ScriptTemplate, ScriptTemplateCreate, ScriptTemplateUpdate
 from .spec_block import SpecBlock, SpecBlockCreate, SpecBlockUpdate
 from .specification import Specification, SpecificationCreate, SpecificationLoad, SpecificationUpdate
 from .step import Step, StepCreate, StepUpdate
@@ -82,9 +81,6 @@ __all__ = [
     "ScriptError",
     "ScriptErrorCreate",
     "ScriptErrorUpdate",
-    "ScriptTemplate",
-    "ScriptTemplateCreate",
-    "ScriptTemplateUpdate",
     "Job",
     "JobCreate",
     "JobUpdate",

@@ -48,7 +48,6 @@ __all__ = [
     "rematch",
     "row_id",
     "script_id",
-    "script_template_name",
     "script_name",
     "scripts",
     "spec_aliases",
@@ -184,7 +183,7 @@ alias = PartialOption(
     "--alias",
     type=str,
     default=None,
-    help="Alias for a ScriptTemplate or SpecBlock association",
+    help="Alias for a SpecBlock association",
 )
 
 
@@ -388,13 +387,6 @@ row_id = PartialOption(
     "--row_id",
     type=int,
     help="ID of object.",
-)
-
-
-script_template_name = PartialOption(
-    "--script_template_name",
-    type=str,
-    help="Name of a ScriptTemplate",
 )
 
 
