@@ -40,13 +40,13 @@ async def test_step_db(engine: AsyncEngine) -> None:
                 session,
                 name=f"step0_{uuid_int}",
                 spec_block_name="basic_step",
-                parent_name=f"prod0_{uuid_int}/camp0_{uuid_int}",
+                parent_name=f"camp0_{uuid_int}",
             )
 
         # run row mixin method tests
         check_getall = await db.Step.get_rows(
             session,
-            parent_name=f"prod0_{uuid_int}/camp0_{uuid_int}",
+            parent_name=f"camp0_{uuid_int}",
             parent_class=db.Campaign,
         )
         assert len(check_getall) == 2, "length should be 2"

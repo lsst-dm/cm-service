@@ -14,10 +14,10 @@ from lsst.cmservice.common.enums import ScriptMethodEnum, StatusEnum
 from .util_functions import cleanup
 
 
+@pytest.mark.asyncio()
 @pytest.mark.parametrize(
     "script_method", [ScriptMethodEnum.bash, ScriptMethodEnum.slurm, ScriptMethodEnum.htcondor]
 )
-@pytest.mark.asyncio()
 async def test_micro_db(
     engine: AsyncEngine,
     tmp_path: Path,
@@ -45,11 +45,10 @@ async def test_micro_db(
             await specification.get_block(session, "bad")
 
         campaign = await interface.load_and_create_campaign(
-            session,
-            "examples/example_hsc_micro.yaml",
-            "hsc_micro_panda",
-            "w_2025_01",
-            "hsc_micro_panda#campaign",
+            session=session,
+            yaml_file=f"{fixtures}/example_hsc_micro.yaml",
+            name="hsc_micro_w_2025_01",
+            spec_block_assoc_name="hsc_micro_panda#campaign",
         )
 
         await campaign.update_collections(
@@ -68,7 +67,7 @@ async def test_micro_db(
 
         changed, status = await interface.process(
             session,
-            "hsc_micro_panda/w_2025_01",
+            "hsc_micro_w_2025_01",
             fake_status=StatusEnum.accepted,
         )
 

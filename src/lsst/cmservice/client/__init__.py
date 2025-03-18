@@ -27,7 +27,6 @@ from .loaders import CMLoadClient
 from .pipetask_error_types import CMPipetaskErrorTypeClient
 from .pipetask_errors import CMPipetaskErrorClient
 from .product_sets import CMProductSetClient
-from .productions import CMProductionClient
 from .queues import CMQueueClient
 from .script_dependencies import CMScriptDependencyClient
 from .script_errors import CMScriptErrorClient
@@ -49,7 +48,6 @@ __all__ = [
     "CMPipetaskErrorTypeClient",
     "CMPipetaskErrorClient",
     "CMProductSetClient",
-    "CMProductionClient",
     "CMQueueClient",
     "CMScriptDependencyClient",
     "CMScriptErrorClient",

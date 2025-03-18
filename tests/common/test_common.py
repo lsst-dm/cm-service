@@ -70,12 +70,11 @@ def test_common_table_enums() -> None:
 
 def test_common_level_enums() -> None:
     """Test common.enums.LevelEnum"""
-    assert LevelEnum.get_level_from_fullname("script:p0/c0/a_script") == LevelEnum.script
-    assert LevelEnum.get_level_from_fullname("p0") == LevelEnum.production
-    assert LevelEnum.get_level_from_fullname("p0/c0") == LevelEnum.campaign
-    assert LevelEnum.get_level_from_fullname("p0/c0/s0") == LevelEnum.step
-    assert LevelEnum.get_level_from_fullname("p0/c0/s0/g0") == LevelEnum.group
-    assert LevelEnum.get_level_from_fullname("p0/c0/s0/g0/j0") == LevelEnum.job
+    assert LevelEnum.get_level_from_fullname("script:c0/a_script") == LevelEnum.script
+    assert LevelEnum.get_level_from_fullname("c0") == LevelEnum.campaign
+    assert LevelEnum.get_level_from_fullname("c0/s0") == LevelEnum.step
+    assert LevelEnum.get_level_from_fullname("c0/s0/g0") == LevelEnum.group
+    assert LevelEnum.get_level_from_fullname("c0/s0/g0/j0") == LevelEnum.job
 
 
 def test_common_status_enums() -> None:

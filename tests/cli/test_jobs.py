@@ -1,5 +1,6 @@
 import os
 import uuid
+from collections.abc import Generator
 
 import pytest
 from anyio import Path
@@ -22,12 +23,18 @@ from .util_functions import (
 )
 
 
-@pytest.mark.parametrize("api_version", ["v1"])
-async def test_job_cli(uvicorn: UvicornProcess, api_version: str) -> None:
-    """Test `job` CLI command"""
-
-    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}/{api_version}"
+@pytest.fixture(scope="function", params=["v1"])
+def runner(uvicorn: UvicornProcess, request: pytest.FixtureRequest) -> Generator[CliRunner]:
+    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}/{request.param}"
     runner = CliRunner()
+    yield runner
+    # delete everything we just made in the session
+    cleanup(runner, client_top, check_cascade=True)
+
+
+@pytest.mark.asyncio()
+async def test_job_cli(runner: CliRunner) -> None:
+    """Test `job` CLI command"""
 
     # generate a uuid to avoid collisions
     uuid_int = uuid.uuid1().int
@@ -136,6 +143,3 @@ async def test_job_cli(uvicorn: UvicornProcess, api_version: str) -> None:
         client_top, f"load manifest-report --fullname {entry.fullname} --yaml_file {fullpath}"
     )
     assert result.exit_code == 0
-
-    # delete everything we just made in the session
-    cleanup(runner, client_top, check_cascade=True)

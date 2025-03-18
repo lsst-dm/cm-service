@@ -26,7 +26,6 @@ from .step import Step
 if TYPE_CHECKING:
     from .campaign import Campaign
     from .job import Job
-    from .production import Production
     from .script import Script
 
 
@@ -66,13 +65,6 @@ class Group(Base, ElementMixin):
         primaryjoin="Group.parent_id==Step.id",
         secondary="join(Step, Campaign)",
         secondaryjoin="Step.parent_id==Campaign.id",
-        viewonly=True,
-    )
-    p_: Mapped["Production"] = relationship(
-        "Production",
-        primaryjoin="Group.parent_id==Step.id",
-        secondary="join(Step, Campaign).join(Production)",
-        secondaryjoin="and_(Step.parent_id==Campaign.id, Campaign.parent_id==Production.id)",
         viewonly=True,
     )
 
