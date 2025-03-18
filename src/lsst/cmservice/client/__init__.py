@@ -31,7 +31,6 @@ from .productions import CMProductionClient
 from .queues import CMQueueClient
 from .script_dependencies import CMScriptDependencyClient
 from .script_errors import CMScriptErrorClient
-from .script_templates import CMScriptTemplateClient
 from .scripts import CMScriptClient
 from .spec_blocks import CMSpecBlockClient
 from .specifications import CMSpecificationClient
@@ -54,7 +53,6 @@ __all__ = [
     "CMQueueClient",
     "CMScriptDependencyClient",
     "CMScriptErrorClient",
-    "CMScriptTemplateClient",
     "CMScriptClient",
     "CMSpecBlockClient",
     "CMSpecificationClient",

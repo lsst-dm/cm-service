@@ -191,7 +191,7 @@ alias = PartialOption(
 campaign_yaml = PartialOption(
     "--campaign_yaml",
     type=str,
-    help="Path to campaign yaml file",
+    help="Path to campaign yaml file (start file)",
 )
 
 
@@ -199,7 +199,7 @@ allow_update = PartialOption(
     "--allow_update",
     is_flag=True,
     default=False,
-    help="Allow updates when loading yaml files",
+    help="DEPRECATED Allow updates when loading yaml files",
 )
 
 
@@ -491,7 +491,7 @@ wms_job_id = PartialOption(
 yaml_file = PartialOption(
     "--yaml_file",
     type=str,
-    help="Path to yaml file",
+    help="Path to yaml file (spec or example file)",
 )
 
 

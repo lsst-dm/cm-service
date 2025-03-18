@@ -1,6 +1,5 @@
 - Imports:
-      - "${CM_CONFIGS}/example_standard_scripts.yaml"
-      - "${CM_CONFIGS}/example_standard_elements.yaml"
+      - "${CM_CONFIGS}/seed_standard_elements.yaml"
       - "${CM_CONFIGS}/example_HSC_DRP-RC2_steps.yaml"
 # SpecBlock for the HSC_DRP-RC2 campaign
 - SpecBlock:

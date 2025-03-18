@@ -9,6 +9,7 @@ import yaml
 from .. import models
 from ..common.enums import ErrorActionEnum, ErrorFlavorEnum, ErrorSourceEnum
 from ..common.errors import CMYamlParseError
+from ..common.logging import LOGGER
 from ..common.utils import update_include_dict
 from . import wrappers
 
@@ -18,8 +19,14 @@ if TYPE_CHECKING:
     from .client import CMClient
 
 
+logger = LOGGER.bind(module=__name__)
+
+
 class CMLoadClient:
     """Interface for accessing remote cm-service."""
+
+    production = "DEFAULT"
+    namespace = ""
 
     def __init__(self, parent: CMClient) -> None:
         """Return the httpx.Client"""
@@ -53,7 +60,6 @@ class CMLoadClient:
             Already loaded SpecBlocks, used for include statments
 
         allow_update: bool
-             Allow updating existing blocks
 
         Returns
         -------
@@ -80,7 +86,7 @@ class CMLoadClient:
                     include_data,
                     {
                         "handler": spec_block_.handler,
-                        "data": spec_block_.data,
+                        "data": spec_block_.data or {},
                         "collections": spec_block_.collections,
                         "child_config": spec_block_.child_config,
                         "spec_aliases": spec_block_.spec_aliases,
@@ -113,51 +119,6 @@ class CMLoadClient:
             child_config=block_data.get("child_config"),
             scripts=block_data.get("scripts"),
             steps=block_data.get("steps"),
-        )
-
-    def _upsert_script_template(
-        self,
-        config_values: dict,
-        *,
-        allow_update: bool = False,
-    ) -> models.ScriptTemplate:
-        """Upsert and return a ScriptTemplate
-
-        This will create a new ScriptTemplate, or update an existing one
-
-        Parameters
-        ----------
-        config_values: dict
-            Values for the ScriptTemplate
-
-        allow_update: bool
-            Allow updating existing templates
-
-        Returns
-        -------
-        script_template: ScriptTemplate
-            Newly created or updated ScriptTemplate
-        """
-        key = config_values.pop("name")
-        script_template = self._parent.script_template.get_row_by_name(key)
-        if script_template and not allow_update:
-            return script_template
-
-        file_path = config_values["file_path"]
-        full_file_path = os.path.abspath(os.path.expandvars(file_path))
-        with open(full_file_path, encoding="utf-8") as fin:
-            data = yaml.safe_load(fin)
-
-        if script_template is None:
-            return self._parent.script_template.create(
-                name=key,
-                data=data,
-            )
-
-        return self._parent.script_template.update(
-            row_id=script_template.id,
-            name=key,
-            data=data,
         )
 
     def _upsert_specification(
@@ -216,7 +177,7 @@ class CMLoadClient:
             Already loaded SpecBlocks, used for include statments
 
         allow_update: bool
-            Allow updating existing items
+            Allow updating existing items (DEPRECATED: always False)
 
         Returns
         -------
@@ -232,13 +193,16 @@ class CMLoadClient:
         out_dict: dict[str, list[BaseModel]] = dict(
             Specification=[],
             SpecBlock=[],
-            ScriptTemplate=[],
         )
 
         for config_item in spec_data:
             if "Imports" in config_item:
                 imports = config_item["Imports"]
+                # Recursive specification loading from indicated Import files
                 for import_ in imports:
+                    # Do not reimport seed files, they are "protected"
+                    if "seed" in import_:
+                        continue
                     imported_ = self.specification_cl(
                         os.path.abspath(os.path.expandvars(import_)),
                         loaded_specs,
@@ -246,19 +210,32 @@ class CMLoadClient:
                     )
                     for key, val in imported_.items():
                         out_dict[key] += val
+            elif "Manifest" in config_item:
+                # bridge from a Manifest to a legacy SpecBlock. This code path
+                # explicitly does not support "update" operations on global or
+                # shared specblocks.
+                try:
+                    manifest = config_item["Manifest"]
+                    spec_block = manifest["spec"]
+                    # update the name of the spec with the campaign namespace
+                    spec_block["name"] = ".".join([self.namespace, manifest["metadata"]["name"]])
+                    spec_block = self._upsert_spec_block(
+                        spec_block,
+                        loaded_specs,
+                        allow_update=False,
+                    )
+                    out_dict["SpecBlock"].append(spec_block)
+                except Exception:
+                    logger.exception()
             elif "SpecBlock" in config_item:
+                spec_block = config_item["SpecBlock"]
+                spec_block["name"] = ".".join([self.namespace, spec_block["name"]])
                 spec_block = self._upsert_spec_block(
-                    config_item["SpecBlock"],
+                    spec_block,
                     loaded_specs,
                     allow_update=allow_update,
                 )
                 out_dict["SpecBlock"].append(spec_block)
-            elif "ScriptTemplate" in config_item:
-                script_template = self._upsert_script_template(
-                    config_item["ScriptTemplate"],
-                    allow_update=allow_update,
-                )
-                out_dict["ScriptTemplate"].append(script_template)
             elif "Specification" in config_item:
                 specification = self._upsert_specification(
                     config_item["Specification"],
@@ -266,7 +243,7 @@ class CMLoadClient:
                 )
                 out_dict["Specification"].append(specification)
             else:  # pragma: no cover
-                good_keys = "ScriptTemplate | SpecBlock | Specification | Imports"
+                good_keys = "Manifest | SpecBlock | Specification | Imports"
                 raise CMYamlParseError(f"Expecting one of {good_keys} not: {spec_data.keys()})")
 
         return out_dict
@@ -281,52 +258,16 @@ class CMLoadClient:
         self,
         campaign_yaml: str,
         yaml_file: str | None = None,
-        *,
-        allow_update: bool = False,
-        **kwargs: Any,
     ) -> models.Campaign:
         """Read a yaml file and create campaign
 
         Parameters
         ----------
         campaign_yaml: str
-            Yaml file with campaign overrides
+            Yaml file with campaign overrides (a "start" file)
 
         yaml_file: str
-            Optional yaml file with specifications
-
-        allow_update: bool
-            Allow updating existing specification items
-
-        Note
-        ----
-        The keywords optionally override values from the config_file
-
-        Keywords
-        --------
-        name: str | None
-            Name for the campaign
-
-        parent_name: str | None
-            Name for the production
-
-        spec_name: str | None
-            Name of the specification to use
-
-        handler: str | None
-            Name of the callback Handler to use
-
-        data: dict | None
-            Overrides for the campaign data parameter dict
-
-        child_config: dict | None
-            Overrides for the campaign child_config dict
-
-        collections: dict | None
-            Overrides for the campaign collection dict
-
-        spec_aliases: dict | None
-            Overrides for the campaign spec_aliases dict
+            Optional yaml file with specifications (an "example" file)
 
         Returns
         -------
@@ -337,62 +278,43 @@ class CMLoadClient:
             config_data = yaml.safe_load(fin)
 
         try:
-            prod_config = config_data["Production"]
-        except KeyError as msg:
-            raise CMYamlParseError(
-                f"Could not find 'Production' tag in {campaign_yaml}",
-            ) from msg
-        try:
-            parent_name = prod_config["name"]
-        except KeyError as msg:
-            raise CMYamlParseError(
-                f"Could not find 'name' tag in {campaign_yaml}#Production",
-            ) from msg
-
-        try:
-            camp_config = config_data["Campaign"]
-            camp_config["parent_name"] = parent_name
+            parent_name = self.production
+            campaign_config = config_data["Campaign"]
+            campaign_config["parent_name"] = parent_name
+            self.namespace = campaign_config["name"]
         except KeyError as msg:
             raise CMYamlParseError(
                 f"Could not find 'Campaign' tag in {campaign_yaml}",
             ) from msg
 
-        assert isinstance(camp_config, dict)
-
-        # flush out config_data with kwarg overrides
-        for key in ["name", "parent_name", "spec_name", "handler"]:
-            val = kwargs.get(key, None)
-            if val:
-                camp_config[key] = val
+        if TYPE_CHECKING:
+            assert isinstance(campaign_config, dict)
 
         for key in ["data", "child_config", "collections", "spec_aliases"]:
-            camp_config.setdefault(key, {})
-            val = kwargs.get(key, None)
-            if val:
-                update_include_dict(camp_config[key], val)
+            campaign_config.setdefault(key, {})
+            # if key not in campaign_config:
+            #     campaign_config[key] = {}
 
-        spec_name = camp_config["spec_name"]
+        # The spec_name is the by-name reference to an existing campaign
+        # specification that should already be seeded in the database.
+        spec_name = campaign_config["spec_name"]
 
         if yaml_file is None:  # pragma: no cover
             # If yaml_file isn't given then the specifications
             # should already exist
-            specfication = self._parent.specification.get_row_by_name(spec_name)
-            if specfication is None:
+            specification = self._parent.specification.get_row_by_name(spec_name)
+            if specification is None:
                 raise CMYamlParseError(
                     f"Could not find 'Specification' {spec_name} in {campaign_yaml}",
                 )
         else:
-            self.specification_cl(yaml_file, allow_update=allow_update)
+            self.specification_cl(yaml_file, allow_update=False)
 
-        production = self._parent.production.get_row_by_name(parent_name)
-        if not production:  # pragma: no cover
-            self._parent.production.create(name=parent_name)
+        spec_name = campaign_config["spec_name"]
+        campaign_config["spec_block_assoc_name"] = f"{spec_name}#campaign"
 
-        spec_name = camp_config["spec_name"]
-        camp_config["spec_block_assoc_name"] = f"{spec_name}#campaign"
-
-        step_configs = camp_config.pop("steps", [])
-        campaign = self._parent.campaign.create(**camp_config)
+        step_configs = campaign_config.pop("steps", [])
+        campaign = self._parent.campaign.create(**campaign_config)
 
         if step_configs:
             self.steps(fullname=campaign.fullname, child_configs=step_configs)

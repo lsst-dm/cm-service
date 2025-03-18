@@ -28,7 +28,6 @@ def specification(
     result = client.load.specification_cl(**kwargs)
     specifications = result.get("Specification", [])
     spec_blocks = result.get("SpecBlock", [])
-    script_templates = result.get("ScriptTemplate", [])
 
     do_print = output not in [options.OutputEnum.json, options.OutputEnum.yaml]
     if do_print:
@@ -37,9 +36,6 @@ def specification(
     if do_print:
         print("SpecBlocks: -----")
         output_pydantic_list(spec_blocks, output, db.SpecBlock.col_names_for_table)
-    if do_print:
-        print("ScriptTemplates: -----")
-        output_pydantic_list(script_templates, output, db.ScriptTemplate.col_names_for_table)
 
 
 @load_group.command(name="campaign")
@@ -47,16 +43,6 @@ def specification(
 @options.output()
 @options.campaign_yaml()
 @options.yaml_file()
-@options.name()
-@options.parent_name()
-@options.spec_name()
-@options.spec_block_name()
-@options.handler()
-@options.data()
-@options.child_config()
-@options.collections()
-@options.spec_aliases()
-@options.allow_update()
 def campaign(
     client: CMClient,
     output: options.OutputEnum | None,

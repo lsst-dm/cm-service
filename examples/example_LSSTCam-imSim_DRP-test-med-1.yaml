@@ -1,6 +1,5 @@
 - Imports:
-      - "${CM_CONFIGS}/example_standard_scripts.yaml"
-      - "${CM_CONFIGS}/example_standard_elements.yaml"
+      - "${CM_CONFIGS}/seed_standard_elements.yaml"
       - "${CM_CONFIGS}/example_LSSTCam-imSim_DRP-test-med-1_steps.yaml"
 - SpecBlock:
       name: LSSTCam-imSim_DRP-test-med-1_campaign
