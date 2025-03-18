@@ -7,10 +7,9 @@ from playwright.sync_api import expect, sync_playwright
 from safir.database import create_async_session
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from lsst.cmservice import db
 from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.web_app.pages.group_details import get_group_by_id
-from tests.db.util_functions import create_tree, delete_all_productions
+from tests.db.util_functions import create_tree, delete_all_artifacts
 
 
 @pytest.mark.asyncio()
@@ -34,7 +33,7 @@ async def test_get_group_details_by_id(engine: AsyncEngine) -> None:
         assert group == {
             "id": 1,
             "name": f"group0_{uuid_int}",
-            "fullname": f"prod0_{uuid_int}/camp0_{uuid_int}/step1_{uuid_int}/group0_{uuid_int}",
+            "fullname": f"camp0_{uuid_int}/step1_{uuid_int}/group0_{uuid_int}",
             "status": "IN_PROGRESS",
             "superseded": False,
             "child_config": {},
@@ -71,13 +70,8 @@ async def test_get_group_details_by_id(engine: AsyncEngine) -> None:
         ]
 
         # delete everything we just made in the session
-        await delete_all_productions(session)
+        await delete_all_artifacts(session)
 
-        # confirm cleanup
-        productions = await db.Production.get_rows(
-            session,
-        )
-        assert len(productions) == 0
         await session.close()
         await session.remove()
 

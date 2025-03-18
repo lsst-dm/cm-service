@@ -13,15 +13,6 @@ def test_commands_cli(uvicorn: UvicornProcess, api_version: str) -> None:
     client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}/{api_version}"
     runner = CliRunner()
 
-    result = runner.invoke(client_top, "production list")
-    assert result.exit_code == 0
-
-    result = runner.invoke(client_top, "production list -o yaml")
-    assert result.exit_code == 0
-
-    result = runner.invoke(client_top, "production list -o json")
-    assert result.exit_code == 0
-
     result = runner.invoke(client_top, "campaign list")
     assert result.exit_code == 0
 

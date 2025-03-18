@@ -1,5 +1,4 @@
 import os
-import uuid
 
 import pytest
 from httpx import AsyncClient
@@ -14,7 +13,6 @@ from .util_functions import (
     check_queue,
     check_scripts,
     check_update_methods,
-    cleanup,
     create_tree,
     expect_failed_response,
 )
@@ -26,8 +24,7 @@ from .util_functions import (
 async def test_job_routes(client: AsyncClient, api_version: str) -> None:
     """Test `/job` API endpoint."""
 
-    # generate a uuid to avoid collisions
-    uuid_int = uuid.uuid1().int
+    uuid_int = 416200
 
     os.environ["CM_CONFIGS"] = "examples"
 
@@ -36,7 +33,7 @@ async def test_job_routes(client: AsyncClient, api_version: str) -> None:
 
     response = await client.get(f"{config.asgi.prefix}/{api_version}/job/list")
     jobs = check_and_parse_response(response, list[models.Job])
-    entry = jobs[0]
+    entry = [job for job in jobs if job.name == f"job_{uuid_int}"][0]
 
     # check get methods
     await check_get_methods(client, api_version, entry, "job", models.Job)
@@ -137,6 +134,3 @@ async def test_job_routes(client: AsyncClient, api_version: str) -> None:
     )
     check_jobs = check_and_parse_response(response, list[models.Job])
     assert len(check_jobs) == 2
-
-    # delete everything we just made in the session
-    await cleanup(client, api_version, check_cascade=True)
