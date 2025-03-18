@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import TypeAlias, TypeVar
 
 import yaml
@@ -70,9 +71,10 @@ def create_tree(
     level: LevelEnum,
     uuid_int: int,
 ) -> None:
+    fixtures = Path(__file__).parent.parent / "fixtures" / "seeds"
     result = runner.invoke(
         client_top,
-        "load specification --output yaml --yaml_file examples/empty_config.yaml",
+        f"load specification --output yaml --yaml_file {fixtures}/empty_config.yaml",
     )
     # check_and_parse_result(result, models.Specification)
 
