@@ -19,7 +19,6 @@ from .productions import CMProductionClient
 from .queues import CMQueueClient
 from .script_dependencies import CMScriptDependencyClient
 from .script_errors import CMScriptErrorClient
-from .script_templates import CMScriptTemplateClient
 from .scripts import CMScriptClient
 from .spec_blocks import CMSpecBlockClient
 from .specifications import CMSpecificationClient
@@ -59,7 +58,6 @@ class CMClient:
 
         self.specification = CMSpecificationClient(self)
         self.spec_block = CMSpecBlockClient(self)
-        self.script_template = CMScriptTemplateClient(self)
 
         self.pipetask_error_type = CMPipetaskErrorTypeClient(self)
         self.pipetask_error = CMPipetaskErrorClient(self)

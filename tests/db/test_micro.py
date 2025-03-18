@@ -43,9 +43,6 @@ async def test_micro_db(
         with pytest.raises(errors.CMSpecificationError):
             await specification.get_block(session, "bad")
 
-        with pytest.raises(errors.CMSpecificationError):
-            await specification.get_script_template(session, "bad")
-
         campaign = await interface.load_and_create_campaign(
             session,
             "examples/example_hsc_micro.yaml",

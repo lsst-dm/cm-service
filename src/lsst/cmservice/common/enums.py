@@ -22,7 +22,6 @@ class TableEnum(enum.Enum):
     product_set = 12
     specification = 13
     spec_block = 14
-    script_template = 15
     n_tables = 16
 
     def is_node(self) -> bool:

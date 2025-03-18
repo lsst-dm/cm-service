@@ -32,7 +32,6 @@ TABLE_DICT: dict[TableEnum, type[db.RowMixin]] = {
     TableEnum.product_set: db.ProductSet,
     TableEnum.specification: db.Specification,
     TableEnum.spec_block: db.SpecBlock,
-    TableEnum.script_template: db.ScriptTemplate,
 }
 
 

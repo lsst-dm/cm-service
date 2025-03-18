@@ -30,4 +30,4 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_table("script_template")
+    op.drop_table("script_template", if_exists=True)
