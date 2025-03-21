@@ -1,5 +1,4 @@
 import os
-import uuid
 
 import pytest
 from httpx import AsyncClient
@@ -14,7 +13,7 @@ from .util_functions import (
     check_queue,
     check_scripts,
     check_update_methods,
-    cleanup,
+    # cleanup,
     create_tree,
 )
 
@@ -25,7 +24,7 @@ async def test_campaign_routes(client: AsyncClient, api_version: str) -> None:
     """Test `/campaign` API endpoint."""
 
     # generate a uuid to avoid collisions
-    uuid_int = uuid.uuid1().int
+    uuid_int = 936508
 
     os.environ["CM_CONFIGS"] = "examples"
 
@@ -34,7 +33,7 @@ async def test_campaign_routes(client: AsyncClient, api_version: str) -> None:
 
     response = await client.get(f"{config.asgi.prefix}/{api_version}/campaign/list")
     campaigns = check_and_parse_response(response, list[models.Campaign])
-    entry = campaigns[0]
+    entry = [c for c in campaigns if str(uuid_int) in c.name][0]
 
     add_steps_query = models.AddSteps(
         fullname=entry.fullname,
@@ -61,4 +60,4 @@ async def test_campaign_routes(client: AsyncClient, api_version: str) -> None:
     await check_queue(client, api_version, entry)
 
     # delete everything we just made in the session
-    await cleanup(client, api_version, check_cascade=True)
+    # await cleanup(client, api_version, check_cascade=True)

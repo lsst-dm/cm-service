@@ -1,5 +1,6 @@
 import os
 import uuid
+from pathlib import Path
 
 import pytest
 import structlog
@@ -26,6 +27,7 @@ from .util_functions import (
 async def test_campaign_db(engine: AsyncEngine) -> None:
     """Test `campaign` db table."""
 
+    fixtures = Path(__file__).parent.parent / "fixtures" / "seeds"
     db.handler.Handler.reset_cache()
 
     # generate a uuid to avoid collisions
@@ -39,27 +41,24 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
         await create_tree(session, LevelEnum.step, uuid_int)
 
         # test the upsert mechanism
-        await interface.load_specification(session, "examples/empty_config.yaml", allow_update=True)
+        await interface.load_specification(session, f"{fixtures}/empty_config.yaml", allow_update=True)
 
         with pytest.raises(IntegrityError):
             await db.Campaign.create_row(
                 session,
                 name=f"camp0_{uuid_int}",
                 spec_block_assoc_name="base#campaign",
-                parent_name=f"prod0_{uuid_int}",
             )
 
         # explict tests of get_create_kwargs parsing
         with pytest.raises(errors.CMMissingRowCreateInputError):
             await db.Campaign.get_create_kwargs(
                 session,
-                parent_name=f"prod0_{uuid_int}",
                 name=f"camp0_{uuid_int}",
             )
 
         await db.Campaign.get_create_kwargs(
             session,
-            parent_name=f"prod0_{uuid_int}",
             name=f"camp0_{uuid_int}",
             spec_name="base",
         )
@@ -67,14 +66,12 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
         with pytest.raises(ValueError):
             await db.Campaign.get_create_kwargs(
                 session,
-                parent_name=f"prod0_{uuid_int}",
                 name=f"camp0_{uuid_int}",
                 spec_block_assoc_name="bad",
             )
 
         await db.Campaign.get_create_kwargs(
             session,
-            parent_name=f"prod0_{uuid_int}",
             name=f"camp0_{uuid_int}",
             spec_block_assoc_name="base#campaign",
             data=None,
@@ -86,28 +83,6 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
         # run row mixin method tests
         check_getall = await db.Campaign.get_rows(
             session,
-            parent_name=f"prod0_{uuid_int}",
-            parent_class=db.Production,
-        )
-        assert len(check_getall) == 1, "length should be 1"
-
-        check_getall = await db.Campaign.get_rows(
-            session,
-            parent_class=db.Production,
-            parent_id=-99,
-        )
-        assert len(check_getall) == 0, "length should be 0"
-
-        check_getall = await db.Campaign.get_rows(
-            session,
-            parent_class=db.Production,
-            parent_id=1,
-        )
-        assert len(check_getall) == 1, "length should be 1"
-
-        check_getall = await db.Campaign.get_rows(
-            session,
-            parent_class=db.Production,
         )
         assert len(check_getall) == 1, "length should be 1"
 
@@ -126,7 +101,7 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
         assert not handler.data
         assert handler.get_handler_class_name()
 
-        await check_get_methods(session, entry, db.Campaign, db.Production)
+        await check_get_methods(session, entry, db.Campaign, None)
 
         with pytest.raises(errors.CMMissingIDError):
             await db.Campaign.delete_row(session, -99)

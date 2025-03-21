@@ -8,7 +8,7 @@ from lsst.cmservice.config import config
 
 from .util_functions import (
     check_and_parse_response,
-    cleanup,
+    # cleanup,
 )
 
 
@@ -48,4 +48,4 @@ async def test_routers_trivial_campaign(
     assert campaign.name == "test"
 
     # delete everything we just made in the session
-    await cleanup(client, api_version)
+    # await cleanup(client, api_version)

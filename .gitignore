@@ -232,3 +232,6 @@ bruno/
 # Ruff
 # Ruff usually installs a .gitignore file in its directory.
 .ruff_cache/
+
+# Local Allows
+!**/*.log

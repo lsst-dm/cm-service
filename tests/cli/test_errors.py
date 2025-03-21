@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from click.testing import CliRunner
 from safir.testing.uvicorn import UvicornProcess
@@ -43,17 +45,18 @@ async def test_error_create_cli(uvicorn: UvicornProcess, api_version: str) -> No
 async def test_load_error_types_cli(uvicorn: UvicornProcess, api_version: str) -> None:
     """Test `error_type` db table."""
 
+    fixtures = Path(__file__).parent.parent / "fixtures" / "seeds"
     client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}/{api_version}"
     runner = CliRunner()
 
-    result = runner.invoke(client_top, "load error-types --yaml_file examples/error_types.yaml")
+    result = runner.invoke(client_top, f"load error-types --yaml_file {fixtures}/error_types.yaml")
     assert result.exit_code == 0
 
-    result = runner.invoke(client_top, "load error-types --yaml_file examples/error_types.yaml")
+    result = runner.invoke(client_top, f"load error-types --yaml_file {fixtures}/error_types.yaml")
     assert result.exit_code == 0
 
     result = runner.invoke(
-        client_top, "load error-types --allow_update --yaml_file examples/error_types.yaml"
+        client_top, f"load error-types --allow_update --yaml_file {fixtures}/error_types.yaml"
     )
     assert result.exit_code == 0
 

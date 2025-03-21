@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy import JSON
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.schema import ForeignKey, UniqueConstraint
+from sqlalchemy.schema import ForeignKey
 
 from ..common.enums import LevelEnum, StatusEnum
 from ..common.errors import CMMissingRowCreateInputError
@@ -15,7 +15,6 @@ from ..models.merged_task_set import MergedTaskSetDict
 from ..models.merged_wms_task_report import MergedWmsTaskReportDict
 from .base import Base
 from .element import ElementMixin
-from .production import Production
 from .spec_block import SpecBlock
 from .specification import Specification
 
@@ -40,7 +39,6 @@ class Campaign(Base, ElementMixin):
     """
 
     __tablename__ = "campaign"
-    __table_args__ = (UniqueConstraint("parent_id", "name"),)  # Name must be unique within parent production
     class_string = "campaign"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -52,7 +50,6 @@ class Campaign(Base, ElementMixin):
         ForeignKey("spec_block.id", ondelete="CASCADE"),
         index=True,
     )
-    parent_id: Mapped[int] = mapped_column(ForeignKey("production.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(index=True)
     fullname: Mapped[str] = mapped_column(unique=True)
     status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting)
@@ -74,7 +71,6 @@ class Campaign(Base, ElementMixin):
         viewonly=True,
     )
 
-    parent_: Mapped[Production] = relationship("Production", viewonly=True)
     s_: Mapped[list[Step]] = relationship("Step", viewonly=True)
     scripts_: Mapped[list[Script]] = relationship("Script", viewonly=True)
     jobs_: Mapped[list[Job]] = relationship(
@@ -151,9 +147,7 @@ class Campaign(Base, ElementMixin):
         session: async_scoped_session,
         **kwargs: Any,
     ) -> dict:
-        parent_name = kwargs["parent_name"]
         name = kwargs["name"]
-        production = await Production.get_row_by_fullname(session, parent_name)
         spec_block_assoc_name = kwargs.get("spec_block_assoc_name", None)
         if not spec_block_assoc_name:
             try:
@@ -216,9 +210,8 @@ class Campaign(Base, ElementMixin):
         return {
             "spec_id": specification.id,
             "spec_block_id": spec_block.id,
-            "parent_id": production.id,
             "name": name,
-            "fullname": f"{production.fullname}/{name}",
+            "fullname": name,
             "handler": kwargs.get("handler"),
             "data": data,
             "child_config": child_config,

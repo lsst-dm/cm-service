@@ -25,7 +25,6 @@ create_options = [
     options.collections(),
     options.spec_aliases(),
     options.handler(),
-    options.parent_name(),
     options.spec_name(),
     options.spec_block_name(),
     options.spec_block_assoc_name(),
@@ -87,8 +86,6 @@ get_row = wrappers.get_row_command(get_command, sub_client, DbClass)
 get_row_by_name = wrappers.get_row_by_name_command(get_command, sub_client, DbClass)
 
 get_row_by_fullname = wrappers.get_row_by_fullname_command(get_command, sub_client, DbClass)
-
-get_parent = wrappers.get_element_parent_command(get_command, sub_client, db.Production)
 
 get_spec_block = wrappers.get_spec_block_command(get_command, sub_client)
 

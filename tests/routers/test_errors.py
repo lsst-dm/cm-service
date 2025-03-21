@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from httpx import AsyncClient
 
@@ -6,6 +8,7 @@ from lsst.cmservice.config import config
 
 from .util_functions import (
     check_and_parse_response,
+    # cleanup,
 )
 
 
@@ -15,8 +18,10 @@ from .util_functions import (
 async def test_load_error_types_routes(client: AsyncClient, api_version: str) -> None:
     """Test `/job` API endpoint."""
 
+    fixtures = Path(__file__).parent.parent / "fixtures" / "seeds"
+
     yaml_file_query = models.YamlFileQuery(
-        yaml_file="examples/error_types.yaml",
+        yaml_file=f"{fixtures}/error_types.yaml",
     )
 
     response = await client.post(
@@ -35,3 +40,6 @@ async def test_load_error_types_routes(client: AsyncClient, api_version: str) ->
     )
     matched_errors = check_and_parse_response(response, list[models.PipetaskError])
     assert len(matched_errors) == 0
+
+    # delete everything we just made in the session
+    # await cleanup(client, api_version, check_cascade=True)

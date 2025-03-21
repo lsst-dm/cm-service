@@ -20,7 +20,6 @@ from ..db.job import Job
 from ..db.pipetask_error import PipetaskError
 from ..db.pipetask_error_type import PipetaskErrorType
 from ..db.product_set import ProductSet
-from ..db.script_template import ScriptTemplate
 from ..db.spec_block import SpecBlock
 from ..db.specification import Specification
 from ..db.step import Step
@@ -122,53 +121,6 @@ async def upsert_spec_block(
     )
 
 
-async def upsert_script_template(
-    session: async_scoped_session,
-    config_values: dict,
-    *,
-    allow_update: bool = False,
-) -> ScriptTemplate | None:
-    """Upsert and return a ScriptTemplate
-
-    This will create a new ScriptTemplate, or update an existing one
-
-    Parameters
-    ----------
-    session: async_scoped_session
-        DB session manager
-
-    config_values: dict
-        Values for the ScriptTemplate
-
-    allow_update: bool
-        Allow updating existing templates
-
-    Returns
-    -------
-    script_template: ScriptTemplate
-        Newly created or updated ScriptTemplate
-    """
-    key = config_values.pop("name")
-    script_template_q = select(ScriptTemplate).where(ScriptTemplate.fullname == key)
-    script_template_result = await session.scalars(script_template_q)
-    script_template = script_template_result.first()
-    if script_template and not allow_update:
-        print(f"ScriptTemplate {key} already defined, leaving it unchanged")
-        return script_template
-    if script_template is None:
-        return await ScriptTemplate.load(
-            session,
-            name=key,
-            file_path=config_values["file_path"],
-        )
-
-    return await script_template.update_from_file(
-        session,
-        name=key,
-        file_path=config_values["file_path"],
-    )
-
-
 async def upsert_specification(
     session: async_scoped_session,
     config_values: dict,
@@ -185,7 +137,7 @@ async def upsert_specification(
         DB session manager
 
     config_values: dict
-        Values for the ScriptTemplate
+        Values for the Specification
 
     allow_update: bool
         Allow updating existing templates
@@ -215,7 +167,7 @@ async def load_specification(
     *,
     allow_update: bool = False,
 ) -> Specification | None:
-    """Load Specification, SpecBlock, and ScriptTemplate objects from a yaml
+    """Load Specification, and SpecBlock objects from a yaml
     file, including from files referenced by Include blocks. Return the last
     Specification object in the file.
 
@@ -271,12 +223,6 @@ async def load_specification(
                 loaded_specs,
                 allow_update=allow_update,
             )
-        elif "ScriptTemplate" in config_item:
-            await upsert_script_template(
-                session,
-                config_item["ScriptTemplate"],
-                allow_update=allow_update,
-            )
         elif "Specification" in config_item:
             specification = await upsert_specification(
                 session,
@@ -284,7 +230,7 @@ async def load_specification(
                 allow_update=allow_update,
             )
         else:  # pragma: no cover
-            good_keys = "ScriptTemplate | SpecBlock | Specification | Imports"
+            good_keys = "SpecBlock | Specification | Imports"
             raise CMYamlParseError(f"Expecting one of {good_keys} not: {spec_data.keys()})")
 
     return specification

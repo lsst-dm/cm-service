@@ -69,7 +69,7 @@ class BpsScriptHandler(ScriptHandler):
         **kwargs: Any,
     ) -> StatusEnum:
         # Database operations
-        await session.refresh(parent, attribute_names=["c_", "p_"])
+        await session.refresh(parent, attribute_names=["c_"])
         data_dict = await script.data_dict(session)
         resolved_cols = await script.resolve_collections(session)
 
@@ -89,7 +89,7 @@ class BpsScriptHandler(ScriptHandler):
         # workflow_config is the values dictionary to use while rendering a
         # yaml template, NOT the yaml template itself!
         workflow_config: dict[str, Any] = {}
-        workflow_config["project"] = parent.p_.name  # type: ignore
+        workflow_config["project"] = "DEFAULT"
         workflow_config["campaign"] = parent.c_.name  # type: ignore
         workflow_config["pipeline_yaml"] = pipeline_yaml
         workflow_config["lsst_version"] = lsst_version

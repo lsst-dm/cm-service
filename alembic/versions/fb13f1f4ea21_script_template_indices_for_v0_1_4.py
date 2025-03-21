@@ -22,4 +22,4 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index(op.f("ix_script_template_name"), table_name="script_template")
+    op.drop_index(op.f("ix_script_template_name"), table_name="script_template", if_exists=True)
