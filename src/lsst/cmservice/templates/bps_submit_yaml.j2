@@ -53,5 +53,13 @@ memoryLimit: 400000
 {%- if wms == "panda" %}
 wmsServiceClass: lsst.ctrl.bps.panda.PanDAService
 {%- if compute_site == "usdf" %}
+computeCloud: US
+computeSite: SLAC
+requestMemory: 4000
+memoryMultiplier: 1.2
+{%- elif compute_site == "lanc" %}
+computeSite: LANCS
+{%- elif compute_site == "in2p3" %}
+computeSite: CC-IN2P3
 {%- endif %}
 {%- endif %}
