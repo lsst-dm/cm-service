@@ -27,13 +27,8 @@ dependencies = [
     "click==8.1.*",
     "fastapi==0.115.*",
     "greenlet==3.1.*",
-    "htcondor==24.0.2; sys_platform == 'linux'",
+    "htcondor==24.0.6; sys_platform == 'linux'",
     "jinja2==3.1.*",
-    "lsst-ctrl-bps>=28.2024.5000",
-    "lsst-ctrl-bps-htcondor>=28.2024.5000; sys_platform == 'linux'",
-    "lsst-ctrl-bps-panda>=28.2024.5000",
-    "lsst-daf-butler>=28.2024.5000",
-    "lsst-pipe-base>=28.2024.5000",
     "numpy==2.1.*",
     "psycopg2-binary==2.9.*",
     "pydantic==2.10.*",
@@ -50,6 +45,15 @@ dependencies = [
 ]
 
 [dependency-groups]
+lsst = [
+    "lsst-ctrl-bps>=28.2024.5000",
+    "lsst-ctrl-bps-htcondor>=28.2024.5000; sys_platform == 'linux'",
+    "lsst-ctrl-bps-panda>=28.2024.5000",
+    "lsst-daf-butler>=28.2024.5000",
+    "lsst-pipe-base>=28.2024.5000",
+    "lsst-utils>=28.2024.5000",
+]
+
 dev = [
     "aiosqlite>=0.20.0",
     "asgi-lifespan>=2.1.0",
@@ -79,6 +83,7 @@ Homepage = "https://cm-service.lsst.io"
 Source = "https://github.com/lsst-dm/cm-service"
 
 [tool.uv]
+default-groups = "all"
 
 [build-system]
 requires = ["hatchling"]
