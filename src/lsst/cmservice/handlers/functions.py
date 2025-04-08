@@ -4,6 +4,7 @@ from typing import Any
 
 import yaml
 from anyio import Path
+from pydantic.v1.utils import deep_update
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
 
@@ -13,7 +14,6 @@ from lsst.ctrl.bps.wms_service import WmsJobReport, WmsRunReport, WmsStates
 from ..common.enums import StatusEnum
 from ..common.errors import CMMissingFullnameError, CMYamlParseError
 from ..common.logging import LOGGER
-from ..common.utils import update_include_dict
 from ..config import config
 from ..db.campaign import Campaign
 from ..db.job import Job
@@ -73,12 +73,12 @@ async def upsert_spec_block(
     include_data: dict[str, Any] = {}
     for include_ in includes:
         if include_ in loaded_specs:
-            update_include_dict(include_data, loaded_specs[include_])
+            include_data = deep_update(include_data, loaded_specs[include_])
         else:  # pragma: no cover
             # This is only needed if the block are in reverse dependency order
             # in the specification yaml file
             spec_block_ = await SpecBlock.get_row_by_fullname(session, include_)
-            update_include_dict(
+            include_data = deep_update(
                 include_data,
                 {
                     "handler": spec_block_.handler,
@@ -309,7 +309,7 @@ async def add_steps(
                 f"Step {child_name_} of {campaign.fullname} does contain 'spec_block'",
             )
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
-        update_include_dict(step_config_, child_config.get(child_name_, {}))
+        step_config_ = deep_update(step_config_, child_config.get(child_name_, {}))
 
         new_step = await Step.create_row(
             session,

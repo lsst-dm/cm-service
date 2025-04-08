@@ -2,6 +2,10 @@
 from __future__ import annotations
 
 import enum
+from uuid import NAMESPACE_DNS, uuid5
+
+DEFAULT_NAMESPACE = uuid5(NAMESPACE_DNS, "io.lsst.cmservice")
+"""A default UUID5 namespace to use throughout the application."""
 
 
 class TableEnum(enum.Enum):

@@ -1,6 +1,4 @@
 import os
-import sys
-from typing import Any
 
 import pytest
 from anyio import Path
@@ -21,7 +19,6 @@ from lsst.cmservice.common.errors import (
 )
 from lsst.cmservice.common.htcondor import check_htcondor_job, submit_htcondor_job, write_htcondor_script
 from lsst.cmservice.common.slurm import check_slurm_job, submit_slurm_job
-from lsst.cmservice.common.utils import add_sys_path, update_include_dict
 
 
 @pytest.mark.asyncio()
@@ -138,31 +135,3 @@ async def test_common_slurm() -> None:
 
     with pytest.raises(CMSlurmCheckError):
         await check_slurm_job("slurm_temp.log")
-
-
-def test_add_sys_path() -> None:
-    """Test add_sys_path util"""
-    with add_sys_path("examples"):
-        assert "examples" in sys.path
-    assert "examples" not in sys.path
-
-
-def test_update_include_dict() -> None:
-    """Test update_include_dict util"""
-    orig_dict: dict[str, Any] = dict(
-        alice="a",
-        bob=dict(
-            caleb="c",
-            david="d",
-        ),
-    )
-    include_dict: dict[str, Any] = dict(
-        bob=dict(
-            caleb="c",
-            david="d",
-            eric="e",
-        ),
-    )
-    update_include_dict(orig_dict, include_dict)
-    assert orig_dict["alice"] == "a"
-    assert orig_dict["bob"]["eric"] == "e"

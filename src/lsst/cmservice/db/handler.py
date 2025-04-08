@@ -11,7 +11,6 @@ from lsst.utils.introspection import get_full_type_name
 from ..common.enums import StatusEnum
 from ..common.errors import CMBadHandlerTypeError
 from ..common.logging import LOGGER
-from ..common.utils import add_sys_path
 
 if TYPE_CHECKING:
     from .element import ElementMixin
@@ -31,9 +30,6 @@ class Handler:
     """
 
     handler_cache: ClassVar[dict[int, Handler]] = {}
-
-    plugin_dir: str | None = None
-    config_dir: str | None = None
 
     def __init__(self, spec_block_id: int, **kwargs: dict) -> None:
         self._spec_block_id = spec_block_id
@@ -79,8 +75,7 @@ class Handler:
         """
         cached_handler = Handler.handler_cache.get(spec_block_id)
         if cached_handler is None:
-            with add_sys_path(Handler.plugin_dir):
-                handler_class = doImport(class_name)
+            handler_class = doImport(class_name)
             if isinstance(handler_class, types.ModuleType):  # pragma: no cover
                 raise CMBadHandlerTypeError(f"{type(handler_class)} is a Module, not a handler class")
             cached_handler = handler_class(spec_block_id, **kwargs)
