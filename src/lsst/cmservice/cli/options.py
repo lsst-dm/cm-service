@@ -8,6 +8,7 @@ from click.decorators import FC
 
 from ..client.client import CMClient
 from ..common.enums import (
+    DEFAULT_NAMESPACE,
     ErrorActionEnum,
     ErrorFlavorEnum,
     ErrorSourceEnum,
@@ -40,6 +41,7 @@ __all__ = [
     "handler",
     "n_expected",
     "name",
+    "namespace",
     "node_type",
     "parent_name",
     "parent_id",
@@ -190,7 +192,7 @@ alias = PartialOption(
 campaign_yaml = PartialOption(
     "--campaign_yaml",
     type=str,
-    help="Path to campaign yaml file",
+    help="Path to campaign yaml ('start') file",
 )
 
 
@@ -339,6 +341,14 @@ n_expected = PartialOption(
 name = PartialOption("--name", type=str, help="Name of object")
 
 
+namespace = PartialOption(
+    "--namespace",
+    type=click.UUID,
+    default=DEFAULT_NAMESPACE,
+    help="Namespace for objects",
+)
+
+
 node_type = PartialOption(
     "--node_type",
     type=EnumChoice(NodeTypeEnum),
@@ -483,7 +493,7 @@ wms_job_id = PartialOption(
 yaml_file = PartialOption(
     "--yaml_file",
     type=str,
-    help="Path to yaml file",
+    help="Path to yaml file containing spec blocks and other specifications or manifests",
 )
 
 
