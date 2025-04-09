@@ -9,6 +9,7 @@ from lsst.cmservice.common.enums import LevelEnum, StatusEnum
 from lsst.cmservice.config import config
 
 T = TypeVar("T")
+E = TypeVar("E", models.Group, models.Campaign, models.Step, models.Job)
 
 
 def check_and_parse_response(
@@ -31,13 +32,13 @@ def expect_failed_response(
 
 async def add_scripts(
     client: AsyncClient,
-    element: models.ElementMixin,
+    element: E,
     api_version: str,
 ) -> tuple[list[models.Script], models.Dependency]:
     prep_script_model = models.ScriptCreate(
         name="prepare",
         parent_name=element.fullname,
-        parent_level=element.level.value,  # type: ignore
+        parent_level=element.level.value,
         spec_block_name="null_script",
     )
 
@@ -50,7 +51,7 @@ async def add_scripts(
     collect_script_model = models.ScriptCreate(
         name="collect",
         parent_name=element.fullname,
-        parent_level=element.level.value,  # type: ignore
+        parent_level=element.level.value,
         spec_block_name="null_script",
     )
     response = await client.post(
@@ -682,7 +683,7 @@ async def check_scripts(
 async def check_get_methods(
     client: AsyncClient,
     api_version: str,
-    entry: models.ElementMixin,
+    entry: E,
     entry_class_name: str,
     entry_class: TypeAlias = models.ElementMixin,
 ) -> None:
@@ -692,7 +693,7 @@ async def check_get_methods(
     check_get = check_and_parse_response(response, entry_class)
 
     assert check_get.id == entry.id, "pulled row should be identical"
-    assert check_get.level == entry.level, "pulled row db_id should be identical"  # type: ignore
+    assert check_get.level == entry.level, "pulled row db_id should be identical"
 
     response = await client.get(f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/-1")
     expect_failed_response(response, 404)
