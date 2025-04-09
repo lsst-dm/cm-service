@@ -2,6 +2,7 @@ import importlib
 import os
 import uuid
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 import structlog
@@ -45,6 +46,8 @@ async def test_reports_db(engine: AsyncEngine) -> None:
         entry = check_getall[0]  # defining single unit for later
 
         parent = await entry.get_parent(session)
+        if TYPE_CHECKING:
+            assert isinstance(parent, db.Group)
 
         await interface.load_error_types(
             session,
@@ -101,7 +104,7 @@ async def test_reports_db(engine: AsyncEngine) -> None:
             status=StatusEnum.rescuable,
         )
 
-        job2 = await parent.rescue_job(session)  # type: ignore
+        job2 = await parent.rescue_job(session)
 
         await interface.load_manifest_report(
             session,
@@ -120,7 +123,7 @@ async def test_reports_db(engine: AsyncEngine) -> None:
         assert status_check == StatusEnum.failed
         await db.Job.update_row(session, job2.id, superseded=True)
 
-        job3 = await parent.rescue_job(session)  # type: ignore
+        job3 = await parent.rescue_job(session)
 
         await interface.load_manifest_report(
             session,
@@ -140,7 +143,7 @@ async def test_reports_db(engine: AsyncEngine) -> None:
 
         await db.Job.update_row(session, job3.id, status=StatusEnum.rescuable)
 
-        job4 = await parent.rescue_job(session)  # type: ignore
+        job4 = await parent.rescue_job(session)
         await interface.load_manifest_report(
             session,
             "examples/manifest_report_accept_error.yaml",
@@ -157,7 +160,7 @@ async def test_reports_db(engine: AsyncEngine) -> None:
         )
         assert status_check == StatusEnum.accepted
 
-        await parent.mark_job_rescued(session)  # type: ignore
+        await parent.mark_job_rescued(session)
 
         # cleanup
         await cleanup(session)

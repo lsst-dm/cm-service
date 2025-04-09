@@ -1,6 +1,6 @@
 import importlib
 from pathlib import Path
-from typing import TypeAlias
+from typing import TypeAlias, TypeVar
 
 import pytest
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -8,6 +8,8 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 from lsst.cmservice import db
 from lsst.cmservice.common import errors
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum, TableEnum
+
+E = TypeVar("E", db.Group, db.Campaign, db.Step, db.Job)
 
 
 async def add_scripts(
@@ -371,7 +373,7 @@ async def check_scripts(
 
 async def check_get_methods(
     session: async_scoped_session,
-    entry: db.ElementMixin,
+    entry: E,
     entry_class: TypeAlias = db.ElementMixin,
     parent_class: TypeAlias | None = db.ElementMixin,
 ) -> None:
@@ -409,7 +411,7 @@ async def check_get_methods(
         await interface.get_row_by_table_and_id(session, entry.id, TableEnum.n_tables)
 
     with pytest.raises(errors.CMMissingFullnameError):
-        await interface.get_row_by_table_and_id(session, -99, TableEnum[entry.__tablename__])  # type: ignore
+        await interface.get_row_by_table_and_id(session, -99, TableEnum[entry.__tablename__])
 
     with pytest.raises(errors.CMBadEnumError):
         await interface.get_node_by_level_and_id(session, entry.id, LevelEnum.n_levels)
@@ -420,7 +422,7 @@ async def check_get_methods(
     check = await interface.get_row_by_table_and_id(
         session,
         entry.id,
-        TableEnum[entry.__tablename__],  # type: ignore
+        TableEnum[entry.__tablename__],
     )
     assert check.fullname == entry.fullname
 
