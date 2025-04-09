@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import textwrap
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from anyio import Path
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -470,6 +470,8 @@ class PrepareStepScriptHandler(ScriptHandler):
         **kwargs: Any,
     ) -> StatusEnum:
         test_type_and_raise(parent, Step, "PrepareStepScriptHandler._write_script parent")
+        if TYPE_CHECKING:
+            assert isinstance(parent, Step)
 
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
@@ -482,7 +484,7 @@ class PrepareStepScriptHandler(ScriptHandler):
 
         prereq_colls: list[str] = []
 
-        all_prereqs = await parent.get_all_prereqs(session)  # type: ignore
+        all_prereqs = await parent.get_all_prereqs(session)
         for prereq_step in all_prereqs:
             prereq_step_colls = await prereq_step.resolve_collections(session)
             prereq_colls.append(prereq_step_colls["step_public_output"])
