@@ -55,5 +55,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_table("pipetask_error")
-    op.drop_table("pipetask_error_type")
+    op.drop_table("pipetask_error", if_exists=True)
+    op.drop_table("pipetask_error_type", if_exists=True)
