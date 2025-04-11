@@ -74,7 +74,7 @@ def test_config_datetime() -> None:
         assert config.panda.token_expiry is None
 
     # test validation and coercion on assignment
-    config.panda.token_expiry = 1740147265  # type: ignore
+    config.panda.token_expiry = 1740147265  # type: ignore[assignment]
     assert isinstance(config.panda.token_expiry, datetime)
     assert config.panda.token_expiry.tzinfo is UTC
 

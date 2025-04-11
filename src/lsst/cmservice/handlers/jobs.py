@@ -68,6 +68,8 @@ class BpsScriptHandler(ScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
+        if TYPE_CHECKING:
+            assert isinstance(parent, Job)
         # Database operations
         await session.refresh(parent, attribute_names=["c_"])
         data_dict = await script.data_dict(session)
@@ -90,7 +92,7 @@ class BpsScriptHandler(ScriptHandler):
         # yaml template, NOT the yaml template itself!
         workflow_config: dict[str, Any] = {}
         workflow_config["project"] = "DEFAULT"
-        workflow_config["campaign"] = parent.c_.name  # type: ignore
+        workflow_config["campaign"] = parent.c_.name
         workflow_config["pipeline_yaml"] = pipeline_yaml
         workflow_config["lsst_version"] = lsst_version
         workflow_config["lsst_distrib_dir"] = lsst_distrib_dir
@@ -170,7 +172,7 @@ class BpsScriptHandler(ScriptHandler):
             in_collection = input_colls
 
         payload = {
-            "name": parent.c_.name,  # type: ignore
+            "name": parent.c_.name,
             "butler_config": butler_repo,
             "output_run_collection": run_coll,
             "input_collection": in_collection,
@@ -216,7 +218,9 @@ class BpsScriptHandler(ScriptHandler):
         if fake_status is not None:
             wms_job_id = "fake_job"
         else:  # pragma: no cover
-            bps_dict = await parse_bps_stdout(script.log_url)  # type: ignore
+            if TYPE_CHECKING:
+                assert script.log_url is not None
+            bps_dict = await parse_bps_stdout(script.log_url)
             wms_job_id = self.get_job_id(bps_dict)
         await parent.update_values(session, wms_job_id=wms_job_id)
         return slurm_status
@@ -243,7 +247,9 @@ class BpsScriptHandler(ScriptHandler):
             if fake_status is not None:
                 wms_job_id = "fake_job"
             else:  # pragma: no cover
-                bps_dict = await parse_bps_stdout(script.log_url)  # type: ignore
+                if TYPE_CHECKING:
+                    assert script.log_url is not None
+                bps_dict = await parse_bps_stdout(script.log_url)
                 wms_job_id = self.get_job_id(bps_dict)
             await parent.update_values(session, wms_job_id=wms_job_id)
         return htcondor_status

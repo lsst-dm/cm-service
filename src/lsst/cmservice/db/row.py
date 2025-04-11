@@ -83,15 +83,24 @@ class RowMixin:
         parent_class = kwargs.get("parent_class")
 
         q = select(cls)
-        # FIXME: Being a mixin leads to loose typing here.
-        # Is there a better way?
         if hasattr(cls, "parent_id"):
+            # FIXME All of these tests assert that parent_class is not None
+            #       otherwise it would raise an AttributeError; the constraint
+            #       might as well be satisfied by the first id matching without
+            #       also evaluating additional options. If the gimmick is that
+            #       the method can be invoked with one of parent_id, _name, or
+            #       the parent class, it is invalidated by the fact that
+            #       parent_class is used in all three cases, so defining any of
+            #       the others adds no value.
+            if TYPE_CHECKING:
+                assert parent_class is not None
             if parent_class is not None:
-                q = q.where(parent_class.id == cls.parent_id)  # type: ignore
+                parent_id_ = getattr(cls, "parent_id")
+                q = q.where(parent_class.id == parent_id_)
             if parent_name is not None:
-                q = q.where(parent_class.fullname == parent_name)  # type: ignore
+                q = q.where(parent_class.fullname == parent_name)
             if parent_id is not None:
-                q = q.where(parent_class.id == parent_id)  # type: ignore
+                q = q.where(parent_class.id == parent_id)
         q = q.offset(skip).limit(limit)
         results = await session.scalars(q)
         return results.all()

@@ -71,7 +71,7 @@ def refresh_panda_token(url: str, data: dict[str, str]) -> str | None:
     os.environ["PANDA_AUTH_ID_TOKEN"] = config.panda.id_token
     # - update token expiry
     decoded_token = decode_id_token(config.panda.id_token)
-    config.panda.token_expiry = float(decoded_token["exp"])  # type: ignore
+    config.panda.token_expiry = float(decoded_token["exp"])  # type: ignore[assignment]
     if TYPE_CHECKING:
         # the validation machinery of the pyantic field handles conversion
         # from float to datetime.
@@ -126,7 +126,7 @@ def get_panda_token() -> str | None:
     try:
         if config.panda.token_expiry is None:
             decoded_token = decode_id_token(config.panda.id_token)
-            config.panda.token_expiry = float(decoded_token["exp"])  # type: ignore
+            config.panda.token_expiry = float(decoded_token["exp"])  # type: ignore[assignment]
         if TYPE_CHECKING:
             # the validation machinery of the pyantic field handles conversion
             # from float to datetime.

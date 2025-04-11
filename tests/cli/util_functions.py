@@ -10,6 +10,7 @@ from lsst.cmservice import models
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum
 
 T = TypeVar("T")
+E = TypeVar("E", models.Group, models.Campaign, models.Step, models.Job)
 
 
 def check_and_parse_result(
@@ -412,7 +413,7 @@ def check_scripts(
 def check_get_methods(
     runner: CliRunner,
     client_top: BaseCommand,
-    entry: models.ElementMixin,
+    entry: E,
     entry_class_name: str,
     entry_class: TypeAlias = models.ElementMixin,
 ) -> None:
@@ -420,7 +421,7 @@ def check_get_methods(
     check_get = check_and_parse_result(result, entry_class)
 
     assert check_get.id == entry.id, "pulled row should be identical"
-    assert check_get.level == entry.level, "pulled row db_id should be identical"  # type: ignore
+    assert check_get.level == entry.level, "pulled row db_id should be identical"
 
     result = runner.invoke(client_top, f"{entry_class_name} get by_name --output yaml --name {entry.name}")
     check_get = check_and_parse_result(result, entry_class)
