@@ -222,7 +222,9 @@ class SplitByQuery(Splitter):
         if mock_butler:
             sorted_field_values = np.arange(10)
         else:
-            butler = BUTLER_FACTORY.get_butler(butler_repo, collections=[input_coll, campaign_input_coll])
+            butler = await BUTLER_FACTORY.aget_butler(
+                butler_repo, collections=[input_coll, campaign_input_coll]
+            )
             if butler is None:
                 logger.error(f"butler repo {butler_repo} is not known to the application.")
                 raise RuntimeError("No such butler")

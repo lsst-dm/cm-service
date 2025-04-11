@@ -117,3 +117,12 @@ def test_butler_factory(caplog: Any, mock_butler_repo: Any, mock_db_auth: Any) -
     # Butlers pointing to bad repo config files can't be loaded
     with pytest.raises(RuntimeError):
         _ = bf.get_butler_config(label="/doesnt/exist")
+
+
+@pytest.mark.asyncio()
+async def test_async_butler(mock_butler_repo: Any, mock_db_auth: Any) -> None:
+    bf = ButlerFactory()
+    assert bf is not None
+
+    b = await bf.aget_butler("/repo/mock", collections=None)
+    assert isinstance(b, Butler)

@@ -24,8 +24,7 @@ from anyio import to_thread
 from botocore.exceptions import ClientError
 from sqlalchemy.exc import OperationalError
 
-from lsst.daf.butler import Butler, ButlerConfig, ButlerRepoIndex
-from lsst.daf.butler._exceptions import MissingCollectionError
+from lsst.daf.butler import Butler, ButlerConfig, ButlerRepoIndex, MissingCollectionError
 from lsst.daf.butler.direct_butler import DirectButler
 from lsst.daf.butler.registry import CollectionArgType, RegistryConfig
 from lsst.resources import ResourcePathExpression
@@ -71,6 +70,18 @@ class ButlerFactory:
         if factory is None:
             return None
         return factory(collections=collections)
+
+    async def aget_butler(self, label: str, collections: list[str] | None = None) -> Butler | None:
+        """Asynchronous version of the `get_butler` method, which invokes the
+        factory from a worker thread.
+        """
+
+        get_factory_f = partial(self.get_butler_factory, label=label)
+        factory = await to_thread.run_sync(get_factory_f)
+        if factory is None:
+            return None
+        factory_f = partial(factory, collections=collections)
+        return await to_thread.run_sync(factory_f)
 
     @cache
     def get_butler_factory(
