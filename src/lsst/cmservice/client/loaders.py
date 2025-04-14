@@ -143,21 +143,43 @@ class CMLoadClient:
                 },
             )
 
+        # scripts and steps are lists, not mappings
         if "scripts" in block_data:
-            # scripts and steps are lists, not mappings
+            # the 'name' of the script should be namespaced; the 'spec_block'
+            # of the script is a key to its specification alias within the
+            # campaign, which itself references a namespaced spec_block.
             block_data["scripts"] = [
                 deep_update(
                     s,
-                    {"Script": {"spec_block": str(uuid5(namespace, s["Script"]["spec_block"]))}},
+                    {
+                        "Script": {
+                            "name": str(uuid5(namespace, s["Script"]["name"])),
+                            "spec_block": s["Script"]["spec_block"],
+                            "prerequisites": [
+                                str(uuid5(namespace, dep)) for dep in s["Script"].get("prerequisites", [])
+                            ],
+                        }
+                    },
                 )
                 for s in block_data["scripts"]
             ]
 
         if "steps" in block_data:
+            # steps are found in a campaign spec_block; the 'spec_block' and
+            # 'step' should be namespaced. Any names used in a prerequisites
+            # should be namespaced.
             block_data["steps"] = [
                 deep_update(
                     s,
-                    {"Step": {"spec_block": str(uuid5(namespace, s["Step"]["spec_block"]))}},
+                    {
+                        "Step": {
+                            "name": str(uuid5(namespace, s["Step"]["name"])),
+                            "spec_block": str(uuid5(namespace, s["Step"]["spec_block"])),
+                            "prerequisites": [
+                                str(uuid5(namespace, dep)) for dep in s["Step"].get("prerequisites", [])
+                            ],
+                        }
+                    },
                 )
                 for s in block_data["steps"]
             ]
@@ -379,14 +401,16 @@ class CMLoadClient:
             ) from msg
 
         assert isinstance(manifest, dict)
-
+        if "data" not in manifest:
+            manifest["data"] = {}
         # establish campaign namespace uuid
         spec_name = manifest["spec_name"]
         namespace = uuid5(DEFAULT_NAMESPACE, manifest["name"])
         namespaced_spec_name = str(uuid5(namespace, spec_name))
         manifest["spec_block_assoc_name"] = f"{namespaced_spec_name}#campaign"
-
-        logger.info(f"""Loading campaign {manifest["name"]} as namespace {namespace}""")
+        # assert the the loaded campaign is using namespaced objects
+        manifest["data"]["namespace"] = str(namespace)
+        logger.info(f"""Loading campaign {manifest["name"]} with namespace {namespace}""")
 
         # TODO deprecate this code path, are "already existing" specifications
         #      allowed? Or is this allowed to invoke a "clone" operation where

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
+from uuid import UUID, uuid5
 
 from sqlalchemy.ext.asyncio import async_scoped_session
 
@@ -129,8 +130,7 @@ class ElementHandler(Handler):
     ) -> tuple[bool, StatusEnum]:
         """Prepare `Element` for processing
 
-        This means creating database entries for scripts and
-        dependencies between them
+        Creates database entries for scripts and their inter-dependencies
 
         Parameters
         ----------
@@ -147,6 +147,7 @@ class ElementHandler(Handler):
         status : StatusEnum
             Status of the processing
         """
+        element_campaign = await element.get_campaign(session)
         spec_block = await element.get_spec_block(session)
         spec_aliases = await element.get_spec_aliases(session)
 
@@ -154,6 +155,8 @@ class ElementHandler(Handler):
         prereq_pairs = []
         if TYPE_CHECKING:
             assert isinstance(spec_block.scripts, Iterable)
+            assert isinstance(element_campaign.data, dict)
+
         for script_item in spec_block.scripts:
             try:
                 script_vals = script_item["Script"].copy()
@@ -164,10 +167,19 @@ class ElementHandler(Handler):
                 script_name = script_vals.pop("name")
             except KeyError as msg:
                 raise CMYamlParseError(f"Unnnamed Script block {script_vals}") from msg
+
             script_spec_block_name = script_vals.get("spec_block", None)
             if script_spec_block_name is None:  # pragma: no cover
                 raise CMYamlParseError(f"Script block {script_name} does not contain spec_block")
-            script_spec_block_name = spec_aliases.get(script_spec_block_name, script_spec_block_name)
+
+            # If the spec_aliases does not have a key for the current script
+            # name, then it is not an alias.
+            if (script_spec_block_name in spec_aliases) or (not element_campaign.data.get("namespace")):
+                script_spec_block_name = spec_aliases.get(script_spec_block_name, script_spec_block_name)
+            else:
+                # generate a namespaced name from the current campaign
+                campaign_namespace = UUID(element_campaign.data.get("namespace"))
+                script_spec_block_name = str(uuid5(campaign_namespace, script_spec_block_name))
             new_script = await Script.create_row(
                 session,
                 parent_level=element.level,
