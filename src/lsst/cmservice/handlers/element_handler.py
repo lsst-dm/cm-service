@@ -157,6 +157,12 @@ class ElementHandler(Handler):
             assert isinstance(spec_block.scripts, Iterable)
             assert isinstance(element_campaign.data, dict)
 
+        if element_campaign.data.get("namespace"):
+            campaign_namespace = UUID(element_campaign.data.get("namespace"))
+        else:
+            campaign_namespace = None
+
+        # Campaigns, Steps, Groups, and Jobs may have Scripts
         for script_item in spec_block.scripts:
             try:
                 script_vals = script_item["Script"].copy()
@@ -165,6 +171,9 @@ class ElementHandler(Handler):
             test_type_and_raise(script_vals, dict, "ElementHandler Script yaml tag")
             try:
                 script_name = script_vals.pop("name")
+                namespaced_script_name = (
+                    str(uuid5(campaign_namespace, script_name)) if campaign_namespace else script_name
+                )
             except KeyError as msg:
                 raise CMYamlParseError(f"Unnnamed Script block {script_vals}") from msg
 
@@ -174,29 +183,34 @@ class ElementHandler(Handler):
 
             # If the spec_aliases does not have a key for the current script
             # name, then it is not an alias.
-            if (script_spec_block_name in spec_aliases) or (not element_campaign.data.get("namespace")):
+            if (script_spec_block_name in spec_aliases) or (not campaign_namespace):
                 script_spec_block_name = spec_aliases.get(script_spec_block_name, script_spec_block_name)
             else:
                 # generate a namespaced name from the current campaign
-                campaign_namespace = UUID(element_campaign.data.get("namespace"))
                 script_spec_block_name = str(uuid5(campaign_namespace, script_spec_block_name))
+
             new_script = await Script.create_row(
                 session,
                 parent_level=element.level,
                 spec_block_name=script_spec_block_name,
                 parent_name=element.fullname,
-                name=script_name,
+                name=namespaced_script_name,
+                original_name=script_name,
                 **script_vals,
             )
             await session.refresh(new_script, attribute_names=["id"])
-            script_ids_dict[script_name] = new_script.id
-            prereq_pairs += [(script_name, prereq_) for prereq_ in script_vals.get("prerequisites", [])]
+            script_ids_dict[namespaced_script_name] = new_script.id
+
+            prereq_list = [
+                str(uuid5(campaign_namespace, prereq)) if campaign_namespace else prereq
+                for prereq in script_vals.get("prerequisites", [])
+            ]
+            prereq_pairs += [(namespaced_script_name, prereq) for prereq in prereq_list]
 
         for depend_name, prereq_name in prereq_pairs:
             prereq_id = script_ids_dict[prereq_name]
             depend_id = script_ids_dict[depend_name]
-            _new_depend = await self._add_prerequisite(session, depend_id, prereq_id)
-            # await session.refresh(new_depend)
+            _ = await self._add_prerequisite(session, depend_id, prereq_id)
 
         await element.update_values(session, status=StatusEnum.prepared)
         return (True, StatusEnum.prepared)

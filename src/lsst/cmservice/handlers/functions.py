@@ -1,6 +1,7 @@
 import os
 from collections.abc import Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
+from uuid import UUID, uuid5
 
 import yaml
 from anyio import Path
@@ -296,6 +297,14 @@ async def add_steps(
 
     step_ids_dict = {step_.name: step_.id for step_ in current_steps}
 
+    if TYPE_CHECKING:
+        assert isinstance(campaign.data, dict)
+
+    if campaign.data.get("namespace"):
+        campaign_namespace = UUID(campaign.data.get("namespace"))
+    else:
+        campaign_namespace = None
+
     prereq_pairs = []
     for step_ in step_config_list:
         try:
@@ -304,24 +313,38 @@ async def add_steps(
             raise CMYamlParseError(f"Expecting Step not: {step_.keys()}") from msg
         child_name_ = step_config_.pop("name")
         spec_block_name = step_config_.pop("spec_block")
+
         if spec_block_name is None:  # pragma: no cover
             raise CMYamlParseError(
                 f"Step {child_name_} of {campaign.fullname} does contain 'spec_block'",
             )
+
+        namespaced_step_name = (
+            str(uuid5(campaign_namespace, child_name_)) if campaign_namespace else child_name_
+        )
+        namespaced_spec_block_name = (
+            str(uuid5(campaign_namespace, spec_block_name)) if campaign_namespace else spec_block_name
+        )
+
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
         step_config_ = deep_update(step_config_, child_config.get(child_name_, {}))
 
         new_step = await Step.create_row(
             session,
-            name=child_name_,
-            spec_block_name=spec_block_name,
+            name=namespaced_step_name,
+            spec_block_name=namespaced_spec_block_name,
+            original_name=child_name_,
             parent_name=campaign.fullname,
             **step_config_,
         )
         await session.refresh(new_step)
-        step_ids_dict[child_name_] = new_step.id
-        prereqs_names = step_config_.pop("prerequisites", [])
-        prereq_pairs += [(child_name_, prereq_) for prereq_ in prereqs_names]
+        step_ids_dict[namespaced_step_name] = new_step.id
+
+        prereq_list = [
+            str(uuid5(campaign_namespace, prereq)) if campaign_namespace else prereq
+            for prereq in step_config_.pop("prerequisites", [])
+        ]
+        prereq_pairs += [(namespaced_step_name, prereq) for prereq in prereq_list]
 
     for depend_name, prereq_name in prereq_pairs:
         prereq_id = step_ids_dict[prereq_name]

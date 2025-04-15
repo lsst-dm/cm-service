@@ -79,7 +79,7 @@ class CMLoadClient:
         if spec_block and not allow_update:
             return spec_block
 
-        logger.info(f"""Loading spec_block {spec_name} as {key}""")
+        logger.info(f"Loading spec_block {spec_name} as {key}")
 
         # A spec that "includes" another spec is effectively declaring a clone
         # of the referenced spec that should have already been "loaded" such
@@ -142,47 +142,6 @@ class CMLoadClient:
                     if k == "spec_block"
                 },
             )
-
-        # scripts and steps are lists, not mappings
-        if "scripts" in block_data:
-            # the 'name' of the script should be namespaced; the 'spec_block'
-            # of the script is a key to its specification alias within the
-            # campaign, which itself references a namespaced spec_block.
-            block_data["scripts"] = [
-                deep_update(
-                    s,
-                    {
-                        "Script": {
-                            "name": str(uuid5(namespace, s["Script"]["name"])),
-                            "spec_block": s["Script"]["spec_block"],
-                            "prerequisites": [
-                                str(uuid5(namespace, dep)) for dep in s["Script"].get("prerequisites", [])
-                            ],
-                        }
-                    },
-                )
-                for s in block_data["scripts"]
-            ]
-
-        if "steps" in block_data:
-            # steps are found in a campaign spec_block; the 'spec_block' and
-            # 'step' should be namespaced. Any names used in a prerequisites
-            # should be namespaced.
-            block_data["steps"] = [
-                deep_update(
-                    s,
-                    {
-                        "Step": {
-                            "name": str(uuid5(namespace, s["Step"]["name"])),
-                            "spec_block": str(uuid5(namespace, s["Step"]["spec_block"])),
-                            "prerequisites": [
-                                str(uuid5(namespace, dep)) for dep in s["Step"].get("prerequisites", [])
-                            ],
-                        }
-                    },
-                )
-                for s in block_data["steps"]
-            ]
 
         handler = block_data.pop("handler", None)
         if spec_block is None:
