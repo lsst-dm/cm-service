@@ -80,7 +80,7 @@ class BpsScriptHandler(ScriptHandler):
         try:
             prod_area = os.path.expandvars(data_dict["prod_area"])
             butler_repo = os.path.expandvars(data_dict["butler_repo"])
-            lsst_version = os.path.expandvars(data_dict["lsst_version"])
+            lsst_version = os.path.expandvars(data_dict.get("lsst_version", "w_latest"))
             lsst_distrib_dir = os.path.expandvars(data_dict["lsst_distrib_dir"])
             pipeline_yaml = os.path.expandvars(data_dict["pipeline_yaml"])
             run_coll = resolved_cols["run"]
@@ -91,7 +91,6 @@ class BpsScriptHandler(ScriptHandler):
         # workflow_config is the values dictionary to use while rendering a
         # yaml template, NOT the yaml template itself!
         workflow_config: dict[str, Any] = {}
-        workflow_config["project"] = "DEFAULT"
         workflow_config["campaign"] = parent.c_.name
         workflow_config["pipeline_yaml"] = pipeline_yaml
         workflow_config["lsst_version"] = lsst_version
@@ -99,8 +98,15 @@ class BpsScriptHandler(ScriptHandler):
         workflow_config["wms"] = self.wms_method.name
         workflow_config["script_method"] = script.run_method.name
         workflow_config["compute_site"] = data_dict.get("compute_site", self.default_compute_site.name)
+        workflow_config["clustering"] = data_dict.get("cluster", None)
+        # TODO set these identically-handled options in a loop?
+        workflow_config["project"] = data_dict.get("project", "DEFAULT")
         workflow_config["custom_lsst_setup"] = data_dict.get("custom_lsst_setup", None)
         workflow_config["extra_qgraph_options"] = data_dict.get("extra_qgraph_options", None)
+        workflow_config["extra_run_quantum_options"] = data_dict.get("extra_run_quantum_options", None)
+        workflow_config["description"] = data_dict.get("description", None)
+        workflow_config["ticket"] = data_dict.get("ticket", None)
+        workflow_config["environment"] = data_dict.get("environment", None)
 
         # Get the output file paths
         script_url = await self._set_script_files(session, script, prod_area)
@@ -125,7 +131,7 @@ class BpsScriptHandler(ScriptHandler):
         #       is this meant to be `config_url` instead?
         await Path(script_url).parent.mkdir(parents=True, exist_ok=True)
 
-        workflow_config["extra_yaml_literals"] = []
+        workflow_config["extra_yaml_literals"] = data_dict.get("bps_directives", [])
         include_configs = []
 
         # FIXME `bps_wms_*_file` should be added to the generic list of
@@ -154,15 +160,18 @@ class BpsScriptHandler(ScriptHandler):
                     continue
 
                 # Otherwise, instead of including it we should render it out
-                # because it's a path we understand but the bps runtime won't
-                to_include_ = await Path(to_include_).resolve()
-
+                # in case it's a path we understand but the bps runtime won't,
+                # but still defer to bps if we fail to locate the file
                 try:
-                    include_yaml_ = yaml.dump(yaml.safe_load(await to_include_.read_text()))
+                    include_file = await Path(to_include_).resolve()
+                    include_yaml_ = yaml.dump(yaml.safe_load(await include_file.read_text()))
                     workflow_config["extra_yaml_literals"].append(include_yaml_)
                 except yaml.YAMLError:
                     logger.exception()
                     raise
+                except FileNotFoundError:
+                    logger.warning("Include file not found, deferring to bps", include_file=to_include_)
+                    include_configs.append(str(to_include_))
 
         workflow_config["include_configs"] = include_configs
 
@@ -171,21 +180,27 @@ class BpsScriptHandler(ScriptHandler):
         else:
             in_collection = input_colls
 
+        # It is important that the payload key names match the names of payload
+        # directives supported by bps
         payload = {
-            "name": parent.c_.name,
-            "butler_config": butler_repo,
-            "output_run_collection": run_coll,
-            "input_collection": in_collection,
-            "data_query": data_dict.get("data_query", None),
+            "payloadName": parent.c_.name,
+            "butlerConfig": butler_repo,
+            "outputRun": run_coll,
+            "inCollection": in_collection,
+            "dataQuery": data_dict.get("data_query", None),
         }
         if data_dict.get("rescue", False):  # pragma: no cover
             skip_colls = data_dict.get("skip_colls", "")
             payload["extra_args"] = f"--skip-existing-in {skip_colls}"
 
+        if "s3EndpointUrl" in data_dict:
+            payload["s3EndpointUrl"] = data_dict["s3EndpointUrl"]
+
         workflow_config["payload"] = payload
 
         # Get the yaml template using package lookup
         config_template_environment = Environment(loader=PackageLoader("lsst.cmservice"))
+        config_template_environment.filters["toyaml"] = yaml.dump
         config_template = config_template_environment.get_template("bps_submit_yaml.j2")
         try:
             # Render bps_submit_yaml template to `config_url`

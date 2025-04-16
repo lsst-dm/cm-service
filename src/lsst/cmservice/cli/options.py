@@ -8,7 +8,6 @@ from click.decorators import FC
 
 from ..client.client import CMClient
 from ..common.enums import (
-    DEFAULT_NAMESPACE,
     ErrorActionEnum,
     ErrorFlavorEnum,
     ErrorSourceEnum,
@@ -49,6 +48,7 @@ __all__ = [
     "quanta",
     "rematch",
     "row_id",
+    "runtime_variable",
     "script_id",
     "script_name",
     "scripts",
@@ -210,6 +210,7 @@ collections = PartialOption(
     help="collections values to update",
 )
 
+
 child_config = PartialOption(
     "--child_config",
     type=DictParamType(),
@@ -344,8 +345,7 @@ name = PartialOption("--name", type=str, help="Name of object")
 namespace = PartialOption(
     "--namespace",
     type=click.UUID,
-    default=DEFAULT_NAMESPACE,
-    help="Namespace for objects",
+    help="Campaign namespace to use for objects",
 )
 
 
@@ -482,6 +482,15 @@ update_dict = PartialOption(
     type=DictParamType(),
     help="Values to update",
 )
+
+
+runtime_variable = PartialOption(
+    "-v",
+    type=(str, str),
+    help="Arbitrary variable argument as a name and value pair",
+    multiple=True,
+)
+
 
 wms_job_id = PartialOption(
     "--wms_job_id",

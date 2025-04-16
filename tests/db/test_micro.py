@@ -8,7 +8,6 @@ from _pytest.monkeypatch import MonkeyPatch
 from safir.database import create_async_session
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from lsst.cmservice.common import errors
 from lsst.cmservice.common.enums import ScriptMethodEnum, StatusEnum
 
 from .util_functions import cleanup
@@ -37,12 +36,6 @@ async def test_micro_db(
     async with engine.begin():
         session = await create_async_session(engine, logger)
         os.environ["CM_CONFIGS"] = "examples"
-        specification = await interface.load_specification(session, f"{fixtures}/empty_config.yaml")
-        check2 = await specification.get_block(session, "campaign")
-        assert check2.name == "campaign"
-
-        with pytest.raises(errors.CMSpecificationError):
-            await specification.get_block(session, "bad")
 
         campaign = await interface.load_and_create_campaign(
             session=session,

@@ -22,13 +22,12 @@ async def test_error_match_db(engine: AsyncEngine) -> None:
     """
 
     fixtures = Path(__file__).parent.parent / "fixtures" / "seeds"
-    interface = importlib.import_module("lsst.cmservice.handlers.interface")
     functions = importlib.import_module("lsst.cmservice.handlers.functions")
     logger = structlog.get_logger(__name__)
     async with engine.begin():
         session = await create_async_session(engine, logger)
         os.environ["CM_CONFIGS"] = "examples"
-        specification = await interface.load_specification(session, f"{fixtures}/empty_config.yaml")
+        specification = await functions.load_specification(session, f"{fixtures}/empty_config.yaml")
         check2 = await specification.get_block(session, "campaign")
         assert check2.name == "campaign"
 
@@ -116,12 +115,12 @@ async def test_error_type_db(engine: AsyncEngine) -> None:
     """Test `error_type` db table."""
 
     fixtures = Path(__file__).parent.parent / "fixtures" / "seeds"
-    interface = importlib.import_module("lsst.cmservice.handlers.interface")
+    functions = importlib.import_module("lsst.cmservice.handlers.functions")
     logger = structlog.get_logger(__name__)
     async with engine.begin():
         session = await create_async_session(engine, logger)
         os.environ["CM_CONFIGS"] = "examples"
-        specification = await interface.load_specification(session, f"{fixtures}/empty_config.yaml")
+        specification = await functions.load_specification(session, f"{fixtures}/empty_config.yaml")
         check2 = await specification.get_block(session, "campaign")
         assert check2.name == "campaign"
 

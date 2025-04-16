@@ -41,7 +41,6 @@ async def test_cli_trivial_campaign(uvicorn: UvicornProcess, api_version: str) -
         client_top,
         f"load campaign --yaml_file {yaml_file} --campaign_yaml {fixtures}/start_trivial.yaml --output yaml",
     )
-    # "--spec_block_name campaign --spec_name trivial_htcondor --data dummy:a "
     campaign = check_and_parse_result(result, models.Campaign)
     assert campaign.name == "trivial_campaign"
 

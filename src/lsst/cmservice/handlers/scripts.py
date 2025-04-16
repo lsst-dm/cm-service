@@ -95,6 +95,7 @@ class ChainCreateScriptHandler(ScriptHandler):
             script_url = await self._set_script_files(session, script, data_dict["prod_area"])
             butler_repo = data_dict["butler_repo"]
         except KeyError as msg:
+            logger.exception()
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"{config.butler.butler_bin} collection-chain {butler_repo} {output_coll}"
         # This is here out of paranoia.
