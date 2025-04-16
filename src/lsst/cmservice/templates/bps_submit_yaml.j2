@@ -1,42 +1,78 @@
+########################################
+{%- if ticket %}
+# https://rubinobs.atlassian.net/browse/{{ ticket }}
+{%- endif %}
+{%- if description %}
+# {{ description }}
+{%- endif %}
+########################################
 project: {{ project }}
 campaign: {{ campaign }}
-LSST_VERSION: {{ lsst_version }}
 submitPath: {{ submit_path }}
-{%- if custom_lsst_setup %}
-{{ custom_lsst_setup }}
-{%- endif %}
+{# BLANK LINE #}
+########################################
+# PIPELINE CONFIGURATION
+########################################
 pipelineYaml: {{ pipeline_yaml }}
-executionButler:
-  queue: SLAC_Rubin_Merge
-  requestMemory: 64000
-  command2: ''
-  command3: ''
 {%- if include_configs | length > 0 %}
 includeConfigs:
 {%- for config in include_configs %}
 - {{ config }}
 {%- endfor %}
 {%- endif %}
+{# BLANK LINE #}
+########################################
+# LSST SETUP
+########################################
+LSST_VERSION: {{ lsst_version }}
+{%- if custom_lsst_setup %}
+{{ custom_lsst_setup }}
+{%- endif %}
+{# BLANK LINE #}
+{%- if environment %}
+########################################
+# SUBMISSION ENVIRONMENT VARIABLES
+########################################
+environment:
+{%- for key, value in environment|items %}
+  {{ key }}: "{{ value }}"
+{%- endfor %}
+{# BLANK LINE #}
+{%- endif %}
+########################################
+# BPS PAYLOAD OPTIONS
+########################################
 payload:
-  payloadName: {{ payload.name }}
-  butlerConfig: {{ payload.butler_config }}
-  inCollection: {{ payload.input_collection }}
-  outputRun: {{ payload.output_run_collection }}
-  {%- if payload.data_query %}
-  dataQuery: {{ payload.data_query | replace("\n", " ") | trim }}
-  {%- endif %}
-  {%- if payload.extra_args %}
-  extra_args: {{ payload.extra_args }}
-  {%- endif %}
-pipetaskOutput: ''
+{%- for key, value in payload|items %}
+  {{ key }}: "{{ value | trim }}"
+{%- endfor %}
 {%- if extra_qgraph_options %}
 extraQgraphOptions: {{ extra_qgraph_options | replace("\n", " ") | trim }}
 {%- endif %}
-{%- if extra_yaml_literals|length > 0 %}
-{%- for yaml_literal in extra_yaml_literals %}
-{{ yaml_literal }}
-{%- endfor %}
+{%- if extra_run_quantum_options %}
+extraRunQuantumOptions: {{ extra_run_quantum_options | replace("\n", " ") | trim }}
 {%- endif %}
+{# BLANK LINE #}
+{%- if extra_yaml_literals|length > 0 %}
+########################################
+# ADDITIONAL BPS DIRECTIVES
+########################################
+{%- for key, value in extra_yaml_literals|items %}
+{{ key }}: "{{ value }}"
+{%- endfor %}
+{# BLANK LINE #}
+{%- endif %}
+{%- if clustering %}
+########################################
+# ADDITIONAL CLUSTERING CONFIGURATION
+########################################
+clustering:
+  {{ clustering | toyaml | indent(2) -}}
+{# BLANK LINE #}
+{%- endif%}
+########################################
+# SITE WMS CONFIGURATION
+########################################
 {%- if wms == "htcondor" %}
 wmsServiceClass: lsst.ctrl.bps.htcondor.HTCondorService
 {%- if compute_site == "usdf" %}
@@ -63,3 +99,4 @@ computeSite: LANCS
 computeSite: CC-IN2P3
 {%- endif %}
 {%- endif %}
+{# BLANK LINE #}

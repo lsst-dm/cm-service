@@ -1,6 +1,5 @@
+---
 - Imports:
-    - "${CM_CONFIGS}/example_standard_scripts.yaml"
-    - "${CM_CONFIGS}/example_standard_elements.yaml"
     - "${CM_CONFIGS}/example_hsc_micro_steps.yaml"
 - SpecBlock:
     name: hsc_micro_campaign
@@ -129,7 +128,7 @@
     handler: lsst.cmservice.handlers.element_handler.ElementHandler
     collections:
       step_input: "{out}/{step}/input"
-      step_output: "{out}/{step}_output"
+      step_output: "{out}/{step}_ouput"
       step_public_output: "{out}/{step}"
       step_validation: "{out}/{step}/validate"
     scripts:

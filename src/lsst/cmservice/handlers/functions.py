@@ -1,4 +1,5 @@
 import os
+from collections import deque
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 from uuid import UUID, uuid5
@@ -61,7 +62,7 @@ async def upsert_spec_block(
     spec_block: SpecBlock
         Newly created or updated SpecBlock
     """
-    key = config_values.pop("name")
+    key = config_values["name"]
     loaded_specs[key] = config_values
     spec_block_q = select(SpecBlock).where(SpecBlock.fullname == key)
     spec_block_result = await session.scalars(spec_block_q)
@@ -69,7 +70,7 @@ async def upsert_spec_block(
     if spec_block and not allow_update:
         print(f"SpecBlock {key} already defined, leaving it unchanged")
         return spec_block
-    includes = config_values.pop("includes", [])
+    includes = config_values.get("includes", [])
     block_data = config_values.copy()
     include_data: dict[str, Any] = {}
     for include_ in includes:
@@ -163,11 +164,11 @@ async def upsert_specification(
 
 async def load_specification(
     session: async_scoped_session,
-    yaml_file: str | Path,
+    yaml_file: str | Path | deque,
     loaded_specs: dict | None = None,
     *,
     allow_update: bool = False,
-) -> Specification | None:
+) -> Specification:
     """Load Specification, and SpecBlock objects from a yaml
     file, including from files referenced by Include blocks. Return the last
     Specification object in the file.
@@ -191,39 +192,50 @@ async def load_specification(
     specification: Specification
         Newly created Specification
     """
+    specification = None
+
     if loaded_specs is None:  # pragma: no cover
         loaded_specs = {}
 
-    specification = None
-    yaml_file = Path(yaml_file)
-    if not await yaml_file.exists():
-        raise CMYamlParseError(f"Specification does not exist at path {yaml_file}")
-    try:
+    if isinstance(yaml_file, deque):
+        spec_data = yaml_file
+    else:
+        yaml_file = Path(yaml_file)
+        if not await yaml_file.exists():
+            raise CMYamlParseError(f"Specification does not exist at path {yaml_file}")
         spec_yaml = await yaml_file.read_bytes()
-        spec_data = yaml.safe_load(spec_yaml)
-    except yaml.YAMLError as yaml_error:
-        raise CMYamlParseError(f"Error parsing specification {yaml_file}; threw {yaml_error}") from yaml_error
-    except Exception as e:
-        raise CMYamlParseError(f"{e}") from e
+        try:
+            spec_data = deque()
+            spec_batches = yaml.safe_load_all(spec_yaml)
+            for spec in spec_batches:
+                spec_data += spec
+        except yaml.YAMLError as yaml_error:
+            raise CMYamlParseError(
+                f"Error parsing specification {yaml_file}; threw {yaml_error}"
+            ) from yaml_error
+        except Exception as e:
+            raise CMYamlParseError(f"{e}") from e
 
-    for config_item in spec_data:
+    while spec_data:
+        config_item = spec_data.popleft()
         if "Imports" in config_item:
             imports = config_item["Imports"]
             for import_ in imports:
-                import_path = await Path(os.path.expandvars(import_)).resolve()
-                await load_specification(
+                import_yaml = await Path(os.path.abspath(os.path.expandvars(import_))).read_bytes()
+                for import_item in yaml.safe_load(import_yaml):
+                    spec_data.appendleft(import_item)
+        elif "SpecBlock" in config_item:
+            try:
+                await upsert_spec_block(
                     session,
-                    import_path,
+                    config_item["SpecBlock"],
                     loaded_specs,
                     allow_update=allow_update,
                 )
-        elif "SpecBlock" in config_item:
-            await upsert_spec_block(
-                session,
-                config_item["SpecBlock"],
-                loaded_specs,
-                allow_update=allow_update,
-            )
+            except CMMissingFullnameError:
+                # move this item to the end of the list to try again later
+                # TODO prevent infinite loops for genuinely bad inputs
+                spec_data.append(config_item)
         elif "Specification" in config_item:
             specification = await upsert_specification(
                 session,
@@ -231,9 +243,14 @@ async def load_specification(
                 allow_update=allow_update,
             )
         else:  # pragma: no cover
-            good_keys = "SpecBlock | Specification | Imports"
-            raise CMYamlParseError(f"Expecting one of {good_keys} not: {spec_data.keys()})")
+            logger.warning(
+                "Some spec blocks were not loaded from unexpected keys",
+                expected_keys="SpecBlock | Specification | Imports",
+                config_item=config_item,
+            )
 
+    if specification is None:
+        raise ValueError("load_specification() did not return a Specification")
     return specification
 
 
