@@ -1,15 +1,12 @@
-Production:
-    name: HSC_DRP-RC2
 Campaign:
-    name: MUST_OVERRIDE
-    spec_name: HSC_DRP-RC2_panda
-    collections:
-        out: MUST_OVERRIDE
-        campaign_source: HSC/raw/RC2
-    data:
-        lsst_version: MUST_OVERRIDE
-        prod_area: MUST_OVERRIDE
-
+  name: MUST_OVERRIDE
+  spec_name: HSC_DRP-RC2_panda
+  collections:
+    out: MUST_OVERRIDE
+    campaign_source: HSC/raw/RC2
+  data:
+    lsst_version: MUST_OVERRIDE
+    prod_area: MUST_OVERRIDE
 #       custom_lsst_setup: setup -j -r /sdf/group/rubin/u/yusra/lsst_devel/ctrl_bps
 #
 #       butler_repo: '/repo/main+sasquatch_dev'

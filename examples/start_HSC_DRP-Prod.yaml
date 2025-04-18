@@ -1,14 +1,12 @@
-Production:
-    name: HSC_DRP-Prod
 Campaign:
-    name: MUST_OVERRIDE
-    spec_name: HSC_DRP-Prod_htcondor
-    collections:
-        out: MUST_OVERRIDE
-        # campaign_source: HSC/raw/PDR2/WIDE,HSC/raw/PDR2/DEEP,HSC/raw/PDR2/UDEEP
-    data:
-        prod_area: MUST_OVERRIDE
-        lsst_version: MUST_OVERRIDE
+  name: MUST_OVERRIDE
+  spec_name: HSC_DRP-Prod_htcondor
+  collections:
+    out: MUST_OVERRIDE
+    # campaign_source: HSC/raw/PDR2/WIDE,HSC/raw/PDR2/DEEP,HSC/raw/PDR2/UDEEP
+  data:
+    prod_area: MUST_OVERRIDE
+    lsst_version: MUST_OVERRIDE
 #       butler_repo: '/repo/main+sasquatch_dev'
 #       data_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1'"
 #       bps_wms_clustering_file: ${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml

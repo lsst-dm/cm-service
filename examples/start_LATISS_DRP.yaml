@@ -1,14 +1,12 @@
-Production:
-    name: LATISS_DRP
 Campaign:
-    name: MUST_OVERRIDE
-    spec_name: LATISS_DRP_htcondor
-    collections:
-        out: MUST_OVERRIDE
-        # campaign_input: LATISS/defaults
-    data:
-        prod_area: MUST_OVERRIDE
-        lsst_version: MUST_OVERRIDE
+  name: MUST_OVERRIDE
+  spec_name: LATISS_DRP_htcondor
+  collections:
+    out: MUST_OVERRIDE
+    # campaign_input: LATISS/defaults
+  data:
+    prod_area: MUST_OVERRIDE
+    lsst_version: MUST_OVERRIDE
 #       butler_repo: '/repo/embargo'
 #       data_query: >
 #           instrument='LATISS' AND detector=0 AND (exposure.day_obs>=20230509 and exposure.day_obs<20230914)

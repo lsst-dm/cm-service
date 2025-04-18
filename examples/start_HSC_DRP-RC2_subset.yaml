@@ -1,14 +1,12 @@
-Production:
-    name: HSC_DRP-RC2_subset
 Campaign:
-    name: MUST_OVERRIDE
-    spec_name: HSC_DRP-RC2_subset_htcondor
-    collections:
-        out: MUST_OVERRIDE
-        # campaign_input: HSC/RC2_subset/defaults
-    data:
-        prod_area: MUST_OVERRIDE
-        lsst_version: MUST_OVERRIDE
+  name: MUST_OVERRIDE
+  spec_name: HSC_DRP-RC2_subset_htcondor
+  collections:
+    out: MUST_OVERRIDE
+    # campaign_input: HSC/RC2_subset/defaults
+  data:
+    prod_area: MUST_OVERRIDE
+    lsst_version: MUST_OVERRIDE
 #       butler_repo: '/repo/main'
 #       data_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1'"
 #       bps_wms_clustering_file: ${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml
