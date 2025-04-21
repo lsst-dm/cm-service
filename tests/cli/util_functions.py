@@ -1,3 +1,4 @@
+import uuid
 from pathlib import Path
 from typing import TypeAlias, TypeVar
 
@@ -35,14 +36,16 @@ def add_scripts(
     runner: CliRunner,
     client_top: BaseCommand,
     element: models.ElementMixin,
+    namespace: uuid.UUID,
 ) -> tuple[list[models.Script], models.Dependency | None]:
+    namespaced_spec_block_name = uuid.uuid5(namespace, "null_script")
     result = runner.invoke(
         client_top,
         "script create "
         "--output yaml "
         "--name prepare "
         f"--parent_name {element.fullname} "
-        "--spec_block_name null_script",
+        f"--spec_block_name {namespaced_spec_block_name}",
     )
     prep_script = check_and_parse_result(result, models.Script)
 
@@ -52,7 +55,7 @@ def add_scripts(
         "--output yaml "
         "--name collect "
         f"--parent_name {element.fullname} "
-        "--spec_block_name null_script",
+        f"--spec_block_name {namespaced_spec_block_name}",
     )
     collect_script = check_and_parse_result(result, models.Script)
 
@@ -70,42 +73,45 @@ def create_tree(
     runner: CliRunner,
     client_top: BaseCommand,
     level: LevelEnum,
-    uuid_int: int,
+    namespace: uuid.UUID,
 ) -> None:
     fixtures = Path(__file__).parent.parent / "fixtures" / "seeds"
     result = runner.invoke(
         client_top,
-        f"load specification --output yaml --yaml_file {fixtures}/empty_config.yaml",
+        f"load specification --output yaml --yaml_file {fixtures}/empty_config.yaml --namespace {namespace}",
     )
     # check_and_parse_result(result, models.Specification)
 
-    cname = f"camp0_{uuid_int}"
+    cname = f"camp0_{namespace.int}"
+    namespaced_spec_block = f"""{str(uuid.uuid5(namespace, "base"))}#campaign"""
     result = runner.invoke(
-        client_top, f"campaign create --output yaml --name {cname} --spec_block_assoc_name base#campaign "
+        client_top,
+        f"campaign create --output yaml --name {cname} --spec_block_assoc_name {namespaced_spec_block} ",
     )
     camp = check_and_parse_result(result, models.Campaign)
 
-    (_camp_scripts, _camp_script_depend) = add_scripts(runner, client_top, camp)
+    (_camp_scripts, _camp_script_depend) = add_scripts(runner, client_top, camp, namespace)
 
     if level.value <= LevelEnum.campaign.value:
         return
 
-    snames = [f"step{i}_{uuid_int}" for i in range(2)]
+    snames = [f"step{i}_{namespace.int}" for i in range(2)]
     steps = []
+    namespaced_spec_block_name = str(uuid.uuid5(namespace, "basic_step"))
     for sname_ in snames:
         result = runner.invoke(
             client_top,
             "step create "
             "--output yaml "
             f"--name {sname_} "
-            "--spec_block_name basic_step "
+            f"--spec_block_name {namespaced_spec_block_name} "
             f"--parent_name {camp.fullname}",
         )
         step = check_and_parse_result(result, models.Step)
         steps.append(step)
 
     for step_ in steps:
-        add_scripts(runner, client_top, step_)
+        add_scripts(runner, client_top, step_, namespace=namespace)
 
     step_0 = steps[0]
     step_1 = steps[1]
@@ -124,41 +130,43 @@ def create_tree(
     if level.value <= LevelEnum.step.value:
         return
 
-    gnames = [f"group{i}_{uuid_int}" for i in range(5)]
+    gnames = [f"group{i}_{namespace.int}" for i in range(5)]
     groups = []
+    namespaced_group_spec_block = str(uuid.uuid5(namespace, "group"))
     for gname_ in gnames:
         result = runner.invoke(
             client_top,
             "group create "
             "--output yaml "
             f"--name {gname_} "
-            "--spec_block_name group "
+            f"--spec_block_name {namespaced_group_spec_block} "
             f"--parent_name {step_1.fullname}",
         )
         group = check_and_parse_result(result, models.Group)
         groups.append(group)
 
     for group_ in groups:
-        add_scripts(runner, client_top, group_)
+        add_scripts(runner, client_top, group_, namespace=namespace)
 
     if level.value <= LevelEnum.group.value:
         return
 
     jobs = []
+    namespaced_job_spec_block = str(uuid.uuid5(namespace, "job"))
     for group_ in groups:
         result = runner.invoke(
             client_top,
             "job create "
             "--output yaml "
-            f"--name job_{uuid_int} "
-            "--spec_block_name job "
+            f"--name job_{namespace.int} "
+            f"--spec_block_name {namespaced_job_spec_block} "
             f"--parent_name {group_.fullname}",
         )
         job = check_and_parse_result(result, models.Job)
         jobs.append(job)
 
     for job_ in jobs:
-        add_scripts(runner, client_top, job_)
+        add_scripts(runner, client_top, job_, namespace=namespace)
 
     return
 

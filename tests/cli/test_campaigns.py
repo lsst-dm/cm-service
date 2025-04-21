@@ -1,16 +1,12 @@
 import os
 import uuid
-from collections.abc import Generator
 
 import pytest
 from click.testing import CliRunner
-from safir.testing.uvicorn import UvicornProcess
 
 from lsst.cmservice import models
 from lsst.cmservice.cli.client import client_top
-from lsst.cmservice.client.clientconfig import client_config
-from lsst.cmservice.common.enums import LevelEnum
-from lsst.cmservice.config import config
+from lsst.cmservice.common.enums import DEFAULT_NAMESPACE, LevelEnum
 
 from .util_functions import (
     check_and_parse_result,
@@ -18,26 +14,15 @@ from .util_functions import (
     check_queue,
     check_scripts,
     check_update_methods,
-    cleanup,
     create_tree,
 )
-
-
-@pytest.fixture(scope="function", params=["v1"])
-def runner(uvicorn: UvicornProcess, request: pytest.FixtureRequest) -> Generator[CliRunner]:
-    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}/{request.param}"
-    runner = CliRunner()
-    yield runner
-    # delete everything we just made in the session
-    cleanup(runner, client_top, check_cascade=True)
 
 
 @pytest.mark.asyncio()
 async def test_campaign_cli(runner: CliRunner) -> None:
     """Test `campaign` CLI command"""
 
-    # generate a uuid to avoid collisions
-    uuid_int = uuid.uuid1().int
+    namespace = uuid.uuid5(DEFAULT_NAMESPACE, str(uuid.uuid1()))
 
     os.environ["CM_CONFIGS"] = "examples"
 
@@ -46,7 +31,7 @@ async def test_campaign_cli(runner: CliRunner) -> None:
     assert len(campaigns) == 0, "Campaign list not empty"
 
     # intialize a tree down to one level lower
-    create_tree(runner, client_top, LevelEnum.step, uuid_int)
+    create_tree(runner, client_top, LevelEnum.step, namespace)
 
     result = runner.invoke(client_top, "campaign list --output yaml")
     campaigns = check_and_parse_result(result, list[models.Campaign])

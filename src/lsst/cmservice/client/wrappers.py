@@ -1,14 +1,19 @@
 from __future__ import annotations
 
+import sys
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, TypeAlias
 
+from httpx import ConnectError, HTTPStatusError
 from pydantic import BaseModel, TypeAdapter
 
 from .. import models
+from ..common.logging import LOGGER
 
 if TYPE_CHECKING:
     from .client import CMClient
+
+logger = LOGGER.bind(module=__name__)
 
 
 def get_rows_no_parent_function(
@@ -152,8 +157,12 @@ def create_row_function(
 
     def row_create(obj: CMClient, **kwargs: Any) -> response_model_class:
         content = create_model_class(**kwargs).model_dump_json()
-        results = obj.client.post(query, content=content).raise_for_status().json()
-        return TypeAdapter(response_model_class).validate_python(results)
+        try:
+            results = obj.client.post(query, content=content).raise_for_status().json()
+            return TypeAdapter(response_model_class).validate_python(results)
+        except HTTPStatusError:
+            logger.exception()
+            sys.exit(1)
 
     return row_create
 
@@ -284,10 +293,14 @@ def get_row_by_name_function(
         name: str,
     ) -> response_model_class | None:
         params = models.NameQuery(name=name).model_dump()
-        response = obj.client.get(query, params=params)
-        if response.status_code == 404:
-            return None
-        results = response.raise_for_status().json()
+        try:
+            response = obj.client.get(query, params=params)
+            if response.status_code == 404:
+                return None
+            results = response.raise_for_status().json()
+        except (ConnectError, HTTPStatusError) as e:
+            logger.error(e)
+            sys.exit(1)
         return TypeAdapter(response_model_class).validate_python(results)
 
     return get_row_by_name

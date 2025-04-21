@@ -83,7 +83,7 @@
                     output: "{step_public_output}"
       child_config:
           spec_block: group
-# Campagin Template, runs a campaign
+# Campaign Template, runs a campaign
 # This will tag the input data, create the ancillary collection, run the steps and then collect the outputs
 # Note that the steps are not defined here.
 - SpecBlock:
@@ -147,7 +147,7 @@
       data:
           lsst_version: MUST_OVERRIDE
           lsst_distrib_dir: /cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib
-# Campagin Template for fixed inputs
+# Campaign Template for fixed inputs
 # This assumes that the input data is already set, it will run the steps and then collect the outputs
 # Note that the steps are not defined here.
 - SpecBlock:

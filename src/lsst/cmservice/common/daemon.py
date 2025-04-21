@@ -14,8 +14,9 @@ logger = LOGGER.bind(module=__name__)
 
 async def daemon_iteration(session: async_scoped_session) -> None:
     iteration_start = datetime.now()
-    # TODO limit query to queues that do not have a "time_finished"
-    queue_entries = await session.execute(select(Queue).where(Queue.time_next_check < iteration_start))
+    queue_entries = await session.execute(
+        select(Queue).where((Queue.time_next_check < iteration_start) & (Queue.time_finished.is_(None)))
+    )
     logger.debug("Daemon Iteration: %s", iteration_start)
 
     # TODO: should the daemon check any campaigns with a state == prepared that

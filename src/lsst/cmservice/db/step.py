@@ -161,6 +161,7 @@ class Step(Base, ElementMixin):
             parent_name = kwargs["parent_name"]
             name = kwargs["name"]
             spec_block_name = kwargs["spec_block_name"]
+            original_name = kwargs.get("original_name", name)
         except KeyError as e:
             raise CMMissingRowCreateInputError(f"Missing input to create Step: {e}") from e
 
@@ -173,7 +174,7 @@ class Step(Base, ElementMixin):
             "spec_block_id": spec_block.id,
             "parent_id": campaign.id,
             "name": name,
-            "fullname": f"{campaign.fullname}/{name}",
+            "fullname": f"{campaign.fullname}/{original_name}",
             "handler": kwargs.get("handler"),
             "data": kwargs.get("data", {}),
             "child_config": kwargs.get("child_config", {}),

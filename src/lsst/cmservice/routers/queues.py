@@ -6,7 +6,10 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 
 from .. import db, models
 from ..common.errors import CMMissingIDError
+from ..common.logging import LOGGER
 from . import wrappers
+
+logger = LOGGER.bind(module=__name__)
 
 # Template specialization
 # Specify the pydantic model for the table
@@ -72,6 +75,7 @@ async def process_element(
     except CMMissingIDError as msg:
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
     except Exception as msg:
+        logger.exception()
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
     return can_continue
 
