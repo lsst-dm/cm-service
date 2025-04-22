@@ -327,13 +327,10 @@ class NodeMixin(RowMixin):
         self,
         session: async_scoped_session,
     ) -> dict:
-        """Get the data configuration
-        associated to a particular row
+        """Get the data configuration associated to a particular row
 
-        This will start with the data
-        configuration in the associated `SpecBlock`
-        and override it with with the data
-        configuration in the row
+        This will start with the data configuration in the associated
+        `SpecBlock` and override it with with the data configuration in the row
 
         Parameters
         ----------

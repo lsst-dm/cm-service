@@ -451,16 +451,13 @@ class PrepareStepScriptHandler(ScriptHandler):
 
     This will create a chained collection
 
-    `script.collections['output']`
+    `script.collections["output"]`
 
-    by taking the output collections of all the
-    prerequisite steps, or
+    by taking the output collections of all the prerequisite steps, or
 
-    `script.collections['campaign_input'] if the
-    step has no inputs
+    `script.collections["campaign_input"]` if the step has no inputs
 
-    it will then append
-    `script.collections['output']` to the output collection
+    it will then append `script.collections["output"]` to the output collection
     """
 
     async def _write_script(
