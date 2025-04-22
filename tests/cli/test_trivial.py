@@ -1,5 +1,6 @@
 import uuid
 from pathlib import Path
+from typing import Any
 
 import pytest
 from click.testing import CliRunner
@@ -19,15 +20,15 @@ from .util_functions import (
 
 @pytest.mark.asyncio()
 @pytest.mark.parametrize("api_version", ["v1"])
-async def test_cli_trivial_campaign(uvicorn: UvicornProcess, api_version: str) -> None:
-    """Test fake end to end run using example/example_trivial.yaml"""
-
+async def test_cli_trivial_campaign(monkeypatch: Any, uvicorn: UvicornProcess, api_version: str) -> None:
+    """Test fake end to end run using example_trivial.yaml seed"""
     client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}/{api_version}"
     runner = CliRunner()
     fixtures = Path(__file__).parent.parent / "fixtures" / "seeds"
+    monkeypatch.setenv("FIXTURES", str(fixtures))
 
     namespace = uuid.uuid5(DEFAULT_NAMESPACE, "trivial_campaign")
-    yaml_file = f"{fixtures}/example_trivial.yaml"
+    yaml_file = f"{fixtures}/test_trivial.yaml"
 
     # Load the specification file without a namespace
     result = runner.invoke(client_top, f"load specification --yaml_file {yaml_file}")

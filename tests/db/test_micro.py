@@ -25,6 +25,7 @@ async def test_micro_db(
 ) -> None:
     """Test fake end to end run using example/example_micro.yaml"""
     fixtures = Path(__file__).parent.parent / "fixtures" / "seeds"
+    monkeypatch.setenv("FIXTURES", str(fixtures))
     ScriptHandler = importlib.import_module("lsst.cmservice.handlers.script_handler").ScriptHandler
     interface = importlib.import_module("lsst.cmservice.handlers.interface")
     monkeypatch.setattr("lsst.cmservice.config.config.butler.mock", True)
@@ -39,7 +40,7 @@ async def test_micro_db(
 
         campaign = await interface.load_and_create_campaign(
             session=session,
-            yaml_file=f"{fixtures}/example_hsc_micro.yaml",
+            yaml_file=f"{fixtures}/test_hsc_micro.yaml",
             name="hsc_micro_w_2025_01",
             spec_block_assoc_name="hsc_micro_panda#campaign",
         )
