@@ -91,7 +91,7 @@ class BpsScriptHandler(ScriptHandler):
         # workflow_config is the values dictionary to use while rendering a
         # yaml template, NOT the yaml template itself!
         workflow_config: dict[str, Any] = {}
-        workflow_config["campaign"] = parent.c_.name
+        workflow_config["campaign"] = data_dict.get("campaign", parent.c_.name)
         workflow_config["pipeline_yaml"] = pipeline_yaml
         workflow_config["lsst_version"] = lsst_version
         workflow_config["lsst_distrib_dir"] = lsst_distrib_dir
