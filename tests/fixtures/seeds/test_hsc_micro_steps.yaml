@@ -1,0 +1,39 @@
+---
+- SpecBlock:
+    name: hsc_micro_isr
+    includes: ["step"]
+    data:
+      pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#isr"
+    child_config:
+      base_query: "instrument = 'HSC'"
+      split_dataset: raw
+      split_field: exposure
+- SpecBlock:
+    name: hsc_micro_calibrateImage
+    includes: ["step"]
+    data:
+      pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#calibrateImage"
+    child_config:
+      base_query: "instrument = 'HSC'"
+      split_dataset: raw
+      split_field: exposure
+- SpecBlock:
+    # deprecated
+    name: hsc_micro_characterizeImage
+    includes: ["step"]
+    data:
+      pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#characterizeImage"
+    child_config:
+      base_query: "instrument = 'HSC'"
+      split_dataset: raw
+      split_field: exposure
+- SpecBlock:
+    # deprecated
+    name: hsc_micro_calibrate
+    includes: ["step"]
+    data:
+      pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#calibrate"
+    child_config:
+      base_query: "instrument = 'HSC'"
+      split_dataset: raw
+      split_field: exposure

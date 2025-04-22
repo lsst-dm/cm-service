@@ -29,7 +29,7 @@ async def test_daemon_db(engine: AsyncEngine) -> None:
 
         campaign = await interface.load_and_create_campaign(
             session=session,
-            yaml_file=f"{fixtures}/example_trivial.yaml",
+            yaml_file=f"{fixtures}/test_trivial.yaml",
             name="test_daemon",
             spec_block_assoc_name="trivial_panda#campaign",
         )
