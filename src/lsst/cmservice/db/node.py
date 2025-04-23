@@ -137,12 +137,10 @@ class NodeMixin(RowMixin):
         self,
         session: async_scoped_session,
     ) -> Handler:
-        """Get the Handler object associated to a particular row
+        """Get the Handler object associated with a particular row
 
-        This will check if the handler class is defined
-        for that particular row, if it is not, it
-        will use the class as defined in the associated
-        `SpecBlock`
+        Check if a handler class is defined for a particular row; if not, use
+        the class as defined in the associated `SpecBlock`.
 
         Parameters
         ----------
@@ -175,21 +173,19 @@ class NodeMixin(RowMixin):
         fields : dict
             Resulting fields
         """
-        fields = {}
+        fields = {"production": "DEFAULT"}
 
         tokens = fullname.split("/")
         if self.node_type == NodeTypeEnum.script:
             fields["script"] = tokens.pop()
         for i, token in enumerate(tokens):
             if i == 0:
-                fields["production"] = token
-            elif i == 1:
                 fields["campaign"] = token
-            elif i == 2:
+            elif i == 1:
                 fields["step"] = token
-            elif i == 3:
+            elif i == 2:
                 fields["group"] = token
-            elif i == 4:
+            elif i == 3:
                 fields["job"] = token
             else:  # pragma: no cover
                 raise CMBadFullnameError(f"Too many fields in {fullname}")
@@ -384,13 +380,10 @@ class NodeMixin(RowMixin):
         self,
         session: async_scoped_session,
     ) -> dict:
-        """Get the spec_alises
-        associated to a particular node
+        """Get the spec_aliases associated with a particular node
 
-        This will start with the spec_aliases
-        configuration in the associated `SpecBlock`
-        and override it with with the data
-        configuration in the row
+        This will start with the spec_aliases configuration in the associated
+        `SpecBlock` and override it with with the data configuration in the row
 
         Parameters
         ----------
@@ -465,8 +458,7 @@ class NodeMixin(RowMixin):
         session: async_scoped_session,
         **kwargs: Any,
     ) -> NodeMixin:
-        """Update the collection configuration
-        associated to this Node
+        """Update the collection configuration associated with this Node
 
         Parameters
         ----------
@@ -508,8 +500,7 @@ class NodeMixin(RowMixin):
         session: async_scoped_session,
         **kwargs: Any,
     ) -> NodeMixin:
-        """Update the spec_alisases configuration
-        associated to this Node
+        """Update the spec_alisases configuration associated with this Node
 
         Parameters
         ----------
@@ -552,8 +543,7 @@ class NodeMixin(RowMixin):
         session: async_scoped_session,
         **kwargs: Any,
     ) -> NodeMixin:
-        """Update the data configuration
-        associated to this Node
+        """Update the data configuration associated with this Node
 
         Parameters
         ----------
@@ -595,9 +585,8 @@ class NodeMixin(RowMixin):
         self,
         session: async_scoped_session,
     ) -> bool:
-        """Check if the prerequisties
-        for processing a particular row
-        are completed
+        """Check if the prerequisties for processing a particular node are
+        completed.
 
         Parameters
         ----------
@@ -721,8 +710,7 @@ class NodeMixin(RowMixin):
     ) -> tuple[bool, StatusEnum]:
         """Process this `Node` as much as possible
 
-        This will create a `Handler` and
-        pass this node to it for processing
+        This will create a `Handler` and pass this node to it for processing
 
         Parameters
         ----------
@@ -747,8 +735,7 @@ class NodeMixin(RowMixin):
     ) -> tuple[bool, StatusEnum]:
         """Check on this Nodes's status
 
-        This will create a `Handler` and
-        pass this node to it for checking
+        This will create a `Handler` and pass this node to it for checking
 
         Parameters
         ----------

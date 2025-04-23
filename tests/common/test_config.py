@@ -1,4 +1,6 @@
-from typing import Any
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING, Any
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -52,3 +54,38 @@ def test_config_enum_validation(monkeypatch: Any) -> None:
         config = Configuration()
 
     assert config.script_handler == ScriptMethodEnum.htcondor
+
+
+def test_config_boolean_serialization(monkeypatch: Any) -> None:
+    """Test the serialization of boolean field values to strings"""
+    config = Configuration()
+    assert type(config.panda.verify_host) is bool
+    d = config.panda.model_dump(exclude_none=True)
+    assert type(d["verify_host"]) is str
+    assert d["verify_host"] in ["on", "off"]
+
+
+def test_config_datetime() -> None:
+    """Test the validation of datetime configuration parameters"""
+    config = Configuration()
+
+    # avoids mypy's narrowing on first assert behavior
+    if not TYPE_CHECKING:
+        assert config.panda.token_expiry is None
+
+    # test validation and coercion on assignment
+    config.panda.token_expiry = 1740147265  # type: ignore[assignment]
+    assert isinstance(config.panda.token_expiry, datetime)
+    assert config.panda.token_expiry.tzinfo is UTC
+
+    # test coercion to UTC on assignment of tz-naive datetime
+    naive_datetime = datetime(year=2025, month=1, day=2)
+    config.panda.token_expiry = naive_datetime
+    assert (config.panda.token_expiry - naive_datetime.replace(tzinfo=UTC)) == timedelta(0)
+
+    # test coercion to UTC on assignment of tz-aware datetime without changing
+    # time
+    non_utc_datetime = datetime(year=2025, month=2, day=2, tzinfo=ZoneInfo("America/Chicago"))
+    config.panda.token_expiry = non_utc_datetime
+    assert config.panda.token_expiry.tzinfo is UTC
+    assert (config.panda.token_expiry - non_utc_datetime) == timedelta(0)

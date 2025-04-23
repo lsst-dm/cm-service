@@ -1,3 +1,5 @@
+import uuid
+from pathlib import Path
 from typing import TypeAlias, TypeVar
 
 import yaml
@@ -9,6 +11,7 @@ from lsst.cmservice import models
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum
 
 T = TypeVar("T")
+E = TypeVar("E", models.Group, models.Campaign, models.Step, models.Job)
 
 
 def check_and_parse_result(
@@ -33,14 +36,16 @@ def add_scripts(
     runner: CliRunner,
     client_top: BaseCommand,
     element: models.ElementMixin,
+    namespace: uuid.UUID,
 ) -> tuple[list[models.Script], models.Dependency | None]:
+    namespaced_spec_block_name = uuid.uuid5(namespace, "null_script")
     result = runner.invoke(
         client_top,
         "script create "
         "--output yaml "
         "--name prepare "
         f"--parent_name {element.fullname} "
-        "--spec_block_name null_script",
+        f"--spec_block_name {namespaced_spec_block_name}",
     )
     prep_script = check_and_parse_result(result, models.Script)
 
@@ -50,7 +55,7 @@ def add_scripts(
         "--output yaml "
         "--name collect "
         f"--parent_name {element.fullname} "
-        "--spec_block_name null_script",
+        f"--spec_block_name {namespaced_spec_block_name}",
     )
     collect_script = check_and_parse_result(result, models.Script)
 
@@ -68,51 +73,45 @@ def create_tree(
     runner: CliRunner,
     client_top: BaseCommand,
     level: LevelEnum,
-    uuid_int: int,
+    namespace: uuid.UUID,
 ) -> None:
+    fixtures = Path(__file__).parent.parent / "fixtures" / "seeds"
     result = runner.invoke(
         client_top,
-        "load specification --output yaml --yaml_file examples/empty_config.yaml",
+        f"load specification --output yaml --yaml_file {fixtures}/empty_config.yaml --namespace {namespace}",
     )
     # check_and_parse_result(result, models.Specification)
 
-    pname = f"prod0_{uuid_int}"
-
-    result = runner.invoke(client_top, f"production create --output yaml --name {pname}")
-    check_and_parse_result(result, models.Production)
-
-    cname = f"camp0_{uuid_int}"
+    cname = f"camp0_{namespace.int}"
+    namespaced_spec_block = f"""{str(uuid.uuid5(namespace, "base"))}#campaign"""
     result = runner.invoke(
         client_top,
-        "campaign create "
-        "--output yaml "
-        f"--name {cname} "
-        "--spec_block_assoc_name base#campaign "
-        f"--parent_name {pname}",
+        f"campaign create --output yaml --name {cname} --spec_block_assoc_name {namespaced_spec_block} ",
     )
     camp = check_and_parse_result(result, models.Campaign)
 
-    (_camp_scripts, _camp_script_depend) = add_scripts(runner, client_top, camp)
+    (_camp_scripts, _camp_script_depend) = add_scripts(runner, client_top, camp, namespace)
 
     if level.value <= LevelEnum.campaign.value:
         return
 
-    snames = [f"step{i}_{uuid_int}" for i in range(2)]
+    snames = [f"step{i}_{namespace.int}" for i in range(2)]
     steps = []
+    namespaced_spec_block_name = str(uuid.uuid5(namespace, "basic_step"))
     for sname_ in snames:
         result = runner.invoke(
             client_top,
             "step create "
             "--output yaml "
             f"--name {sname_} "
-            "--spec_block_name basic_step "
+            f"--spec_block_name {namespaced_spec_block_name} "
             f"--parent_name {camp.fullname}",
         )
         step = check_and_parse_result(result, models.Step)
         steps.append(step)
 
     for step_ in steps:
-        add_scripts(runner, client_top, step_)
+        add_scripts(runner, client_top, step_, namespace=namespace)
 
     step_0 = steps[0]
     step_1 = steps[1]
@@ -131,41 +130,43 @@ def create_tree(
     if level.value <= LevelEnum.step.value:
         return
 
-    gnames = [f"group{i}_{uuid_int}" for i in range(5)]
+    gnames = [f"group{i}_{namespace.int}" for i in range(5)]
     groups = []
+    namespaced_group_spec_block = str(uuid.uuid5(namespace, "group"))
     for gname_ in gnames:
         result = runner.invoke(
             client_top,
             "group create "
             "--output yaml "
             f"--name {gname_} "
-            "--spec_block_name group "
+            f"--spec_block_name {namespaced_group_spec_block} "
             f"--parent_name {step_1.fullname}",
         )
         group = check_and_parse_result(result, models.Group)
         groups.append(group)
 
     for group_ in groups:
-        add_scripts(runner, client_top, group_)
+        add_scripts(runner, client_top, group_, namespace=namespace)
 
     if level.value <= LevelEnum.group.value:
         return
 
     jobs = []
+    namespaced_job_spec_block = str(uuid.uuid5(namespace, "job"))
     for group_ in groups:
         result = runner.invoke(
             client_top,
             "job create "
             "--output yaml "
-            f"--name job_{uuid_int} "
-            "--spec_block_name job "
+            f"--name job_{namespace.int} "
+            f"--spec_block_name {namespaced_job_spec_block} "
             f"--parent_name {group_.fullname}",
         )
         job = check_and_parse_result(result, models.Job)
         jobs.append(job)
 
     for job_ in jobs:
-        add_scripts(runner, client_top, job_)
+        add_scripts(runner, client_top, job_, namespace=namespace)
 
     return
 
@@ -185,13 +186,13 @@ def delete_all_rows(
             raise ValueError(f"{result} failed with {result.exit_code} {result.output}")
 
 
-def delete_all_productions(
+def delete_all_artifacts(
     runner: CliRunner,
     client_top: BaseCommand,
     *,
     check_cascade: bool = False,
 ) -> None:
-    delete_all_rows(runner, client_top, "production", models.Production)
+    delete_all_rows(runner, client_top, "campaign", models.Campaign)
     if check_cascade:
         result = runner.invoke(client_top, "campaign list --output yaml")
         n_campaigns = len(check_and_parse_result(result, list[models.Campaign]))
@@ -207,7 +208,6 @@ def delete_all_spec_stuff(
 ) -> None:
     delete_all_rows(runner, client_top, "specification", models.Specification)
     delete_all_rows(runner, client_top, "spec_block", models.SpecBlock)
-    delete_all_rows(runner, client_top, "script_template", models.ScriptTemplate)
 
 
 def delete_all_queues(
@@ -223,7 +223,7 @@ def cleanup(
     *,
     check_cascade: bool = False,
 ) -> None:
-    delete_all_productions(runner, client_top, check_cascade=check_cascade)
+    delete_all_artifacts(runner, client_top, check_cascade=check_cascade)
     delete_all_spec_stuff(runner, client_top)
     delete_all_queues(runner, client_top)
 
@@ -421,7 +421,7 @@ def check_scripts(
 def check_get_methods(
     runner: CliRunner,
     client_top: BaseCommand,
-    entry: models.ElementMixin,
+    entry: E,
     entry_class_name: str,
     entry_class: TypeAlias = models.ElementMixin,
 ) -> None:
@@ -429,7 +429,7 @@ def check_get_methods(
     check_get = check_and_parse_result(result, entry_class)
 
     assert check_get.id == entry.id, "pulled row should be identical"
-    assert check_get.level == entry.level, "pulled row db_id should be identical"  # type: ignore
+    assert check_get.level == entry.level, "pulled row db_id should be identical"
 
     result = runner.invoke(client_top, f"{entry_class_name} get by_name --output yaml --name {entry.name}")
     check_get = check_and_parse_result(result, entry_class)

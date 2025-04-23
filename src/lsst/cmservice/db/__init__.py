@@ -9,13 +9,11 @@ from .node import NodeMixin
 from .pipetask_error import PipetaskError
 from .pipetask_error_type import PipetaskErrorType
 from .product_set import ProductSet
-from .production import Production
 from .queue import Queue
 from .row import RowMixin
 from .script import Script
 from .script_dependency import ScriptDependency
 from .script_error import ScriptError
-from .script_template import ScriptTemplate
 from .spec_block import SpecBlock
 from .specification import Specification
 from .step import Step
@@ -33,13 +31,11 @@ __all__ = [
     "PipetaskError",
     "PipetaskErrorType",
     "ProductSet",
-    "Production",
     "Queue",
     "RowMixin",
     "Script",
     "ScriptDependency",
     "ScriptError",
-    "ScriptTemplate",
     "SpecBlock",
     "Specification",
     "Step",

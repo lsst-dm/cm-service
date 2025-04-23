@@ -168,6 +168,7 @@ class Script(Base, NodeMixin):
             parent_name = kwargs["parent_name"]
             name = kwargs["name"]
             spec_block_name = kwargs["spec_block_name"]
+            original_name = kwargs.get("original_name", name)
         except KeyError as e:
             raise CMMissingRowCreateInputError(f"Missing input to create Script: {e}") from e
         attempt = kwargs.get("attempt", 0)
@@ -177,11 +178,13 @@ class Script(Base, NodeMixin):
         if isinstance(parent_level, int):
             parent_level = LevelEnum(parent_level)
 
+        # The fullname should reflect the element's original shortname not its
+        # namespaced name
         ret_dict = {
             "parent_level": parent_level,
             "name": name,
             "attempt": attempt,
-            "fullname": f"{parent_name}/{name}_{attempt:03}",
+            "fullname": f"{parent_name}/{original_name}_{attempt:03}",
             "method": ScriptMethodEnum[kwargs.get("method", "default")],
             "handler": kwargs.get("handler"),
             "data": kwargs.get("data", {}),

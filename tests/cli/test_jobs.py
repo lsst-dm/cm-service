@@ -4,33 +4,26 @@ import uuid
 import pytest
 from anyio import Path
 from click.testing import CliRunner
-from safir.testing.uvicorn import UvicornProcess
 
 from lsst.cmservice import models
 from lsst.cmservice.cli.client import client_top
-from lsst.cmservice.client.clientconfig import client_config
-from lsst.cmservice.common.enums import LevelEnum, StatusEnum
-from lsst.cmservice.config import config
+from lsst.cmservice.common.enums import DEFAULT_NAMESPACE, LevelEnum, StatusEnum
 
 from .util_functions import (
     check_and_parse_result,
     check_get_methods,
     check_scripts,
     check_update_methods,
-    cleanup,
     create_tree,
 )
 
 
-@pytest.mark.parametrize("api_version", ["v1"])
-async def test_job_cli(uvicorn: UvicornProcess, api_version: str) -> None:
+@pytest.mark.asyncio()
+async def test_job_cli(runner: CliRunner) -> None:
     """Test `job` CLI command"""
 
-    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}/{api_version}"
-    runner = CliRunner()
-
     # generate a uuid to avoid collisions
-    uuid_int = uuid.uuid1().int
+    namespace = uuid.uuid5(DEFAULT_NAMESPACE, str(uuid.uuid1()))
 
     os.environ["CM_CONFIGS"] = "examples"
 
@@ -39,7 +32,7 @@ async def test_job_cli(uvicorn: UvicornProcess, api_version: str) -> None:
     assert len(jobs) == 0, "Job list not empty"
 
     # intialize a tree down to one level lower
-    create_tree(runner, client_top, LevelEnum.job, uuid_int)
+    create_tree(runner, client_top, LevelEnum.job, namespace)
 
     result = runner.invoke(client_top, "job list --output yaml")
     jobs = check_and_parse_result(result, list[models.Job])
@@ -136,6 +129,3 @@ async def test_job_cli(uvicorn: UvicornProcess, api_version: str) -> None:
         client_top, f"load manifest-report --fullname {entry.fullname} --yaml_file {fullpath}"
     )
     assert result.exit_code == 0
-
-    # delete everything we just made in the session
-    cleanup(runner, client_top, check_cascade=True)

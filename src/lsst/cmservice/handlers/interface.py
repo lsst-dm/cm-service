@@ -1,5 +1,5 @@
 # pylint: disable=too-many-lines
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -10,14 +10,13 @@ from ..common.errors import (
     CMBadEnumError,
     CMBadExecutionMethodError,
     CMBadFullnameError,
-    CMIntegrityError,
     CMMissingFullnameError,
     test_type_and_raise,
 )
+from ..common.logging import LOGGER
 from . import functions
 
 TABLE_DICT: dict[TableEnum, type[db.RowMixin]] = {
-    TableEnum.production: db.Production,
     TableEnum.campaign: db.Campaign,
     TableEnum.step: db.Step,
     TableEnum.group: db.Group,
@@ -32,7 +31,6 @@ TABLE_DICT: dict[TableEnum, type[db.RowMixin]] = {
     TableEnum.product_set: db.ProductSet,
     TableEnum.specification: db.Specification,
     TableEnum.spec_block: db.SpecBlock,
-    TableEnum.script_template: db.ScriptTemplate,
 }
 
 
@@ -43,6 +41,9 @@ LEVEL_DICT: dict[LevelEnum, type[db.NodeMixin]] = {
     LevelEnum.job: db.Job,
     LevelEnum.script: db.Script,
 }
+
+
+logger = LOGGER.bind(module=__name__)
 
 
 def get_table(
@@ -189,19 +190,21 @@ async def get_element_by_fullname(
     CMMissingFullnameError : No such element was found
     """
     n_slash = fullname.count("/")
-    element: db.ElementMixin | db.Production | None = None
-    if n_slash == 0:
-        raise CMBadFullnameError(f"Can not figure out Table for fullname {fullname}, not enough fields")
-    if n_slash == 1:
+    element: db.ElementMixin | None = None
+    if n_slash > 3 or not len(fullname):
+        message = f"Can not figure out Table for bad fullname {fullname}"
+        logger.error(message)
+        raise CMBadFullnameError(message)
+    elif n_slash == 0:
         element = await db.Campaign.get_row_by_fullname(session, fullname)
-    elif n_slash == 2:
+    elif n_slash == 1:
         element = await db.Step.get_row_by_fullname(session, fullname)
-    elif n_slash == 3:
+    elif n_slash == 2:
         element = await db.Group.get_row_by_fullname(session, fullname)
-    elif n_slash == 4:
+    elif n_slash == 3:
         element = await db.Job.get_row_by_fullname(session, fullname)
-    else:
-        raise CMBadFullnameError(f"Can not figure out Table for fullname {fullname}, too many fields")
+    if TYPE_CHECKING:
+        assert element is not None
     return element
 
 
@@ -534,7 +537,6 @@ async def load_specification(
 async def load_and_create_campaign(
     session: async_scoped_session,
     yaml_file: str,
-    parent_name: str,
     name: str,
     spec_block_assoc_name: str | None = None,
     **kwargs: Any,
@@ -548,9 +550,6 @@ async def load_and_create_campaign(
 
     yaml_file: str
         Path to the yaml file
-
-    parent_name: str
-        Name for the `Production` and default value for spec_name
 
     name: str,
         Name for the `Campaign` and default value for spec_block_name
@@ -566,17 +565,11 @@ async def load_and_create_campaign(
     allow_update = kwargs.get("allow_update", False)
     specification = await load_specification(session, yaml_file, allow_update=allow_update)
 
-    try:
-        await db.Production.create_row(session, name=parent_name)
-    except CMIntegrityError:  # pragma: no cover
-        pass
-
     if not spec_block_assoc_name:  # pragma: no cover
         spec_block_assoc_name = f"{specification.name}#campaign"
 
     kwargs.update(
         spec_block_assoc_name=spec_block_assoc_name,
-        parent_name=parent_name,
         name=name,
     )
 

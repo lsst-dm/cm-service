@@ -1,9 +1,11 @@
 import os
 from collections.abc import Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
+from uuid import UUID, uuid5
 
 import yaml
 from anyio import Path
+from pydantic.v1.utils import deep_update
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
 
@@ -12,20 +14,21 @@ from lsst.ctrl.bps.wms_service import WmsJobReport, WmsRunReport, WmsStates
 
 from ..common.enums import StatusEnum
 from ..common.errors import CMMissingFullnameError, CMYamlParseError
-from ..common.utils import update_include_dict
+from ..common.logging import LOGGER
 from ..config import config
 from ..db.campaign import Campaign
 from ..db.job import Job
 from ..db.pipetask_error import PipetaskError
 from ..db.pipetask_error_type import PipetaskErrorType
 from ..db.product_set import ProductSet
-from ..db.script_template import ScriptTemplate
 from ..db.spec_block import SpecBlock
 from ..db.specification import Specification
 from ..db.step import Step
 from ..db.step_dependency import StepDependency
 from ..db.task_set import TaskSet
 from ..db.wms_task_report import WmsTaskReport
+
+logger = LOGGER.bind(module=__name__)
 
 
 async def upsert_spec_block(
@@ -71,12 +74,12 @@ async def upsert_spec_block(
     include_data: dict[str, Any] = {}
     for include_ in includes:
         if include_ in loaded_specs:
-            update_include_dict(include_data, loaded_specs[include_])
+            include_data = deep_update(include_data, loaded_specs[include_])
         else:  # pragma: no cover
             # This is only needed if the block are in reverse dependency order
             # in the specification yaml file
             spec_block_ = await SpecBlock.get_row_by_fullname(session, include_)
-            update_include_dict(
+            include_data = deep_update(
                 include_data,
                 {
                     "handler": spec_block_.handler,
@@ -119,53 +122,6 @@ async def upsert_spec_block(
     )
 
 
-async def upsert_script_template(
-    session: async_scoped_session,
-    config_values: dict,
-    *,
-    allow_update: bool = False,
-) -> ScriptTemplate | None:
-    """Upsert and return a ScriptTemplate
-
-    This will create a new ScriptTemplate, or update an existing one
-
-    Parameters
-    ----------
-    session: async_scoped_session
-        DB session manager
-
-    config_values: dict
-        Values for the ScriptTemplate
-
-    allow_update: bool
-        Allow updating existing templates
-
-    Returns
-    -------
-    script_template: ScriptTemplate
-        Newly created or updated ScriptTemplate
-    """
-    key = config_values.pop("name")
-    script_template_q = select(ScriptTemplate).where(ScriptTemplate.fullname == key)
-    script_template_result = await session.scalars(script_template_q)
-    script_template = script_template_result.first()
-    if script_template and not allow_update:
-        print(f"ScriptTemplate {key} already defined, leaving it unchanged")
-        return script_template
-    if script_template is None:
-        return await ScriptTemplate.load(
-            session,
-            name=key,
-            file_path=config_values["file_path"],
-        )
-
-    return await script_template.update_from_file(
-        session,
-        name=key,
-        file_path=config_values["file_path"],
-    )
-
-
 async def upsert_specification(
     session: async_scoped_session,
     config_values: dict,
@@ -182,7 +138,7 @@ async def upsert_specification(
         DB session manager
 
     config_values: dict
-        Values for the ScriptTemplate
+        Values for the Specification
 
     allow_update: bool
         Allow updating existing templates
@@ -212,7 +168,7 @@ async def load_specification(
     *,
     allow_update: bool = False,
 ) -> Specification | None:
-    """Load Specification, SpecBlock, and ScriptTemplate objects from a yaml
+    """Load Specification, and SpecBlock objects from a yaml
     file, including from files referenced by Include blocks. Return the last
     Specification object in the file.
 
@@ -268,12 +224,6 @@ async def load_specification(
                 loaded_specs,
                 allow_update=allow_update,
             )
-        elif "ScriptTemplate" in config_item:
-            await upsert_script_template(
-                session,
-                config_item["ScriptTemplate"],
-                allow_update=allow_update,
-            )
         elif "Specification" in config_item:
             specification = await upsert_specification(
                 session,
@@ -281,7 +231,7 @@ async def load_specification(
                 allow_update=allow_update,
             )
         else:  # pragma: no cover
-            good_keys = "ScriptTemplate | SpecBlock | Specification | Imports"
+            good_keys = "SpecBlock | Specification | Imports"
             raise CMYamlParseError(f"Expecting one of {good_keys} not: {spec_data.keys()})")
 
     return specification
@@ -347,6 +297,14 @@ async def add_steps(
 
     step_ids_dict = {step_.name: step_.id for step_ in current_steps}
 
+    if TYPE_CHECKING:
+        assert isinstance(campaign.data, dict)
+
+    if campaign.data.get("namespace"):
+        campaign_namespace = UUID(campaign.data.get("namespace"))
+    else:
+        campaign_namespace = None
+
     prereq_pairs = []
     for step_ in step_config_list:
         try:
@@ -355,24 +313,38 @@ async def add_steps(
             raise CMYamlParseError(f"Expecting Step not: {step_.keys()}") from msg
         child_name_ = step_config_.pop("name")
         spec_block_name = step_config_.pop("spec_block")
+
         if spec_block_name is None:  # pragma: no cover
             raise CMYamlParseError(
                 f"Step {child_name_} of {campaign.fullname} does contain 'spec_block'",
             )
+
+        namespaced_step_name = (
+            str(uuid5(campaign_namespace, child_name_)) if campaign_namespace else child_name_
+        )
+        namespaced_spec_block_name = (
+            str(uuid5(campaign_namespace, spec_block_name)) if campaign_namespace else spec_block_name
+        )
+
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
-        update_include_dict(step_config_, child_config.get(child_name_, {}))
+        step_config_ = deep_update(step_config_, child_config.get(child_name_, {}))
 
         new_step = await Step.create_row(
             session,
-            name=child_name_,
-            spec_block_name=spec_block_name,
+            name=namespaced_step_name,
+            spec_block_name=namespaced_spec_block_name,
+            original_name=child_name_,
             parent_name=campaign.fullname,
             **step_config_,
         )
         await session.refresh(new_step)
-        step_ids_dict[child_name_] = new_step.id
-        prereqs_names = step_config_.pop("prerequisites", [])
-        prereq_pairs += [(child_name_, prereq_) for prereq_ in prereqs_names]
+        step_ids_dict[namespaced_step_name] = new_step.id
+
+        prereq_list = [
+            str(uuid5(campaign_namespace, prereq)) if campaign_namespace else prereq
+            for prereq in step_config_.pop("prerequisites", [])
+        ]
+        prereq_pairs += [(namespaced_step_name, prereq) for prereq in prereq_list]
 
     for depend_name, prereq_name in prereq_pairs:
         prereq_id = step_ids_dict[prereq_name]
@@ -573,7 +545,7 @@ async def load_manifest_report(
 
 def status_from_bps_report(
     wms_run_report: WmsRunReport | None,
-    fake_status: StatusEnum | None,
+    fake_status: StatusEnum | None = None,
 ) -> StatusEnum | None:  # pragma: no cover
     """Decide the status for a workflow for a bps report
 
@@ -591,6 +563,8 @@ def status_from_bps_report(
     """
     if wms_run_report is None:
         return fake_status or config.mock_status
+
+    logger.debug(wms_run_report)
 
     the_state = wms_run_report.state
     # We treat RUNNING as running from the CM point of view,

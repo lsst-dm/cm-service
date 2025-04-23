@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -9,6 +10,8 @@ from lsst.cmservice.web_app.utils.utils import map_status
 
 
 async def get_campaign_details(session: async_scoped_session, campaign: Campaign) -> dict:
+    if TYPE_CHECKING:
+        assert isinstance(campaign.data, dict)
     collections = await campaign.resolve_collections(session, throw_overrides=False)
     groups = await get_campaign_groups(session, campaign)
     no_groups_completed = len([group for group in groups if group.status == StatusEnum.accepted])
@@ -26,7 +29,7 @@ async def get_campaign_details(session: async_scoped_session, campaign: Campaign
         "name": campaign.name,
         "production_name": campaign.fullname.split("/")[0],
         "fullname": campaign.fullname,
-        "lsst_version": campaign.data["lsst_version"],  # type: ignore
+        "lsst_version": campaign.data["lsst_version"],
         "source": collections.get("campaign_source", ""),
         "status": map_status(campaign.status),
         "groups_completed": f"{no_groups_completed} of {len(groups)} groups completed",

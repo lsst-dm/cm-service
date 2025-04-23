@@ -21,7 +21,6 @@ from .spec_block import SpecBlock
 if TYPE_CHECKING:
     from .group import Group
     from .job import Job
-    from .production import Production
     from .script import Script
     from .step_dependency import StepDependency
 
@@ -59,13 +58,6 @@ class Step(Base, ElementMixin):
 
     spec_block_: Mapped[SpecBlock] = relationship("SpecBlock", viewonly=True)
     parent_: Mapped[Campaign] = relationship("Campaign", back_populates="s_")
-    p_: Mapped[Production] = relationship(
-        "Production",
-        primaryjoin="Step.parent_id==Campaign.id",
-        secondary="join(Campaign, Production)",
-        secondaryjoin="Campaign.parent_id==Production.id",
-        viewonly=True,
-    )
     g_: Mapped[list[Group]] = relationship("Group", viewonly=True)
     scripts_: Mapped[list[Script]] = relationship("Script", viewonly=True)
     prereqs_: Mapped[list[StepDependency]] = relationship(
@@ -169,6 +161,7 @@ class Step(Base, ElementMixin):
             parent_name = kwargs["parent_name"]
             name = kwargs["name"]
             spec_block_name = kwargs["spec_block_name"]
+            original_name = kwargs.get("original_name", name)
         except KeyError as e:
             raise CMMissingRowCreateInputError(f"Missing input to create Step: {e}") from e
 
@@ -181,7 +174,7 @@ class Step(Base, ElementMixin):
             "spec_block_id": spec_block.id,
             "parent_id": campaign.id,
             "name": name,
-            "fullname": f"{campaign.fullname}/{name}",
+            "fullname": f"{campaign.fullname}/{original_name}",
             "handler": kwargs.get("handler"),
             "data": kwargs.get("data", {}),
             "child_config": kwargs.get("child_config", {}),

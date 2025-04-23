@@ -2,12 +2,15 @@
 from __future__ import annotations
 
 import enum
+from uuid import NAMESPACE_DNS, uuid5
+
+DEFAULT_NAMESPACE = uuid5(NAMESPACE_DNS, "io.lsst.cmservice")
+"""A default UUID5 namespace to use throughout the application."""
 
 
 class TableEnum(enum.Enum):
     """Keep track of the various tables"""
 
-    production = 0
     campaign = 1
     step = 2
     group = 3
@@ -22,7 +25,6 @@ class TableEnum(enum.Enum):
     product_set = 12
     specification = 13
     spec_block = 14
-    script_template = 15
     n_tables = 16
 
     def is_node(self) -> bool:
@@ -46,9 +48,6 @@ class LevelEnum(enum.Enum):
 
     The levels are:
 
-    production = 0
-        A family of related campaigns
-
     campaign = 1
         A full data processing campaign
 
@@ -65,7 +64,6 @@ class LevelEnum(enum.Enum):
         A script that does a particular action.  May occur off any other level
     """
 
-    production = 0
     campaign = 1
     step = 2
     group = 3
@@ -79,7 +77,7 @@ class LevelEnum(enum.Enum):
         if fullname.find("script:") == 0:
             return LevelEnum.script
         n_slash = fullname.count("/")
-        return LevelEnum(n_slash)
+        return LevelEnum(n_slash + 1)
 
 
 class StatusEnum(enum.Enum):

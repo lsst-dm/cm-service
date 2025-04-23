@@ -1,6 +1,8 @@
 import importlib
 import os
 import uuid
+from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 import structlog
@@ -19,6 +21,7 @@ from .util_functions import (
 @pytest.mark.asyncio()
 async def test_reports_db(engine: AsyncEngine) -> None:
     """Test `job` db table."""
+    fixtures = Path(__file__).parent.parent / "fixtures" / "seeds"
     interface = importlib.import_module("lsst.cmservice.handlers.interface")
     functions = importlib.import_module("lsst.cmservice.handlers.functions")
 
@@ -35,7 +38,7 @@ async def test_reports_db(engine: AsyncEngine) -> None:
         # run row mixin method tests
         check_getall = await db.Job.get_rows(
             session,
-            parent_name=f"prod0_{uuid_int}/camp0_{uuid_int}/step1_{uuid_int}/group0_{uuid_int}",
+            parent_name=f"camp0_{uuid_int}/step1_{uuid_int}/group0_{uuid_int}",
             parent_class=db.Group,
         )
         assert len(check_getall) == 1, "length should be 1"
@@ -43,10 +46,12 @@ async def test_reports_db(engine: AsyncEngine) -> None:
         entry = check_getall[0]  # defining single unit for later
 
         parent = await entry.get_parent(session)
+        if TYPE_CHECKING:
+            assert isinstance(parent, db.Group)
 
         await interface.load_error_types(
             session,
-            "examples/error_types.yaml",
+            f"{fixtures}/error_types.yaml",
         )
 
         status_check = await functions.compute_job_status(
@@ -99,7 +104,7 @@ async def test_reports_db(engine: AsyncEngine) -> None:
             status=StatusEnum.rescuable,
         )
 
-        job2 = await parent.rescue_job(session)  # type: ignore
+        job2 = await parent.rescue_job(session)
 
         await interface.load_manifest_report(
             session,
@@ -118,7 +123,7 @@ async def test_reports_db(engine: AsyncEngine) -> None:
         assert status_check == StatusEnum.failed
         await db.Job.update_row(session, job2.id, superseded=True)
 
-        job3 = await parent.rescue_job(session)  # type: ignore
+        job3 = await parent.rescue_job(session)
 
         await interface.load_manifest_report(
             session,
@@ -138,7 +143,7 @@ async def test_reports_db(engine: AsyncEngine) -> None:
 
         await db.Job.update_row(session, job3.id, status=StatusEnum.rescuable)
 
-        job4 = await parent.rescue_job(session)  # type: ignore
+        job4 = await parent.rescue_job(session)
         await interface.load_manifest_report(
             session,
             "examples/manifest_report_accept_error.yaml",
@@ -155,7 +160,7 @@ async def test_reports_db(engine: AsyncEngine) -> None:
         )
         assert status_check == StatusEnum.accepted
 
-        await parent.mark_job_rescued(session)  # type: ignore
+        await parent.mark_job_rescued(session)
 
         # cleanup
         await cleanup(session)

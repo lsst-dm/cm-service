@@ -8,6 +8,7 @@ from click.decorators import FC
 
 from ..client.client import CMClient
 from ..common.enums import (
+    DEFAULT_NAMESPACE,
     ErrorActionEnum,
     ErrorFlavorEnum,
     ErrorSourceEnum,
@@ -40,6 +41,7 @@ __all__ = [
     "handler",
     "n_expected",
     "name",
+    "namespace",
     "node_type",
     "parent_name",
     "parent_id",
@@ -48,7 +50,6 @@ __all__ = [
     "rematch",
     "row_id",
     "script_id",
-    "script_template_name",
     "script_name",
     "scripts",
     "spec_aliases",
@@ -184,14 +185,14 @@ alias = PartialOption(
     "--alias",
     type=str,
     default=None,
-    help="Alias for a ScriptTemplate or SpecBlock association",
+    help="Alias for a SpecBlock association",
 )
 
 
 campaign_yaml = PartialOption(
     "--campaign_yaml",
     type=str,
-    help="Path to campaign yaml file",
+    help="Path to campaign yaml ('start') file",
 )
 
 
@@ -340,6 +341,14 @@ n_expected = PartialOption(
 name = PartialOption("--name", type=str, help="Name of object")
 
 
+namespace = PartialOption(
+    "--namespace",
+    type=click.UUID,
+    default=DEFAULT_NAMESPACE,
+    help="Namespace for objects",
+)
+
+
 node_type = PartialOption(
     "--node_type",
     type=EnumChoice(NodeTypeEnum),
@@ -388,13 +397,6 @@ row_id = PartialOption(
     "--row_id",
     type=int,
     help="ID of object.",
-)
-
-
-script_template_name = PartialOption(
-    "--script_template_name",
-    type=str,
-    help="Name of a ScriptTemplate",
 )
 
 
@@ -491,7 +493,7 @@ wms_job_id = PartialOption(
 yaml_file = PartialOption(
     "--yaml_file",
     type=str,
-    help="Path to yaml file",
+    help="Path to yaml file containing spec blocks and other specifications or manifests",
 )
 
 

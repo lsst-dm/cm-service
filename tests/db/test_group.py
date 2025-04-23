@@ -40,13 +40,13 @@ async def test_group_db(engine: AsyncEngine) -> None:
                 session,
                 name=f"group0_{uuid_int}",
                 spec_block_name="group",
-                parent_name=f"prod0_{uuid_int}/camp0_{uuid_int}/step1_{uuid_int}",
+                parent_name=f"camp0_{uuid_int}/step1_{uuid_int}",
             )
 
         # run row mixin method tests
         check_getall = await db.Group.get_rows(
             session,
-            parent_name=f"prod0_{uuid_int}/camp0_{uuid_int}/step1_{uuid_int}",
+            parent_name=f"camp0_{uuid_int}/step1_{uuid_int}",
             parent_class=db.Step,
         )
         assert len(check_getall) == 5, "length should be 5"
@@ -66,11 +66,11 @@ async def test_group_db(engine: AsyncEngine) -> None:
             await db.Group.delete_row(session, -99)
 
         # run group specific method tests
-        check = await entry.get_campaign(session)
-        assert check.name == f"camp0_{uuid_int}", "should return same name as camp0"
+        campaign = await entry.get_campaign(session)
+        assert campaign.name == f"camp0_{uuid_int}", "should return same name as camp0"
 
-        check = await entry.children(session)  # type: ignore
-        assert len(list(check)) == 1, "length of children should be 1"  # type: ignore
+        children = await entry.children(session)
+        assert len(list(children)) == 1, "length of children should be 1"
 
         # check update methods
         await check_update_methods(session, entry, db.Group)

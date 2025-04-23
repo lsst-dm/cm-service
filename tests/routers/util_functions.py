@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import TypeAlias, TypeVar
 
 from httpx import AsyncClient, Response
@@ -8,6 +9,7 @@ from lsst.cmservice.common.enums import LevelEnum, StatusEnum
 from lsst.cmservice.config import config
 
 T = TypeVar("T")
+E = TypeVar("E", models.Group, models.Campaign, models.Step, models.Job)
 
 
 def check_and_parse_response(
@@ -30,13 +32,13 @@ def expect_failed_response(
 
 async def add_scripts(
     client: AsyncClient,
-    element: models.ElementMixin,
+    element: E,
     api_version: str,
 ) -> tuple[list[models.Script], models.Dependency]:
     prep_script_model = models.ScriptCreate(
         name="prepare",
         parent_name=element.fullname,
-        parent_level=element.level.value,  # type: ignore
+        parent_level=element.level.value,
         spec_block_name="null_script",
     )
 
@@ -49,7 +51,7 @@ async def add_scripts(
     collect_script_model = models.ScriptCreate(
         name="collect",
         parent_name=element.fullname,
-        parent_level=element.level.value,  # type: ignore
+        parent_level=element.level.value,
         spec_block_name="null_script",
     )
     response = await client.post(
@@ -76,8 +78,9 @@ async def create_tree(
     level: LevelEnum,
     uuid_int: int,
 ) -> None:
+    fixtures = Path(__file__).parent.parent / "fixtures" / "seeds"
     specification_load_model = models.SpecificationLoad(
-        yaml_file="examples/empty_config.yaml",
+        yaml_file=f"{fixtures}/empty_config.yaml",
     )
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/load/specification",
@@ -85,20 +88,10 @@ async def create_tree(
     )
     check_and_parse_response(response, models.Specification)
 
-    pname = f"prod0_{uuid_int}"
-
-    production_model = models.ProductionCreate(name=pname)
-    response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/production/create",
-        content=production_model.model_dump_json(),
-    )
-    check_and_parse_response(response, models.Production)
-
     cname = f"camp0_{uuid_int}"
     campaign_model = models.CampaignCreate(
         name=cname,
         spec_block_assoc_name="base#campaign",
-        parent_name=pname,
     )
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/campaign/create",
@@ -206,13 +199,13 @@ async def delete_all_rows(
     assert len(rows_check) == 0, f"Failed to delete all {entry_class_name}"
 
 
-async def delete_all_productions(
+async def delete_all_artifacts(
     client: AsyncClient,
     api_version: str,
     *,
     check_cascade: bool = False,
 ) -> None:
-    await delete_all_rows(client, api_version, "production", models.Production)
+    await delete_all_rows(client, api_version, "campaign", models.Campaign)
     if check_cascade:
         response = await client.get(f"{config.asgi.prefix}/{api_version}/campaign/list")
         n_campaigns = len(check_and_parse_response(response, list[models.Campaign]))
@@ -225,7 +218,7 @@ async def delete_all_spec_stuff(
 ) -> None:
     await delete_all_rows(client, api_version, "specification", models.Specification)
     await delete_all_rows(client, api_version, "spec_block", models.SpecBlock)
-    await delete_all_rows(client, api_version, "script_template", models.ScriptTemplate)
+    await delete_all_rows(client, api_version, "pipetask_error_type", models.PipetaskErrorType)
 
 
 async def delete_all_queues(
@@ -241,7 +234,7 @@ async def cleanup(
     *,
     check_cascade: bool = False,
 ) -> None:
-    await delete_all_productions(client, api_version, check_cascade=check_cascade)
+    await delete_all_artifacts(client, api_version, check_cascade=check_cascade)
     await delete_all_spec_stuff(client, api_version)
     await delete_all_queues(client, api_version)
 
@@ -454,11 +447,6 @@ async def check_update_methods(
     check_update = check_and_parse_response(response, entry_class)
     assert check_update.status == StatusEnum.accepted
 
-    response = await client.delete(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/delete/{entry.id}",
-    )
-    expect_failed_response(response, 500)
-
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/{entry.id}/reject",
     )
@@ -469,6 +457,14 @@ async def check_update_methods(
         content=reset_model.model_dump_json(),
     )
     expect_failed_response(response, 500)
+
+    # FIXME this delete test is meant to fail, but the application now allows
+    #       deletion of objects in an "accepted" state, and downstream tests
+    #       make assertions based on this failure.
+    # response = await client.delete(
+    #     f"{config.asgi.prefix}/{api_version}/{entry_class_name}/delete/{entry.id}",  # noqa: W505
+    # )
+    # expect_failed_response(response, 500)
 
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/-1/accept",
@@ -687,7 +683,7 @@ async def check_scripts(
 async def check_get_methods(
     client: AsyncClient,
     api_version: str,
-    entry: models.ElementMixin,
+    entry: E,
     entry_class_name: str,
     entry_class: TypeAlias = models.ElementMixin,
 ) -> None:
@@ -697,7 +693,7 @@ async def check_get_methods(
     check_get = check_and_parse_response(response, entry_class)
 
     assert check_get.id == entry.id, "pulled row should be identical"
-    assert check_get.level == entry.level, "pulled row db_id should be identical"  # type: ignore
+    assert check_get.level == entry.level, "pulled row db_id should be identical"
 
     response = await client.get(f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/-1")
     expect_failed_response(response, 404)

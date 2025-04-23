@@ -14,10 +14,10 @@ from lsst.cmservice.common.enums import ScriptMethodEnum, StatusEnum
 from .util_functions import cleanup
 
 
+@pytest.mark.asyncio()
 @pytest.mark.parametrize(
     "script_method", [ScriptMethodEnum.bash, ScriptMethodEnum.slurm, ScriptMethodEnum.htcondor]
 )
-@pytest.mark.asyncio()
 async def test_micro_db(
     engine: AsyncEngine,
     tmp_path: Path,
@@ -25,6 +25,7 @@ async def test_micro_db(
     monkeypatch: MonkeyPatch,
 ) -> None:
     """Test fake end to end run using example/example_micro.yaml"""
+    fixtures = Path(__file__).parent.parent / "fixtures" / "seeds"
     ScriptHandler = importlib.import_module("lsst.cmservice.handlers.script_handler").ScriptHandler
     interface = importlib.import_module("lsst.cmservice.handlers.interface")
     monkeypatch.setattr("lsst.cmservice.config.config.butler.mock", True)
@@ -36,22 +37,18 @@ async def test_micro_db(
     async with engine.begin():
         session = await create_async_session(engine, logger)
         os.environ["CM_CONFIGS"] = "examples"
-        specification = await interface.load_specification(session, "examples/empty_config.yaml")
+        specification = await interface.load_specification(session, f"{fixtures}/empty_config.yaml")
         check2 = await specification.get_block(session, "campaign")
         assert check2.name == "campaign"
 
         with pytest.raises(errors.CMSpecificationError):
             await specification.get_block(session, "bad")
 
-        with pytest.raises(errors.CMSpecificationError):
-            await specification.get_script_template(session, "bad")
-
         campaign = await interface.load_and_create_campaign(
-            session,
-            "examples/example_hsc_micro.yaml",
-            "hsc_micro_panda",
-            "w_2025_01",
-            "hsc_micro_panda#campaign",
+            session=session,
+            yaml_file=f"{fixtures}/example_hsc_micro.yaml",
+            name="hsc_micro_w_2025_01",
+            spec_block_assoc_name="hsc_micro_panda#campaign",
         )
 
         await campaign.update_collections(
@@ -70,7 +67,7 @@ async def test_micro_db(
 
         changed, status = await interface.process(
             session,
-            "hsc_micro_panda/w_2025_01",
+            "hsc_micro_w_2025_01",
             fake_status=StatusEnum.accepted,
         )
 

@@ -1,7 +1,6 @@
 """Utility functions for working with htcondor jobs"""
 
 import importlib.util
-import os
 import sys
 from collections.abc import Mapping
 from types import ModuleType
@@ -14,6 +13,7 @@ from ..config import config
 from .enums import StatusEnum
 from .errors import CMHTCondorCheckError, CMHTCondorSubmitError
 from .logging import LOGGER
+from .panda import get_panda_token
 
 logger = LOGGER.bind(module=__name__)
 
@@ -198,7 +198,25 @@ def build_htcondor_submit_environment() -> Mapping[str, str]:
     # condor_environment = config.htcondor.model_dump(by_alias=True)
     # TODO we should not always use the same schedd host. We could get a list
     # of all schedds from the collector and pick one at random.
-    return dict(
+
+    # FIXME / TODO
+    # This is nothing to do with htcondor vs panda as a WMS, but because CM
+    # uses htcondor as its primary script-running engine for bps workflows even
+    # if that workflow uses panda. Because of this, we need to also serialize
+    # all of the panda environmental config for the subprocess to pick up.
+    # We do this instead of delegating panda config to some arbitrary bash
+    # script elsewhere in the filesystem whose only job is to set these env
+    # vars for panda. This also allows us to provide our specific panda idtoken
+    # as an env var instead of requiring the target process to pick it up from
+    # some .token file that may or may not be present or valid.
+
+    # calling the panda refresh token operation is a noop if no panda token is
+    # present or if the panda token does not need to be refreshed yet.
+    _ = get_panda_token()
+    # TODO it could be worthwhile to put the panda check/refresh logic in the
+    #      serializer method of the idtoken field.
+
+    return config.panda.model_dump(by_alias=True, exclude_none=True) | dict(
         CONDOR_CONFIG=config.htcondor.config_source,
         _CONDOR_CONDOR_HOST=config.htcondor.collector_host,
         _CONDOR_COLLECTOR_HOST=config.htcondor.collector_host,
@@ -210,7 +228,7 @@ def build_htcondor_submit_environment() -> Mapping[str, str]:
         HOME=config.htcondor.remote_user_home,
         LSST_VERSION=config.bps.lsst_version,
         LSST_DISTRIB_DIR=config.bps.lsst_distrib_dir,
-        # FIX: because there is no db-auth.yaml in lsstsvc1's home directory
+        # FIXME: because there is no db-auth.yaml in lsstsvc1's home directory
         PGPASSFILE=f"{config.htcondor.remote_user_home}/.lsst/postgres-credentials.txt",
         PGUSER=config.butler.default_username,
         PATH=(
@@ -233,12 +251,6 @@ def import_htcondor() -> ModuleType | None:
         logger.warning("HTcondor not available.")
         return None
 
-    # Ensure environment is configured for htcondor operations
-    # FIXME: the python process needs the correct condor env set up. Alternate
-    # to setting these values JIT in the os.environ would be to hack a way to
-    # have the config.htcondor submodel's validation_alias match the
-    # serialization_alias, e.g., "_CONDOR_value"
-    os.environ |= config.htcondor.model_dump(by_alias=True)
     htcondor.reload_config()
 
     return htcondor

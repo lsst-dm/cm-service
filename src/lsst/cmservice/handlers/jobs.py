@@ -3,15 +3,16 @@ from __future__ import annotations
 import os
 import shutil
 import types
-from typing import Any
+from functools import partial
+from typing import TYPE_CHECKING, Any
 
 import yaml
-from anyio import Path
+from anyio import Path, to_thread
 from fastapi.concurrency import run_in_threadpool
 from jinja2 import Environment, PackageLoader
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-from lsst.ctrl.bps import BaseWmsService, WmsStates
+from lsst.ctrl.bps import BaseWmsService, WmsRunReport, WmsStates
 from lsst.utils import doImport
 
 from ..common.bash import parse_bps_stdout, write_bash_script
@@ -67,8 +68,10 @@ class BpsScriptHandler(ScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
+        if TYPE_CHECKING:
+            assert isinstance(parent, Job)
         # Database operations
-        await session.refresh(parent, attribute_names=["c_", "p_"])
+        await session.refresh(parent, attribute_names=["c_"])
         data_dict = await script.data_dict(session)
         resolved_cols = await script.resolve_collections(session)
 
@@ -88,8 +91,8 @@ class BpsScriptHandler(ScriptHandler):
         # workflow_config is the values dictionary to use while rendering a
         # yaml template, NOT the yaml template itself!
         workflow_config: dict[str, Any] = {}
-        workflow_config["project"] = parent.p_.name  # type: ignore
-        workflow_config["campaign"] = parent.c_.name  # type: ignore
+        workflow_config["project"] = "DEFAULT"
+        workflow_config["campaign"] = parent.c_.name
         workflow_config["pipeline_yaml"] = pipeline_yaml
         workflow_config["lsst_version"] = lsst_version
         workflow_config["lsst_distrib_dir"] = lsst_distrib_dir
@@ -169,7 +172,7 @@ class BpsScriptHandler(ScriptHandler):
             in_collection = input_colls
 
         payload = {
-            "name": parent.c_.name,  # type: ignore
+            "name": parent.c_.name,
             "butler_config": butler_repo,
             "output_run_collection": run_coll,
             "input_collection": in_collection,
@@ -215,7 +218,9 @@ class BpsScriptHandler(ScriptHandler):
         if fake_status is not None:
             wms_job_id = "fake_job"
         else:  # pragma: no cover
-            bps_dict = await parse_bps_stdout(script.log_url)  # type: ignore
+            if TYPE_CHECKING:
+                assert script.log_url is not None
+            bps_dict = await parse_bps_stdout(script.log_url)
             wms_job_id = self.get_job_id(bps_dict)
         await parent.update_values(session, wms_job_id=wms_job_id)
         return slurm_status
@@ -242,7 +247,9 @@ class BpsScriptHandler(ScriptHandler):
             if fake_status is not None:
                 wms_job_id = "fake_job"
             else:  # pragma: no cover
-                bps_dict = await parse_bps_stdout(script.log_url)  # type: ignore
+                if TYPE_CHECKING:
+                    assert script.log_url is not None
+                bps_dict = await parse_bps_stdout(script.log_url)
                 wms_job_id = self.get_job_id(bps_dict)
             await parent.update_values(session, wms_job_id=wms_job_id)
         return htcondor_status
@@ -322,11 +329,19 @@ class BpsReportHandler(FunctionHandler):
         self._wms_svc_class: types.ModuleType | type | None = None
         self._wms_svc: BaseWmsService | None = None
 
-    def _get_wms_svc(self, **kwargs: Any) -> BaseWmsService:
-        if self._wms_svc is None:
-            if self.wms_svc_class_name is None:  # pragma: no cover
-                raise CMBadExecutionMethodError(f"{type(self)} should not be used, use a sub-class instead")
+    def _get_wms_svc(self, **kwargs: Any) -> BaseWmsService | None:
+        # FIXME this should happen in __init__
+        if self.wms_svc_class_name is None:  # pragma: no cover
+            raise CMBadExecutionMethodError(f"{type(self)} should not be used, use a sub-class instead")
+
+        try:
             self._wms_svc_class = doImport(self.wms_svc_class_name)
+        except ImportError:
+            logger.exception()
+            # This may not be an error when under testing
+            return None
+
+        if self._wms_svc is None:
             if isinstance(self._wms_svc_class, types.ModuleType):  # pragma: no cover
                 raise CMBadExecutionMethodError(
                     f"Site class={self.wms_svc_class_name} is not a BaseWmsService subclass",
@@ -357,21 +372,36 @@ class BpsReportHandler(FunctionHandler):
             Status of requested job
         """
         fake_status = kwargs.get("fake_status", config.mock_status)
+        wms_svc = self._get_wms_svc(config={})
+
+        # It is an error if the wms_svc_class cannot be imported when not under
+        # a fake status.
+        if all([wms_svc is None, fake_status is None]):
+            raise ImportError
+
+        # Return early with fake status or a missing wf id
+        elif any([wms_workflow_id is None, fake_status is not None]):
+            return status_from_bps_report(None, fake_status=fake_status)
+
+        if TYPE_CHECKING:
+            assert wms_svc is not None
+            assert wms_workflow_id is not None
+            run_reports: list[WmsRunReport]
+            wms_run_report: WmsRunReport | None
 
         try:
-            wms_svc = self._get_wms_svc(config={})
-        except ImportError as msg:
-            if not fake_status:  # pragma: no cover
-                raise msg
-        try:
-            if fake_status is not None or wms_workflow_id is None:
-                wms_run_report = None
-            else:  # pragma: no cover
-                wms_run_report = wms_svc.report(wms_workflow_id=wms_workflow_id.strip())[0][0]
-            _job = await load_wms_reports(session, job, wms_run_report)
-            status = status_from_bps_report(wms_run_report, fake_status=fake_status)
-        except Exception as msg:
-            print(f"Catching wms_svc.report failure: {msg}, continuing")
+            # FIXME: Why does wms_workflow_id need to be stripped?
+            wms_svc_report = partial(wms_svc.report, wms_workflow_id=wms_workflow_id.strip())
+            run_reports, message = await to_thread.run_sync(wms_svc_report)
+            logger.debug(message)
+            wms_run_report = run_reports[0]
+            _ = await load_wms_reports(session, job, wms_run_report)
+            status = status_from_bps_report(wms_run_report)
+        except Exception:
+            # FIXME setting status failed for any exception seems extreme,
+            #       there should be *retryable* exceptions with some kind of
+            #       backoff
+            logger.exception()
             status = StatusEnum.failed
         return status
 
@@ -379,12 +409,15 @@ class BpsReportHandler(FunctionHandler):
         self,
         session: async_scoped_session,
         script: Script,
-        parent: ElementMixin,
+        parent: ElementMixin | Job,
         **kwargs: Any,
     ) -> StatusEnum:
+        if TYPE_CHECKING:
+            assert type(parent) is Job
+
         await script.update_values(
             session,
-            stamp_url=parent.wms_job_id,  # type: ignore
+            stamp_url=parent.wms_job_id,
         )
         return StatusEnum.prepared
 
@@ -392,11 +425,14 @@ class BpsReportHandler(FunctionHandler):
         self,
         session: async_scoped_session,
         script: Script,
-        parent: ElementMixin,
+        parent: ElementMixin | Job,
         **kwargs: Any,
     ) -> StatusEnum:
+        if TYPE_CHECKING:
+            assert type(parent) is Job
+
         fake_status = kwargs.get("fake_status", None)
-        status = await self._load_wms_reports(session, parent, parent.wms_job_id, fake_status=fake_status)  # type: ignore
+        status = await self._load_wms_reports(session, parent, parent.wms_job_id, fake_status=fake_status)
         status = script.status if status is None else status
         await script.update_values(session, status=status)
         return status
@@ -412,11 +448,15 @@ class BpsReportHandler(FunctionHandler):
         update_fields = await FunctionHandler._reset_script(
             self, session, script, to_status, fake_reset=fake_reset
         )
-        parent = await script.get_parent(session)
+        parent: ElementMixin | Job = await script.get_parent(session)
+
+        if TYPE_CHECKING:
+            assert type(parent) is Job
+
         if parent.level != LevelEnum.job:  # pragma: no cover
             raise CMBadParameterTypeError(f"Script parent is a {parent.level}, not a LevelEnum.job")
         await session.refresh(parent, attribute_names=["wms_reports_"])
-        for wms_report_ in parent.wms_reports_:  # type: ignore
+        for wms_report_ in parent.wms_reports_:
             await WmsTaskReport.delete_row(session, wms_report_.id)
         return update_fields
 
@@ -511,11 +551,15 @@ class ManifestReportLoadHandler(FunctionHandler):
         self,
         session: async_scoped_session,
         script: Script,
-        parent: ElementMixin,
+        parent: ElementMixin | Job,
         **kwargs: Any,
     ) -> StatusEnum:
+        if TYPE_CHECKING:
+            assert type(parent) is Job
+            assert script.stamp_url is not None
+
         fake_status = kwargs.get("fake_status", config.mock_status)
-        status = await self._load_pipetask_report(session, parent, script.stamp_url, fake_status=fake_status)  # type: ignore
+        status = await self._load_pipetask_report(session, parent, script.stamp_url, fake_status=fake_status)
         status = status if fake_status is None else fake_status
         await script.update_values(session, status=status)
         return status
@@ -559,9 +603,13 @@ class ManifestReportLoadHandler(FunctionHandler):
             self, session, script, to_status, fake_reset=fake_reset
         )
         parent = await script.get_parent(session)
+
+        if TYPE_CHECKING:
+            assert type(parent) is Job
+
         if parent.level != LevelEnum.job:  # pragma: no cover
             raise CMBadParameterTypeError(f"Script parent is a {parent.level}, not a LevelEnum.job")
         await session.refresh(parent, attribute_names=["tasks_"])
-        for task_ in parent.tasks_:  # type: ignore
+        for task_ in parent.tasks_:
             await TaskSet.delete_row(session, task_.id)
         return update_fields

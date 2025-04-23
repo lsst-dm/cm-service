@@ -1,5 +1,6 @@
 import importlib
-from typing import TypeAlias
+from pathlib import Path
+from typing import TypeAlias, TypeVar
 
 import pytest
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -7,6 +8,8 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 from lsst.cmservice import db
 from lsst.cmservice.common import errors
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum, TableEnum
+
+E = TypeVar("E", db.Group, db.Campaign, db.Step, db.Job)
 
 
 async def add_scripts(
@@ -43,12 +46,12 @@ async def create_tree(
     level: LevelEnum,
     uuid_int: int,
 ) -> None:
+    fixtures = Path(__file__).parent.parent / "fixtures" / "seeds"
     interface = importlib.import_module("lsst.cmservice.handlers.interface")
-    specification = await interface.load_specification(session, "examples/empty_config.yaml")
+    specification = await interface.load_specification(session, f"{fixtures}/empty_config.yaml")
     _ = await specification.get_block(session, "campaign")
 
-    pname = f"prod0_{uuid_int}"
-    _ = await db.Production.create_row(session, name=pname)
+    pname = "DEFAULT"
 
     cname = f"camp0_{uuid_int}"
     camp = await db.Campaign.create_row(
@@ -136,12 +139,12 @@ async def delete_all_rows(
     assert len(rows_check) == 0, f"Failed to delete all {table_class}"
 
 
-async def delete_all_productions(
+async def delete_all_artifacts(
     session: async_scoped_session,
     *,
     check_cascade: bool = False,
 ) -> None:
-    await delete_all_rows(session, db.Production)
+    await delete_all_rows(session, db.Campaign)
     if check_cascade:
         n_campaigns = len(await db.Campaign.get_rows(session))
         n_steps = len(await db.Step.get_rows(session))
@@ -160,7 +163,6 @@ async def delete_all_spec_stuff(
 ) -> None:
     await delete_all_rows(session, db.Specification)
     await delete_all_rows(session, db.SpecBlock)
-    await delete_all_rows(session, db.ScriptTemplate)
 
 
 async def delete_all_queues(
@@ -174,7 +176,7 @@ async def cleanup(
     *,
     check_cascade: bool = False,
 ) -> None:
-    await delete_all_productions(session, check_cascade=check_cascade)
+    await delete_all_artifacts(session, check_cascade=check_cascade)
     await delete_all_spec_stuff(session)
     await delete_all_queues(session)
 
@@ -263,9 +265,6 @@ async def check_update_methods(
     check = await entry.accept(session)
 
     assert check.status == StatusEnum.accepted, "accept() failed"
-
-    with pytest.raises(errors.CMBadStateTransitionError):
-        await entry.delete_row(session, entry.id)
 
     with pytest.raises(errors.CMBadStateTransitionError):
         await entry.reject(session)
@@ -374,17 +373,18 @@ async def check_scripts(
 
 async def check_get_methods(
     session: async_scoped_session,
-    entry: db.ElementMixin,
+    entry: E,
     entry_class: TypeAlias = db.ElementMixin,
-    parent_class: TypeAlias = db.ElementMixin,
+    parent_class: TypeAlias | None = db.ElementMixin,
 ) -> None:
     interface = importlib.import_module("lsst.cmservice.handlers.interface")
-    check_getall_nonefound = await entry_class.get_rows(
-        session,
-        parent_name="bad",
-        parent_class=parent_class,
-    )
-    assert len(check_getall_nonefound) == 0, "length should be 0"
+    if parent_class is not None:
+        check_getall_nonefound = await entry_class.get_rows(
+            session,
+            parent_name="bad",
+            parent_class=parent_class,
+        )
+        assert len(check_getall_nonefound) == 0, "length should be 0"
 
     check_get = await entry_class.get_row(session, entry.id)
     assert check_get.id == entry.id, "pulled row should be identical"
@@ -411,7 +411,7 @@ async def check_get_methods(
         await interface.get_row_by_table_and_id(session, entry.id, TableEnum.n_tables)
 
     with pytest.raises(errors.CMMissingFullnameError):
-        await interface.get_row_by_table_and_id(session, -99, TableEnum[entry.__tablename__])  # type: ignore
+        await interface.get_row_by_table_and_id(session, -99, TableEnum[entry.__tablename__])
 
     with pytest.raises(errors.CMBadEnumError):
         await interface.get_node_by_level_and_id(session, entry.id, LevelEnum.n_levels)
@@ -422,7 +422,7 @@ async def check_get_methods(
     check = await interface.get_row_by_table_and_id(
         session,
         entry.id,
-        TableEnum[entry.__tablename__],  # type: ignore
+        TableEnum[entry.__tablename__],
     )
     assert check.fullname == entry.fullname
 

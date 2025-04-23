@@ -1,3 +1,4 @@
+import os
 from asyncio import create_task
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -9,8 +10,10 @@ from safir.database import create_async_session, create_database_engine
 from safir.logging import configure_uvicorn_logging
 
 from . import __version__
+from .common.butler import BUTLER_FACTORY  # noqa: F401
 from .common.daemon import daemon_iteration
 from .common.logging import LOGGER
+from .common.panda import get_panda_token
 from .config import config
 from .routers.healthz import health_router
 
@@ -22,20 +25,26 @@ logger = LOGGER.bind(module=__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator:
     # start
+    # Bootstrap a panda id token
+    _ = get_panda_token()
+    # Update process environment with configuration models
+    os.environ |= config.panda.model_dump(by_alias=True, exclude_none=True)
+    os.environ |= config.htcondor.model_dump(by_alias=True, exclude_none=True)
     app.state.tasks = set()
-    daemon = create_task(main_loop(), name="daemon")
+    daemon = create_task(main_loop(app=app), name="daemon")
     app.state.tasks.add(daemon)
     yield
     # stop
 
 
-async def main_loop() -> None:
+async def main_loop(app: FastAPI) -> None:
     """Daemon execution loop.
 
     With a database session, perform a single daemon interation and then sleep
     until the next daemon appointment.
     """
     engine = create_database_engine(config.db.url, config.db.password)
+
     sleep_time = config.daemon.processing_interval
 
     async with engine.begin():

@@ -9,11 +9,9 @@ from . import (
     pipetask_error_types,
     pipetask_errors,
     product_sets,
-    productions,
     queues,
     script_dependencies,
     script_errors,
-    script_templates,
     scripts,
     spec_blocks,
     specifications,
@@ -30,7 +28,6 @@ router = APIRouter(
 router.include_router(loaders.router)
 router.include_router(actions.router)
 
-router.include_router(productions.router)
 router.include_router(campaigns.router)
 router.include_router(steps.router)
 router.include_router(groups.router)
@@ -39,7 +36,6 @@ router.include_router(scripts.router)
 
 router.include_router(specifications.router)
 router.include_router(spec_blocks.router)
-router.include_router(script_templates.router)
 
 router.include_router(pipetask_error_types.router)
 router.include_router(pipetask_errors.router)

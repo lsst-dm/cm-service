@@ -1,5 +1,4 @@
 import os
-import uuid
 
 import pytest
 from httpx import AsyncClient
@@ -13,7 +12,6 @@ from .util_functions import (
     check_get_methods,
     check_scripts,
     check_update_methods,
-    cleanup,
     create_tree,
 )
 
@@ -24,8 +22,7 @@ from .util_functions import (
 async def test_step_routes(client: AsyncClient, api_version: str) -> None:
     """Test `/step` API endpoint."""
 
-    # generate a uuid to avoid collisions
-    uuid_int = uuid.uuid1().int
+    uuid_int = 454278
 
     os.environ["CM_CONFIGS"] = "examples"
 
@@ -34,7 +31,7 @@ async def test_step_routes(client: AsyncClient, api_version: str) -> None:
 
     response = await client.get(f"{config.asgi.prefix}/{api_version}/step/list")
     steps = check_and_parse_response(response, list[models.Step])
-    entry = steps[0]
+    entry = [step for step in steps if str(uuid_int) in step.name][0]
 
     # check get methods
     await check_get_methods(client, api_version, entry, "step", models.Step)
@@ -44,6 +41,3 @@ async def test_step_routes(client: AsyncClient, api_version: str) -> None:
 
     # check scripts
     await check_scripts(client, api_version, entry, "step")
-
-    # delete everything we just made in the session
-    await cleanup(client, api_version, check_cascade=True)
