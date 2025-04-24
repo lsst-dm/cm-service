@@ -1,13 +1,26 @@
 #!/usr/bin/env bash
+set -eux
+{# BLANK LINE #}
+{#- PHASE: HEADER =========================================================== #}
+{%- if prepend %}
+{{ prepend }}
+{# BLANK LINE #}
+{%- endif %}
+{#- PHASE: LSST SETUP ======================================================= #}
 {%- if script_method == "bash" %}
 {#- Assuming native environment already setup #}
 {%- elif script_method == "htcondor" %}
-export LSST_VERSION='{{ lsst_version }}'
-export LSST_DISTRIB_DIR='{{ lsst_distrib_dir }}'
+export LSST_VERSION="{{ lsst_version }}"
+export LSST_DISTRIB_DIR="{{ lsst_distrib_dir }}"
 source ${LSST_DISTRIB_DIR}/${LSST_VERSION}/loadLSST.bash
 setup lsst_distrib
-{%- endif %}
 {# BLANK LINE #}
+{%- endif %}
+{%- if custom_lsst_setup %}
+{{ custom_lsst_setup }}
+{# BLANK LINE #}
+{%- endif %}
+{#- PHASE: WMS SETUP ======================================================== #}
 {%- if wms == "htcondor" %}
 {%- elif wms == "panda" %}
 {#- what value is this LATEST_PANDA path? #}
@@ -18,15 +31,17 @@ export IDDS_MAX_NAME_LENGTH=30000
 export BPS_WMS_SERVICE_CLASS=lsst.ctrl.bps.panda.PanDAService
 {# BLANK LINE #}
 unset PANDA_CONFIG_ROOT
-{%- endif %}
-{%- if custom_lsst_setup %}
-{# BLANK LINE #}
-{{ custom_lsst_setup }}
 {# BLANK LINE #}
 {%- endif %}
+{%- if custom_wms_setup %}
+{{ custom_wms_setup }}
+{# BLANK LINE #}
+{%- endif %}
+{#- PHASE: COMMAND ========================================================== #}
 {{ command }}
+{# BLANK LINE #}
+{#- PHASE: TRAILER ========================================================== #}
 {%- if append %}
-{# BLANK LINE #}
 {{ append }}
-{%- endif %}
 {# BLANK LINE #}
+{%- endif %}

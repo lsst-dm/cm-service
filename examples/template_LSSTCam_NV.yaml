@@ -2,10 +2,21 @@
 # - ${...} variables may be replaced by CM at load time based on either
 #   environment variable lookup or by `-v NAME VALUE` argument(s) applied to
 #   the cm-client load command.
+#   - Mandatory Variables for this campaign template
+#     - WMS (panda or htcondor)
+#     - TICKET (DM-XXXXX)
+#     - NIGHTLY_START (YYYYmmdd)
+#     - NIGHTLY_END (YYYYmmdd)
+#     - LSST_VERSION (w_YYYY_XX)
+#     - PROD_AREA (path to rendered submission artifacts)
+#   - Example:
+#       cm-client load campaign --campaign_yaml examples/template_LSSTCam_NV.yaml \
+#       -v TICKET DM-XXXXX -v NIGHTLY_START 20250423 -v NIGHTLY_END 20250424 \
+#       -v PROD_AREA ./prod_area \ -v LSST_VERSION d_2024_04_21 --name nightly1
 # - The farther down the file you go, the more generic objects become and only
 #   the slowest-moving configurations should be applied at those levels.
-# - The bps `payload.payloadName` is set to match the name of the campaign;
-#   this is overridden by the `Campaign.data.campaign` parameter.
+# - The bps `payload.payloadName` is set to value of the `Campaign.data.campaign`
+#   parameter, and will default to the name of the campaign.
 # TODOS
 # - `skymap` and `instrument` should be first-class campaign variables that are
 #   expected to be always present and included in any campaign-step data query,
@@ -17,7 +28,7 @@
 #   arbitrary levels.
 ---
 Campaign:
-  spec_name: nv_panda
+  spec_name: ${WMS}
   collections:
     # a CHAINED collection with all nightly processed images, raws, and defaults
     campaign_source: LSSTCam/runs/nightlyValidation
@@ -32,12 +43,11 @@ Campaign:
     lsst_version: ${LSST_VERSION}
     bps_wms_clustering_file: "/sdf/data/rubin/shared/campaigns/LSSTCam-Nightly-Validation/nightly-validation-LSSTCam-clustering.yaml"
     bps_wms_resources_file: "/sdf/data/rubin/shared/campaigns/LSSTCam-Nightly-Validation/nightly-validation-LSSTCam-DDF.yaml"
-    s3EndpointUrl: "https://s3dfrgw.slac.stanford.edu"
-    bps_directives:
+    bps_variables:
       subDirTemplate: "{label}/{detector}"
       SASQ_TIMESTAMP: ${NIGHTLY_END}
       OWNER: lsstsvc1
-    data_query: >
+    data_query: >-
       instrument='LSSTCam'
       AND skymap='lsst_cells_v1'
       AND (exposure.day_obs>=${NIGHTLY_START} and exposure.day_obs<${NIGHTLY_END})
@@ -50,7 +60,8 @@ Campaign:
     data:
       prod_area: ${PROD_AREA}
       butler_repo: /repo/embargo+sasquatch_dev
-      environment:
+      s3EndpointUrl: "https://s3dfrgw.slac.stanford.edu"
+      bps_environment:
         LSST_S3_USE_THREADS: "False"
         DAF_BUTLER_CACHE_EXPIRATION_MODE: "disabled"
       cluster:
@@ -117,14 +128,21 @@ Campaign:
     name: stage3
     includes: ["nv_step", "step"]
     data:
+      prepend: |-
+        export LSST_S3_USE_THREADS=False
+        unset DAF_BUTLER_CACHE_DIRECTORY
       pipeline_yaml: "${DRP_PIPE_DIR}pipelines/LSSTCam/nightly-validation.yaml#stage3-coadd"
 - SpecBlock:
     name: nv_step
     includes: ["step"]
     data:
-      extra_run_quantum_options: >
+      prepend: |-
+        export LSST_S3_USE_THREADS=False
+      custom_lsst_setup: |-
+        setup -j -r /sdf/data/rubin/shared/campaigns/LSSTCam-Nightly-Validation/lsst_devel/pipe_base
+      extra_run_quantum_options: >-
         --no-raise-on-partial-outputs
-      extra_qgraph_options: >
+      extra_qgraph_options: >-
         --dataset-query-constraint off
         --skip-existing-in LSSTCam/runs/nightlyValidation
         -c parameters:sasquatch_dataset_identifier=LSSTCam/nightlyValidation
@@ -134,13 +152,13 @@ Campaign:
 # Specifications provide mapping options for different campaign flavors, such
 # as htcondor vs. panda.
 - Specification:
-    name: nv_panda
+    name: panda
     spec_aliases:
       campaign: nightly_validation
       bps_submit_script: bps_panda_submit_script
       bps_report_script: bps_panda_report_script
 - Specification:
-    name: nv_htcondor
+    name: htcondor
     spec_aliases:
       campaign: nightly_validation
       bps_submit_script: bps_htcondor_submit_script

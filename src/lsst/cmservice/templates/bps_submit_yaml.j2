@@ -10,6 +10,15 @@ project: {{ project }}
 campaign: {{ campaign }}
 submitPath: {{ submit_path }}
 {# BLANK LINE #}
+{%- if bps_variables|length > 0 %}
+########################################
+# ADDITIONAL BPS DIRECTIVES
+########################################
+{%- for key, value in bps_variables|items %}
+{{ key }}: "{{ value }}"
+{%- endfor %}
+{# BLANK LINE #}
+{%- endif %}
 ########################################
 # PIPELINE CONFIGURATION
 ########################################
@@ -25,16 +34,13 @@ includeConfigs:
 # LSST SETUP
 ########################################
 LSST_VERSION: {{ lsst_version }}
-{%- if custom_lsst_setup %}
-{{ custom_lsst_setup }}
-{%- endif %}
 {# BLANK LINE #}
-{%- if environment %}
+{%- if bps_environment %}
 ########################################
 # SUBMISSION ENVIRONMENT VARIABLES
 ########################################
 environment:
-{%- for key, value in environment|items %}
+{%- for key, value in bps_environment|items %}
   {{ key }}: "{{ value }}"
 {%- endfor %}
 {# BLANK LINE #}
@@ -53,15 +59,6 @@ extraQgraphOptions: {{ extra_qgraph_options | replace("\n", " ") | trim }}
 extraRunQuantumOptions: {{ extra_run_quantum_options | replace("\n", " ") | trim }}
 {%- endif %}
 {# BLANK LINE #}
-{%- if extra_yaml_literals|length > 0 %}
-########################################
-# ADDITIONAL BPS DIRECTIVES
-########################################
-{%- for key, value in extra_yaml_literals|items %}
-{{ key }}: "{{ value }}"
-{%- endfor %}
-{# BLANK LINE #}
-{%- endif %}
 {%- if clustering %}
 ########################################
 # ADDITIONAL CLUSTERING CONFIGURATION

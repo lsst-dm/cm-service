@@ -91,7 +91,10 @@ class BpsScriptHandler(ScriptHandler):
         # workflow_config is the values dictionary to use while rendering a
         # yaml template, NOT the yaml template itself!
         workflow_config: dict[str, Any] = {}
+        workflow_config["ticket"] = data_dict.get("ticket", None)
+        workflow_config["project"] = data_dict.get("project", "DEFAULT")
         workflow_config["campaign"] = data_dict.get("campaign", parent.c_.name)
+        workflow_config["description"] = data_dict.get("description", None)
         workflow_config["pipeline_yaml"] = pipeline_yaml
         workflow_config["lsst_version"] = lsst_version
         workflow_config["lsst_distrib_dir"] = lsst_distrib_dir
@@ -99,14 +102,14 @@ class BpsScriptHandler(ScriptHandler):
         workflow_config["script_method"] = script.run_method.name
         workflow_config["compute_site"] = data_dict.get("compute_site", self.default_compute_site.name)
         workflow_config["clustering"] = data_dict.get("cluster", None)
-        # TODO set these identically-handled options in a loop?
-        workflow_config["project"] = data_dict.get("project", "DEFAULT")
-        workflow_config["custom_lsst_setup"] = data_dict.get("custom_lsst_setup", None)
         workflow_config["extra_qgraph_options"] = data_dict.get("extra_qgraph_options", None)
         workflow_config["extra_run_quantum_options"] = data_dict.get("extra_run_quantum_options", None)
-        workflow_config["description"] = data_dict.get("description", None)
-        workflow_config["ticket"] = data_dict.get("ticket", None)
-        workflow_config["environment"] = data_dict.get("environment", None)
+        workflow_config["bps_environment"] = data_dict.get("bps_environment", None)
+        # Script Phases
+        workflow_config["prepend"] = data_dict.get("prepend", None)
+        workflow_config["custom_lsst_setup"] = data_dict.get("custom_lsst_setup", None)
+        workflow_config["custom_wms_setup"] = data_dict.get("custom_wms_setup", None)
+        workflow_config["append"] = data_dict.get("append", None)
 
         # Get the output file paths
         script_url = await self._set_script_files(session, script, prod_area)
@@ -131,7 +134,7 @@ class BpsScriptHandler(ScriptHandler):
         #       is this meant to be `config_url` instead?
         await Path(script_url).parent.mkdir(parents=True, exist_ok=True)
 
-        workflow_config["extra_yaml_literals"] = data_dict.get("bps_directives", [])
+        workflow_config["bps_variables"] = data_dict.get("bps_variables", [])
         include_configs = []
 
         # FIXME `bps_wms_*_file` should be added to the generic list of
@@ -165,7 +168,7 @@ class BpsScriptHandler(ScriptHandler):
                 try:
                     include_file = await Path(to_include_).resolve()
                     include_yaml_ = yaml.dump(yaml.safe_load(await include_file.read_text()))
-                    workflow_config["extra_yaml_literals"].append(include_yaml_)
+                    workflow_config["bps_variables"].append(include_yaml_)
                 except yaml.YAMLError:
                     logger.exception()
                     raise
