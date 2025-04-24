@@ -1,56 +1,56 @@
 - Imports:
-      - "${CM_CONFIGS}/example_standard_scripts.yaml"
-      - "${CM_CONFIGS}/example_standard_elements.yaml"
+    - "${CM_CONFIGS}/example_standard_scripts.yaml"
+    - "${CM_CONFIGS}/example_standard_elements.yaml"
 - SpecBlock:
-      name: blank_campaign
-      includes: ["base_campaign"]
-      collections:
-          out: MUST_OVERRIDE
-          campaign_source: MUST_OVERRIDE
-          campaign_ancillary_inputs: MUST_OVERRIDE
-      steps: []
-      data:
-          butler_repo: MUST_OVERRIDE
-          prod_area: MUST_OVERRIDE
-          data_query: MUST_OVERRIDE
-          lsst_version: MUST_OVERRIDE
-          bps_wms_clustering_file: MUST_OVERRIDE
-          bps_wms_resources_file: MUST_OVERRIDE
+    name: blank_campaign
+    includes: ["base_campaign"]
+    collections:
+      out: MUST_OVERRIDE
+      campaign_source: MUST_OVERRIDE
+      campaign_ancillary_inputs: MUST_OVERRIDE
+    steps: []
+    data:
+      butler_repo: MUST_OVERRIDE
+      prod_area: MUST_OVERRIDE
+      data_query: MUST_OVERRIDE
+      lsst_version: MUST_OVERRIDE
+      bps_wms_clustering_file: MUST_OVERRIDE
+      bps_wms_resources_file: MUST_OVERRIDE
 - Specification:
-      name: blank_campaign_panda
-      spec_aliases:
-          campaign: blank_campaign
-          bps_submit_script: bps_panda_submit_script
-          bps_report_script: bps_panda_report_script
+    name: blank_campaign_panda
+    spec_aliases:
+      campaign: blank_campaign
+      bps_submit_script: bps_panda_submit_script
+      bps_report_script: bps_panda_report_script
 - Specification:
-      name: blank_campaign_htcondor
-      spec_aliases:
-          campaign: blank_campaign
-          bps_submit_script: bps_htcondor_submit_script
-          bps_report_script: bps_htcondor_report_script
+    name: blank_campaign_htcondor
+    spec_aliases:
+      campaign: blank_campaign
+      bps_submit_script: bps_htcondor_submit_script
+      bps_report_script: bps_htcondor_report_script
 - SpecBlock:
-      name: blank_campaign_fixed_input
-      includes: ["base_campaign_fixed_input"]
-      collections:
-          out: MUST_OVERRIDE
-          campaign_input: MUST_OVERRIDE
-      steps: []
-      data:
-          butler_repo: MUST_OVERRIDE
-          prod_area: MUST_OVERRIDE
-          data_query: MUST_OVERRIDE
-          lsst_version: MUST_OVERRIDE
-          bps_wms_clustering_file: MUST_OVERRIDE
-          bps_wms_resources_file: MUST_OVERRIDE
+    name: blank_campaign_fixed_input
+    includes: ["base_campaign_fixed_input"]
+    collections:
+      out: MUST_OVERRIDE
+      campaign_input: MUST_OVERRIDE
+    steps: []
+    data:
+      butler_repo: MUST_OVERRIDE
+      prod_area: MUST_OVERRIDE
+      data_query: MUST_OVERRIDE
+      lsst_version: MUST_OVERRIDE
+      bps_wms_clustering_file: MUST_OVERRIDE
+      bps_wms_resources_file: MUST_OVERRIDE
 - Specification:
-      name: blank_campaign_fixed_input_panda
-      spec_aliases:
-          campaign: blank_campaign_fixed_input
-          bps_submit_script: bps_panda_submit_script
-          bps_report_script: bps_panda_report_script
+    name: blank_campaign_fixed_input_panda
+    spec_aliases:
+      campaign: blank_campaign_fixed_input
+      bps_submit_script: bps_panda_submit_script
+      bps_report_script: bps_panda_report_script
 - Specification:
-      name: blank_campaign_fixed_input_htcondor
-      spec_aliases:
-          campaign: blank_campaign_fixed_input
-          bps_submit_script: bps_htcondor_submit_script
-          bps_report_script: bps_htcondor_report_script
+    name: blank_campaign_fixed_input_htcondor
+    spec_aliases:
+      campaign: blank_campaign_fixed_input
+      bps_submit_script: bps_htcondor_submit_script
+      bps_report_script: bps_htcondor_report_script

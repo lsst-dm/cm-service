@@ -1,9 +1,9 @@
 - SpecBlock:
-      name: trivial_isr_step
-      includes: ["trivial_step"]
-      data:
-          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#isr"
-      child_config:
-          base_query: "instrument = 'HSC'"
-          split_dataset: raw
-          split_field: exposure
+    name: trivial_isr_step
+    includes: ["trivial_step"]
+    data:
+      pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#isr"
+    child_config:
+      base_query: "instrument = 'HSC'"
+      split_dataset: raw
+      split_field: exposure

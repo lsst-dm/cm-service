@@ -1,33 +1,33 @@
 - Imports:
-      - "${CM_CONFIGS}/example_standard_scripts.yaml"
-      - "${CM_CONFIGS}/example_trivial_elements.yaml"
-      - "${CM_CONFIGS}/example_trivial_steps.yaml"
+    - "${CM_CONFIGS}/example_standard_scripts.yaml"
+    - "${CM_CONFIGS}/example_trivial_elements.yaml"
+    - "${CM_CONFIGS}/example_trivial_steps.yaml"
 - SpecBlock:
-      name: trivial_campaign
-      includes: ["trivial_campaign_base"]
-      collections:
-          campaign_source: HSC/raw/RC2
-      steps:
-          - Step:
-                name: trivial_step
-                spec_block: trivial_step
-                child_config:
-                    base_query: "instrument = 'HSC'"
-                    split_method: no_split
-      data:
-          butler_repo: '/repo/main'
-          prod_area: 'output/archive'
-          data_query: "instrument = 'HSC' AND exposure in (30504, 30502) AND detector in (45, 46, 47, 48)"
-          lsst_version: w_2023_46
+    name: trivial_campaign
+    includes: ["trivial_campaign_base"]
+    collections:
+      campaign_source: HSC/raw/RC2
+    steps:
+      - Step:
+          name: trivial_step
+          spec_block: trivial_step
+          child_config:
+            base_query: "instrument = 'HSC'"
+            split_method: no_split
+    data:
+      butler_repo: "/repo/main"
+      prod_area: "output/archive"
+      data_query: "instrument = 'HSC' AND exposure in (30504, 30502) AND detector in (45, 46, 47, 48)"
+      lsst_version: w_2023_46
 - Specification:
-      name: trivial_panda
-      spec_aliases:
-          campaign: trivial_campaign
-          bps_submit_script: bps_panda_submit_script
-          bps_report_script: bps_panda_report_script
+    name: trivial_panda
+    spec_aliases:
+      campaign: trivial_campaign
+      bps_submit_script: bps_panda_submit_script
+      bps_report_script: bps_panda_report_script
 - Specification:
-      name: trivial_htcondor
-      spec_aliases:
-          campaign: trivial_campaign
-          bps_submit_script: bps_htcondor_submit_script
-          bps_report_script: bps_htcondor_report_script
+    name: trivial_htcondor
+    spec_aliases:
+      campaign: trivial_campaign
+      bps_submit_script: bps_htcondor_submit_script
+      bps_report_script: bps_htcondor_report_script
