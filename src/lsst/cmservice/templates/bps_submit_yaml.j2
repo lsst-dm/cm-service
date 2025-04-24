@@ -10,11 +10,16 @@ project: {{ project }}
 campaign: {{ campaign }}
 submitPath: {{ submit_path }}
 {# BLANK LINE #}
+########################################
+# LSST SETUP
+########################################
+LSST_VERSION: {{ lsst_version }}
+{# BLANK LINE #}
 {%- if bps_variables|length > 0 %}
 ########################################
-# ADDITIONAL BPS DIRECTIVES
+# BPS VARIABLES
 ########################################
-{%- for key, value in bps_variables|items %}
+{%- for key, value in bps_variables | items %}
 {{ key }}: "{{ value }}"
 {%- endfor %}
 {# BLANK LINE #}
@@ -26,14 +31,14 @@ pipelineYaml: {{ pipeline_yaml }}
 {%- if include_configs | length > 0 %}
 includeConfigs:
 {%- for config in include_configs %}
-- {{ config }}
+  - {{ config }}
 {%- endfor %}
 {%- endif %}
-{# BLANK LINE #}
-########################################
-# LSST SETUP
-########################################
-LSST_VERSION: {{ lsst_version }}
+{%- if bps_literals | length > 0 %}
+{%- for key, value in bps_literals | items %}
+{{ key }}: {{ value }}
+{%- endfor %}
+{%- endif %}
 {# BLANK LINE #}
 {%- if bps_environment %}
 ########################################
@@ -58,10 +63,16 @@ extraQgraphOptions: {{ extra_qgraph_options | replace("\n", " ") | trim }}
 {%- if extra_run_quantum_options %}
 extraRunQuantumOptions: {{ extra_run_quantum_options | replace("\n", " ") | trim }}
 {%- endif %}
+{%- if extra_init_options %}
+extraInitOptions: {{ extra_init_options | replace("\n", " ") | trim }}
+{%- endif %}
+{%- if extra_update_qgraph_options %}
+extraUpdateQgraphOptions: {{ extra_update_qgraph_options | replace("\n", " ") | trim }}
+{%- endif %}
 {# BLANK LINE #}
 {%- if clustering %}
 ########################################
-# ADDITIONAL CLUSTERING CONFIGURATION
+# CLUSTERING CONFIGURATION
 ########################################
 clustering:
   {{ clustering | toyaml | indent(2) -}}
@@ -72,28 +83,10 @@ clustering:
 ########################################
 {%- if wms == "htcondor" %}
 wmsServiceClass: lsst.ctrl.bps.htcondor.HTCondorService
-{%- if compute_site == "usdf" %}
-site:
-  s3df:
-    profile:
-      condor:
-        +Walltime: 7200
-memoryMultiplier: 4.
-numberOfRetries: 3
-memoryLimit: 400000
-{%- endif %}
-{%- endif %}
-{%- if wms == "panda" %}
+{%- elif wms == "panda" %}
 wmsServiceClass: lsst.ctrl.bps.panda.PanDAService
-{%- if compute_site == "usdf" %}
-computeCloud: US
-computeSite: SLAC
-requestMemory: 4000
-memoryMultiplier: 1.2
-{%- elif compute_site == "lanc" %}
-computeSite: LANCS
-{%- elif compute_site == "in2p3" %}
-computeSite: CC-IN2P3
 {%- endif %}
+{%- if compute_site %}
+{{ compute_site | toyaml -}}
 {%- endif %}
 {# BLANK LINE #}

@@ -4,7 +4,15 @@ from urllib.parse import urlparse
 from warnings import warn
 
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field, computed_field, field_serializer, field_validator, model_validator
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    Field,
+    computed_field,
+    field_serializer,
+    field_validator,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from .common.enums import ScriptMethodEnum, StatusEnum, WmsComputeSite
@@ -77,6 +85,9 @@ class ButlerConfiguration(BaseModel):
         default="~/.lsst/db-auth.yaml",
     )
 
+    # FIXME this username is probably not necessary to track on its own, as it
+    #       should be part of any db authentication scheme associated with
+    #       butler use.
     default_username: str = Field(
         description="Default username to use for Butler registry authentication",
         default="rubin",
@@ -548,6 +559,12 @@ class Configuration(BaseSettings):
     mock_status: StatusEnum | None = Field(
         description="A fake status to return from all operations",
         default=None,
+    )
+
+    aws_s3_endpoint_url: str | None = Field(
+        description="An endpoint url to use with S3 APIs",
+        default=None,
+        validation_alias=AliasChoices("AWS_ENDPOINT_URL_S3", "AWS_ENDPOINT_URL", "S3_ENDPOINT_URL"),
     )
 
     @field_validator("mock_status", mode="before")
