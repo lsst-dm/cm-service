@@ -416,6 +416,22 @@ class SlurmConfiguration(BaseModel):
         default="0-1:0:0",
     )
 
+    # FIXME should be an enum if this sticks around
+    exclusive: str | None = Field(
+        description="Whether to allocate resources as `exclusive` or `exclusive-user`",
+        default=None,
+    )
+
+    cores: int = Field(
+        description="How many cores to reserve for resource allocation",
+        default=15,
+    )
+
+    extra_arguments: str = Field(
+        description="Space separated set of arbitrary extra arguments for resource allocation",
+        default="",
+    )
+
 
 class AsgiConfiguration(BaseModel):
     """Configuration for the application's ASGI web server."""
@@ -562,9 +578,10 @@ class Configuration(BaseSettings):
     )
 
     aws_s3_endpoint_url: str | None = Field(
-        description="An endpoint url to use with S3 APIs",
+        description="An endpoint url to use with S3 APIs for the default profile",
         default=None,
         validation_alias=AliasChoices("AWS_ENDPOINT_URL_S3", "AWS_ENDPOINT_URL", "S3_ENDPOINT_URL"),
+        serialization_alias="AWS_ENDPOINT_URL_S3",
     )
 
     @field_validator("mock_status", mode="before")
