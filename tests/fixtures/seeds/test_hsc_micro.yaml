@@ -128,7 +128,7 @@
     handler: lsst.cmservice.handlers.element_handler.ElementHandler
     collections:
       step_input: "{out}/{step}/input"
-      step_output: "{out}/{step}_ouput"
+      step_output: "{out}/{step}_output"
       step_public_output: "{out}/{step}"
       step_validation: "{out}/{step}/validate"
     scripts:
