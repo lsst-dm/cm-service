@@ -95,6 +95,7 @@ class ChainCreateScriptHandler(ScriptHandler):
             script_url = await self._set_script_files(session, script, data_dict["prod_area"])
             butler_repo = data_dict["butler_repo"]
         except KeyError as msg:
+            logger.exception()
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
         command = f"{config.butler.butler_bin} collection-chain {butler_repo} {output_coll}"
         # This is here out of paranoia.
@@ -450,16 +451,13 @@ class PrepareStepScriptHandler(ScriptHandler):
 
     This will create a chained collection
 
-    `script.collections['output']`
+    `script.collections["output"]`
 
-    by taking the output collections of all the
-    prerequisite steps, or
+    by taking the output collections of all the prerequisite steps, or
 
-    `script.collections['campaign_input'] if the
-    step has no inputs
+    `script.collections["campaign_input"]` if the step has no inputs
 
-    it will then append
-    `script.collections['output']` to the output collection
+    it will then append `script.collections["output"]` to the output collection
     """
 
     async def _write_script(

@@ -166,10 +166,11 @@ class NoSplit(Splitter):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> AsyncGenerator:
-        ret_dict: dict = {"data": {}}
-        base_query = kwargs["base_query"]
-        ret_dict["data"]["data_query"] = f"{base_query}"
-        yield ret_dict
+        campaign: Campaign = await script.get_campaign(session)
+        campaign_data_query = (await campaign.data_dict(session)).get("data_query", "").strip()
+        if len(base_query := kwargs.get("base_query", "").strip()):
+            campaign_data_query = f"{campaign_data_query} AND {base_query}"
+        yield dict(data=dict(data_query=f"{campaign_data_query}"))
 
 
 class SplitByVals(Splitter):
@@ -185,12 +186,15 @@ class SplitByVals(Splitter):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> AsyncGenerator:  # pragma: no cover
+        campaign: Campaign = await script.get_campaign(session)
+        campaign_data_query = (await campaign.data_dict(session)).get("data_query", "").strip()
         ret_dict: dict = {"data": {}}
         split_vals = kwargs.get("split_vals", [])
-        base_query = kwargs["base_query"]
+        if len(base_query := kwargs.get("base_query", "").strip()):
+            campaign_data_query = f"{campaign_data_query} AND {base_query}"
         split_field = kwargs["split_field"]
         for split_val_ in split_vals:
-            ret_dict["data"]["data_query"] = f"{base_query} AND {split_field} IN ({split_val_})"
+            ret_dict["data"]["data_query"] = f"{campaign_data_query} AND {split_field} IN ({split_val_})"
             yield ret_dict
 
 
@@ -208,12 +212,15 @@ class SplitByQuery(Splitter):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> AsyncGenerator:
+        campaign: Campaign = await script.get_campaign(session)
+        campaign_data_query = (await campaign.data_dict(session)).get("data_query", "").strip()
         data = await parent.data_dict(session)
         collections = await parent.resolve_collections(session)
         butler_repo = data["butler_repo"]
         input_coll = collections["step_input"]
         campaign_input_coll = collections["campaign_input"]
-        base_query = kwargs["base_query"]
+        if len(base_query := kwargs.get("base_query", "").strip()):
+            campaign_data_query = f"{campaign_data_query} AND {base_query}"
         split_field = kwargs["split_field"]
         split_dataset = kwargs["split_dataset"]
         split_min_groups = kwargs.get("split_min_groups", 1)
@@ -260,7 +267,7 @@ class SplitByQuery(Splitter):
 
         ret_dict: dict = {"data": {}}
         for dq_ in data_queries:
-            data_query = base_query
+            data_query = campaign_data_query
             data_query += f" AND {dq_}"
             ret_dict["data"]["data_query"] = data_query
             yield ret_dict

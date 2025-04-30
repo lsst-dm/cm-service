@@ -216,6 +216,15 @@ def build_htcondor_submit_environment() -> Mapping[str, str]:
     # TODO it could be worthwhile to put the panda check/refresh logic in the
     #      serializer method of the idtoken field.
 
+    # Access AWS credentials dynamically
+    # s = boto3.session.Session(profile_name=...)
+    # url = s.client("s3").meta.endpoint_url
+    # creds = s.get_credentials().get_frozen_credentials()
+    # assert creds is not None
+    # AWS_ACCESS_KEY_ID=creds.access_key
+    # AWS_SECRET_ACCESS_KEY=creds.secret_key
+    # construct url -> "scheme://access-key:secret-key@endpoint"
+
     return config.panda.model_dump(by_alias=True, exclude_none=True) | dict(
         CONDOR_CONFIG=config.htcondor.config_source,
         _CONDOR_CONDOR_HOST=config.htcondor.collector_host,
@@ -224,12 +233,30 @@ def build_htcondor_submit_environment() -> Mapping[str, str]:
         _CONDOR_SEC_CLIENT_AUTHENTICATION_METHODS=config.htcondor.authn_methods,
         _CONDOR_DAGMAN_MANAGER_JOB_APPEND_GETENV="True",
         FS_REMOTE_DIR=config.htcondor.fs_remote_dir,
+        # FIXME: populate the DAF_BUTLER_REPOSITORIES env var with the JSON
+        #        string repr of the repository index as known to the service
         DAF_BUTLER_REPOSITORY_INDEX=config.butler.repository_index,
         HOME=config.htcondor.remote_user_home,
         LSST_VERSION=config.bps.lsst_version,
         LSST_DISTRIB_DIR=config.bps.lsst_distrib_dir,
+        # FIXME: because the aws credentials file is assumed to be in place;
+        #        the s3 resource supports a custom but nonstandard environment
+        #        variable LSST_RESOURCES_S3_PROFILE_<profile> that can contain
+        #        a https://<access key ID>:<secretkey>@<s3 endpoint hostname>;
+        #        if this is a string we can build dynamically then we could use
+        #        it instead of the following assertion
+        AWS_SHARED_CREDENTIALS_FILE=f"{config.htcondor.remote_user_home}/.lsst/aws-credentials.ini",
+        # FIXME: if we're going to go by AWS profiles, then we should maintain
+        #        a config file with properly configured endpoint URLs -or-
+        #        at least use the standard one(s)!
+        # FIXME: make aws config values a separate parameters object
+        AWS_ENDPOINT_URL_S3=config.aws_s3_endpoint_url,
+        AWS_REQUEST_CHECKSUM_CALCULATION="WHEN_REQUIRED",
+        AWS_RESPONSE_CHECKSUM_VALIDATION="WHEN_REQUIRED",
         # FIXME: because there is no db-auth.yaml in lsstsvc1's home directory
         PGPASSFILE=f"{config.htcondor.remote_user_home}/.lsst/postgres-credentials.txt",
+        # FIXME: the user is part of the credentials file, we should not need
+        #        it in the env as well!
         PGUSER=config.butler.default_username,
         PATH=(
             f"{config.htcondor.remote_user_home}/.local/bin:{config.htcondor.remote_user_home}/bin:{config.slurm.home}:"
