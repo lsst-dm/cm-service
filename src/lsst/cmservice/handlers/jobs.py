@@ -281,7 +281,7 @@ class BpsScriptHandler(ScriptHandler):
             await script.update_values(session, status=htcondor_status)
             if fake_status is not None:
                 wms_job_id = "fake_job"
-            else:  # pragma: no cover
+            else:
                 if TYPE_CHECKING:
                     assert script.log_url is not None
                 bps_dict = await parse_bps_stdout(script.log_url)
@@ -408,6 +408,9 @@ class BpsReportHandler(FunctionHandler):
         """
         fake_status = kwargs.get("fake_status", config.mock_status)
         wms_svc = self._get_wms_svc(config={})
+        job_name = job.fullname
+        campaign = await job.get_campaign(session)
+        campaign_name = campaign.fullname
 
         # It is an error if the wms_svc_class cannot be imported when not under
         # a fake status.
@@ -425,13 +428,12 @@ class BpsReportHandler(FunctionHandler):
             wms_run_report: WmsRunReport | None
 
         try:
-            # FIXME: Why does wms_workflow_id need to be stripped?
-            wms_svc_report = partial(wms_svc.report, wms_workflow_id=wms_workflow_id.strip())
+            wms_svc_report = partial(wms_svc.report, wms_workflow_id=wms_workflow_id)
             run_reports, message = await to_thread.run_sync(wms_svc_report)
             logger.debug(message)
             wms_run_report = run_reports[0]
             _ = await load_wms_reports(session, job, wms_run_report)
-            status = status_from_bps_report(wms_run_report)
+            status = status_from_bps_report(wms_run_report, campaign=campaign_name, job=job_name)
         except Exception:
             # FIXME setting status failed for any exception seems extreme,
             #       there should be *retryable* exceptions with some kind of
