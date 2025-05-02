@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from lsst.ctrl.bps.bps_reports import compile_job_summary
-from lsst.ctrl.bps.wms_service import WmsJobReport, WmsRunReport, WmsStates
+from lsst.ctrl.bps.wms_service import WmsRunReport, WmsStates
 
 from ..common.enums import StatusEnum
 from ..common.errors import CMMissingFullnameError, CMYamlParseError
@@ -563,6 +563,8 @@ async def load_manifest_report(
 def status_from_bps_report(
     wms_run_report: WmsRunReport | None,
     fake_status: StatusEnum | None = None,
+    campaign: str | None = None,
+    job: str | None = None,
 ) -> StatusEnum | None:  # pragma: no cover
     """Decide the status for a workflow for a bps report
 
@@ -573,25 +575,38 @@ def status_from_bps_report(
     wms_run_report: WmsRunReport,
         bps report return object
 
+    campaign: str | None
+        The name of the campaign to which the bps report is relevant
+
+    job: str | None
+        The name of the job to which the bps report is relevant
+
     Returns
     -------
     status: StatusEnum
         The status to set for the bps_report script
     """
+    # FIXME: this function must communicate more explicitly the conditions it
+    # discovers. The APIs for obtaining wms status are lacking in filtering
+    # capabilities and the CLI doesn't have good tools for showing the status
+    # of a task.
     if wms_run_report is None:
         return fake_status or config.mock_status
 
-    logger.debug(wms_run_report)
-
     the_state = wms_run_report.state
-    # We treat RUNNING as running from the CM point of view,
+    logger.debug("Deriving status from BPS report", status=the_state, campaign=campaign, job=job)
+
+    # If any of the jobs are in a HELD state, this requires intervention
+    # and a notification should be sent and A BLOCKED status returned
+    for blocked_job in filter(lambda x: x.state in [WmsStates.HELD, WmsStates.UNREADY], wms_run_report.jobs):
+        # TODO notify
+        return StatusEnum.blocked
+
     if the_state == WmsStates.RUNNING:
         return StatusEnum.running
-    # If the workflow is succeeded we can mark the script as accepted
-    if the_state == WmsStates.SUCCEEDED:
+    elif the_state == WmsStates.SUCCEEDED:
         return StatusEnum.accepted
-    # These status either should not happen.  We will mark the script as failed
-    if the_state in [
+    elif the_state in [
         WmsStates.UNKNOWN,
         WmsStates.MISFIT,
         WmsStates.PRUNED,
@@ -601,27 +616,15 @@ def status_from_bps_report(
         WmsStates.PENDING,
     ]:
         return StatusEnum.failed
-    # If we get here, the job should be in WmsStates.FAILED or
-    # WmsStates.DELETED
-    assert the_state in [WmsStates.FAILED, WmsStates.DELETED]
-    # Ok, now we should investigate what happened.
 
-    # First, did final job run successfully.
-    final_job: WmsJobReport | None = None
-    for job_ in wms_run_report.jobs:
-        if job_.name == "finalJob":
-            final_job = job_
+    for final_job in filter(lambda x: x.name == "finalJob", wms_run_report.jobs):
+        if final_job.state == WmsStates.SUCCEEDED:
+            # we want downstream scripts, e..g, pipetask report, to run
+            return StatusEnum.accepted
+        # There should only ever be one finalJob but to prevent weird loops
+        break
 
-    # No final job, we bail and ask for help
-    if final_job is None:
-        return StatusEnum.reviewable
-
-    # If the final job did succeed, we want to accept this script
-    # b/c we want pipetask report to run
-    if final_job.state == WmsStates.SUCCEEDED:
-        return StatusEnum.accepted
-
-    # If the final job did not succeed, we bail and ask for help
+    # In any cases not previously handled, return a reviewable status
     return StatusEnum.reviewable
 
 

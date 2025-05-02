@@ -46,7 +46,7 @@ async def test_common_bash() -> None:
     await Path("temp.log").unlink(missing_ok=True)
 
     bps_dict = await parse_bps_stdout(f"{fixtures}/bps_stdout.log")
-    assert bps_dict["run_id"].strip() == "334"
+    assert bps_dict["Run Id"] == "12345678.0"
 
     diag_message = await get_diagnostic_message(f"{fixtures}/bps_stdout.log")
     assert diag_message == "dummy: ada"

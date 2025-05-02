@@ -1,3 +1,5 @@
-#skip
-run_id: 334
+# skip
+Submit dir: /path/to/prod/area/campaign/step/group0/job_000/submit
+Run Id: 12345678.0
+Run Name: u_test_campaign_step_group0_job_000
 dummy: ada

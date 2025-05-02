@@ -1,6 +1,7 @@
 """Utility functions for working with bash scripts"""
 
 import pathlib
+import re
 from collections import deque
 from typing import Any
 
@@ -15,24 +16,24 @@ from .errors import CMBashSubmitError
 
 
 async def get_diagnostic_message(
-    log_url: str,
+    log_url: str | Path,
 ) -> str:
-    """Read the last line of a log file, aspirational hoping
-    that it contains a diagnostic error message
+    """Read the last line of a log file as a diagnostic error message
 
     Parameters
     ----------
-    log_url : `str`
+    log_url : `str` | `anyio.Path`
         The url of the log which may contain a diagnostic message
 
     Returns
     -------
-    The last line of the log file, potentially containing a diagnostic message.
+    str
+        The last line of the file, or an error message
     """
     log_path = Path(log_url)
     last_line: deque[str] = deque(maxlen=1)
     if not await log_path.exists():
-        return f"Log file {log_url} does not exist"
+        return f"ERROR Log file {log_url} does not exist"
     try:
         async with await open_file(log_url) as f:
             async for line in f:
@@ -40,9 +41,9 @@ async def get_diagnostic_message(
 
         if last_line:
             return last_line.pop().strip()
-        return "Empty log file"
+        return "ERROR Empty log file"
     except Exception as e:
-        return f"Error reading log file: {e}"
+        return f"ERROR reading log file: {e}"
 
 
 async def parse_bps_stdout(url: str | Path) -> dict[str, str]:
@@ -58,13 +59,11 @@ async def parse_bps_stdout(url: str | Path) -> dict[str, str]:
     out_dict `str`
         a dictionary containing the stdout from BPS submit
     """
+    bps_stdout_parser = re.compile(r"^(?P<token>[\w\s]+):\s*(?P<value>.*)$", re.MULTILINE)
     out_dict = {}
-    async with await open_file(url, encoding="utf8") as f:
-        async for line in f:
-            tokens = line.split(":")
-            if len(tokens) != 2:  # pragma: no cover
-                continue
-            out_dict[tokens[0]] = tokens[1]
+    stdout = await Path(url).read_text()
+    for match in re.finditer(bps_stdout_parser, stdout):
+        out_dict[match.group("token")] = match.group("value")
     return out_dict
 
 
