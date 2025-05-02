@@ -250,6 +250,10 @@ def build_htcondor_submit_environment() -> Mapping[str, str]:
         #        a config file with properly configured endpoint URLs -or-
         #        at least use the standard one(s)!
         # FIXME: make aws config values a separate parameters object
+        # FIXME: the AWS endpoint should be based on the target profile of the
+        #        butler, else a global endpoint value must satisfy all daemon
+        #        instance butlers
+        # FIXME: need to exclude None for the following!
         AWS_ENDPOINT_URL_S3=config.aws_s3_endpoint_url,
         AWS_REQUEST_CHECKSUM_CALCULATION="WHEN_REQUIRED",
         AWS_RESPONSE_CHECKSUM_VALIDATION="WHEN_REQUIRED",

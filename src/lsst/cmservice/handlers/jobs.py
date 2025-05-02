@@ -26,6 +26,7 @@ from ..common.errors import (
     test_type_and_raise,
 )
 from ..common.logging import LOGGER
+from ..common.notification import send_notification
 from ..config import config
 from ..db.element import ElementMixin
 from ..db.job import Job
@@ -408,9 +409,7 @@ class BpsReportHandler(FunctionHandler):
         """
         fake_status = kwargs.get("fake_status", config.mock_status)
         wms_svc = self._get_wms_svc(config={})
-        job_name = job.fullname
         campaign = await job.get_campaign(session)
-        campaign_name = campaign.fullname
 
         # It is an error if the wms_svc_class cannot be imported when not under
         # a fake status.
@@ -433,13 +432,15 @@ class BpsReportHandler(FunctionHandler):
             logger.debug(message)
             wms_run_report = run_reports[0]
             _ = await load_wms_reports(session, job, wms_run_report)
-            status = status_from_bps_report(wms_run_report, campaign=campaign_name, job=job_name)
+            status = status_from_bps_report(wms_run_report)
         except Exception:
             # FIXME setting status failed for any exception seems extreme,
             #       there should be *retryable* exceptions with some kind of
             #       backoff
             logger.exception()
             status = StatusEnum.failed
+
+        await send_notification(for_status=status, for_campaign=campaign, for_job=job)
         return status
 
     async def _do_prepare(
