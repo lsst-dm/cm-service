@@ -563,12 +563,8 @@ async def load_manifest_report(
 def status_from_bps_report(
     wms_run_report: WmsRunReport | None,
     fake_status: StatusEnum | None = None,
-    campaign: str | None = None,
-    job: str | None = None,
-) -> StatusEnum | None:  # pragma: no cover
+) -> StatusEnum:
     """Decide the status for a workflow for a bps report
-
-    FIXME: add to coverage
 
     Parameters
     ----------
@@ -591,17 +587,15 @@ def status_from_bps_report(
     # capabilities and the CLI doesn't have good tools for showing the status
     # of a task.
     if wms_run_report is None:
-        return fake_status or config.mock_status
+        return fake_status or config.mock_status or StatusEnum.accepted
 
     the_state = wms_run_report.state
-    logger.debug("Deriving status from BPS report", status=the_state, campaign=campaign, job=job)
+    logger.debug("Deriving status from BPS report", status=the_state)
 
     # If any of the jobs are in a HELD state, this requires intervention
     # and a notification should be sent and A BLOCKED status returned
-    for blocked_job in filter(lambda x: x.state in [WmsStates.HELD, WmsStates.UNREADY], wms_run_report.jobs):
-        # TODO notify
+    for blocked_job in filter(lambda x: x.state in [WmsStates.HELD], wms_run_report.jobs):
         return StatusEnum.blocked
-
     if the_state == WmsStates.RUNNING:
         return StatusEnum.running
     elif the_state == WmsStates.SUCCEEDED:

@@ -507,6 +507,18 @@ class DaemonConfiguration(BaseModel):
     )
 
 
+class NotificationConfiguration(BaseModel):
+    """Configurations for notifications.
+
+    Set according to NOTIFICATIONS__FIELD environment variables.
+    """
+
+    slack_webhook_url: str | None = Field(
+        default=None,
+        description="URL of a Slack Application webhook",
+    )
+
+
 class DatabaseConfiguration(BaseModel):
     """Database configuration nested model.
 
@@ -560,6 +572,7 @@ class Configuration(BaseSettings):
     logging: LoggingConfiguration = LoggingConfiguration()
     slurm: SlurmConfiguration = SlurmConfiguration()
     panda: PandaConfiguration = PandaConfiguration()
+    notifications: NotificationConfiguration = NotificationConfiguration()
 
     # Root fields
     script_handler: ScriptMethodEnum = Field(
