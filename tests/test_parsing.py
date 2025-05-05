@@ -1,6 +1,6 @@
 import pytest
 
-from lsst.cmservice.db.node import NodeMixin
+from lsst.cmservice.parsing.string import parse_element_fullname
 
 
 @pytest.mark.parametrize(
@@ -15,5 +15,5 @@ from lsst.cmservice.db.node import NodeMixin
 )
 def test_fullname_parsing(fullname: str, expected: str) -> None:
     """Test element fullname regex"""
-    fields = NodeMixin._split_fullname(fullname)
+    fields = parse_element_fullname(fullname)
     assert expected in fields
