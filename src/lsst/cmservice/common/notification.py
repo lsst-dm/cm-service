@@ -27,19 +27,19 @@ SLACK_HEADER_SECTION = {
     },
     StatusEnum.failed: {
         "emoji": "dumpster-fire",
-        "text": "One or more WMS Jobs are FAILED",
+        "text": "One or more Campaign Nodes have FAILED",
     },
     StatusEnum.reviewable: {
         "emoji": "interrobang",
-        "text": "One or more WMS Jobs may require REVIEW",
+        "text": "One or more Campaign Nodes may require REVIEW",
     },
     StatusEnum.accepted: {
         "emoji": "100",
-        "text": "The campaign or job is SUCCESSFUL",
+        "text": "A Campaign or Node is SUCCESSFUL",
     },
     StatusEnum.running: {
         "emoji": "tada",
-        "text": "The Campaign has started RUNNING",
+        "text": "A Campaign has started RUNNING",
     },
 }
 
@@ -115,6 +115,7 @@ class SlackNotification(Notification):
             return None
 
         message = {
+            "text": use_header["text"],
             "blocks": [
                 # rich text header
                 {
@@ -134,7 +135,7 @@ class SlackNotification(Notification):
                 {"type": "section", "text": {"type": "mrkdwn", "text": detail_text}},
                 {"type": "divider"},
                 # TODO footer
-            ]
+            ],
         }
         return message
 
@@ -156,14 +157,13 @@ async def send_notification(
 
     slack_notifier = SlackNotification()
     campaign_name = parse_element_fullname(for_campaign.fullname)
+    campaign_link = f"{config.asgi.fqdn}{config.asgi.frontend_prefix}/campaign/{for_campaign.id}/steps"
+    detail_text = f"<{campaign_link}|*{campaign_name.campaign}*>"
 
-    # TODO construct a link to the appropriate web_app area for the referenced
-    #      elements
-    detail_text = f"*{campaign_name.campaign}*"
     if for_job is not None:
         detail_text += f"\n_{for_job.fullname}_"
     if detail is not None:
-        detail_text += f"\n{detail}"
+        detail_text += f"\n>{detail}"
     message = slack_notifier.build_message(
         status=for_status,
         detail_text=detail_text,

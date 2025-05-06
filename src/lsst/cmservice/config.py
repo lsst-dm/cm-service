@@ -466,6 +466,11 @@ class AsgiConfiguration(BaseModel):
         default=False,
     )
 
+    fqdn: str = Field(
+        description="DNS FQDN for hosted application",
+        default="https://usdf-cm-dev.slac.stanford.edu",
+    )
+
 
 class LoggingConfiguration(BaseModel):
     """Configuration for the application's logging facility."""
