@@ -1,11 +1,38 @@
 """String parsing module for CM Service."""
 
 import re
+from dataclasses import asdict, dataclass, fields
 
 from ..common.errors import CMBadFullnameError
 
 
-def parse_element_fullname(fullname: str) -> dict:
+@dataclass(order=True)
+class Fullname:
+    """A dataclass representing an Element's fullname."""
+
+    campaign: str
+    step: str | None = None
+    group: str | None = None
+    job: str | None = None
+    script: str | None = None
+
+    def fullname(self) -> str:
+        """Returns a /-delimited fullname string"""
+        fullname = ""
+        for f in fields(self):
+            f_value = getattr(self, f.name)
+            if f_value is None:
+                break
+            else:
+                fullname += f"/{f_value}"
+        return fullname.lstrip("/")
+
+    def model_dump(self) -> dict:
+        """Returns dataclass as a dictionary with Nones removed."""
+        return {k: v for k, v in asdict(self).items() if v is not None}
+
+
+def parse_element_fullname(fullname: str) -> Fullname:
     """Parse a /-delimited fullname into named fields
 
     Parameters
@@ -30,12 +57,8 @@ def parse_element_fullname(fullname: str) -> dict:
         ),
         re.MULTILINE,
     )
-    fields = {"production": "DEFAULT"}
 
     if (match := re.match(fullname_r, fullname)) is None:
         raise CMBadFullnameError(f"Fullname {fullname} is not parseable")
 
-    for k, v in match.groupdict().items():
-        fields[k] = v
-
-    return fields
+    return Fullname(**match.groupdict())

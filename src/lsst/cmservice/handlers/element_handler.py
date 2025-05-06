@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 
 from ..common.enums import LevelEnum, StatusEnum
 from ..common.errors import CMYamlParseError, test_type_and_raise
+from ..common.notification import send_notification
 from ..config import config
 from ..db.campaign import Campaign
 from ..db.element import ElementMixin
@@ -100,12 +101,18 @@ class ElementHandler(Handler):
             (has_changed, status) = await self.continue_processing(session, node, **kwargs)
             changed |= has_changed
         if status == StatusEnum.running:
+            # if is a campaign, notify on the change
+            if changed and node.level is LevelEnum.campaign:
+                if TYPE_CHECKING:
+                    assert isinstance(node, Campaign)
+                await send_notification(for_status=status, for_campaign=node)
             (has_changed, status) = await self.check(session, node, **kwargs)
             changed |= has_changed
             if status == StatusEnum.running:
                 (has_changed, status) = await self.continue_processing(session, node, **kwargs)
                 changed |= has_changed
         if status == StatusEnum.reviewable:
+            # TODO put notification here instead of in review()?
             status = await self.review(session, node, **kwargs)
         if status != orig_status:
             changed = True

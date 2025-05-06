@@ -15,5 +15,7 @@ from lsst.cmservice.parsing.string import parse_element_fullname
 )
 def test_fullname_parsing(fullname: str, expected: str) -> None:
     """Test element fullname regex"""
-    fields = parse_element_fullname(fullname)
-    assert expected in fields
+    fullname_ = parse_element_fullname(fullname)
+    assert getattr(fullname_, expected) is not None
+
+    assert fullname_.fullname() == fullname

@@ -5,78 +5,43 @@ systems.
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from copy import deepcopy
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING
 
 import httpx
 
 from ..config import config
+from ..parsing.string import parse_element_fullname
 from .enums import StatusEnum
 from .logging import LOGGER
 
 if TYPE_CHECKING:
-    from ..db import Campaign, Job
+    from ..db import Campaign, Job, Script
 
 logger = LOGGER.bind(module=__name__)
 
 
-class RichTextSection(TypedDict):
-    type: str
-    elements: list
-
-
-SLACK_NOTIFICATION = {
-    "blocks": [
-        {
-            "type": "section",
-            "text": {
-                "type": "plain_text",
-                "emoji": True,
-                "text": "A Campaign Job has entered a terminal state:",
-            },
-        },
-        {"type": "divider"},
-    ]
+SLACK_HEADER_SECTION = {
+    StatusEnum.blocked: {
+        "emoji": "ice_cube",
+        "text": "One or more WMS Jobs are BLOCKED",
+    },
+    StatusEnum.failed: {
+        "emoji": "dumpster-fire",
+        "text": "One or more WMS Jobs are FAILED",
+    },
+    StatusEnum.reviewable: {
+        "emoji": "interrobang",
+        "text": "One or more WMS Jobs may require REVIEW",
+    },
+    StatusEnum.accepted: {
+        "emoji": "100",
+        "text": "The campaign or job is SUCCESSFUL",
+    },
+    StatusEnum.running: {
+        "emoji": "tada",
+        "text": "The Campaign has started RUNNING",
+    },
 }
-
-
-SLACK_JOB_BLOCKED_SECTION: RichTextSection = {
-    "type": "rich_text_section",
-    "elements": [
-        {"type": "emoji", "name": "ice_cube"},
-        {"type": "text", "text": "One or more WMS Jobs are BLOCKED"},
-    ],
-}
-"""A template message section for notifying a CM Job has been blocked."""
-
-
-SLACK_JOB_FAILED_SECTION: RichTextSection = {
-    "type": "rich_text_section",
-    "elements": [
-        {"type": "emoji", "name": "dumpster-fire"},
-        {"type": "text", "text": "One or more WMS Jobs are FAILED"},
-    ],
-}
-"""A template message section for notifying a CM Job has failed."""
-
-
-SLACK_JOB_REVIEWABLE_SECTION: RichTextSection = {
-    "type": "rich_text_section",
-    "elements": [
-        {"type": "emoji", "name": "interrobang"},
-        {"type": "text", "text": "One or more WMS Jobs may require REVIEW"},
-    ],
-}
-"""A template message section for notifying a CM Job has failed."""
-
-SLACK_JOB_DONE_SECTION: RichTextSection = {
-    "type": "rich_text_section",
-    "elements": [
-        {"type": "emoji", "name": "100"},
-        {"type": "text", "text": "The campaign or job is SUCCESSFUL"},
-    ],
-}
-"""A template message section for notifying a CM Job has finished."""
 
 
 @asynccontextmanager
@@ -134,9 +99,51 @@ class SlackNotification(Notification):
 
         return None
 
+    def build_message(self, status: StatusEnum, detail_text: str) -> dict | None:
+        """Construct a Slack Block Kit message
+
+        Raises
+        ------
+        KeyError
+            If status is not valid for notification, i.e., it is not a terminal
+            status.
+        """
+
+        try:
+            use_header = SLACK_HEADER_SECTION[status]
+        except KeyError:
+            return None
+
+        message = {
+            "blocks": [
+                # rich text header
+                {
+                    "type": "rich_text",
+                    "elements": [
+                        {
+                            "type": "rich_text_section",
+                            "elements": [
+                                {"type": "emoji", "name": use_header["emoji"]},
+                                {"type": "text", "text": use_header["text"]},
+                            ],
+                        }
+                    ],
+                },
+                {"type": "divider"},
+                # detail section
+                {"type": "section", "text": {"type": "mrkdwn", "text": detail_text}},
+                {"type": "divider"},
+                # TODO footer
+            ]
+        }
+        return message
+
 
 async def send_notification(
-    for_status: StatusEnum, for_campaign: "Campaign", for_job: "Job | None" = None
+    for_status: StatusEnum,
+    for_campaign: "Campaign",
+    for_job: "Job | Script | None" = None,
+    detail: str | None = None,
 ) -> None:
     """Sends a notification message."""
 
@@ -147,34 +154,21 @@ async def send_notification(
     if not any([config.notifications.slack_webhook_url]):
         return None
 
-    message = deepcopy(SLACK_NOTIFICATION)
+    slack_notifier = SlackNotification()
+    campaign_name = parse_element_fullname(for_campaign.fullname)
 
-    campaign_name = for_campaign.fullname
-
-    # a section for the element details
     # TODO construct a link to the appropriate web_app area for the referenced
     #      elements
-    detail_text = f"*{campaign_name}*"
+    detail_text = f"*{campaign_name.campaign}*"
     if for_job is not None:
-        detail_text += f"\n*<{for_job.fullname}>*"
-    message["blocks"].append(
-        {"type": "section", "text": {"type": "mrkdwn", "text": detail_text}},
+        detail_text += f"\n_{for_job.fullname}_"
+    if detail is not None:
+        detail_text += f"\n{detail}"
+    message = slack_notifier.build_message(
+        status=for_status,
+        detail_text=detail_text,
     )
-
-    rich_text: RichTextSection = {"type": "rich_text", "elements": []}
-
-    match for_status:
-        case StatusEnum.blocked:
-            rich_text["elements"].append(SLACK_JOB_BLOCKED_SECTION)
-        case StatusEnum.failed:
-            rich_text["elements"].append(SLACK_JOB_FAILED_SECTION)
-        case StatusEnum.accepted:
-            rich_text["elements"].append(SLACK_JOB_DONE_SECTION)
-        case StatusEnum.reviewable:
-            rich_text["elements"].append(SLACK_JOB_REVIEWABLE_SECTION)
-        case _:
-            # Only notify on terminal states
-            return None
-
-    message["blocks"].append(rich_text)
-    return await SlackNotification().anotify(message)
+    if message is not None:
+        return await SlackNotification().anotify(message)
+    else:
+        return None

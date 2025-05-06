@@ -16,6 +16,7 @@ from ..common.errors import (
     CMSubmitError,
 )
 from ..common.htcondor import check_htcondor_job, submit_htcondor_job, write_htcondor_script
+from ..common.notification import send_notification
 from ..common.slurm import check_slurm_job, submit_slurm_job
 from ..config import config
 from ..db.element import ElementMixin
@@ -120,6 +121,10 @@ class BaseScriptHandler(Handler):
         status = await self.check(session, node, parent, **kwargs)
         if orig_status != status:
             changed = True
+            # notify on new failure
+            if status is StatusEnum.failed:
+                campaign = await node.get_campaign(session)
+                await send_notification(status, for_campaign=campaign, for_job=node)
         return (changed, status)
 
     async def prepare(
@@ -501,7 +506,7 @@ class ScriptHandler(BaseScriptHandler):
         **kwargs: Any,
     ) -> StatusEnum:
         fake_status = kwargs.get("fake_status", config.mock_status)
-
+        diagnostic_message = None
         script_method = self.default_method if script.method == ScriptMethodEnum.default else script.method
 
         if script_method == ScriptMethodEnum.no_script:  # pragma: no cover
@@ -532,6 +537,12 @@ class ScriptHandler(BaseScriptHandler):
             )
         if status != script.status:
             await script.update_values(session, status=status)
+            # notify on a new failure
+            if status is StatusEnum.failed:
+                campaign = await script.get_campaign(session)
+                await send_notification(
+                    for_status=status, for_campaign=campaign, for_job=script, detail=diagnostic_message
+                )
         return status
 
     async def _write_script(

@@ -300,6 +300,11 @@ class BpsScriptHandler(ScriptHandler):
         test_type_and_raise(parent, Job, "BpsScriptHandler parent")
         status = await ScriptHandler.launch(self, session, script, parent, **kwargs)
         await parent.update_values(session, stamp_url=script.stamp_url)
+        if (status.value >= StatusEnum.running.value) and (await script.data_dict(session)).get(
+            "notify_on_start", False
+        ):
+            campaign = await script.get_campaign(session)
+            await send_notification(for_status=status, for_campaign=campaign, for_job=script)
         return status
 
     @classmethod
