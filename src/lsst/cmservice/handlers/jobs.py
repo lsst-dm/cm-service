@@ -304,7 +304,9 @@ class BpsScriptHandler(ScriptHandler):
             "notify_on_start", False
         ):
             campaign = await script.get_campaign(session)
-            await send_notification(for_status=status, for_campaign=campaign, for_job=script)
+            await send_notification(
+                for_status=status, for_campaign=campaign, for_job=script, detail=script.log_url
+            )
         return status
 
     @classmethod
@@ -414,7 +416,6 @@ class BpsReportHandler(FunctionHandler):
         """
         fake_status = kwargs.get("fake_status", config.mock_status)
         wms_svc = self._get_wms_svc(config={})
-        campaign = await job.get_campaign(session)
 
         # It is an error if the wms_svc_class cannot be imported when not under
         # a fake status.
@@ -444,8 +445,6 @@ class BpsReportHandler(FunctionHandler):
             #       backoff
             logger.exception()
             status = StatusEnum.failed
-
-        await send_notification(for_status=status, for_campaign=campaign, for_job=job)
         return status
 
     async def _do_prepare(
@@ -477,6 +476,9 @@ class BpsReportHandler(FunctionHandler):
         fake_status = kwargs.get("fake_status", None)
         status = await self._load_wms_reports(session, parent, parent.wms_job_id, fake_status=fake_status)
         status = script.status if status is None else status
+        if status is not script.status:
+            campaign = await script.get_campaign(session)
+            await send_notification(for_status=status, for_campaign=campaign, for_job=parent)
         await script.update_values(session, status=status)
         return status
 

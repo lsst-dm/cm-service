@@ -1,6 +1,7 @@
 """Utility functions for working with htcondor jobs"""
 
 import importlib.util
+import json
 import sys
 from collections.abc import Mapping
 from types import ModuleType
@@ -144,7 +145,14 @@ async def check_htcondor_job(
         if htcondor_id is None:  # pragma: no cover
             raise CMHTCondorCheckError("No htcondor_id")
         async with await open_process(
-            [config.htcondor.condor_q_bin, "-userlog", htcondor_id, "-af", "JobStatus", "ExitCode"],
+            [
+                config.htcondor.condor_q_bin,
+                "-userlog",
+                htcondor_id,
+                "-json",
+                "-attributes",
+                "'JobStatus,ExitCode'",
+            ],
             env=build_htcondor_submit_environment(),
         ) as condor_q:  # pragma: no cover
             if await condor_q.wait() != 0:
@@ -158,11 +166,9 @@ async def check_htcondor_job(
                 lines = ""
                 async for text in TextReceiveStream(condor_q.stdout):
                     lines += text
-                # condor_q puts an extra newline, we use 2nd to the last line
-                tokens = lines.split("\n")[-2].split()
-                assert len(tokens) == 2
-                htcondor_status = int(tokens[0])
-                exit_code = tokens[1]
+                htcondor_stdout = json.loads(lines)
+                htcondor_status = htcondor_stdout["JobStatus"]
+                exit_code = htcondor_stdout["ExitCode"]
             except Exception as e:
                 raise CMHTCondorCheckError(f"Badly formatted htcondor check: {e}") from e
     except Exception as e:
