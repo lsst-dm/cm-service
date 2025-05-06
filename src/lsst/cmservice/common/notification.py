@@ -15,7 +15,7 @@ from .enums import StatusEnum
 from .logging import LOGGER
 
 if TYPE_CHECKING:
-    from ..db import Campaign, Job
+    from ..db import Campaign, Job, Script
 
 logger = LOGGER.bind(module=__name__)
 
@@ -140,7 +140,10 @@ class SlackNotification(Notification):
 
 
 async def send_notification(
-    for_status: StatusEnum, for_campaign: "Campaign", for_job: "Job | None" = None
+    for_status: StatusEnum,
+    for_campaign: "Campaign",
+    for_job: "Job | Script | None" = None,
+    detail: str | None = None,
 ) -> None:
     """Sends a notification message."""
 
@@ -159,7 +162,8 @@ async def send_notification(
     detail_text = f"*{campaign_name.campaign}*"
     if for_job is not None:
         detail_text += f"\n_{for_job.fullname}_"
-
+    if detail is not None:
+        detail_text += f"\n{detail}"
     message = slack_notifier.build_message(
         status=for_status,
         detail_text=detail_text,
