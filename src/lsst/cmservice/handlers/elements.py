@@ -12,6 +12,7 @@ from ..common.butler import BUTLER_FACTORY
 from ..common.enums import StatusEnum
 from ..common.errors import CMMissingScriptInputError, test_type_and_raise
 from ..common.logging import LOGGER
+from ..common.notification import send_notification
 from ..config import config
 from ..db.campaign import Campaign
 from ..db.element import ElementMixin
@@ -24,8 +25,7 @@ logger = LOGGER.bind(module=__name__)
 
 
 class RunElementScriptHandler(FunctionHandler):
-    """Shared base class to handling running and
-    checking of Scripts that mangage the children
+    """Base class to handle running and checking Scripts that manage children
     of elements
 
     E.g.,  RunGroupsScriptHandler and RunStepsScriptHandler
@@ -69,15 +69,12 @@ class RunElementScriptHandler(FunctionHandler):
 class RunJobsScriptHandler(RunElementScriptHandler):
     """Create a `Job` in the DB
 
-    This will create a single job per group,
-    which ideally would process the workflow for
-    that group.
-
-    If needed rescue jobs can be attached to the
+    This creates a single job per group, which processes the workflow for that
     group.
 
-    The review_script method is there to check on the
-    status of the jobs.
+    If needed rescue jobs can be attached to the group.
+
+    The review_script method is there to check on the status of the jobs.
     """
 
     async def _do_prepare(
@@ -111,6 +108,7 @@ class RunJobsScriptHandler(RunElementScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
+        campaign = await script.get_campaign(session)
         jobs = await parent.get_jobs(session, remaining_only=not kwargs.get("force_check", False))
         fake_status = kwargs.get("fake_status", config.mock_status)
         for job_ in jobs:
@@ -118,6 +116,11 @@ class RunJobsScriptHandler(RunElementScriptHandler):
             if job_status.value < StatusEnum.accepted.value:
                 status = StatusEnum.reviewable
                 await script.update_values(session, status=status)
+                await send_notification(
+                    for_status=status,
+                    for_campaign=campaign,
+                    for_job=job_,
+                )
                 return status
         status = StatusEnum.accepted
         await script.update_values(session, status=status)
@@ -317,11 +320,9 @@ class RunGroupsScriptHandler(RunElementScriptHandler):
 
 
 class RunStepsScriptHandler(RunElementScriptHandler):
-    """Build and manages the Steps associated to a `Campaign`
+    """Build and manages the Steps associated with a `Campaign`
 
-    This will use the
-
-    `campaign.child_config` -> to set the steps
+    This will use the `campaign.child_config` -> to set the steps
     """
 
     async def _do_prepare(

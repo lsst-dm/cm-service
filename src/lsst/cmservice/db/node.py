@@ -192,8 +192,8 @@ class NodeMixin(RowMixin):
         """
         raw_collections: dict[str, str | list[str]] = await NodeMixin.get_collections(self, session)
         collection_dict = await self.get_collections(session)
-        name_dict = parse_element_fullname(self.fullname)
-        lookup_chain = ChainMap(collection_dict, name_dict, defaultdict(lambda: "MUST_OVERRIDE"))
+        fullname = parse_element_fullname(self.fullname)
+        lookup_chain = ChainMap(collection_dict, fullname.model_dump(), defaultdict(lambda: "MUST_OVERRIDE"))
 
         resolved_collections = {
             k: (v if isinstance(v, str) else ",".join(v)) for k, v in raw_collections.items()
