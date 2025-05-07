@@ -26,6 +26,7 @@ from ..common.errors import (
     test_type_and_raise,
 )
 from ..common.logging import LOGGER
+from ..common.notification import send_notification
 from ..config import config
 from ..db.element import ElementMixin
 from ..db.job import Job
@@ -123,7 +124,7 @@ class BpsScriptHandler(ScriptHandler):
         log_url = await Path(os.path.expandvars(f"{prod_area}/{script.fullname}.log")).resolve()
         config_path = await Path(config_url).resolve()
         submit_path = await Path(f"{prod_area}/{parent.fullname}/submit").resolve()
-        workflow_config["submit_path"] = str(submit_path)
+        workflow_config["submit_path"] = f"{submit_path}/{{timestamp}}"
 
         try:
             await run_in_threadpool(shutil.rmtree, submit_path)
@@ -281,12 +282,15 @@ class BpsScriptHandler(ScriptHandler):
             await script.update_values(session, status=htcondor_status)
             if fake_status is not None:
                 wms_job_id = "fake_job"
-            else:  # pragma: no cover
+                bps_submit_dir = "fake_path"
+            else:
                 if TYPE_CHECKING:
                     assert script.log_url is not None
                 bps_dict = await parse_bps_stdout(script.log_url)
                 wms_job_id = self.get_job_id(bps_dict)
+                bps_submit_dir = self.get_bps_submit_dir(bps_dict)
             await parent.update_values(session, wms_job_id=wms_job_id)
+            await parent.update_data_dict(session, bps_submit_dir=bps_submit_dir)
         return htcondor_status
 
     async def launch(
@@ -299,10 +303,21 @@ class BpsScriptHandler(ScriptHandler):
         test_type_and_raise(parent, Job, "BpsScriptHandler parent")
         status = await ScriptHandler.launch(self, session, script, parent, **kwargs)
         await parent.update_values(session, stamp_url=script.stamp_url)
+        if (status.value >= StatusEnum.running.value) and (await script.data_dict(session)).get(
+            "notify_on_start", False
+        ):
+            campaign = await script.get_campaign(session)
+            await send_notification(
+                for_status=status, for_campaign=campaign, for_job=script, detail=script.log_url
+            )
         return status
 
     @classmethod
     def get_job_id(cls, bps_dict: dict) -> str:
+        raise NotImplementedError
+
+    @classmethod
+    def get_bps_submit_dir(cls, bps_dict: dict) -> str:
         raise NotImplementedError
 
     async def _reset_script(
@@ -425,8 +440,7 @@ class BpsReportHandler(FunctionHandler):
             wms_run_report: WmsRunReport | None
 
         try:
-            # FIXME: Why does wms_workflow_id need to be stripped?
-            wms_svc_report = partial(wms_svc.report, wms_workflow_id=wms_workflow_id.strip())
+            wms_svc_report = partial(wms_svc.report, wms_workflow_id=wms_workflow_id)
             run_reports, message = await to_thread.run_sync(wms_svc_report)
             logger.debug(message)
             wms_run_report = run_reports[0]
@@ -469,6 +483,9 @@ class BpsReportHandler(FunctionHandler):
         fake_status = kwargs.get("fake_status", None)
         status = await self._load_wms_reports(session, parent, parent.wms_job_id, fake_status=fake_status)
         status = script.status if status is None else status
+        if status is not script.status:
+            campaign = await script.get_campaign(session)
+            await send_notification(for_status=status, for_campaign=campaign, for_job=parent)
         await script.update_values(session, status=status)
         return status
 
@@ -505,6 +522,10 @@ class PandaScriptHandler(BpsScriptHandler):
     def get_job_id(cls, bps_dict: dict) -> str:
         return bps_dict["Run Id"]
 
+    @classmethod
+    def get_bps_submit_dir(cls, bps_dict: dict) -> str:
+        return bps_dict["Submit dir"]
+
 
 class HTCondorScriptHandler(BpsScriptHandler):
     """Class to handle running Bps for ht_condor jobs"""
@@ -514,6 +535,10 @@ class HTCondorScriptHandler(BpsScriptHandler):
     @classmethod
     def get_job_id(cls, bps_dict: dict) -> str:
         return bps_dict["Submit dir"]
+
+    @classmethod
+    def get_bps_submit_dir(cls, bps_dict: dict) -> str:
+        return cls.get_job_id(bps_dict)
 
 
 class PandaReportHandler(BpsReportHandler):
@@ -540,14 +565,22 @@ class ManifestReportScriptHandler(ScriptHandler):
     ) -> StatusEnum:
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
+        parent_data_dict = await parent.data_dict(session)
         prod_area = os.path.expandvars(data_dict["prod_area"])
         script_url = await self._set_script_files(session, script, prod_area)
         butler_repo = data_dict["butler_repo"]
         job_run_coll = resolved_cols["job_run"]
         qgraph_file = f"{job_run_coll}.qgraph".replace("/", "_")
 
-        graph_url = await Path(f"{prod_area}/{parent.fullname}/submit/{qgraph_file}").resolve()
-        report_url = await Path(f"{prod_area}/{parent.fullname}/submit/manifest_report.yaml").resolve()
+        # FIXME the paths to the submit directories must be resolved from the
+        # script's data
+        bps_submit_dir = parent_data_dict.get("bps_submit_dir", None)
+        if bps_submit_dir is not None:
+            graph_url = await Path(f"{bps_submit_dir}/{qgraph_file}").resolve()
+            report_url = await Path(f"{bps_submit_dir}/manifest_report.yaml").resolve()
+        else:
+            graph_url = await Path(f"{prod_area}/{parent.fullname}/submit/{qgraph_file}").resolve()
+            report_url = await Path(f"{prod_area}/{parent.fullname}/submit/manifest_report.yaml").resolve()
 
         template_values = {
             "script_method": script.run_method.name,

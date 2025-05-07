@@ -168,8 +168,6 @@ class ElementMixin(NodeMixin):
     ) -> Script:
         """Retry a script
 
-        This will retry a script
-
         Parameters
         ----------
         session : async_scoped_session
@@ -296,8 +294,7 @@ class ElementMixin(NodeMixin):
     ) -> StatusEnum:
         """Run review() function on this Element
 
-        This will create a `Handler` and
-        pass this node to it for review
+        Creates a `Handler` and passes this node to it for review
 
         Parameters
         ----------

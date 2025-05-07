@@ -87,6 +87,7 @@ class StatusEnum(enum.Enum):
     one step at a time.
 
     Bad States, requires intervention:
+    blocked = -5  # The job is held or unready in the WMS
     failed = -4  # Processing failed
     rejected = -3  # Marked as rejected
     paused = -2 # processing is paused for some reason
@@ -121,6 +122,7 @@ class StatusEnum(enum.Enum):
 
     # note that ordering of these Enums matters within the
     # code matters.
+    blocked = -5
     failed = -4
     rejected = -3
     paused = -2
@@ -129,7 +131,7 @@ class StatusEnum(enum.Enum):
     ready = 1
     prepared = 2
     running = 3
-    # For scripts, status with value reater or equal to reviewable should be
+    # For scripts, status with value greater or equal to reviewable should be
     # considered a terminal state
     reviewable = 4
     # For elements states with value greater or equal to accepted should be
