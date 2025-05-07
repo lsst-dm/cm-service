@@ -28,6 +28,8 @@ from ..db.script_error import ScriptError
 
 logger = LOGGER.bind(module=__name__)
 
+DOUBLE_QUOTE = '"'
+
 
 class BaseScriptHandler(Handler):
     """SubClass of Handler to deal with script operations"""
@@ -57,7 +59,7 @@ class BaseScriptHandler(Handler):
                     session,
                     script_id=node.id,
                     source=ErrorSourceEnum.cmservice,
-                    diagnostic_message=str(msg),
+                    diagnostic_message=str(msg).strip(DOUBLE_QUOTE),
                 )
                 status = StatusEnum.failed
         if status == StatusEnum.prepared:
@@ -71,7 +73,7 @@ class BaseScriptHandler(Handler):
                     session,
                     script_id=node.id,
                     source=ErrorSourceEnum.cmservice,
-                    diagnostic_message=str(msg),
+                    diagnostic_message=str(msg).strip(DOUBLE_QUOTE),
                 )
                 status = StatusEnum.failed
             except CMSubmitError as msg:  # pragma: no cover
@@ -79,7 +81,7 @@ class BaseScriptHandler(Handler):
                     session,
                     script_id=node.id,
                     source=ErrorSourceEnum.local_script,
-                    diagnostic_message=str(msg),
+                    diagnostic_message=str(msg).strip(DOUBLE_QUOTE),
                 )
                 status = StatusEnum.failed
         if status == StatusEnum.running:
@@ -90,7 +92,7 @@ class BaseScriptHandler(Handler):
                     session,
                     script_id=node.id,
                     source=ErrorSourceEnum.cmservice,
-                    diagnostic_message=str(msg),
+                    diagnostic_message=str(msg).strip(DOUBLE_QUOTE),
                 )
                 status = StatusEnum.failed
             except CMCheckError as msg:  # pragma: no cover
@@ -98,7 +100,7 @@ class BaseScriptHandler(Handler):
                     session,
                     script_id=node.id,
                     source=ErrorSourceEnum.local_script,
-                    diagnostic_message=str(msg),
+                    diagnostic_message=str(msg).strip(DOUBLE_QUOTE),
                 )
                 status = StatusEnum.failed
 

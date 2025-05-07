@@ -151,7 +151,7 @@ async def check_htcondor_job(
                 htcondor_id,
                 "-json",
                 "-attributes",
-                "'JobStatus,ExitCode'",
+                "JobStatus,ExitCode",
             ],
             env=build_htcondor_submit_environment(),
         ) as condor_q:  # pragma: no cover
@@ -168,15 +168,16 @@ async def check_htcondor_job(
                     lines += text
                 htcondor_stdout: list[dict[str, Any]] = json.loads(lines)
                 htcondor_status = htcondor_stdout[0]["JobStatus"]
-                exit_code = htcondor_stdout[0]["ExitCode"]
-            except (json.JSONDecodeError, IndexError, KeyError) as e:
+                exit_code = htcondor_stdout[0].get("ExitCode")
+            except (AssertionError, json.JSONDecodeError, IndexError, KeyError) as e:
                 raise CMHTCondorCheckError(f"Badly formatted htcondor check: {e}") from e
     except Exception as e:
+        logger.exception()
         raise CMHTCondorCheckError(str(e)) from e
 
     status = htcondor_status_map[htcondor_status]  # pragma: no cover
     if status == StatusEnum.reviewable:  # pragma: no cover
-        if int(exit_code) == 0:
+        if exit_code is not None and int(exit_code) == 0:
             status = StatusEnum.accepted
         else:
             status = StatusEnum.failed
