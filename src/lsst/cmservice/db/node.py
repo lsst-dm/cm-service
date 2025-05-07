@@ -488,7 +488,10 @@ class NodeMixin(RowMixin):
         session: async_scoped_session,
         **kwargs: Any,
     ) -> NodeMixin:
-        """Update the data configuration associated with this Node
+        """Update the data configuration associated with this Node.
+
+        Existing keys cannot be updated while the Node is "in use" but new
+        keys may be added.
 
         Parameters
         ----------
@@ -502,11 +505,32 @@ class NodeMixin(RowMixin):
         -------
         node : NodeMixin
             Updated Node
+
+        Raises
+        ------
+        CMBadExecutionMethodError
+            If the node has no data attribute.
+
+        CMBadStateTransitionError
+            If the node is already evolved to a prepared or higher state, only
+            new keys may be added.
         """
         if not hasattr(self, "data"):  # pragma: no cover
             raise CMBadExecutionMethodError(f"{self.fullname} does not have attribute data")
 
-        if self.status.value >= StatusEnum.prepared.value:
+        # Separate kwargs between new and existing keys
+        # If only new keys are being added to the data dict, then we do not
+        # care that the node is "in use"
+        # FIXME data is a nullable field, but it shouldn't be, so we have to
+        #       protect against it being None
+        existing_keys = {k: v for k, v in kwargs.items() if k in self.data} if self.data else {}
+
+        if all(
+            [
+                self.status.value >= StatusEnum.prepared.value,
+                len(existing_keys),
+            ]
+        ):
             raise CMBadStateTransitionError(
                 f"Tried to modify a node that is in use. {self.fullname}:{self.status}",
             )

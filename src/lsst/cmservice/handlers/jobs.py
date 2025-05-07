@@ -282,12 +282,15 @@ class BpsScriptHandler(ScriptHandler):
             await script.update_values(session, status=htcondor_status)
             if fake_status is not None:
                 wms_job_id = "fake_job"
+                bps_submit_dir = "fake_path"
             else:
                 if TYPE_CHECKING:
                     assert script.log_url is not None
                 bps_dict = await parse_bps_stdout(script.log_url)
                 wms_job_id = self.get_job_id(bps_dict)
+                bps_submit_dir = self.get_bps_submit_dir(bps_dict)
             await parent.update_values(session, wms_job_id=wms_job_id)
+            await parent.update_data_dict(session, bps_submit_dir=bps_submit_dir)
         return htcondor_status
 
     async def launch(
@@ -311,6 +314,10 @@ class BpsScriptHandler(ScriptHandler):
 
     @classmethod
     def get_job_id(cls, bps_dict: dict) -> str:
+        raise NotImplementedError
+
+    @classmethod
+    def get_bps_submit_dir(cls, bps_dict: dict) -> str:
         raise NotImplementedError
 
     async def _reset_script(
@@ -515,6 +522,10 @@ class PandaScriptHandler(BpsScriptHandler):
     def get_job_id(cls, bps_dict: dict) -> str:
         return bps_dict["Run Id"]
 
+    @classmethod
+    def get_bps_submit_dir(cls, bps_dict: dict) -> str:
+        return bps_dict["Submit dir"]
+
 
 class HTCondorScriptHandler(BpsScriptHandler):
     """Class to handle running Bps for ht_condor jobs"""
@@ -524,6 +535,10 @@ class HTCondorScriptHandler(BpsScriptHandler):
     @classmethod
     def get_job_id(cls, bps_dict: dict) -> str:
         return bps_dict["Submit dir"]
+
+    @classmethod
+    def get_bps_submit_dir(cls, bps_dict: dict) -> str:
+        return cls.get_job_id(bps_dict)
 
 
 class PandaReportHandler(BpsReportHandler):
@@ -550,14 +565,22 @@ class ManifestReportScriptHandler(ScriptHandler):
     ) -> StatusEnum:
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
+        parent_data_dict = await parent.data_dict(session)
         prod_area = os.path.expandvars(data_dict["prod_area"])
         script_url = await self._set_script_files(session, script, prod_area)
         butler_repo = data_dict["butler_repo"]
         job_run_coll = resolved_cols["job_run"]
         qgraph_file = f"{job_run_coll}.qgraph".replace("/", "_")
 
-        graph_url = await Path(f"{prod_area}/{parent.fullname}/submit/{qgraph_file}").resolve()
-        report_url = await Path(f"{prod_area}/{parent.fullname}/submit/manifest_report.yaml").resolve()
+        # FIXME the paths to the submit directories must be resolved from the
+        # script's data
+        bps_submit_dir = parent_data_dict.get("bps_submit_dir", None)
+        if bps_submit_dir is not None:
+            graph_url = await Path(f"{bps_submit_dir}/{qgraph_file}").resolve()
+            report_url = await Path(f"{bps_submit_dir}/manifest_report.yaml").resolve()
+        else:
+            graph_url = await Path(f"{prod_area}/{parent.fullname}/submit/{qgraph_file}").resolve()
+            report_url = await Path(f"{prod_area}/{parent.fullname}/submit/manifest_report.yaml").resolve()
 
         template_values = {
             "script_method": script.run_method.name,
