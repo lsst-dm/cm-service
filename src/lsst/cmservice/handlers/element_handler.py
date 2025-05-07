@@ -120,7 +120,6 @@ class ElementHandler(Handler):
         node: NodeMixin,
         **kwargs: Any,
     ) -> tuple[bool, StatusEnum]:
-        # Need this so mypy doesn't think we are passing in Script
         if TYPE_CHECKING:
             assert isinstance(node, ElementMixin)  # for mypy
         return await self.check(session, node, **kwargs)
@@ -450,7 +449,12 @@ class ElementHandler(Handler):
         status : StatusEnum
             Status of the processing
         """
-        return StatusEnum.accepted
+        status = StatusEnum.accepted
+        if element.level is LevelEnum.campaign:
+            if TYPE_CHECKING:
+                assert isinstance(element, Campaign)
+            await send_notification(for_status=status, for_campaign=element)
+        return status
 
 
 class CampaignHandler(ElementHandler):
