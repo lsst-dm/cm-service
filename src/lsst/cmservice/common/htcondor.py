@@ -143,7 +143,7 @@ async def check_htcondor_job(
         return StatusEnum.reviewable if fake_status.value >= StatusEnum.reviewable.value else fake_status
     try:
         if htcondor_id is None:  # pragma: no cover
-            raise CMHTCondorCheckError("No htcondor_id")
+            raise CMHTCondorCheckError("Bad htcondor check input: No htcondor_id")
         async with await open_process(
             [
                 config.htcondor.condor_q_bin,
@@ -166,13 +166,13 @@ async def check_htcondor_job(
                 lines = ""
                 async for text in TextReceiveStream(condor_q.stdout):
                     lines += text
-                htcondor_stdout = json.loads(lines)
-                htcondor_status = htcondor_stdout["JobStatus"]
-                exit_code = htcondor_stdout["ExitCode"]
-            except Exception as e:
+                htcondor_stdout: list[dict[str, Any]] = json.loads(lines)
+                htcondor_status = htcondor_stdout[0]["JobStatus"]
+                exit_code = htcondor_stdout[0]["ExitCode"]
+            except (json.JSONDecodeError, IndexError, KeyError) as e:
                 raise CMHTCondorCheckError(f"Badly formatted htcondor check: {e}") from e
     except Exception as e:
-        raise CMHTCondorCheckError(f"Bad htcondor check: {e}") from e
+        raise CMHTCondorCheckError(str(e)) from e
 
     status = htcondor_status_map[htcondor_status]  # pragma: no cover
     if status == StatusEnum.reviewable:  # pragma: no cover
