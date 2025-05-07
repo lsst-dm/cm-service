@@ -24,10 +24,18 @@ htcondor_status_map = {
     2: StatusEnum.running,
     3: StatusEnum.running,
     4: StatusEnum.reviewable,
-    5: StatusEnum.paused,
+    5: StatusEnum.blocked,
     6: StatusEnum.running,
-    7: StatusEnum.running,
+    7: StatusEnum.paused,
 }
+"""Mapping of HTCondor JobStatus integer values to CM Service status enums.
+
+HTCondor JobStatus may be idle (1), running (2), removing (3), completed (4),
+held (5), transferring_output (6), or suspended (7).
+
+The completed status is mapped to reviewable here because the job's exit code
+will ultimately determine whether the job is accepted or failed.
+"""
 
 
 async def write_htcondor_script(
@@ -143,7 +151,7 @@ async def check_htcondor_job(
         return StatusEnum.reviewable if fake_status.value >= StatusEnum.reviewable.value else fake_status
     try:
         if htcondor_id is None:  # pragma: no cover
-            raise CMHTCondorCheckError("No htcondor_id")
+            raise CMHTCondorCheckError("Bad htcondor check input: No htcondor_id")
         async with await open_process(
             [
                 config.htcondor.condor_q_bin,
@@ -151,7 +159,7 @@ async def check_htcondor_job(
                 htcondor_id,
                 "-json",
                 "-attributes",
-                "'JobStatus,ExitCode'",
+                "JobStatus,ExitCode",
             ],
             env=build_htcondor_submit_environment(),
         ) as condor_q:  # pragma: no cover
@@ -166,17 +174,18 @@ async def check_htcondor_job(
                 lines = ""
                 async for text in TextReceiveStream(condor_q.stdout):
                     lines += text
-                htcondor_stdout = json.loads(lines)
-                htcondor_status = htcondor_stdout["JobStatus"]
-                exit_code = htcondor_stdout["ExitCode"]
-            except Exception as e:
+                htcondor_stdout: list[dict[str, Any]] = json.loads(lines)
+                htcondor_status = htcondor_stdout[0]["JobStatus"]
+                exit_code = htcondor_stdout[0].get("ExitCode")
+            except (AssertionError, json.JSONDecodeError, IndexError, KeyError) as e:
                 raise CMHTCondorCheckError(f"Badly formatted htcondor check: {e}") from e
-    except Exception as e:
-        raise CMHTCondorCheckError(f"Bad htcondor check: {e}") from e
+    except CMHTCondorCheckError:
+        logger.exception()
+        return StatusEnum.failed
 
     status = htcondor_status_map[htcondor_status]  # pragma: no cover
-    if status == StatusEnum.reviewable:  # pragma: no cover
-        if int(exit_code) == 0:
+    if status is StatusEnum.reviewable:  # pragma: no cover
+        if (exit_code is not None) and (int(exit_code) == 0):
             status = StatusEnum.accepted
         else:
             status = StatusEnum.failed

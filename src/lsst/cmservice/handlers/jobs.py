@@ -124,7 +124,7 @@ class BpsScriptHandler(ScriptHandler):
         log_url = await Path(os.path.expandvars(f"{prod_area}/{script.fullname}.log")).resolve()
         config_path = await Path(config_url).resolve()
         submit_path = await Path(f"{prod_area}/{parent.fullname}/submit").resolve()
-        workflow_config["submit_path"] = str(submit_path)
+        workflow_config["submit_path"] = f"{submit_path}/{{timestamp}}"
 
         try:
             await run_in_threadpool(shutil.rmtree, submit_path)
