@@ -450,10 +450,6 @@ class ElementHandler(Handler):
             Status of the processing
         """
         status = StatusEnum.accepted
-        if element.level is LevelEnum.campaign:
-            if TYPE_CHECKING:
-                assert isinstance(element, Campaign)
-            await send_notification(for_status=status, for_campaign=element)
         return status
 
 
@@ -466,7 +462,7 @@ class CampaignHandler(ElementHandler):
         element: ElementMixin,
     ) -> tuple[bool, StatusEnum]:
         if TYPE_CHECKING:
-            assert isinstance(element, Campaign)  # for mypy
+            assert isinstance(element, Campaign)
 
         spec_block = await element.get_spec_block(session)
         child_configs = spec_block.steps
@@ -475,3 +471,30 @@ class CampaignHandler(ElementHandler):
         await add_steps(session, element, child_configs)
         await send_notification(for_status=StatusEnum.running, for_campaign=element)
         return await ElementHandler.prepare(self, session, element)
+
+    async def _post_check(
+        self,
+        session: async_scoped_session,
+        element: ElementMixin,
+        **kwargs: Any,
+    ) -> StatusEnum:
+        """Hook for a final check after all the scripts have run
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        element: ElementMixin
+            `Element` in question
+
+        Returns
+        -------
+        status : StatusEnum
+            Status of the processing
+        """
+        if TYPE_CHECKING:
+            assert isinstance(element, Campaign)
+        status = StatusEnum.accepted
+        await send_notification(for_status=status, for_campaign=element)
+        return status

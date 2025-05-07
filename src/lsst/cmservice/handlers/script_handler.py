@@ -40,75 +40,91 @@ class BaseScriptHandler(Handler):
         node: NodeMixin,
         **kwargs: Any,
     ) -> tuple[bool, StatusEnum]:
-        # Need this so mypy doesn't think we are passing in Element
+        """Evolve the state of the script through its possible status states.
+
+        It is possible for a single call to this method to evolve the state of
+        a script through more than one status.
+        """
         if TYPE_CHECKING:
-            assert isinstance(node, Script)  # for mypy
+            assert isinstance(node, Script)
+        failure_diagnostic_message = None
         orig_status = node.status
         status = node.status
         changed = False
-        if status == StatusEnum.waiting:
+        if status is StatusEnum.waiting:
             is_ready = await node.check_prerequisites(session)
             if is_ready:
                 status = StatusEnum.ready
         parent = await node.get_parent(session)
-        if status == StatusEnum.ready:
+        if status is StatusEnum.ready:
             try:
                 status = await self.prepare(session, node, parent, **kwargs)
             except (CMBadExecutionMethodError, CMMissingScriptInputError) as msg:
+                failure_diagnostic_message = str(msg).strip(DOUBLE_QUOTE)
                 _new_error = await ScriptError.create_row(
                     session,
                     script_id=node.id,
                     source=ErrorSourceEnum.cmservice,
-                    diagnostic_message=str(msg).strip(DOUBLE_QUOTE),
+                    diagnostic_message=failure_diagnostic_message,
                 )
                 status = StatusEnum.failed
-        if status == StatusEnum.prepared:
+        if status is StatusEnum.prepared:
             try:
                 status = await self.launch(session, node, parent, **kwargs)
             except (
                 CMBadExecutionMethodError,
                 CMMissingNodeUrlError,
             ) as msg:  # pragma: no cover
+                failure_diagnostic_message = str(msg).strip(DOUBLE_QUOTE)
                 _new_error = await ScriptError.create_row(
                     session,
                     script_id=node.id,
                     source=ErrorSourceEnum.cmservice,
-                    diagnostic_message=str(msg).strip(DOUBLE_QUOTE),
+                    diagnostic_message=failure_diagnostic_message,
                 )
                 status = StatusEnum.failed
             except CMSubmitError as msg:  # pragma: no cover
+                failure_diagnostic_message = str(msg).strip(DOUBLE_QUOTE)
                 _new_error = await ScriptError.create_row(
                     session,
                     script_id=node.id,
                     source=ErrorSourceEnum.local_script,
-                    diagnostic_message=str(msg).strip(DOUBLE_QUOTE),
+                    diagnostic_message=failure_diagnostic_message,
                 )
                 status = StatusEnum.failed
-        if status == StatusEnum.running:
+        if status is StatusEnum.running:
             try:
                 status = await self.check(session, node, parent, **kwargs)
             except (CMBadExecutionMethodError, CMMissingNodeUrlError) as msg:  # pragma: no cover
+                failure_diagnostic_message = str(msg).strip(DOUBLE_QUOTE)
                 _new_error = await ScriptError.create_row(
                     session,
                     script_id=node.id,
                     source=ErrorSourceEnum.cmservice,
-                    diagnostic_message=str(msg).strip(DOUBLE_QUOTE),
+                    diagnostic_message=failure_diagnostic_message,
                 )
                 status = StatusEnum.failed
             except CMCheckError as msg:  # pragma: no cover
+                failure_diagnostic_message = str(msg).strip(DOUBLE_QUOTE)
                 _new_error = await ScriptError.create_row(
                     session,
                     script_id=node.id,
                     source=ErrorSourceEnum.local_script,
-                    diagnostic_message=str(msg).strip(DOUBLE_QUOTE),
+                    diagnostic_message=failure_diagnostic_message,
                 )
                 status = StatusEnum.failed
 
-        if status == StatusEnum.reviewable:
+        if status is StatusEnum.reviewable:
             status = await self.review_script(session, node, parent, **kwargs)
         if status != orig_status:
             changed = True
             await node.update_values(session, status=status)
+            if status in [StatusEnum.failed, StatusEnum.reviewable]:
+                campaign = await node.get_campaign(session)
+                await send_notification(
+                    status, for_campaign=campaign, for_job=node, detail=failure_diagnostic_message
+                )
+
         return (changed, status)
 
     async def run_check(
@@ -117,19 +133,14 @@ class BaseScriptHandler(Handler):
         node: NodeMixin,
         **kwargs: Any,
     ) -> tuple[bool, StatusEnum]:
-        # Need this so mypy doesn't think we are passing in Element
         if TYPE_CHECKING:
-            assert isinstance(node, Script)  # for mypy
+            assert isinstance(node, Script)
         parent = await node.get_parent(session)
         orig_status = node.status
         changed = False
         status = await self.check(session, node, parent, **kwargs)
         if orig_status != status:
             changed = True
-            # notify on new failure
-            if status is StatusEnum.failed:
-                campaign = await node.get_campaign(session)
-                await send_notification(status, for_campaign=campaign, for_job=node)
         return (changed, status)
 
     async def prepare(
@@ -236,10 +247,8 @@ class BaseScriptHandler(Handler):
     ) -> StatusEnum:
         """Review a `Script` processing
 
-        By default this does nothing, but
-        can be used to automate checking
-        jobs that a script has launched
-        or validating outputs or other
+        By default this does nothing, but can be used to automate checking
+        jobs that a script has launched or validating outputs or other
         review-like actions
 
         Parameters
@@ -532,7 +541,7 @@ class ScriptHandler(BaseScriptHandler):
             status = fake_status
 
         if status is StatusEnum.failed:
-            logger.error("Handing failure case for script", script_name=script.fullname)
+            logger.error("Handling failure case for script", script_name=script.fullname)
             if not script.log_url:
                 if fake_status is None:  # pragma: no cover
                     raise CMMissingNodeUrlError(f"log_url is not set for {script}")
@@ -544,10 +553,6 @@ class ScriptHandler(BaseScriptHandler):
                 script_id=script.id,
                 source=ErrorSourceEnum.local_script,
                 diagnostic_message=diagnostic_message,
-            )
-            campaign = await script.get_campaign(session)
-            await send_notification(
-                for_status=status, for_campaign=campaign, for_job=script, detail=diagnostic_message
             )
         if status is not script.status:
             await script.update_values(session, status=status)

@@ -12,7 +12,6 @@ from ..common.butler import BUTLER_FACTORY
 from ..common.enums import StatusEnum
 from ..common.errors import CMMissingScriptInputError, test_type_and_raise
 from ..common.logging import LOGGER
-from ..common.notification import send_notification
 from ..config import config
 from ..db.campaign import Campaign
 from ..db.element import ElementMixin
@@ -108,7 +107,6 @@ class RunJobsScriptHandler(RunElementScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        campaign = await script.get_campaign(session)
         jobs = await parent.get_jobs(session, remaining_only=not kwargs.get("force_check", False))
         fake_status = kwargs.get("fake_status", config.mock_status)
         for job_ in jobs:
@@ -116,11 +114,6 @@ class RunJobsScriptHandler(RunElementScriptHandler):
             if job_status.value < StatusEnum.accepted.value:
                 status = StatusEnum.reviewable
                 await script.update_values(session, status=status)
-                await send_notification(
-                    for_status=status,
-                    for_campaign=campaign,
-                    for_job=job_,
-                )
                 return status
         status = StatusEnum.accepted
         await script.update_values(session, status=status)

@@ -22,7 +22,7 @@ logger = LOGGER.bind(module=__name__)
 htcondor_status_map = {
     1: StatusEnum.running,
     2: StatusEnum.running,
-    3: StatusEnum.running,
+    3: StatusEnum.reviewable,
     4: StatusEnum.reviewable,
     5: StatusEnum.blocked,
     6: StatusEnum.running,
@@ -33,7 +33,7 @@ htcondor_status_map = {
 HTCondor JobStatus may be idle (1), running (2), removing (3), completed (4),
 held (5), transferring_output (6), or suspended (7).
 
-The completed status is mapped to reviewable here because the job's exit code
+A terminal status is mapped to reviewable here because the job's exit code
 will ultimately determine whether the job is accepted or failed.
 """
 
@@ -168,6 +168,7 @@ async def check_htcondor_job(
                 stderr_msg = ""
                 async for text in TextReceiveStream(condor_q.stderr):
                     stderr_msg += text
+                logger.error("Bad htcondor check", stderr=stderr_msg)
                 raise CMHTCondorCheckError(f"Bad htcondor check: {stderr_msg}")
             try:
                 assert condor_q.stdout
@@ -175,11 +176,13 @@ async def check_htcondor_job(
                 async for text in TextReceiveStream(condor_q.stdout):
                     lines += text
                 htcondor_stdout: list[dict[str, Any]] = json.loads(lines)
-                htcondor_status = htcondor_stdout[0]["JobStatus"]
-                exit_code = htcondor_stdout[0].get("ExitCode")
+                htcondor_status = htcondor_stdout[-1]["JobStatus"]
+                exit_code = htcondor_stdout[-1].get("ExitCode")
             except (AssertionError, json.JSONDecodeError, IndexError, KeyError) as e:
                 raise CMHTCondorCheckError(f"Badly formatted htcondor check: {e}") from e
-    except CMHTCondorCheckError:
+    # FIXME the bare exception here is not great but the list of possible
+    #       conditions is long.
+    except Exception:
         logger.exception()
         return StatusEnum.failed
 
@@ -269,7 +272,7 @@ def build_htcondor_submit_environment() -> Mapping[str, str]:
         #        butler, else a global endpoint value must satisfy all daemon
         #        instance butlers
         # FIXME: need to exclude None for the following!
-        AWS_ENDPOINT_URL_S3=config.aws_s3_endpoint_url,
+        AWS_ENDPOINT_URL_S3=config.aws_s3_endpoint_url or "",
         AWS_REQUEST_CHECKSUM_CALCULATION="WHEN_REQUIRED",
         AWS_RESPONSE_CHECKSUM_VALIDATION="WHEN_REQUIRED",
         # FIXME: because there is no db-auth.yaml in lsstsvc1's home directory

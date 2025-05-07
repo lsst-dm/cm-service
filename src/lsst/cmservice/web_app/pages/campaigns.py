@@ -27,6 +27,8 @@ async def get_campaign_details(session: async_scoped_session, campaign: Campaign
     campaign_details = {
         "id": campaign.id,
         "name": campaign.name,
+        # FIXME use ..common.parsing.string.parse_element_fullname instead of
+        #       token-counting
         "production_name": campaign.fullname.split("/")[0],
         "fullname": campaign.fullname,
         "lsst_version": campaign.data["lsst_version"],
