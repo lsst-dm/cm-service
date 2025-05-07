@@ -41,6 +41,10 @@ SLACK_HEADER_SECTION = {
         "emoji": "tada",
         "text": "A Campaign has started RUNNING",
     },
+    StatusEnum.rejected: {
+        "emoji": "thumbsdown",
+        "text": "A Campaign has been REJECTED",
+    },
 }
 
 

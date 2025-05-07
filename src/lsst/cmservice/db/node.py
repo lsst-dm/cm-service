@@ -573,6 +573,10 @@ class NodeMixin(RowMixin):
             raise CMBadStateTransitionError(f"Can not reject {self} as it is in status {self.status}")
 
         await self.update_values(session, status=StatusEnum.rejected)
+        if self.level is LevelEnum.campaign:
+            if TYPE_CHECKING:
+                assert isinstance(self, Campaign)
+            await send_notification(for_status=StatusEnum.rejected, for_campaign=self)
         return self
 
     async def accept(
