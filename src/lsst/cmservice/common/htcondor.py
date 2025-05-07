@@ -179,7 +179,9 @@ async def check_htcondor_job(
                 exit_code = htcondor_stdout[0].get("ExitCode")
             except (AssertionError, json.JSONDecodeError, IndexError, KeyError) as e:
                 raise CMHTCondorCheckError(f"Badly formatted htcondor check: {e}") from e
-    except CMHTCondorCheckError:
+    # FIXME the bare exception here is not great but the list of possible
+    #       conditions is long.
+    except Exception:
         logger.exception()
         return StatusEnum.failed
 
@@ -269,7 +271,7 @@ def build_htcondor_submit_environment() -> Mapping[str, str]:
         #        butler, else a global endpoint value must satisfy all daemon
         #        instance butlers
         # FIXME: need to exclude None for the following!
-        AWS_ENDPOINT_URL_S3=config.aws_s3_endpoint_url,
+        AWS_ENDPOINT_URL_S3=config.aws_s3_endpoint_url or "",
         AWS_REQUEST_CHECKSUM_CALCULATION="WHEN_REQUIRED",
         AWS_RESPONSE_CHECKSUM_VALIDATION="WHEN_REQUIRED",
         # FIXME: because there is no db-auth.yaml in lsstsvc1's home directory

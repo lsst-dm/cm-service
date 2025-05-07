@@ -532,7 +532,7 @@ class ScriptHandler(BaseScriptHandler):
             status = fake_status
 
         if status is StatusEnum.failed:
-            logger.error("Handing failure case for script", script_name=script.fullname)
+            logger.error("Handling failure case for script", script_name=script.fullname)
             if not script.log_url:
                 if fake_status is None:  # pragma: no cover
                     raise CMMissingNodeUrlError(f"log_url is not set for {script}")

@@ -12,7 +12,6 @@ from lsst.cmservice.common.bash import (
 )
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum, TableEnum
 from lsst.cmservice.common.errors import (
-    CMHTCondorCheckError,
     CMHTCondorSubmitError,
     CMSlurmCheckError,
     CMSlurmSubmitError,
@@ -118,8 +117,8 @@ async def test_common_htcondor() -> None:
     with pytest.raises(CMHTCondorSubmitError):
         await submit_htcondor_job("htcondor_temp.sh")
 
-    with pytest.raises(CMHTCondorCheckError):
-        await check_htcondor_job("htcondor_temp.log")
+    status = await check_htcondor_job("htcondor_temp.log")
+    assert status is StatusEnum.failed
 
     os.unlink("htcondor_temp.sh")
 
