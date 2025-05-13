@@ -1,7 +1,10 @@
-- Imports:
-    - "${CM_CONFIGS}/example_standard_scripts.yaml"
-    - "${CM_CONFIGS}/example_standard_elements.yaml"
-    - "${CM_CONFIGS}/example_hsc_micro_steps.yaml"
+Campaign:
+  spec_name: base
+  data:
+    project: unit-test
+    ticket: DM-XXXXX
+    description: Campaign for unit tests
+---
 - SpecBlock:
     name: basic_step
     includes: ["step"]

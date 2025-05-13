@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+from collections import ChainMap, defaultdict
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.exc import IntegrityError
@@ -201,10 +203,9 @@ class NodeMixin(RowMixin):
 
         Notes
         -----
-        This will return a dict with all of the collections
-        templated defined for this node resovled using
-        collection aliases and collection templates
-        defined up the processing heirarchy
+        This will return a dict with all of the collections templates defined
+        for this node resolved using collection aliases and collection templ-
+        ates defined up the processing hierarchy
 
         Parameters
         ----------
@@ -219,47 +220,31 @@ class NodeMixin(RowMixin):
         resolved_collections: dict
             Resolved collection names
         """
-        my_collections = await NodeMixin.get_collections(self, session)
+        raw_collections: dict[str, str | list[str]] = await NodeMixin.get_collections(self, session)
         collection_dict = await self.get_collections(session)
         name_dict = self._split_fullname(self.fullname)
-        name_dict["out"] = collection_dict.pop("out")
-        resolved_collections: dict = {}
-        for name_, val_ in my_collections.items():
-            if isinstance(val_, list):  # pragma: no cover
-                # FIXME, see if this is now being tested
-                resolved_collections[name_] = []
-                # FIXME disambiguate what types val_, item_ and f1 are supposed
-                #       to be
-                for item_ in val_:
-                    try:
-                        f1 = item_.format(**collection_dict)
-                    except KeyError:
-                        f1 = val_
-                    try:
-                        resolved_collections[name_].append(f1.format(**name_dict))
-                    except KeyError as e:
-                        raise CMResolveCollectionsError(
-                            f"Failed to resolve collection {name_} {f1} using: {name_dict!s}",
-                        ) from e
-                resolved_collections[name_] = ",".join(resolved_collections[name_])
-            else:
-                try:
-                    f1 = val_.format(**collection_dict)
-                except KeyError:
-                    f1 = val_
-                try:
-                    resolved_collections[name_] = f1.format(**name_dict)
-                except KeyError as msg:
-                    raise CMResolveCollectionsError(
-                        f"Failed to resolve collection {name_}, {f1} using: {name_dict!s}",
-                    ) from msg
+        lookup_chain = ChainMap(collection_dict, name_dict, defaultdict(lambda: "MUST_OVERRIDE"))
+
+        resolved_collections = {
+            k: (v if isinstance(v, str) else ",".join(v)) for k, v in raw_collections.items()
+        }
+
+        # It may take multiple passes to format all the placeholder
+        # tokens in the collection strings, repeat the formatting until no such
+        # tokens remain.
+        while unresolved_collections := {
+            k: v for k, v in resolved_collections.items() if re.search("{.*}", v)
+        }:
+            for k, v in unresolved_collections.items():
+                resolved_collections[k] = v.format_map(lookup_chain)
+
         if throw_overrides:
-            for key, value in resolved_collections.items():
-                if "MUST_OVERRIDE" in value:  # pragma: no cover
-                    raise CMResolveCollectionsError(
-                        f"Attempts to resolve {key} collection includes MUST_OVERRIDE. Make sure to provide "
-                        "necessary collection names."
-                    )
+            if [v for v in resolved_collections.values() if re.search("MUST_OVERRIDE", v)]:
+                raise CMResolveCollectionsError(
+                    "Attempts to resolve collection includes MUST_OVERRIDE. Make sure to provide "
+                    "necessary collection names."
+                )
+
         return resolved_collections
 
     async def get_collections(
@@ -342,13 +327,10 @@ class NodeMixin(RowMixin):
         self,
         session: async_scoped_session,
     ) -> dict:
-        """Get the data configuration
-        associated to a particular row
+        """Get the data configuration associated to a particular row
 
-        This will start with the data
-        configuration in the associated `SpecBlock`
-        and override it with with the data
-        configuration in the row
+        This will start with the data configuration in the associated
+        `SpecBlock` and override it with with the data configuration in the row
 
         Parameters
         ----------

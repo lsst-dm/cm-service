@@ -21,7 +21,7 @@ from functools import cache, partial
 from typing import TYPE_CHECKING
 
 from anyio import to_thread
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, NoCredentialsError
 from sqlalchemy.exc import OperationalError
 
 from lsst.daf.butler import Butler, ButlerConfig, ButlerRepoIndex, MissingCollectionError
@@ -115,7 +115,7 @@ class ButlerFactory:
             if TYPE_CHECKING:
                 assert isinstance(_butler, DirectButler)
             _butler._preload_cache(load_dimension_record_cache=False)
-        except (ClientError, OperationalError, RuntimeError):
+        except (ClientError, OperationalError, RuntimeError, NoCredentialsError):
             # Case that configured butler could not be created because of an
             # S3 or database error, or other Runtime error
             logger.exception()

@@ -47,8 +47,8 @@ async def create_tree(
     uuid_int: int,
 ) -> None:
     fixtures = Path(__file__).parent.parent / "fixtures" / "seeds"
-    interface = importlib.import_module("lsst.cmservice.handlers.interface")
-    specification = await interface.load_specification(session, f"{fixtures}/empty_config.yaml")
+    functions = importlib.import_module("lsst.cmservice.handlers.functions")
+    specification = await functions.load_specification(session, f"{fixtures}/empty_config.yaml")
     _ = await specification.get_block(session, "campaign")
 
     pname = "DEFAULT"

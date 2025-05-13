@@ -1,7 +1,6 @@
+---
 - Imports:
-    - "${CM_CONFIGS}/example_standard_scripts.yaml"
-    - "${CM_CONFIGS}/example_standard_elements.yaml"
-    - "${CM_CONFIGS}/example_hsc_micro_steps.yaml"
+    - ${FIXTURES}/test_hsc_micro_steps.yaml
 - SpecBlock:
     name: hsc_micro_campaign
     includes: ["base_campaign"]

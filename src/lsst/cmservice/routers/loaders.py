@@ -3,7 +3,7 @@ from safir.dependencies.db_session import db_session_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from .. import db, models
-from ..handlers import interface
+from ..handlers import functions, interface
 
 router = APIRouter(
     prefix="/load",
@@ -57,7 +57,7 @@ async def load_specification(
     """
     try:
         async with session.begin():
-            result = await interface.load_specification(session, **query.model_dump())
+            result = await functions.load_specification(session, **query.model_dump())
         return result
     except Exception as msg:
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg

@@ -1,3 +1,4 @@
+import sys
 from typing import Any
 
 import click
@@ -43,6 +44,9 @@ def specification(
 
 @load_group.command(name="campaign")
 @options.cmclient()
+@options.name()
+@options.namespace()
+@options.runtime_variable()
 @options.output()
 @options.campaign_yaml()
 @options.yaml_file()
@@ -55,6 +59,9 @@ def campaign(
     try:
         result = client.load.campaign_cl(**kwargs)
         output_pydantic_object(result, output, db.Campaign.col_names_for_table)
+    except RuntimeError as e:
+        logger.error(e)
+        sys.exit(1)
     except Exception:
         logger.exception()
 
