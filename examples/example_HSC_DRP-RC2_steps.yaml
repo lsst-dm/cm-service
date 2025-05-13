@@ -1,75 +1,75 @@
 - SpecBlock:
-      name: HSC_DRP-RC2_step1
-      includes: ['step']
-      data:
-          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step1"
-      child_config:
-          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
-          split_dataset: raw
-          split_field: exposure
+    name: HSC_DRP-RC2_step1
+    includes: ["step"]
+    data:
+      pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step1"
+    child_config:
+      base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+      split_dataset: raw
+      split_field: exposure
 - SpecBlock:
-      name: HSC_DRP-RC2_step2a
-      includes: ['step']
-      data:
-          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step2a"
-      child_config:
-          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
-          split_method: no_split
+    name: HSC_DRP-RC2_step2a
+    includes: ["step"]
+    data:
+      pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step2a"
+    child_config:
+      base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+      split_method: no_split
 - SpecBlock:
-      name: HSC_DRP-RC2_step2b
-      includes: ['step']
-      data:
-          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step2b"
-      child_config:
-          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
-          split_field: tract
+    name: HSC_DRP-RC2_step2b
+    includes: ["step"]
+    data:
+      pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step2b"
+    child_config:
+      base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+      split_field: tract
 - SpecBlock:
-      name: HSC_DRP-RC2_step2cde
-      includes: ['step']
-      data:
-          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step2cde"
-      child_config:
-          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
-          split_method: no_split
+    name: HSC_DRP-RC2_step2cde
+    includes: ["step"]
+    data:
+      pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step2cde"
+    child_config:
+      base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+      split_method: no_split
 - SpecBlock:
-      name: HSC_DRP-RC2_step3
-      includes: ['step']
-      data:
-          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step3"
-      child_config:
-          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
-          split_field: tract
+    name: HSC_DRP-RC2_step3
+    includes: ["step"]
+    data:
+      pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step3"
+    child_config:
+      base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+      split_field: tract
 - SpecBlock:
-      name: HSC_DRP-RC2_step4
-      includes: ['step']
-      data:
-          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step4"
-      child_config:
-          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
-          split_dataset: calexp
-          split_field: visit
+    name: HSC_DRP-RC2_step4
+    includes: ["step"]
+    data:
+      pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step4"
+    child_config:
+      base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+      split_dataset: calexp
+      split_field: visit
 - SpecBlock:
-      name: HSC_DRP-RC2_step5
-      includes: ['step']
-      data:
-          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step5"
-      child_config:
-          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
-          split_field: tract
+    name: HSC_DRP-RC2_step5
+    includes: ["step"]
+    data:
+      pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step5"
+    child_config:
+      base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+      split_field: tract
 - SpecBlock:
-      name: HSC_DRP-RC2_step6
-      includes: ['step']
-      data:
-          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step6"
-      child_config:
-          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
-          split_dataset: calexp
-          split_field: visit
+    name: HSC_DRP-RC2_step6
+    includes: ["step"]
+    data:
+      pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step6"
+    child_config:
+      base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+      split_dataset: calexp
+      split_field: visit
 - SpecBlock:
-      name: HSC_DRP-RC2_step7
-      includes: ['step']
-      data:
-          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step7"
-      child_config:
-          base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
-          split_method: no_split
+    name: HSC_DRP-RC2_step7
+    includes: ["step"]
+    data:
+      pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step7"
+    child_config:
+      base_query: "instrument='HSC' and skymap='hsc_rings_v1'"
+      split_method: no_split

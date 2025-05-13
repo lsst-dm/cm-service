@@ -114,13 +114,20 @@ def allocate_resources() -> None:
     # are doubled ("" or '').
     submission_environment = " ".join([f"{k}={v}" for k, v in build_htcondor_submit_environment().items()])
 
+    exclusive = " "
+    if config.slurm.exclusive:
+        exclusive = " --" + config.slurm.exclusive + exclusive
+
     # The minimum necessary submission spec executes a resource allocation
     # script to the local universe and does not preserve the output.
     submission_spec = {
         "executable": f"{config.htcondor.remote_user_home}/.local/bin/allocateNodes.py",
         "arguments": (
             f"--auto --account {config.slurm.account} -n 50 -m {config.slurm.duration} "
-            f"-q {config.slurm.partition} -g 240 {config.slurm.platform}"
+            f"-q {config.slurm.partition} -g 240 -c {config.slurm.cores}"
+            f"{exclusive}"
+            f"{config.slurm.extra_arguments} "
+            f"{config.slurm.platform}"
         ),
         "environment": f'"{submission_environment}"',
         "initialdir": config.htcondor.working_directory,

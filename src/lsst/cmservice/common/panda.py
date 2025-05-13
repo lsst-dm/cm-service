@@ -57,10 +57,18 @@ def refresh_panda_token(url: str, data: dict[str, str]) -> str | None:
         key.
     """
     with http_client() as session:
-        response = session.post(
-            url=url, data=data, headers={"content-type": "application/x-www-form-urlencoded"}
-        )
-        response.raise_for_status()
+        try:
+            response = session.post(
+                url=url, data=data, headers={"content-type": "application/x-www-form-urlencoded"}
+            )
+            response.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            logger.error(
+                "Unable to refresh panda token",
+                http_status=e.response.status_code,
+                message=e.response.reason_phrase,
+            )
+            return None
 
     token_data: dict[str, str] = response.json()
     # with the new token...

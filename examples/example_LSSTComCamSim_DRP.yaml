@@ -1,98 +1,98 @@
 - Imports:
-      - "${CM_CONFIGS}/example_standard_scripts.yaml"
-      - "${CM_CONFIGS}/example_standard_elements.yaml"
-      - "${CM_CONFIGS}/example_LSSTComCamSim_DRP_steps.yaml"
+    - "${CM_CONFIGS}/example_standard_scripts.yaml"
+    - "${CM_CONFIGS}/example_standard_elements.yaml"
+    - "${CM_CONFIGS}/example_LSSTComCamSim_DRP_steps.yaml"
 - SpecBlock:
-      name: LSSTComCamSim_DRP_campaign
-      includes: ["base_campaign"]
-      collections:
-          campaign_source: LSSTComCamSim/raw/test-or3-2
-          campaign_ancillary_inputs:
-              - LSSTComCamSim/calib
-              - refcats
-              - skymaps
-      data:
-          butler_repo: '/repo/ops-rehearsal-3-prep'
-          prod_area: 'output/archive'
-          data_query: "instrument='LSSTComCamSim' and skymap='ops_rehersal_prep_2k_v1'"
-          lsst_version: w_2024_22
-          bps_wms_clustering_file: ${DRP_PIPE_DIR}/bps/clustering/DRP-recalibrated.yaml
-          bps_wms_resources_file: ${DRP_PIPE_DIR}/bps/resources/LSSTComCamSim/DRP-ops-rehearsals.yaml
-      steps:
-          - Step:
-                name: step1
-                spec_block: LSSTComCamSim_DRP_step1
-                child_config:
-                    split_method: no_split
-          - Step:
-                name: step2a
-                spec_block: LSSTComCamSim_DRP_step2a
-                prerequisites: ['step1']
-                child_config:
-                    split_method: no_split
-          - Step:
-                name: step2b
-                spec_block: LSSTComCamSim_DRP_step2b
-                prerequisites: ['step2a']
-                child_config:
-                    split_method: no_split
-          - Step:
-                name: step2c
-                spec_block: LSSTComCamSim_DRP_step2c
-                prerequisites: ['step2b']
-                child_config:
-                    split_method: no_split
-          - Step:
-                name: step2d
-                spec_block: LSSTComCamSim_DRP_step2d
-                prerequisites: ['step2c']
-                child_config:
-                    split_method: no_split
-          - Step:
-                name: step2e
-                spec_block: LSSTComCamSim_DRP_step2e
-                prerequisites: ['step2d']
-                child_config:
-                    split_method: no_split
-          - Step:
-                name: step3
-                spec_block: LSSTComCamSim_DRP_step3
-                prerequisites: ['step2e']
-                child_config:
-                    split_method: no_split
-          - Step:
-                name: step4
-                spec_block: LSSTComCamSim_DRP_step4
-                prerequisites: ['step3']
-                child_config:
-                    split_method: no_split
-          - Step:
-                name: step5
-                spec_block: LSSTComCamSim_DRP_step5
-                prerequisites: ['step4']
-                child_config:
-                    split_method: no_split
-          - Step:
-                name: step6
-                spec_block: LSSTComCamSim_DRP_step6
-                prerequisites: ['step4']
-                child_config:
-                    split_method: no_split
-          - Step:
-                name: step7
-                spec_block: LSSTComCamSim_DRP_step7
-                prerequisites: ['step3']
-                child_config:
-                    split_method: no_split
+    name: LSSTComCamSim_DRP_campaign
+    includes: ["base_campaign"]
+    collections:
+      campaign_source: LSSTComCamSim/raw/test-or3-2
+      campaign_ancillary_inputs:
+        - LSSTComCamSim/calib
+        - refcats
+        - skymaps
+    data:
+      butler_repo: "/repo/ops-rehearsal-3-prep"
+      prod_area: "output/archive"
+      data_query: "instrument='LSSTComCamSim' and skymap='ops_rehersal_prep_2k_v1'"
+      lsst_version: w_2024_22
+      bps_wms_clustering_file: ${DRP_PIPE_DIR}/bps/clustering/DRP-recalibrated.yaml
+      bps_wms_resources_file: ${DRP_PIPE_DIR}/bps/resources/LSSTComCamSim/DRP-ops-rehearsals.yaml
+    steps:
+      - Step:
+          name: step1
+          spec_block: LSSTComCamSim_DRP_step1
+          child_config:
+            split_method: no_split
+      - Step:
+          name: step2a
+          spec_block: LSSTComCamSim_DRP_step2a
+          prerequisites: ["step1"]
+          child_config:
+            split_method: no_split
+      - Step:
+          name: step2b
+          spec_block: LSSTComCamSim_DRP_step2b
+          prerequisites: ["step2a"]
+          child_config:
+            split_method: no_split
+      - Step:
+          name: step2c
+          spec_block: LSSTComCamSim_DRP_step2c
+          prerequisites: ["step2b"]
+          child_config:
+            split_method: no_split
+      - Step:
+          name: step2d
+          spec_block: LSSTComCamSim_DRP_step2d
+          prerequisites: ["step2c"]
+          child_config:
+            split_method: no_split
+      - Step:
+          name: step2e
+          spec_block: LSSTComCamSim_DRP_step2e
+          prerequisites: ["step2d"]
+          child_config:
+            split_method: no_split
+      - Step:
+          name: step3
+          spec_block: LSSTComCamSim_DRP_step3
+          prerequisites: ["step2e"]
+          child_config:
+            split_method: no_split
+      - Step:
+          name: step4
+          spec_block: LSSTComCamSim_DRP_step4
+          prerequisites: ["step3"]
+          child_config:
+            split_method: no_split
+      - Step:
+          name: step5
+          spec_block: LSSTComCamSim_DRP_step5
+          prerequisites: ["step4"]
+          child_config:
+            split_method: no_split
+      - Step:
+          name: step6
+          spec_block: LSSTComCamSim_DRP_step6
+          prerequisites: ["step4"]
+          child_config:
+            split_method: no_split
+      - Step:
+          name: step7
+          spec_block: LSSTComCamSim_DRP_step7
+          prerequisites: ["step3"]
+          child_config:
+            split_method: no_split
 - Specification:
-      name: LSSTComCamSim_DRP_panda
-      spec_aliases:
-          campaign: LSSTComCamSim_DRP_campaign
-          bps_submit_script: bps_panda_submit_script
-          bps_report_script: bps_panda_report_script
+    name: LSSTComCamSim_DRP_panda
+    spec_aliases:
+      campaign: LSSTComCamSim_DRP_campaign
+      bps_submit_script: bps_panda_submit_script
+      bps_report_script: bps_panda_report_script
 - Specification:
-      name: LSSTComCamSim_DRP_htcondor
-      spec_aliases:
-          campaign: LSSTComCamSim_DRP_campaign
-          bps_submit_script: bps_htcondor_submit_script
-          bps_report_script: bps_htcondor_report_script
+    name: LSSTComCamSim_DRP_htcondor
+    spec_aliases:
+      campaign: LSSTComCamSim_DRP_campaign
+      bps_submit_script: bps_htcondor_submit_script
+      bps_report_script: bps_htcondor_report_script

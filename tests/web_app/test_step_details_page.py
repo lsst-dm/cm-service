@@ -44,7 +44,7 @@ async def test_get_step_details_by_id(engine: AsyncEngine) -> None:
             "child_config": {},
             "collections": {
                 "step_input": f"cm/hsc_rc2_micro/step1_{uuid_int}/input",
-                "step_output": f"cm/hsc_rc2_micro/step1_{uuid_int}_ouput",
+                "step_output": f"cm/hsc_rc2_micro/step1_{uuid_int}_output",
                 "step_public_output": f"cm/hsc_rc2_micro/step1_{uuid_int}",
                 "step_validation": f"cm/hsc_rc2_micro/step1_{uuid_int}/validate",
             },
@@ -134,7 +134,7 @@ def test_step_details_page() -> None:
         # check collections are correct
         expect(page.get_by_text("step_input: HSC/runs/RC2/w_2024_30/DM-45425c/step1/input")).not_to_be_empty()
         expect(
-            page.get_by_text("step_output: HSC/runs/RC2/w_2024_30/DM-45425c/step1_ouput"),
+            page.get_by_text("step_output: HSC/runs/RC2/w_2024_30/DM-45425c/step1_output"),
         ).not_to_be_empty()
         expect(
             page.get_by_text("step_public_output: HSC/runs/RC2/w_2024_30/DM-45425c/step1"),

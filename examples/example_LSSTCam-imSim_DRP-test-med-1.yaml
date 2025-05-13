@@ -1,93 +1,93 @@
 - Imports:
-      - "${CM_CONFIGS}/example_standard_scripts.yaml"
-      - "${CM_CONFIGS}/example_standard_elements.yaml"
-      - "${CM_CONFIGS}/example_LSSTCam-imSim_DRP-test-med-1_steps.yaml"
+    - "${CM_CONFIGS}/example_standard_scripts.yaml"
+    - "${CM_CONFIGS}/example_standard_elements.yaml"
+    - "${CM_CONFIGS}/example_LSSTCam-imSim_DRP-test-med-1_steps.yaml"
 - SpecBlock:
-      name: LSSTCam-imSim_DRP-test-med-1_campaign
-      includes: ["base_campaign_fixed_input"]
-      collections:
-          campaign_input: 2.2i/defaults/test-med-1
-          campaign_ancillary: "{out}/ancillary"
-      data:
-          butler_repo: '/repo/dc2+sasquatch_dev'
-          prod_area: /sdf/group/rubin/shared/campaigns/DC2-test-med-1/output/archive
-          data_query:
-          bps_wms_clustering_file: "${DRP_PIPE_DIR}/bps/clustering/LSSTCam-imSim/DRP-DC2-clustering.yaml"
-          bps_wms_resources_file: "${DRP_PIPE_DIR}/bps/resources/LSSTCam-imSim/DRP-test-med-1.yaml"
-          extra_qgraph_options: >
-            -c parameters:sasquatch_dataset_identifier=DC2/TestMed1
-            -c parameters:sasquatch_timestamp_version=reference_package_timestamp
-      steps:
-          - Step:
-                name: step1
-                spec_block: LSSTCam-imSim_DRP-test-med-1_step1
-                child_config:
-                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1' and tract in (3828, 3829)"
-                    split_method: split_by_query
-                    split_min_groups: 2
-          - Step:
-                name: step2
-                spec_block: LSSTCam-imSim_DRP-test-med-1_step2
-                prerequisites: ['step1']
-                child_config:
-                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1' and tract in (3828, 3829)"
-                    split_method: no_split
-          - Step:
-                name: step3
-                spec_block: LSSTCam-imSim_DRP-test-med-1_step3
-                prerequisites: ['step2']
-                child_config:
-                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1'"
-                    split_method: split_by_vals
-                    split_vals:
-                        - 3828
-                        - 3829
-          - Step:
-                name: step4
-                spec_block: LSSTCam-imSim_DRP-test-med-1_step4
-                prerequisites: ['step3']
-                child_config:
-                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1'"
-                    split_method: split_by_query
-                    split_min_groups: 2
-                data:
-                    extra_qgraph_options: >
-                        -c parameters:sasquatch_dataset_identifier=DC2/TestMed1
-                        -c parameters:sasquatch_timestamp_version=reference_package_timestamp
-                        --dataset-query-constraint finalVisitSummary
-          - Step:
-                name: step5
-                spec_block: LSSTCam-imSim_DRP-test-med-1_step5
-                prerequisites: ['step4']
-                child_config:
-                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1' and tract in (3828, 3829)"
-                    split_method: split_by_vals
-                    split_vals:
-                        - 3828
-                        - 3829
-          - Step:
-                name: step6
-                spec_block: LSSTCam-imSim_DRP-test-med-1_step6
-                prerequisites: ['step4']
-                child_config:
-                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1'"
-                    split_method: split_by_query
-                    split_min_groups: 2
-          - Step:
-                name: step7
-                spec_block: LSSTCam-imSim_DRP-test-med-1_step7
-                prerequisites: ['step3']
-                child_config:
-                    base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1' and tract in (3828, 3829)"
+    name: LSSTCam-imSim_DRP-test-med-1_campaign
+    includes: ["base_campaign_fixed_input"]
+    collections:
+      campaign_input: 2.2i/defaults/test-med-1
+      campaign_ancillary: "{out}/ancillary"
+    data:
+      butler_repo: "/repo/dc2+sasquatch_dev"
+      prod_area: /sdf/group/rubin/shared/campaigns/DC2-test-med-1/output/archive
+      data_query:
+      bps_wms_clustering_file: "${DRP_PIPE_DIR}/bps/clustering/LSSTCam-imSim/DRP-DC2-clustering.yaml"
+      bps_wms_resources_file: "${DRP_PIPE_DIR}/bps/resources/LSSTCam-imSim/DRP-test-med-1.yaml"
+      extra_qgraph_options: >
+        -c parameters:sasquatch_dataset_identifier=DC2/TestMed1
+        -c parameters:sasquatch_timestamp_version=reference_package_timestamp
+    steps:
+      - Step:
+          name: step1
+          spec_block: LSSTCam-imSim_DRP-test-med-1_step1
+          child_config:
+            base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1' and tract in (3828, 3829)"
+            split_method: split_by_query
+            split_min_groups: 2
+      - Step:
+          name: step2
+          spec_block: LSSTCam-imSim_DRP-test-med-1_step2
+          prerequisites: ["step1"]
+          child_config:
+            base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1' and tract in (3828, 3829)"
+            split_method: no_split
+      - Step:
+          name: step3
+          spec_block: LSSTCam-imSim_DRP-test-med-1_step3
+          prerequisites: ["step2"]
+          child_config:
+            base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1'"
+            split_method: split_by_vals
+            split_vals:
+              - 3828
+              - 3829
+      - Step:
+          name: step4
+          spec_block: LSSTCam-imSim_DRP-test-med-1_step4
+          prerequisites: ["step3"]
+          child_config:
+            base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1'"
+            split_method: split_by_query
+            split_min_groups: 2
+          data:
+            extra_qgraph_options: >
+              -c parameters:sasquatch_dataset_identifier=DC2/TestMed1
+              -c parameters:sasquatch_timestamp_version=reference_package_timestamp
+              --dataset-query-constraint finalVisitSummary
+      - Step:
+          name: step5
+          spec_block: LSSTCam-imSim_DRP-test-med-1_step5
+          prerequisites: ["step4"]
+          child_config:
+            base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1' and tract in (3828, 3829)"
+            split_method: split_by_vals
+            split_vals:
+              - 3828
+              - 3829
+      - Step:
+          name: step6
+          spec_block: LSSTCam-imSim_DRP-test-med-1_step6
+          prerequisites: ["step4"]
+          child_config:
+            base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1'"
+            split_method: split_by_query
+            split_min_groups: 2
+      - Step:
+          name: step7
+          spec_block: LSSTCam-imSim_DRP-test-med-1_step7
+          prerequisites: ["step3"]
+          child_config:
+            base_query: "instrument='LSSTCam-imSim' and skymap='DC2_cells_v1' and tract in (3828, 3829)"
 - Specification:
-      name: LSSTCam-imSim_DRP-test-med-1_panda
-      spec_aliases:
-          campaign: LSSTCam-imSim_DRP-test-med-1_campaign
-          bps_submit_script: bps_panda_submit_script
-          bps_report_script: bps_panda_report_script
+    name: LSSTCam-imSim_DRP-test-med-1_panda
+    spec_aliases:
+      campaign: LSSTCam-imSim_DRP-test-med-1_campaign
+      bps_submit_script: bps_panda_submit_script
+      bps_report_script: bps_panda_report_script
 - Specification:
-      name: LSSTCam-imSim_DRP-test-med-1_htcondor
-      spec_aliases:
-          campaign: LSSTCam-imSim_DRP-test-med-1_campaign
-          bps_submit_script: bps_htcondor_submit_script
-          bps_report_script: bps_htcondor_report_script
+    name: LSSTCam-imSim_DRP-test-med-1_htcondor
+    spec_aliases:
+      campaign: LSSTCam-imSim_DRP-test-med-1_campaign
+      bps_submit_script: bps_htcondor_submit_script
+      bps_report_script: bps_htcondor_report_script
