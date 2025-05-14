@@ -483,10 +483,10 @@ class BpsReportHandler(FunctionHandler):
         fake_status = kwargs.get("fake_status", None)
         status = await self._load_wms_reports(session, parent, parent.wms_job_id, fake_status=fake_status)
         status = script.status if status is None else status
+        await script.update_values(session, status=status)
         if status is not script.status:
             campaign = await script.get_campaign(session)
             await send_notification(for_status=status, for_campaign=campaign, for_job=parent)
-        await script.update_values(session, status=status)
         return status
 
     async def _reset_script(
