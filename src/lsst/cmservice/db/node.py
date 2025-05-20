@@ -594,7 +594,9 @@ class NodeMixin(RowMixin):
             Node being rejected
         """
         if self.status in [StatusEnum.accepted, StatusEnum.rescued]:
-            raise CMBadStateTransitionError(f"Can not reject {self} as it is in status {self.status}")
+            raise CMBadStateTransitionError(
+                f"Can not reject {self.fullname} as it is in status {self.status}"
+            )
 
         await self.update_values(session, status=StatusEnum.rejected)
         if self.level is LevelEnum.campaign:
@@ -625,7 +627,9 @@ class NodeMixin(RowMixin):
             StatusEnum.reviewable,
             StatusEnum.rescuable,
         ]:
-            raise CMBadStateTransitionError(f"Can not accept {self} as it is in status {self.status}")
+            raise CMBadStateTransitionError(
+                f"Can not accept {self.fullname} as it is in status {self.status}"
+            )
 
         await self.update_values(session, status=StatusEnum.accepted)
 
@@ -657,7 +661,7 @@ class NodeMixin(RowMixin):
             Node being reset
         """
         if self.status not in [StatusEnum.blocked, StatusEnum.rejected, StatusEnum.failed, StatusEnum.ready]:
-            raise CMBadStateTransitionError(f"Can not reset {self} as it is in status {self.status}")
+            raise CMBadStateTransitionError(f"Can not reset {self.fullname} as it is in status {self.status}")
 
         await self._clean_up_node(session, fake_reset=fake_reset)
         await self.update_values(session, status=StatusEnum.waiting, superseded=False)

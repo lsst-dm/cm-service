@@ -11,7 +11,7 @@ set -e
 {#- Assuming native environment already setup #}
 {%- elif script_method == "htcondor" %}
 export LSST_VERSION="{{ lsst_version }}"
-export LSST_DISTRIB_DIR="{{ lsst_distrib_dir }}"
+export LSST_DISTRIB_DIR="{{ lsst_distrib_dir.rstrip("/") }}"
 source ${LSST_DISTRIB_DIR}/${LSST_VERSION}/loadLSST.bash
 setup lsst_distrib
 {# BLANK LINE #}
