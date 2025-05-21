@@ -196,6 +196,12 @@ async def check_update_methods(
     )
     assert check.data["test"] == "dummy", "update_data_dict failed"
 
+    _ = await entry.update_metadata_dict(
+        session,
+        test="dummy",
+    )
+    assert entry.metadata_["test"] == "dummy", "update_metadata_dict failed"
+
     check = await entry.update_collections(
         session,
         test="dummy",
@@ -388,6 +394,8 @@ async def check_get_methods(
 
     check_get = await entry_class.get_row(session, entry.id)
     assert check_get.id == entry.id, "pulled row should be identical"
+    assert check_get.metadata_["mtime"] is None, "initial mtime should be null"
+    assert check_get.metadata_["crtime"] > 0, "element crtime must be a positive integer"
 
     with pytest.raises(errors.CMMissingIDError):
         await entry_class.get_row(
