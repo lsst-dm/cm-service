@@ -86,9 +86,8 @@ class ElementHandler(Handler):
         orig_status = node.status
         changed = False
         has_changed = False
-        # Need this so mypy doesn't think we are passing in Script
         if TYPE_CHECKING:
-            assert isinstance(node, ElementMixin)  # for mypy
+            assert isinstance(node, ElementMixin)
         if status is StatusEnum.waiting:
             is_ready = await node.check_prerequisites(session)
             if is_ready:
@@ -449,8 +448,7 @@ class ElementHandler(Handler):
         status : StatusEnum
             Status of the processing
         """
-        status = StatusEnum.accepted
-        return status
+        return StatusEnum.accepted
 
 
 class CampaignHandler(ElementHandler):

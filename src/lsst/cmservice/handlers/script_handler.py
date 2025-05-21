@@ -589,7 +589,7 @@ class ScriptHandler(BaseScriptHandler):
         self,
         session: async_scoped_session,
         script: Script,
-        prod_area: str,
+        prod_area: str | Path,
     ) -> str:
         script_url = f"{prod_area}/{script.fullname}.sh"
         log_url = f"{prod_area}/{script.fullname}.log"

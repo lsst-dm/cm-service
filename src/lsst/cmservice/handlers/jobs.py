@@ -571,14 +571,18 @@ class ManifestReportScriptHandler(ScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        resolved_cols = await script.resolve_collections(session)
+        if TYPE_CHECKING:
+            assert isinstance(parent, Job)
         data_dict = await script.data_dict(session)
         parent_data_dict = await parent.data_dict(session)
-        prod_area = os.path.expandvars(data_dict["prod_area"])
+        prod_area = await Path(os.path.expandvars(data_dict["prod_area"])).resolve()
+        resolved_cols = await script.resolve_collections(session)
         script_url = await self._set_script_files(session, script, prod_area)
         butler_repo = data_dict["butler_repo"]
         job_run_coll = resolved_cols["job_run"]
         qgraph_file = f"{job_run_coll}.qgraph".replace("/", "_")
+        # FIXME the report_url should be UPDATED in the parent metadata
+        report_url = prod_area / parent.fullname / "manifest_report.yaml"
 
         # FIXME the paths to the submit directories must be resolved from the
         # script's data. The fallback to a constructed submit dir is not a good
@@ -587,11 +591,8 @@ class ManifestReportScriptHandler(ScriptHandler):
         # updating this data, and it might not run successfully.
         if (bps_submit_dir := parent_data_dict.get("bps_submit_dir")) is not None:
             graph_url = await (Path(bps_submit_dir) / qgraph_file).resolve()
-            report_url = await (Path(bps_submit_dir) / "manifest_report.yaml").resolve()
         else:
-            bps_submit_dir = (await Path(prod_area).resolve()) / parent.fullname / "submit"
-            graph_url = bps_submit_dir / qgraph_file
-            report_url = bps_submit_dir / "manifest_report.yaml"
+            graph_url = prod_area / parent.fullname / "submit" / qgraph_file
 
         # FIXME quick check for the presence of the referenced graph_url, if
         #       it is not present, enter a failed or blocked state. This is not
@@ -623,13 +624,23 @@ class ManifestReportLoadHandler(FunctionHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
+        if TYPE_CHECKING:
+            assert isinstance(parent, Job)
         data_dict = await script.data_dict(session)
-        prod_area = os.path.expandvars(data_dict["prod_area"])
-        report_url = os.path.expandvars(f"{prod_area}/{parent.fullname}/submit/manifest_report.yaml")
+        prod_area = await Path(os.path.expandvars(data_dict["prod_area"])).resolve()
+        # TODO the report_url should be found in the PARENT metadata
+        report_url = prod_area / parent.fullname / "manifest_report.yaml"
+
+        # FIXME quick check for the presence of the referenced report_url, if
+        #       it is not present, enter a failed or blocked state. This is not
+        #       supported by tests.
+        if not (await report_url.exists()):
+            logger.error("Report URL not found", script=script.fullname, path=str(report_url))
+            # return StatusEnum.failed
 
         await script.update_values(
             session,
-            stamp_url=report_url,
+            stamp_url=str(report_url),
         )
         return StatusEnum.prepared
 
