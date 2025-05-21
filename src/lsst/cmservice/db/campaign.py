@@ -10,6 +10,7 @@ from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
+from ..common import timestamp
 from ..common.enums import LevelEnum, StatusEnum
 from ..common.errors import CMMissingRowCreateInputError
 from ..models.merged_product_set import MergedProductSetDict
@@ -187,6 +188,10 @@ class Campaign(Base, ElementMixin):
         if spec_aliases is None:
             spec_aliases = {}
 
+        metadata_ = kwargs.get("metadata", {})
+        metadata_["crtime"] = timestamp.element_time()
+        metadata_["mtime"] = None
+
         await session.refresh(
             specification,
             attribute_names=["spec_aliases", "data", "child_config", "collections"],
@@ -217,6 +222,7 @@ class Campaign(Base, ElementMixin):
             "fullname": name,
             "handler": kwargs.get("handler"),
             "data": data,
+            "metadata_": metadata_,
             "child_config": child_config,
             "collections": collections,
             "spec_aliases": spec_aliases,

@@ -51,7 +51,8 @@ class NodeMixin(RowMixin):
     collections: Any  # Definition of collection names
     child_config: Any  # Definition of child elements
     spec_aliases: Any  # Definition of aliases for SpecBlock overrides
-    data: Any  # Generic configuraiton parameters
+    data: Any  # Generic configuration parameters
+    metadata_: Any  # mutable configuration parameters
     prereqs_: Any  # Prerequistes to running this row
     handler: Any  # Class name of associated Handler object
     node_type: Any  # Type of this node
@@ -483,6 +484,51 @@ class NodeMixin(RowMixin):
             raise CMIntegrityError(params=msg.params, orig=msg.orig, statement=msg.statement) from msg
         return self
 
+    async def update_metadata_dict(
+        self,
+        session: async_scoped_session,
+        **kwargs: Any,
+    ) -> NodeMixin:
+        """Update the metadata configuration associated with this Node.
+
+        Updates to the metadata configuration are not subject to any state
+        constraints.
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        kwargs: Any
+            Key-value pairs to update
+
+        Returns
+        -------
+        node : NodeMixin
+            Updated Node
+
+        Raises
+        ------
+        CMBadExecutionMethodError
+            If the node has no metadata attribute.
+
+        CMIntegrityError
+            If the metadata update operation cannot be completed because of a
+            database ``IntegrityError``.
+        """
+        if not hasattr(self, "metadata_"):  # pragma: no cover
+            raise CMBadExecutionMethodError(f"{self.fullname} does not have attribute data")
+
+        try:
+            self.metadata_.update(**kwargs)
+            await session.commit()
+        except IntegrityError as msg:
+            if TYPE_CHECKING:
+                assert msg.orig  # for mypy
+            await session.rollback()
+            raise CMIntegrityError(params=msg.params, orig=msg.orig, statement=msg.statement) from msg
+        return self
+
     async def update_data_dict(
         self,
         session: async_scoped_session,
@@ -535,6 +581,8 @@ class NodeMixin(RowMixin):
                 f"Tried to modify a node that is in use. {self.fullname}:{self.status}",
             )
 
+        # FIXME if the data field is Mutable, then it wouldn't be necessary to
+        # copy the whole data dictionary in order to update it.
         try:
             if self.data:
                 the_data = self.data.copy()

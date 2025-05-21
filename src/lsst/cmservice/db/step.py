@@ -10,6 +10,7 @@ from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey, UniqueConstraint
 
+from ..common import timestamp
 from ..common.enums import LevelEnum, StatusEnum
 from ..common.errors import CMMissingRowCreateInputError
 from ..models.merged_product_set import MergedProductSetDict
@@ -173,6 +174,11 @@ class Step(Base, ElementMixin):
         spec_aliases = await campaign.get_spec_aliases(session)
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
         spec_block = await specification.get_block(session, spec_block_name)
+
+        metadata_ = kwargs.get("metadata", {})
+        metadata_["crtime"] = timestamp.element_time()
+        metadata_["mtime"] = None
+
         return {
             "spec_block_id": spec_block.id,
             "parent_id": campaign.id,
@@ -180,6 +186,7 @@ class Step(Base, ElementMixin):
             "fullname": f"{campaign.fullname}/{original_name}",
             "handler": kwargs.get("handler"),
             "data": kwargs.get("data", {}),
+            "metadata_": metadata_,
             "child_config": kwargs.get("child_config", {}),
             "collections": kwargs.get("collections", {}),
             "spec_aliases": kwargs.get("spec_aliases", {}),

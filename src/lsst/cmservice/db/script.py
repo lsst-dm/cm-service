@@ -9,6 +9,7 @@ from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
+from ..common import timestamp
 from ..common.enums import LevelEnum, NodeTypeEnum, ScriptMethodEnum, StatusEnum
 from ..common.errors import CMBadEnumError, CMMissingRowCreateInputError
 from ..config import config
@@ -181,6 +182,10 @@ class Script(Base, NodeMixin):
         if isinstance(parent_level, int):
             parent_level = LevelEnum(parent_level)
 
+        metadata_ = kwargs.get("metadata", {})
+        metadata_["crtime"] = timestamp.element_time()
+        metadata_["mtime"] = None
+
         # The fullname should reflect the element's original shortname not its
         # namespaced name
         ret_dict = {
@@ -191,6 +196,7 @@ class Script(Base, NodeMixin):
             "method": ScriptMethodEnum[kwargs.get("method", "default")],
             "handler": kwargs.get("handler"),
             "data": kwargs.get("data", {}),
+            "metadata_": metadata_,
             "child_config": kwargs.get("child_config", {}),
             "collections": kwargs.get("collections", {}),
         }

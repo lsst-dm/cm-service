@@ -11,6 +11,7 @@ from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
+from ..common import timestamp
 from ..common.enums import LevelEnum, StatusEnum
 from ..common.errors import (
     CMIntegrityError,
@@ -204,6 +205,11 @@ class Job(Base, ElementMixin):
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
         specification = await parent.get_specification(session)
         spec_block = await specification.get_block(session, spec_block_name)
+
+        metadata_ = kwargs.get("metadata", {})
+        metadata_["crtime"] = timestamp.element_time()
+        metadata_["mtime"] = None
+
         return {
             "spec_block_id": spec_block.id,
             "parent_id": parent.id,
@@ -212,6 +218,7 @@ class Job(Base, ElementMixin):
             "fullname": f"{parent_name}/{name}_{attempt:03}",
             "handler": kwargs.get("handler"),
             "data": kwargs.get("data", {}),
+            "metadata_": metadata_,
             "child_config": kwargs.get("child_config", {}),
             "collections": kwargs.get("collections", {}),
             "spec_aliases": kwargs.get("spec_aliases", {}),
