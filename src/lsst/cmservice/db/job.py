@@ -62,7 +62,7 @@ class Job(Base, ElementMixin):
     status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting)
     superseded: Mapped[bool] = mapped_column(default=False)
     handler: Mapped[str | None] = mapped_column()
-    data: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    data: Mapped[dict] = mapped_column(type_=JSON, default=dict)
     metadata_: Mapped[dict] = mapped_column("metadata_", type_=MutableDict.as_mutable(JSONB), default=dict)
     child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
     collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
@@ -206,6 +206,8 @@ class Job(Base, ElementMixin):
         specification = await parent.get_specification(session)
         spec_block = await specification.get_block(session, spec_block_name)
 
+        data = kwargs.get("data") or {}
+
         metadata_ = kwargs.get("metadata", {})
         metadata_["crtime"] = timestamp.element_time()
         metadata_["mtime"] = None
@@ -217,7 +219,7 @@ class Job(Base, ElementMixin):
             "attempt": attempt,
             "fullname": f"{parent_name}/{name}_{attempt:03}",
             "handler": kwargs.get("handler"),
-            "data": kwargs.get("data", {}),
+            "data": data,
             "metadata_": metadata_,
             "child_config": kwargs.get("child_config", {}),
             "collections": kwargs.get("collections", {}),

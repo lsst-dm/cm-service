@@ -54,7 +54,7 @@ class Step(Base, ElementMixin):
     status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting)
     superseded: Mapped[bool] = mapped_column(default=False)  # Has this been supersede
     handler: Mapped[str | None] = mapped_column()
-    data: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    data: Mapped[dict] = mapped_column(type_=JSON, default=dict)
     metadata_: Mapped[dict] = mapped_column("metadata_", type_=MutableDict.as_mutable(JSONB), default=dict)
     child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
     collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
@@ -175,6 +175,8 @@ class Step(Base, ElementMixin):
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
         spec_block = await specification.get_block(session, spec_block_name)
 
+        data = kwargs.get("data") or {}
+
         metadata_ = kwargs.get("metadata", {})
         metadata_["crtime"] = timestamp.element_time()
         metadata_["mtime"] = None
@@ -185,7 +187,7 @@ class Step(Base, ElementMixin):
             "name": name,
             "fullname": f"{campaign.fullname}/{original_name}",
             "handler": kwargs.get("handler"),
-            "data": kwargs.get("data", {}),
+            "data": data,
             "metadata_": metadata_,
             "child_config": kwargs.get("child_config", {}),
             "collections": kwargs.get("collections", {}),

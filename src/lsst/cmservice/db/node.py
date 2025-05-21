@@ -567,9 +567,7 @@ class NodeMixin(RowMixin):
         # Separate kwargs between new and existing keys
         # If only new keys are being added to the data dict, then we do not
         # care that the node is "in use"
-        # FIXME data is a nullable field, but it shouldn't be, so we have to
-        #       protect against it being None
-        existing_keys = {k: v for k, v in kwargs.items() if k in self.data} if self.data else {}
+        existing_keys = {k: v for k, v in kwargs.items() if k in self.data}
 
         if all(
             [
