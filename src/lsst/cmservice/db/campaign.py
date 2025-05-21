@@ -58,7 +58,7 @@ class Campaign(Base, ElementMixin):
     status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting)
     superseded: Mapped[bool] = mapped_column(default=False)
     handler: Mapped[str | None] = mapped_column()
-    data: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    data: Mapped[dict] = mapped_column(type_=JSON, default=dict)
     metadata_: Mapped[dict] = mapped_column("metadata_", type_=MutableDict.as_mutable(JSONB), default=dict)
     child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
     collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
@@ -175,9 +175,6 @@ class Campaign(Base, ElementMixin):
             spec_name,
         )
 
-        data = kwargs.get("data", {})
-        if data is None:
-            data = {}
         child_config = kwargs.get("child_config", {})
         if child_config is None:
             child_config = {}
@@ -187,6 +184,8 @@ class Campaign(Base, ElementMixin):
         spec_aliases = kwargs.get("spec_aliases", {})
         if spec_aliases is None:
             spec_aliases = {}
+
+        data = kwargs.get("data") or {}
 
         metadata_ = kwargs.get("metadata", {})
         metadata_["crtime"] = timestamp.element_time()

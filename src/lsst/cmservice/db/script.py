@@ -57,7 +57,7 @@ class Script(Base, NodeMixin):
     method: Mapped[ScriptMethodEnum] = mapped_column(default=ScriptMethodEnum.default)
     superseded: Mapped[bool] = mapped_column(default=False)  # Has this been superseded
     handler: Mapped[str | None] = mapped_column()
-    data: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    data: Mapped[dict] = mapped_column(type_=JSON, default=dict)
     metadata_: Mapped[dict] = mapped_column("metadata_", type_=MutableDict.as_mutable(JSONB), default=dict)
     child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
     collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
@@ -182,6 +182,8 @@ class Script(Base, NodeMixin):
         if isinstance(parent_level, int):
             parent_level = LevelEnum(parent_level)
 
+        data = kwargs.get("data") or {}
+
         metadata_ = kwargs.get("metadata", {})
         metadata_["crtime"] = timestamp.element_time()
         metadata_["mtime"] = None
@@ -195,7 +197,7 @@ class Script(Base, NodeMixin):
             "fullname": f"{parent_name}/{original_name}_{attempt:03}",
             "method": ScriptMethodEnum[kwargs.get("method", "default")],
             "handler": kwargs.get("handler"),
-            "data": kwargs.get("data", {}),
+            "data": data,
             "metadata_": metadata_,
             "child_config": kwargs.get("child_config", {}),
             "collections": kwargs.get("collections", {}),
