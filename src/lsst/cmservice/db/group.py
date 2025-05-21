@@ -2,8 +2,10 @@ from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_scoped_session
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey, UniqueConstraint
 
@@ -55,6 +57,7 @@ class Group(Base, ElementMixin):
     superseded: Mapped[bool] = mapped_column(default=False)  # Has this been supersede
     handler: Mapped[str | None] = mapped_column()
     data: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    metadata_: Mapped[dict] = mapped_column("metadata_", type_=MutableDict.as_mutable(JSONB), default=dict)
     child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
     collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
     spec_aliases: Mapped[dict | list | None] = mapped_column(type_=JSON)
