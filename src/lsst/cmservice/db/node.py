@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.orm.collections import InstrumentedList
 
+from ..common import timestamp
 from ..common.enums import LevelEnum, StatusEnum
 from ..common.errors import (
     CMBadExecutionMethodError,
@@ -520,8 +521,8 @@ class NodeMixin(RowMixin):
             raise CMBadExecutionMethodError(f"{self.fullname} does not have attribute data")
 
         try:
-            self.metadata_.update(**kwargs)
-            await session.commit()
+            async with session.begin_nested():
+                self.metadata_.update(**kwargs)
         except IntegrityError as msg:
             if TYPE_CHECKING:
                 assert msg.orig  # for mypy
@@ -809,3 +810,19 @@ class NodeMixin(RowMixin):
         if self.status == StatusEnum.running:
             minimum_sleep_time = max(config.daemon.processing_interval, minimum_sleep_time)
         return minimum_sleep_time
+
+    async def update_mtime(
+        self,
+        session: async_scoped_session,
+    ) -> None:
+        """Update the mtime attribute in an element's hierarchy."""
+        mtime = timestamp.element_time()
+        await self.update_metadata_dict(session, mtime=mtime)
+
+        parent_element: ElementMixin | None = await self.get_parent(session)
+        while parent_element is not None:
+            await parent_element.update_metadata_dict(session, mtime=mtime)
+            if parent_element.level.value > LevelEnum.campaign.value:
+                parent_element = await parent_element.get_parent(session)
+            else:
+                parent_element = None

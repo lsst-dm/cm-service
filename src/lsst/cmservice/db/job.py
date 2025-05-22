@@ -62,8 +62,10 @@ class Job(Base, ElementMixin):
     status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting)
     superseded: Mapped[bool] = mapped_column(default=False)
     handler: Mapped[str | None] = mapped_column()
-    data: Mapped[dict] = mapped_column(type_=JSON, default=dict)
-    metadata_: Mapped[dict] = mapped_column("metadata_", type_=MutableDict.as_mutable(JSONB), default=dict)
+    data: Mapped[dict[str, Any]] = mapped_column(type_=JSON, default=dict)
+    metadata_: Mapped[dict[str, Any]] = mapped_column(
+        "metadata_", type_=MutableDict.as_mutable(JSONB), default=dict
+    )
     child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
     collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
     spec_aliases: Mapped[dict | list | None] = mapped_column(type_=JSON)
