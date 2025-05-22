@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.orm.collections import InstrumentedList
 
+from ..common import timestamp
 from ..common.enums import LevelEnum, StatusEnum
 from ..common.errors import (
     CMBadExecutionMethodError,
@@ -809,3 +810,19 @@ class NodeMixin(RowMixin):
         if self.status == StatusEnum.running:
             minimum_sleep_time = max(config.daemon.processing_interval, minimum_sleep_time)
         return minimum_sleep_time
+
+    async def update_mtime(
+        self,
+        session: async_scoped_session,
+    ) -> None:
+        """Update the mtime attribute in an element's hierarchy."""
+        mtime = timestamp.element_time()
+        _ = await self.update_metadata_dict(session, mtime=mtime)
+
+        parent_element = await self.get_parent(session)
+        while parent_element is not None:
+            _ = await parent_element.update_metadata_dict(session, mtime=mtime)
+            if parent_element.level.value > LevelEnum.campaign.value:
+                parent_element = await parent_element.get_parent(session)
+            else:
+                parent_element = None
