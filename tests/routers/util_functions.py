@@ -401,7 +401,7 @@ async def check_update_methods(
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/{entry.id}/accept",
     )
-    expect_failed_response(response, 500)
+    expect_failed_response(response, 422)
 
     update_status_model.status = StatusEnum.running
     response = await client.post(
@@ -450,13 +450,13 @@ async def check_update_methods(
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/{entry.id}/reject",
     )
-    expect_failed_response(response, 500)
+    expect_failed_response(response, 422)
 
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/{entry.id}/reset",
         content=reset_model.model_dump_json(),
     )
-    expect_failed_response(response, 500)
+    expect_failed_response(response, 422)
 
     # FIXME this delete test is meant to fail, but the application now allows
     #       deletion of objects in an "accepted" state, and downstream tests

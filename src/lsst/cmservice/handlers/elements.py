@@ -24,8 +24,7 @@ logger = LOGGER.bind(module=__name__)
 
 
 class RunElementScriptHandler(FunctionHandler):
-    """Shared base class to handling running and
-    checking of Scripts that mangage the children
+    """Base class to handle running and checking Scripts that manage children
     of elements
 
     E.g.,  RunGroupsScriptHandler and RunStepsScriptHandler
@@ -69,15 +68,12 @@ class RunElementScriptHandler(FunctionHandler):
 class RunJobsScriptHandler(RunElementScriptHandler):
     """Create a `Job` in the DB
 
-    This will create a single job per group,
-    which ideally would process the workflow for
-    that group.
-
-    If needed rescue jobs can be attached to the
+    This creates a single job per group, which processes the workflow for that
     group.
 
-    The review_script method is there to check on the
-    status of the jobs.
+    If needed rescue jobs can be attached to the group.
+
+    The review_script method is there to check on the status of the jobs.
     """
 
     async def _do_prepare(
@@ -317,11 +313,9 @@ class RunGroupsScriptHandler(RunElementScriptHandler):
 
 
 class RunStepsScriptHandler(RunElementScriptHandler):
-    """Build and manages the Steps associated to a `Campaign`
+    """Build and manages the Steps associated with a `Campaign`
 
-    This will use the
-
-    `campaign.child_config` -> to set the steps
+    This will use the `campaign.child_config` -> to set the steps
     """
 
     async def _do_prepare(

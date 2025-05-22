@@ -8,17 +8,18 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.orm.collections import InstrumentedList
 
-from ..common.enums import LevelEnum, NodeTypeEnum, StatusEnum
+from ..common.enums import LevelEnum, StatusEnum
 from ..common.errors import (
     CMBadExecutionMethodError,
-    CMBadFullnameError,
     CMBadStateTransitionError,
     CMIntegrityError,
     CMResolveCollectionsError,
     test_type_and_raise,
 )
 from ..common.logging import LOGGER
+from ..common.notification import send_notification
 from ..config import config
+from ..parsing.string import parse_element_fullname
 from .handler import Handler
 from .row import RowMixin
 from .spec_block import SpecBlock
@@ -162,37 +163,6 @@ class NodeMixin(RowMixin):
             handler_class,
         )
 
-    def _split_fullname(self, fullname: str) -> dict:
-        """Split a fullname into named fields
-
-        Paramters
-        ---------
-        fullname: str
-            String to be split
-
-        Returns
-        -------
-        fields : dict
-            Resulting fields
-        """
-        fields = {"production": "DEFAULT"}
-
-        tokens = fullname.split("/")
-        if self.node_type == NodeTypeEnum.script:
-            fields["script"] = tokens.pop()
-        for i, token in enumerate(tokens):
-            if i == 0:
-                fields["campaign"] = token
-            elif i == 1:
-                fields["step"] = token
-            elif i == 2:
-                fields["group"] = token
-            elif i == 3:
-                fields["job"] = token
-            else:  # pragma: no cover
-                raise CMBadFullnameError(f"Too many fields in {fullname}")
-        return fields
-
     async def resolve_collections(
         self,
         session: async_scoped_session,
@@ -222,8 +192,8 @@ class NodeMixin(RowMixin):
         """
         raw_collections: dict[str, str | list[str]] = await NodeMixin.get_collections(self, session)
         collection_dict = await self.get_collections(session)
-        name_dict = self._split_fullname(self.fullname)
-        lookup_chain = ChainMap(collection_dict, name_dict, defaultdict(lambda: "MUST_OVERRIDE"))
+        fullname = parse_element_fullname(self.fullname)
+        lookup_chain = ChainMap(collection_dict, fullname.model_dump(), defaultdict(lambda: "MUST_OVERRIDE"))
 
         resolved_collections = {
             k: (v if isinstance(v, str) else ",".join(v)) for k, v in raw_collections.items()
@@ -251,13 +221,10 @@ class NodeMixin(RowMixin):
         self,
         session: async_scoped_session,
     ) -> dict:
-        """Get the collection configuration
-        associated to a particular row
+        """Get the collection configuration associated with a particular row.
 
-        This will start with the collection
-        configuration in the associated `SpecBlock`
-        and override it with with the collection
-        configuration in the row
+        This starts with the collection configuration in the associated
+        `SpecBlock` which is overriden the collection configuration of the row.
 
         Parameters
         ----------
@@ -269,39 +236,36 @@ class NodeMixin(RowMixin):
         collections: dict
             Requested collection configuration
         """
-        ret_dict = {}
+        collections = {}
         if not hasattr(self, "collections"):  # pragma: no cover
             return {}
 
         if self.level == LevelEnum.script:
             parent_ = await self.get_parent(session)
             parent_colls = await parent_.get_collections(session)
-            ret_dict.update(parent_colls)
+            collections.update(parent_colls)
         elif self.level.value > LevelEnum.campaign.value:
             parent = await self.get_parent(session)
             parent_colls = await parent.get_collections(session)
-            ret_dict.update(parent_colls)
+            collections.update(parent_colls)
         spec_block = await self.get_spec_block(session)
         if spec_block.collections:
-            ret_dict.update(spec_block.collections)
+            collections.update(spec_block.collections)
         if self.collections:
-            ret_dict.update(self.collections)
-        for key, val in ret_dict.items():
+            collections.update(self.collections)
+        for key, val in collections.items():
             if isinstance(val, list):
-                ret_dict[key] = ",".join(val)
-        return ret_dict
+                collections[key] = ",".join(val)
+        return collections
 
     async def get_child_config(
         self,
         session: async_scoped_session,
     ) -> dict:
-        """Get the child configuration
-        associated to a particular row
+        """Get the child configuration associated with a particular row.
 
-        This will start with the child
-        configuration in the associated `SpecBlock`
-        and override it with with the child
-        configuration in the row
+        This starts with the child configuration in the associated `SpecBlock`
+        which is overriden with the child configuration of the row.
 
         Parameters
         ----------
@@ -313,15 +277,15 @@ class NodeMixin(RowMixin):
         child_config: dict
             Requested child configuration
         """
-        ret_dict: dict = {}
+        child_config: dict = {}
         if not hasattr(self, "child_config"):  # pragma: no cover
             return {}
         spec_block = await self.get_spec_block(session)
         if spec_block.child_config:
-            ret_dict.update(**spec_block.child_config)
+            child_config.update(**spec_block.child_config)
         if self.child_config:
-            ret_dict.update(**self.child_config)
-        return ret_dict
+            child_config.update(**self.child_config)
+        return child_config
 
     async def data_dict(
         self,
@@ -342,21 +306,21 @@ class NodeMixin(RowMixin):
         data: dict
             Requested data configuration
         """
-        ret_dict = {}
-        if self.level == LevelEnum.script:
+        data = {}
+        if self.level is LevelEnum.script:
             parent_ = await self.get_parent(session)
             parent_data = await parent_.data_dict(session)
-            ret_dict.update(parent_data)
+            data.update(parent_data)
         elif self.level.value > LevelEnum.campaign.value:
             parent = await self.get_parent(session)
             parent_data = await parent.data_dict(session)
-            ret_dict.update(parent_data)
+            data.update(parent_data)
         spec_block = await self.get_spec_block(session)
         if spec_block.data:
-            ret_dict.update(spec_block.data)
+            data.update(spec_block.data)
         if self.data:
-            ret_dict.update(self.data)
-        return ret_dict
+            data.update(self.data)
+        return data
 
     async def get_spec_aliases(
         self,
@@ -396,8 +360,7 @@ class NodeMixin(RowMixin):
         session: async_scoped_session,
         **kwargs: Any,
     ) -> NodeMixin:
-        """Update the child configuration
-        associated to this Node
+        """Update the child configuration associated with this Node
 
         Parameters
         ----------
@@ -525,7 +488,10 @@ class NodeMixin(RowMixin):
         session: async_scoped_session,
         **kwargs: Any,
     ) -> NodeMixin:
-        """Update the data configuration associated with this Node
+        """Update the data configuration associated with this Node.
+
+        Existing keys cannot be updated while the Node is "in use" but new
+        keys may be added.
 
         Parameters
         ----------
@@ -539,11 +505,32 @@ class NodeMixin(RowMixin):
         -------
         node : NodeMixin
             Updated Node
+
+        Raises
+        ------
+        CMBadExecutionMethodError
+            If the node has no data attribute.
+
+        CMBadStateTransitionError
+            If the node is already evolved to a prepared or higher state, only
+            new keys may be added.
         """
         if not hasattr(self, "data"):  # pragma: no cover
             raise CMBadExecutionMethodError(f"{self.fullname} does not have attribute data")
 
-        if self.status.value >= StatusEnum.prepared.value:
+        # Separate kwargs between new and existing keys
+        # If only new keys are being added to the data dict, then we do not
+        # care that the node is "in use"
+        # FIXME data is a nullable field, but it shouldn't be, so we have to
+        #       protect against it being None
+        existing_keys = {k: v for k, v in kwargs.items() if k in self.data} if self.data else {}
+
+        if all(
+            [
+                self.status.value >= StatusEnum.prepared.value,
+                len(existing_keys),
+            ]
+        ):
             raise CMBadStateTransitionError(
                 f"Tried to modify a node that is in use. {self.fullname}:{self.status}",
             )
@@ -607,9 +594,15 @@ class NodeMixin(RowMixin):
             Node being rejected
         """
         if self.status in [StatusEnum.accepted, StatusEnum.rescued]:
-            raise CMBadStateTransitionError(f"Can not reject {self} as it is in status {self.status}")
+            raise CMBadStateTransitionError(
+                f"Can not reject {self.fullname} as it is in status {self.status}"
+            )
 
         await self.update_values(session, status=StatusEnum.rejected)
+        if self.level is LevelEnum.campaign:
+            if TYPE_CHECKING:
+                assert isinstance(self, Campaign)
+            await send_notification(for_status=StatusEnum.rejected, for_campaign=self)
         return self
 
     async def accept(
@@ -628,10 +621,22 @@ class NodeMixin(RowMixin):
         node: NodeMixin
             Node being accepted
         """
-        if self.status not in [StatusEnum.running, StatusEnum.reviewable, StatusEnum.rescuable]:
-            raise CMBadStateTransitionError(f"Can not accept {self} as it is in status {self.status}")
+        if self.status not in [
+            StatusEnum.blocked,
+            StatusEnum.running,
+            StatusEnum.reviewable,
+            StatusEnum.rescuable,
+        ]:
+            raise CMBadStateTransitionError(
+                f"Can not accept {self.fullname} as it is in status {self.status}"
+            )
 
         await self.update_values(session, status=StatusEnum.accepted)
+
+        if self.level is LevelEnum.campaign:
+            if TYPE_CHECKING:
+                assert isinstance(self, Campaign)
+            await send_notification(for_status=StatusEnum.accepted, for_campaign=self)
         return self
 
     async def reset(
@@ -655,8 +660,8 @@ class NodeMixin(RowMixin):
         node: NodeMixin
             Node being reset
         """
-        if self.status not in [StatusEnum.rejected, StatusEnum.failed, StatusEnum.ready]:
-            raise CMBadStateTransitionError(f"Can not reset {self} as it is in status {self.status}")
+        if self.status not in [StatusEnum.blocked, StatusEnum.rejected, StatusEnum.failed, StatusEnum.ready]:
+            raise CMBadStateTransitionError(f"Can not reset {self.fullname} as it is in status {self.status}")
 
         await self._clean_up_node(session, fake_reset=fake_reset)
         await self.update_values(session, status=StatusEnum.waiting, superseded=False)

@@ -19,7 +19,7 @@ from structlog import get_logger
 
 from .. import db, models
 from ..common.enums import StatusEnum
-from ..common.errors import CMMissingFullnameError, CMMissingIDError
+from ..common.errors import CMBadStateTransitionError, CMMissingFullnameError, CMMissingIDError
 
 logger = get_logger(__name__)
 
@@ -811,6 +811,8 @@ def update_node_status_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
+        except CMBadStateTransitionError as e:
+            raise HTTPException(status_code=422, detail=str(e)) from e
         except Exception as msg:
             logger.error(msg, exc_info=True)
             raise HTTPException(status_code=500, detail=str(msg)) from msg
@@ -1098,9 +1100,11 @@ def get_node_reject_function(
                 the_node = await db_class.get_row(session, row_id)
                 ret_val = await the_node.reject(session)
             return ret_val
-        except CMMissingIDError as msg:
-            logger.info(msg)
-            raise HTTPException(status_code=404, detail=str(msg)) from msg
+        except CMMissingIDError as e:
+            logger.info(e)
+            raise HTTPException(status_code=404, detail=str(e)) from e
+        except CMBadStateTransitionError as e:
+            raise HTTPException(status_code=422, detail=str(e)) from e
         except Exception as e:
             logger.error(e, exc_info=True)
             raise HTTPException(status_code=500, detail=str(e)) from e
@@ -1150,6 +1154,8 @@ def get_node_accept_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
+        except CMBadStateTransitionError as e:
+            raise HTTPException(status_code=422, detail=str(e)) from e
         except Exception as e:
             logger.error(e, exc_info=True)
             raise HTTPException(status_code=500, detail=str(e)) from e
@@ -1200,6 +1206,8 @@ def get_node_reset_function(
         except CMMissingIDError as msg:
             logger.info(msg)
             raise HTTPException(status_code=404, detail=str(msg)) from msg
+        except CMBadStateTransitionError as e:
+            raise HTTPException(status_code=422, detail=str(e)) from e
         except Exception as e:
             logger.error(e, exc_info=True)
             raise HTTPException(status_code=500, detail=str(e)) from e

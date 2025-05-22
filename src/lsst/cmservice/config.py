@@ -466,6 +466,11 @@ class AsgiConfiguration(BaseModel):
         default=False,
     )
 
+    fqdn: str = Field(
+        description="DNS FQDN for hosted application",
+        default="https://usdf-cm-dev.slac.stanford.edu",
+    )
+
 
 class LoggingConfiguration(BaseModel):
     """Configuration for the application's logging facility."""
@@ -504,6 +509,18 @@ class DaemonConfiguration(BaseModel):
             "and the minimum time between element processing attepts. This "
             "duration may be lengthened depending on the element type."
         ),
+    )
+
+
+class NotificationConfiguration(BaseModel):
+    """Configurations for notifications.
+
+    Set according to NOTIFICATIONS__FIELD environment variables.
+    """
+
+    slack_webhook_url: str | None = Field(
+        default=None,
+        description="URL of a Slack Application webhook",
     )
 
 
@@ -560,6 +577,7 @@ class Configuration(BaseSettings):
     logging: LoggingConfiguration = LoggingConfiguration()
     slurm: SlurmConfiguration = SlurmConfiguration()
     panda: PandaConfiguration = PandaConfiguration()
+    notifications: NotificationConfiguration = NotificationConfiguration()
 
     # Root fields
     script_handler: ScriptMethodEnum = Field(

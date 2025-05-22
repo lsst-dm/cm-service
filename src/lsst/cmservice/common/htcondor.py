@@ -1,6 +1,7 @@
 """Utility functions for working with htcondor jobs"""
 
 import importlib.util
+import json
 import sys
 from collections.abc import Mapping
 from types import ModuleType
@@ -21,12 +22,20 @@ logger = LOGGER.bind(module=__name__)
 htcondor_status_map = {
     1: StatusEnum.running,
     2: StatusEnum.running,
-    3: StatusEnum.running,
+    3: StatusEnum.reviewable,
     4: StatusEnum.reviewable,
-    5: StatusEnum.paused,
+    5: StatusEnum.blocked,
     6: StatusEnum.running,
-    7: StatusEnum.running,
+    7: StatusEnum.paused,
 }
+"""Mapping of HTCondor JobStatus integer values to CM Service status enums.
+
+HTCondor JobStatus may be idle (1), running (2), removing (3), completed (4),
+held (5), transferring_output (6), or suspended (7).
+
+A terminal status is mapped to reviewable here because the job's exit code
+will ultimately determine whether the job is accepted or failed.
+"""
 
 
 async def write_htcondor_script(
@@ -142,9 +151,16 @@ async def check_htcondor_job(
         return StatusEnum.reviewable if fake_status.value >= StatusEnum.reviewable.value else fake_status
     try:
         if htcondor_id is None:  # pragma: no cover
-            raise CMHTCondorCheckError("No htcondor_id")
+            raise CMHTCondorCheckError("Bad htcondor check input: No htcondor_id")
         async with await open_process(
-            [config.htcondor.condor_q_bin, "-userlog", htcondor_id, "-af", "JobStatus", "ExitCode"],
+            [
+                config.htcondor.condor_q_bin,
+                "-userlog",
+                htcondor_id,
+                "-json",
+                "-attributes",
+                "JobStatus,ExitCode",
+            ],
             env=build_htcondor_submit_environment(),
         ) as condor_q:  # pragma: no cover
             if await condor_q.wait() != 0:
@@ -152,25 +168,27 @@ async def check_htcondor_job(
                 stderr_msg = ""
                 async for text in TextReceiveStream(condor_q.stderr):
                     stderr_msg += text
+                logger.error("Bad htcondor check", stderr=stderr_msg)
                 raise CMHTCondorCheckError(f"Bad htcondor check: {stderr_msg}")
             try:
                 assert condor_q.stdout
                 lines = ""
                 async for text in TextReceiveStream(condor_q.stdout):
                     lines += text
-                # condor_q puts an extra newline, we use 2nd to the last line
-                tokens = lines.split("\n")[-2].split()
-                assert len(tokens) == 2
-                htcondor_status = int(tokens[0])
-                exit_code = tokens[1]
-            except Exception as e:
+                htcondor_stdout: list[dict[str, Any]] = json.loads(lines)
+                htcondor_status = htcondor_stdout[-1]["JobStatus"]
+                exit_code = htcondor_stdout[-1].get("ExitCode")
+            except (AssertionError, json.JSONDecodeError, IndexError, KeyError) as e:
                 raise CMHTCondorCheckError(f"Badly formatted htcondor check: {e}") from e
-    except Exception as e:
-        raise CMHTCondorCheckError(f"Bad htcondor check: {e}") from e
+    # FIXME the bare exception here is not great but the list of possible
+    #       conditions is long.
+    except Exception:
+        logger.exception()
+        return StatusEnum.failed
 
     status = htcondor_status_map[htcondor_status]  # pragma: no cover
-    if status == StatusEnum.reviewable:  # pragma: no cover
-        if int(exit_code) == 0:
+    if status is StatusEnum.reviewable:  # pragma: no cover
+        if (exit_code is not None) and (int(exit_code) == 0):
             status = StatusEnum.accepted
         else:
             status = StatusEnum.failed
@@ -250,7 +268,11 @@ def build_htcondor_submit_environment() -> Mapping[str, str]:
         #        a config file with properly configured endpoint URLs -or-
         #        at least use the standard one(s)!
         # FIXME: make aws config values a separate parameters object
-        AWS_ENDPOINT_URL_S3=config.aws_s3_endpoint_url,
+        # FIXME: the AWS endpoint should be based on the target profile of the
+        #        butler, else a global endpoint value must satisfy all daemon
+        #        instance butlers
+        # FIXME: need to exclude None for the following!
+        AWS_ENDPOINT_URL_S3=config.aws_s3_endpoint_url or "",
         AWS_REQUEST_CHECKSUM_CALCULATION="WHEN_REQUIRED",
         AWS_RESPONSE_CHECKSUM_VALIDATION="WHEN_REQUIRED",
         # FIXME: because there is no db-auth.yaml in lsstsvc1's home directory

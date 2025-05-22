@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 
 from ..common.enums import LevelEnum, StatusEnum
 from ..common.errors import CMYamlParseError, test_type_and_raise
+from ..common.notification import send_notification
 from ..config import config
 from ..db.campaign import Campaign
 from ..db.element import ElementMixin
@@ -85,29 +86,29 @@ class ElementHandler(Handler):
         orig_status = node.status
         changed = False
         has_changed = False
-        # Need this so mypy doesn't think we are passing in Script
         if TYPE_CHECKING:
-            assert isinstance(node, ElementMixin)  # for mypy
-        if status == StatusEnum.waiting:
+            assert isinstance(node, ElementMixin)
+        if status is StatusEnum.waiting:
             is_ready = await node.check_prerequisites(session)
             if is_ready:
                 status = StatusEnum.ready
                 changed = True
-        if status == StatusEnum.ready:
+        if status is StatusEnum.ready:
             (has_changed, status) = await self.prepare(session, node)
             changed |= has_changed
-        if status == StatusEnum.prepared:
+        if status is StatusEnum.prepared:
             (has_changed, status) = await self.continue_processing(session, node, **kwargs)
             changed |= has_changed
-        if status == StatusEnum.running:
+        if status is StatusEnum.running:
             (has_changed, status) = await self.check(session, node, **kwargs)
             changed |= has_changed
-            if status == StatusEnum.running:
+            if status is StatusEnum.running:
                 (has_changed, status) = await self.continue_processing(session, node, **kwargs)
                 changed |= has_changed
-        if status == StatusEnum.reviewable:
+        if status is StatusEnum.reviewable:
+            # TODO put notification here instead of in review()?
             status = await self.review(session, node, **kwargs)
-        if status != orig_status:
+        if status is not orig_status:
             changed = True
             await node.update_values(session, status=status)
         return (changed, status)
@@ -118,7 +119,6 @@ class ElementHandler(Handler):
         node: NodeMixin,
         **kwargs: Any,
     ) -> tuple[bool, StatusEnum]:
-        # Need this so mypy doesn't think we are passing in Script
         if TYPE_CHECKING:
             assert isinstance(node, ElementMixin)  # for mypy
         return await self.check(session, node, **kwargs)
@@ -460,11 +460,39 @@ class CampaignHandler(ElementHandler):
         element: ElementMixin,
     ) -> tuple[bool, StatusEnum]:
         if TYPE_CHECKING:
-            assert isinstance(element, Campaign)  # for mypy
+            assert isinstance(element, Campaign)
 
         spec_block = await element.get_spec_block(session)
         child_configs = spec_block.steps
         if TYPE_CHECKING:
             assert isinstance(child_configs, list)
         await add_steps(session, element, child_configs)
+        await send_notification(for_status=StatusEnum.running, for_campaign=element)
         return await ElementHandler.prepare(self, session, element)
+
+    async def _post_check(
+        self,
+        session: async_scoped_session,
+        element: ElementMixin,
+        **kwargs: Any,
+    ) -> StatusEnum:
+        """Hook for a final check after all the scripts have run
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        element: ElementMixin
+            `Element` in question
+
+        Returns
+        -------
+        status : StatusEnum
+            Status of the processing
+        """
+        if TYPE_CHECKING:
+            assert isinstance(element, Campaign)
+        status = StatusEnum.accepted
+        await send_notification(for_status=status, for_campaign=element)
+        return status
