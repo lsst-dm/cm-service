@@ -4,11 +4,14 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON, and_, select
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_scoped_session
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
+from ..common import timestamp
 from ..common.enums import LevelEnum, StatusEnum
 from ..common.errors import (
     CMIntegrityError,
@@ -59,7 +62,10 @@ class Job(Base, ElementMixin):
     status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting)
     superseded: Mapped[bool] = mapped_column(default=False)
     handler: Mapped[str | None] = mapped_column()
-    data: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    data: Mapped[dict[str, Any]] = mapped_column(type_=JSON, default=dict)
+    metadata_: Mapped[dict[str, Any]] = mapped_column(
+        "metadata_", type_=MutableDict.as_mutable(JSONB), default=dict
+    )
     child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
     collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
     spec_aliases: Mapped[dict | list | None] = mapped_column(type_=JSON)
@@ -201,6 +207,13 @@ class Job(Base, ElementMixin):
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
         specification = await parent.get_specification(session)
         spec_block = await specification.get_block(session, spec_block_name)
+
+        data = kwargs.get("data") or {}
+
+        metadata_ = kwargs.get("metadata", {})
+        metadata_["crtime"] = timestamp.element_time()
+        metadata_["mtime"] = None
+
         return {
             "spec_block_id": spec_block.id,
             "parent_id": parent.id,
@@ -208,7 +221,8 @@ class Job(Base, ElementMixin):
             "attempt": attempt,
             "fullname": f"{parent_name}/{name}_{attempt:03}",
             "handler": kwargs.get("handler"),
-            "data": kwargs.get("data", {}),
+            "data": data,
+            "metadata_": metadata_,
             "child_config": kwargs.get("child_config", {}),
             "collections": kwargs.get("collections", {}),
             "spec_aliases": kwargs.get("spec_aliases", {}),

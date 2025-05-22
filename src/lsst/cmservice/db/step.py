@@ -4,10 +4,13 @@ from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import async_scoped_session
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey, UniqueConstraint
 
+from ..common import timestamp
 from ..common.enums import LevelEnum, StatusEnum
 from ..common.errors import CMMissingRowCreateInputError
 from ..models.merged_product_set import MergedProductSetDict
@@ -51,7 +54,8 @@ class Step(Base, ElementMixin):
     status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting)
     superseded: Mapped[bool] = mapped_column(default=False)  # Has this been supersede
     handler: Mapped[str | None] = mapped_column()
-    data: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    data: Mapped[dict] = mapped_column(type_=JSON, default=dict)
+    metadata_: Mapped[dict] = mapped_column("metadata_", type_=MutableDict.as_mutable(JSONB), default=dict)
     child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
     collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
     spec_aliases: Mapped[dict | list | None] = mapped_column(type_=JSON)
@@ -170,13 +174,21 @@ class Step(Base, ElementMixin):
         spec_aliases = await campaign.get_spec_aliases(session)
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
         spec_block = await specification.get_block(session, spec_block_name)
+
+        data = kwargs.get("data") or {}
+
+        metadata_ = kwargs.get("metadata", {})
+        metadata_["crtime"] = timestamp.element_time()
+        metadata_["mtime"] = None
+
         return {
             "spec_block_id": spec_block.id,
             "parent_id": campaign.id,
             "name": name,
             "fullname": f"{campaign.fullname}/{original_name}",
             "handler": kwargs.get("handler"),
-            "data": kwargs.get("data", {}),
+            "data": data,
+            "metadata_": metadata_,
             "child_config": kwargs.get("child_config", {}),
             "collections": kwargs.get("collections", {}),
             "spec_aliases": kwargs.get("spec_aliases", {}),

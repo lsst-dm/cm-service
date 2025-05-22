@@ -556,6 +556,7 @@ class ScriptHandler(BaseScriptHandler):
             )
         if status is not script.status:
             await script.update_values(session, status=status)
+            await script.update_mtime(session)
         return status
 
     async def _write_script(

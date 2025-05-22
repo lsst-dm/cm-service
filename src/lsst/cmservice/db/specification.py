@@ -21,7 +21,7 @@ class Specification(Base, RowMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(index=True)
-    data: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    data: Mapped[dict] = mapped_column(type_=JSON, default=dict)
     child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
     collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
     spec_aliases: Mapped[dict | list | None] = mapped_column(type_=JSON)
