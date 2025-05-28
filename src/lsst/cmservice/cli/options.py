@@ -232,6 +232,7 @@ child_configs = PartialOption(
 data = PartialOption(
     "--data",
     type=DictParamType(),
+    default=dict(),
     help="data values to update",
 )
 
