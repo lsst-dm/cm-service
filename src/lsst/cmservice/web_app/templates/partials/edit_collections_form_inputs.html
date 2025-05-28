@@ -1,12 +1,26 @@
+{% set prefix = "" %}
+{% if element.level == 2 %}
+    {% set prefix = "step_" %}
+{% elif element.level == 3 %}
+    {% set prefix = "group_" %}
+{% elif element.level == 4 %}
+    {% set prefix = "job_" %}
+{% endif %}
+
 {% for key, value in element.collections|items %}
-<div class="flex flex-row">
-    <div class="basis-1/3"><label class="pr-2 text-sm/6 font-medium text-gray-900">{{key}}</label></div>
+{% if key != "" and prefix != "" and key.startswith(prefix) %}  <!-- Skip empty keys used for new fields -->
+<div class="flex flex-row collection-row mb-2">
+    <div class="basis-1/3">
+        <label class="pr-2 text-sm/6 font-medium text-gray-900">{{key}}</label>
+        <input type="hidden" name="keys" value="{{key}}"/>
+    </div>
     <div class="basis-2/3">
-        <input
-                type="text"
-                name="{{key}}"
-                value="{{value}}"
-                class="text-xs font-normal text-gray-900 w-full border-2"/>
+        <input type="text"
+               name="values"
+               value="{{value}}"
+               class="text-xs font-normal text-gray-900 w-full border-2"
+               placeholder="Field value"/>
     </div>
 </div>
+{% endif %}
 {% endfor %}

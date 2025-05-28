@@ -1,0 +1,42 @@
+<form id="update-data-dict-form"
+      hx-post="/web_app/data-dict/{{ element.id }}/{{ element.level }}/update"
+      hx-swap="innerHTML"
+      hx-target="#data-dict">
+    <div id="data-dict-container">
+        <div id="data-dict-form-elements">
+            {% include "partials/edit_data_dict_form_inputs.html" %}
+        </div>
+
+        <!-- New fields container -->
+        <div id="new-data-fields-container">
+            <!-- New fields will be added here -->
+        </div>
+
+        <div class="mt-5 sm:mt-6">
+            <div class="mb-4">
+                <button type="button"
+                        hx-post="/web_app/data-dict/{{ element.id }}/{{ element.level }}/add-field"
+                        hx-target="#new-data-fields-container"
+                        hx-swap="beforeend"
+                        class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    Add Field
+                </button>
+            </div>
+
+            <div class="flex flex-col-reverse sm:flex-row-reverse gap-3">
+                <button id="confirm-edit-data-dict" type="submit"
+                        class="inline-flex justify-center rounded-md bg-teal-700 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-600">
+                    Confirm
+                </button>
+
+                <button id="cancel-edit-data-dict" type="button"
+                        class="inline-flex justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
