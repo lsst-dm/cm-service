@@ -1,6 +1,5 @@
 import logging
 import traceback
-from collections import defaultdict
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -8,7 +7,7 @@ from typing import Annotated
 
 import structlog
 from fastapi import APIRouter, Depends, FastAPI, Form, HTTPException, Request, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -74,19 +73,38 @@ logger.info("Starting web app...")
 
 
 @web_app.exception_handler(StarletteHTTPException)
-async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> RedirectResponse:
-    logger.error(exc)
-    redirect_url = request.url_for("error_page", error_code=exc.status_code)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> Response:
+    logger.error(f"HTTP {exc.status_code} on {request.url}: {exc.detail}")
+
+    is_json_request = (
+        "application/json" in request.headers.get("accept", "")
+        or request.url.path.startswith("/web_app/api")
+        or request.url.path.startswith("/cm-service")
+    )
+
+    is_htmx = request.headers.get("HX-Request") == "true"
+
+    if is_json_request and not is_htmx:
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
     # if it's a htmx request, add the HX-Redirect header
     # to the response to redirect to the error page and
     # avoid swapping response within the page
-    if request.headers.get("HX-Request"):
-        response = RedirectResponse(redirect_url, status_code=exc.status_code)
-        response.headers["HX-Redirect"] = redirect_url.path
-    else:
-        response = RedirectResponse(redirect_url, status_code=status.HTTP_303_SEE_OTHER)
-    return response
+    if is_htmx:
+        if exc.status_code == 404:
+            response = HTMLResponse("<div>Content not found</div>", status_code=404)
+        elif exc.status_code < 500:
+            response = HTMLResponse(f"<div>{exc.detail}</div>", status_code=exc.status_code)
+        else:
+            redirect_url = request.url_for("error_page", error_code=exc.status_code)
+            response = HTMLResponse("", status_code=exc.status_code)
+            response.headers["HX-Redirect"] = redirect_url.path
+
+        return response
+
+    return templates.TemplateResponse(
+        "pages/error.html", {"request": request, "status_code": exc.status_code, "detail": exc.detail}
+    )
 
 
 @web_app.get("/campaigns/", response_class=HTMLResponse)
@@ -95,42 +113,24 @@ async def get_campaigns(
     session: Annotated[async_scoped_session, Depends(db_session_dependency)],
 ) -> HTMLResponse:
     try:
+        campaign_list = []
         async with session.begin():
-            production_list: dict[str, list] = defaultdict(list)
             campaigns = await get_all_campaigns(session)
-
             for campaign in campaigns:
                 campaign_details = await get_campaign_details(session, campaign)
-                production_list[campaign_details["production_name"]].append(campaign_details)
+                campaign_list.append(campaign_details)
 
         return templates.TemplateResponse(
             name="pages/campaigns.html",
             request=request,
             context={
                 "recent_campaigns": None,
-                "productions": production_list,
+                "all_campaigns": campaign_list,
             },
         )
     except Exception as e:
         traceback.print_tb(e.__traceback__)
         raise HTTPException(status_code=500, detail=f"Error getting campaigns: {e}")
-
-
-@web_app.get("/error/{error_code}", response_class=HTMLResponse)
-async def error_page(
-    request: Request,
-    error_code: int,
-) -> HTMLResponse:
-    referer = request.headers.get("referer")
-    response = templates.TemplateResponse(
-        name="pages/error.html",
-        request=request,
-        context={
-            "error_code": error_code,
-            "referer": referer if referer is not None else request.url_for("get_campaigns"),
-        },
-    )
-    return response
 
 
 @web_app.post("/campaigns/", response_class=HTMLResponse)
@@ -156,7 +156,7 @@ async def search(
         )
     except Exception as e:
         traceback.print_tb(e.__traceback__)
-        raise HTTPException(status_code=500, detail=f"Something went wrong: {e}")
+        raise HTTPException(status_code=500, detail=f"Error searching campaigns: {e}")
 
 
 @web_app.get("/campaign/{campaign_id}/steps/", response_class=HTMLResponse)
@@ -307,13 +307,13 @@ class ReadScriptLogRequest(BaseModel):
     log_path: str
 
 
-@web_app.post("/read-script-log")
+@web_app.post("/api/read-script-log")
 async def read_script_log(request: ReadScriptLogRequest) -> dict[str, str]:
     file_path = Path(request.log_path)
 
     # Check if the file exists
     if not file_path.is_file():
-        raise HTTPException(status_code=404, detail="File not found")
+        raise HTTPException(status_code=404, detail=f"File not found: \n{file_path}")
 
     try:
         # Read the content of the file
@@ -321,7 +321,7 @@ async def read_script_log(request: ReadScriptLogRequest) -> dict[str, str]:
         return {"content": content}
     except Exception as e:
         traceback.print_tb(e.__traceback__)
-        raise HTTPException(status_code=500, detail=f"Error reading file: {e}")
+        raise HTTPException(status_code=500, detail=f"Error reading log file: {e}. \n{file_path}")
 
 
 @web_app.post("/update-collections/{element_type}/{element_id}", response_class=HTMLResponse)
@@ -334,7 +334,10 @@ async def update_element_collections(
     try:
         element = await get_element(session, element_id, element_type)
         if element is None:
-            raise Exception("Element not found")
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND,
+                detail=f"Error updating collections: {LevelEnum(element_type).name} {element_id} Not Found!!",
+            )
         collections = await request.form()
         collection_dict = {key: value for key, value in collections.items()}
         updated_element = await update_collections(
@@ -364,7 +367,8 @@ async def update_element_child_config(
         if element is None:
             raise HTTPException(
                 status.HTTP_404_NOT_FOUND,
-                detail=f"Error updating collections: {LevelEnum(element_type).name} {element_id} Not Found!!",
+                detail=f"Error updating child config: "
+                f"{LevelEnum(element_type).name} {element_id} Not Found!!",
             )
         child_config = await request.form()
         child_config_dict = {key: value for key, value in child_config.items()}
@@ -393,7 +397,10 @@ async def update_element_data_dict(
     try:
         element = await get_element(session, element_id, element_type)
         if element is None:
-            raise Exception("Element not found")
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND,
+                detail=f"Error updating data dict: {LevelEnum(element_type).name} {element_id} Not Found!!",
+            )
         data = await request.form()
         data_dict = {key: value for key, value in data.items()}
         updated_element = await update_data_dict(session=session, element=element, data_dict=data_dict)

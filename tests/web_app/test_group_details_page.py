@@ -54,6 +54,7 @@ async def test_get_group_details_by_id(engine: AsyncEngine) -> None:
             "step_id": 2,
             "campaign_id": 1,
             "level": LevelEnum.group.value,
+            "org_status": {"name": "waiting", "value": 0},
         }
 
         assert group_jobs == [
@@ -61,7 +62,7 @@ async def test_get_group_details_by_id(engine: AsyncEngine) -> None:
                 "id": 1,
                 "name": f"job_{uuid_int}",
                 "superseded": False,
-                "status": "IN_PROGRESS",
+                "status": "IN_PROGRESS - WAITING",
                 "data": {},
                 "submit_status": "",
                 "submit_url": "",

@@ -43,7 +43,8 @@ const updateStatus = async () => {
         method: "POST",
         body: resetJson,
         headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "Accept": "application/json",
         }
     });
 
@@ -66,12 +67,13 @@ const updateStatus = async () => {
 };
 
 const readScriptLog = async (logURL) => {
-    const url = "/web_app/read-script-log";
+    const url = "/web_app/api/read-script-log";
     const res  = await fetch(url, {
         method: "POST",
         body: JSON.stringify({ log_path: logURL}),
         headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "Accept": "application/json",
         }
     });
     if(!res.ok) {
@@ -147,7 +149,7 @@ class ResetButtonCellRenderer {
 
              // create target status dropdown according to current status
              let currentStatus = params.data.status;
-             if(currentStatus === "FAILED" || currentStatus === "REJECTED"){
+             if(currentStatus === "READY" || currentStatus === "WAITING" || currentStatus === "PREPARED"){
                  document.querySelector('#reset-modal-title').innerText = "Reset Script";
                  fillTargetStatusDropdown(resetFromRejected);
              } else if (currentStatus === "REVIEWABLE") {
