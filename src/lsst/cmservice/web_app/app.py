@@ -414,3 +414,150 @@ async def update_element_data_dict(
     except Exception as e:
         traceback.print_tb(e.__traceback__)
         raise HTTPException(status_code=500, detail=f"Error updating data dict: {e}")
+
+
+@web_app.post("/collections/{element_id}/{element_type}/update")
+async def update_collections_htmx(
+    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    element_id: int,
+    element_type: int,
+    request: Request,
+    keys: Annotated[list[str], Form()],
+    values: Annotated[list[str], Form()],
+    new_keys: Annotated[list[str], Form()] = [],
+    new_values: Annotated[list[str], Form()] = [],
+) -> HTMLResponse:
+    element = await get_element(session, element_id, element_type)
+    if element is None:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            detail=f"Error updating data dict: {LevelEnum(element_type).name} {element_id} Not Found!!",
+        )
+
+    collection_dict = {}
+    for key, value in zip(keys, values):
+        key = key.strip()
+        if key:
+            collection_dict[key] = value
+
+    for key, value in zip(new_keys, new_values):
+        key = key.strip()
+        if key:
+            collection_dict[key] = value
+
+    updated_element = await update_collections(session=session, element=element, collections=collection_dict)
+
+    return templates.TemplateResponse(
+        name="partials/edit_collections_response.html",
+        request=request,
+        context={
+            "element": updated_element,
+        },
+    )
+
+
+@web_app.post("/collections/{element_id}/{element_type}/add-field")
+@web_app.post("/data-dict/{element_id}/{element_type}/add-field")
+@web_app.post("/child-config/{element_id}/{element_type}/add-field")
+async def add_collection_field(
+    element_id: int,
+    element_type: int,
+    request: Request,
+) -> HTMLResponse:
+    import uuid
+
+    field_id = str(uuid.uuid4())[:8]
+
+    return templates.TemplateResponse(
+        name="partials/new_field.html",
+        request=request,
+        context={"element_id": element_id, "field_id": field_id, "element_type": element_type},
+    )
+
+
+@web_app.post("/collections/{element_id}/{element_type}/remove-new-field/{field_id}")
+@web_app.post("/data-dict/{element_id}/{element_type}/remove-new-field/{field_id}")
+@web_app.post("/child-config/{element_id}/{element_type}/remove-new-field/{field_id}")
+async def remove_new_field(element_id: int, element_type: int, field_id: str) -> str:
+    # This just returns empty content to remove the field from DOM
+    return ""
+
+
+@web_app.post("/data-dict/{element_id}/{element_type}/update")
+async def update_data_dict_htmx(
+    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    element_id: int,
+    element_type: int,
+    request: Request,
+    keys: Annotated[list[str], Form()] = [],
+    values: Annotated[list[str], Form()] = [],
+    new_keys: Annotated[list[str], Form()] = [],
+    new_values: Annotated[list[str], Form()] = [],
+) -> HTMLResponse:
+    element = await get_element(session, element_id, element_type)
+    if element is None:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            detail=f"Error updating data dict: {LevelEnum(element_type).name} {element_id} Not Found!!",
+        )
+
+    data_dict = {}
+    for key, value in zip(keys, values):
+        key = key.strip()
+        if key:
+            data_dict[key] = value
+
+    for key, value in zip(new_keys, new_values):
+        key = key.strip()
+        if key:
+            data_dict[key] = value
+
+    updated_element = await update_data_dict(session=session, element=element, data_dict=data_dict)
+
+    return templates.TemplateResponse(
+        name="partials/edit_data_dict_response.html",
+        request=request,
+        context={
+            "element": updated_element,
+        },
+    )
+
+
+@web_app.post("/child-config/{element_id}/{element_type}/update")
+async def update_child_config_htmx(
+    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    element_id: int,
+    element_type: int,
+    request: Request,
+    keys: Annotated[list[str], Form()] = [],
+    values: Annotated[list[str], Form()] = [],
+    new_keys: Annotated[list[str], Form()] = [],
+    new_values: Annotated[list[str], Form()] = [],
+) -> HTMLResponse:
+    element = await get_element(session, element_id, element_type)
+    if element is None:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            detail=f"Error updating child config: {LevelEnum(element_type).name} {element_id} Not Found!!",
+        )
+
+    child_config = {}
+    for key, value in zip(keys, values):
+        key = key.strip()
+        if key:
+            child_config[key] = value
+
+    for key, value in zip(new_keys, new_values):
+        key = key.strip()
+        if key:
+            child_config[key] = value
+
+    updated_element = await update_child_config(session=session, element=element, child_config=child_config)
+
+    return templates.TemplateResponse(
+        name="partials/edit_child_config_response.html",
+        request=request,
+        context={
+            "element": updated_element,
+        },
+    )

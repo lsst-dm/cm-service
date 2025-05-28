@@ -42,16 +42,21 @@ async def get_group_by_id(
 
             if len(wms_report) > 0:
                 aggregated_report_dict["succeeded"] = sum(task["n_succeeded"] for task in wms_report)
-                aggregated_report_dict["failed"] = wms_report[-1]["n_failed"]
-                aggregated_report_dict["running"] = wms_report[-1]["n_running"]
-                aggregated_report_dict["pending"] = wms_report[-1]["n_pending"] + wms_report[-1]["n_ready"]
-                aggregated_report_dict["other"] = (
-                    wms_report[-1]["n_unknown"]
-                    + wms_report[-1]["n_misfit"]
-                    + wms_report[-1]["n_unready"]
-                    + wms_report[-1]["n_deleted"]
-                    + wms_report[-1]["n_pruned"]
-                    + wms_report[-1]["n_held"]
+                aggregated_report_dict["failed"] = sum(task["n_failed"] for task in wms_report)
+                aggregated_report_dict["running"] = sum(task["n_running"] for task in wms_report)
+                aggregated_report_dict["pending"] = sum(
+                    (task["n_pending"] + task["n_ready"]) for task in wms_report
+                )
+                aggregated_report_dict["other"] = sum(
+                    (
+                        task["n_unknown"]
+                        + task["n_misfit"]
+                        + task["n_unready"]
+                        + task["n_deleted"]
+                        + task["n_pruned"]
+                        + task["n_held"]
+                    )
+                    for task in wms_report
                 )
 
                 aggregated_report_dict["expected"] = sum(aggregated_report_dict.values())

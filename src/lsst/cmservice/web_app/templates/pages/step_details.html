@@ -162,10 +162,7 @@
         document.querySelector("#editDataBtn").addEventListener("click", () => {
             let step_status = {{step.org_status.value}};
             // TODO: revisit status mapping between frontend and backend
-            if (Object.keys({{step.data}}).length === 0) {
-                errorMessage.innerText = "Data Config is empty!";
-                errorModal.showModal();
-            } else if(step_status < 2) {
+            if(step_status < 2) {
                 document.querySelector("#edit-data-dict-modal").showModal();
             } else {
                 errorMessage.innerText = "Cannot update data for a running step!";
