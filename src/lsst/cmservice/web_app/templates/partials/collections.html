@@ -1,3 +1,20 @@
-{% for key, value in element.collections|items %}
-<div class="block text-sm">{{key}}: {{value}}</div>
-{% endfor %}
+<div class="overflow-x-auto">
+  <table class="table-auto w-full text-sm text-left text-gray-700">
+    <tbody class="divide-y divide-gray-100">
+      {% for key, value in element.collections|items %}
+      <tr class="hover:bg-gray-50 transition-colors">
+        <th class="font-medium pr-4 py-2 text-gray-600 whitespace-nowrap align-top">
+          {{ key }}
+        </th>
+        <td class="py-2">
+          {% if value is iterable and value is not string %}
+            <pre class="whitespace-pre-wrap text-sm text-gray-600">{{ value | tojson(indent=2) }}</pre>
+          {% else %}
+            <span class="text-gray-800">{{ value }}</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

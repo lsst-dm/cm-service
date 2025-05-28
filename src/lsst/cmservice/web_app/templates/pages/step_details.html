@@ -8,6 +8,7 @@
 {% include "partials/edit_collections_modal.html" %}
 {% include "partials/edit_child_config_modal.html" %}
 {% include "partials/edit_data_dict_modal.html" %}
+{% set expand_collections = True %}
 
 <script src="{{ url_for('static', path='/js/script-grid-utils.js') }}"></script>
 <script>
@@ -47,7 +48,7 @@
     eGui;
     init(params) {
         let scriptName = document.createElement('a');
-        scriptName.textContent = params.data.name;
+        scriptName.textContent = params.data.fullname.split("/").pop();
         scriptName.href = `{{url_for("get_script", campaign_id=campaign_id, step_id=step.id, script_id="${params.data.id}")}}`;
         scriptName.setAttribute('class', 'font-bold text-teal-700 underline underline-offset-4 decoration-2 hover:text-gray-500');
         this.eGui = document.createElement('span');
@@ -137,9 +138,9 @@
     window.addEventListener("DOMContentLoaded", function() {
         populateGrids();
         document.querySelector("#editCollectionsBtn").addEventListener("click", () => {
-            let step_status = "{{step.status}}";
+            let step_status = {{step.org_status.value}};
             // TODO: revisit status mapping between frontend and backend
-            if(step_status !== "COMPLETE") {
+            if(step_status < 2) {
                 document.querySelector("#edit-collection-modal").showModal();
             } else {
                 errorMessage.innerText = "Cannot update collections for a running step!";
@@ -148,9 +149,9 @@
         });
 
         document.querySelector("#editChildConfigBtn").addEventListener("click", () => {
-            let step_status = "{{step.status}}";
+            let step_status = {{step.org_status.value}};
             // TODO: revisit status mapping between frontend and backend
-            if(step_status !== "COMPLETE") {
+            if(step_status < 2) {
                 document.querySelector("#edit-child-config-modal").showModal();
             } else {
                 errorMessage.innerText = "Cannot update child config for a running step!";
@@ -159,12 +160,12 @@
         });
 
         document.querySelector("#editDataBtn").addEventListener("click", () => {
-            let step_status = "{{step.status}}";
+            let step_status = {{step.org_status.value}};
             // TODO: revisit status mapping between frontend and backend
             if (Object.keys({{step.data}}).length === 0) {
                 errorMessage.innerText = "Data Config is empty!";
                 errorModal.showModal();
-            } else if(step_status !== "COMPLETE") {
+            } else if(step_status < 2) {
                 document.querySelector("#edit-data-dict-modal").showModal();
             } else {
                 errorMessage.innerText = "Cannot update data for a running step!";
@@ -207,7 +208,7 @@
 
 </script>
 
-{% set fullname = step.fullname.split('/') %}
+{% set fullname = step.fullname %}
 {% set no_status_groups = step.no_groups - step.no_groups_failed - step.no_groups_need_attention - step.no_groups_completed %}
 <nav class="flex px-2 sm:px-4 lg:px-4" aria-label="Breadcrumb">
   <ol role="list" class="flex items-center space-x-2">
@@ -221,7 +222,7 @@
         <svg class="h-5 w-5 flex-shrink-0 text-gray-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
           <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
         </svg>
-        <a href="{{ url_for('get_steps', campaign_id=campaign_id) }}" class="underline decoration-2 ml-2 text-sm font-medium text-gray-500 hover:text-gray-700" aria-current="page">{{ fullname[0] }}/{{ fullname[1] }}</a>
+        <a href="{{ url_for('get_steps', campaign_id=campaign_id) }}" class="underline decoration-2 ml-2 text-sm font-medium text-gray-500 hover:text-gray-700" aria-current="page">{{ fullname.campaign }}</a>
       </div>
     </li>
   </ol>
@@ -229,52 +230,19 @@
 <div class="w-full">
     <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
         <div class="flex items-center">
-            <span class="text-2xl font-bold">{{step.name}}</span>
+            <span class="text-2xl font-bold">{{step.fullname.step}}</span>
         </div>
         <div class="flex items-center">
-            <span class="text-sm font-normal">{{step.fullname}}</span>
+            <span class="text-sm font-medium uppercase">{{step.org_status.name}}</span>
         </div>
-        <div class="block items-center pt-6">
-            <span class="text-sm font-bold align-top">Collections</span>
-            <button id="editCollectionsBtn">
-                <span class="inline-flex h-5 w-5 hover:text-teal-600">
-                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
-                      <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
-                      <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" />
-                    </svg>
-                </span>
-            </button>
-            <div id="collections">
-                {% include "partials/collections.html" %}
-            </div>
+        <div class="block pt-2">
+            {% include "partials/collections_collapsible.html" %}
         </div>
-        <div class="block items-center pt-6">
-            <span class="text-sm font-bold align-top">Data</span>
-            <button id="editDataBtn">
-                <span class="inline-flex h-5 w-5 hover:text-teal-600">
-                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
-                      <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
-                      <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" />
-                    </svg>
-                </span>
-            </button>
-            <div id="data-dict" hx-swap-oob="outerHTML:#data-dict">
-                {% include "partials/data_dict.html" %}
-            </div>
+        <div class="block pt-2">
+            {% include "partials/data_collapsible.html" %}
         </div>
-        <div class="block items-center pt-6">
-            <span class="text-sm font-bold align-top">Child Config</span>
-            <button id="editChildConfigBtn">
-                <span class="inline-flex h-5 w-5 hover:text-teal-600">
-                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
-                      <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
-                      <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" />
-                    </svg>
-                </span>
-            </button>
-            <div id="child-config">
-                {% include "partials/child_config.html" %}
-            </div>
+        <div class="block pt-2">
+            {% include "partials/child_config_collapsible.html" %}
         </div>
         <div id="group-progress"
              hx-get="{{ url_for('get_step', campaign_id=campaign_id, step_id=step.id) }}"

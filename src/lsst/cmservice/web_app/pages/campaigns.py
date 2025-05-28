@@ -4,8 +4,10 @@ from typing import TYPE_CHECKING
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
 
-from lsst.cmservice.common.enums import LevelEnum, StatusEnum
+from lsst.cmservice.common.enums import LevelEnum
+from lsst.cmservice.common.timestamp import iso_timestamp
 from lsst.cmservice.db import Campaign, Group
+from lsst.cmservice.web_app.pages.steps import get_campaign_steps, get_step_details
 from lsst.cmservice.web_app.utils.utils import map_status
 
 
@@ -13,29 +15,35 @@ async def get_campaign_details(session: async_scoped_session, campaign: Campaign
     if TYPE_CHECKING:
         assert isinstance(campaign.data, dict)
     collections = await campaign.resolve_collections(session, throw_overrides=False)
+    steps = await get_campaign_steps(session, campaign.id)
+    campaign_steps = [await get_step_details(session, step) for step in steps]
+    need_attention_steps = [step for step in campaign_steps if step["status"] in ["NEED_ATTENTION", "FAILED"]]
+    in_progress_steps = [step for step in campaign_steps if step["status"] == "IN_PROGRESS"]
+    complete_steps = [step for step in campaign_steps if step["status"] == "COMPLETE"]
     groups = await get_campaign_groups(session, campaign)
-    no_groups_completed = len([group for group in groups if group.status is StatusEnum.accepted])
     need_attention_groups = [
         group for group in groups if map_status(group.status) in ["NEED_ATTENTION", "FAILED"]
     ]
     scripts = await campaign.get_all_scripts(session)
-    no_scripts_completed = len([script for script in scripts if script.status is StatusEnum.accepted])
     need_attention_scripts = [
         script for script in scripts if map_status(script.status) in ["NEED_ATTENTION", "FAILED"]
     ]
-
+    last_updated = (
+        campaign.metadata_.get("mtime")
+        if campaign.metadata_.get("mtime") is not None
+        else campaign.metadata_.get("crtime")
+    )
     campaign_details = {
         "id": campaign.id,
         "name": campaign.name,
-        # FIXME use ..common.parsing.string.parse_element_fullname instead of
-        #       token-counting
-        "production_name": campaign.fullname.split("/")[0],
-        "fullname": campaign.fullname,
+        "last_updated": iso_timestamp(last_updated) if last_updated is not None else "",
         "lsst_version": campaign.data["lsst_version"],
         "source": collections.get("campaign_source", ""),
         "status": map_status(campaign.status),
-        "groups_completed": f"{no_groups_completed} of {len(groups)} groups completed",
-        "scripts_completed": f"{no_scripts_completed} of {len(scripts)} scripts completed",
+        "org_status": {"name": campaign.status.name, "value": campaign.status.value},
+        "need_attention_steps": need_attention_steps,
+        "complete_steps": complete_steps,
+        "in_progress_steps": in_progress_steps,
         "need_attention_groups": need_attention_groups,
         "need_attention_scripts": need_attention_scripts,
         "level": LevelEnum.campaign.value,

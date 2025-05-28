@@ -16,9 +16,9 @@
         const errorMessage = document.querySelector("[error-message]")
 
         document.querySelector("#editDataBtn").addEventListener("click", () => {
-            let script_status = "{{script.status}}";
+            let script_status = {{script.org_status.value}};
             // TODO: revisit status mapping between frontend and backend
-            if(script_status !== "COMPLETE" && script_status !== "IN_PROGRESS") {
+            if(script_status < 2) {
                 document.querySelector("#edit-data-dict-modal").showModal();
             } else {
                 errorMessage.innerText = "Cannot update data for a running script!";
@@ -27,9 +27,9 @@
         });
 
         document.querySelector("#editCollectionsBtn").addEventListener("click", () => {
-            let script_status = "{{script.status}}";
+            let script_status = {{script.org_status.value}};
             // TODO: revisit status mapping between frontend and backend
-            if(script_status !== "COMPLETE" && script_status !== "IN_PROGRESS") {
+            if(script_status < 2) {
                 document.querySelector("#edit-collection-modal").showModal();
             } else {
                 errorMessage.innerText = "Cannot update collections for a running script!";
@@ -38,9 +38,9 @@
         });
 
         document.querySelector("#editChildConfigBtn").addEventListener("click", () => {
-            let script_status = "{{script.status}}";
+            let script_status = {{script.org_status.value}};
             // TODO: revisit status mapping between frontend and backend
-            if(script_status !== "COMPLETE" && script_status !== "IN_PROGRESS") {
+            if(script_status < 2) {
                 document.querySelector("#edit-child-config-modal").showModal();
             } else {
                 errorMessage.innerText = "Cannot update child config for a running script!";
@@ -86,7 +86,7 @@
       </li>
       <li>
           <div class="flex items-center">
-              <a href="{{ script.parent_list[0] }}" class="underline decoration-2 ml-2 mr-2 text-sm font-medium text-gray-500 hover:text-gray-700">{{fullname[0]}}/{{fullname[1]}}</a>
+              <a href="{{ script.parent_list[0] }}" class="underline decoration-2 ml-2 mr-2 text-sm font-medium text-gray-500 hover:text-gray-700">{{fullname[0]}}</a>
               <svg class="h-5 w-5 flex-shrink-0 text-gray-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                 <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
               </svg>
@@ -95,7 +95,7 @@
       {% for i in range(1, script.parent_list|length ) %}
     <li>
       <div class="flex items-center">
-          <a href="{{ script.parent_list[i] }}" class="underline decoration-2 ml-2 mr-2 text-sm font-medium text-gray-500 hover:text-gray-700">{{ fullname[i+1] }}</a>
+          <a href="{{ script.parent_list[i] }}" class="underline decoration-2 ml-2 mr-2 text-sm font-medium text-gray-500 hover:text-gray-700">{{ fullname[i] }}</a>
 
           {% if not loop.last %}
           <svg class="h-5 w-5 flex-shrink-0 text-gray-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
@@ -110,10 +110,7 @@
 <div class="w-full">
     <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
         <div class="flex items-center">
-            <span class="text-2xl font-bold">{{script.name}}</span>
-        </div>
-        <div class="flex items-center">
-            <span class="text-sm font-normal">{{script.fullname}}</span>
+            <span class="text-2xl font-bold">{{fullname.pop()}}</span>
         </div>
         <div class="flex items-center"
              id="script_status"
@@ -121,7 +118,7 @@
              hx-trigger="every 20s"
              hx-select="#script_status"
              hx-swap="outerHTML">
-            <span class="text-sm font-normal">{{script.status}}</span>
+            <span class="text-sm font-medium uppercase">{{script.org_status.name}}</span>
         </div>
         <div class="block items-center pt-6">
             <span class="text-sm font-bold align-top">Collections</span>

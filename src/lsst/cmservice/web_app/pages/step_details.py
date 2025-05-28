@@ -31,6 +31,7 @@ async def get_step_groups(session: async_scoped_session, step: Step) -> list[dic
             "name": group.name,
             "superseded": group.superseded,
             "status": map_status(group.status),
+            "org_status": {"name": group.status.name, "value": group.status.value},
             "data": group.data,
             "collections": group.collections,
             "child_config": group.child_config,

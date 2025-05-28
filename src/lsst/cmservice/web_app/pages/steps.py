@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 
 from lsst.cmservice.common.enums import StatusEnum
 from lsst.cmservice.db import Campaign, Step
+from lsst.cmservice.parsing.string import parse_element_fullname
 from lsst.cmservice.web_app.utils.utils import map_status
 
 
@@ -25,9 +26,9 @@ async def get_step_details(session: async_scoped_session, step: Step) -> dict:
     no_groups_failed = len([group for group in step_groups if map_status(group.status) == "FAILED"])
     step_details = {
         "id": step.id,
-        "name": step.name,
-        "fullname": step.fullname,
+        "fullname": parse_element_fullname(step.fullname).model_dump(),
         "status": map_status(step.status),
+        "org_status": {"name": step.status.name, "value": step.status.value},
         "no_groups": no_groups,
         "no_groups_completed": no_groups_completed,
         "no_groups_need_attention": no_groups_need_attention,
