@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import JSON, DateTime, and_, select
@@ -32,7 +32,9 @@ class Queue(Base, NodeMixin):
     time_created: Mapped[datetime] = mapped_column(type_=DateTime)
     time_updated: Mapped[datetime] = mapped_column(type_=DateTime)
     time_finished: Mapped[datetime | None] = mapped_column(type_=DateTime, default=None)
-    time_next_check: Mapped[datetime | None] = mapped_column(type_=DateTime, default=datetime.min)
+    time_next_check: Mapped[datetime | None] = mapped_column(
+        type_=DateTime, default=datetime.min.replace(tzinfo=UTC)
+    )
     interval: Mapped[float] = mapped_column(default=300.0)
     options: Mapped[dict | list | None] = mapped_column(type_=JSON)
     node_level: Mapped[LevelEnum] = mapped_column()
@@ -153,7 +155,7 @@ class Queue(Base, NodeMixin):
     ) -> dict:
         fullname = kwargs["fullname"]
         node_level = LevelEnum.get_level_from_fullname(fullname)
-        now = datetime.now()
+        now = datetime.now(tz=UTC)
         ret_dict = {
             "node_level": node_level,
             "interval": kwargs.get("interval", 300),
@@ -206,7 +208,7 @@ class Queue(Base, NodeMixin):
         """
         delta_t = timedelta(seconds=self.interval)
         next_check = self.time_updated + delta_t
-        now = datetime.now()
+        now = datetime.now(tz=UTC)
         return now < next_check
 
     async def process_node(
@@ -229,7 +231,7 @@ class Queue(Base, NodeMixin):
             process_kwargs.update(**self.options)
         (_changed, status) = await node.process(session, **process_kwargs)
 
-        now = datetime.now()
+        now = datetime.now(tz=UTC)
         update_dict = {"time_updated": now}
 
         if node.level == LevelEnum.script:

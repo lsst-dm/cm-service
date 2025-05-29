@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.future import select
@@ -13,7 +13,7 @@ logger = LOGGER.bind(module=__name__)
 
 
 async def daemon_iteration(session: async_scoped_session) -> None:
-    iteration_start = datetime.now()
+    iteration_start = datetime.now(tz=UTC)
     queue_entries = await session.execute(
         select(Queue).where((Queue.time_next_check < iteration_start) & (Queue.time_finished.is_(None)))
     )

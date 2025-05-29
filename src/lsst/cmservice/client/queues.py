@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from time import sleep
 from typing import TYPE_CHECKING
 
@@ -115,7 +115,7 @@ class CMQueueClient:
         row_id: int
             ID of the Queue row in question
         """
-        now = datetime.now()
+        now = datetime.now(tz=UTC)
         try:
             queue = self.get_row(row_id)
             sleep_time = self.sleep_time(row_id)
@@ -154,7 +154,7 @@ class CMQueueClient:
             except Exception as msg:
                 print(f"Caught exception in process: {msg}, continuing")
                 try:
-                    self.update(row_id, time_updated=datetime.now())
+                    self.update(row_id, time_updated=datetime.now(tz=UTC))
                 except Exception as msg2:
                     print(f"Failed to modify time_updated: {msg2}, continuing")
                 can_continue = True

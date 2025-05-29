@@ -79,7 +79,7 @@ def test_config_datetime() -> None:
     assert config.panda.token_expiry.tzinfo is UTC
 
     # test coercion to UTC on assignment of tz-naive datetime
-    naive_datetime = datetime(year=2025, month=1, day=2)
+    naive_datetime = datetime(year=2025, month=1, day=2)  # noqa:DTZ001
     config.panda.token_expiry = naive_datetime
     assert (config.panda.token_expiry - naive_datetime.replace(tzinfo=UTC)) == timedelta(0)
 
