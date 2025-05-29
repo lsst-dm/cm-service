@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import warnings
 from collections import deque
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from uuid import UUID, uuid5
 
@@ -235,7 +236,7 @@ class CMLoadClient:
             loaded_specs = {}
 
         if isinstance(yaml_file, str):
-            with open(yaml_file, encoding="utf-8") as f:
+            with Path(yaml_file).open(encoding="utf-8") as f:
                 spec_data: deque[dict] = deque(yaml.safe_load(f))
         else:
             spec_data = yaml_file
@@ -251,7 +252,8 @@ class CMLoadClient:
             if "Imports" in config_item:
                 imports = config_item["Imports"]
                 for import_ in imports:
-                    with open(os.path.abspath(os.path.expandvars(import_)), encoding="utf-8") as f:
+                    import_path = Path(os.path.expandvars(import_)).resolve()
+                    with import_path.open(encoding="utf-8") as f:
                         for import_item in yaml.safe_load(f):
                             spec_data.appendleft(import_item)
             elif "SpecBlock" in config_item:
@@ -355,7 +357,7 @@ class CMLoadClient:
         if yaml_file is not None:
             _ = self.specification_cl(yaml_file, namespace=kwargs["namespace"])
 
-        with open(campaign_yaml, encoding="utf-8") as f:
+        with Path(campaign_yaml).open(encoding="utf-8") as f:
             yaml_stack = yaml.load_all(f, Loader=get_loader())
 
             # sort the manifests into a deque; Campaign overrides first
@@ -499,7 +501,7 @@ class CMLoadClient:
         error_types: list[models.PipetaskErrorType]
             Newly created or updated PipetaskErrorType objects
         """
-        with open(yaml_file, encoding="utf-8") as fin:
+        with Path(yaml_file).open(encoding="utf-8") as fin:
             error_types = yaml.safe_load(fin)
 
         ret_list: list[models.PipetaskErrorType] = []

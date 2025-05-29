@@ -151,6 +151,7 @@ select = [
     "ASYNC", # flake8-async
     "DTZ", # flake8-datetimez
     "ERA", # eradicate
+    "PTH", # flake8-user-pathlib
 ]
 extend-select = [
     "RUF100", # Warn about unused noqa

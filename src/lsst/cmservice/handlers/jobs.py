@@ -343,15 +343,13 @@ class BpsScriptHandler(ScriptHandler):
             return update_fields
         if script.script_url is None:  # pragma: no cover
             return update_fields
-        json_url = script.script_url.replace(".sh", "_log.json")
-        config_url = script.script_url.replace(".sh", "_bps_config.yaml")
-        submit_path = script.script_url.replace(
-            os.path.basename(script.script_url),
-            "/submit",
-        )
+        script_url = Path(script.script_url)
+        json_url = script_url.with_stem(f"{script_url.stem}_log").with_suffix(".json")
+        config_url = script_url.with_stem(f"{script_url.stem}_bps_config").with_suffix(".yaml")
+        submit_path = script_url.parent / "submit"
 
-        await Path(json_url).unlink(missing_ok=True)
-        await Path(config_url).unlink(missing_ok=True)
+        await json_url.unlink(missing_ok=True)
+        await config_url.unlink(missing_ok=True)
         try:
             await run_in_threadpool(shutil.rmtree, submit_path)
         except FileNotFoundError:  # pragma: no cover

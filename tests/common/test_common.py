@@ -1,5 +1,3 @@
-import os
-
 import pytest
 from anyio import Path
 
@@ -120,7 +118,7 @@ async def test_common_htcondor() -> None:
     status = await check_htcondor_job("htcondor_temp.log")
     assert status is StatusEnum.failed
 
-    os.unlink("htcondor_temp.sh")
+    await Path("htcondor_temp.sh").unlink()
 
 
 # FIXME this test should patch the htcondor runner to produce an actual result

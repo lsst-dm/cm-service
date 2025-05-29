@@ -221,7 +221,8 @@ async def load_specification(
         if "Imports" in config_item:
             imports = config_item["Imports"]
             for import_ in imports:
-                import_yaml = await Path(os.path.abspath(os.path.expandvars(import_))).read_bytes()
+                import_path = await Path(os.path.expandvars(import_)).resolve()
+                import_yaml = await import_path.read_bytes()
                 for import_item in yaml.safe_load(import_yaml):
                     spec_data.appendleft(import_item)
         elif "SpecBlock" in config_item:
