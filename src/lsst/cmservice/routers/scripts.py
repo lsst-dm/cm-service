@@ -1,6 +1,7 @@
 """http routers for managing Script tables"""
 
 from collections.abc import Sequence
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from safir.dependencies.db_session import db_session_dependency
@@ -81,13 +82,12 @@ check_prerequisites = wrappers.get_node_check_prerequisites_function(router, DbC
 
 @router.post(
     "/action/{row_id}/reset_script",
-    response_model=StatusEnum,
     summary=f"Reset the status of a {DbClass.class_string}",
 )
 async def reset_script(
     row_id: int,
     query: models.ResetQuery,
-    session: async_scoped_session = Depends(db_session_dependency),
+    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
 ) -> StatusEnum:
     """Reset a script to an earlier status
 
@@ -123,7 +123,7 @@ async def reset_script(
 )
 async def get_script_errors(
     row_id: int,
-    session: async_scoped_session = Depends(db_session_dependency),
+    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
 ) -> Sequence[db.ScriptError]:
     try:
         async with session.begin():

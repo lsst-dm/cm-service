@@ -9,7 +9,7 @@ apply to all RowMixin, NodeMixin and ElementMixin classes.
 """
 
 from collections.abc import Callable, Sequence
-from typing import Any, TypeAlias
+from typing import Annotated, TypeAlias
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -54,13 +54,12 @@ def get_rows_no_parent_function(
 
     @router.get(
         "/list",
-        response_model=list[response_model_class],
         summary=f"List all the {db_class.class_string}",
     )
     async def get_rows(
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
         skip: int = 0,
         limit: int = 100,
-        session: async_scoped_session = Depends(db_session_dependency),
     ) -> Sequence[response_model_class]:
         try:
             async with session.begin():
@@ -102,14 +101,13 @@ def get_rows_function(
 
     @router.get(
         "/list",
-        response_model=list[response_model_class],
         summary=f"List all the {db_class.class_string}",
     )
     async def get_rows(
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
         parent_id: int | None = None,
         skip: int = 0,
         limit: int = 100,
-        session: async_scoped_session = Depends(db_session_dependency),
     ) -> Sequence[response_model_class]:
         try:
             async with session.begin():
@@ -154,12 +152,11 @@ def get_row_function(
 
     @router.get(
         "/get/{row_id}",
-        response_model=response_model_class,
         summary=f"Retrieve a {db_class.class_string} by name",
     )
     async def get_row(
         row_id: int,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> response_model_class:
         try:
             async with session.begin():
@@ -201,12 +198,11 @@ def get_row_by_fullname_function(
 
     @router.get(
         "/get_row_by_fullname",
-        response_model=response_model_class,
         summary=f"Retrieve a {db_class.class_string} by name",
     )
     async def get_row_by_fullname(
         fullname: str,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> response_model_class:
         try:
             async with session.begin():
@@ -248,12 +244,11 @@ def get_row_by_name_function(
 
     @router.get(
         "/get_row_by_name",
-        response_model=response_model_class,
         summary=f"Retrieve a {db_class.class_string} by name",
     )
     async def get_row_by_name(
         name: str,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> response_model_class:
         try:
             async with session.begin():
@@ -305,7 +300,7 @@ def post_row_function(
     )
     async def post_row(
         row_create: create_model_class,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> db_class:
         try:
             async with session.begin():
@@ -345,7 +340,7 @@ def delete_row_function(
     )
     async def delete_row(
         row_id: int,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> None:
         try:
             async with session.begin():
@@ -397,7 +392,7 @@ def put_row_function(
     async def update_row(
         row_id: int,
         row_update: update_model_class,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> db_class:
         try:
             async with session.begin():
@@ -434,12 +429,11 @@ def get_node_spec_block_function(
 
     @router.get(
         "/get/{row_id}/spec_block",
-        response_model=models.SpecBlock,
         summary=f"Get the SpecBlock associated to a {db_class.class_string}",
     )
     async def get_node_spec_block(
         row_id: int,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> models.SpecBlock:
         try:
             async with session.begin():
@@ -478,12 +472,11 @@ def get_node_specification_function(
 
     @router.get(
         "/get/{row_id}/specification",
-        response_model=models.Specification,
         summary=f"Get the Specification associated to a {db_class.class_string}",
     )
     async def get_node_specification(
         row_id: int,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> models.Specification:
         try:
             async with session.begin():
@@ -526,12 +519,11 @@ def get_node_parent_function(
 
     @router.get(
         "/get/{row_id}/parent",
-        response_model=response_model_class,
         summary=f"Get the Parent associated to a {db_class.class_string}",
     )
     async def get_node_parent(
         row_id: int,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> response_model_class:
         try:
             async with session.begin():
@@ -570,12 +562,11 @@ def get_node_resolved_collections_function(
 
     @router.get(
         "/get/{row_id}/resolved_collections",
-        response_model=dict[str, str],
         summary=f"Get the resolved collections associated to a {db_class.class_string}",
     )
     async def get_node_resolved_collections(
         row_id: int,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> dict[str, str]:
         try:
             async with session.begin():
@@ -614,12 +605,11 @@ def get_node_collections_function(
 
     @router.get(
         "/get/{row_id}/collections",
-        response_model=dict[str, str],
         summary=f"Get the collections associated to a {db_class.class_string}",
     )
     async def get_node_collections(
         row_id: int,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> dict[str, str]:
         try:
             async with session.begin():
@@ -658,13 +648,12 @@ def get_node_child_config_function(
 
     @router.get(
         "/get/{row_id}/child_config",
-        response_model=dict[str, str | int],
         summary=f"Get the child_config associated to a {db_class.class_string}",
     )
     async def get_node_child_config(
         row_id: int,
-        session: async_scoped_session = Depends(db_session_dependency),
-    ) -> dict[str, str]:
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    ) -> dict[str, str | int]:
         try:
             async with session.begin():
                 the_node = await db_class.get_row(session, row_id)
@@ -702,12 +691,11 @@ def get_node_data_dict_function(
 
     @router.get(
         "/get/{row_id}/data_dict",
-        response_model=dict[str, Any],
         summary=f"Get the data_dict associated to a {db_class.class_string}",
     )
     async def get_node_data_dict(
         row_id: int,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> dict[str, str]:
         try:
             async with session.begin():
@@ -746,12 +734,11 @@ def get_node_spec_aliases_function(
 
     @router.get(
         "/get/{row_id}/spec_aliases",
-        response_model=dict[str, str],
         summary=f"Get the spec_aliases associated to a {db_class.class_string}",
     )
     async def get_node_spec_aliases(
         row_id: int,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> dict[str, str]:
         try:
             async with session.begin():
@@ -795,13 +782,12 @@ def update_node_status_function(
     @router.post(
         "/update/{row_id}/status",
         status_code=201,
-        response_model=response_model_class,
         summary="Update status field associated to a node",
     )
     async def update_node_status(
         row_id: int,
         query: models.UpdateStatusQuery,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> response_model_class:
         try:
             async with session.begin():
@@ -847,13 +833,12 @@ def update_node_collections_function(
     @router.post(
         "/update/{row_id}/collections",
         status_code=201,
-        response_model=response_model_class,
         summary=f"Update the collections associated to a {db_class.class_string}",
     )
     async def update_node_collections(
         row_id: int,
         query: models.UpdateNodeQuery,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> response_model_class:
         try:
             async with session.begin():
@@ -896,13 +881,12 @@ def update_node_child_config_function(
 
     @router.post(
         "/update/{row_id}/child_config",
-        response_model=response_model_class,
         summary=f"Update the child_config associated to a {db_class.class_string}",
     )
     async def update_node_child_config(
         row_id: int,
         query: models.UpdateNodeQuery,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> response_model_class:
         try:
             async with session.begin():
@@ -945,13 +929,12 @@ def update_node_data_dict_function(
 
     @router.post(
         "/update/{row_id}/data_dict",
-        response_model=response_model_class,
         summary=f"Update the data_dict associated to a {db_class.class_string}",
     )
     async def update_node_data_dict(
         row_id: int,
         query: models.UpdateNodeQuery,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> response_model_class:
         try:
             async with session.begin():
@@ -994,13 +977,12 @@ def update_node_spec_aliases_function(
 
     @router.post(
         "/update/{row_id}/spec_aliases",
-        response_model=response_model_class,
         summary=f"Update the spec_aliases associated to a {db_class.class_string}",
     )
     async def update_node_spec_aliases(
         row_id: int,
         query: models.UpdateNodeQuery,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> response_model_class:
         try:
             async with session.begin():
@@ -1039,12 +1021,11 @@ def get_node_check_prerequisites_function(
 
     @router.get(
         "/get/{row_id}/check_prerequisites",
-        response_model=bool,
         summary=f"Check the prerequisites associated to a {db_class.class_string}",
     )
     async def node_check_prerequisites(
         row_id: int,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> bool:
         try:
             async with session.begin():
@@ -1088,12 +1069,11 @@ def get_node_reject_function(
     @router.post(
         "/action/{row_id}/reject",
         status_code=201,
-        response_model=response_model_class,
         summary=f"Mark a {db_class.class_string} as rejected",
     )
     async def node_reject(
         row_id: int,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> response_model_class:
         try:
             async with session.begin():
@@ -1139,12 +1119,11 @@ def get_node_accept_function(
     @router.post(
         "/action/{row_id}/accept",
         status_code=201,
-        response_model=response_model_class,
         summary=f"Mark a {db_class.class_string} as accepted",
     )
     async def node_accept(
         row_id: int,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> response_model_class:
         try:
             async with session.begin():
@@ -1190,13 +1169,12 @@ def get_node_reset_function(
     @router.post(
         "/action/{row_id}/reset",
         status_code=201,
-        response_model=response_model_class,
         summary=f"Mark a {db_class.class_string} as reseted",
     )
     async def node_reset(
         row_id: int,
         query: models.ResetQuery,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> response_model_class:
         try:
             async with session.begin():
@@ -1238,12 +1216,11 @@ def get_node_process_function(
     @router.post(
         "/action/{row_id}/process",
         status_code=201,
-        response_model=tuple[bool, StatusEnum],
         summary=f"Mark a {db_class.class_string} as processed",
     )
     async def node_process(
         row_id: int,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> tuple[bool, StatusEnum]:
         try:
             async with session.begin():
@@ -1283,12 +1260,11 @@ def get_node_run_check_function(
     @router.post(
         "/action/{row_id}/run_check",
         status_code=201,
-        response_model=tuple[bool, StatusEnum],
         summary=f"Mark a {db_class.class_string} as run_checked",
     )
     async def node_run_check(
         row_id: int,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> tuple[bool, StatusEnum]:
         try:
             async with session.begin():
@@ -1333,7 +1309,7 @@ def get_element_get_scripts_function(
     )
     async def element_get_scripts(
         row_id: int,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
         script_name: str = "",
     ) -> list[db.Script]:
         try:
@@ -1379,7 +1355,7 @@ def get_element_get_all_scripts_function(
     )
     async def element_get_all_scripts(
         row_id: int,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> list[db.Script]:
         try:
             async with session.begin():
@@ -1424,7 +1400,7 @@ def get_element_get_jobs_function(
     )
     async def element_get_jobs(
         row_id: int,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> list[db.Job]:
         try:
             async with session.begin():
@@ -1470,7 +1446,7 @@ def get_element_retry_script_function(
     async def element_retry_script(
         row_id: int,
         query: models.RetryScriptQuery,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> db.Script:
         try:
             async with session.begin():
@@ -1518,7 +1494,7 @@ def get_element_wms_task_reports_function(
     )
     async def element_get_wms_task_reports(
         row_id: int,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> models.MergedWmsTaskReportDict:
         try:
             async with session.begin():
@@ -1563,7 +1539,7 @@ def get_element_tasks_function(
     )
     async def element_get_tasks(
         row_id: int,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> models.MergedTaskSetDict:
         try:
             async with session.begin():
@@ -1608,7 +1584,7 @@ def get_element_products_function(
     )
     async def element_get_products(
         row_id: int,
-        session: async_scoped_session = Depends(db_session_dependency),
+        session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     ) -> models.MergedProductSetDict:
         try:
             async with session.begin():

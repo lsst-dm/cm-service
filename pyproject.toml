@@ -152,6 +152,7 @@ select = [
     "DTZ", # flake8-datetimez
     "ERA", # eradicate
     "PTH", # flake8-user-pathlib
+    "FAST", # FastAPI
 ]
 extend-select = [
     "RUF100", # Warn about unused noqa
