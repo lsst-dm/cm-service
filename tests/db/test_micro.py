@@ -64,7 +64,7 @@ async def test_micro_db(
         )
 
         assert changed
-        assert status == StatusEnum.accepted
+        assert status is StatusEnum.accepted
 
         jobs = await campaign.get_jobs(
             session,
@@ -78,13 +78,13 @@ async def test_micro_db(
             force_check=True,
             fake_status=StatusEnum.accepted,
         )
-        assert status == StatusEnum.accepted
+        assert status is StatusEnum.accepted
 
         status = await campaign.review(
             session,
             fake_status=StatusEnum.accepted,
         )
-        assert status == StatusEnum.accepted
+        assert status is StatusEnum.accepted
 
         await cleanup(session, check_cascade=True)
 

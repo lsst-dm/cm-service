@@ -467,7 +467,7 @@ class ScriptHandler(BaseScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        script_method = self.default_method if script.method == ScriptMethodEnum.default else script.method
+        script_method = self.default_method if script.method is ScriptMethodEnum.default else script.method
 
         status = script.status
         match script_method:
@@ -541,7 +541,7 @@ class ScriptHandler(BaseScriptHandler):
         **kwargs: Any,
     ) -> StatusEnum:
         fake_status = kwargs.get("fake_status", config.mock_status)
-        script_method = self.default_method if script.method == ScriptMethodEnum.default else script.method
+        script_method = self.default_method if script.method is ScriptMethodEnum.default else script.method
 
         match script_method:
             case ScriptMethodEnum.bash:

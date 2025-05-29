@@ -242,7 +242,7 @@ class NodeMixin(RowMixin):
         if not hasattr(self, "collections"):  # pragma: no cover
             return {}
 
-        if self.level == LevelEnum.script:
+        if self.level is LevelEnum.script:
             parent_ = await self.get_parent(session)
             parent_colls = await parent_.get_collections(session)
             collections.update(parent_colls)
@@ -344,7 +344,7 @@ class NodeMixin(RowMixin):
             Requested spec_aliases configuration
         """
         ret_dict = {}
-        if self.level == LevelEnum.script:
+        if self.level is LevelEnum.script:
             raise NotImplementedError
         if self.level.value > LevelEnum.campaign.value:
             parent = await self.get_parent(session)
@@ -807,7 +807,7 @@ class NodeMixin(RowMixin):
             Time to sleep in seconds
         """
         await session.refresh(self, attribute_names=["status"])
-        if self.status == StatusEnum.running:
+        if self.status is StatusEnum.running:
             minimum_sleep_time = max(config.daemon.processing_interval, minimum_sleep_time)
         return minimum_sleep_time
 

@@ -146,16 +146,16 @@ class Script(Base, NodeMixin):
             Requested Parent Element
         """
         element: ElementMixin | None = None
-        if self.parent_level == LevelEnum.campaign:
+        if self.parent_level is LevelEnum.campaign:
             await session.refresh(self, attribute_names=["c_"])
             element = self.c_
-        elif self.parent_level == LevelEnum.step:
+        elif self.parent_level is LevelEnum.step:
             await session.refresh(self, attribute_names=["s_"])
             element = self.s_
-        elif self.parent_level == LevelEnum.group:
+        elif self.parent_level is LevelEnum.group:
             await session.refresh(self, attribute_names=["g_"])
             element = self.g_
-        elif self.parent_level == LevelEnum.job:
+        elif self.parent_level is LevelEnum.job:
             await session.refresh(self, attribute_names=["j_"])
             element = self.j_
         else:  # pragma: no cover
@@ -203,16 +203,16 @@ class Script(Base, NodeMixin):
             "collections": kwargs.get("collections", {}),
         }
         element: RowMixin | None = None
-        if parent_level == LevelEnum.campaign:
+        if parent_level is LevelEnum.campaign:
             element = await Campaign.get_row_by_fullname(session, parent_name)
             ret_dict["c_id"] = element.id
-        elif parent_level == LevelEnum.step:
+        elif parent_level is LevelEnum.step:
             element = await Step.get_row_by_fullname(session, parent_name)
             ret_dict["s_id"] = element.id
-        elif parent_level == LevelEnum.group:
+        elif parent_level is LevelEnum.group:
             element = await Group.get_row_by_fullname(session, parent_name)
             ret_dict["g_id"] = element.id
-        elif parent_level == LevelEnum.job:
+        elif parent_level is LevelEnum.job:
             element = await Job.get_row_by_fullname(session, parent_name)
             ret_dict["j_id"] = element.id
         else:  # pragma: no cover

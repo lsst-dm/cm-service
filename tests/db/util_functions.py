@@ -256,10 +256,10 @@ async def check_update_methods(
     )
 
     check = await entry.reject(session)
-    assert check.status == StatusEnum.rejected, "reject() failed"
+    assert check.status is StatusEnum.rejected, "reject() failed"
 
     check = await entry.reset(session)
-    assert check.status == StatusEnum.waiting, "reset() failed"
+    assert check.status is StatusEnum.waiting, "reset() failed"
 
     with pytest.raises(errors.CMBadStateTransitionError):
         await entry.accept(session)
@@ -270,7 +270,7 @@ async def check_update_methods(
     )
     check = await entry.accept(session)
 
-    assert check.status == StatusEnum.accepted, "accept() failed"
+    assert check.status is StatusEnum.accepted, "accept() failed"
 
     with pytest.raises(errors.CMBadStateTransitionError):
         await entry.reject(session)
@@ -350,7 +350,7 @@ async def check_scripts(
     await scripts[0].process(session, fake_status=StatusEnum.failed)
 
     check = await entry.retry_script(session, "prepare")
-    assert check.status == StatusEnum.waiting, "Failed to retry script"
+    assert check.status is StatusEnum.waiting, "Failed to retry script"
 
     await scripts[0].update_values(session, status=StatusEnum.failed)
 
@@ -358,16 +358,16 @@ async def check_scripts(
         await interface.reset_script(session, scripts[0].fullname, StatusEnum.accepted)
 
     check = await interface.reset_script(session, scripts[0].fullname, StatusEnum.prepared)
-    assert check.status == StatusEnum.prepared, "Failed to reset script to prepared"
+    assert check.status is StatusEnum.prepared, "Failed to reset script to prepared"
 
     check = await interface.reset_script(session, scripts[0].fullname, StatusEnum.ready)
-    assert check.status == StatusEnum.ready, "Failed to reset script to ready"
+    assert check.status is StatusEnum.ready, "Failed to reset script to ready"
 
     with pytest.raises(errors.CMBadStateTransitionError):
         await interface.reset_script(session, scripts[0].fullname, StatusEnum.prepared)
 
     check = await interface.reset_script(session, scripts[0].fullname, StatusEnum.waiting)
-    assert check.status == StatusEnum.waiting, "Failed to reset script to waiting"
+    assert check.status is StatusEnum.waiting, "Failed to reset script to waiting"
 
     sleep_time = await scripts[0].estimate_sleep_time(session)
     assert sleep_time == 10

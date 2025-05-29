@@ -80,19 +80,19 @@ class Queue(Base, NodeMixin):
             Requested Parent Node
         """
         node: NodeMixin | None = None
-        if self.node_level == LevelEnum.campaign:
+        if self.node_level is LevelEnum.campaign:
             await session.refresh(self, attribute_names=["c_"])
             node = self.c_
-        elif self.node_level == LevelEnum.step:
+        elif self.node_level is LevelEnum.step:
             await session.refresh(self, attribute_names=["s_"])
             node = self.s_
-        elif self.node_level == LevelEnum.group:
+        elif self.node_level is LevelEnum.group:
             await session.refresh(self, attribute_names=["g_"])
             node = self.g_
-        elif self.node_level == LevelEnum.job:
+        elif self.node_level is LevelEnum.job:
             await session.refresh(self, attribute_names=["j_"])
             node = self.j_
-        elif self.node_level == LevelEnum.script:
+        elif self.node_level is LevelEnum.script:
             await session.refresh(self, attribute_names=["script_"])
             node = self.script_
         else:  # pragma: no cover
@@ -123,15 +123,15 @@ class Queue(Base, NodeMixin):
         fullname = kwargs["fullname"]
         node_level = LevelEnum.get_level_from_fullname(fullname)
         node: NodeMixin | None = None
-        if node_level == LevelEnum.campaign:
+        if node_level is LevelEnum.campaign:
             node = await Campaign.get_row_by_fullname(session, fullname)
-        elif node_level == LevelEnum.step:
+        elif node_level is LevelEnum.step:
             node = await Step.get_row_by_fullname(session, fullname)
-        elif node_level == LevelEnum.group:
+        elif node_level is LevelEnum.group:
             node = await Group.get_row_by_fullname(session, fullname)
-        elif node_level == LevelEnum.job:
+        elif node_level is LevelEnum.job:
             node = await Job.get_row_by_fullname(session, fullname)
-        elif node_level == LevelEnum.script:
+        elif node_level is LevelEnum.script:
             # parse out the "script:" at the beginning fof ullname
             node = await Script.get_row_by_fullname(session, fullname[7:])
         else:  # pragma: no cover
@@ -166,19 +166,19 @@ class Queue(Base, NodeMixin):
         }
 
         node: NodeMixin | None = None
-        if node_level == LevelEnum.campaign:
+        if node_level is LevelEnum.campaign:
             node = await Campaign.get_row_by_fullname(session, fullname)
             ret_dict["c_id"] = node.id
-        elif node_level == LevelEnum.step:
+        elif node_level is LevelEnum.step:
             node = await Step.get_row_by_fullname(session, fullname)
             ret_dict["s_id"] = node.id
-        elif node_level == LevelEnum.group:
+        elif node_level is LevelEnum.group:
             node = await Group.get_row_by_fullname(session, fullname)
             ret_dict["g_id"] = node.id
-        elif node_level == LevelEnum.job:
+        elif node_level is LevelEnum.job:
             node = await Job.get_row_by_fullname(session, fullname)
             ret_dict["j_id"] = node.id
-        elif node_level == LevelEnum.script:
+        elif node_level is LevelEnum.script:
             # parse out the "script:" at the beginning fof ullname
             node = await Script.get_row_by_fullname(session, fullname[7:])
             ret_dict["script_id"] = node.id
@@ -219,7 +219,7 @@ class Queue(Base, NodeMixin):
         """Process associated node and update queue row"""
         node = await self.get_node(session)
 
-        if node.level == LevelEnum.script:
+        if node.level is LevelEnum.script:
             logger.debug("Processing a %s", node.level)
             if not node.status.is_processable_script():
                 return False
@@ -235,7 +235,7 @@ class Queue(Base, NodeMixin):
         now = datetime.now(tz=UTC)
         update_dict = {"time_updated": now}
 
-        if node.level == LevelEnum.script:
+        if node.level is LevelEnum.script:
             if status.is_successful_script():
                 update_dict.update(time_finished=now)
         else:
@@ -243,6 +243,6 @@ class Queue(Base, NodeMixin):
                 update_dict.update(time_finished=now)
 
         await self.update_values(session, **update_dict)
-        if node.level == LevelEnum.script:
+        if node.level is LevelEnum.script:
             node.status.is_processable_script()
         return node.status.is_processable_element()

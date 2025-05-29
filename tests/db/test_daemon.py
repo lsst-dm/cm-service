@@ -64,7 +64,7 @@ async def test_daemon_db(engine: AsyncEngine) -> None:
         await sleep(2)
         await session.refresh(campaign)
 
-        assert campaign.status == StatusEnum.accepted
+        assert campaign.status is StatusEnum.accepted
 
         await db.Queue.get_rows(
             session,

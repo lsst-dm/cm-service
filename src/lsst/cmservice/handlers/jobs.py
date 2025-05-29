@@ -339,7 +339,7 @@ class BpsScriptHandler(ScriptHandler):
         update_fields = await ScriptHandler._reset_script(
             self, session, script, to_status, fake_reset=fake_reset
         )
-        if to_status == StatusEnum.prepared:
+        if to_status is StatusEnum.prepared:
             return update_fields
         if script.script_url is None:  # pragma: no cover
             return update_fields

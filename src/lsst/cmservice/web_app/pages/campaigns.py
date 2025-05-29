@@ -14,12 +14,12 @@ async def get_campaign_details(session: async_scoped_session, campaign: Campaign
         assert isinstance(campaign.data, dict)
     collections = await campaign.resolve_collections(session, throw_overrides=False)
     groups = await get_campaign_groups(session, campaign)
-    no_groups_completed = len([group for group in groups if group.status == StatusEnum.accepted])
+    no_groups_completed = len([group for group in groups if group.status is StatusEnum.accepted])
     need_attention_groups = [
         group for group in groups if map_status(group.status) in ["NEED_ATTENTION", "FAILED"]
     ]
     scripts = await campaign.get_all_scripts(session)
-    no_scripts_completed = len([script for script in scripts if script.status == StatusEnum.accepted])
+    no_scripts_completed = len([script for script in scripts if script.status is StatusEnum.accepted])
     need_attention_scripts = [
         script for script in scripts if map_status(script.status) in ["NEED_ATTENTION", "FAILED"]
     ]
