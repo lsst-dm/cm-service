@@ -70,6 +70,7 @@ def allocate_resources() -> None:
     # Do we need to allocate resources? i.e., are there idle condor jobs for
     # which we are responsible?
 
+    """
     # FIXME we should round-robin submits to available schedds and approximate
     # a global query for our idle jobs.
 
@@ -94,12 +95,12 @@ def allocate_resources() -> None:
     # the schedd to which we need to submit this job should be one where idle
     # jobs are available. Pick one per daemon iteration; if there are multiple
     # schedds with idle jobs, the next loop will pick it up.
-    # schedd = htcondor.Schedd(idle_job_schedds.pop())
+    # schedd = htcondor.Schedd(idle_job_schedds.pop())  # noqa: ERA001
+    """
 
     # FIXME only queries the single schedd to which we are submitting jobs
     schedd_ad = coll.locate(htcondor.DaemonTypes.Schedd, name=config.htcondor.schedd_host)
     schedd = htcondor.Schedd(schedd_ad)
-
     idle_jobs = schedd.query(
         projection=["ClusterId"],
         constraint="(JobStatus == 1)",

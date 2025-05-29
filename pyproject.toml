@@ -150,6 +150,7 @@ select = [
     "UP", # pyupgrade
     "ASYNC", # flake8-async
     "DTZ", # flake8-datetimez
+    "ERA", # eradicate
 ]
 extend-select = [
     "RUF100", # Warn about unused noqa

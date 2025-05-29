@@ -211,11 +211,14 @@ def build_htcondor_submit_environment() -> Mapping[str, str]:
     different to the environment in which the service or daemon operates and
     should closer match the environment of an interactive sdfianaXXX user at
     SLAC.
+
+    Notes
+    -----
+    TODO use all configured htcondor config settings
+    - `condor_environment = config.htcondor.model_dump(by_alias=True)`
+    TODO we should not always use the same schedd host. We could get a list
+         of all schedds from the collector and pick one at random.
     """
-    # TODO use all configured htcondor config settings
-    # condor_environment = config.htcondor.model_dump(by_alias=True)
-    # TODO we should not always use the same schedd host. We could get a list
-    # of all schedds from the collector and pick one at random.
 
     # FIXME / TODO
     # This is nothing to do with htcondor vs panda as a WMS, but because CM
@@ -235,12 +238,12 @@ def build_htcondor_submit_environment() -> Mapping[str, str]:
     #      serializer method of the idtoken field.
 
     # Access AWS credentials dynamically
-    # s = boto3.session.Session(profile_name=...)
-    # url = s.client("s3").meta.endpoint_url
-    # creds = s.get_credentials().get_frozen_credentials()
+    # s = boto3.session.Session(profile_name=...)  # noqa: ERA001
+    # url = s.client("s3").meta.endpoint_url  # noqa: ERA001
+    # creds = s.get_credentials().get_frozen_credentials()  # noqa: ERA001
     # assert creds is not None
-    # AWS_ACCESS_KEY_ID=creds.access_key
-    # AWS_SECRET_ACCESS_KEY=creds.secret_key
+    # AWS_ACCESS_KEY_ID=creds.access_key  # noqa: ERA001
+    # AWS_SECRET_ACCESS_KEY=creds.secret_key  # noqa: ERA001
     # construct url -> "scheme://access-key:secret-key@endpoint"
 
     return config.panda.model_dump(by_alias=True, exclude_none=True) | dict(

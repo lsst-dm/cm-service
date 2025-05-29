@@ -598,7 +598,6 @@ class ManifestReportScriptHandler(ScriptHandler):
         #       supported by tests.
         if not (await graph_url.exists()):
             logger.error("Graph URL not found", script=script.fullname, path=str(graph_url))
-            # return StatusEnum.failed
 
         template_values = {
             "script_method": script.run_method.name,
@@ -638,7 +637,6 @@ class ManifestReportLoadHandler(FunctionHandler):
         #       supported by tests.
         if not (await Path(report_url).exists()):
             logger.error("Report URL not found", script=script.fullname, path=str(report_url))
-            # return StatusEnum.failed
 
         await script.update_values(
             session,

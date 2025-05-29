@@ -546,7 +546,6 @@ async def load_and_create_campaign(
         session,
         **kwargs,
     )
-    # await session.commit()
     return result
 
 

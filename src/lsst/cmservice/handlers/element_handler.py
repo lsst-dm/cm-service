@@ -53,7 +53,6 @@ class ElementHandler(Handler):
             prereq_id=prereq_id,
             depend_id=script_id,
         )
-        # await session.refresh(new_depend)
         return new_depend
 
     async def process(
@@ -409,12 +408,6 @@ class ElementHandler(Handler):
         for job_ in jobs:
             status = StatusEnum(min(status.value, job_.status.value))
 
-        # Keep this around until we've determined if we need a special
-        # way to handle reviewable state when doing fake runs
-        # if status == StatusEnum.reviewable:
-        #    if kwargs.get('fake_status', StatusEnum.reviewable).value
-        #       > StatusEnum.reviewable.value:
-        #        _, status = await self.review(session, element, **kwargs)
         if status.value < StatusEnum.accepted.value:
             status = StatusEnum.running
             await element.update_values(session, status=status)

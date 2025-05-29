@@ -134,8 +134,6 @@ async def create_tree(
 
     assert step_depend.prereq_id == steps[0].id
     assert step_depend.depend_id == steps[1].id
-    # depend_is_done = await step_depend.is_done(session)
-    # assert not depend_is_done
 
     if level.value <= LevelEnum.step.value:
         return
@@ -457,14 +455,6 @@ async def check_update_methods(
         content=reset_model.model_dump_json(),
     )
     expect_failed_response(response, 422)
-
-    # FIXME this delete test is meant to fail, but the application now allows
-    #       deletion of objects in an "accepted" state, and downstream tests
-    #       make assertions based on this failure.
-    # response = await client.delete(
-    #     f"{config.asgi.prefix}/{api_version}/{entry_class_name}/delete/{entry.id}",  # noqa: W505
-    # )
-    # expect_failed_response(response, 500)
 
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/-1/accept",

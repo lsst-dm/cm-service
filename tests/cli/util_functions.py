@@ -122,8 +122,6 @@ def create_tree(
 
     assert step_depend.prereq_id == steps[0].id
     assert step_depend.depend_id == steps[1].id
-    # depend_is_done = step_depend.is_done(session)
-    # assert not depend_is_done
 
     if level.value <= LevelEnum.step.value:
         return
