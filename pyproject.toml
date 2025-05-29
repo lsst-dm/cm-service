@@ -153,6 +153,7 @@ select = [
     "ERA", # eradicate
     "PTH", # flake8-user-pathlib
     "FAST", # FastAPI
+    "FURB", # refurb
 ]
 extend-select = [
     "RUF100", # Warn about unused noqa
