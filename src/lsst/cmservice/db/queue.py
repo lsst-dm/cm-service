@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, and_, select
+from sqlalchemy import JSON, and_, select
+from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
@@ -29,11 +30,11 @@ class Queue(Base, NodeMixin):
     class_string = "queue"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    time_created: Mapped[datetime] = mapped_column(type_=DateTime)
-    time_updated: Mapped[datetime] = mapped_column(type_=DateTime)
-    time_finished: Mapped[datetime | None] = mapped_column(type_=DateTime, default=None)
+    time_created: Mapped[datetime] = mapped_column(type_=TIMESTAMP(timezone=True))
+    time_updated: Mapped[datetime] = mapped_column(type_=TIMESTAMP(timezone=True))
+    time_finished: Mapped[datetime | None] = mapped_column(type_=TIMESTAMP(timezone=True), default=None)
     time_next_check: Mapped[datetime | None] = mapped_column(
-        type_=DateTime, default=datetime.min.replace(tzinfo=UTC)
+        type_=TIMESTAMP(timezone=True), default=datetime.min.replace(tzinfo=UTC)
     )
     interval: Mapped[float] = mapped_column(default=300.0)
     options: Mapped[dict | list | None] = mapped_column(type_=JSON)
