@@ -192,10 +192,7 @@ class Group(Base, ElementMixin):
             Newly created Job
         """
         jobs = await self.get_jobs(session)
-        rescuable_jobs = []
-        for job_ in jobs:
-            if job_.status == StatusEnum.rescuable:
-                rescuable_jobs.append(job_)
+        rescuable_jobs = [j for j in jobs if j.status is StatusEnum.rescuable]
         if not rescuable_jobs:
             raise CMTooFewAcceptedJobsError(f"Expected at least one rescuable job for {self.fullname}, got 0")
         latest_resuable_job = rescuable_jobs[-1]

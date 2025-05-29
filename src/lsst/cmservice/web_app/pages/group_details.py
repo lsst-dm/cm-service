@@ -80,40 +80,36 @@ async def get_group_by_id(
 
 async def get_group_jobs(session: async_scoped_session, group: Group) -> list[dict]:
     jobs = await group.children(session)
-    group_jobs = []
-    for job in jobs:
-        group_jobs.append(
-            {
-                "id": job.id,
-                "name": job.name,
-                "superseded": job.superseded,
-                "status": map_status(job.status),
-                "data": job.data,
-                "submit_status": "Submitted" if job.wms_job_id is not None else "",
-                "submit_url": job.wms_job_id
-                if (job.wms_job_id is not None and not job.wms_job_id.isnumeric())
-                else "",
-                "stamp_url": job.stamp_url,
-            },
-        )
-    return group_jobs
+    return [
+        {
+            "id": job.id,
+            "name": job.name,
+            "superseded": job.superseded,
+            "status": map_status(job.status),
+            "data": job.data,
+            "submit_status": "Submitted" if job.wms_job_id is not None else "",
+            "submit_url": job.wms_job_id
+            if (job.wms_job_id is not None and not job.wms_job_id.isnumeric())
+            else "",
+            "stamp_url": job.stamp_url,
+        }
+        for job in jobs
+    ]
 
 
 async def get_group_scripts(session: async_scoped_session, group: Group) -> list[dict]:
     scripts = await group.get_scripts(session)
-    step_scripts = []
-    for script in scripts:
-        step_scripts.append(
-            {
-                "id": script.id,
-                "name": script.name,
-                "fullname": script.fullname,
-                "superseded": script.superseded,
-                "status": str(script.status.name).upper(),
-                "log_url": script.log_url,
-            },
-        )
-    return step_scripts
+    return [
+        {
+            "id": script.id,
+            "name": script.name,
+            "fullname": script.fullname,
+            "superseded": script.superseded,
+            "status": str(script.status.name).upper(),
+            "log_url": script.log_url,
+        }
+        for script in scripts
+    ]
 
 
 async def get_group_node(session: async_scoped_session, group_id: int) -> NodeMixin:

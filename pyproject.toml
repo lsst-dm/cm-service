@@ -154,6 +154,7 @@ select = [
     "PTH", # flake8-user-pathlib
     "FAST", # FastAPI
     "FURB", # refurb
+    "PERF", # perflint
 ]
 extend-select = [
     "RUF100", # Warn about unused noqa
