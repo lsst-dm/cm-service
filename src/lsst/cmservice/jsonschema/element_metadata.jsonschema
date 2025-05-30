@@ -1,0 +1,38 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://github.com/lsst-dm/cm-service",
+    "title": "Element Metadata",
+    "description": "Metadata for a campaign element",
+    "type": "object",
+    "properties": {
+        "crtime": {
+            "description": "Creation time, in epoch seconds",
+            "type": "integer"
+        },
+        "mtime": {
+            "description": "Modification time, in epoch seconds",
+            "type": "integer"
+        },
+        "start_after": {
+            "description": "The earliest time, in epoch seconds, at which an element may be activated",
+            "type": "integer"
+        },
+        "due_date": {
+            "description": "The latest time, in epoch seconds, at which an element may be still active before being marked late",
+            "type": "integer"
+        },
+        "ticket": {
+            "description": "A ticket number related to the element",
+            "type": "string",
+            "pattern": "^DM-[0-9]+$"
+        },
+        "weight": {
+            "description": "A value from 1-5 indicating the relative weight of the element",
+            "enum": [1, 2, 3, 4, 5]
+        },
+        "duration": {
+            "description": "An estimate, in seconds, of how long the element should take to complete",
+            "type": "integer"
+        }
+    }
+}

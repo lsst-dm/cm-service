@@ -190,6 +190,13 @@ class Campaign(Base, ElementMixin):
         metadata_ = kwargs.get("metadata", {})
         metadata_["crtime"] = timestamp.element_time()
         metadata_["mtime"] = None
+        metadata_["start_after"] = metadata_["crtime"]
+        # TODO these metadata values should not be constants, but should be
+        #      part of the campaign manifest. A "due date" ought to be the
+        #      greater of start_after+duration or weight*C (C=28_800)
+        metadata_["weight"] = 3
+        metadata_["duration"] = 86_400
+        metadata_["due_date"] = metadata_["crtime"] + metadata_["duration"]
 
         await session.refresh(
             specification,

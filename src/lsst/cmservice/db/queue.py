@@ -167,6 +167,7 @@ class Queue(Base, NodeMixin):
             "interval": kwargs.get("interval", 300),
             "time_created": now,
             "time_updated": now,
+            "time_next_check": kwargs.get("time_next_check", None),
             "options": kwargs.get("options", {}),
             "metadata_": kwargs.get("metadata_", {}),
             "active": kwargs.get("active", False),

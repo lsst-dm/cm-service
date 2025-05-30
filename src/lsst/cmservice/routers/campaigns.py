@@ -1,9 +1,18 @@
 """http routers for managing Campaign tables"""
 
-from fastapi import APIRouter
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException
+from safir.dependencies.db_session import db_session_dependency
+from sqlalchemy.ext.asyncio import async_scoped_session
 
 from .. import db, models
+from ..common import timestamp
+from ..common.logging import LOGGER
 from . import wrappers
+
+logger = LOGGER.bind(module=__name__)
+
 
 # Template specialization
 # Specify the pydantic model for the table
@@ -29,12 +38,6 @@ get_rows = wrappers.get_rows_no_parent_function(router, ResponseModelClass, DbCl
 get_row = wrappers.get_row_function(router, ResponseModelClass, DbClass)
 get_row_by_fullname = wrappers.get_row_by_fullname_function(router, ResponseModelClass, DbClass)
 get_row_by_name = wrappers.get_row_by_name_function(router, ResponseModelClass, DbClass)
-post_row = wrappers.post_row_function(
-    router,
-    ResponseModelClass,
-    CreateModelClass,
-    DbClass,
-)
 delete_row = wrappers.delete_row_function(router, DbClass)
 update_row = wrappers.put_row_function(router, ResponseModelClass, UpdateModelClass, DbClass)
 get_spec_block = wrappers.get_node_spec_block_function(router, DbClass)
@@ -79,3 +82,28 @@ retry_script = wrappers.get_element_retry_script_function(router, DbClass)
 get_wms_task_reports = wrappers.get_element_wms_task_reports_function(router, DbClass)
 get_tasks = wrappers.get_element_tasks_function(router, DbClass)
 get_products = wrappers.get_element_products_function(router, DbClass)
+
+
+@router.post(
+    "/create",
+    status_code=201,
+    response_model=models.Campaign,
+    summary="Create a campaign and a queue",
+)
+async def post_row(
+    row_create: models.CampaignCreate,
+    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+) -> db.Campaign:
+    try:
+        async with session.begin():
+            campaign = await db.Campaign.create_row(session, **row_create.model_dump())
+            _ = await db.Queue.create_row(
+                session,
+                fullname=campaign.fullname,
+                time_next_check=timestamp.utc_datetime(campaign.metadata_.get("start_after", 0)),
+                active=False,
+            )
+        return campaign
+    except Exception as msg:
+        logger.error(msg, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(msg)) from msg
