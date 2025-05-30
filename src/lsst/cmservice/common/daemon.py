@@ -15,7 +15,9 @@ logger = LOGGER.bind(module=__name__)
 async def daemon_iteration(session: async_scoped_session) -> None:
     iteration_start = datetime.now(tz=UTC)
     queue_entries = await session.execute(
-        select(Queue).where((Queue.time_next_check < iteration_start) & (Queue.time_finished.is_(None)))
+        select(Queue).where(
+            (Queue.active) & (Queue.time_next_check < iteration_start) & (Queue.time_finished.is_(None))
+        )
     )
     logger.debug("Daemon Iteration: %s", iteration_start)
 
@@ -39,6 +41,8 @@ async def daemon_iteration(session: async_scoped_session) -> None:
                 # Put this entry to sleep for a while
                 logger.debug("Not processing queue_entry %s", queued_node.fullname)
                 sleep_time = config.daemon.processing_interval
+            # FIXME time for the next check should be the sleep time weighted
+            #       by the node
             time_next_check = iteration_start + timedelta(seconds=sleep_time)
             queue_entry.time_next_check = time_next_check
             logger.info(f"Next check for {queued_node.fullname} at {time_next_check}")

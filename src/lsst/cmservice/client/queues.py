@@ -158,3 +158,27 @@ class CMQueueClient:
                 except Exception as msg2:
                     print(f"Failed to modify time_updated: {msg2}, continuing")
                 can_continue = True
+
+    def pause(
+        self,
+        row_id: int,
+    ) -> None:
+        """Set the pause state of a queue entry"""
+        try:
+            queue = self.get_row(row_id)
+            if queue.active:
+                _ = self._client.patch(f"{router_string}/pause/{row_id}")
+        except Exception:
+            print("Failed to pause the queue")
+
+    def start(
+        self,
+        row_id: int,
+    ) -> None:
+        """Unset the pause state of a queue entry"""
+        try:
+            queue = self.get_row(row_id)
+            if not queue.active:
+                _ = self._client.patch(f"{router_string}/pause/{row_id}")
+        except Exception:
+            print("Failed to start the queue")

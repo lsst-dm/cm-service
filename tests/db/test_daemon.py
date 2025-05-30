@@ -46,6 +46,7 @@ async def test_daemon_db(engine: AsyncEngine) -> None:
             fullname=campaign.fullname,
             time_created=datetime.now(tz=UTC),
             time_updated=datetime.now(tz=UTC),
+            active=True,
         )
 
         await daemon_iteration(session)
