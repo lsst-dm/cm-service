@@ -4,8 +4,9 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import JSON, and_, select
-from sqlalchemy.dialects.postgresql import TIMESTAMP
+from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
 from sqlalchemy.ext.asyncio import async_scoped_session
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
@@ -37,9 +38,11 @@ class Queue(Base, NodeMixin):
         type_=TIMESTAMP(timezone=True), default=datetime.min.replace(tzinfo=UTC)
     )
     interval: Mapped[float] = mapped_column(default=300.0)
-    options: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    options: Mapped[dict] = mapped_column(type_=MutableDict.as_mutable(JSON), default=dict)
     node_level: Mapped[LevelEnum] = mapped_column()
     node_id: Mapped[int] = mapped_column()
+    active: Mapped[bool] = mapped_column()
+    metadata_: Mapped[dict] = mapped_column("metadata_", type_=MutableDict.as_mutable(JSONB), default=dict)
 
     c_id: Mapped[int | None] = mapped_column(ForeignKey("campaign.id", ondelete="CASCADE"), index=True)
     s_id: Mapped[int | None] = mapped_column(ForeignKey("step.id", ondelete="CASCADE"), index=True)
@@ -61,6 +64,8 @@ class Queue(Base, NodeMixin):
         "time_updated",
         "time_finished",
         "time_next_check",
+        "active",
+        "metadata_",
     ]
 
     async def get_node(
@@ -163,6 +168,8 @@ class Queue(Base, NodeMixin):
             "time_created": now,
             "time_updated": now,
             "options": kwargs.get("options", {}),
+            "metadata_": kwargs.get("metadata_", {}),
+            "active": kwargs.get("active", False),
         }
 
         node: NodeMixin | None = None
@@ -179,7 +186,8 @@ class Queue(Base, NodeMixin):
             node = await Job.get_row_by_fullname(session, fullname)
             ret_dict["j_id"] = node.id
         elif node_level is LevelEnum.script:
-            # parse out the "script:" at the beginning fof ullname
+            # parse out the "script:" at the beginning of fullname
+            # FIXME refactor to not use token-counting
             node = await Script.get_row_by_fullname(session, fullname[7:])
             ret_dict["script_id"] = node.id
         else:  # pragma: no cover
