@@ -241,14 +241,16 @@ class Queue(Base, NodeMixin):
         (_changed, status) = await node.process(session, **process_kwargs)
 
         now = datetime.now(tz=UTC)
-        update_dict = {"time_updated": now}
+        update_dict: dict[str, Any] = {"time_updated": now}
 
         if node.level is LevelEnum.script:
-            if status.is_successful_script():
-                update_dict.update(time_finished=now)
+            if status.is_terminal_script():
+                update_dict["time_finished"] = now
+                update_dict["active"] = False
         else:
-            if status.is_successful_element():
-                update_dict.update(time_finished=now)
+            if status.is_terminal_element():
+                update_dict["time_finished"] = now
+                update_dict["active"] = False
 
         await self.update_values(session, **update_dict)
         if node.level is LevelEnum.script:

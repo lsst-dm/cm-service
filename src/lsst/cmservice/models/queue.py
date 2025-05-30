@@ -6,7 +6,7 @@ being processed by daemons.
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from ..common.enums import LevelEnum
 
@@ -73,4 +73,4 @@ class QueueUpdate(QueueBase):
     # When processing of this element completed
     time_finished: datetime | None = None
     # Mutable metadata dictionary for the queue
-    metadata_: dict
+    metadata_: dict = Field(default_factory=dict)

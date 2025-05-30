@@ -120,11 +120,10 @@ class StatusEnum(enum.Enum):
     not apply to scripts, only Elements
     """
 
-    # note that ordering of these Enums matters within the
-    # code matters.
-    blocked = -5
-    failed = -4
-    rejected = -3
+    # note that ordering of these Enums matters within the code matters.
+    failed = -5
+    rejected = -4
+    blocked = -3
     paused = -2
     rescuable = -1  # Scripts are not rescuable
     waiting = 0
@@ -150,6 +149,24 @@ class StatusEnum(enum.Enum):
     def is_bad(self) -> bool:
         """Is this a failed state"""
         return self.value <= StatusEnum.rejected.value
+
+    def is_terminal_element(self) -> bool:
+        """Is this element in any terminal state"""
+        return any(
+            [
+                self.is_successful_element(),
+                self.is_bad(),
+            ]
+        )
+
+    def is_terminal_script(self) -> bool:
+        """Is this script in any terminal state"""
+        return any(
+            [
+                self.is_successful_script(),
+                self.is_bad(),
+            ]
+        )
 
     def is_processable_element(self) -> bool:
         """Is this a processable state for an elememnt"""
