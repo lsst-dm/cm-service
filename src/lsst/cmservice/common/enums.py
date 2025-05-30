@@ -121,6 +121,7 @@ class StatusEnum(enum.Enum):
     """
 
     # note that ordering of these Enums matters within the code matters.
+    overdue = -6
     failed = -5
     rejected = -4
     blocked = -3

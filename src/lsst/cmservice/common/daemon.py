@@ -1,9 +1,12 @@
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.future import select
 
+from ..common import notification, timestamp
+from ..common.enums import StatusEnum
 from ..config import config
+from ..db.node import NodeMixin
 from ..db.queue import Queue
 from ..db.script import Script
 from .htcondor import build_htcondor_submit_environment, import_htcondor
@@ -12,8 +15,21 @@ from .logging import LOGGER
 logger = LOGGER.bind(module=__name__)
 
 
+async def check_due_date(session: async_scoped_session, node: NodeMixin, time_next_check: datetime) -> None:
+    """For a provided due date, check if the queue entry is overdue"""
+
+    due_date = node.metadata_.get("due_date", None)
+    if due_date is None:
+        return None
+
+    if time_next_check > due_date:
+        campaign = await node.get_campaign(session)
+        await notification.send_notification(for_status=StatusEnum.overdue, for_campaign=campaign)
+
+
 async def daemon_iteration(session: async_scoped_session) -> None:
-    iteration_start = datetime.now(tz=UTC)
+    iteration_start = timestamp.now_utc()
+    processed_nodes = 0
     queue_entries = await session.execute(
         select(Queue).where(
             (Queue.active) & (Queue.time_next_check < iteration_start) & (Queue.time_finished.is_(None))
@@ -21,10 +37,7 @@ async def daemon_iteration(session: async_scoped_session) -> None:
     )
     logger.debug("Daemon Iteration: %s", iteration_start)
 
-    # TODO: should the daemon check any campaigns with a state == prepared that
-    #       do not have queues? Queue creation should not be a manual step.
     queue_entry: Queue
-    processed_nodes = 0
     for (queue_entry,) in queue_entries:
         try:
             queued_node = await queue_entry.get_node(session)
@@ -46,6 +59,9 @@ async def daemon_iteration(session: async_scoped_session) -> None:
             time_next_check = iteration_start + timedelta(seconds=sleep_time)
             queue_entry.time_next_check = time_next_check
             logger.info(f"Next check for {queued_node.fullname} at {time_next_check}")
+
+            await check_due_date(session, queued_node, time_next_check)
+
         except Exception:
             logger.exception()
             continue
