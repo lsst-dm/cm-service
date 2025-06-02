@@ -1,3 +1,4 @@
+import sys
 from collections.abc import Callable
 from enum import Enum, auto
 from functools import partial, wraps
@@ -5,6 +6,7 @@ from typing import Any, cast
 
 import click
 from click.decorators import FC
+from httpx import HTTPStatusError
 
 from ..client.client import CMClient
 from ..common.enums import (
@@ -14,6 +16,7 @@ from ..common.enums import (
     NodeTypeEnum,
     StatusEnum,
 )
+from ..common.logging import LOGGER
 
 __all__ = [
     "cmclient",
@@ -64,6 +67,8 @@ __all__ = [
     "wms_job_id",
     "yaml_file",
 ]
+
+logger = LOGGER.bind(module=__name__)
 
 
 class DictParamType(click.ParamType):
@@ -514,7 +519,12 @@ def cmclient() -> Callable[[FC], FC]:
         @wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             kwargs["client"] = CMClient()
-            return f(*args, **kwargs)
+            try:
+                response = f(*args, **kwargs)
+                return response
+            except HTTPStatusError as e:
+                logger.error(e.response.text)
+                sys.exit(1)
 
         return cast(FC, wrapper)
 

@@ -1,3 +1,30 @@
+# Misc. Support Scripts Fail
+
+## Output log file for a script does not exist.
+
+```
+uv run cm-client script get script-errors -o json --row_id 263                                                      [
+    {
+        "script_id": 263,
+        "source": 1,
+        "diagnostic_message": "ERROR Log file /sdf/group/rubin/shared/campaigns/users/usdf-cm-dev/nightly_validation_20250504_a1/step1a/prepare_000.log does not exist",
+        "id": 17
+    }
+]
+```
+
+Issues
+------
+The reported script error is not the root cause of the problem. While true that the "prepare_000.log" doesn't exist, the reason it doesn't exist is that the prepare script failed to run and produce that log file. The root cause for the failure is elsewhere, so the reported diagnostic message is not useful.
+
+Causes
+------
+- Condor submit failed because a daily stack was used with CVMFS which only has weeklies. In this case the
+
+    ```
+    cat prepare_000_condorsub.log
+    /lscratch/lsstsvc1/slurm_job_id_4558237/condor/execute/dir_582026/condor_exec.exe: line 8: /cvmfs/sw.lsst.eu/almalinux-x86_64/lsst_distrib//d_2024_05_04/loadLSST.bash: No such file or directory
+    ```
 
 # BPS Submit
 
@@ -20,6 +47,46 @@ Solutions
 - This could be checked before BPS submit with a butler registry query, to save time and surface the issue faster.
 - Make `--extend-run` a default and/or opt-out flag.
 - Always include a nonce in output run collections to ensure uniqueness
+
+## File or Directory Already Exists
+A file or directory specified for use by the workflow already exists and cannot be created.
+
+Meaningful log messages:
+
+- `FileExistsError: cannot create directory '/sdf/group/rubin/shared/campaigns/users/usdf-cm-dev/nightly_validation_20250504_b3/step1c/group0/job_000/submit': directory already exists`
+
+Log Entry
+```
+{"name":"lsst.ctrl.bps.drivers","asctime":"2025-05-07T05:19:57.832716Z","message":"Submission process completed: Took 0.1005 seconds (timed code triggered exception of 'FileExistsError(\"cannot create directory \\'/sdf/group/rubin/shared/campaigns/users/usdf-cm-dev/nightly_validation_20250504_b3/step1c/group0/job_000/submit\\': directory already exists\") @ /sdf/group/rubin/sw/conda/envs/lsst-scipipe-10.0.0/share/eups/Linux64/ctrl_bps/ge40ca33b87+822006b71e/python/lsst/ctrl/bps/bps_utils.py:119'); current memory usage: 0.181 Gibyte, delta: 0.000 Gibyte, peak delta: 0.000 Gibyte","levelno":20,"levelname":"INFO","filename":"drivers.py","pathname":"/sdf/group/rubin/sw/conda/envs/lsst-scipipe-10.0.0/share/eups/Linux64/ctrl_bps/ge40ca33b87+822006b71e/python/lsst/ctrl/bps/drivers.py","lineno":333,"funcName":"submit_driver","process":21061,"processName":"MainProcess","MDC":{}}
+```
+
+```
+{"name":"lsst.daf.butler.cli.utils","asctime":"2025-05-07T05:19:57.833108Z","message":"Caught an exception, details are in traceback:","levelno":40,"levelname":"ERROR","filename":"utils.py","pathname":"/sdf/group/rubin/sw/conda/envs/lsst-scipipe-10.0.0/share/eups/Linux64/daf_butler/geaba3013f4+bfa974011d/python/lsst/daf/butler/cli/utils.py","lineno":204,"funcName":"exit_click_command_bad_status","process":21061,"processName":"MainProcess","exc_info":"Traceback (most recent call last):\n\n  File \"/sdf/group/rubin/sw/conda/envs/lsst-scipipe-10.0.0/share/eups/Linux64/ctrl_bps/ge40ca33b87+822006b71e/python/lsst/ctrl/bps/cli/cmd/commands.py\", line 128, in submit\n    submit_driver(*args, **kwargs)\n\n  File \"/sdf/group/rubin/sw/conda/envs/lsst-scipipe-10.0.0/share/eups/Linux64/ctrl_bps/ge40ca33b87+822006b71e/python/lsst/ctrl/bps/drivers.py\", line 343, in submit_driver\n    wms_workflow_config, wms_workflow = prepare_driver(config_file, **kwargs)\n                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/sdf/group/rubin/sw/conda/envs/lsst-scipipe-10.0.0/share/eups/Linux64/ctrl_bps/ge40ca33b87+822006b71e/python/lsst/ctrl/bps/drivers.py\", line 261, in prepare_driver\n    generic_workflow_config, generic_workflow = transform_driver(config_file, **kwargs)\n                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/sdf/group/rubin/sw/conda/envs/lsst-scipipe-10.0.0/share/eups/Linux64/ctrl_bps/ge40ca33b87+822006b71e/python/lsst/ctrl/bps/drivers.py\", line 211, in transform_driver\n    config, clustered_qgraph = cluster_qgraph_driver(config_file, **kwargs)\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/sdf/group/rubin/sw/conda/envs/lsst-scipipe-10.0.0/share/eups/Linux64/ctrl_bps/ge40ca33b87+822006b71e/python/lsst/ctrl/bps/drivers.py\", line 166, in cluster_qgraph_driver\n    config, qgraph = acquire_qgraph_driver(config_file, **kwargs)\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/sdf/group/rubin/sw/conda/envs/lsst-scipipe-10.0.0/share/eups/Linux64/ctrl_bps/ge40ca33b87+822006b71e/python/lsst/ctrl/bps/drivers.py\", line 129, in acquire_qgraph_driver\n    config = _init_submission_driver(config_file, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/sdf/group/rubin/sw/conda/envs/lsst-scipipe-10.0.0/share/eups/Linux64/ctrl_bps/ge40ca33b87+822006b71e/python/lsst/ctrl/bps/drivers.py\", line 104, in _init_submission_driver\n    config = init_submission(config_file, validators=validators, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/sdf/group/rubin/sw/conda/envs/lsst-scipipe-10.0.0/share/eups/Linux64/ctrl_bps/ge40ca33b87+822006b71e/python/lsst/ctrl/bps/initialize.py\", line 134, in init_submission\n    submit_path = mkdir(config[\"submitPath\"])\n                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/sdf/group/rubin/sw/conda/envs/lsst-scipipe-10.0.0/share/eups/Linux64/ctrl_bps/ge40ca33b87+822006b71e/python/lsst/ctrl/bps/bps_utils.py\", line 119, in mkdir\n    raise type(exc)(f\"cannot create directory '{path}': {reason}\") from None\n\nFileExistsError: cannot create directory '/sdf/group/rubin/shared/campaigns/users/usdf-cm-dev/nightly_validation_20250504_b3/step1c/group0/job_000/submit': directory already exists\n","MDC":{}}
+```
+
+```@condorlog
+...
+022 (16452834.000.000) 2025-05-06 21:39:12 Job disconnected, attempting to reconnect
+    Socket between submit and execute hosts closed unexpectedly
+    Trying to reconnect to slot_lsstsvc1_31838_1_9@sdfmilan167.sdf.slac.stanford.edu <172.24.50.13:36401?CCBID=172.24.49.173:9618%3faddrs%3d172.24.49.173-9618%26alias%3dsdfiana012.sdf.slac.stanford.edu#11223378&PrivNet=sdfmilan167.sdf.slac.stanford.edu&addrs=172.24.50.13-36401&alias=sdfmilan167.sdf.slac.stanford.edu>
+...
+024 (16452834.000.000) 2025-05-06 22:19:12 Job reconnection failed
+    Job disconnected too long: JobLeaseDuration (2400 seconds) expired
+    Can not reconnect to slot_lsstsvc1_31838_1_9@sdfmilan167.sdf.slac.stanford.edu, rescheduling job
+...
+```
+
+Issues
+------
+- In this instance, the failure is caused and raised by a single bps submit job, where a submit directory is created and then at some later point (in the same job/log file) the submit directory is created again, at which point it fails with the FileExistsError.
+- The BPS submit was retried with the same settings in this case because of a HTCondor disconnect which caused rescheduling of the condor job without opportunity to clean up artifacts.
+- In default operation modes, BPS uses a timestamp to disambiguate submit directories and output runs. Because CM Service is explicit about these things, out-of-band auto-recovery raises this issue.
+
+Solutions
+---------
+- Between invocations of a *failed* job, CM Service should try to cull artifacts that may cause these issues, but in this instance there's no period of intervention for CM Service to do so.
+- Should HTCondor be instructed not to retry these types of failures?
+- CM Service could parse the output of bps commands to capture a dynamic submit path (and other details), but this is only possible when CM Service is involved in the bps command.
 
 ## File Not Found
 A file specified for use by the workflow has not been found.
@@ -53,6 +120,10 @@ Meaningful log messages:
 - `Error: QuantumGraph was empty; ERROR logs above should provide details.`
 - `Dropping task (.*) because no quanta remain.`
 - `Initial data ID query returned no rows, so QuantumGraph will be empty.`
+
+Solutions
+---------
+- Adjust data query.
 
 ## Database Error
 

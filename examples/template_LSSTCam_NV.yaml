@@ -42,6 +42,8 @@ Campaign:
     ticket: ${TICKET}
     description: Nightly Validation Pipeline on LSSTCam data
     lsst_version: ${LSST_VERSION}
+    lsst_distrib_dir: /sdf/group/rubin/sw/
+    prod_area: ${PROD_AREA}
     bps_wms_clustering_file: "/sdf/data/rubin/shared/campaigns/LSSTCam-Nightly-Validation/nightly-validation-LSSTCam-clustering.yaml"
     bps_wms_resources_file: "/sdf/data/rubin/shared/campaigns/LSSTCam-Nightly-Validation/nightly-validation-LSSTCam-DDF.yaml"
     bps_variables:
@@ -61,7 +63,6 @@ Campaign:
     name: nightly_validation
     includes: ["base_campaign"]
     data:
-      prod_area: ${PROD_AREA}
       butler_repo: /repo/embargo+sasquatch_dev
       s3EndpointUrl: "https://s3dfrgw.slac.stanford.edu"
       bps_environment:
@@ -242,6 +243,8 @@ Campaign:
 - SpecBlock:
     name: bps_htcondor_submit_script
     handler: lsst.cmservice.handlers.jobs.HTCondorScriptHandler
+    data:
+      notify_on_start: true
 # Run a bps report script
 - SpecBlock:
     name: bps_htcondor_report_script

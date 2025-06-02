@@ -18,6 +18,7 @@ logger = LOGGER.bind(module=__name__)
 """A module-level logger"""
 
 
+# TODO generalize to use a common client/session generator
 @contextmanager
 def http_client() -> Generator[httpx.Client]:
     """Generate a client session for panda API operations."""

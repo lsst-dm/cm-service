@@ -12,7 +12,6 @@ from lsst.cmservice.common.bash import (
 )
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum, TableEnum
 from lsst.cmservice.common.errors import (
-    CMHTCondorCheckError,
     CMHTCondorSubmitError,
     CMSlurmCheckError,
     CMSlurmSubmitError,
@@ -46,7 +45,7 @@ async def test_common_bash() -> None:
     await Path("temp.log").unlink(missing_ok=True)
 
     bps_dict = await parse_bps_stdout(f"{fixtures}/bps_stdout.log")
-    assert bps_dict["run_id"].strip() == "334"
+    assert bps_dict["Run Id"] == "12345678.0"
 
     diag_message = await get_diagnostic_message(f"{fixtures}/bps_stdout.log")
     assert diag_message == "dummy: ada"
@@ -118,8 +117,8 @@ async def test_common_htcondor() -> None:
     with pytest.raises(CMHTCondorSubmitError):
         await submit_htcondor_job("htcondor_temp.sh")
 
-    with pytest.raises(CMHTCondorCheckError):
-        await check_htcondor_job("htcondor_temp.log")
+    status = await check_htcondor_job("htcondor_temp.log")
+    assert status is StatusEnum.failed
 
     os.unlink("htcondor_temp.sh")
 

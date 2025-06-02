@@ -215,7 +215,7 @@ class RowMixin:
             pass
         elif hasattr(row, "status") and row.status not in DELETABLE_STATES:
             raise CMBadStateTransitionError(
-                f"Can not delete a row because it is in use {row} {row.status}",
+                f"Can not delete a row because it is in use {row.fullname} {row.status}",
             )
         try:
             await session.delete(row)
