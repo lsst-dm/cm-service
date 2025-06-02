@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from time import sleep
 from typing import TYPE_CHECKING
 
@@ -10,6 +10,7 @@ import httpx
 from pydantic import TypeAdapter, ValidationError
 
 from .. import db, models
+from ..common import timestamp
 from ..common.errors import test_type_and_raise
 from . import wrappers
 
@@ -115,7 +116,7 @@ class CMQueueClient:
         row_id: int
             ID of the Queue row in question
         """
-        now = datetime.now(tz=UTC)
+        now = timestamp.now_utc()
         try:
             queue = self.get_row(row_id)
             sleep_time = self.sleep_time(row_id)
@@ -154,7 +155,7 @@ class CMQueueClient:
             except Exception as msg:
                 print(f"Caught exception in process: {msg}, continuing")
                 try:
-                    self.update(row_id, time_updated=datetime.now(tz=UTC))
+                    self.update(row_id, time_updated=timestamp.now_utc())
                 except Exception as msg2:
                     print(f"Failed to modify time_updated: {msg2}, continuing")
                 can_continue = True

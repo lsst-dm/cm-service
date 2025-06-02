@@ -46,13 +46,13 @@ async def daemon_iteration(session: async_scoped_session) -> None:
                 if isinstance(queued_node, Script)
                 else queued_node.status.is_processable_element()
             ):
-                logger.info("Processing queue_entry %s", queued_node.fullname)
+                logger.info("Processing queue_entry", node=queued_node.fullname)
                 await queue_entry.process_node(session)
                 processed_nodes += 1
                 sleep_time = await queue_entry.node_sleep_time(session)
             else:
                 # Put this entry to sleep for a while
-                logger.debug("Not processing queue_entry %s", queued_node.fullname)
+                logger.debug("Not processing queue_entry", node=queued_node.fullname)
                 sleep_time = config.daemon.processing_interval
             # FIXME time for the next check should be the sleep time weighted
             #       by the node

@@ -10,6 +10,7 @@ from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
+from ..common import timestamp
 from ..common.enums import LevelEnum
 from ..common.errors import CMBadEnumError, CMMissingFullnameError
 from ..common.logging import LOGGER
@@ -161,7 +162,7 @@ class Queue(Base, NodeMixin):
     ) -> dict:
         fullname = kwargs["fullname"]
         node_level = LevelEnum.get_level_from_fullname(fullname)
-        now = datetime.now(tz=UTC)
+        now = timestamp.now_utc()
         ret_dict = {
             "node_level": node_level,
             "interval": kwargs.get("interval", 300),
@@ -218,7 +219,7 @@ class Queue(Base, NodeMixin):
         """
         delta_t = timedelta(seconds=self.interval)
         next_check = self.time_updated + delta_t
-        now = datetime.now(tz=UTC)
+        now = timestamp.now_utc()
         return now < next_check
 
     async def process_node(
@@ -241,7 +242,7 @@ class Queue(Base, NodeMixin):
             process_kwargs.update(**self.options)
         (_changed, status) = await node.process(session, **process_kwargs)
 
-        now = datetime.now(tz=UTC)
+        now = timestamp.now_utc()
         update_dict: dict[str, Any] = {"time_updated": now}
 
         if node.level is LevelEnum.script:

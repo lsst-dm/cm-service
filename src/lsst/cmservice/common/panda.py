@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 import httpx
 from pandaclient.openidc_utils import decode_id_token
 
+from ..common import timestamp
 from ..config import config
 from .logging import LOGGER
 
@@ -128,7 +129,7 @@ def get_panda_token() -> str | None:
         logger.exception()
         return None
 
-    now_utc = datetime.datetime.now(datetime.UTC)
+    now_utc = timestamp.now_utc()
 
     # Determine whether the token should be renewed
     # The token expiry time is part of the encoded token
