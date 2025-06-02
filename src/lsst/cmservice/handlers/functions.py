@@ -256,9 +256,7 @@ async def load_specification(
 
 
 async def add_step_prerequisite(
-    session: async_scoped_session,
-    depend_id: int,
-    prereq_id: int,
+    session: async_scoped_session, depend_id: int, prereq_id: int, namespace: UUID | None = None
 ) -> StepDependency:
     """Create and return a StepDependency
 
@@ -282,6 +280,7 @@ async def add_step_prerequisite(
         session,
         prereq_id=prereq_id,
         depend_id=depend_id,
+        namespace=namespace,
     )
 
 
@@ -367,7 +366,7 @@ async def add_steps(
     for depend_name, prereq_name in prereq_pairs:
         prereq_id = step_ids_dict[prereq_name]
         depend_id = step_ids_dict[depend_name]
-        new_depend = await add_step_prerequisite(session, depend_id, prereq_id)
+        new_depend = await add_step_prerequisite(session, depend_id, prereq_id, namespace=campaign_namespace)
         await session.refresh(new_depend)
 
     await session.refresh(campaign)

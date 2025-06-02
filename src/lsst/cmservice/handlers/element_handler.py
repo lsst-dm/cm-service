@@ -29,6 +29,7 @@ class ElementHandler(Handler):
         session: async_scoped_session,
         script_id: int,
         prereq_id: int,
+        namespace: UUID | None = None,
     ) -> ScriptDependency:
         """Add a prerequite to running a `Script`
 
@@ -52,6 +53,7 @@ class ElementHandler(Handler):
             session,
             prereq_id=prereq_id,
             depend_id=script_id,
+            namespace=namespace,
         )
         return new_depend
 
@@ -209,7 +211,7 @@ class ElementHandler(Handler):
         for depend_name, prereq_name in prereq_pairs:
             prereq_id = script_ids_dict[prereq_name]
             depend_id = script_ids_dict[depend_name]
-            _ = await self._add_prerequisite(session, depend_id, prereq_id)
+            _ = await self._add_prerequisite(session, depend_id, prereq_id, namespace=campaign_namespace)
 
         await element.update_values(session, status=StatusEnum.prepared)
         return (True, StatusEnum.prepared)
