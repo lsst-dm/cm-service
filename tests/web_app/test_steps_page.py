@@ -69,7 +69,6 @@ def test_steps_page() -> None:
     with sync_playwright() as playwright:
         my_browser = playwright.chromium.launch(headless=False)
         context = my_browser.new_context()
-        # context.tracing.start(screenshots=True, snapshots=True, sources=True)
         page = context.new_page()
         # navigate to step list of the first campaign
         page.goto("http://0.0.0.0:8080/web_app/campaign/4/steps/")
@@ -94,6 +93,5 @@ def test_steps_page() -> None:
         # check clicking production name opens campaigns page
         page.get_by_role("link", name="HSC_DRP-RC2", exact=True).click()
         expect(page).to_have_url("http://0.0.0.0:8080/web_app/campaigns/")
-        # context.tracing.stop(path="trace2.zip")
         context.close()
         my_browser.close()

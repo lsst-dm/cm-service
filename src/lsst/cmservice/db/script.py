@@ -3,10 +3,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import async_scoped_session
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
+from ..common import timestamp
 from ..common.enums import LevelEnum, NodeTypeEnum, ScriptMethodEnum, StatusEnum
 from ..common.errors import CMBadEnumError, CMMissingRowCreateInputError
 from ..config import config
@@ -54,7 +57,8 @@ class Script(Base, NodeMixin):
     method: Mapped[ScriptMethodEnum] = mapped_column(default=ScriptMethodEnum.default)
     superseded: Mapped[bool] = mapped_column(default=False)  # Has this been superseded
     handler: Mapped[str | None] = mapped_column()
-    data: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    data: Mapped[dict] = mapped_column(type_=JSON, default=dict)
+    metadata_: Mapped[dict] = mapped_column("metadata_", type_=MutableDict.as_mutable(JSONB), default=dict)
     child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
     collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
     script_url: Mapped[str | None] = mapped_column()
@@ -142,16 +146,16 @@ class Script(Base, NodeMixin):
             Requested Parent Element
         """
         element: ElementMixin | None = None
-        if self.parent_level == LevelEnum.campaign:
+        if self.parent_level is LevelEnum.campaign:
             await session.refresh(self, attribute_names=["c_"])
             element = self.c_
-        elif self.parent_level == LevelEnum.step:
+        elif self.parent_level is LevelEnum.step:
             await session.refresh(self, attribute_names=["s_"])
             element = self.s_
-        elif self.parent_level == LevelEnum.group:
+        elif self.parent_level is LevelEnum.group:
             await session.refresh(self, attribute_names=["g_"])
             element = self.g_
-        elif self.parent_level == LevelEnum.job:
+        elif self.parent_level is LevelEnum.job:
             await session.refresh(self, attribute_names=["j_"])
             element = self.j_
         else:  # pragma: no cover
@@ -178,6 +182,12 @@ class Script(Base, NodeMixin):
         if isinstance(parent_level, int):
             parent_level = LevelEnum(parent_level)
 
+        data = kwargs.get("data") or {}
+
+        metadata_ = kwargs.get("metadata", {})
+        metadata_["crtime"] = timestamp.element_time()
+        metadata_["mtime"] = None
+
         # The fullname should reflect the element's original shortname not its
         # namespaced name
         ret_dict = {
@@ -187,21 +197,22 @@ class Script(Base, NodeMixin):
             "fullname": f"{parent_name}/{original_name}_{attempt:03}",
             "method": ScriptMethodEnum[kwargs.get("method", "default")],
             "handler": kwargs.get("handler"),
-            "data": kwargs.get("data", {}),
+            "data": data,
+            "metadata_": metadata_,
             "child_config": kwargs.get("child_config", {}),
             "collections": kwargs.get("collections", {}),
         }
         element: RowMixin | None = None
-        if parent_level == LevelEnum.campaign:
+        if parent_level is LevelEnum.campaign:
             element = await Campaign.get_row_by_fullname(session, parent_name)
             ret_dict["c_id"] = element.id
-        elif parent_level == LevelEnum.step:
+        elif parent_level is LevelEnum.step:
             element = await Step.get_row_by_fullname(session, parent_name)
             ret_dict["s_id"] = element.id
-        elif parent_level == LevelEnum.group:
+        elif parent_level is LevelEnum.group:
             element = await Group.get_row_by_fullname(session, parent_name)
             ret_dict["g_id"] = element.id
-        elif parent_level == LevelEnum.job:
+        elif parent_level is LevelEnum.job:
             element = await Job.get_row_by_fullname(session, parent_name)
             ret_dict["j_id"] = element.id
         else:  # pragma: no cover

@@ -51,11 +51,11 @@ class BaseScriptHandler(Handler):
         orig_status = node.status
         status = node.status
         changed = False
+        parent = await node.get_parent(session)
         if status is StatusEnum.waiting:
             is_ready = await node.check_prerequisites(session)
             if is_ready:
                 status = StatusEnum.ready
-        parent = await node.get_parent(session)
         if status is StatusEnum.ready:
             try:
                 status = await self.prepare(session, node, parent, **kwargs)
@@ -113,12 +113,12 @@ class BaseScriptHandler(Handler):
                     diagnostic_message=failure_diagnostic_message,
                 )
                 status = StatusEnum.failed
-
         if status is StatusEnum.reviewable:
             status = await self.review_script(session, node, parent, **kwargs)
-        if status != orig_status:
+        if status is not orig_status:
             changed = True
             await node.update_values(session, status=status)
+            await node.update_mtime(session)
             if status in [StatusEnum.failed, StatusEnum.reviewable]:
                 campaign = await node.get_campaign(session)
                 await send_notification(
@@ -139,7 +139,7 @@ class BaseScriptHandler(Handler):
         orig_status = node.status
         changed = False
         status = await self.check(session, node, parent, **kwargs)
-        if orig_status != status:
+        if orig_status is not status:
             changed = True
         return (changed, status)
 
@@ -323,6 +323,26 @@ class BaseScriptHandler(Handler):
     ) -> None:
         pass
 
+    async def update_status(
+        self,
+        session: async_scoped_session,
+        status: StatusEnum,
+        node: NodeMixin,
+        **kwargs: Any,
+    ) -> None:
+        ...
+        """Update the status of a Script.
+
+        If the new status is not a changed status, no action is taken. If the
+        status is new, the mtime of the script and all its parents is updated.
+
+        If the status is terminal, the status is bubbled up to all its parents
+        and a notification is sent.
+        """
+        # TODO implement a single method for handling all status update
+        #      behaviors.
+        raise NotImplementedError
+
 
 class ScriptHandler(BaseScriptHandler):
     """SubClass of Handler to deal with script operations using real scripts"""
@@ -447,7 +467,7 @@ class ScriptHandler(BaseScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        script_method = self.default_method if script.method == ScriptMethodEnum.default else script.method
+        script_method = self.default_method if script.method is ScriptMethodEnum.default else script.method
 
         status = script.status
         match script_method:
@@ -521,7 +541,7 @@ class ScriptHandler(BaseScriptHandler):
         **kwargs: Any,
     ) -> StatusEnum:
         fake_status = kwargs.get("fake_status", config.mock_status)
-        script_method = self.default_method if script.method == ScriptMethodEnum.default else script.method
+        script_method = self.default_method if script.method is ScriptMethodEnum.default else script.method
 
         match script_method:
             case ScriptMethodEnum.bash:
@@ -556,6 +576,7 @@ class ScriptHandler(BaseScriptHandler):
             )
         if status is not script.status:
             await script.update_values(session, status=status)
+            await script.update_mtime(session)
         return status
 
     async def _write_script(
@@ -636,11 +657,12 @@ class FunctionHandler(BaseScriptHandler):
         script_method = script.method
         if script_method is ScriptMethodEnum.default:
             script_method = self.default_method
-        if script_method != ScriptMethodEnum.no_script:  # pragma: no cover
+        if script_method is not ScriptMethodEnum.no_script:  # pragma: no cover
             raise CMBadExecutionMethodError(f"ScriptMethodEnum.no_script must be set for {type(self)}")
         status = await self._do_prepare(session, script, parent, **kwargs)
-        if status != script.status:
+        if status is not script.status:
             await script.update_values(session, status=status)
+            await script.update_mtime(session)
         return status
 
     async def launch(
@@ -651,14 +673,15 @@ class FunctionHandler(BaseScriptHandler):
         **kwargs: Any,
     ) -> StatusEnum:
         script_method = script.method
-        if script_method == ScriptMethodEnum.default:
+        if script_method is ScriptMethodEnum.default:
             script_method = self.default_method
 
-        if script_method != ScriptMethodEnum.no_script:  # pragma: no cover
+        if script_method is not ScriptMethodEnum.no_script:  # pragma: no cover
             raise CMBadExecutionMethodError(f"ScriptMethodEnum.no_script must be set for {type(self)}")
         status = await self._do_run(session, script, parent, **kwargs)
-        if status != script.status:
+        if status is not script.status:
             await script.update_values(session, status=status)
+            await script.update_mtime(session)
         return status
 
     async def check(
@@ -669,10 +692,10 @@ class FunctionHandler(BaseScriptHandler):
         **kwargs: Any,
     ) -> StatusEnum:
         script_method = script.method
-        if script_method == ScriptMethodEnum.default:
+        if script_method is ScriptMethodEnum.default:
             script_method = self.default_method
 
-        if script_method != ScriptMethodEnum.no_script:  # pragma: no cover
+        if script_method is not ScriptMethodEnum.no_script:  # pragma: no cover
             raise CMBadExecutionMethodError(f"ScriptMethodEnum.no_script must be set for {type(self)}")
         status = await self._do_check(session, script, parent, **kwargs)
         await script.update_values(session, status=status)

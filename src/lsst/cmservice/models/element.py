@@ -4,7 +4,7 @@ These are the things that are shared between
 'Campaign', 'Step', 'Group', 'Job' and 'Script'
 """
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from ..common.enums import StatusEnum
 
@@ -16,7 +16,9 @@ class ElementBase(BaseModel):
     name: str
 
     # Parameter Overrides
-    data: dict | str | None = None
+    data: dict = Field(default_factory=dict)
+
+    metadata_: dict = Field(default_factory=dict)
 
     # Overrides for configuring child nodes
     child_config: dict | str | None = None
@@ -69,7 +71,8 @@ class ElementUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     # Parameter Overrides
-    data: dict | str | None = None
+    data: dict | None = None
+    metadata_: dict | None = None
 
     # Overrides for configuring child nodes
     child_config: dict | str | None = None

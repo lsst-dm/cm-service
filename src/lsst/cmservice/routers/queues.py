@@ -1,5 +1,7 @@
 """http routers for managing Queue tables"""
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException
 from safir.dependencies.db_session import db_session_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -46,12 +48,11 @@ update_row = wrappers.put_row_function(router, ResponseModelClass, UpdateModelCl
 
 @router.get(
     "/process/{row_id}",
-    response_model=bool,
     summary="Process the associated element",
 )
 async def process_element(
+    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     row_id: int,
-    session: async_scoped_session = Depends(db_session_dependency),
 ) -> bool:
     """Process associated element
 
@@ -82,12 +83,11 @@ async def process_element(
 
 @router.get(
     "/sleep_time/{row_id}",
-    response_model=int,
     summary="Check how long to sleep based on what is running",
 )
 async def sleep_time(
+    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     row_id: int,
-    session: async_scoped_session = Depends(db_session_dependency),
 ) -> int:
     """Check how long to sleep based on what is running
 

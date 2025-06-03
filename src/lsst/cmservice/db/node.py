@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.orm.collections import InstrumentedList
 
+from ..common import timestamp
 from ..common.enums import LevelEnum, StatusEnum
 from ..common.errors import (
     CMBadExecutionMethodError,
@@ -51,7 +52,8 @@ class NodeMixin(RowMixin):
     collections: Any  # Definition of collection names
     child_config: Any  # Definition of child elements
     spec_aliases: Any  # Definition of aliases for SpecBlock overrides
-    data: Any  # Generic configuraiton parameters
+    data: Any  # Generic configuration parameters
+    metadata_: Any  # mutable configuration parameters
     prereqs_: Any  # Prerequistes to running this row
     handler: Any  # Class name of associated Handler object
     node_type: Any  # Type of this node
@@ -240,7 +242,7 @@ class NodeMixin(RowMixin):
         if not hasattr(self, "collections"):  # pragma: no cover
             return {}
 
-        if self.level == LevelEnum.script:
+        if self.level is LevelEnum.script:
             parent_ = await self.get_parent(session)
             parent_colls = await parent_.get_collections(session)
             collections.update(parent_colls)
@@ -342,7 +344,7 @@ class NodeMixin(RowMixin):
             Requested spec_aliases configuration
         """
         ret_dict = {}
-        if self.level == LevelEnum.script:
+        if self.level is LevelEnum.script:
             raise NotImplementedError
         if self.level.value > LevelEnum.campaign.value:
             parent = await self.get_parent(session)
@@ -483,6 +485,51 @@ class NodeMixin(RowMixin):
             raise CMIntegrityError(params=msg.params, orig=msg.orig, statement=msg.statement) from msg
         return self
 
+    async def update_metadata_dict(
+        self,
+        session: async_scoped_session,
+        **kwargs: Any,
+    ) -> NodeMixin:
+        """Update the metadata configuration associated with this Node.
+
+        Updates to the metadata configuration are not subject to any state
+        constraints.
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        kwargs: Any
+            Key-value pairs to update
+
+        Returns
+        -------
+        node : NodeMixin
+            Updated Node
+
+        Raises
+        ------
+        CMBadExecutionMethodError
+            If the node has no metadata attribute.
+
+        CMIntegrityError
+            If the metadata update operation cannot be completed because of a
+            database ``IntegrityError``.
+        """
+        if not hasattr(self, "metadata_"):  # pragma: no cover
+            raise CMBadExecutionMethodError(f"{self.fullname} does not have attribute data")
+
+        try:
+            async with session.begin_nested():
+                self.metadata_.update(**kwargs)
+        except IntegrityError as msg:
+            if TYPE_CHECKING:
+                assert msg.orig  # for mypy
+            await session.rollback()
+            raise CMIntegrityError(params=msg.params, orig=msg.orig, statement=msg.statement) from msg
+        return self
+
     async def update_data_dict(
         self,
         session: async_scoped_session,
@@ -521,9 +568,7 @@ class NodeMixin(RowMixin):
         # Separate kwargs between new and existing keys
         # If only new keys are being added to the data dict, then we do not
         # care that the node is "in use"
-        # FIXME data is a nullable field, but it shouldn't be, so we have to
-        #       protect against it being None
-        existing_keys = {k: v for k, v in kwargs.items() if k in self.data} if self.data else {}
+        existing_keys = {k: v for k, v in kwargs.items() if k in self.data}
 
         if all(
             [
@@ -535,6 +580,8 @@ class NodeMixin(RowMixin):
                 f"Tried to modify a node that is in use. {self.fullname}:{self.status}",
             )
 
+        # FIXME if the data field is Mutable, then it wouldn't be necessary to
+        # copy the whole data dictionary in order to update it.
         try:
             if self.data:
                 the_data = self.data.copy()
@@ -760,6 +807,22 @@ class NodeMixin(RowMixin):
             Time to sleep in seconds
         """
         await session.refresh(self, attribute_names=["status"])
-        if self.status == StatusEnum.running:
+        if self.status is StatusEnum.running:
             minimum_sleep_time = max(config.daemon.processing_interval, minimum_sleep_time)
         return minimum_sleep_time
+
+    async def update_mtime(
+        self,
+        session: async_scoped_session,
+    ) -> None:
+        """Update the mtime attribute in an element's hierarchy."""
+        mtime = timestamp.element_time()
+        await self.update_metadata_dict(session, mtime=mtime)
+
+        parent_element: ElementMixin | None = await self.get_parent(session)
+        while parent_element is not None:
+            await parent_element.update_metadata_dict(session, mtime=mtime)
+            if parent_element.level.value > LevelEnum.campaign.value:
+                parent_element = await parent_element.get_parent(session)
+            else:
+                parent_element = None

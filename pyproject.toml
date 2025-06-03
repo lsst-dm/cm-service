@@ -149,6 +149,12 @@ select = [
     "FBT", # flake8-boolean-trap
     "UP", # pyupgrade
     "ASYNC", # flake8-async
+    "DTZ", # flake8-datetimez
+    "ERA", # eradicate
+    "PTH", # flake8-user-pathlib
+    "FAST", # FastAPI
+    "FURB", # refurb
+    "PERF", # perflint
 ]
 extend-select = [
     "RUF100", # Warn about unused noqa

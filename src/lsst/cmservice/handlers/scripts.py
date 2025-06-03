@@ -233,7 +233,7 @@ class ChainCollectScriptHandler(ScriptHandler):
             for step_ in await parent.children(session):
                 step_colls = await step_.resolve_collections(session)
                 collect_colls.append(step_colls["step_output"])
-                collect_colls = collect_colls[::-1]
+                collect_colls.reverse()
         else:  # pragma: no cover
             raise CMMissingScriptInputError(
                 "Must specify what to collect in ChainCollectScriptHandler, jobs or steps",

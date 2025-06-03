@@ -4,10 +4,13 @@ from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import async_scoped_session
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
+from ..common import timestamp
 from ..common.enums import LevelEnum, StatusEnum
 from ..common.errors import CMMissingRowCreateInputError
 from ..models.merged_product_set import MergedProductSetDict
@@ -55,7 +58,8 @@ class Campaign(Base, ElementMixin):
     status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting)
     superseded: Mapped[bool] = mapped_column(default=False)
     handler: Mapped[str | None] = mapped_column()
-    data: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    data: Mapped[dict] = mapped_column(type_=JSON, default=dict)
+    metadata_: Mapped[dict] = mapped_column("metadata_", type_=MutableDict.as_mutable(JSONB), default=dict)
     child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
     collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
     spec_aliases: Mapped[dict | list | None] = mapped_column(type_=JSON)
@@ -171,9 +175,6 @@ class Campaign(Base, ElementMixin):
             spec_name,
         )
 
-        data = kwargs.get("data", {})
-        if data is None:
-            data = {}
         child_config = kwargs.get("child_config", {})
         if child_config is None:
             child_config = {}
@@ -183,6 +184,12 @@ class Campaign(Base, ElementMixin):
         spec_aliases = kwargs.get("spec_aliases", {})
         if spec_aliases is None:
             spec_aliases = {}
+
+        data = kwargs.get("data") or {}
+
+        metadata_ = kwargs.get("metadata", {})
+        metadata_["crtime"] = timestamp.element_time()
+        metadata_["mtime"] = None
 
         await session.refresh(
             specification,
@@ -214,6 +221,7 @@ class Campaign(Base, ElementMixin):
             "fullname": name,
             "handler": kwargs.get("handler"),
             "data": data,
+            "metadata_": metadata_,
             "child_config": child_config,
             "collections": collections,
             "spec_aliases": spec_aliases,
