@@ -339,19 +339,17 @@ class BpsScriptHandler(ScriptHandler):
         update_fields = await ScriptHandler._reset_script(
             self, session, script, to_status, fake_reset=fake_reset
         )
-        if to_status == StatusEnum.prepared:
+        if to_status is StatusEnum.prepared:
             return update_fields
         if script.script_url is None:  # pragma: no cover
             return update_fields
-        json_url = script.script_url.replace(".sh", "_log.json")
-        config_url = script.script_url.replace(".sh", "_bps_config.yaml")
-        submit_path = script.script_url.replace(
-            os.path.basename(script.script_url),
-            "/submit",
-        )
+        script_url = Path(script.script_url)
+        json_url = script_url.with_stem(f"{script_url.stem}_log").with_suffix(".json")
+        config_url = script_url.with_stem(f"{script_url.stem}_bps_config").with_suffix(".yaml")
+        submit_path = script_url.parent / "submit"
 
-        await Path(json_url).unlink(missing_ok=True)
-        await Path(config_url).unlink(missing_ok=True)
+        await json_url.unlink(missing_ok=True)
+        await config_url.unlink(missing_ok=True)
         try:
             await run_in_threadpool(shutil.rmtree, submit_path)
         except FileNotFoundError:  # pragma: no cover
@@ -598,7 +596,6 @@ class ManifestReportScriptHandler(ScriptHandler):
         #       supported by tests.
         if not (await graph_url.exists()):
             logger.error("Graph URL not found", script=script.fullname, path=str(graph_url))
-            # return StatusEnum.failed
 
         template_values = {
             "script_method": script.run_method.name,
@@ -638,7 +635,6 @@ class ManifestReportLoadHandler(FunctionHandler):
         #       supported by tests.
         if not (await Path(report_url).exists()):
             logger.error("Report URL not found", script=script.fullname, path=str(report_url))
-            # return StatusEnum.failed
 
         await script.update_values(
             session,

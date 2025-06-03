@@ -68,7 +68,7 @@ async def check_script(
         f"script:{script.fullname}",
         fake_status=StatusEnum.ready,
     )
-    assert status == StatusEnum.ready
+    assert status is StatusEnum.ready
 
     _changed, status = await script.process(session, fake_status=StatusEnum.reviewable)
     if status != StatusEnum.reviewable:
@@ -78,13 +78,13 @@ async def check_script(
     await script.reject(session)
 
     status = await script.reset_script(session, to_status=StatusEnum.prepared, fake_reset=True)
-    assert status == StatusEnum.prepared
+    assert status is StatusEnum.prepared
 
     status = await script.reset_script(session, to_status=StatusEnum.ready, fake_reset=True)
-    assert status == StatusEnum.ready
+    assert status is StatusEnum.ready
 
     status = await script.reset_script(session, to_status=StatusEnum.waiting, fake_reset=True)
-    assert status == StatusEnum.waiting
+    assert status is StatusEnum.waiting
 
     return script
 
@@ -259,11 +259,11 @@ async def test_handlers_group_level_db(
         assert status.value >= StatusEnum.reviewable.value
 
         status = await run_jobs.review(session, fake_status=StatusEnum.accepted)
-        assert status == StatusEnum.accepted
+        assert status is StatusEnum.accepted
 
         await db.Group.update_row(session, group.id, status=StatusEnum.reviewable)
         _changed, status = await group.process(session)
-        assert status == StatusEnum.accepted
+        assert status is StatusEnum.accepted
 
         await cleanup(session, check_cascade=True)
 
@@ -327,7 +327,7 @@ async def test_handlers_job_level_db(
             status=StatusEnum.prepared,
         )
         status = await bps_panda_report.reset_script(session, to_status=StatusEnum.waiting, fake_reset=True)
-        assert status == StatusEnum.waiting
+        assert status is StatusEnum.waiting
 
         await check_script(
             session,
@@ -369,7 +369,7 @@ async def test_handlers_job_level_db(
         status = await manifest_report_load.reset_script(
             session, to_status=StatusEnum.waiting, fake_reset=True
         )
-        assert status == StatusEnum.waiting
+        assert status is StatusEnum.waiting
 
         assert jobs.PandaScriptHandler.get_job_id({"Run Id": 322}) == 322
         assert jobs.HTCondorScriptHandler.get_job_id({"Submit dir": "dummy"}) == "dummy"

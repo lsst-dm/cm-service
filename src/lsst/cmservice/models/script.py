@@ -10,8 +10,6 @@ class ScriptBase(BaseModel):
     name: str
     # Attempt number from this script
     attempt: int = 0
-    # Method used to process this script
-    # method: ScriptMethodEnum | None = None
     # Override for Callback handler class
     handler: str | None = None
     # Parameter Overrides

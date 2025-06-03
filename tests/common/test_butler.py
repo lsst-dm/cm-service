@@ -42,7 +42,6 @@ registry:
         "/repo/mock": f"{repo_mock_path}",
         "/repo/mockgres": f"{repo_mockgres_butler_yaml}",
         "/doesnt/exist": f"{tmp_path}/no/such/path",
-        # "mockbargo": "s3://bucket/prefix/object.yaml",
     }
     monkeypatch.setenv("DAF_BUTLER_REPOSITORIES", json.dumps(daf_butler_repositories))
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "accesskey")

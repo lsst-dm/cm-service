@@ -74,18 +74,17 @@ async def get_job_by_id(
 
 async def get_job_scripts(session: async_scoped_session, job: Job) -> list[dict]:
     scripts = await job.get_scripts(session)
-    job_scripts = []
-    for script in scripts:
-        job_scripts.append(
-            {
-                "id": script.id,
-                "name": script.name,
-                "fullname": script.fullname,
-                "superseded": script.superseded,
-                "status": str(script.status.name).upper(),
-                "log_url": script.log_url,
-            },
-        )
+    job_scripts = [
+        {
+            "id": script.id,
+            "name": script.name,
+            "fullname": script.fullname,
+            "superseded": script.superseded,
+            "status": str(script.status.name).upper(),
+            "log_url": script.log_url,
+        }
+        for script in scripts
+    ]
     return job_scripts
 
 

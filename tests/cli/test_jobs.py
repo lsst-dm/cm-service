@@ -59,17 +59,17 @@ async def test_job_cli(runner: CliRunner) -> None:
         client_top, f"job update status --status reviewable --row_id {entry.id} --output yaml"
     )
     check_status = check_and_parse_result(result, dict)["status"]
-    assert check_status == StatusEnum.reviewable
+    assert check_status is StatusEnum.reviewable
 
     result = runner.invoke(client_top, f"job action reject --row_id {entry.id} --output yaml")
     check_status = check_and_parse_result(result, dict)["status"]
-    assert check_status == StatusEnum.rejected
+    assert check_status is StatusEnum.rejected
 
     result = runner.invoke(
         client_top, f"job update status --status rescuable --row_id {entry.id} --output yaml"
     )
     check_status = check_and_parse_result(result, dict)["status"]
-    assert check_status == StatusEnum.rescuable
+    assert check_status is StatusEnum.rescuable
 
     result = runner.invoke(client_top, f"group action rescue_job --row_id {parent.id} --output yaml")
     rescue_job = check_and_parse_result(result, models.Job)
@@ -83,11 +83,11 @@ async def test_job_cli(runner: CliRunner) -> None:
         client_top, f"job update status --status reviewable --row_id {rescue_job.id} --output yaml"
     )
     check_status = check_and_parse_result(result, dict)["status"]
-    assert check_status == StatusEnum.reviewable
+    assert check_status is StatusEnum.reviewable
 
     result = runner.invoke(client_top, f"job action accept --row_id {rescue_job.id} --output yaml")
     check_accept = check_and_parse_result(result, models.Job)
-    assert check_accept.status == StatusEnum.accepted
+    assert check_accept.status is StatusEnum.accepted
 
     result = runner.invoke(client_top, f"group action mark_rescued --row_id {parent.id} --output yaml")
     rescue_jobs = check_and_parse_result(result, list[models.Job])
@@ -97,7 +97,7 @@ async def test_job_cli(runner: CliRunner) -> None:
         client_top, f"job update status --status rescuable --row_id {rescue_job.id} --output yaml"
     )
     check_status = check_and_parse_result(result, dict)["status"]
-    assert check_status == StatusEnum.rescuable
+    assert check_status is StatusEnum.rescuable
 
     result = runner.invoke(client_top, f"action rescue-job --fullname {parent.fullname} --output yaml")
     rescue_job = check_and_parse_result(result, models.Job)
@@ -106,7 +106,7 @@ async def test_job_cli(runner: CliRunner) -> None:
         client_top, f"job update status --status accepted --row_id {rescue_job.id} --output yaml"
     )
     check_status = check_and_parse_result(result, dict)["status"]
-    assert check_status == StatusEnum.accepted
+    assert check_status is StatusEnum.accepted
 
     result = runner.invoke(client_top, f"action mark-job-rescued --fullname {parent.fullname} --output yaml")
     rescue_jobs = check_and_parse_result(result, list[models.Job])

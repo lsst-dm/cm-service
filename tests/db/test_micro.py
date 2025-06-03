@@ -52,8 +52,6 @@ async def test_micro_db(
         )
 
         temp_dir = str(tmp_path / "archive")
-        # use this line if you want to be able to inspect the outputs
-        # temp_dir = f"output_test/{script_method.name}/archive"
         await campaign.update_data_dict(
             session,
             prod_area=temp_dir,
@@ -66,7 +64,7 @@ async def test_micro_db(
         )
 
         assert changed
-        assert status == StatusEnum.accepted
+        assert status is StatusEnum.accepted
 
         jobs = await campaign.get_jobs(
             session,
@@ -80,13 +78,13 @@ async def test_micro_db(
             force_check=True,
             fake_status=StatusEnum.accepted,
         )
-        assert status == StatusEnum.accepted
+        assert status is StatusEnum.accepted
 
         status = await campaign.review(
             session,
             fake_status=StatusEnum.accepted,
         )
-        assert status == StatusEnum.accepted
+        assert status is StatusEnum.accepted
 
         await cleanup(session, check_cascade=True)
 

@@ -9,7 +9,7 @@ def element_time() -> int:
     """Produce an epoch timestamp useful for including in a campaign element's
     ``crtime`` or `mtime` metadata entry.
     """
-    return int(dt.datetime.now().timestamp())
+    return int(dt.datetime.now(tz=dt.UTC).timestamp())
 
 
 def bps_timestamp(timestamp: int) -> str:

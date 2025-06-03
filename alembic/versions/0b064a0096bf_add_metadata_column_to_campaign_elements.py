@@ -33,7 +33,7 @@ def upgrade() -> None:
                 nullable=False,
                 default=dict,
             ),
-            # if_not_exists=True,  # TODO alembic>1.16
+            # if_not_exists=True,  # TODO alembic>1.16  # noqa: ERA001
         )
 
 
@@ -42,5 +42,5 @@ def downgrade() -> None:
         op.drop_column(
             table_name=table,
             column_name="metadata_",
-            # if_exists=True,  # TODO alembic>1.16
+            # if_exists=True,  # TODO alembic>1.16  # noqa: ERA001
         )

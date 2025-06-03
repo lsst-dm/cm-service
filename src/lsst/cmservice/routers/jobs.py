@@ -1,6 +1,7 @@
 """http routers for managing Job tables"""
 
 from collections.abc import Sequence
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from safir.dependencies.db_session import db_session_dependency
@@ -95,7 +96,7 @@ get_products = wrappers.get_element_products_function(router, DbClass)
 )
 async def get_errors(
     row_id: int,
-    session: async_scoped_session = Depends(db_session_dependency),
+    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
 ) -> Sequence[db.PipetaskError]:
     try:
         async with session.begin():

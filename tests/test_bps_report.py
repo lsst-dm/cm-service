@@ -13,7 +13,7 @@ from lsst.ctrl.bps.wms_service import WmsRunReport
 def pickled_bps_report(request: pytest.FixtureRequest) -> Generator[WmsRunReport]:
     """Yields a pickled bps report object from a fixture file."""
     bps_report_file = Path(__file__).parent / "fixtures" / "bps" / f"{request.param}.pickle"
-    with open(bps_report_file, "rb") as f:
+    with bps_report_file.open(mode="rb") as f:
         run_reports, _ = pickle.load(f)
         yield run_reports[0]
 

@@ -124,7 +124,6 @@ def test_campaigns_page() -> None:
     with sync_playwright() as playwright:
         my_browser = playwright.chromium.launch(headless=False)
         context = my_browser.new_context()
-        # context.tracing.start(screenshots=True, snapshots=True, sources=True)
         page = context.new_page()
         # load campaigns page
         page.goto("http://0.0.0.0:8080/web_app/campaigns/")

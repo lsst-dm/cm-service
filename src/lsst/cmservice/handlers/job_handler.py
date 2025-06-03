@@ -38,13 +38,13 @@ class JobHandler(ElementHandler):
             await session.refresh(error_, attribute_names=["error_type_"])
 
             error_type_ = error_.error_type_
-            if error_type_.error_action == ErrorActionEnum.fail:
+            if error_type_.error_action is ErrorActionEnum.fail:
                 is_failure = True
                 break
-            if error_type_.error_action == ErrorActionEnum.review:
+            if error_type_.error_action is ErrorActionEnum.review:
                 requires_review = True
                 continue
-            if error_type_.error_action == ErrorActionEnum.accept:
+            if error_type_.error_action is ErrorActionEnum.accept:
                 continue
             raise CMBadEnumError(  # pragma: no cover
                 f"Unexpected ErrorActionnEnum {error_type_.error_action}"

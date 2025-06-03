@@ -122,8 +122,6 @@ def create_tree(
 
     assert step_depend.prereq_id == steps[0].id
     assert step_depend.depend_id == steps[1].id
-    # depend_is_done = step_depend.is_done(session)
-    # assert not depend_is_done
 
     if level.value <= LevelEnum.step.value:
         return
@@ -379,7 +377,7 @@ def check_scripts(
         f"script action reset --row_id {script0.id} --output yaml",
     )
     reset_script = check_and_parse_result(result, models.Script)
-    assert reset_script.status == StatusEnum.waiting
+    assert reset_script.status is StatusEnum.waiting
 
     result = runner.invoke(
         client_top,
@@ -392,7 +390,7 @@ def check_scripts(
         f"action reset-script --fullname {script0.fullname} --status waiting --output yaml",
     )
     reset_script = check_and_parse_result(result, models.Script)
-    assert reset_script.status == StatusEnum.waiting
+    assert reset_script.status is StatusEnum.waiting
 
     result = runner.invoke(
         client_top,
@@ -406,7 +404,7 @@ def check_scripts(
         f"--row_id {entry.id} --script_name {script0.name} --output yaml",
     )
     retry_script = check_and_parse_result(result, models.Script)
-    assert retry_script.status == StatusEnum.waiting
+    assert retry_script.status is StatusEnum.waiting
 
     result = runner.invoke(
         client_top,
