@@ -542,11 +542,13 @@ async def load_and_create_campaign(
         name=name,
     )
 
-    result = await create_campaign(
+    campaign = await create_campaign(
         session,
         **kwargs,
     )
-    return result
+
+    await functions.render_campaign_steps(campaign=campaign, session=session)
+    return campaign
 
 
 async def add_steps(

@@ -16,7 +16,7 @@ from ..db.handler import Handler
 from ..db.node import NodeMixin
 from ..db.script import Script
 from ..db.script_dependency import ScriptDependency
-from .functions import add_steps
+from .functions import render_campaign_steps
 
 
 class ElementHandler(Handler):
@@ -457,11 +457,10 @@ class CampaignHandler(ElementHandler):
         if TYPE_CHECKING:
             assert isinstance(element, Campaign)
 
-        spec_block = await element.get_spec_block(session)
-        child_configs = spec_block.steps
-        if TYPE_CHECKING:
-            assert isinstance(child_configs, list)
-        await add_steps(session, element, child_configs)
+        # Steps and the high level campaign graph are created in the API
+        # for backward compatibility, we can check for the presence of any step
+        # dependencies and if we find none then we can create them.
+        await render_campaign_steps(campaign=element.id, session=session)
         await send_notification(for_status=StatusEnum.running, for_campaign=element)
         return await ElementHandler.prepare(self, session, element)
 
