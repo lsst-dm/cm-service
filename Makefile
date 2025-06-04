@@ -151,32 +151,6 @@ unmigrate: run-compose
 
 
 #------------------------------------------------------------------------------
-# Targets for developers to debug running against local sqlite.  Can be used on
-# local machines or USDF dev nodes.
-#------------------------------------------------------------------------------
-
-.PHONY: test-sqlite
-test-sqlite: export DB__URL=sqlite+aiosqlite://///test_cm.db
-test-sqlite:
-	alembic -x cm_database_url=sqlite:///test_cm.db upgrade head
-	pytest -vvv --asyncio-mode=auto --cov=lsst.cmservice --cov-branch --cov-report=term --cov-report=html ${PYTEST_ARGS}
-
-.PHONY: run-sqlite
-run-sqlite: export DB__URL=sqlite+aiosqlite://///test_cm.db
-run-sqlite: export DB__ECHO=true
-run-sqlite:
-	alembic -x cm_database_url=sqlite:///test_cm.db upgrade head
-	python3 -m lsst.cmservice.main
-
-.PHONY: run-worker-sqlite
-run-worker-sqlite: export DB__URL=sqlite+aiosqlite://///test_cm.db
-run-worker-sqlite: export DB__ECHO=true
-run-worker-sqlite:
-	alembic -x cm_database_url=sqlite:///test_cm.db upgrade head
-	python3 -m lsst.cmservice.daemon
-
-
-#------------------------------------------------------------------------------
 # Targets for running per-developer service instances on USDF Rubin dev nodes,
 # using a single shared backend cnpg Postgres in the usdf-cm-dev k8s vcluster.
 # Currently used by most devs for development/debug, and also by pilots for
