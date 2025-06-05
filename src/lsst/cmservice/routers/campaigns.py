@@ -1,6 +1,8 @@
 """http routers for managing Campaign tables"""
 
+from collections.abc import Mapping
 from typing import Annotated
+from uuid import uuid5
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from safir.dependencies.db_session import db_session_dependency
@@ -9,6 +11,8 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 
 from .. import db, models
 from ..common import timestamp
+from ..common.enums import DEFAULT_NAMESPACE
+from ..common.graph import graph_from_edge_list, graph_to_dict
 from ..common.logging import LOGGER
 from ..handlers.functions import render_campaign_steps
 from . import wrappers
@@ -122,23 +126,19 @@ async def post_row(
 async def get_step_graph(
     row_id: int,
     session: Annotated[async_scoped_session, Depends(db_session_dependency)],
-) -> dict:
+) -> Mapping:
     # Determine the namespace UUID for the campaign
     campaign = await db.Campaign.get_row(session, row_id)
-    campaign_data = await campaign.data_dict(session)
-    if (campaign_namespace := campaign_data.get("namespace")) is None:
-        campaign_namespace = ...
+    if (campaign_namespace := campaign.data.get("namespace")) is None:
+        campaign_namespace = uuid5(DEFAULT_NAMESPACE, campaign.name)
 
     # Fetch the *edges* for the campaign from the step_dependency table
     statement = select(db.StepDependency).filter_by(namespace=campaign_namespace)
     edges = (await session.scalars(statement)).all()
 
     # Organize the edges into a graph
-    # where the directed edge is edge.prereq_id -> edge.depend_id
-
-    # Return the graph as JSON in node-link format
-    assert edges
-    return {}
+    step_graph = await graph_from_edge_list(edges=edges, node_type=db.Step, session=session)
+    return graph_to_dict(step_graph)
 
 
 @router.get(
@@ -149,9 +149,16 @@ async def get_step_graph(
 async def get_script_graph(
     row_id: int,
     session: Annotated[async_scoped_session, Depends(db_session_dependency)],
-) -> dict:
+) -> Mapping:
     # Determine the namespace UUID for the campaign
+    campaign = await db.Campaign.get_row(session, row_id)
+    if (campaign_namespace := campaign.data.get("namespace")) is None:
+        campaign_namespace = uuid5(DEFAULT_NAMESPACE, campaign.name)
+
     # Fetch the *edges* for the campaign from the script_dependency table
+    statement = select(db.ScriptDependency).filter_by(namespace=campaign_namespace)
+    edges = (await session.scalars(statement)).all()
+
     # Organize the edges into a graph
-    # Return the graph as JSON in node-link format
-    return {}
+    script_graph = await graph_from_edge_list(edges=edges, node_type=db.Script, session=session)
+    return graph_to_dict(script_graph)
