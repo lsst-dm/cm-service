@@ -313,6 +313,14 @@ fake_status = PartialOption(
 )
 
 
+force = PartialOption(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Force the action, bypassing ordinary checks or restrictions",
+)
+
+
 fullname = PartialOption(
     "--fullname",
     type=str,
@@ -363,12 +371,21 @@ node_type = PartialOption(
 )
 
 
+run_collection = PartialOption(
+    "--run-collection",
+    type=str,
+    default=None,
+    help="The name of an output run collection",
+)
+
+
 parent_name = PartialOption(
     "--parent_name",
     type=str,
     default=None,
     help="Full name of parent object in DB.",
 )
+
 
 parent_id = PartialOption(
     "--parent_id",

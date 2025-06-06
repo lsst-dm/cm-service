@@ -1,6 +1,7 @@
 import os
 from collections import deque
 from collections.abc import Mapping
+from functools import partial
 from typing import TYPE_CHECKING, Any
 from uuid import UUID, uuid5
 
@@ -18,6 +19,7 @@ from ..common.errors import CMMissingFullnameError, CMYamlParseError
 from ..common.logging import LOGGER
 from ..config import config
 from ..db.campaign import Campaign
+from ..db.element import ElementMixin
 from ..db.job import Job
 from ..db.pipetask_error import PipetaskError
 from ..db.pipetask_error_type import PipetaskErrorType
@@ -378,6 +380,53 @@ async def add_steps(
 
     await session.refresh(campaign)
     return campaign
+
+
+async def force_accept_node(
+    node: int,
+    db_class: type[ElementMixin],
+    output_collection: str | None = None,
+    session: async_scoped_session | None = None,
+) -> None:
+    """Force accept a node by bypassing state transition checks and setting
+    node and node's scripts to accepted.
+    """
+    local_session = False
+    if session is None:
+        session = await get_async_scoped_session()
+        local_session = True
+
+    the_node = await db_class.get_row(session, node)
+
+    # Find all the scripts for the node and set all non-terminal scripts to
+    # accepted
+    node_scripts = await the_node.get_scripts(session, remaining_only=True)
+    for script in node_scripts:
+        script.status = StatusEnum.accepted
+
+    # Set the output collection to the provided value
+    if output_collection is not None:
+        match db_class.__qualname__:
+            case "Job":
+                # In the case of a Job, we want to make sure the accepted job's
+                # RUN collection is updated to reflect the new state. This RUN
+                # collection will be used in the Group's chained output
+                # collections
+                update_collections = partial(the_node.update_collections, job_run=output_collection)
+            case _:
+                logger.error("Force accept unsupported on db class", db_class=db_class.__qualname__)
+                return None
+
+        _ = await update_collections(session, force=True)
+
+    # Set node to accepted
+    the_node.status = StatusEnum.accepted
+
+    # If the session is an injected dependency, we do not attempt to manage its
+    # transaction state but leave it to the caller.
+    if local_session:
+        await session.commit()
+    return None
 
 
 async def render_campaign_steps(

@@ -1,6 +1,7 @@
 """CLI to manage Job table"""
 
 import click
+from pydantic import BaseModel
 
 from .. import db
 from ..client.client import CMClient
@@ -117,8 +118,6 @@ action_process = wrappers.get_action_process_command(action_command, sub_client)
 
 action_run_check = wrappers.get_action_run_check_command(action_command, sub_client)
 
-action_accept = wrappers.get_action_accept_command(action_command, sub_client, DbClass)
-
 action_reject = wrappers.get_action_reject_command(action_command, sub_client, DbClass)
 
 action_reset = wrappers.get_action_reset_command(action_command, sub_client, DbClass)
@@ -147,3 +146,26 @@ def get_errors(
 ) -> None:
     result = client.job.get_errors(row_id=row_id)
     wrappers.output_pydantic_list(result, output, db.PipetaskError.col_names_for_table)
+
+
+@action_command(name="accept")
+@options.cmclient()
+@options.force()
+@options.row_id()
+@options.run_collection()
+@options.output()
+def accept(
+    *,
+    client: CMClient,
+    row_id: int,
+    force: bool,
+    run_collection: str,
+    output: options.OutputEnum | None,
+) -> None:
+    """Mark a job as accepted"""
+    sub_client = getattr(client, db.Job.class_string)
+    result = sub_client.accept(row_id=row_id, force=force, output_collection=run_collection)
+    if isinstance(result, BaseModel):
+        wrappers.output_pydantic_object(result, output, db.Job.col_names_for_table)
+    else:
+        print(result)

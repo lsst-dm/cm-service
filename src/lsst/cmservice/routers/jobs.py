@@ -1,15 +1,19 @@
 """http routers for managing Job tables"""
 
 from collections.abc import Sequence
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response
 from safir.dependencies.db_session import db_session_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from .. import db, models
-from ..common.errors import CMMissingIDError
+from ..common.errors import CMBadStateTransitionError, CMMissingIDError
+from ..common.logging import LOGGER
+from ..handlers.functions import force_accept_node
 from . import wrappers
+
+logger = LOGGER.bind(module=__name__)
 
 # Template specialization
 # Specify the pydantic model for the table
@@ -73,7 +77,6 @@ update_spec_aliases = wrappers.update_node_spec_aliases_function(
     ResponseModelClass,
     DbClass,
 )
-accept = wrappers.get_node_accept_function(router, ResponseModelClass, DbClass)
 reject = wrappers.get_node_reject_function(router, ResponseModelClass, DbClass)
 reset = wrappers.get_node_reset_function(router, ResponseModelClass, DbClass)
 process = wrappers.get_node_process_function(router, DbClass)
@@ -107,3 +110,55 @@ async def get_errors(
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
     except Exception as msg:
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
+
+
+@router.post(
+    "/action/{row_id}/accept",
+    summary="Mark a Job as accepted",
+    status_code=200,
+    response_model=None,
+)
+async def accept_job(
+    *,
+    row_id: int,
+    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    background_tasks: BackgroundTasks,
+    force: bool = False,
+    output_collection: str | None = None,
+    response: Response,
+) -> db.Job | None:
+    """Put a job into an accepted state.
+
+    If the force option is not supplied along with an output_collection, the
+    action is dependent on CM State transition rules and may return a status
+    422 if the accept action is not allowed.
+
+    If the force option is set, the job's run collection is updated and all its
+    (remaining) scripts are set to the accepted state irrespective of state
+    transition rules. This is dispatched to a background task, and the status
+    code 202 is returned.
+    """
+    if force:
+        if output_collection is None:
+            raise HTTPException(status_code=422, detail="Cannot force accept without output collection")
+        background_tasks.add_task(
+            force_accept_node, node=row_id, db_class=db.Job, output_collection=output_collection
+        )
+        response.status_code = 202
+        return None
+    else:
+        # Standard element accept processing logic
+        try:
+            async with session.begin():
+                the_node = await db.Job.get_row(session, row_id)
+                ret_val = await the_node.accept(session)
+            if TYPE_CHECKING:
+                assert isinstance(ret_val, db.Job)
+            return ret_val
+        except CMMissingIDError as e:
+            raise HTTPException(status_code=404, detail=str(e)) from e
+        except CMBadStateTransitionError as e:
+            raise HTTPException(status_code=422, detail=str(e)) from e
+        except Exception as e:
+            logger.error(e, exc_info=True)
+            raise HTTPException(status_code=500, detail=str(e)) from e

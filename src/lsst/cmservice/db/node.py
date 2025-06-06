@@ -403,6 +403,8 @@ class NodeMixin(RowMixin):
     async def update_collections(
         self,
         session: async_scoped_session,
+        *,
+        force: bool = False,
         **kwargs: Any,
     ) -> NodeMixin:
         """Update the collection configuration associated with this Node
@@ -423,7 +425,7 @@ class NodeMixin(RowMixin):
         if not hasattr(self, "collections"):  # pragma: no cover
             raise CMBadExecutionMethodError(f"{self.fullname} does not have attribute collections")
 
-        if self.status.value >= StatusEnum.prepared.value:
+        if not force and self.status.value >= StatusEnum.prepared.value:
             raise CMBadStateTransitionError(
                 f"Tried to modify a node that is in use. {self.fullname}:{self.status}",
             )

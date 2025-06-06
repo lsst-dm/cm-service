@@ -348,7 +348,7 @@ def get_node_post_query_function(
     query: str = "",
     query_suffix: str = "",
 ) -> Callable:
-    """Return a function that invokeds a post method on DB ojbject
+    """Return a function that invokes a post method on DB object
     and attaches that function to a client.
 
     Parameters
@@ -368,7 +368,7 @@ def get_node_post_query_function(
     Returns
     -------
     the_function: Callable
-        Function that invokeds a post method on DB ojbject
+        Function that invokes a post method on DB object
     """
 
     def node_update(
@@ -389,7 +389,7 @@ def get_node_post_no_query_function(
     query: str = "",
     query_suffix: str = "",
 ) -> Callable:
-    """Return a function that invokeds a post method on DB ojbject
+    """Return a function that invokes a post method on DB object
     and attaches that function to a client.
 
     Parameters
@@ -406,7 +406,7 @@ def get_node_post_no_query_function(
     Returns
     -------
     the_function: Callable
-        Function that invokeds a post method on DB ojbject
+        Function that invokes a post method on DB object
     """
 
     def node_update(
@@ -426,7 +426,7 @@ def get_general_post_function(
     query: str = "",
     results_key: str | None = None,
 ) -> Callable:
-    """Return a function that invokeds a post method on DB ojbject
+    """Return a function that invokes a post method on DB object
     and attaches that function to a client.
 
     Parameters
@@ -443,7 +443,7 @@ def get_general_post_function(
     Returns
     -------
     the_function: Callable
-        Function that invokeds a post method on DB ojbject
+        Function that invokes a post method on DB object
     """
 
     def general_post_function(
@@ -466,7 +466,7 @@ def get_general_query_function(
     query_suffix: str = "",
     results_key: str | None = None,
 ) -> Callable:
-    """Return a function that invokeds a get method on DB ojbject
+    """Return a function that invokes a get method on DB object
     and attaches that function to a client.
 
     Parameters
@@ -489,7 +489,7 @@ def get_general_query_function(
     Returns
     -------
     the_function: Callable
-        Function that invokeds a get method on DB ojbject
+        Function that invokes a get method on DB object
     """
 
     def general_query_function(

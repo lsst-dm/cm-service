@@ -15,13 +15,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from safir.dependencies.db_session import db_session_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
-from structlog import get_logger
 
 from .. import db, models
 from ..common.enums import StatusEnum
 from ..common.errors import CMBadStateTransitionError, CMMissingFullnameError, CMMissingIDError
+from ..common.logging import LOGGER
 
-logger = get_logger(__name__)
+logger = LOGGER.bind(module=__name__)
 
 
 def get_rows_no_parent_function(
