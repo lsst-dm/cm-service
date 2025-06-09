@@ -1,6 +1,5 @@
 import os
 from asyncio import sleep
-from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -9,6 +8,7 @@ from safir.database import create_async_session
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from lsst.cmservice import db
+from lsst.cmservice.common import timestamp
 from lsst.cmservice.common.daemon import daemon_iteration
 from lsst.cmservice.common.enums import StatusEnum
 from lsst.cmservice.handlers import interface
@@ -44,8 +44,9 @@ async def test_daemon_db(engine: AsyncEngine) -> None:
         queue_entry = await db.Queue.create_row(
             session,
             fullname=campaign.fullname,
-            time_created=datetime.now(tz=UTC),
-            time_updated=datetime.now(tz=UTC),
+            time_created=timestamp.now_utc(),
+            time_updated=timestamp.now_utc(),
+            active=True,
         )
 
         await daemon_iteration(session)
@@ -56,7 +57,7 @@ async def test_daemon_db(engine: AsyncEngine) -> None:
         await sleep(2)
         await queue_entry.update_values(
             session,
-            time_next_check=datetime.now(tz=UTC),
+            time_next_check=timestamp.now_utc(),
         )
         await session.commit()
 

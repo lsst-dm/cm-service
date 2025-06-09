@@ -66,3 +66,25 @@ def daemon(
 ) -> None:
     """Update a queue"""
     client.queue.daemon(row_id)
+
+
+@queue_group.command(name="pause")
+@options.cmclient()
+@options.row_id()
+def pause(
+    client: CMClient,
+    row_id: int,
+) -> None:
+    """Pause a started queue"""
+    client.queue.pause(row_id)
+
+
+@queue_group.command(name="start")
+@options.cmclient()
+@options.row_id()
+def start(
+    client: CMClient,
+    row_id: int,
+) -> None:
+    """Start a paused queue"""
+    client.queue.start(row_id)

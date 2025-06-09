@@ -45,6 +45,10 @@ SLACK_HEADER_SECTION = {
         "emoji": "thumbsdown",
         "text": "A Campaign has been REJECTED",
     },
+    StatusEnum.overdue: {
+        "emjoji": "calendar",
+        "text": "A Campaign is taking TOO LONG",
+    },
 }
 
 
