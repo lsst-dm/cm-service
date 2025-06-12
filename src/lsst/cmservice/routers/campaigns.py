@@ -1,14 +1,20 @@
 """http routers for managing Campaign tables"""
 
+from collections.abc import Mapping
 from typing import Annotated
+from uuid import uuid5
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from safir.dependencies.db_session import db_session_dependency
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from .. import db, models
 from ..common import timestamp
+from ..common.enums import DEFAULT_NAMESPACE
+from ..common.graph import graph_from_edge_list, graph_to_dict
 from ..common.logging import LOGGER
+from ..handlers.functions import render_campaign_steps
 from . import wrappers
 
 logger = LOGGER.bind(module=__name__)
@@ -93,6 +99,7 @@ get_products = wrappers.get_element_products_function(router, DbClass)
 async def post_row(
     row_create: models.CampaignCreate,
     session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    background_tasks: BackgroundTasks,
 ) -> db.Campaign:
     try:
         async with session.begin():
@@ -103,7 +110,55 @@ async def post_row(
                 time_next_check=timestamp.utc_datetime(campaign.metadata_.get("start_after", 0)),
                 active=False,
             )
+
+        background_tasks.add_task(render_campaign_steps, campaign=campaign.id)
         return campaign
     except Exception as msg:
         logger.error(msg, exc_info=True)
         raise HTTPException(status_code=500, detail=str(msg)) from msg
+
+
+@router.get(
+    "/{row_id}/steps/graph",
+    status_code=200,
+    summary="Construct and return a Campaign's graph of steps",
+)
+async def get_step_graph(
+    row_id: int,
+    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+) -> Mapping:
+    # Determine the namespace UUID for the campaign
+    campaign = await db.Campaign.get_row(session, row_id)
+    if (campaign_namespace := campaign.data.get("namespace")) is None:
+        campaign_namespace = uuid5(DEFAULT_NAMESPACE, campaign.name)
+
+    # Fetch the *edges* for the campaign from the step_dependency table
+    statement = select(db.StepDependency).filter_by(namespace=campaign_namespace)
+    edges = (await session.scalars(statement)).all()
+
+    # Organize the edges into a graph
+    step_graph = await graph_from_edge_list(edges=edges, node_type=db.Step, session=session)
+    return graph_to_dict(step_graph)
+
+
+@router.get(
+    "/{row_id}/scripts/graph",
+    status_code=200,
+    summary="Construct and return a Campaign's graph of scripts",
+)
+async def get_script_graph(
+    row_id: int,
+    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+) -> Mapping:
+    # Determine the namespace UUID for the campaign
+    campaign = await db.Campaign.get_row(session, row_id)
+    if (campaign_namespace := campaign.data.get("namespace")) is None:
+        campaign_namespace = uuid5(DEFAULT_NAMESPACE, campaign.name)
+
+    # Fetch the *edges* for the campaign from the script_dependency table
+    statement = select(db.ScriptDependency).filter_by(namespace=campaign_namespace)
+    edges = (await session.scalars(statement)).all()
+
+    # Organize the edges into a graph
+    script_graph = await graph_from_edge_list(edges=edges, node_type=db.Script, session=session)
+    return graph_to_dict(script_graph)

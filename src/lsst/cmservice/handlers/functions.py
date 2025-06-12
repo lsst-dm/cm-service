@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import async_scoped_session
 from lsst.ctrl.bps.bps_reports import compile_job_summary
 from lsst.ctrl.bps.wms_service import WmsRunReport, WmsStates
 
-from ..common.enums import StatusEnum
+from ..common.enums import DEFAULT_NAMESPACE, StatusEnum
 from ..common.errors import CMMissingFullnameError, CMYamlParseError
 from ..common.logging import LOGGER
 from ..config import config
@@ -22,6 +22,7 @@ from ..db.job import Job
 from ..db.pipetask_error import PipetaskError
 from ..db.pipetask_error_type import PipetaskErrorType
 from ..db.product_set import ProductSet
+from ..db.session import get_async_scoped_session
 from ..db.spec_block import SpecBlock
 from ..db.specification import Specification
 from ..db.step import Step
@@ -256,9 +257,7 @@ async def load_specification(
 
 
 async def add_step_prerequisite(
-    session: async_scoped_session,
-    depend_id: int,
-    prereq_id: int,
+    session: async_scoped_session, depend_id: int, prereq_id: int, namespace: UUID | None = None
 ) -> StepDependency:
     """Create and return a StepDependency
 
@@ -282,13 +281,14 @@ async def add_step_prerequisite(
         session,
         prereq_id=prereq_id,
         depend_id=depend_id,
+        namespace=namespace,
     )
 
 
 async def add_steps(
     session: async_scoped_session,
     campaign: Campaign,
-    step_config_list: list[dict[str, dict]],
+    step_config_list: list[dict[str, dict]] | None,
 ) -> Campaign:
     """Add steps to a Campaign
 
@@ -308,6 +308,9 @@ async def add_steps(
     campaign : Campaign
         Campaign in question
     """
+    if step_config_list is None:
+        return campaign
+
     spec_aliases = await campaign.get_spec_aliases(session)
 
     current_steps = await campaign.children(session)
@@ -364,14 +367,53 @@ async def add_steps(
         ]
         prereq_pairs += [(namespaced_step_name, prereq) for prereq in prereq_list]
 
+    # FIXME dependencies must always be added with a namespace even if the rest
+    #       of the campaign lacks one
+    campaign_namespace = uuid5(namespace=DEFAULT_NAMESPACE, name=campaign.name)
     for depend_name, prereq_name in prereq_pairs:
         prereq_id = step_ids_dict[prereq_name]
         depend_id = step_ids_dict[depend_name]
-        new_depend = await add_step_prerequisite(session, depend_id, prereq_id)
+        new_depend = await add_step_prerequisite(session, depend_id, prereq_id, namespace=campaign_namespace)
         await session.refresh(new_depend)
 
     await session.refresh(campaign)
     return campaign
+
+
+async def render_campaign_steps(
+    campaign: Campaign | int,
+    session: async_scoped_session | None = None,
+) -> None:
+    """Render the steps for a campaign.
+
+    Given a campaign ID, fetch the list of associated steps and create step
+    and step dependency objects in the database.
+
+    If there are any items in the campaign graph (i.e., there are step-
+    dependency entries with the campaign's namespace), then this function does
+    not create any new or changed objects.
+    """
+    local_session = False
+    if session is None:
+        session = await get_async_scoped_session()
+        local_session = True
+    if isinstance(campaign, int):
+        campaign = await Campaign.get_row(session, campaign)
+
+    statement = select(Step).filter_by(parent_id=campaign.id)
+    steps = (await session.scalars(statement)).all()
+
+    if len(steps):
+        return None
+    spec_block = await campaign.get_spec_block(session)
+    if TYPE_CHECKING:
+        assert isinstance(spec_block.steps, list)
+    await add_steps(session, campaign, spec_block.steps)
+    # If the session is an injected dependency, we do not attempt to manage its
+    # transaction state but leave it to the caller.
+    if local_session:
+        await session.commit()
+    return None
 
 
 async def match_pipetask_error(
