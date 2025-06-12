@@ -5,15 +5,15 @@ from typing import Annotated
 from uuid import uuid5
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from safir.dependencies.db_session import db_session_dependency
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import async_scoped_session
 
 from .. import db, models
 from ..common import timestamp
 from ..common.enums import DEFAULT_NAMESPACE
 from ..common.graph import graph_from_edge_list, graph_to_dict
 from ..common.logging import LOGGER
+from ..common.types import AnyAsyncSession
+from ..db.session import db_session_dependency
 from ..handlers.functions import render_campaign_steps
 from . import wrappers
 
@@ -98,7 +98,7 @@ get_products = wrappers.get_element_products_function(router, DbClass)
 )
 async def post_row(
     row_create: models.CampaignCreate,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
     background_tasks: BackgroundTasks,
 ) -> db.Campaign:
     try:
@@ -125,7 +125,7 @@ async def post_row(
 )
 async def get_step_graph(
     row_id: int,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> Mapping:
     # Determine the namespace UUID for the campaign
     campaign = await db.Campaign.get_row(session, row_id)
@@ -148,7 +148,7 @@ async def get_step_graph(
 )
 async def get_script_graph(
     row_id: int,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> Mapping:
     # Determine the namespace UUID for the campaign
     campaign = await db.Campaign.get_row(session, row_id)

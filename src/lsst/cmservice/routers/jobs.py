@@ -4,12 +4,12 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response
-from safir.dependencies.db_session import db_session_dependency
-from sqlalchemy.ext.asyncio import async_scoped_session
 
 from .. import db, models
 from ..common.errors import CMBadStateTransitionError, CMMissingIDError
 from ..common.logging import LOGGER
+from ..common.types import AnyAsyncSession
+from ..db.session import db_session_dependency
 from ..handlers.functions import force_accept_node
 from . import wrappers
 
@@ -99,7 +99,7 @@ get_products = wrappers.get_element_products_function(router, DbClass)
 )
 async def get_errors(
     row_id: int,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> Sequence[db.PipetaskError]:
     try:
         async with session.begin():
@@ -121,7 +121,7 @@ async def get_errors(
 async def accept_job(
     *,
     row_id: int,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
     background_tasks: BackgroundTasks,
     force: bool = False,
     output_collection: str | None = None,

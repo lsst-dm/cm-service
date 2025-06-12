@@ -1,10 +1,8 @@
 """cm-service specific error types"""
 
-from typing import Any, TypeVar
+from typing import Any
 
 from sqlalchemy.exc import IntegrityError
-
-T = TypeVar("T")
 
 
 class CMCheckError(KeyError):
@@ -123,7 +121,7 @@ class CMYamlParseError(KeyError):
     """Raised when parsing a yaml file fails"""
 
 
-def test_type_and_raise(object: Any, expected_type: type[T], var_name: str) -> T:
+def test_type_and_raise[T](object: Any, expected_type: type[T], var_name: str) -> T:
     if not isinstance(object, expected_type):
         raise CMBadParameterTypeError(f"{var_name} expected type {expected_type} got {type(object)}")
     return object

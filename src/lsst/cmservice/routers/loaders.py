@@ -1,10 +1,10 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
-from safir.dependencies.db_session import db_session_dependency
-from sqlalchemy.ext.asyncio import async_scoped_session
 
 from .. import db, models
+from ..common.types import AnyAsyncSession
+from ..db.session import db_session_dependency
 from ..handlers import functions, interface
 
 router = APIRouter(
@@ -21,7 +21,7 @@ router = APIRouter(
 )
 async def add_steps(
     query: models.AddSteps,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> db.Campaign:
     """Invoke the interface.add_steps function"""
     try:
@@ -40,7 +40,7 @@ async def add_steps(
 )
 async def load_specification(
     query: models.SpecificationLoad,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> db.Specification:
     """Load a specification object fom a yaml file
 
@@ -49,7 +49,7 @@ async def load_specification(
     query: models.SpecificationLoad
         Details of what to load
 
-    session: async_scoped_session
+    session: AnyAsyncSession
         DB session manager
 
     Returns
@@ -73,7 +73,7 @@ async def load_specification(
 )
 async def load_and_create_campaign(
     query: models.LoadAndCreateCampaign,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> db.Campaign:
     """Load a specification and use it to create a `Campaign`
 
@@ -82,7 +82,7 @@ async def load_and_create_campaign(
     query: models.LoadAndCreateCampaign
         Details of what to load and create
 
-    session: async_scoped_session
+    session: AnyAsyncSession
         DB session manager
 
     Returns
@@ -106,7 +106,7 @@ async def load_and_create_campaign(
 )
 async def load_error_types(
     query: models.YamlFileQuery,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> list[db.PipetaskErrorType]:
     """Load a set of PipetaskErrorType object from a yaml file
 
@@ -115,7 +115,7 @@ async def load_error_types(
     query: models.YamlFileQuery
         Details of what to load
 
-    session: async_scoped_session
+    session: AnyAsyncSession
         DB session manager
 
     Returns
@@ -139,7 +139,7 @@ async def load_error_types(
 )
 async def load_manifest_report(
     query: models.LoadManifestReport,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> db.Job:
     """Load a pipetask report and associated it to a Job
 
@@ -148,7 +148,7 @@ async def load_manifest_report(
     query: models.LoadManifestReport
         Details of what to load
 
-    session: async_scoped_session
+    session: AnyAsyncSession
         DB session manager
 
     Returns

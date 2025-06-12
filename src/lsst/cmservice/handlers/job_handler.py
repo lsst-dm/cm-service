@@ -2,14 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy.ext.asyncio import async_scoped_session
-
 from ..common.enums import ErrorActionEnum, StatusEnum
 from ..common.errors import CMBadEnumError
 from ..db.element import ElementMixin
 from .element_handler import ElementHandler
 
 if TYPE_CHECKING:
+    from ..common.types import AnyAsyncSession
     from ..db import Job
 
 
@@ -18,7 +17,7 @@ class JobHandler(ElementHandler):
 
     async def _post_check(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         element: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:

@@ -1,14 +1,14 @@
 from typing import Any
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import async_scoped_session
 
+from lsst.cmservice.common.types import AnyAsyncSession
 from lsst.cmservice.db import Group, NodeMixin
 from lsst.cmservice.web_app.utils.utils import map_status
 
 
 async def get_group_by_id(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     group_id: int,
     campaign_id: int | None = None,
     step_id: int | None = None,
@@ -79,7 +79,7 @@ async def get_group_by_id(
         return group_details, jobs, scripts
 
 
-async def get_group_jobs(session: async_scoped_session, group: Group) -> list[dict]:
+async def get_group_jobs(session: AnyAsyncSession, group: Group) -> list[dict]:
     jobs = await group.children(session)
     return [
         {
@@ -98,7 +98,7 @@ async def get_group_jobs(session: async_scoped_session, group: Group) -> list[di
     ]
 
 
-async def get_group_scripts(session: async_scoped_session, group: Group) -> list[dict]:
+async def get_group_scripts(session: AnyAsyncSession, group: Group) -> list[dict]:
     scripts = await group.get_scripts(session)
     return [
         {
@@ -113,6 +113,6 @@ async def get_group_scripts(session: async_scoped_session, group: Group) -> list
     ]
 
 
-async def get_group_node(session: async_scoped_session, group_id: int) -> NodeMixin:
+async def get_group_node(session: AnyAsyncSession, group_id: int) -> NodeMixin:
     group = await Group.get_row(session, group_id)
     return group

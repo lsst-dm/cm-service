@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from sqlalchemy import JSON
-from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -9,6 +10,9 @@ from ..common.errors import CMMissingFullnameError, CMSpecificationError
 from .base import Base
 from .row import RowMixin
 from .spec_block import SpecBlock
+
+if TYPE_CHECKING:
+    from ..common.types import AnyAsyncSession
 
 
 class Specification(Base, RowMixin):
@@ -38,14 +42,14 @@ class Specification(Base, RowMixin):
 
     async def get_block(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         spec_block_name: str,
     ) -> SpecBlock:
         """Get a SpecBlock associated to this Specification
 
         Parameters
         ----------
-        session: async_scoped_session
+        session: AnyAsyncSession
             DB session manager
 
         spec_block_name: str

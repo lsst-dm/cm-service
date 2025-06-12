@@ -1,14 +1,14 @@
 from typing import Any
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import async_scoped_session
 
+from lsst.cmservice.common.types import AnyAsyncSession
 from lsst.cmservice.db import Job, NodeMixin
 from lsst.cmservice.web_app.utils.utils import map_status
 
 
 async def get_job_by_id(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     job_id: int,
 ) -> tuple[dict[str, Any] | None, list[dict[Any, Any]] | None]:
     q = select(Job).where(Job.id == job_id)
@@ -73,7 +73,7 @@ async def get_job_by_id(
         return job_details, scripts
 
 
-async def get_job_scripts(session: async_scoped_session, job: Job) -> list[dict]:
+async def get_job_scripts(session: AnyAsyncSession, job: Job) -> list[dict]:
     scripts = await job.get_scripts(session)
     job_scripts = [
         {
@@ -89,6 +89,6 @@ async def get_job_scripts(session: async_scoped_session, job: Job) -> list[dict]
     return job_scripts
 
 
-async def get_job_node(session: async_scoped_session, job_id: int) -> NodeMixin:
+async def get_job_node(session: AnyAsyncSession, job_id: int) -> NodeMixin:
     job = await Job.get_row(session, job_id)
     return job

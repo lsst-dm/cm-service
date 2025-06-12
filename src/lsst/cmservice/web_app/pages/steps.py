@@ -1,22 +1,22 @@
 from collections.abc import Sequence
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import async_scoped_session
 
 from lsst.cmservice.common.enums import StatusEnum
+from lsst.cmservice.common.types import AnyAsyncSession
 from lsst.cmservice.db import Campaign, Step
 from lsst.cmservice.parsing.string import parse_element_fullname
 from lsst.cmservice.web_app.utils.utils import map_status
 
 
-async def get_campaign_steps(session: async_scoped_session, campaign_id: int) -> Sequence:
+async def get_campaign_steps(session: AnyAsyncSession, campaign_id: int) -> Sequence:
     q = select(Step).where(Step.parent_id == campaign_id).order_by(Step.id)
     async with session.begin_nested():
         results = await session.scalars(q)
         return results.all()
 
 
-async def get_step_details(session: async_scoped_session, step: Step) -> dict:
+async def get_step_details(session: AnyAsyncSession, step: Step) -> dict:
     step_groups = await step.children(session)
     no_groups = len(list(step_groups))
     no_groups_completed = len([group for group in step_groups if group.status is StatusEnum.accepted])
@@ -38,7 +38,7 @@ async def get_step_details(session: async_scoped_session, step: Step) -> dict:
     return step_details
 
 
-async def get_campaign_by_id(session: async_scoped_session, campaign_id: int) -> Campaign | None:
+async def get_campaign_by_id(session: AnyAsyncSession, campaign_id: int) -> Campaign | None:
     q = select(Campaign).where(Campaign.id == campaign_id)
     async with session.begin_nested():
         results = await session.scalars(q)

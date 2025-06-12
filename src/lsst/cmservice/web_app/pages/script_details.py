@@ -2,8 +2,8 @@ from typing import Any
 
 import starlette.requests
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import async_scoped_session
 
+from lsst.cmservice.common.types import AnyAsyncSession
 from lsst.cmservice.db import Group, Job, NodeMixin, Script, Step
 from lsst.cmservice.web_app.utils.utils import map_status
 
@@ -20,7 +20,7 @@ def is_script_collection(collection: tuple[str, str]) -> bool:
 
 
 async def get_script_by_id(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     script_id: int,
     request: starlette.requests.Request,
     campaign_id: int | None = None,
@@ -104,27 +104,27 @@ async def get_script_by_id(
         return script_details
 
 
-async def get_step_id_by_fullname(session: async_scoped_session, fullname: str) -> int | None:
+async def get_step_id_by_fullname(session: AnyAsyncSession, fullname: str) -> int | None:
     q = select(Step.id).where(Step.fullname == fullname)
     async with session.begin_nested():
         results = await session.scalars(q)
         return results.one_or_none()
 
 
-async def get_group_id_by_fullname(session: async_scoped_session, fullname: str) -> int | None:
+async def get_group_id_by_fullname(session: AnyAsyncSession, fullname: str) -> int | None:
     q = select(Group.id).where(Group.fullname == fullname)
     async with session.begin_nested():
         results = await session.scalars(q)
         return results.one_or_none()
 
 
-async def get_job_id_by_fullname(session: async_scoped_session, fullname: str) -> int | None:
+async def get_job_id_by_fullname(session: AnyAsyncSession, fullname: str) -> int | None:
     q = select(Job.id).where(Job.fullname == fullname)
     async with session.begin_nested():
         results = await session.scalars(q)
         return results.one_or_none()
 
 
-async def get_script_node(session: async_scoped_session, script_id: int) -> NodeMixin:
+async def get_script_node(session: AnyAsyncSession, script_id: int) -> NodeMixin:
     script = await Script.get_row(session, script_id)
     return script
