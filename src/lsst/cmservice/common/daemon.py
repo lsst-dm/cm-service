@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
 
-from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.future import select
 
 from ..common import notification, timestamp
 from ..common.enums import StatusEnum
+from ..common.types import AnyAsyncSession
 from ..config import config
 from ..db.node import NodeMixin
 from ..db.queue import Queue
@@ -15,7 +15,7 @@ from .logging import LOGGER
 logger = LOGGER.bind(module=__name__)
 
 
-async def check_due_date(session: async_scoped_session, node: NodeMixin, time_next_check: datetime) -> None:
+async def check_due_date(session: AnyAsyncSession, node: NodeMixin, time_next_check: datetime) -> None:
     """For a provided due date, check if the queue entry is overdue"""
 
     due_date = node.metadata_.get("due_date", None)
@@ -27,7 +27,7 @@ async def check_due_date(session: async_scoped_session, node: NodeMixin, time_ne
         await notification.send_notification(for_status=StatusEnum.overdue, for_campaign=campaign)
 
 
-async def daemon_iteration(session: async_scoped_session) -> None:
+async def daemon_iteration(session: AnyAsyncSession) -> None:
     iteration_start = timestamp.now_utc()
     processed_nodes = 0
     queue_entries = await session.execute(

@@ -1,18 +1,19 @@
 from collections.abc import Mapping, Sequence
-from typing import TypeVar
 
 import networkx as nx
-from sqlalchemy.ext.asyncio import AsyncSession, async_scoped_session
 
 from ..db import Script, ScriptDependency, Step, StepDependency
 from ..parsing.string import parse_element_fullname
+from .types import AnyAsyncSession
 
-A = TypeVar("A", async_scoped_session, AsyncSession)
-N = TypeVar("N", type[Step], type[Script])
+type AnyGraphEdge = StepDependency | ScriptDependency
+type AnyGraphNode = Step | Script
 
 
 async def graph_from_edge_list(
-    edges: Sequence[StepDependency | ScriptDependency], node_type: N, session: A
+    edges: Sequence[AnyGraphEdge],
+    node_type: type[AnyGraphNode],
+    session: AnyAsyncSession,
 ) -> nx.DiGraph:
     """Given a sequence of edge-tuples, create a directed graph for these
     edges with nodes derived from database lookups of the related objects.

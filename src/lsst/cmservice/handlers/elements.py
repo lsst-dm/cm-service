@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator
 from functools import partial
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from anyio import to_thread
-from sqlalchemy.ext.asyncio import async_scoped_session
 
 from ..common.butler import BUTLER_FACTORY
 from ..common.enums import StatusEnum
@@ -20,6 +19,10 @@ from ..db.job import Job
 from ..db.script import Script
 from .script_handler import FunctionHandler
 
+if TYPE_CHECKING:
+    from ..common.types import AnyAsyncSession
+
+
 logger = LOGGER.bind(module=__name__)
 
 
@@ -32,7 +35,7 @@ class RunElementScriptHandler(FunctionHandler):
 
     async def _do_run(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -49,7 +52,7 @@ class RunElementScriptHandler(FunctionHandler):
 
     async def _do_check(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -78,7 +81,7 @@ class RunJobsScriptHandler(RunElementScriptHandler):
 
     async def _do_prepare(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -102,7 +105,7 @@ class RunJobsScriptHandler(RunElementScriptHandler):
 
     async def review_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -126,7 +129,7 @@ class Splitter:
     @classmethod
     async def split(
         cls,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -135,7 +138,7 @@ class Splitter:
 
         Parameters
         ----------
-        session: async_scoped_session
+        session: AnyAsyncSession
             DB session manager
 
         script: Script
@@ -157,7 +160,7 @@ class NoSplit(Splitter):
     @classmethod
     async def split(
         cls,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -177,7 +180,7 @@ class SplitByVals(Splitter):
     @classmethod
     async def split(
         cls,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -203,7 +206,7 @@ class SplitByQuery(Splitter):
     @classmethod
     async def split(
         cls,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -281,7 +284,7 @@ class RunGroupsScriptHandler(RunElementScriptHandler):
 
     async def _do_prepare(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -320,7 +323,7 @@ class RunStepsScriptHandler(RunElementScriptHandler):
 
     async def _do_prepare(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,

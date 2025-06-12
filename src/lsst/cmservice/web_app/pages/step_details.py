@@ -1,14 +1,13 @@
 from typing import Any
 
-from sqlalchemy.ext.asyncio import async_scoped_session
-
+from lsst.cmservice.common.types import AnyAsyncSession
 from lsst.cmservice.db import NodeMixin, Step
 from lsst.cmservice.web_app.pages.steps import get_step_details
 from lsst.cmservice.web_app.utils.utils import map_status
 
 
 async def get_step_details_by_id(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     step_id: int,
 ) -> tuple[Any, list[dict[Any, Any]], list[dict[Any, Any]]]:
     step = await Step.get_row(session, step_id)
@@ -23,7 +22,7 @@ async def get_step_details_by_id(
     return step_details, groups, scripts
 
 
-async def get_step_groups(session: async_scoped_session, step: Step) -> list[dict]:
+async def get_step_groups(session: AnyAsyncSession, step: Step) -> list[dict]:
     groups = await step.children(session)
     step_groups = [
         {
@@ -41,7 +40,7 @@ async def get_step_groups(session: async_scoped_session, step: Step) -> list[dic
     return step_groups
 
 
-async def get_step_scripts(session: async_scoped_session, step: Step) -> list[dict]:
+async def get_step_scripts(session: AnyAsyncSession, step: Step) -> list[dict]:
     scripts = await step.get_scripts(session)
     step_scripts = [
         {
@@ -57,6 +56,6 @@ async def get_step_scripts(session: async_scoped_session, step: Step) -> list[di
     return step_scripts
 
 
-async def get_step_node(session: async_scoped_session, step_id: int) -> NodeMixin:
+async def get_step_node(session: AnyAsyncSession, step_id: int) -> NodeMixin:
     step = await Step.get_row(session, step_id)
     return step

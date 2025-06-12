@@ -11,7 +11,7 @@ apply to all RowMixin, NodeMixin and ElementMixin classes.
 import json
 from collections.abc import Callable, Sequence
 from enum import Enum
-from typing import Any, TypeAlias
+from typing import Any
 
 import click
 import yaml
@@ -20,7 +20,7 @@ from tabulate import tabulate
 
 from ..client.client import CMClient
 from ..common.enums import StatusEnum
-from ..db import Job, Script, SpecBlock, Specification
+from ..db import ElementMixin, Job, RowMixin, Script, SpecBlock, Specification
 from . import options
 
 
@@ -127,7 +127,7 @@ def output_dict(
 def get_list_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
+    db_class: type[RowMixin],
 ) -> Callable:
     """Return a function that gets all the rows from a table
     and attaches that function to the cli.
@@ -143,7 +143,7 @@ def get_list_command(
     sub_client_name: str
         Name of python API sub-client to use
 
-    db_class: TypeAlias = db.RowMixin
+    db_class: type
         Underlying database class
 
     Returns
@@ -170,7 +170,7 @@ def get_list_command(
 def get_row_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
+    db_class: type[RowMixin],
 ) -> Callable:
     """Return a function that gets a row from a table
     and attaches that function to the cli.
@@ -183,7 +183,7 @@ def get_row_command(
     sub_client_name: str
         Name of python API sub-client to use
 
-    db_class: TypeAlias = db.RowMixin
+    db_class: type
         Underlying database class
 
     Returns
@@ -212,7 +212,7 @@ def get_row_command(
 def get_row_by_name_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
+    db_class: type[RowMixin],
 ) -> Callable:
     """Return a function that gets a row from a table
     and attaches that function to the cli.
@@ -225,7 +225,7 @@ def get_row_by_name_command(
     sub_client_name: str
         Name of python API sub-client to use
 
-    db_class: TypeAlias = db.RowMixin
+    db_class: type
         Underlying database class
 
     Returns
@@ -254,7 +254,7 @@ def get_row_by_name_command(
 def get_row_by_fullname_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
+    db_class: type[RowMixin],
 ) -> Callable:
     """Return a function that gets a row from a table
     and attaches that function to the cli.
@@ -267,7 +267,7 @@ def get_row_by_fullname_command(
     sub_client_name: str
         Name of python API sub-client to use
 
-    db_class: TypeAlias = db.RowMixin
+    db_class: type
         Underlying database class
 
     Returns
@@ -296,7 +296,7 @@ def get_row_by_fullname_command(
 def get_create_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
+    db_class: type[RowMixin],
     create_options: list[Callable],
 ) -> Callable:
     """Return a function that creates a new row in the table
@@ -310,7 +310,7 @@ def get_create_command(
     sub_client_name: str
         Name of python API sub-client to use
 
-    db_class: TypeAlias = db.RowMixin
+    db_class: type
         Underlying database class
 
     create_options: list[Callable]
@@ -342,7 +342,7 @@ def get_create_command(
 def get_update_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
+    db_class: type[RowMixin],
     update_options: list[Callable],
 ) -> Callable:
     """Return a function that updates a row in the table
@@ -356,7 +356,7 @@ def get_update_command(
     sub_client_name: str
         Name of python API sub-client to use
 
-    db_class: TypeAlias = db.RowMixin
+    db_class: type
         Underlying database class
 
     update_options: list[Callable]
@@ -512,7 +512,7 @@ def get_resolved_collections_command(
     sub_client_name: str
         Name of python API sub-client to use
 
-    db_class: TypeAlias = db.RowMixin
+    db_class: type
         Underlying database class
 
     Returns
@@ -693,7 +693,7 @@ def get_spec_aliases_command(
 def get_update_status_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
+    db_class: type[RowMixin],
 ) -> Callable:
     """Return a function that updates the status
     of row in the table and attaches that function to the cli.
@@ -706,7 +706,7 @@ def get_update_status_command(
     sub_client_name: str
         Name of python API sub-client to use
 
-    db_class: TypeAlias = db.RowMixin
+    db_class: type
         Underlying database class
 
     Returns
@@ -967,9 +967,6 @@ def get_action_run_check_command(
     sub_client_name: str
         Name of python API sub-client to use
 
-    db_class: TypeAlias = db.RowMixin
-        Underlying database class
-
     Returns
     -------
     the_function: Callable
@@ -996,7 +993,7 @@ def get_action_run_check_command(
 def get_action_accept_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
+    db_class: type[RowMixin],
 ) -> Callable:
     """Return a function that marks a row in the table as accepted
     and attaches that function to the cli.
@@ -1009,7 +1006,7 @@ def get_action_accept_command(
     sub_client_name: str
         Name of python API sub-client to use
 
-    db_class: TypeAlias = db.RowMixin
+    db_class: type
         Underlying database class
 
     Returns
@@ -1038,7 +1035,7 @@ def get_action_accept_command(
 def get_action_reject_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
+    db_class: type[RowMixin],
 ) -> Callable:
     """Return a function that marks a row in the table as rejected
     and attaches that function to the cli.
@@ -1051,7 +1048,7 @@ def get_action_reject_command(
     sub_client_name: str
         Name of python API sub-client to use
 
-    db_class: TypeAlias = db.RowMixin
+    db_class: type
         Underlying database class
 
     Returns
@@ -1080,7 +1077,7 @@ def get_action_reject_command(
 def get_action_reset_command(
     group_command: Callable,
     sub_client_name: str,
-    db_class: TypeAlias,
+    db_class: type[RowMixin],
 ) -> Callable:
     """Return a function that resets the status of a row in the table
     and attaches that function to the cli.
@@ -1093,7 +1090,7 @@ def get_action_reset_command(
     sub_client_name: str
         Name of python API sub-client to use
 
-    db_class: TypeAlias = db.RowMixin
+    db_class: type
         Underlying database class
 
     Returns
@@ -1125,7 +1122,7 @@ def get_action_reset_command(
 def get_element_parent_command(
     group_command: Callable,
     sub_client_name: str,
-    db_parent_class: TypeAlias,
+    db_parent_class: type[ElementMixin],
 ) -> Callable:
     """Return a function that gets the parent of an element
 
@@ -1137,7 +1134,7 @@ def get_element_parent_command(
     sub_client_name: str
         Name of python API sub-client to use
 
-    db_parent_class: TypeAlias = db.RowMixin
+    db_parent_class: type
         Underlying parent database class
 
     Returns

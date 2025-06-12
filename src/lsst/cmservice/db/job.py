@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy import JSON, and_, select
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
@@ -27,6 +26,7 @@ from .group import Group
 from .step import Step
 
 if TYPE_CHECKING:
+    from ..common.types import AnyAsyncSession
     from .campaign import Campaign
     from .pipetask_error import PipetaskError
     from .product_set import ProductSet
@@ -118,7 +118,7 @@ class Job(Base, ElementMixin):
 
     async def get_campaign(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> Campaign:
         """Maps self.c_ to self.get_campaign() for consistency"""
         await session.refresh(self, attribute_names=["c_"])
@@ -126,13 +126,13 @@ class Job(Base, ElementMixin):
 
     async def get_siblings(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> Sequence[Job]:
         """Get the sibling Jobs
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns
@@ -152,7 +152,7 @@ class Job(Base, ElementMixin):
 
     async def get_wms_reports(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> MergedWmsTaskReportDict:
         await session.refresh(self, attribute_names=["wms_reports_"])
@@ -163,7 +163,7 @@ class Job(Base, ElementMixin):
 
     async def get_tasks(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> MergedTaskSetDict:
         await session.refresh(self, attribute_names=["tasks_"])
@@ -172,7 +172,7 @@ class Job(Base, ElementMixin):
 
     async def get_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> MergedProductSetDict:
         await session.refresh(self, attribute_names=["products_"])
@@ -181,7 +181,7 @@ class Job(Base, ElementMixin):
 
     async def get_errors(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> Sequence[PipetaskError]:
         await session.refresh(self, attribute_names=["errors_"])
         return self.errors_
@@ -192,7 +192,7 @@ class Job(Base, ElementMixin):
     @classmethod
     async def get_create_kwargs(
         cls,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> dict:
         try:
@@ -230,14 +230,14 @@ class Job(Base, ElementMixin):
 
     async def copy_job(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         parent: ElementMixin,
     ) -> Job:
         """Copy a Job
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         parent : ElementMixin
@@ -298,7 +298,7 @@ class Job(Base, ElementMixin):
 
     async def get_jobs(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         *,
         remaining_only: bool = False,
         skip_superseded: bool = True,

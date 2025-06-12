@@ -5,7 +5,6 @@ import textwrap
 from typing import TYPE_CHECKING, Any
 
 from anyio import Path
-from sqlalchemy.ext.asyncio import async_scoped_session
 
 from ..common.bash import write_bash_script
 from ..common.butler import (
@@ -23,6 +22,10 @@ from ..db.script import Script
 from ..db.step import Step
 from .script_handler import ScriptHandler
 
+if TYPE_CHECKING:
+    from ..common.types import AnyAsyncSession
+
+
 logger = LOGGER.bind(module=__name__)
 
 
@@ -31,7 +34,7 @@ class NullScriptHandler(ScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -58,7 +61,7 @@ class NullScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -82,7 +85,7 @@ class ChainCreateScriptHandler(ScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -117,7 +120,7 @@ class ChainCreateScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -148,7 +151,7 @@ class ChainPrependScriptHandler(ScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -178,7 +181,7 @@ class ChainPrependScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -210,7 +213,7 @@ class ChainCollectScriptHandler(ScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -257,7 +260,7 @@ class ChainCollectScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -288,7 +291,7 @@ class TagInputsScriptHandler(ScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -318,7 +321,7 @@ class TagInputsScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -345,7 +348,7 @@ class TagCreateScriptHandler(ScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -371,7 +374,7 @@ class TagCreateScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -400,7 +403,7 @@ class TagAssociateScriptHandler(ScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -428,7 +431,7 @@ class TagAssociateScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -462,7 +465,7 @@ class PrepareStepScriptHandler(ScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -505,7 +508,7 @@ class PrepareStepScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -527,7 +530,7 @@ class ResourceUsageScriptHandler(ScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -557,7 +560,7 @@ class ResourceUsageScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -584,7 +587,7 @@ class HipsMapsScriptHandler(ScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -649,7 +652,7 @@ class HipsMapsScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -683,7 +686,7 @@ class ValidateScriptHandler(ScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -710,7 +713,7 @@ class ValidateScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
