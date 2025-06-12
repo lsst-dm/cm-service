@@ -3,8 +3,6 @@
 Database migrations and schema evolution are handled by `alembic`, a database tool
 that is part of the `sqlalchemy` toolkit ecosystem.
 
-Alembic is included in the project's dependency graph via the Safir package.
-
 ## Running Alembic
 
 The `alembic` tool establishes an execution environment via the `env.py` file which

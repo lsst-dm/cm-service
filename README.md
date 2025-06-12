@@ -1,4 +1,5 @@
 # cm-service
+![Python](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2Flsst-dm%2Fcm-service%2Frefs%2Fheads%2Fmain%2Fpyproject.toml)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 
@@ -8,7 +9,7 @@ https://cm-service.lsst.io.
 
 ## Developer Quick Start
 
-You can build and run `cm-service` on any system which has Python 3.11 or greater, `uv`, `make`, and Docker w/ the
+You can build and run `cm-service` on any system which has Python 3.12 or greater, `uv`, `make`, and Docker w/ the
 Docker Compose V2 CLI plugin (this includes, in particular, recent MacOS with Docker Desktop).  Proceed as
 follows:
 
