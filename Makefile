@@ -44,6 +44,7 @@ update: update-deps init
 
 .PHONY: build
 build: export BUILDKIT_PROGRESS=plain
+build: export COMPOSE_BAKE=true
 build:
 	docker compose build cmservice
 	docker compose build cmworker
