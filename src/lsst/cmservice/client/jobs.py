@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import httpx
+from pydantic import TypeAdapter
 
 from .. import db, models
 from ..common.enums import StatusEnum
@@ -138,11 +139,21 @@ class CMJobClient:
         "spec_aliases",
     )
 
-    accept = wrappers.get_node_post_no_query_function(
-        ResponseModelClass,
-        f"{router_string}/action",
-        "accept",
-    )
+    def accept(
+        self,
+        *,
+        row_id: int,
+        force: bool,
+        output_collection: str,
+        **kwargs: Any,
+    ) -> ResponseModelClass | int:
+        full_query = f"{router_string}/action/{row_id}/accept"
+        params = httpx.QueryParams(force=force, output_collection=output_collection)
+        response = self.client.post(full_query, params=params).raise_for_status()
+        if result := response.json():
+            return TypeAdapter(ResponseModelClass).validate_python(result)
+        else:
+            return response.status_code
 
     reject = wrappers.get_node_post_no_query_function(
         ResponseModelClass,

@@ -85,11 +85,10 @@ cm-client script action reset --row_id XXX
 ```
 
 ### ...and I fixed it!
-If CM Service failed to run a script but you managed to correct the failure out-of-band, such as by performing the script's action manually, you can manually register this success with CM Service by marking the failed script as accepted. To do so, the script must first be marked as reviewable.
+If CM Service failed to run a script but you managed to correct the failure out-of-band, such as by performing the script's action manually, you can manually register this success with CM Service by forcing the associated Job into an accepted state. This requires that you also provide the name of the Job's output run collection even if it is not different to the extant configuration.
 
 ```
-cm-client script update status --status reviewable --row_id XXX
-cm-client script action accept --row_id XXX
+cm-client job action accept --force --row_id XXX --run-collection XXX
 ```
 
 # My Database Is ...
