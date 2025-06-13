@@ -1,5 +1,7 @@
 """http routers for managing Queue tables"""
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException
 from safir.dependencies.db_session import db_session_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -46,12 +48,11 @@ update_row = wrappers.put_row_function(router, ResponseModelClass, UpdateModelCl
 
 @router.get(
     "/process/{row_id}",
-    response_model=bool,
     summary="Process the associated element",
 )
 async def process_element(
+    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     row_id: int,
-    session: async_scoped_session = Depends(db_session_dependency),
 ) -> bool:
     """Process associated element
 
@@ -80,14 +81,48 @@ async def process_element(
     return can_continue
 
 
+@router.patch(
+    "/pause/{row_id}",
+    summary="Toggle the pause status of a queue entry",
+)
+async def toggle_active(
+    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    row_id: int,
+) -> bool:
+    """Toggle the active status of a queue entry.
+
+    Parameters
+    ----------
+    row_id: int
+        ID of the Queue row in question
+
+    session: async_scoped_session
+        DB session manager
+
+    Returns
+    -------
+    bool
+        Current status of the queue entry.
+    """
+    try:
+        async with session.begin():
+            queue = await db.Queue.get_row(session, row_id)
+            new_status = not queue.active
+            queue.active = new_status
+    except CMMissingIDError as msg:
+        raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
+    except Exception as msg:
+        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
+    return new_status
+
+
 @router.get(
     "/sleep_time/{row_id}",
-    response_model=int,
     summary="Check how long to sleep based on what is running",
 )
 async def sleep_time(
+    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
     row_id: int,
-    session: async_scoped_session = Depends(db_session_dependency),
 ) -> int:
     """Check how long to sleep based on what is running
 

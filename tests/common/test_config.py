@@ -38,14 +38,14 @@ def test_config_enum_validation(monkeypatch: Any) -> None:
     """
     config = Configuration()
     # The default setting value is an enum
-    assert config.script_handler == ScriptMethodEnum.htcondor
+    assert config.script_handler is ScriptMethodEnum.htcondor
     del config
 
     # Update the configuration with a string (enum name)
     monkeypatch.setenv("SCRIPT_HANDLER", "bash")
 
     config = Configuration()
-    assert config.script_handler == ScriptMethodEnum.bash
+    assert config.script_handler is ScriptMethodEnum.bash
 
     # Use an unsupported value for the enum, expecting the default value
     monkeypatch.setenv("SCRIPT_HANDLER", "zsh")
@@ -53,7 +53,7 @@ def test_config_enum_validation(monkeypatch: Any) -> None:
     with pytest.warns():
         config = Configuration()
 
-    assert config.script_handler == ScriptMethodEnum.htcondor
+    assert config.script_handler is ScriptMethodEnum.htcondor
 
 
 def test_config_boolean_serialization(monkeypatch: Any) -> None:
@@ -79,7 +79,7 @@ def test_config_datetime() -> None:
     assert config.panda.token_expiry.tzinfo is UTC
 
     # test coercion to UTC on assignment of tz-naive datetime
-    naive_datetime = datetime(year=2025, month=1, day=2)
+    naive_datetime = datetime(year=2025, month=1, day=2)  # noqa:DTZ001
     config.panda.token_expiry = naive_datetime
     assert (config.panda.token_expiry - naive_datetime.replace(tzinfo=UTC)) == timedelta(0)
 

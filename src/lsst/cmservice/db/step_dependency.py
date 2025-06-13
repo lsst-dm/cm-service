@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from uuid import UUID
 
+import sqlalchemy.dialects.postgresql as sapg
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
@@ -27,6 +29,7 @@ class StepDependency(Base, RowMixin):
     id: Mapped[int] = mapped_column(primary_key=True)
     prereq_id: Mapped[int] = mapped_column(ForeignKey("step.id", ondelete="CASCADE"), index=True)
     depend_id: Mapped[int] = mapped_column(ForeignKey("step.id", ondelete="CASCADE"), index=True)
+    namespace: Mapped[UUID] = mapped_column(name="namespace", type_=sapg.UUID, nullable=True, default=None)
 
     prereq_: Mapped[Step] = relationship("Step", viewonly=True, foreign_keys=[prereq_id])
     depend_: Mapped[Step] = relationship("Step", viewonly=True, foreign_keys=[depend_id])

@@ -2,11 +2,14 @@ from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_scoped_session
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey, UniqueConstraint
 
+from ..common import timestamp
 from ..common.enums import LevelEnum, StatusEnum
 from ..common.errors import (
     CMBadStateTransitionError,
@@ -54,7 +57,8 @@ class Group(Base, ElementMixin):
     status: Mapped[StatusEnum] = mapped_column(default=StatusEnum.waiting)
     superseded: Mapped[bool] = mapped_column(default=False)  # Has this been supersede
     handler: Mapped[str | None] = mapped_column()
-    data: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    data: Mapped[dict] = mapped_column(type_=JSON, default=dict)
+    metadata_: Mapped[dict] = mapped_column("metadata_", type_=MutableDict.as_mutable(JSONB), default=dict)
     child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
     collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
     spec_aliases: Mapped[dict | list | None] = mapped_column(type_=JSON)
@@ -149,13 +153,21 @@ class Group(Base, ElementMixin):
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
         specification = await step.get_specification(session)
         spec_block = await specification.get_block(session, spec_block_name)
+
+        data = kwargs.get("data") or {}
+
+        metadata_ = kwargs.get("metadata", {})
+        metadata_["crtime"] = timestamp.element_time()
+        metadata_["mtime"] = None
+
         return {
             "spec_block_id": spec_block.id,
             "parent_id": step.id,
             "name": name,
             "fullname": f"{parent_name}/{name}",
             "handler": kwargs.get("handler"),
-            "data": kwargs.get("data", {}),
+            "data": data,
+            "metadata_": metadata_,
             "child_config": kwargs.get("child_config", {}),
             "collections": kwargs.get("collections", {}),
             "spec_aliases": kwargs.get("spec_aliases", {}),
@@ -180,10 +192,7 @@ class Group(Base, ElementMixin):
             Newly created Job
         """
         jobs = await self.get_jobs(session)
-        rescuable_jobs = []
-        for job_ in jobs:
-            if job_.status == StatusEnum.rescuable:
-                rescuable_jobs.append(job_)
+        rescuable_jobs = [j for j in jobs if j.status is StatusEnum.rescuable]
         if not rescuable_jobs:
             raise CMTooFewAcceptedJobsError(f"Expected at least one rescuable job for {self.fullname}, got 0")
         latest_resuable_job = rescuable_jobs[-1]
@@ -217,11 +226,11 @@ class Group(Base, ElementMixin):
         has_accepted = False
         ret_list = []
         for job_ in jobs:
-            if job_.status == StatusEnum.rescuable:
+            if job_.status is StatusEnum.rescuable:
                 ret_list.append(job_)
-            elif job_.status == StatusEnum.rescued:
+            elif job_.status is StatusEnum.rescued:
                 pass
-            elif job_.status == StatusEnum.accepted:
+            elif job_.status is StatusEnum.accepted:
                 if has_accepted:
                     raise CMTooManyActiveScriptsError(f"More that one accepted job found: {job_.fullname}")
                 has_accepted = True

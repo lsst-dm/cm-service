@@ -4,7 +4,15 @@ from urllib.parse import urlparse
 from warnings import warn
 
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field, computed_field, field_serializer, field_validator, model_validator
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    Field,
+    computed_field,
+    field_serializer,
+    field_validator,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from .common.enums import ScriptMethodEnum, StatusEnum, WmsComputeSite
@@ -77,6 +85,9 @@ class ButlerConfiguration(BaseModel):
         default="~/.lsst/db-auth.yaml",
     )
 
+    # FIXME this username is probably not necessary to track on its own, as it
+    #       should be part of any db authentication scheme associated with
+    #       butler use.
     default_username: str = Field(
         description="Default username to use for Butler registry authentication",
         default="rubin",
@@ -405,6 +416,22 @@ class SlurmConfiguration(BaseModel):
         default="0-1:0:0",
     )
 
+    # FIXME should be an enum if this sticks around
+    exclusive: str | None = Field(
+        description="Whether to allocate resources as `exclusive` or `exclusive-user`",
+        default=None,
+    )
+
+    cores: int = Field(
+        description="How many cores to reserve for resource allocation",
+        default=15,
+    )
+
+    extra_arguments: str = Field(
+        description="Space separated set of arbitrary extra arguments for resource allocation",
+        default="",
+    )
+
 
 class AsgiConfiguration(BaseModel):
     """Configuration for the application's ASGI web server."""
@@ -437,6 +464,11 @@ class AsgiConfiguration(BaseModel):
     reload: bool = Field(
         description="Whether to support ASGI server reload on content change.",
         default=False,
+    )
+
+    fqdn: str = Field(
+        description="DNS FQDN for hosted application",
+        default="https://usdf-cm-dev.slac.stanford.edu",
     )
 
 
@@ -477,6 +509,18 @@ class DaemonConfiguration(BaseModel):
             "and the minimum time between element processing attepts. This "
             "duration may be lengthened depending on the element type."
         ),
+    )
+
+
+class NotificationConfiguration(BaseModel):
+    """Configurations for notifications.
+
+    Set according to NOTIFICATIONS__FIELD environment variables.
+    """
+
+    slack_webhook_url: str | None = Field(
+        default=None,
+        description="URL of a Slack Application webhook",
     )
 
 
@@ -533,6 +577,7 @@ class Configuration(BaseSettings):
     logging: LoggingConfiguration = LoggingConfiguration()
     slurm: SlurmConfiguration = SlurmConfiguration()
     panda: PandaConfiguration = PandaConfiguration()
+    notifications: NotificationConfiguration = NotificationConfiguration()
 
     # Root fields
     script_handler: ScriptMethodEnum = Field(
@@ -548,6 +593,13 @@ class Configuration(BaseSettings):
     mock_status: StatusEnum | None = Field(
         description="A fake status to return from all operations",
         default=None,
+    )
+
+    aws_s3_endpoint_url: str | None = Field(
+        description="An endpoint url to use with S3 APIs for the default profile",
+        default=None,
+        validation_alias=AliasChoices("AWS_ENDPOINT_URL_S3", "AWS_ENDPOINT_URL", "S3_ENDPOINT_URL"),
+        serialization_alias="AWS_ENDPOINT_URL_S3",
     )
 
     @field_validator("mock_status", mode="before")

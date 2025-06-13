@@ -168,8 +168,6 @@ class ElementMixin(NodeMixin):
     ) -> Script:
         """Retry a script
 
-        This will retry a script
-
         Parameters
         ----------
         session : async_scoped_session
@@ -221,16 +219,16 @@ class ElementMixin(NodeMixin):
         sleep_time = minimum_sleep_time
         script_sleep = config.daemon.processing_interval
         job_sleep = script_sleep * 10
-        if self.level == LevelEnum.job:
+        if self.level is LevelEnum.job:
             all_jobs = []
         else:
             all_jobs = await self.get_jobs(session)
         for job_ in all_jobs:
-            if job_.status == StatusEnum.running:
+            if job_.status is StatusEnum.running:
                 sleep_time = max(job_sleep, sleep_time)
         all_scripts = await self.get_all_scripts(session)
         for script_ in all_scripts:
-            if script_.status == StatusEnum.running:
+            if script_.status is StatusEnum.running:
                 sleep_time = max(script_sleep, sleep_time)
         return sleep_time
 
@@ -296,8 +294,7 @@ class ElementMixin(NodeMixin):
     ) -> StatusEnum:
         """Run review() function on this Element
 
-        This will create a `Handler` and
-        pass this node to it for review
+        Creates a `Handler` and passes this node to it for review
 
         Parameters
         ----------

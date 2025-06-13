@@ -1,3 +1,4 @@
+import sys
 from collections.abc import Callable
 from enum import Enum, auto
 from functools import partial, wraps
@@ -5,16 +6,17 @@ from typing import Any, cast
 
 import click
 from click.decorators import FC
+from httpx import HTTPStatusError
 
 from ..client.client import CMClient
 from ..common.enums import (
-    DEFAULT_NAMESPACE,
     ErrorActionEnum,
     ErrorFlavorEnum,
     ErrorSourceEnum,
     NodeTypeEnum,
     StatusEnum,
 )
+from ..common.logging import LOGGER
 
 __all__ = [
     "cmclient",
@@ -49,6 +51,7 @@ __all__ = [
     "quanta",
     "rematch",
     "row_id",
+    "runtime_variable",
     "script_id",
     "script_name",
     "scripts",
@@ -64,6 +67,8 @@ __all__ = [
     "wms_job_id",
     "yaml_file",
 ]
+
+logger = LOGGER.bind(module=__name__)
 
 
 class DictParamType(click.ParamType):
@@ -210,6 +215,7 @@ collections = PartialOption(
     help="collections values to update",
 )
 
+
 child_config = PartialOption(
     "--child_config",
     type=DictParamType(),
@@ -226,6 +232,7 @@ child_configs = PartialOption(
 data = PartialOption(
     "--data",
     type=DictParamType(),
+    default=dict(),
     help="data values to update",
 )
 
@@ -306,6 +313,14 @@ fake_status = PartialOption(
 )
 
 
+force = PartialOption(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Force the action, bypassing ordinary checks or restrictions",
+)
+
+
 fullname = PartialOption(
     "--fullname",
     type=str,
@@ -344,8 +359,7 @@ name = PartialOption("--name", type=str, help="Name of object")
 namespace = PartialOption(
     "--namespace",
     type=click.UUID,
-    default=DEFAULT_NAMESPACE,
-    help="Namespace for objects",
+    help="Campaign namespace to use for objects",
 )
 
 
@@ -357,12 +371,21 @@ node_type = PartialOption(
 )
 
 
+run_collection = PartialOption(
+    "--run-collection",
+    type=str,
+    default=None,
+    help="The name of an output run collection",
+)
+
+
 parent_name = PartialOption(
     "--parent_name",
     type=str,
     default=None,
     help="Full name of parent object in DB.",
 )
+
 
 parent_id = PartialOption(
     "--parent_id",
@@ -483,6 +506,15 @@ update_dict = PartialOption(
     help="Values to update",
 )
 
+
+runtime_variable = PartialOption(
+    "-v",
+    type=(str, str),
+    help="Arbitrary variable argument as a name and value pair",
+    multiple=True,
+)
+
+
 wms_job_id = PartialOption(
     "--wms_job_id",
     type=str,
@@ -505,7 +537,12 @@ def cmclient() -> Callable[[FC], FC]:
         @wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             kwargs["client"] = CMClient()
-            return f(*args, **kwargs)
+            try:
+                response = f(*args, **kwargs)
+                return response
+            except HTTPStatusError as e:
+                logger.error(e.response.text)
+                sys.exit(1)
 
         return cast(FC, wrapper)
 

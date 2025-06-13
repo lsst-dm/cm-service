@@ -1,125 +1,125 @@
 - Imports:
-      - "${CM_CONFIGS}/example_standard_scripts.yaml"
-      - "${CM_CONFIGS}/example_standard_elements.yaml"
-      - "${CM_CONFIGS}/example_HSC_DRP-Prod_steps.yaml"
+    - "${CM_CONFIGS}/example_standard_scripts.yaml"
+    - "${CM_CONFIGS}/example_standard_elements.yaml"
+    - "${CM_CONFIGS}/example_HSC_DRP-Prod_steps.yaml"
 - SpecBlock:
-      name: HSC_DRP-Prod_campaign
-      includes: ["base_campaign"]
-      collections:
-          campaign_source: HSC/raw/PDR2/WIDE,HSC/raw/PDR2/DEEP,HSC/raw/PDR2/UDEEP
-          # Figure out how to remove veto list from these
-          campaign_ancillary_inputs:
-              - HSC/calib
-              - HSC/masks
-              - HSC/fgcmcal/lut/PDR2/DM-39549
-              - refcats
-              - skymaps
-      steps:
-          - Step:
-                name: step1
-                spec_block: HSC_DRP-Prod_step1
-                child_config:
-                    split_method: split_by_query
-                    split_min_groups: 5
-          - Step:
-                name: step2a
-                spec_block: HSC_DRP-Prod_step2a
-                prerequisites: ['step1']
-                child_config:
-                    split_method: split_by_query
-                    split_max_group_size: 500
-                    split_dataset: calexp
-                    split_field: visit
-          - Step:
-                name: step2b
-                spec_block: HSC_DRP-Prod_step2b
-                prerequisites: ['step2a']
-                child_config:
-                    split_method: split_by_query
-                    split_max_group_size: 10
-                    split_dataset: deepCoadd
-                    split_field: tract
-          - Step:
-                name: step2c
-                spec_block: HSC_DRP-Prod_step2c
-                prerequisites: ['step2b']
-                child_config:
-                    split_method: no_split
-          - Step:
-                name: step2d
-                spec_block: HSC_DRP-Prod_step2d
-                prerequisites: ['step2c']
-                child_config:
-                    split_method: split_by_query
-                    split_max_group_size: 500
-                    split_dataset: calexp
-                    split_field: visit
-          - Step:
-                name: step2e
-                spec_block: HSC_DRP-Prod_step2e
-                prerequisites: ['step2d']
-                child_config:
-                    split_method: no_split
-          - Step:
-                name: step3
-                spec_block: HSC_DRP-Prod_step3
-                prerequisites: ['step2e']
-                child_config:
-                    split_method: split_by_query
-                    split_max_group_size: 10
-                    split_dataset: deepCoadd
-                    split_field: tract
-          - Step:
-                name: step4
-                spec_block: HSC_DRP-Prod_step4
-                prerequisites: ['step3']
-                child_config:
-                    split_method: split_by_query
-                    split_max_group_size: 500
-                    split_dataset: calexp
-                    split_field: visit
-                data:
-                    extra_qgraph_options: >
-                        --dataset-query-constraint finalVisitSummary
-          - Step:
-                name: step5
-                spec_block: HSC_DRP-Prod_step5
-                prerequisites: ['step4']
-                child_config:
-                    split_method: split_by_query
-                    split_max_group_size: 10
-                    split_dataset: deepCoadd
-                    split_field: tract
-          - Step:
-                name: step6
-                spec_block: HSC_DRP-Prod_step5
-                prerequisites: ['step5']
-                child_config:
-                    split_method: split_by_query
-                    split_max_group_size: 500
-                    split_dataset: calexp
-                    split_field: visit
-          - Step:
-                name: step7
-                spec_block: HSC_DRP-Prod_step7
-                prerequisites: ['step3']
-                child_config:
-                    split_method: no_split
-      data:
-          butler_repo: '/repo/main+sasquatch_dev'
-          prod_area: 'output/archive'
-          data_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1'"
-          bps_wms_clustering_file: ${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml
-          bps_wms_resources_file: ${DRP_PIPE_DIR}/bps/resources/HSC/DRP-RC2.yaml
+    name: HSC_DRP-Prod_campaign
+    includes: ["base_campaign"]
+    collections:
+      campaign_source: HSC/raw/PDR2/WIDE,HSC/raw/PDR2/DEEP,HSC/raw/PDR2/UDEEP
+      # Figure out how to remove veto list from these
+      campaign_ancillary_inputs:
+        - HSC/calib
+        - HSC/masks
+        - HSC/fgcmcal/lut/PDR2/DM-39549
+        - refcats
+        - skymaps
+    steps:
+      - Step:
+          name: step1
+          spec_block: HSC_DRP-Prod_step1
+          child_config:
+            split_method: split_by_query
+            split_min_groups: 5
+      - Step:
+          name: step2a
+          spec_block: HSC_DRP-Prod_step2a
+          prerequisites: ["step1"]
+          child_config:
+            split_method: split_by_query
+            split_max_group_size: 500
+            split_dataset: calexp
+            split_field: visit
+      - Step:
+          name: step2b
+          spec_block: HSC_DRP-Prod_step2b
+          prerequisites: ["step2a"]
+          child_config:
+            split_method: split_by_query
+            split_max_group_size: 10
+            split_dataset: deepCoadd
+            split_field: tract
+      - Step:
+          name: step2c
+          spec_block: HSC_DRP-Prod_step2c
+          prerequisites: ["step2b"]
+          child_config:
+            split_method: no_split
+      - Step:
+          name: step2d
+          spec_block: HSC_DRP-Prod_step2d
+          prerequisites: ["step2c"]
+          child_config:
+            split_method: split_by_query
+            split_max_group_size: 500
+            split_dataset: calexp
+            split_field: visit
+      - Step:
+          name: step2e
+          spec_block: HSC_DRP-Prod_step2e
+          prerequisites: ["step2d"]
+          child_config:
+            split_method: no_split
+      - Step:
+          name: step3
+          spec_block: HSC_DRP-Prod_step3
+          prerequisites: ["step2e"]
+          child_config:
+            split_method: split_by_query
+            split_max_group_size: 10
+            split_dataset: deepCoadd
+            split_field: tract
+      - Step:
+          name: step4
+          spec_block: HSC_DRP-Prod_step4
+          prerequisites: ["step3"]
+          child_config:
+            split_method: split_by_query
+            split_max_group_size: 500
+            split_dataset: calexp
+            split_field: visit
+          data:
+            extra_qgraph_options: >
+              --dataset-query-constraint finalVisitSummary
+      - Step:
+          name: step5
+          spec_block: HSC_DRP-Prod_step5
+          prerequisites: ["step4"]
+          child_config:
+            split_method: split_by_query
+            split_max_group_size: 10
+            split_dataset: deepCoadd
+            split_field: tract
+      - Step:
+          name: step6
+          spec_block: HSC_DRP-Prod_step5
+          prerequisites: ["step5"]
+          child_config:
+            split_method: split_by_query
+            split_max_group_size: 500
+            split_dataset: calexp
+            split_field: visit
+      - Step:
+          name: step7
+          spec_block: HSC_DRP-Prod_step7
+          prerequisites: ["step3"]
+          child_config:
+            split_method: no_split
+    data:
+      butler_repo: "/repo/main+sasquatch_dev"
+      prod_area: "output/archive"
+      data_query: "instrument = 'HSC' and skymap = 'hsc_rings_v1'"
+      bps_wms_clustering_file: ${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml
+      bps_wms_resources_file: ${DRP_PIPE_DIR}/bps/resources/HSC/DRP-RC2.yaml
 - Specification:
-      name: HSC_DRP-Prod_panda
-      spec_aliases:
-          campaign: HSC_DRP-Prod_campaign
-          bps_submit_script: bps_panda_submit_script
-          bps_report_script: bps_panda_report_script
+    name: HSC_DRP-Prod_panda
+    spec_aliases:
+      campaign: HSC_DRP-Prod_campaign
+      bps_submit_script: bps_panda_submit_script
+      bps_report_script: bps_panda_report_script
 - Specification:
-      name: HSC_DRP-Prod_htcondor
-      spec_aliases:
-          campaign: HSC_DRP-Prod_campaign
-          bps_submit_script: bps_htcondor_submit_script
-          bps_report_script: bps_htcondor_report_script
+    name: HSC_DRP-Prod_htcondor
+    spec_aliases:
+      campaign: HSC_DRP-Prod_campaign
+      bps_submit_script: bps_htcondor_submit_script
+      bps_report_script: bps_htcondor_report_script

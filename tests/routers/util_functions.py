@@ -134,8 +134,6 @@ async def create_tree(
 
     assert step_depend.prereq_id == steps[0].id
     assert step_depend.depend_id == steps[1].id
-    # depend_is_done = await step_depend.is_done(session)
-    # assert not depend_is_done
 
     if level.value <= LevelEnum.step.value:
         return
@@ -379,13 +377,13 @@ async def check_update_methods(
         content=update_status_model.model_dump_json(),
     )
     check_update = check_and_parse_response(response, entry_class)
-    assert check_update.status == StatusEnum.reviewable
+    assert check_update.status is StatusEnum.reviewable
 
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/{entry.id}/reject",
     )
     check_update = check_and_parse_response(response, entry_class)
-    assert check_update.status == StatusEnum.rejected, "reject() failed"
+    assert check_update.status is StatusEnum.rejected, "reject() failed"
 
     reset_model = models.ResetQuery(
         fake_reset=True,
@@ -396,12 +394,12 @@ async def check_update_methods(
         content=reset_model.model_dump_json(),
     )
     check_update = check_and_parse_response(response, entry_class)
-    assert check_update.status == StatusEnum.waiting, "reset() failed"
+    assert check_update.status is StatusEnum.waiting, "reset() failed"
 
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/{entry.id}/accept",
     )
-    expect_failed_response(response, 500)
+    expect_failed_response(response, 422)
 
     update_status_model.status = StatusEnum.running
     response = await client.post(
@@ -409,19 +407,19 @@ async def check_update_methods(
         content=update_status_model.model_dump_json(),
     )
     check_update = check_and_parse_response(response, entry_class)
-    assert check_update.status == StatusEnum.running
+    assert check_update.status is StatusEnum.running
 
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/{entry.id}/run_check",
     )
     check_run_check = check_and_parse_response(response, tuple[bool, StatusEnum])
-    assert check_run_check[1] == StatusEnum.running
+    assert check_run_check[1] is StatusEnum.running
 
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/{entry.id}/process",
     )
     check_process = check_and_parse_response(response, tuple[bool, StatusEnum])
-    assert check_process[1] == StatusEnum.running
+    assert check_process[1] is StatusEnum.running
 
     process_query = models.ProcessNodeQuery(
         fullname=entry.fullname,
@@ -431,7 +429,7 @@ async def check_update_methods(
         content=process_query.model_dump_json(),
     )
     check_process = check_and_parse_response(response, tuple[bool, StatusEnum])
-    assert check_process[1] == StatusEnum.running
+    assert check_process[1] is StatusEnum.running
 
     process_query.fake_status = StatusEnum.running.value
     response = await client.post(
@@ -439,32 +437,24 @@ async def check_update_methods(
         content=process_query.model_dump_json(),
     )
     check_process = check_and_parse_response(response, tuple[bool, StatusEnum])
-    assert check_process[1] == StatusEnum.running
+    assert check_process[1] is StatusEnum.running
 
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/{entry.id}/accept",
     )
     check_update = check_and_parse_response(response, entry_class)
-    assert check_update.status == StatusEnum.accepted
+    assert check_update.status is StatusEnum.accepted
 
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/{entry.id}/reject",
     )
-    expect_failed_response(response, 500)
+    expect_failed_response(response, 422)
 
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/{entry.id}/reset",
         content=reset_model.model_dump_json(),
     )
-    expect_failed_response(response, 500)
-
-    # FIXME this delete test is meant to fail, but the application now allows
-    #       deletion of objects in an "accepted" state, and downstream tests
-    #       make assertions based on this failure.
-    # response = await client.delete(
-    #     f"{config.asgi.prefix}/{api_version}/{entry_class_name}/delete/{entry.id}",  # noqa: W505
-    # )
-    # expect_failed_response(response, 500)
+    expect_failed_response(response, 422)
 
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/-1/accept",
@@ -596,7 +586,7 @@ async def check_scripts(
         content=update_status_model.model_dump_json(),
     )
     update_check = check_and_parse_response(response, models.Script)
-    assert update_check.status == StatusEnum.failed
+    assert update_check.status is StatusEnum.failed
 
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/script/update/-1/status",
@@ -616,7 +606,7 @@ async def check_scripts(
         content=query_model2.model_dump_json(),
     )
     retry_check = check_and_parse_response(response, models.Script)
-    assert retry_check.status == StatusEnum.waiting
+    assert retry_check.status is StatusEnum.waiting
 
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/-1/retry_script",
@@ -629,7 +619,7 @@ async def check_scripts(
         content=update_status_model.model_dump_json(),
     )
     update_check = check_and_parse_response(response, models.Script)
-    assert update_check.status == StatusEnum.failed
+    assert update_check.status is StatusEnum.failed
 
     reset_query = models.ResetQuery(
         status=StatusEnum.waiting,
@@ -641,14 +631,14 @@ async def check_scripts(
         content=reset_query.model_dump_json(),
     )
     status_check = check_and_parse_response(response, StatusEnum)
-    assert status_check == StatusEnum.waiting
+    assert status_check is StatusEnum.waiting
 
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/script/update/{script0.id}/status",
         content=update_status_model.model_dump_json(),
     )
     update_check = check_and_parse_response(response, models.Script)
-    assert update_check.status == StatusEnum.failed
+    assert update_check.status is StatusEnum.failed
 
     script_reset_status_model = models.ResetScriptQuery(
         fullname=script0.fullname,
@@ -660,7 +650,7 @@ async def check_scripts(
         content=script_reset_status_model.model_dump_json(),
     )
     reset_check = check_and_parse_response(response, models.Script)
-    assert reset_check.status == StatusEnum.waiting
+    assert reset_check.status is StatusEnum.waiting
 
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/script/action/-1/reset_script",

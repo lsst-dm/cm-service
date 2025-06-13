@@ -1,43 +1,262 @@
-- Imports:
-      - "${CM_CONFIGS}/example_standard_scripts.yaml"
-      - "${CM_CONFIGS}/example_standard_elements.yaml"
-      - "${CM_CONFIGS}/example_hsc_micro_steps.yaml"
+Campaign:
+  spec_name: base
+  data:
+    project: unit-test
+    ticket: DM-XXXXX
+    description: Campaign for unit tests
+---
 - SpecBlock:
-      name: basic_step
-      includes: ["step"]
-      data:
-          pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#isr"
-      child_config:
-          spec_block: group
-          base_query: "instrument = 'HSC'"
-          split_method: split_by_query
-          split_dataset: raw
-          split_field: exposure
-          split_min_groups: 2
+    name: basic_step
+    includes: ["step"]
+    data:
+      pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#isr"
+    child_config:
+      spec_block: group
+      base_query: "instrument = 'HSC'"
+      split_method: split_by_query
+      split_dataset: raw
+      split_field: exposure
+      split_min_groups: 2
 - SpecBlock:
-      name: campaign
-      handler: lsst.cmservice.handlers.element_handler.CampaignHandler
-      collections:
-          out: 'cm/hsc_rc2_micro'
-          campaign_source: HSC/raw/RC2
-          campaign_input: "{out}/input"
-          campaign_output: "{out}"
-          campaign_ancillary: "{out}/ancillary"
-          campaign_validation: "{out}/validate"
-      data:
-          butler_repo: '/repo/main'
-          prod_area: 'output/archive'
-          data_query: "instrument = 'HSC'"
-          lsst_version: "${WEEKLY}"
+    name: campaign
+    handler: lsst.cmservice.handlers.element_handler.CampaignHandler
+    collections:
+      out: "cm/hsc_rc2_micro"
+      campaign_source: HSC/raw/RC2
+      campaign_input: "{out}/input"
+      campaign_output: "{out}"
+      campaign_ancillary: "{out}/ancillary"
+      campaign_validation: "{out}/validate"
+    data:
+      butler_repo: "/repo/main"
+      prod_area: "output/archive"
+      data_query: "instrument = 'HSC'"
+      lsst_version: "${WEEKLY}"
 - Specification:
-      name: base
-      spec_aliases:
-          campaign: campaign
-          bps_submit_script: bps_panda_submit_script
-          bps_report_script: bps_panda_report_script
-      data:
-          var: dummy
-      collections:
-          coll: dummy
-      child_config:
-          child: dummy
+    name: base
+    spec_aliases:
+      campaign: campaign
+      bps_submit_script: bps_panda_submit_script
+      bps_report_script: bps_panda_report_script
+    data:
+      var: dummy
+    collections:
+      coll: dummy
+    child_config:
+      child: dummy
+---
+- SpecBlock:
+    name: job
+    handler: lsst.cmservice.handlers.job_handler.JobHandler
+    collections:
+      job_run: "{out}/{step}/{group}/{job}"
+    scripts:
+      - Script:
+          name: bps_submit
+          spec_block: bps_submit_script
+          collections:
+            run: "{job_run}"
+            inputs: ["{step_input}", "{campaign_input}"]
+      - Script:
+          name: bps_report
+          spec_block: bps_report_script
+          prerequisites: ["bps_submit"]
+          collections:
+            run: "{job_run}"
+      - Script:
+          name: manifest_report
+          spec_block: manifest_report_script
+          prerequisites: ["bps_report"]
+          collections:
+            run: "{job_run}"
+      - Script:
+          name: manifest_report_load
+          spec_block: manifest_report_load
+          prerequisites: ["manifest_report"]
+          collections:
+            run: "{job_run}"
+- SpecBlock:
+    name: group
+    handler: lsst.cmservice.handlers.element_handler.ElementHandler
+    collections:
+      group_output: "{out}/{step}/{group}"
+      group_validation: "{out}/{step}/{group}/validate"
+    scripts:
+      - Script:
+          name: run
+          spec_block: run_jobs
+    child_config:
+      spec_block: job
+- SpecBlock:
+    name: step
+    handler: lsst.cmservice.handlers.element_handler.ElementHandler
+    collections:
+      step_input: "{out}/{step}/input"
+      step_output: "{out}/{step}_output"
+      step_public_output: "{out}/{step}"
+      step_validation: "{out}/{step}/validate"
+    scripts:
+      - Script:
+          name: prepare
+          spec_block: prepare_step_script
+          collections:
+            output: "{step_input}"
+            inputs: []
+      - Script:
+          name: run
+          prerequisites: ["prepare"]
+          spec_block: run_groups
+      - Script:
+          name: collect_groups
+          prerequisites: ["run"]
+          spec_block: chain_collect_jobs_script
+          collections:
+            inputs: []
+            output: "{step_output}"
+      - Script:
+          name: make_step_public_output
+          prerequisites: ["collect_groups"]
+          spec_block: chain_create_script
+          collections:
+            inputs: ["{step_output}", "{campaign_input}"]
+            output: "{step_public_output}"
+    child_config:
+      spec_block: group
+- SpecBlock:
+    name: base_campaign
+    handler: lsst.cmservice.handlers.element_handler.CampaignHandler
+    collections:
+      out: MUST_OVERRIDE
+      campaign_source: MUST_OVERRIDE
+      campaign_tagged_input: "{out}/tagged_input"
+      campaign_input: "{out}/input"
+      campaign_output: "{out}/output"
+      campaign_public_output: "{out}"
+      campaign_ancillary: "{out}/ancillary"
+      campaign_validation: "{out}/validate"
+      campaign_resource_usage: "{out}/resource_usage"
+    scripts:
+      - Script:
+          name: tag_inputs
+          spec_block: tag_inputs_script
+          collections:
+            input: "{campaign_source}"
+            output: "{campaign_tagged_input}"
+      - Script:
+          name: ancillary
+          spec_block: chain_create_script
+          collections:
+            inputs: "{campaign_ancillary_inputs}"
+            output: "{campaign_ancillary}"
+      - Script:
+          name: chain_input
+          spec_block: chain_create_script
+          prerequisites: ["tag_inputs", "ancillary"]
+          collections:
+            inputs: ["{campaign_tagged_input}", "{campaign_ancillary}"]
+            output: "{campaign_input}"
+      - Script:
+          name: run
+          spec_block: run_steps
+          prerequisites: ["chain_input"]
+      - Script:
+          name: collect_steps
+          prerequisites: ["run"]
+          spec_block: chain_collect_steps_script
+          collections:
+            inputs: []
+            output: "{campaign_output}"
+      - Script:
+          name: resource_usage
+          prerequisites: ["collect_steps"]
+          spec_block: resource_usage_script
+          collections:
+            inputs: "{campaign_output}"
+            output: "{campaign_resource_usage}"
+      - Script:
+          name: make_campaign_public_output
+          prerequisites: ["resource_usage"]
+          spec_block: chain_create_script
+          collections:
+            inputs:
+              [
+                "{campaign_output}",
+                "{campaign_input}",
+                "{campaign_resource_usage}",
+              ]
+            output: "{campaign_public_output}"
+    data:
+      lsst_version: MUST_OVERRIDE
+      lsst_distrib_dir: /cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib
+---
+- SpecBlock:
+    name: null_script
+    handler: lsst.cmservice.handlers.scripts.NullScriptHandler
+- SpecBlock:
+    name: chain_create_script
+    handler: lsst.cmservice.handlers.scripts.ChainCreateScriptHandler
+- SpecBlock:
+    name: chain_prepend_script
+    handler: lsst.cmservice.handlers.scripts.ChainPrependScriptHandler
+- SpecBlock:
+    name: chain_collect_jobs_script
+    handler: lsst.cmservice.handlers.scripts.ChainCollectScriptHandler
+    data:
+      collect: jobs
+- SpecBlock:
+    name: chain_collect_steps_script
+    handler: lsst.cmservice.handlers.scripts.ChainCollectScriptHandler
+    data:
+      collect: steps
+- SpecBlock:
+    name: tag_inputs_script
+    handler: lsst.cmservice.handlers.scripts.TagInputsScriptHandler
+- SpecBlock:
+    name: tag_create_script
+    handler: lsst.cmservice.handlers.scripts.TagCreateScriptHandler
+- SpecBlock:
+    name: tag_associate_script
+    handler: lsst.cmservice.handlers.scripts.TagAssociateScriptHandler
+- SpecBlock:
+    name: prepare_step_script
+    handler: lsst.cmservice.handlers.scripts.PrepareStepScriptHandler
+    collections:
+      global_inputs: ["{campaign_input}"]
+- SpecBlock:
+    name: validate_script
+    handler: lsst.cmservice.handlers.scripts.ValidateScriptHandler
+- SpecBlock:
+    name: bps_panda_submit_script
+    handler: lsst.cmservice.handlers.jobs.PandaScriptHandler
+    data:
+      bps_wms_yaml_file: "${CTRL_BPS_PANDA_DIR}/config/bps_usdf.yaml"
+- SpecBlock:
+    name: bps_panda_report_script
+    handler: lsst.cmservice.handlers.jobs.PandaReportHandler
+- SpecBlock:
+    name: bps_htcondor_submit_script
+    handler: lsst.cmservice.handlers.jobs.HTCondorScriptHandler
+- SpecBlock:
+    name: bps_htcondor_report_script
+    handler: lsst.cmservice.handlers.jobs.HTCondorReportHandler
+- SpecBlock:
+    name: manifest_report_script
+    handler: lsst.cmservice.handlers.jobs.ManifestReportScriptHandler
+- SpecBlock:
+    name: manifest_report_load
+    handler: lsst.cmservice.handlers.jobs.ManifestReportLoadHandler
+- SpecBlock:
+    name: run_jobs
+    handler: lsst.cmservice.handlers.elements.RunJobsScriptHandler
+- SpecBlock:
+    name: run_groups
+    handler: lsst.cmservice.handlers.elements.RunGroupsScriptHandler
+- SpecBlock:
+    name: run_steps
+    handler: lsst.cmservice.handlers.elements.RunStepsScriptHandler
+- SpecBlock:
+    name: resource_usage_script
+    handler: lsst.cmservice.handlers.scripts.ResourceUsageScriptHandler
+- SpecBlock:
+    name: hips_maps_script
+    handler: lsst.cmservice.handlers.scripts.HipsMapsScriptHandler

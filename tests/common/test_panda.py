@@ -11,6 +11,7 @@ from uuid import uuid4
 import pytest
 from httpx import Response
 
+from lsst.cmservice.common import timestamp
 from lsst.cmservice.common.logging import LOGGER
 from lsst.cmservice.common.panda import get_panda_token
 from lsst.cmservice.config import config
@@ -21,7 +22,7 @@ logger = LOGGER.bind(module=__name__)
 @pytest.fixture
 def mock_id_token() -> Generator[str]:
     """Create a mock PanDA id token that expires in 3 days."""
-    expiry = int((datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=3)).timestamp())
+    expiry = int((timestamp.now_utc() + datetime.timedelta(days=3)).timestamp())
     token_payload = {
         "sub": str(uuid4()),
         "kid": "rsa1",

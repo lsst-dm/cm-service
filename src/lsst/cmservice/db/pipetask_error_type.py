@@ -44,13 +44,7 @@ class PipetaskErrorType(Base, RowMixin):
     ]
 
     def __repr__(self) -> str:
-        s = f"Id={self.id}\n"
-        if len(self.diagnostic_message) > 150:
-            diag_message = self.diagnostic_message[0:149]
-        else:
-            diag_message = self.diagnostic_message
-        s += f"    {diag_message}"
-        return s
+        return f"Id={self.id}\n    {self.diagnostic_message:.149}"
 
     def match(
         self,

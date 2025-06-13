@@ -1,92 +1,92 @@
 # define the null Script
 - SpecBlock:
-      name: null_script
-      handler: lsst.cmservice.handlers.scripts.NullScriptHandler
+    name: null_script
+    handler: lsst.cmservice.handlers.scripts.NullScriptHandler
 # create an empty CHAINED collection
 - SpecBlock:
-      name: chain_create_script
-      handler: lsst.cmservice.handlers.scripts.ChainCreateScriptHandler
+    name: chain_create_script
+    handler: lsst.cmservice.handlers.scripts.ChainCreateScriptHandler
 # prepend to a CHAINED collection
 - SpecBlock:
-      name: chain_prepend_script
-      handler: lsst.cmservice.handlers.scripts.ChainPrependScriptHandler
+    name: chain_prepend_script
+    handler: lsst.cmservice.handlers.scripts.ChainPrependScriptHandler
 # collect Job RUN collections into a CHAINED collection
 - SpecBlock:
-      name: chain_collect_jobs_script
-      handler: lsst.cmservice.handlers.scripts.ChainCollectScriptHandler
-      data:
-          collect: jobs
+    name: chain_collect_jobs_script
+    handler: lsst.cmservice.handlers.scripts.ChainCollectScriptHandler
+    data:
+      collect: jobs
 # collect Step CHAINED collections into a CHAINED collections
 - SpecBlock:
-      name: chain_collect_steps_script
-      handler: lsst.cmservice.handlers.scripts.ChainCollectScriptHandler
-      data:
-          collect: steps
+    name: chain_collect_steps_script
+    handler: lsst.cmservice.handlers.scripts.ChainCollectScriptHandler
+    data:
+      collect: steps
 # make a TAGGED collection with a query
 - SpecBlock:
-      name: tag_inputs_script
-      handler: lsst.cmservice.handlers.scripts.TagInputsScriptHandler
+    name: tag_inputs_script
+    handler: lsst.cmservice.handlers.scripts.TagInputsScriptHandler
 # make an empty TAGGED collection
 - SpecBlock:
-      name: tag_create_script
-      handler: lsst.cmservice.handlers.scripts.TagCreateScriptHandler
+    name: tag_create_script
+    handler: lsst.cmservice.handlers.scripts.TagCreateScriptHandler
 # add datasets to an existing TAGGED collection
 - SpecBlock:
-      name: tag_associate_script
-      handler: lsst.cmservice.handlers.scripts.TagAssociateScriptHandler
+    name: tag_associate_script
+    handler: lsst.cmservice.handlers.scripts.TagAssociateScriptHandler
 # Prepare a step by making an input collection
 - SpecBlock:
-      name: prepare_step_script
-      handler: lsst.cmservice.handlers.scripts.PrepareStepScriptHandler
-      collections:
-          global_inputs: ["{campaign_input}"]
+    name: prepare_step_script
+    handler: lsst.cmservice.handlers.scripts.PrepareStepScriptHandler
+    collections:
+      global_inputs: ["{campaign_input}"]
 # Run a validation script (probably a query into sasquatch)
 - SpecBlock:
-      name: validate_script
-      handler: lsst.cmservice.handlers.scripts.ValidateScriptHandler
+    name: validate_script
+    handler: lsst.cmservice.handlers.scripts.ValidateScriptHandler
 # Run a bps submit script
 - SpecBlock:
-      name: bps_panda_submit_script
-      handler: lsst.cmservice.handlers.jobs.PandaScriptHandler
-      data:
-          bps_wms_yaml_file: "${CTRL_BPS_PANDA_DIR}/config/bps_usdf.yaml"
+    name: bps_panda_submit_script
+    handler: lsst.cmservice.handlers.jobs.PandaScriptHandler
+    data:
+      bps_wms_yaml_file: "${CTRL_BPS_PANDA_DIR}/config/bps_usdf.yaml"
 # Run a bps report script
 - SpecBlock:
-      name: bps_panda_report_script
-      handler: lsst.cmservice.handlers.jobs.PandaReportHandler
+    name: bps_panda_report_script
+    handler: lsst.cmservice.handlers.jobs.PandaReportHandler
 # Run a htcondor submit script
 - SpecBlock:
-      name: bps_htcondor_submit_script
-      handler: lsst.cmservice.handlers.jobs.HTCondorScriptHandler
+    name: bps_htcondor_submit_script
+    handler: lsst.cmservice.handlers.jobs.HTCondorScriptHandler
 # Run a bps report script
 - SpecBlock:
-      name: bps_htcondor_report_script
-      handler: lsst.cmservice.handlers.jobs.HTCondorReportHandler
+    name: bps_htcondor_report_script
+    handler: lsst.cmservice.handlers.jobs.HTCondorReportHandler
 # Run a manifest checker report script
 - SpecBlock:
-      name: manifest_report_script
-      handler: lsst.cmservice.handlers.jobs.ManifestReportScriptHandler
+    name: manifest_report_script
+    handler: lsst.cmservice.handlers.jobs.ManifestReportScriptHandler
 # Load a manifest checker report script
 - SpecBlock:
-      name: manifest_report_load
-      handler: lsst.cmservice.handlers.jobs.ManifestReportLoadHandler
+    name: manifest_report_load
+    handler: lsst.cmservice.handlers.jobs.ManifestReportLoadHandler
 # Create and run Jobs associated to a Group
 - SpecBlock:
-      name: run_jobs
-      handler: lsst.cmservice.handlers.elements.RunJobsScriptHandler
+    name: run_jobs
+    handler: lsst.cmservice.handlers.elements.RunJobsScriptHandler
 # Create and run Groups associated to a Step
 - SpecBlock:
-      name: run_groups
-      handler: lsst.cmservice.handlers.elements.RunGroupsScriptHandler
+    name: run_groups
+    handler: lsst.cmservice.handlers.elements.RunGroupsScriptHandler
 # Create and run Steps associated to a Campaign
 - SpecBlock:
-      name: run_steps
-      handler: lsst.cmservice.handlers.elements.RunStepsScriptHandler
+    name: run_steps
+    handler: lsst.cmservice.handlers.elements.RunStepsScriptHandler
 # Run a campaign resource usage script
 - SpecBlock:
-      name: resource_usage_script
-      handler: lsst.cmservice.handlers.scripts.ResourceUsageScriptHandler
+    name: resource_usage_script
+    handler: lsst.cmservice.handlers.scripts.ResourceUsageScriptHandler
 # Run a script to generate HIPS maps
 - SpecBlock:
-      name: hips_maps_script
-      handler: lsst.cmservice.handlers.scripts.HipsMapsScriptHandler
+    name: hips_maps_script
+    handler: lsst.cmservice.handlers.scripts.HipsMapsScriptHandler

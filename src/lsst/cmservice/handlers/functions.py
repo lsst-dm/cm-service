@@ -1,5 +1,7 @@
 import os
+from collections import deque
 from collections.abc import Mapping
+from functools import partial
 from typing import TYPE_CHECKING, Any
 from uuid import UUID, uuid5
 
@@ -10,17 +12,19 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from lsst.ctrl.bps.bps_reports import compile_job_summary
-from lsst.ctrl.bps.wms_service import WmsJobReport, WmsRunReport, WmsStates
+from lsst.ctrl.bps.wms_service import WmsRunReport, WmsStates
 
-from ..common.enums import StatusEnum
+from ..common.enums import DEFAULT_NAMESPACE, StatusEnum
 from ..common.errors import CMMissingFullnameError, CMYamlParseError
 from ..common.logging import LOGGER
 from ..config import config
 from ..db.campaign import Campaign
+from ..db.element import ElementMixin
 from ..db.job import Job
 from ..db.pipetask_error import PipetaskError
 from ..db.pipetask_error_type import PipetaskErrorType
 from ..db.product_set import ProductSet
+from ..db.session import get_async_scoped_session
 from ..db.spec_block import SpecBlock
 from ..db.specification import Specification
 from ..db.step import Step
@@ -61,7 +65,7 @@ async def upsert_spec_block(
     spec_block: SpecBlock
         Newly created or updated SpecBlock
     """
-    key = config_values.pop("name")
+    key = config_values["name"]
     loaded_specs[key] = config_values
     spec_block_q = select(SpecBlock).where(SpecBlock.fullname == key)
     spec_block_result = await session.scalars(spec_block_q)
@@ -69,7 +73,7 @@ async def upsert_spec_block(
     if spec_block and not allow_update:
         print(f"SpecBlock {key} already defined, leaving it unchanged")
         return spec_block
-    includes = config_values.pop("includes", [])
+    includes = config_values.get("includes", [])
     block_data = config_values.copy()
     include_data: dict[str, Any] = {}
     for include_ in includes:
@@ -163,11 +167,11 @@ async def upsert_specification(
 
 async def load_specification(
     session: async_scoped_session,
-    yaml_file: str | Path,
+    yaml_file: str | Path | deque,
     loaded_specs: dict | None = None,
     *,
     allow_update: bool = False,
-) -> Specification | None:
+) -> Specification:
     """Load Specification, and SpecBlock objects from a yaml
     file, including from files referenced by Include blocks. Return the last
     Specification object in the file.
@@ -191,39 +195,51 @@ async def load_specification(
     specification: Specification
         Newly created Specification
     """
+    specification = None
+
     if loaded_specs is None:  # pragma: no cover
         loaded_specs = {}
 
-    specification = None
-    yaml_file = Path(yaml_file)
-    if not await yaml_file.exists():
-        raise CMYamlParseError(f"Specification does not exist at path {yaml_file}")
-    try:
+    if isinstance(yaml_file, deque):
+        spec_data = yaml_file
+    else:
+        yaml_file = Path(yaml_file)
+        if not await yaml_file.exists():
+            raise CMYamlParseError(f"Specification does not exist at path {yaml_file}")
         spec_yaml = await yaml_file.read_bytes()
-        spec_data = yaml.safe_load(spec_yaml)
-    except yaml.YAMLError as yaml_error:
-        raise CMYamlParseError(f"Error parsing specification {yaml_file}; threw {yaml_error}") from yaml_error
-    except Exception as e:
-        raise CMYamlParseError(f"{e}") from e
+        try:
+            spec_data = deque()
+            spec_batches = yaml.safe_load_all(spec_yaml)
+            for spec in spec_batches:
+                spec_data += spec
+        except yaml.YAMLError as yaml_error:
+            raise CMYamlParseError(
+                f"Error parsing specification {yaml_file}; threw {yaml_error}"
+            ) from yaml_error
+        except Exception as e:
+            raise CMYamlParseError(f"{e}") from e
 
-    for config_item in spec_data:
+    while spec_data:
+        config_item = spec_data.popleft()
         if "Imports" in config_item:
             imports = config_item["Imports"]
             for import_ in imports:
                 import_path = await Path(os.path.expandvars(import_)).resolve()
-                await load_specification(
+                import_yaml = await import_path.read_bytes()
+                for import_item in yaml.safe_load(import_yaml):
+                    spec_data.appendleft(import_item)
+        elif "SpecBlock" in config_item:
+            try:
+                await upsert_spec_block(
                     session,
-                    import_path,
+                    config_item["SpecBlock"],
                     loaded_specs,
                     allow_update=allow_update,
                 )
-        elif "SpecBlock" in config_item:
-            await upsert_spec_block(
-                session,
-                config_item["SpecBlock"],
-                loaded_specs,
-                allow_update=allow_update,
-            )
+            except CMMissingFullnameError:
+                # move this item to the end of the list to try again later
+                # TODO prevent infinite loops for genuinely bad inputs
+                spec_data.append(config_item)
         elif "Specification" in config_item:
             specification = await upsert_specification(
                 session,
@@ -231,16 +247,19 @@ async def load_specification(
                 allow_update=allow_update,
             )
         else:  # pragma: no cover
-            good_keys = "SpecBlock | Specification | Imports"
-            raise CMYamlParseError(f"Expecting one of {good_keys} not: {spec_data.keys()})")
+            logger.warning(
+                "Some spec blocks were not loaded from unexpected keys",
+                expected_keys="SpecBlock | Specification | Imports",
+                config_item=config_item,
+            )
 
+    if specification is None:
+        raise ValueError("load_specification() did not return a Specification")
     return specification
 
 
 async def add_step_prerequisite(
-    session: async_scoped_session,
-    depend_id: int,
-    prereq_id: int,
+    session: async_scoped_session, depend_id: int, prereq_id: int, namespace: UUID | None = None
 ) -> StepDependency:
     """Create and return a StepDependency
 
@@ -264,13 +283,14 @@ async def add_step_prerequisite(
         session,
         prereq_id=prereq_id,
         depend_id=depend_id,
+        namespace=namespace,
     )
 
 
 async def add_steps(
     session: async_scoped_session,
     campaign: Campaign,
-    step_config_list: list[dict[str, dict]],
+    step_config_list: list[dict[str, dict]] | None,
 ) -> Campaign:
     """Add steps to a Campaign
 
@@ -290,6 +310,9 @@ async def add_steps(
     campaign : Campaign
         Campaign in question
     """
+    if step_config_list is None:
+        return campaign
+
     spec_aliases = await campaign.get_spec_aliases(session)
 
     current_steps = await campaign.children(session)
@@ -346,14 +369,100 @@ async def add_steps(
         ]
         prereq_pairs += [(namespaced_step_name, prereq) for prereq in prereq_list]
 
+    # FIXME dependencies must always be added with a namespace even if the rest
+    #       of the campaign lacks one
+    campaign_namespace = uuid5(namespace=DEFAULT_NAMESPACE, name=campaign.name)
     for depend_name, prereq_name in prereq_pairs:
         prereq_id = step_ids_dict[prereq_name]
         depend_id = step_ids_dict[depend_name]
-        new_depend = await add_step_prerequisite(session, depend_id, prereq_id)
+        new_depend = await add_step_prerequisite(session, depend_id, prereq_id, namespace=campaign_namespace)
         await session.refresh(new_depend)
 
     await session.refresh(campaign)
     return campaign
+
+
+async def force_accept_node(
+    node: int,
+    db_class: type[ElementMixin],
+    output_collection: str | None = None,
+    session: async_scoped_session | None = None,
+) -> None:
+    """Force accept a node by bypassing state transition checks and setting
+    node and node's scripts to accepted.
+    """
+    local_session = False
+    if session is None:
+        session = await get_async_scoped_session()
+        local_session = True
+
+    the_node = await db_class.get_row(session, node)
+
+    # Find all the scripts for the node and set all non-terminal scripts to
+    # accepted
+    node_scripts = await the_node.get_scripts(session, remaining_only=True)
+    for script in node_scripts:
+        script.status = StatusEnum.accepted
+
+    # Set the output collection to the provided value
+    if output_collection is not None:
+        match db_class.__qualname__:
+            case "Job":
+                # In the case of a Job, we want to make sure the accepted job's
+                # RUN collection is updated to reflect the new state. This RUN
+                # collection will be used in the Group's chained output
+                # collections
+                update_collections = partial(the_node.update_collections, job_run=output_collection)
+            case _:
+                logger.error("Force accept unsupported on db class", db_class=db_class.__qualname__)
+                return None
+
+        _ = await update_collections(session, force=True)
+
+    # Set node to accepted
+    the_node.status = StatusEnum.accepted
+
+    # If the session is an injected dependency, we do not attempt to manage its
+    # transaction state but leave it to the caller.
+    if local_session:
+        await session.commit()
+    return None
+
+
+async def render_campaign_steps(
+    campaign: Campaign | int,
+    session: async_scoped_session | None = None,
+) -> None:
+    """Render the steps for a campaign.
+
+    Given a campaign ID, fetch the list of associated steps and create step
+    and step dependency objects in the database.
+
+    If there are any items in the campaign graph (i.e., there are step-
+    dependency entries with the campaign's namespace), then this function does
+    not create any new or changed objects.
+    """
+    local_session = False
+    if session is None:
+        session = await get_async_scoped_session()
+        local_session = True
+    if isinstance(campaign, int):
+        campaign = await Campaign.get_row(session, campaign)
+
+    statement = select(Step).filter_by(parent_id=campaign.id)
+    steps = (await session.scalars(statement)).all()
+
+    if len(steps):
+        return None
+    spec_block = await campaign.get_spec_block(session)
+    if TYPE_CHECKING:
+        assert isinstance(spec_block.steps, list)
+    await add_steps(session, campaign, spec_block.steps)
+    # If the session is an injected dependency, we do not attempt to manage its
+    # transaction state but leave it to the caller.
+    if local_session:
+        await session.commit()
+    return None
 
 
 async def match_pipetask_error(
@@ -546,35 +655,44 @@ async def load_manifest_report(
 def status_from_bps_report(
     wms_run_report: WmsRunReport | None,
     fake_status: StatusEnum | None = None,
-) -> StatusEnum | None:  # pragma: no cover
+) -> StatusEnum:
     """Decide the status for a workflow for a bps report
-
-    FIXME: add to coverage
 
     Parameters
     ----------
     wms_run_report: WmsRunReport,
         bps report return object
 
+    campaign: str | None
+        The name of the campaign to which the bps report is relevant
+
+    job: str | None
+        The name of the job to which the bps report is relevant
+
     Returns
     -------
     status: StatusEnum
         The status to set for the bps_report script
     """
+    # FIXME: this function must communicate more explicitly the conditions it
+    # discovers. The APIs for obtaining wms status are lacking in filtering
+    # capabilities and the CLI doesn't have good tools for showing the status
+    # of a task.
     if wms_run_report is None:
-        return fake_status or config.mock_status
-
-    logger.debug(wms_run_report)
+        return fake_status or config.mock_status or StatusEnum.accepted
 
     the_state = wms_run_report.state
-    # We treat RUNNING as running from the CM point of view,
+    logger.debug("Deriving status from BPS report", status=the_state)
+
+    # If any of the jobs are in a HELD state, this requires intervention
+    # and a notification should be sent and A BLOCKED status returned
+    for blocked_job in filter(lambda x: x.state in [WmsStates.HELD], wms_run_report.jobs):
+        return StatusEnum.blocked
     if the_state == WmsStates.RUNNING:
         return StatusEnum.running
-    # If the workflow is succeeded we can mark the script as accepted
-    if the_state == WmsStates.SUCCEEDED:
+    elif the_state == WmsStates.SUCCEEDED:
         return StatusEnum.accepted
-    # These status either should not happen.  We will mark the script as failed
-    if the_state in [
+    elif the_state in [
         WmsStates.UNKNOWN,
         WmsStates.MISFIT,
         WmsStates.PRUNED,
@@ -584,27 +702,15 @@ def status_from_bps_report(
         WmsStates.PENDING,
     ]:
         return StatusEnum.failed
-    # If we get here, the job should be in WmsStates.FAILED or
-    # WmsStates.DELETED
-    assert the_state in [WmsStates.FAILED, WmsStates.DELETED]
-    # Ok, now we should investigate what happened.
 
-    # First, did final job run successfully.
-    final_job: WmsJobReport | None = None
-    for job_ in wms_run_report.jobs:
-        if job_.name == "finalJob":
-            final_job = job_
+    for final_job in filter(lambda x: x.name == "finalJob", wms_run_report.jobs):
+        if final_job.state == WmsStates.SUCCEEDED:
+            # we want downstream scripts, e..g, pipetask report, to run
+            return StatusEnum.accepted
+        # There should only ever be one finalJob but to prevent weird loops
+        break
 
-    # No final job, we bail and ask for help
-    if final_job is None:
-        return StatusEnum.reviewable
-
-    # If the final job did succeed, we want to accept this script
-    # b/c we want pipetask report to run
-    if final_job.state == WmsStates.SUCCEEDED:
-        return StatusEnum.accepted
-
-    # If the final job did not succeed, we bail and ask for help
+    # In any cases not previously handled, return a reviewable status
     return StatusEnum.reviewable
 
 

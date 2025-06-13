@@ -64,7 +64,6 @@ def add_scripts(
         "script_dependency create ",
         f"--output yaml --prereq_id {prep_script.id} --depend_id {collect_script.id}",
     )
-    # script_depend = check_and_parse_result(result, models.Dependency)
     script_depend = None
     return ([prep_script, collect_script], script_depend)
 
@@ -76,17 +75,16 @@ def create_tree(
     namespace: uuid.UUID,
 ) -> None:
     fixtures = Path(__file__).parent.parent / "fixtures" / "seeds"
-    result = runner.invoke(
-        client_top,
-        f"load specification --output yaml --yaml_file {fixtures}/empty_config.yaml --namespace {namespace}",
-    )
-    # check_and_parse_result(result, models.Specification)
-
     cname = f"camp0_{namespace.int}"
-    namespaced_spec_block = f"""{str(uuid.uuid5(namespace, "base"))}#campaign"""
     result = runner.invoke(
         client_top,
-        f"campaign create --output yaml --name {cname} --spec_block_assoc_name {namespaced_spec_block} ",
+        f"load campaign --output yaml --campaign_yaml {fixtures}/empty_config.yaml "
+        f"--name {cname} --namespace {namespace}",
+    )
+
+    result = runner.invoke(
+        client_top,
+        f"campaign get by_name --output yaml --name {cname}",
     )
     camp = check_and_parse_result(result, models.Campaign)
 
@@ -124,8 +122,6 @@ def create_tree(
 
     assert step_depend.prereq_id == steps[0].id
     assert step_depend.depend_id == steps[1].id
-    # depend_is_done = step_depend.is_done(session)
-    # assert not depend_is_done
 
     if level.value <= LevelEnum.step.value:
         return
@@ -381,7 +377,7 @@ def check_scripts(
         f"script action reset --row_id {script0.id} --output yaml",
     )
     reset_script = check_and_parse_result(result, models.Script)
-    assert reset_script.status == StatusEnum.waiting
+    assert reset_script.status is StatusEnum.waiting
 
     result = runner.invoke(
         client_top,
@@ -394,7 +390,7 @@ def check_scripts(
         f"action reset-script --fullname {script0.fullname} --status waiting --output yaml",
     )
     reset_script = check_and_parse_result(result, models.Script)
-    assert reset_script.status == StatusEnum.waiting
+    assert reset_script.status is StatusEnum.waiting
 
     result = runner.invoke(
         client_top,
@@ -408,7 +404,7 @@ def check_scripts(
         f"--row_id {entry.id} --script_name {script0.name} --output yaml",
     )
     retry_script = check_and_parse_result(result, models.Script)
-    assert retry_script.status == StatusEnum.waiting
+    assert retry_script.status is StatusEnum.waiting
 
     result = runner.invoke(
         client_top,

@@ -1,13 +1,16 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, and_, select
+from sqlalchemy import JSON, and_, select
+from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
 from sqlalchemy.ext.asyncio import async_scoped_session
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
+from ..common import timestamp
 from ..common.enums import LevelEnum
 from ..common.errors import CMBadEnumError, CMMissingFullnameError
 from ..common.logging import LOGGER
@@ -29,14 +32,18 @@ class Queue(Base, NodeMixin):
     class_string = "queue"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    time_created: Mapped[datetime] = mapped_column(type_=DateTime)
-    time_updated: Mapped[datetime] = mapped_column(type_=DateTime)
-    time_finished: Mapped[datetime | None] = mapped_column(type_=DateTime, default=None)
-    time_next_check: Mapped[datetime | None] = mapped_column(type_=DateTime, default=datetime.min)
+    time_created: Mapped[datetime] = mapped_column(type_=TIMESTAMP(timezone=True))
+    time_updated: Mapped[datetime] = mapped_column(type_=TIMESTAMP(timezone=True))
+    time_finished: Mapped[datetime | None] = mapped_column(type_=TIMESTAMP(timezone=True), default=None)
+    time_next_check: Mapped[datetime | None] = mapped_column(
+        type_=TIMESTAMP(timezone=True), default=datetime.min.replace(tzinfo=UTC)
+    )
     interval: Mapped[float] = mapped_column(default=300.0)
-    options: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    options: Mapped[dict] = mapped_column(type_=MutableDict.as_mutable(JSON), default=dict)
     node_level: Mapped[LevelEnum] = mapped_column()
     node_id: Mapped[int] = mapped_column()
+    active: Mapped[bool] = mapped_column()
+    metadata_: Mapped[dict] = mapped_column("metadata_", type_=MutableDict.as_mutable(JSONB), default=dict)
 
     c_id: Mapped[int | None] = mapped_column(ForeignKey("campaign.id", ondelete="CASCADE"), index=True)
     s_id: Mapped[int | None] = mapped_column(ForeignKey("step.id", ondelete="CASCADE"), index=True)
@@ -58,6 +65,8 @@ class Queue(Base, NodeMixin):
         "time_updated",
         "time_finished",
         "time_next_check",
+        "active",
+        "metadata_",
     ]
 
     async def get_node(
@@ -77,19 +86,19 @@ class Queue(Base, NodeMixin):
             Requested Parent Node
         """
         node: NodeMixin | None = None
-        if self.node_level == LevelEnum.campaign:
+        if self.node_level is LevelEnum.campaign:
             await session.refresh(self, attribute_names=["c_"])
             node = self.c_
-        elif self.node_level == LevelEnum.step:
+        elif self.node_level is LevelEnum.step:
             await session.refresh(self, attribute_names=["s_"])
             node = self.s_
-        elif self.node_level == LevelEnum.group:
+        elif self.node_level is LevelEnum.group:
             await session.refresh(self, attribute_names=["g_"])
             node = self.g_
-        elif self.node_level == LevelEnum.job:
+        elif self.node_level is LevelEnum.job:
             await session.refresh(self, attribute_names=["j_"])
             node = self.j_
-        elif self.node_level == LevelEnum.script:
+        elif self.node_level is LevelEnum.script:
             await session.refresh(self, attribute_names=["script_"])
             node = self.script_
         else:  # pragma: no cover
@@ -120,15 +129,15 @@ class Queue(Base, NodeMixin):
         fullname = kwargs["fullname"]
         node_level = LevelEnum.get_level_from_fullname(fullname)
         node: NodeMixin | None = None
-        if node_level == LevelEnum.campaign:
+        if node_level is LevelEnum.campaign:
             node = await Campaign.get_row_by_fullname(session, fullname)
-        elif node_level == LevelEnum.step:
+        elif node_level is LevelEnum.step:
             node = await Step.get_row_by_fullname(session, fullname)
-        elif node_level == LevelEnum.group:
+        elif node_level is LevelEnum.group:
             node = await Group.get_row_by_fullname(session, fullname)
-        elif node_level == LevelEnum.job:
+        elif node_level is LevelEnum.job:
             node = await Job.get_row_by_fullname(session, fullname)
-        elif node_level == LevelEnum.script:
+        elif node_level is LevelEnum.script:
             # parse out the "script:" at the beginning fof ullname
             node = await Script.get_row_by_fullname(session, fullname[7:])
         else:  # pragma: no cover
@@ -153,30 +162,34 @@ class Queue(Base, NodeMixin):
     ) -> dict:
         fullname = kwargs["fullname"]
         node_level = LevelEnum.get_level_from_fullname(fullname)
-        now = datetime.now()
+        now = timestamp.now_utc()
         ret_dict = {
             "node_level": node_level,
             "interval": kwargs.get("interval", 300),
             "time_created": now,
             "time_updated": now,
+            "time_next_check": kwargs.get("time_next_check", None),
             "options": kwargs.get("options", {}),
+            "metadata_": kwargs.get("metadata_", {}),
+            "active": kwargs.get("active", False),
         }
 
         node: NodeMixin | None = None
-        if node_level == LevelEnum.campaign:
+        if node_level is LevelEnum.campaign:
             node = await Campaign.get_row_by_fullname(session, fullname)
             ret_dict["c_id"] = node.id
-        elif node_level == LevelEnum.step:
+        elif node_level is LevelEnum.step:
             node = await Step.get_row_by_fullname(session, fullname)
             ret_dict["s_id"] = node.id
-        elif node_level == LevelEnum.group:
+        elif node_level is LevelEnum.group:
             node = await Group.get_row_by_fullname(session, fullname)
             ret_dict["g_id"] = node.id
-        elif node_level == LevelEnum.job:
+        elif node_level is LevelEnum.job:
             node = await Job.get_row_by_fullname(session, fullname)
             ret_dict["j_id"] = node.id
-        elif node_level == LevelEnum.script:
-            # parse out the "script:" at the beginning fof ullname
+        elif node_level is LevelEnum.script:
+            # parse out the "script:" at the beginning of fullname
+            # FIXME refactor to not use token-counting
             node = await Script.get_row_by_fullname(session, fullname[7:])
             ret_dict["script_id"] = node.id
         else:  # pragma: no cover
@@ -206,7 +219,7 @@ class Queue(Base, NodeMixin):
         """
         delta_t = timedelta(seconds=self.interval)
         next_check = self.time_updated + delta_t
-        now = datetime.now()
+        now = timestamp.now_utc()
         return now < next_check
 
     async def process_node(
@@ -216,7 +229,7 @@ class Queue(Base, NodeMixin):
         """Process associated node and update queue row"""
         node = await self.get_node(session)
 
-        if node.level == LevelEnum.script:
+        if node.level is LevelEnum.script:
             logger.debug("Processing a %s", node.level)
             if not node.status.is_processable_script():
                 return False
@@ -229,17 +242,19 @@ class Queue(Base, NodeMixin):
             process_kwargs.update(**self.options)
         (_changed, status) = await node.process(session, **process_kwargs)
 
-        now = datetime.now()
-        update_dict = {"time_updated": now}
+        now = timestamp.now_utc()
+        update_dict: dict[str, Any] = {"time_updated": now}
 
-        if node.level == LevelEnum.script:
-            if status.is_successful_script():
-                update_dict.update(time_finished=now)
+        if node.level is LevelEnum.script:
+            if status.is_terminal_script():
+                update_dict["time_finished"] = now
+                update_dict["active"] = False
         else:
-            if status.is_successful_element():
-                update_dict.update(time_finished=now)
+            if status.is_terminal_element():
+                update_dict["time_finished"] = now
+                update_dict["active"] = False
 
         await self.update_values(session, **update_dict)
-        if node.level == LevelEnum.script:
+        if node.level is LevelEnum.script:
             node.status.is_processable_script()
         return node.status.is_processable_element()

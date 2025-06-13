@@ -1,17 +1,15 @@
-Production:
-    name: LSSTComCamSim_nightly-validation
 Campaign:
-    name: MUST_OVERRIDE
-    spec_name: LSSTComCamSim_nightly-validation_htcondor
-    collection:
-        out: MUST_OVERRIDE
-        # campaign_source: LSSTComCamSim/quickLook/24
-        # campaign_ancillary_inputs:
-        #     - LSSTComCamSim/templates
-        #     - LSSTComCamSim/defaults
-    data:
-        lsst_version: MUST_OVERRIDE
-        prod_area: MUST_OVERRIDE
+  name: MUST_OVERRIDE
+  spec_name: LSSTComCamSim_nightly-validation_htcondor
+  collection:
+    out: MUST_OVERRIDE
+    # campaign_source: LSSTComCamSim/quickLook/24
+    # campaign_ancillary_inputs:
+    #     - LSSTComCamSim/templates
+    #     - LSSTComCamSim/defaults
+  data:
+    lsst_version: MUST_OVERRIDE
+    prod_area: MUST_OVERRIDE
 #       butler_repo: '/repo/embargo+sasquatch_dev'
 #       prod_area: 'output/archive'
 #       data_query: instrument='LSSTComCamSim' AND skymap='ops_rehersal_prep_2k_v1' AND visit IN (7024040400000..7024040500000)

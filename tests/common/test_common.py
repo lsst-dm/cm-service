@@ -1,5 +1,3 @@
-import os
-
 import pytest
 from anyio import Path
 
@@ -12,7 +10,6 @@ from lsst.cmservice.common.bash import (
 )
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum, TableEnum
 from lsst.cmservice.common.errors import (
-    CMHTCondorCheckError,
     CMHTCondorSubmitError,
     CMSlurmCheckError,
     CMSlurmSubmitError,
@@ -36,17 +33,17 @@ async def test_common_bash() -> None:
     await run_bash_job(the_script, "temp.log", "temp.stamp")
 
     status = await check_stamp_file("temp.stamp", StatusEnum.running)
-    assert status == StatusEnum.accepted
+    assert status is StatusEnum.accepted
 
     status = await check_stamp_file("bad.stamp", StatusEnum.running)
-    assert status == StatusEnum.running
+    assert status is StatusEnum.running
 
     await Path("temp.sh").unlink(missing_ok=True)
     await Path("temp.stamp").unlink(missing_ok=True)
     await Path("temp.log").unlink(missing_ok=True)
 
     bps_dict = await parse_bps_stdout(f"{fixtures}/bps_stdout.log")
-    assert bps_dict["run_id"].strip() == "334"
+    assert bps_dict["Run Id"] == "12345678.0"
 
     diag_message = await get_diagnostic_message(f"{fixtures}/bps_stdout.log")
     assert diag_message == "dummy: ada"
@@ -67,11 +64,11 @@ def test_common_table_enums() -> None:
 
 def test_common_level_enums() -> None:
     """Test common.enums.LevelEnum"""
-    assert LevelEnum.get_level_from_fullname("script:c0/a_script") == LevelEnum.script
-    assert LevelEnum.get_level_from_fullname("c0") == LevelEnum.campaign
-    assert LevelEnum.get_level_from_fullname("c0/s0") == LevelEnum.step
-    assert LevelEnum.get_level_from_fullname("c0/s0/g0") == LevelEnum.group
-    assert LevelEnum.get_level_from_fullname("c0/s0/g0/j0") == LevelEnum.job
+    assert LevelEnum.get_level_from_fullname("script:c0/a_script") is LevelEnum.script
+    assert LevelEnum.get_level_from_fullname("c0") is LevelEnum.campaign
+    assert LevelEnum.get_level_from_fullname("c0/s0") is LevelEnum.step
+    assert LevelEnum.get_level_from_fullname("c0/s0/g0") is LevelEnum.group
+    assert LevelEnum.get_level_from_fullname("c0/s0/g0/j0") is LevelEnum.job
 
 
 def test_common_status_enums() -> None:
@@ -118,10 +115,10 @@ async def test_common_htcondor() -> None:
     with pytest.raises(CMHTCondorSubmitError):
         await submit_htcondor_job("htcondor_temp.sh")
 
-    with pytest.raises(CMHTCondorCheckError):
-        await check_htcondor_job("htcondor_temp.log")
+    status = await check_htcondor_job("htcondor_temp.log")
+    assert status is StatusEnum.failed
 
-    os.unlink("htcondor_temp.sh")
+    await Path("htcondor_temp.sh").unlink()
 
 
 # FIXME this test should patch the htcondor runner to produce an actual result

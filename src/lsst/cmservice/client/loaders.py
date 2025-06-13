@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import os
-import sys
+import warnings
+from collections import deque
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from uuid import UUID, uuid5
 
@@ -11,8 +13,9 @@ from pydantic.v1.utils import deep_update
 
 from .. import models
 from ..common.enums import DEFAULT_NAMESPACE, ErrorActionEnum, ErrorFlavorEnum, ErrorSourceEnum
-from ..common.errors import CMYamlParseError
+from ..common.errors import CMMissingFullnameError, CMYamlParseError
 from ..common.logging import LOGGER
+from ..common.yaml import get_loader
 from . import wrappers
 
 if TYPE_CHECKING:
@@ -45,7 +48,7 @@ class CMLoadClient:
         loaded_specs: dict,
         *,
         allow_update: bool = False,
-        namespace: UUID,
+        namespace: UUID | None,
     ) -> models.SpecBlock:
         """Upsert and return a SpecBlock
 
@@ -66,14 +69,14 @@ class CMLoadClient:
         -------
         spec_block: SpecBlock
             Newly created or updated SpecBlock
-        """
-        spec_name: str = spec.pop("name")
-        key = str(uuid5(namespace, spec_name))
 
-        # the spec is added to the loaded_specs object, keyed by its uuid,
-        # which is the short name of the spec block within the campaign name-
-        # space
-        loaded_specs[key] = spec
+        Raises
+        ------
+        CMMissingFullnameError
+            If the spec depends on another spec that cannot be located.
+        """
+        spec_name: str = spec["name"]
+        key = str(uuid5(namespace, spec_name)) if namespace else spec_name
 
         spec_block = self._parent.spec_block.get_row_by_name(key)
         if spec_block and not allow_update:
@@ -86,7 +89,7 @@ class CMLoadClient:
         # that we can dereference it from the loaded_specs mapping
 
         # the list of spec names to "include"
-        includes = spec.pop("includes", [])
+        includes = spec.get("includes", [])
 
         # the new spec as a shallow copy of its input
         block_data = spec.copy()
@@ -94,40 +97,20 @@ class CMLoadClient:
         # a mapping to contain any/all "included" spec data
         include_data: dict[str, Any] = {}
         for include_ in includes:
-            namespaced_spec = str(uuid5(namespace, include_))
+            namespaced_spec = str(uuid5(namespace, include_)) if namespace else include_
 
             # The case where the include pointer has already been encount-
             # ered by the loader and can be referenced directly by name or a
             # namespaced uuid
             if namespaced_spec in loaded_specs:
                 include_data = deep_update(include_data, loaded_specs[namespaced_spec])
-            elif include_ in loaded_specs:
+            elif include_ in loaded_specs and not isinstance(loaded_specs[include_], int):
                 include_data = deep_update(include_data, loaded_specs[include_])
             # The case where the spec blocks are defined out of order in
             # the specification file and it is not yet part of the loaded
             # specs mapping.
             else:  # pragma: no cover
-                # FIXME why are we going to the database for this? Won't this
-                #       be a None if there's no such record?
-                if (spec_block_ := self._parent.spec_block.get_row_by_name(namespaced_spec)) is None:
-                    spec_block_ = self._parent.spec_block.get_row_by_name(include_)
-
-                if spec_block is None:
-                    logger.error(f"Specified spec block {include_} cannot be found")
-                    sys.exit(1)
-
-                include_data = deep_update(
-                    include_data,
-                    {
-                        "handler": spec_block_.handler,
-                        "data": spec_block_.data,
-                        "collections": spec_block_.collections,
-                        "child_config": spec_block_.child_config,
-                        "spec_aliases": spec_block_.spec_aliases,
-                        "scripts": spec_block_.scripts,
-                        "steps": spec_block_.steps,
-                    },
-                )
+                raise CMMissingFullnameError
 
         block_data = deep_update(include_data, spec)
 
@@ -137,13 +120,13 @@ class CMLoadClient:
             block_data["child_config"] = deep_update(
                 block_data["child_config"],
                 {
-                    k: str(uuid5(namespace, v))
+                    k: str(uuid5(namespace, v)) if namespace else v
                     for k, v in block_data["child_config"].items()
                     if k == "spec_block"
                 },
             )
 
-        handler = block_data.pop("handler", None)
+        handler = block_data.get("handler")
         if spec_block is None:
             return self._parent.spec_block.create(
                 name=key,
@@ -170,7 +153,7 @@ class CMLoadClient:
         self,
         config_values: dict,
         *,
-        namespace: UUID,
+        namespace: UUID | None,
         allow_update: bool = False,
     ) -> models.Specification:
         """Upsert and return a Specification
@@ -191,7 +174,7 @@ class CMLoadClient:
             The updated and loaded objects
         """
         spec_name = config_values["name"]
-        namespaced_spec_name = str(uuid5(namespace, spec_name))
+        namespaced_spec_name = str(uuid5(namespace, spec_name)) if namespace else spec_name
 
         specification = self._parent.specification.get_row_by_name(namespaced_spec_name)
         if specification is not None and not allow_update:
@@ -206,7 +189,8 @@ class CMLoadClient:
                 {
                     "name": namespaced_spec_name,
                     "spec_aliases": {
-                        k: str(uuid5(namespace, v)) for k, v in config_values["spec_aliases"].items()
+                        k: str(uuid5(namespace, v)) if namespace else v
+                        for k, v in config_values["spec_aliases"].items()
                     },
                 },
             )
@@ -220,18 +204,18 @@ class CMLoadClient:
 
     def specification_cl(
         self,
-        yaml_file: str,
+        yaml_file: deque[dict] | str,
         loaded_specs: dict | None = None,
         *,
         allow_update: bool = False,
-        namespace: UUID,
+        namespace: UUID | None = None,
     ) -> dict:
-        """Read a yaml file and create Specification objects
+        """Create Specification objects
 
         Parameters
         ----------
-        yaml_file: str
-            File in question
+        yaml_file: Iterable | str
+            YAML file to load, or an iterable of specs
 
         loaded_specs: dict
             Already loaded SpecBlocks, used for include statments
@@ -251,35 +235,60 @@ class CMLoadClient:
         if loaded_specs is None:
             loaded_specs = {}
 
-        with open(yaml_file, encoding="utf-8") as f:
-            spec_data = yaml.safe_load(f)
+        if isinstance(yaml_file, str):
+            with Path(yaml_file).open(encoding="utf-8") as f:
+                spec_data: deque[dict] = deque(yaml.safe_load(f))
+        else:
+            spec_data = yaml_file
 
         out_dict: dict[str, list[BaseModel]] = dict(
             Specification=[],
             SpecBlock=[],
         )
 
-        for config_item in spec_data:
+        while spec_data:
+            config_item = spec_data.popleft()
             # Recursively load any spec YAMLs by dereferencing any Imports
             if "Imports" in config_item:
                 imports = config_item["Imports"]
                 for import_ in imports:
-                    imported_ = self.specification_cl(
-                        os.path.abspath(os.path.expandvars(import_)),
+                    import_path = Path(os.path.expandvars(import_)).resolve()
+                    with import_path.open(encoding="utf-8") as f:
+                        for import_item in yaml.safe_load(f):
+                            spec_data.appendleft(import_item)
+            elif "SpecBlock" in config_item:
+                try:
+                    spec_block = self._upsert_spec_block(
+                        config_item["SpecBlock"],
                         loaded_specs,
                         allow_update=allow_update,
                         namespace=namespace,
                     )
-                    for key, val in imported_.items():
-                        out_dict[key] += val
-            elif "SpecBlock" in config_item:
-                spec_block = self._upsert_spec_block(
-                    config_item["SpecBlock"],
-                    loaded_specs,
-                    allow_update=allow_update,
-                    namespace=namespace,
-                )
-                out_dict["SpecBlock"].append(spec_block)
+                    loaded_specs[spec_block.name] = config_item["SpecBlock"]
+                    out_dict["SpecBlock"].append(spec_block)
+                except CMMissingFullnameError:
+                    # move this item to the end of the list to try again later
+                    # up to three times
+                    try_count = loaded_specs.get(config_item["SpecBlock"]["name"], 0)
+                    if isinstance(try_count, int):
+                        try_count += 1
+                        if try_count > 3:
+                            logger.error(
+                                "Can't find all dependencies for spec block after multiple tries.",
+                                spec_block=config_item["SpecBlock"]["name"],
+                                tries=try_count,
+                            )
+                            raise RuntimeError("Failed to locate all spec dependencies in input.")
+                        logger.warning(
+                            "Can't find all dependencies for spec block, trying later.",
+                            spec_block=config_item["SpecBlock"]["name"],
+                            tries=try_count,
+                        )
+                        spec_data.append(config_item)
+                        loaded_specs[config_item["SpecBlock"]["name"]] = try_count
+                    else:
+                        logger.error("this is weird.")
+
             elif "Specification" in config_item:
                 specification = self._upsert_specification(
                     config_item["Specification"],
@@ -288,8 +297,11 @@ class CMLoadClient:
                 )
                 out_dict["Specification"].append(specification)
             else:  # pragma: no cover
-                good_keys = "SpecBlock | Specification | Imports"
-                raise CMYamlParseError(f"Expecting one of {good_keys} not: {spec_data.keys()})")
+                logger.warning(
+                    "Ignoring extra spec type in input data",
+                    spec_data=config_item.keys(),
+                    expected_keys="SpecBlock | Specification | Imports",
+                )
 
         return out_dict
 
@@ -326,34 +338,48 @@ class CMLoadClient:
         name: str | None
             Name for the campaign
 
-        spec_name: str | None
-            Name of the specification to use
-
-        handler: str | None
-            Name of the callback Handler to use
-
-        data: dict | None
-            Overrides for the campaign data parameter dict
-
-        child_config: dict | None
-            Overrides for the campaign child_config dict
-
-        collections: dict | None
-            Overrides for the campaign collection dict
-
-        spec_aliases: dict | None
-            Overrides for the campaign spec_aliases dict
+        namespace: UUID | None
+            Namespace to use for the campaign, defaults to the service default.
 
         Returns
         -------
         campaign : `Campaign`
             Newly created `Campaign`
         """
-        with open(campaign_yaml, encoding="utf-8") as f:
-            config_data = yaml.safe_load(f)
+        manifest_deque: deque[dict] = deque()
+        campaign = None
+
+        # Apply any kwargs and -v pairs to the process environment for
+        # resolution in the YAML loader
+        campaign_variables = {k: v for k, v in kwargs.pop("v", ())}
+        os.environ |= {**campaign_variables, **{k: str(v) for k, v in kwargs.items() if v}}
+
+        if yaml_file is not None:
+            _ = self.specification_cl(yaml_file, namespace=kwargs["namespace"])
+
+        with Path(campaign_yaml).open(encoding="utf-8") as f:
+            yaml_stack = yaml.load_all(f, Loader=get_loader())
+
+            # sort the manifests into a deque; Campaign overrides first
+            for yaml_document in yaml_stack:
+                if yaml_document is None:
+                    logger.error("Could not find YAML documents in input file", input_file=campaign_yaml)
+                    raise RuntimeError
+                if "Production" in yaml_document:
+                    warnings.warn(
+                        "Production object in campaign YAML file is deprecated, ignoring.", DeprecationWarning
+                    )
+                if "Campaign" in yaml_document:
+                    manifest_deque.appendleft(yaml_document["Campaign"])
+                else:
+                    # put the individual specblocks onto the deque as manifests
+                    for manifest in yaml_document:
+                        manifest_deque.append(manifest)
+
+        config_data = manifest_deque.popleft()
 
         try:
-            manifest = config_data["Campaign"]
+            manifest = config_data
         except KeyError as msg:
             raise CMYamlParseError(
                 f"Could not find 'Campaign' tag in {campaign_yaml}",
@@ -362,29 +388,38 @@ class CMLoadClient:
         assert isinstance(manifest, dict)
         if "data" not in manifest:
             manifest["data"] = {}
+        if "collections" not in manifest:
+            manifest["collections"] = {}
+
+        # flesh out config_data with kwarg overrides
+        for key in ["name"]:
+            val = kwargs.get(key, None)
+            if val:
+                manifest[key] = val
+
+        manifest["data"]["lsst_version"] = campaign_variables.get("LSST_VERSION", "w_latest")
+
+        if any(
+            [
+                "MUST_OVERRIDE" in manifest.values(),
+                "MUST_OVERRIDE" in manifest["data"].values(),
+                "MUST_OVERRIDE" in manifest["collections"].values(),
+            ]
+        ):
+            raise RuntimeError("Found a MUST_OVERRIDE placeholder in input file")
+
         # establish campaign namespace uuid
         spec_name = manifest["spec_name"]
-        namespace = uuid5(DEFAULT_NAMESPACE, manifest["name"])
+        namespace = kwargs.get("namespace") or uuid5(DEFAULT_NAMESPACE, manifest["name"])
         namespaced_spec_name = str(uuid5(namespace, spec_name))
         manifest["spec_block_assoc_name"] = f"{namespaced_spec_name}#campaign"
         # assert the the loaded campaign is using namespaced objects
         manifest["data"]["namespace"] = str(namespace)
         logger.info(f"""Loading campaign {manifest["name"]} with namespace {namespace}""")
 
-        # TODO deprecate this code path, are "already existing" specifications
-        #      allowed? Or is this allowed to invoke a "clone" operation where
-        #      some set of "standard" specblocks are already seeded in the DB
-        #      but not allowed to be used directly by campaigns?
-        if yaml_file is None:  # pragma: no cover
-            # If yaml_file isn't given then the specifications
-            # should already exist
-            specification = self._parent.specification.get_row_by_name(namespaced_spec_name)
-            if specification is None:
-                raise CMYamlParseError(
-                    f"Could not find 'Specification' {spec_name} in {campaign_yaml}",
-                )
-        else:
-            self.specification_cl(yaml_file, namespace=namespace)
+        # Load the remaining manifests as lists of specblocks
+        loaded_specs: dict[str, Any] = {}
+        self.specification_cl(manifest_deque, loaded_specs, namespace=namespace)
 
         # Creates the campaign record in the DB using the API, returning the
         # campaign via the response model
@@ -466,7 +501,7 @@ class CMLoadClient:
         error_types: list[models.PipetaskErrorType]
             Newly created or updated PipetaskErrorType objects
         """
-        with open(yaml_file, encoding="utf-8") as fin:
+        with Path(yaml_file).open(encoding="utf-8") as fin:
             error_types = yaml.safe_load(fin)
 
         ret_list: list[models.PipetaskErrorType] = []

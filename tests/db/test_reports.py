@@ -58,7 +58,7 @@ async def test_reports_db(engine: AsyncEngine) -> None:
             session,
             entry,
         )
-        assert status_check == StatusEnum.accepted
+        assert status_check is StatusEnum.accepted
 
         await interface.load_manifest_report(
             session,
@@ -70,7 +70,7 @@ async def test_reports_db(engine: AsyncEngine) -> None:
             session,
             entry,
         )
-        assert status_check == StatusEnum.reviewable
+        assert status_check is StatusEnum.reviewable
 
         await db.Job.update_row(
             session,
@@ -115,12 +115,12 @@ async def test_reports_db(engine: AsyncEngine) -> None:
             session,
             job2,
         )
-        assert status_check == StatusEnum.reviewable
+        assert status_check is StatusEnum.reviewable
         _changed, status_check = await job2.run_check(
             session,
             do_checks=False,
         )
-        assert status_check == StatusEnum.failed
+        assert status_check is StatusEnum.failed
         await db.Job.update_row(session, job2.id, superseded=True)
 
         job3 = await parent.rescue_job(session)
@@ -134,12 +134,12 @@ async def test_reports_db(engine: AsyncEngine) -> None:
             session,
             job3,
         )
-        assert status_check == StatusEnum.reviewable
+        assert status_check is StatusEnum.reviewable
         _changed, status_check = await job3.run_check(
             session,
             do_checks=False,
         )
-        assert status_check == StatusEnum.reviewable
+        assert status_check is StatusEnum.reviewable
 
         await db.Job.update_row(session, job3.id, status=StatusEnum.rescuable)
 
@@ -153,12 +153,12 @@ async def test_reports_db(engine: AsyncEngine) -> None:
             session,
             job4,
         )
-        assert status_check == StatusEnum.reviewable
+        assert status_check is StatusEnum.reviewable
         _changed, status_check = await job4.run_check(
             session,
             do_checks=False,
         )
-        assert status_check == StatusEnum.accepted
+        assert status_check is StatusEnum.accepted
 
         await parent.mark_job_rescued(session)
 

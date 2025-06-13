@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import async_scoped_session
+from sqlalchemy.ext.asyncio import AsyncSession, async_scoped_session
 
 from ..common.enums import StatusEnum
 from ..common.errors import (
@@ -19,7 +18,11 @@ from ..common.logging import LOGGER
 
 logger = LOGGER.bind(module=__name__)
 
-T = TypeVar("T", bound="RowMixin")
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    T = TypeVar("T", bound="RowMixin")
+    A = TypeVar("A", AsyncSession, async_scoped_session)
 
 DELETABLE_STATES = [
     StatusEnum.failed,
@@ -108,7 +111,7 @@ class RowMixin:
     @classmethod
     async def get_row(
         cls: type[T],
-        session: async_scoped_session,
+        session: A,
         row_id: int,
     ) -> T:
         """Get a single row, matching row.id == row_id
@@ -215,7 +218,7 @@ class RowMixin:
             pass
         elif hasattr(row, "status") and row.status not in DELETABLE_STATES:
             raise CMBadStateTransitionError(
-                f"Can not delete a row because it is in use {row} {row.status}",
+                f"Can not delete a row because it is in use {row.fullname} {row.status}",
             )
         try:
             await session.delete(row)

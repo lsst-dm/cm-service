@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 import httpx
 from pandaclient.openidc_utils import decode_id_token
 
+from ..common import timestamp
 from ..config import config
 from .logging import LOGGER
 
@@ -18,6 +19,7 @@ logger = LOGGER.bind(module=__name__)
 """A module-level logger"""
 
 
+# TODO generalize to use a common client/session generator
 @contextmanager
 def http_client() -> Generator[httpx.Client]:
     """Generate a client session for panda API operations."""
@@ -57,10 +59,18 @@ def refresh_panda_token(url: str, data: dict[str, str]) -> str | None:
         key.
     """
     with http_client() as session:
-        response = session.post(
-            url=url, data=data, headers={"content-type": "application/x-www-form-urlencoded"}
-        )
-        response.raise_for_status()
+        try:
+            response = session.post(
+                url=url, data=data, headers={"content-type": "application/x-www-form-urlencoded"}
+            )
+            response.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            logger.error(
+                "Unable to refresh panda token",
+                http_status=e.response.status_code,
+                message=e.response.reason_phrase,
+            )
+            return None
 
     token_data: dict[str, str] = response.json()
     # with the new token...
@@ -119,7 +129,7 @@ def get_panda_token() -> str | None:
         logger.exception()
         return None
 
-    now_utc = datetime.datetime.now(datetime.UTC)
+    now_utc = timestamp.now_utc()
 
     # Determine whether the token should be renewed
     # The token expiry time is part of the encoded token

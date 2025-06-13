@@ -1,22 +1,26 @@
 from __future__ import annotations
 
+import re
+from collections import ChainMap, defaultdict
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.orm.collections import InstrumentedList
 
-from ..common.enums import LevelEnum, NodeTypeEnum, StatusEnum
+from ..common import timestamp
+from ..common.enums import LevelEnum, StatusEnum
 from ..common.errors import (
     CMBadExecutionMethodError,
-    CMBadFullnameError,
     CMBadStateTransitionError,
     CMIntegrityError,
     CMResolveCollectionsError,
     test_type_and_raise,
 )
 from ..common.logging import LOGGER
+from ..common.notification import send_notification
 from ..config import config
+from ..parsing.string import parse_element_fullname
 from .handler import Handler
 from .row import RowMixin
 from .spec_block import SpecBlock
@@ -48,7 +52,8 @@ class NodeMixin(RowMixin):
     collections: Any  # Definition of collection names
     child_config: Any  # Definition of child elements
     spec_aliases: Any  # Definition of aliases for SpecBlock overrides
-    data: Any  # Generic configuraiton parameters
+    data: Any  # Generic configuration parameters
+    metadata_: Any  # mutable configuration parameters
     prereqs_: Any  # Prerequistes to running this row
     handler: Any  # Class name of associated Handler object
     node_type: Any  # Type of this node
@@ -160,37 +165,6 @@ class NodeMixin(RowMixin):
             handler_class,
         )
 
-    def _split_fullname(self, fullname: str) -> dict:
-        """Split a fullname into named fields
-
-        Paramters
-        ---------
-        fullname: str
-            String to be split
-
-        Returns
-        -------
-        fields : dict
-            Resulting fields
-        """
-        fields = {"production": "DEFAULT"}
-
-        tokens = fullname.split("/")
-        if self.node_type == NodeTypeEnum.script:
-            fields["script"] = tokens.pop()
-        for i, token in enumerate(tokens):
-            if i == 0:
-                fields["campaign"] = token
-            elif i == 1:
-                fields["step"] = token
-            elif i == 2:
-                fields["group"] = token
-            elif i == 3:
-                fields["job"] = token
-            else:  # pragma: no cover
-                raise CMBadFullnameError(f"Too many fields in {fullname}")
-        return fields
-
     async def resolve_collections(
         self,
         session: async_scoped_session,
@@ -201,10 +175,9 @@ class NodeMixin(RowMixin):
 
         Notes
         -----
-        This will return a dict with all of the collections
-        templated defined for this node resovled using
-        collection aliases and collection templates
-        defined up the processing heirarchy
+        This will return a dict with all of the collections templates defined
+        for this node resolved using collection aliases and collection templ-
+        ates defined up the processing hierarchy
 
         Parameters
         ----------
@@ -219,60 +192,41 @@ class NodeMixin(RowMixin):
         resolved_collections: dict
             Resolved collection names
         """
-        my_collections = await NodeMixin.get_collections(self, session)
+        raw_collections: dict[str, str | list[str]] = await NodeMixin.get_collections(self, session)
         collection_dict = await self.get_collections(session)
-        name_dict = self._split_fullname(self.fullname)
-        name_dict["out"] = collection_dict.pop("out")
-        resolved_collections: dict = {}
-        for name_, val_ in my_collections.items():
-            if isinstance(val_, list):  # pragma: no cover
-                # FIXME, see if this is now being tested
-                resolved_collections[name_] = []
-                # FIXME disambiguate what types val_, item_ and f1 are supposed
-                #       to be
-                for item_ in val_:
-                    try:
-                        f1 = item_.format(**collection_dict)
-                    except KeyError:
-                        f1 = val_
-                    try:
-                        resolved_collections[name_].append(f1.format(**name_dict))
-                    except KeyError as e:
-                        raise CMResolveCollectionsError(
-                            f"Failed to resolve collection {name_} {f1} using: {name_dict!s}",
-                        ) from e
-                resolved_collections[name_] = ",".join(resolved_collections[name_])
-            else:
-                try:
-                    f1 = val_.format(**collection_dict)
-                except KeyError:
-                    f1 = val_
-                try:
-                    resolved_collections[name_] = f1.format(**name_dict)
-                except KeyError as msg:
-                    raise CMResolveCollectionsError(
-                        f"Failed to resolve collection {name_}, {f1} using: {name_dict!s}",
-                    ) from msg
+        fullname = parse_element_fullname(self.fullname)
+        lookup_chain = ChainMap(collection_dict, fullname.model_dump(), defaultdict(lambda: "MUST_OVERRIDE"))
+
+        resolved_collections = {
+            k: (v if isinstance(v, str) else ",".join(v)) for k, v in raw_collections.items()
+        }
+
+        # It may take multiple passes to format all the placeholder
+        # tokens in the collection strings, repeat the formatting until no such
+        # tokens remain.
+        while unresolved_collections := {
+            k: v for k, v in resolved_collections.items() if re.search("{.*}", v)
+        }:
+            for k, v in unresolved_collections.items():
+                resolved_collections[k] = v.format_map(lookup_chain)
+
         if throw_overrides:
-            for key, value in resolved_collections.items():
-                if "MUST_OVERRIDE" in value:  # pragma: no cover
-                    raise CMResolveCollectionsError(
-                        f"Attempts to resolve {key} collection includes MUST_OVERRIDE. Make sure to provide "
-                        "necessary collection names."
-                    )
+            if [v for v in resolved_collections.values() if re.search("MUST_OVERRIDE", v)]:
+                raise CMResolveCollectionsError(
+                    "Attempts to resolve collection includes MUST_OVERRIDE. Make sure to provide "
+                    "necessary collection names."
+                )
+
         return resolved_collections
 
     async def get_collections(
         self,
         session: async_scoped_session,
     ) -> dict:
-        """Get the collection configuration
-        associated to a particular row
+        """Get the collection configuration associated with a particular row.
 
-        This will start with the collection
-        configuration in the associated `SpecBlock`
-        and override it with with the collection
-        configuration in the row
+        This starts with the collection configuration in the associated
+        `SpecBlock` which is overriden the collection configuration of the row.
 
         Parameters
         ----------
@@ -284,39 +238,36 @@ class NodeMixin(RowMixin):
         collections: dict
             Requested collection configuration
         """
-        ret_dict = {}
+        collections = {}
         if not hasattr(self, "collections"):  # pragma: no cover
             return {}
 
-        if self.level == LevelEnum.script:
+        if self.level is LevelEnum.script:
             parent_ = await self.get_parent(session)
             parent_colls = await parent_.get_collections(session)
-            ret_dict.update(parent_colls)
+            collections.update(parent_colls)
         elif self.level.value > LevelEnum.campaign.value:
             parent = await self.get_parent(session)
             parent_colls = await parent.get_collections(session)
-            ret_dict.update(parent_colls)
+            collections.update(parent_colls)
         spec_block = await self.get_spec_block(session)
         if spec_block.collections:
-            ret_dict.update(spec_block.collections)
+            collections.update(spec_block.collections)
         if self.collections:
-            ret_dict.update(self.collections)
-        for key, val in ret_dict.items():
+            collections.update(self.collections)
+        for key, val in collections.items():
             if isinstance(val, list):
-                ret_dict[key] = ",".join(val)
-        return ret_dict
+                collections[key] = ",".join(val)
+        return collections
 
     async def get_child_config(
         self,
         session: async_scoped_session,
     ) -> dict:
-        """Get the child configuration
-        associated to a particular row
+        """Get the child configuration associated with a particular row.
 
-        This will start with the child
-        configuration in the associated `SpecBlock`
-        and override it with with the child
-        configuration in the row
+        This starts with the child configuration in the associated `SpecBlock`
+        which is overriden with the child configuration of the row.
 
         Parameters
         ----------
@@ -328,27 +279,24 @@ class NodeMixin(RowMixin):
         child_config: dict
             Requested child configuration
         """
-        ret_dict: dict = {}
+        child_config: dict = {}
         if not hasattr(self, "child_config"):  # pragma: no cover
             return {}
         spec_block = await self.get_spec_block(session)
         if spec_block.child_config:
-            ret_dict.update(**spec_block.child_config)
+            child_config.update(**spec_block.child_config)
         if self.child_config:
-            ret_dict.update(**self.child_config)
-        return ret_dict
+            child_config.update(**self.child_config)
+        return child_config
 
     async def data_dict(
         self,
         session: async_scoped_session,
     ) -> dict:
-        """Get the data configuration
-        associated to a particular row
+        """Get the data configuration associated to a particular row
 
-        This will start with the data
-        configuration in the associated `SpecBlock`
-        and override it with with the data
-        configuration in the row
+        This will start with the data configuration in the associated
+        `SpecBlock` and override it with with the data configuration in the row
 
         Parameters
         ----------
@@ -360,21 +308,21 @@ class NodeMixin(RowMixin):
         data: dict
             Requested data configuration
         """
-        ret_dict = {}
-        if self.level == LevelEnum.script:
+        data = {}
+        if self.level is LevelEnum.script:
             parent_ = await self.get_parent(session)
             parent_data = await parent_.data_dict(session)
-            ret_dict.update(parent_data)
+            data.update(parent_data)
         elif self.level.value > LevelEnum.campaign.value:
             parent = await self.get_parent(session)
             parent_data = await parent.data_dict(session)
-            ret_dict.update(parent_data)
+            data.update(parent_data)
         spec_block = await self.get_spec_block(session)
         if spec_block.data:
-            ret_dict.update(spec_block.data)
+            data.update(spec_block.data)
         if self.data:
-            ret_dict.update(self.data)
-        return ret_dict
+            data.update(self.data)
+        return data
 
     async def get_spec_aliases(
         self,
@@ -396,7 +344,7 @@ class NodeMixin(RowMixin):
             Requested spec_aliases configuration
         """
         ret_dict = {}
-        if self.level == LevelEnum.script:
+        if self.level is LevelEnum.script:
             raise NotImplementedError
         if self.level.value > LevelEnum.campaign.value:
             parent = await self.get_parent(session)
@@ -414,8 +362,7 @@ class NodeMixin(RowMixin):
         session: async_scoped_session,
         **kwargs: Any,
     ) -> NodeMixin:
-        """Update the child configuration
-        associated to this Node
+        """Update the child configuration associated with this Node
 
         Parameters
         ----------
@@ -456,6 +403,8 @@ class NodeMixin(RowMixin):
     async def update_collections(
         self,
         session: async_scoped_session,
+        *,
+        force: bool = False,
         **kwargs: Any,
     ) -> NodeMixin:
         """Update the collection configuration associated with this Node
@@ -476,7 +425,7 @@ class NodeMixin(RowMixin):
         if not hasattr(self, "collections"):  # pragma: no cover
             raise CMBadExecutionMethodError(f"{self.fullname} does not have attribute collections")
 
-        if self.status.value >= StatusEnum.prepared.value:
+        if not force and self.status.value >= StatusEnum.prepared.value:
             raise CMBadStateTransitionError(
                 f"Tried to modify a node that is in use. {self.fullname}:{self.status}",
             )
@@ -538,12 +487,15 @@ class NodeMixin(RowMixin):
             raise CMIntegrityError(params=msg.params, orig=msg.orig, statement=msg.statement) from msg
         return self
 
-    async def update_data_dict(
+    async def update_metadata_dict(
         self,
         session: async_scoped_session,
         **kwargs: Any,
     ) -> NodeMixin:
-        """Update the data configuration associated with this Node
+        """Update the metadata configuration associated with this Node.
+
+        Updates to the metadata configuration are not subject to any state
+        constraints.
 
         Parameters
         ----------
@@ -557,15 +509,81 @@ class NodeMixin(RowMixin):
         -------
         node : NodeMixin
             Updated Node
+
+        Raises
+        ------
+        CMBadExecutionMethodError
+            If the node has no metadata attribute.
+
+        CMIntegrityError
+            If the metadata update operation cannot be completed because of a
+            database ``IntegrityError``.
+        """
+        if not hasattr(self, "metadata_"):  # pragma: no cover
+            raise CMBadExecutionMethodError(f"{self.fullname} does not have attribute data")
+
+        try:
+            async with session.begin_nested():
+                self.metadata_.update(**kwargs)
+        except IntegrityError as msg:
+            if TYPE_CHECKING:
+                assert msg.orig  # for mypy
+            await session.rollback()
+            raise CMIntegrityError(params=msg.params, orig=msg.orig, statement=msg.statement) from msg
+        return self
+
+    async def update_data_dict(
+        self,
+        session: async_scoped_session,
+        **kwargs: Any,
+    ) -> NodeMixin:
+        """Update the data configuration associated with this Node.
+
+        Existing keys cannot be updated while the Node is "in use" but new
+        keys may be added.
+
+        Parameters
+        ----------
+        session : async_scoped_session
+            DB session manager
+
+        kwargs: Any
+            Key-value pairs to update
+
+        Returns
+        -------
+        node : NodeMixin
+            Updated Node
+
+        Raises
+        ------
+        CMBadExecutionMethodError
+            If the node has no data attribute.
+
+        CMBadStateTransitionError
+            If the node is already evolved to a prepared or higher state, only
+            new keys may be added.
         """
         if not hasattr(self, "data"):  # pragma: no cover
             raise CMBadExecutionMethodError(f"{self.fullname} does not have attribute data")
 
-        if self.status.value >= StatusEnum.prepared.value:
+        # Separate kwargs between new and existing keys
+        # If only new keys are being added to the data dict, then we do not
+        # care that the node is "in use"
+        existing_keys = {k: v for k, v in kwargs.items() if k in self.data}
+
+        if all(
+            [
+                self.status.value >= StatusEnum.prepared.value,
+                len(existing_keys),
+            ]
+        ):
             raise CMBadStateTransitionError(
                 f"Tried to modify a node that is in use. {self.fullname}:{self.status}",
             )
 
+        # FIXME if the data field is Mutable, then it wouldn't be necessary to
+        # copy the whole data dictionary in order to update it.
         try:
             if self.data:
                 the_data = self.data.copy()
@@ -625,9 +643,15 @@ class NodeMixin(RowMixin):
             Node being rejected
         """
         if self.status in [StatusEnum.accepted, StatusEnum.rescued]:
-            raise CMBadStateTransitionError(f"Can not reject {self} as it is in status {self.status}")
+            raise CMBadStateTransitionError(
+                f"Can not reject {self.fullname} as it is in status {self.status}"
+            )
 
         await self.update_values(session, status=StatusEnum.rejected)
+        if self.level is LevelEnum.campaign:
+            if TYPE_CHECKING:
+                assert isinstance(self, Campaign)
+            await send_notification(for_status=StatusEnum.rejected, for_campaign=self)
         return self
 
     async def accept(
@@ -646,10 +670,22 @@ class NodeMixin(RowMixin):
         node: NodeMixin
             Node being accepted
         """
-        if self.status not in [StatusEnum.running, StatusEnum.reviewable, StatusEnum.rescuable]:
-            raise CMBadStateTransitionError(f"Can not accept {self} as it is in status {self.status}")
+        if self.status not in [
+            StatusEnum.blocked,
+            StatusEnum.running,
+            StatusEnum.reviewable,
+            StatusEnum.rescuable,
+        ]:
+            raise CMBadStateTransitionError(
+                f"Can not accept {self.fullname} as it is in status {self.status}"
+            )
 
         await self.update_values(session, status=StatusEnum.accepted)
+
+        if self.level is LevelEnum.campaign:
+            if TYPE_CHECKING:
+                assert isinstance(self, Campaign)
+            await send_notification(for_status=StatusEnum.accepted, for_campaign=self)
         return self
 
     async def reset(
@@ -673,8 +709,8 @@ class NodeMixin(RowMixin):
         node: NodeMixin
             Node being reset
         """
-        if self.status not in [StatusEnum.rejected, StatusEnum.failed, StatusEnum.ready]:
-            raise CMBadStateTransitionError(f"Can not reset {self} as it is in status {self.status}")
+        if self.status not in [StatusEnum.blocked, StatusEnum.rejected, StatusEnum.failed, StatusEnum.ready]:
+            raise CMBadStateTransitionError(f"Can not reset {self.fullname} as it is in status {self.status}")
 
         await self._clean_up_node(session, fake_reset=fake_reset)
         await self.update_values(session, status=StatusEnum.waiting, superseded=False)
@@ -773,6 +809,22 @@ class NodeMixin(RowMixin):
             Time to sleep in seconds
         """
         await session.refresh(self, attribute_names=["status"])
-        if self.status == StatusEnum.running:
+        if self.status is StatusEnum.running:
             minimum_sleep_time = max(config.daemon.processing_interval, minimum_sleep_time)
         return minimum_sleep_time
+
+    async def update_mtime(
+        self,
+        session: async_scoped_session,
+    ) -> None:
+        """Update the mtime attribute in an element's hierarchy."""
+        mtime = timestamp.element_time()
+        await self.update_metadata_dict(session, mtime=mtime)
+
+        parent_element: ElementMixin | None = await self.get_parent(session)
+        while parent_element is not None:
+            await parent_element.update_metadata_dict(session, mtime=mtime)
+            if parent_element.level.value > LevelEnum.campaign.value:
+                parent_element = await parent_element.get_parent(session)
+            else:
+                parent_element = None

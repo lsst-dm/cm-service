@@ -1,13 +1,11 @@
-Production:
-    name: LSSTCam-imSim_DRP-test-med-1
 Campaign:
-    name: MUST_OVERRIDE
-    spec_name: LSSTCam-imSim_DRP-test-med-1_panda
-    collections:
-        out: MUST_OVERRIDE
-        # campaign_input: 2.2i/defaults/test-med-1
-    data:
-        lsst_version: MUST_OVERRIDE
+  name: MUST_OVERRIDE
+  spec_name: LSSTCam-imSim_DRP-test-med-1_panda
+  collections:
+    out: MUST_OVERRIDE
+    # campaign_input: 2.2i/defaults/test-med-1
+  data:
+    lsst_version: MUST_OVERRIDE
 #       butler_repo: '/repo/dc2+sasquatch_dev'
 #       prod_area: /sdf/group/rubin/shared/campaigns/DC2-test-med-1/output/archive
 #       data_query:

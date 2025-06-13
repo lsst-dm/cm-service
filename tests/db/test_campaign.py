@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from lsst.cmservice import db
 from lsst.cmservice.common import errors
 from lsst.cmservice.common.enums import LevelEnum
-from lsst.cmservice.handlers import interface
+from lsst.cmservice.handlers import functions, interface
 
 from .util_functions import (
     check_get_methods,
@@ -41,7 +41,7 @@ async def test_campaign_db(engine: AsyncEngine) -> None:
         await create_tree(session, LevelEnum.step, uuid_int)
 
         # test the upsert mechanism
-        await interface.load_specification(session, f"{fixtures}/empty_config.yaml", allow_update=True)
+        _ = await functions.load_specification(session, f"{fixtures}/empty_config.yaml", allow_update=True)
 
         with pytest.raises(IntegrityError):
             await db.Campaign.create_row(

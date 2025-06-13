@@ -87,6 +87,7 @@ class StatusEnum(enum.Enum):
     one step at a time.
 
     Bad States, requires intervention:
+    blocked = -5  # The job is held or unready in the WMS
     failed = -4  # Processing failed
     rejected = -3  # Marked as rejected
     paused = -2 # processing is paused for some reason
@@ -119,17 +120,18 @@ class StatusEnum(enum.Enum):
     not apply to scripts, only Elements
     """
 
-    # note that ordering of these Enums matters within the
-    # code matters.
-    failed = -4
-    rejected = -3
+    # note that ordering of these Enums matters within the code matters.
+    overdue = -6
+    failed = -5
+    rejected = -4
+    blocked = -3
     paused = -2
     rescuable = -1  # Scripts are not rescuable
     waiting = 0
     ready = 1
     prepared = 2
     running = 3
-    # For scripts, status with value reater or equal to reviewable should be
+    # For scripts, status with value greater or equal to reviewable should be
     # considered a terminal state
     reviewable = 4
     # For elements states with value greater or equal to accepted should be
@@ -148,6 +150,24 @@ class StatusEnum(enum.Enum):
     def is_bad(self) -> bool:
         """Is this a failed state"""
         return self.value <= StatusEnum.rejected.value
+
+    def is_terminal_element(self) -> bool:
+        """Is this element in any terminal state"""
+        return any(
+            [
+                self.is_successful_element(),
+                self.is_bad(),
+            ]
+        )
+
+    def is_terminal_script(self) -> bool:
+        """Is this script in any terminal state"""
+        return any(
+            [
+                self.is_successful_script(),
+                self.is_bad(),
+            ]
+        )
 
     def is_processable_element(self) -> bool:
         """Is this a processable state for an elememnt"""

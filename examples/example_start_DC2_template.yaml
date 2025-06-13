@@ -1,15 +1,13 @@
-Production:
-    name: LSSTCam-imSim_DRP-test-med-1
 Campaign:
-    name: w_2024_28_DM-45212d
-    spec_name: LSSTCam-imSim_DRP-test-med-1_panda
-    collections:
-        out: 2.2i/runs/test-med-1/w_2024_28/DM-45212d
-        campaign_input: 2.2i/defaults/test-med-1
-        #campaign_source: 2.2i/defaults/test-med-1
-    data:
-        lsst_version: w_2024_28
-        prod_area: /sdf/group/rubin/shared/campaigns/DC2-test-med-1/output/archive
+  name: w_2024_28_DM-45212d
+  spec_name: LSSTCam-imSim_DRP-test-med-1_panda
+  collections:
+    out: 2.2i/runs/test-med-1/w_2024_28/DM-45212d
+    campaign_input: 2.2i/defaults/test-med-1
+    #campaign_source: 2.2i/defaults/test-med-1
+  data:
+    lsst_version: w_2024_28
+    prod_area: /sdf/group/rubin/shared/campaigns/DC2-test-med-1/output/archive
 #       butler_repo: '/repo/dc2+sasquatch_dev'
 #       data_query:
 #       bps_wms_clustering_file: "${DRP_PIPE_DIR}/bps/clustering/DRP-recalibrated.yaml"

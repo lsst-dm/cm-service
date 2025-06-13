@@ -1,18 +1,16 @@
-Production:
-    name: LSSTComCamSim_DRP
 Campaign:
-    name: MUST_OVERRIDE
-    spec_name: LSSTComCamSim_DRP_htcondor
-    collections:
-        out: MUST_OVERRIDE
-        # campaign_source: LSSTComCamSim/raw/test-or3-2
-        # campaign_ancillary_inputs:
-        #     - LSSTComCamSim/calib
-        #     - refcats
-        #     - skymaps
-    data:
-        lsst_version: MUST_OVERRIDE
-        prod_area: MUST_OVERRIDE
+  name: MUST_OVERRIDE
+  spec_name: LSSTComCamSim_DRP_htcondor
+  collections:
+    out: MUST_OVERRIDE
+    # campaign_source: LSSTComCamSim/raw/test-or3-2
+    # campaign_ancillary_inputs:
+    #     - LSSTComCamSim/calib
+    #     - refcats
+    #     - skymaps
+  data:
+    lsst_version: MUST_OVERRIDE
+    prod_area: MUST_OVERRIDE
 #           lsst_version: w_2024_22
 #           prod_area: 'output/archive'
 #           butler_repo: '/repo/ops-rehearsal-3-prep'

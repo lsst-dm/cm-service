@@ -7,7 +7,9 @@ between Steps and Scripts, respectively.
 In each case the 'prerequisite' Node must run before the 'dependent' Node
 """
 
-from pydantic import BaseModel, ConfigDict
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class DependencyBase(BaseModel):
@@ -15,8 +17,9 @@ class DependencyBase(BaseModel):
 
     # ForeignKey for the prerequiste
     prereq_id: int
-    # ForignKey for the dependency
+    # ForiegnKey for the dependency
     depend_id: int
+    namespace: UUID | None = Field(default=None)
 
 
 class DependencyCreate(DependencyBase):

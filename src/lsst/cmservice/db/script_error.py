@@ -23,10 +23,4 @@ class ScriptError(Base, RowMixin):
     col_names_for_table = ["id", "script_id", "source"]
 
     def __repr__(self) -> str:
-        s = f"Id={self.id} {self.script_id}\n"
-        if len(self.diagnostic_message) > 150:
-            diag_message = self.diagnostic_message[0:150]
-        else:
-            diag_message = self.diagnostic_message
-        s += f"    {diag_message}"
-        return s
+        return f"Id={self.id} {self.script_id}\n    {self.diagnostic_message:.150}"

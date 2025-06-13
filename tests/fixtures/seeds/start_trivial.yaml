@@ -1,11 +1,11 @@
 Campaign:
-    name: trivial_campaign
-    spec_name: trivial_panda
-    collections:
-        out: MUST_OVERRIDE
-        campaign_source: HSC/raw/RC2
-    data:
-        lsst_version: w_2024_38
-        prod_area: /tmp/trivial
-        butler_repo: '/repo/main'
-        data_query: "instrument = 'HSC' AND exposure in (30504, 30502) AND detector in (45, 46, 47, 48)"
+  name: trivial_campaign
+  spec_name: trivial_panda
+  collections:
+    out: u/nittest/run/today
+    campaign_source: HSC/raw/RC2
+  data:
+    lsst_version: w_2024_38
+    prod_area: /tmp/trivial
+    butler_repo: "/repo/main"
+    data_query: "instrument = 'HSC' AND exposure in (30504, 30502) AND detector in (45, 46, 47, 48)"

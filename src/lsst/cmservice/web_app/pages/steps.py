@@ -18,7 +18,7 @@ async def get_campaign_steps(session: async_scoped_session, campaign_id: int) ->
 async def get_step_details(session: async_scoped_session, step: Step) -> dict:
     step_groups = await step.children(session)
     no_groups = len(list(step_groups))
-    no_groups_completed = len([group for group in step_groups if group.status == StatusEnum.accepted])
+    no_groups_completed = len([group for group in step_groups if group.status is StatusEnum.accepted])
     no_groups_need_attention = len(
         [group for group in step_groups if map_status(group.status) == "NEED_ATTENTION"],
     )

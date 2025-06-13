@@ -6,7 +6,7 @@ being processed by daemons.
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from ..common.enums import LevelEnum
 
@@ -17,7 +17,9 @@ class QueueBase(BaseModel):
     # Interval between calls to process
     interval: float = 300.0
     # Options based to process
-    options: dict | str | None = None
+    options: dict | None = None
+    # Whether the queue is active or paused
+    active: bool = False
 
 
 class QueueCreate(QueueBase):
@@ -53,6 +55,8 @@ class Queue(QueueBase):
     node_id: int
     # Which type of node to add
     node_level: LevelEnum
+    # Mutable metadata dictionary for the queue
+    metadata_: dict
 
 
 class QueueUpdate(QueueBase):
@@ -63,8 +67,10 @@ class QueueUpdate(QueueBase):
     # Interval between calls to process
     interval: float = 300.0
     # Options based to process
-    options: dict | str | None = None
+    options: dict | None = None
     # Time last call to process finished
     time_updated: datetime | None = None
     # When processing of this element completed
     time_finished: datetime | None = None
+    # Mutable metadata dictionary for the queue
+    metadata_: dict = Field(default_factory=dict)

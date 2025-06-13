@@ -1,4 +1,3 @@
-# pylint: disable=too-many-lines
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import select
@@ -235,7 +234,7 @@ async def get_node_by_fullname(
     CMMissingFullnameError : No such element was found
     """
     node_type = get_node_type_by_fullname(fullname)
-    if node_type == NodeTypeEnum.element:
+    if node_type is NodeTypeEnum.element:
         return await get_element_by_fullname(session, fullname)
     result = await db.Script.get_row_by_fullname(session, fullname[7:])
     return result
@@ -347,9 +346,9 @@ async def process(
     CMBadExecutionMethodError: Called on the wrong type of table
     """
     node_type = get_node_type_by_fullname(fullname)
-    if node_type == NodeTypeEnum.element:
+    if node_type is NodeTypeEnum.element:
         return await process_element(session, fullname, fake_status=fake_status)
-    if node_type == NodeTypeEnum.script:
+    if node_type is NodeTypeEnum.script:
         return await process_script(session, fullname[7:], fake_status=fake_status)
     raise CMBadExecutionMethodError(
         f"Tried to process an row from a table of type {node_type}"
@@ -504,36 +503,6 @@ async def create_campaign(
     return result
 
 
-async def load_specification(
-    session: async_scoped_session,
-    yaml_file: str,
-    *,
-    allow_update: bool = False,
-) -> db.Specification:
-    """Load a Specification from a yaml file
-
-    Parameters
-    ----------
-    session : async_scoped_session
-        DB session manager
-
-    yaml_file: str,
-        Path to the yaml file
-
-    allow_update: bool
-        Allow updating existing items
-
-    Returns
-    -------
-    specification : `Specification`
-        Newly created `Specification`
-    """
-    result = await functions.load_specification(session, yaml_file, {}, allow_update=allow_update)
-    if result is None:  # pragma: no cover
-        raise ValueError("load_specification() did not return a Specification")
-    return result
-
-
 async def load_and_create_campaign(
     session: async_scoped_session,
     yaml_file: str,
@@ -563,7 +532,7 @@ async def load_and_create_campaign(
         Newly created `Campaign`
     """
     allow_update = kwargs.get("allow_update", False)
-    specification = await load_specification(session, yaml_file, allow_update=allow_update)
+    specification = await functions.load_specification(session, yaml_file, allow_update=allow_update)
 
     if not spec_block_assoc_name:  # pragma: no cover
         spec_block_assoc_name = f"{specification.name}#campaign"
@@ -573,12 +542,13 @@ async def load_and_create_campaign(
         name=name,
     )
 
-    result = await create_campaign(
+    campaign = await create_campaign(
         session,
         **kwargs,
     )
-    # await session.commit()
-    return result
+
+    await functions.render_campaign_steps(campaign=campaign, session=session)
+    return campaign
 
 
 async def add_steps(

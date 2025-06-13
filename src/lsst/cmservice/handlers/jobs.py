@@ -26,6 +26,7 @@ from ..common.errors import (
     test_type_and_raise,
 )
 from ..common.logging import LOGGER
+from ..common.notification import send_notification
 from ..config import config
 from ..db.element import ElementMixin
 from ..db.job import Job
@@ -80,7 +81,7 @@ class BpsScriptHandler(ScriptHandler):
         try:
             prod_area = os.path.expandvars(data_dict["prod_area"])
             butler_repo = os.path.expandvars(data_dict["butler_repo"])
-            lsst_version = os.path.expandvars(data_dict["lsst_version"])
+            lsst_version = os.path.expandvars(data_dict.get("lsst_version", "w_latest"))
             lsst_distrib_dir = os.path.expandvars(data_dict["lsst_distrib_dir"])
             pipeline_yaml = os.path.expandvars(data_dict["pipeline_yaml"])
             run_coll = resolved_cols["run"]
@@ -91,16 +92,28 @@ class BpsScriptHandler(ScriptHandler):
         # workflow_config is the values dictionary to use while rendering a
         # yaml template, NOT the yaml template itself!
         workflow_config: dict[str, Any] = {}
-        workflow_config["project"] = "DEFAULT"
-        workflow_config["campaign"] = parent.c_.name
+        workflow_config["ticket"] = data_dict.get("ticket", None)
+        workflow_config["project"] = data_dict.get("project", "DEFAULT")
+        workflow_config["campaign"] = data_dict.get("campaign", parent.c_.name)
+        workflow_config["description"] = data_dict.get("description", None)
         workflow_config["pipeline_yaml"] = pipeline_yaml
         workflow_config["lsst_version"] = lsst_version
         workflow_config["lsst_distrib_dir"] = lsst_distrib_dir
         workflow_config["wms"] = self.wms_method.name
+        # TODO can we lookup any kind of default compute_site specblock by
+        #      a non-namespaced name?
+        workflow_config["compute_site"] = data_dict.get("compute_site", None)
         workflow_config["script_method"] = script.run_method.name
-        workflow_config["compute_site"] = data_dict.get("compute_site", self.default_compute_site.name)
-        workflow_config["custom_lsst_setup"] = data_dict.get("custom_lsst_setup", None)
+        workflow_config["clustering"] = data_dict.get("cluster", None)
         workflow_config["extra_qgraph_options"] = data_dict.get("extra_qgraph_options", None)
+        workflow_config["extra_run_quantum_options"] = data_dict.get("extra_run_quantum_options", None)
+        workflow_config["bps_environment"] = data_dict.get("bps_environment", None)
+        workflow_config["bps_literals"] = data_dict.get("bps_literals", {})
+        # Script Phases - Do not use with BPS YAML
+        workflow_config["prepend"] = data_dict.get("prepend", None)
+        workflow_config["custom_lsst_setup"] = data_dict.get("custom_lsst_setup", None)
+        workflow_config["custom_wms_setup"] = data_dict.get("custom_wms_setup", None)
+        workflow_config["append"] = data_dict.get("append", None)
 
         # Get the output file paths
         script_url = await self._set_script_files(session, script, prod_area)
@@ -111,7 +124,7 @@ class BpsScriptHandler(ScriptHandler):
         log_url = await Path(os.path.expandvars(f"{prod_area}/{script.fullname}.log")).resolve()
         config_path = await Path(config_url).resolve()
         submit_path = await Path(f"{prod_area}/{parent.fullname}/submit").resolve()
-        workflow_config["submit_path"] = str(submit_path)
+        workflow_config["submit_path"] = f"{submit_path}/{{timestamp}}"
 
         try:
             await run_in_threadpool(shutil.rmtree, submit_path)
@@ -125,13 +138,17 @@ class BpsScriptHandler(ScriptHandler):
         #       is this meant to be `config_url` instead?
         await Path(script_url).parent.mkdir(parents=True, exist_ok=True)
 
-        workflow_config["extra_yaml_literals"] = []
+        workflow_config["bps_variables"] = data_dict.get("bps_variables", [])
         include_configs = []
 
         # FIXME `bps_wms_*_file` should be added to the generic list of
         # `bps_wms_extra_files` instead of being specific keywords. The only
         # reason they are kept separate is to support overrides of their
         # specific role
+        # FIXME there shouldn't be any INCLUDES in a BPS submit YAML at all
+        #       unless they are unique to the submission and separated for
+        #       readability. The use of any kind of "shared" or "global" config
+        #       items breaks provenance for all campaigns that reference them.
         bps_wms_extra_files = data_dict.get("bps_wms_extra_files", [])
         bps_wms_clustering_file = data_dict.get("bps_wms_clustering_file", None)
         bps_wms_resources_file = data_dict.get("bps_wms_resources_file", None)
@@ -154,15 +171,18 @@ class BpsScriptHandler(ScriptHandler):
                     continue
 
                 # Otherwise, instead of including it we should render it out
-                # because it's a path we understand but the bps runtime won't
-                to_include_ = await Path(to_include_).resolve()
-
+                # in case it's a path we understand but the bps runtime won't,
+                # but still defer to bps if we fail to locate the file
                 try:
-                    include_yaml_ = yaml.dump(yaml.safe_load(await to_include_.read_text()))
-                    workflow_config["extra_yaml_literals"].append(include_yaml_)
+                    include_file = await Path(to_include_).resolve()
+                    include_yaml_ = yaml.dump(yaml.safe_load(await include_file.read_text()))
+                    workflow_config["bps_variables"].append(include_yaml_)
                 except yaml.YAMLError:
                     logger.exception()
                     raise
+                except FileNotFoundError:
+                    logger.warning("Include file not found, deferring to bps", include_file=to_include_)
+                    include_configs.append(str(to_include_))
 
         workflow_config["include_configs"] = include_configs
 
@@ -171,12 +191,27 @@ class BpsScriptHandler(ScriptHandler):
         else:
             in_collection = input_colls
 
+        # find the name of the script's STEP parent if it has one
+        output_coll = script.fullname
+        current_ancestor: ElementMixin = parent
+        while current_ancestor.level.value >= LevelEnum.campaign.value:
+            if current_ancestor.level is LevelEnum.step:
+                output_coll = current_ancestor.fullname
+                break
+            elif current_ancestor.level is LevelEnum.campaign:
+                break
+            else:
+                current_ancestor = current_ancestor.parent_
+
+        # It is important that the payload key names match the names of payload
+        # directives supported by bps
         payload = {
-            "name": parent.c_.name,
-            "butler_config": butler_repo,
-            "output_run_collection": run_coll,
-            "input_collection": in_collection,
-            "data_query": data_dict.get("data_query", None),
+            "payloadName": parent.c_.name,
+            "butlerConfig": butler_repo,
+            "output": "u/{operator}/" + output_coll,
+            "outputRun": run_coll,
+            "inCollection": in_collection,
+            "dataQuery": data_dict.get("data_query", None),
         }
         if data_dict.get("rescue", False):  # pragma: no cover
             skip_colls = data_dict.get("skip_colls", "")
@@ -186,6 +221,7 @@ class BpsScriptHandler(ScriptHandler):
 
         # Get the yaml template using package lookup
         config_template_environment = Environment(loader=PackageLoader("lsst.cmservice"))
+        config_template_environment.filters["toyaml"] = yaml.dump
         config_template = config_template_environment.get_template("bps_submit_yaml.j2")
         try:
             # Render bps_submit_yaml template to `config_url`
@@ -233,6 +269,8 @@ class BpsScriptHandler(ScriptHandler):
         parent: ElementMixin,
         fake_status: StatusEnum | None = None,
     ) -> StatusEnum:
+        if TYPE_CHECKING:
+            assert script.log_url is not None
         fake_status = fake_status or config.mock_status
         htcondor_status = await ScriptHandler._check_htcondor_job(
             self,
@@ -242,15 +280,24 @@ class BpsScriptHandler(ScriptHandler):
             parent,
             fake_status,
         )
+
+        # Irrespective of status, if the bps stdout log file exists, try to
+        # parse it for valuable information
+        # FIXME is this appropriate? maybe it should only be for terminal state
+        bps_submit_dir: str | None
+        if fake_status is not None:
+            wms_job_id = "fake_job"
+            bps_submit_dir = "fake_path"
+        elif await Path(script.log_url).exists():
+            bps_dict = await parse_bps_stdout(script.log_url)
+            bps_submit_dir = self.get_bps_submit_dir(bps_dict)
+            wms_job_id = self.get_job_id(bps_dict)
+
+        if bps_submit_dir is not None:
+            await parent.update_metadata_dict(session, bps_submit_dir=bps_submit_dir)
+
         if htcondor_status in [StatusEnum.reviewable, StatusEnum.accepted]:
             await script.update_values(session, status=htcondor_status)
-            if fake_status is not None:
-                wms_job_id = "fake_job"
-            else:  # pragma: no cover
-                if TYPE_CHECKING:
-                    assert script.log_url is not None
-                bps_dict = await parse_bps_stdout(script.log_url)
-                wms_job_id = self.get_job_id(bps_dict)
             await parent.update_values(session, wms_job_id=wms_job_id)
         return htcondor_status
 
@@ -264,10 +311,21 @@ class BpsScriptHandler(ScriptHandler):
         test_type_and_raise(parent, Job, "BpsScriptHandler parent")
         status = await ScriptHandler.launch(self, session, script, parent, **kwargs)
         await parent.update_values(session, stamp_url=script.stamp_url)
+        if (status.value >= StatusEnum.running.value) and (await script.data_dict(session)).get(
+            "notify_on_start", False
+        ):
+            campaign = await script.get_campaign(session)
+            await send_notification(
+                for_status=status, for_campaign=campaign, for_job=script, detail=script.log_url
+            )
         return status
 
     @classmethod
     def get_job_id(cls, bps_dict: dict) -> str:
+        raise NotImplementedError
+
+    @classmethod
+    def get_bps_submit_dir(cls, bps_dict: dict) -> str | None:
         raise NotImplementedError
 
     async def _reset_script(
@@ -281,19 +339,17 @@ class BpsScriptHandler(ScriptHandler):
         update_fields = await ScriptHandler._reset_script(
             self, session, script, to_status, fake_reset=fake_reset
         )
-        if to_status == StatusEnum.prepared:
+        if to_status is StatusEnum.prepared:
             return update_fields
         if script.script_url is None:  # pragma: no cover
             return update_fields
-        json_url = script.script_url.replace(".sh", "_log.json")
-        config_url = script.script_url.replace(".sh", "_bps_config.yaml")
-        submit_path = script.script_url.replace(
-            os.path.basename(script.script_url),
-            "/submit",
-        )
+        script_url = Path(script.script_url)
+        json_url = script_url.with_stem(f"{script_url.stem}_log").with_suffix(".json")
+        config_url = script_url.with_stem(f"{script_url.stem}_bps_config").with_suffix(".yaml")
+        submit_path = script_url.parent / "submit"
 
-        await Path(json_url).unlink(missing_ok=True)
-        await Path(config_url).unlink(missing_ok=True)
+        await json_url.unlink(missing_ok=True)
+        await config_url.unlink(missing_ok=True)
         try:
             await run_in_threadpool(shutil.rmtree, submit_path)
         except FileNotFoundError:  # pragma: no cover
@@ -390,8 +446,7 @@ class BpsReportHandler(FunctionHandler):
             wms_run_report: WmsRunReport | None
 
         try:
-            # FIXME: Why does wms_workflow_id need to be stripped?
-            wms_svc_report = partial(wms_svc.report, wms_workflow_id=wms_workflow_id.strip())
+            wms_svc_report = partial(wms_svc.report, wms_workflow_id=wms_workflow_id)
             run_reports, message = await to_thread.run_sync(wms_svc_report)
             logger.debug(message)
             wms_run_report = run_reports[0]
@@ -435,6 +490,9 @@ class BpsReportHandler(FunctionHandler):
         status = await self._load_wms_reports(session, parent, parent.wms_job_id, fake_status=fake_status)
         status = script.status if status is None else status
         await script.update_values(session, status=status)
+        if status is not script.status:
+            campaign = await script.get_campaign(session)
+            await send_notification(for_status=status, for_campaign=campaign, for_job=parent)
         return status
 
     async def _reset_script(
@@ -470,6 +528,10 @@ class PandaScriptHandler(BpsScriptHandler):
     def get_job_id(cls, bps_dict: dict) -> str:
         return bps_dict["Run Id"]
 
+    @classmethod
+    def get_bps_submit_dir(cls, bps_dict: dict) -> str | None:
+        return bps_dict.get("Submit dir", None)
+
 
 class HTCondorScriptHandler(BpsScriptHandler):
     """Class to handle running Bps for ht_condor jobs"""
@@ -479,6 +541,10 @@ class HTCondorScriptHandler(BpsScriptHandler):
     @classmethod
     def get_job_id(cls, bps_dict: dict) -> str:
         return bps_dict["Submit dir"]
+
+    @classmethod
+    def get_bps_submit_dir(cls, bps_dict: dict) -> str | None:
+        return bps_dict.get("Submit dir", None)
 
 
 class PandaReportHandler(BpsReportHandler):
@@ -503,16 +569,33 @@ class ManifestReportScriptHandler(ScriptHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
-        resolved_cols = await script.resolve_collections(session)
+        if TYPE_CHECKING:
+            assert isinstance(parent, Job)
         data_dict = await script.data_dict(session)
-        prod_area = os.path.expandvars(data_dict["prod_area"])
+        prod_area = await Path(os.path.expandvars(data_dict["prod_area"])).resolve()
+        resolved_cols = await script.resolve_collections(session)
         script_url = await self._set_script_files(session, script, prod_area)
         butler_repo = data_dict["butler_repo"]
         job_run_coll = resolved_cols["job_run"]
         qgraph_file = f"{job_run_coll}.qgraph".replace("/", "_")
+        # FIXME the report_url should be UPDATED in the parent metadata
+        report_url = prod_area / parent.fullname / "manifest_report.yaml"
 
-        graph_url = await Path(f"{prod_area}/{parent.fullname}/submit/{qgraph_file}").resolve()
-        report_url = await Path(f"{prod_area}/{parent.fullname}/submit/manifest_report.yaml").resolve()
+        # FIXME the paths to the submit directories must be resolved from the
+        # script's data. The fallback to a constructed submit dir is not a good
+        # approach because there are ways for the parent's data_dict to be out-
+        # of-date, as only a bps submit "check" operation is capable of
+        # updating this data, and it might not run successfully.
+        if (bps_submit_dir := parent.metadata_.get("bps_submit_dir")) is not None:
+            graph_url = await (Path(bps_submit_dir) / qgraph_file).resolve()
+        else:
+            graph_url = prod_area / parent.fullname / "submit" / qgraph_file
+
+        # FIXME quick check for the presence of the referenced graph_url, if
+        #       it is not present, enter a failed or blocked state. This is not
+        #       supported by tests.
+        if not (await graph_url.exists()):
+            logger.error("Graph URL not found", script=script.fullname, path=str(graph_url))
 
         template_values = {
             "script_method": script.run_method.name,
@@ -524,6 +607,7 @@ class ManifestReportScriptHandler(ScriptHandler):
         )
         await write_bash_script(script_url, command, values=template_values)
 
+        _ = await parent.update_metadata_dict(session, report_url=str(report_url), graph_url=str(graph_url))
         return StatusEnum.prepared
 
 
@@ -537,13 +621,24 @@ class ManifestReportLoadHandler(FunctionHandler):
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
+        if TYPE_CHECKING:
+            assert isinstance(parent, Job)
         data_dict = await script.data_dict(session)
-        prod_area = os.path.expandvars(data_dict["prod_area"])
-        report_url = os.path.expandvars(f"{prod_area}/{parent.fullname}/submit/manifest_report.yaml")
+        prod_area = await Path(os.path.expandvars(data_dict["prod_area"])).resolve()
+
+        report_url = parent.metadata_.get("report_url") or (
+            prod_area / parent.fullname / "manifest_report.yaml"
+        )
+
+        # FIXME quick check for the presence of the referenced report_url, if
+        #       it is not present, enter a failed or blocked state. This is not
+        #       supported by tests.
+        if not (await Path(report_url).exists()):
+            logger.error("Report URL not found", script=script.fullname, path=str(report_url))
 
         await script.update_values(
             session,
-            stamp_url=report_url,
+            stamp_url=str(report_url),
         )
         return StatusEnum.prepared
 

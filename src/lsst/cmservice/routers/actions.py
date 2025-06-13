@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException
 from safir.dependencies.db_session import db_session_dependency
 from sqlalchemy.ext.asyncio import async_scoped_session
@@ -15,12 +17,11 @@ router = APIRouter(
 @router.post(
     "/process",
     status_code=201,
-    response_model=tuple[bool, StatusEnum],
     summary="Process a Node",
 )
 async def process(
     query: models.ProcessNodeQuery,
-    session: async_scoped_session = Depends(db_session_dependency),
+    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
 ) -> tuple[bool, StatusEnum]:
     """Invoke the interface.process function"""
     params = query.model_dump()
@@ -42,7 +43,7 @@ async def process(
 )
 async def reset_script(
     query: models.ResetScriptQuery,
-    session: async_scoped_session = Depends(db_session_dependency),
+    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
 ) -> db.Script:
     """Invoke the interface.reset_script function"""
     params = query.model_dump()
@@ -62,7 +63,7 @@ async def reset_script(
 )
 async def rescue_job(
     query: models.NodeQuery,
-    session: async_scoped_session = Depends(db_session_dependency),
+    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
 ) -> db.Job:
     """Invoke the interface.rescue_job function"""
     params = query.model_dump()
@@ -82,7 +83,7 @@ async def rescue_job(
 )
 async def mark_job_rescued(
     query: models.NodeQuery,
-    session: async_scoped_session = Depends(db_session_dependency),
+    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
 ) -> list[db.Job]:
     """Invoke the interface.mark_job_rescued function"""
     params = query.model_dump()
@@ -102,7 +103,7 @@ async def mark_job_rescued(
 )
 async def rematch_pipetask_errors(
     query: models.RematchQuery,
-    session: async_scoped_session = Depends(db_session_dependency),
+    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
 ) -> list[db.PipetaskError]:
     """Invoke the interface.match_pipetask_errors function"""
     params = query.model_dump()

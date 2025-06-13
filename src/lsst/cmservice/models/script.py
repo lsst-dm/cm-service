@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from ..common.enums import LevelEnum, ScriptMethodEnum, StatusEnum
 
@@ -10,12 +10,11 @@ class ScriptBase(BaseModel):
     name: str
     # Attempt number from this script
     attempt: int = 0
-    # Method used to process this script
-    # method: ScriptMethodEnum | None = None
     # Override for Callback handler class
     handler: str | None = None
     # Parameter Overrides
-    data: dict | None = None
+    data: dict = Field(default_factory=dict)
+    metadata_: dict = Field(default_factory=dict)
     # Overrides for configuring child nodes
     child_config: dict | None = None
     # Overrides for making collection names
@@ -70,7 +69,7 @@ class Script(ScriptBase):
     superseded: bool = False
 
 
-class ScriptUpdate(ScriptBase):
+class ScriptUpdate(BaseModel):
     """Parameters that can be udpated"""
 
     model_config = ConfigDict(from_attributes=True)
@@ -81,6 +80,7 @@ class ScriptUpdate(ScriptBase):
     handler: str | None = None
     # Parameter Overrides
     data: dict | None = None
+    metadata_: dict | None = None
     # Overrides for configuring child nodes
     child_config: dict | None = None
     # Overrides for making collection names
