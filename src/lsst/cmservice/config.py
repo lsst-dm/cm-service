@@ -461,6 +461,11 @@ class AsgiConfiguration(BaseModel):
         default="/cm-service",
     )
 
+    enable_frontend: bool = Field(
+        description="Whether to run the frontend web app",
+        default=True,
+    )
+
     frontend_prefix: str = Field(
         description="The URL prefix for the frontend web app",
         default="/web_app",
