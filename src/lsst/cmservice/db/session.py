@@ -3,7 +3,7 @@
 from collections.abc import AsyncGenerator
 
 # from pydantic import SecretStr  #noqa: ERA001
-from sqlalchemy import make_url
+from sqlalchemy import URL, make_url
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -18,45 +18,40 @@ class DatabaseSessionDependency:
     async session is yielded.
     """
 
+    engine: AsyncEngine | None
+    sessionmaker: async_sessionmaker[AsyncSession] | None
+    url: URL
+
     def __init__(self) -> None:
-        self.engine: AsyncEngine | None = None
-        self.sessionmaker: async_sessionmaker[AsyncSession] | None = None
+        self.engine = None
+        self.sessionmaker = None
 
     async def initialize(
         self,
         *,
-        isolation_level: str | None = None,
         use_async: bool = True,
-        echo: bool = False,
     ) -> None:
         """Initialize the session dependency.
 
         Parameters
         ----------
-        url
-            Database connection URL, not including the password.
-        password
-            Database connection password.
-        isolation_level
-            If specified, sets a non-default isolation level for the database
-            engine.
         use_async
             If true (default), the database drivername will be forced to an
             async form.
         """
         if isinstance(config.db.url, str):
-            url = make_url(config.db.url)
-        if use_async and url.drivername == "postgresql":
-            url = url.set(drivername="postgresql+asyncpg")
+            self.url = make_url(config.db.url)
+        if use_async and self.url.drivername == "postgresql":
+            self.url = self.url.set(drivername="postgresql+asyncpg")
         # FIXME use SecretStr for password
         # if isinstance(config.db.password, SecretStr):
         #     password = config.db.password.get_secret_value()  #noqa: ERA001
         if config.db.password is not None:
-            url = url.set(password=config.db.password)
+            self.url = self.url.set(password=config.db.password)
         if self.engine:
             await self.engine.dispose()
         self.engine = create_async_engine(
-            url=url,
+            url=self.url,
             echo=config.db.echo,
             # TODO add pool-level configs
         )
