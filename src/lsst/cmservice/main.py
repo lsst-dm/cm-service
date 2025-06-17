@@ -124,7 +124,8 @@ app.include_router(index.router, prefix="")
 app.include_router(v1.router, prefix=config.asgi.prefix)
 
 # Start the frontend web application.
-app.mount(config.asgi.frontend_prefix, web_app)
+if config.asgi.enable_frontend:
+    app.mount(config.asgi.frontend_prefix, web_app)
 
 
 if __name__ == "__main__":
