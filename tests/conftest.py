@@ -1,3 +1,4 @@
+import importlib
 from collections.abc import AsyncIterator, Iterator
 from typing import Any
 
@@ -12,7 +13,7 @@ from safir.database import create_database_engine, initialize_database
 from safir.testing.uvicorn import UvicornProcess, spawn_uvicorn
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from lsst.cmservice import db, main
+from lsst.cmservice import db
 from lsst.cmservice.common.enums import ScriptMethodEnum
 from lsst.cmservice.config import config as config_
 
@@ -23,6 +24,8 @@ def set_app_config(monkeypatch: Any) -> None:
     config_.script_handler = ScriptMethodEnum.bash
 
 
+# FIXME this fixture should be refactored not to use unnecessary safir helper
+#       functions, as all this functionality already exists without it.
 @pytest_asyncio.fixture(name="engine")
 async def engine_fixture() -> AsyncIterator[AsyncEngine]:
     """Return a SQLAlchemy AsyncEngine configured to talk to the app db."""
@@ -40,8 +43,10 @@ async def app_fixture() -> AsyncIterator[FastAPI]:
     Wraps the application in a lifespan manager so that startup and shutdown
     events are sent during test execution.
     """
-    async with LifespanManager(main.app):
-        yield main.app
+    main_ = importlib.import_module("lsst.cmservice.main")
+    app: FastAPI = getattr(main_, "app")
+    async with LifespanManager(app):
+        yield app
 
 
 @pytest_asyncio.fixture(name="client")
@@ -51,6 +56,8 @@ async def client_fixture(app: FastAPI) -> AsyncIterator[AsyncClient]:
         yield the_client
 
 
+# FIXME this fixture should be replaced by patching the CLIRunner's httpx
+#       client (see client_fixture)
 @pytest_asyncio.fixture(name="uvicorn")
 async def uvicorn_fixture(tmp_path_factory: TempPathFactory) -> AsyncIterator[UvicornProcess]:
     """Spawn and return a uvicorn process hosting the test app."""
