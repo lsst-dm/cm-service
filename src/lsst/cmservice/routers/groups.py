@@ -18,14 +18,12 @@ CreateModelClass = models.GroupCreate
 UpdateModelClass = models.GroupUpdate
 # Specify the associated database table
 DbClass = db.Group
-# Specify the tag in the router documentation
-TAG_STRING = "Groups"
 
 
 # Build the router
 router = APIRouter(
     prefix=f"/{DbClass.class_string}",
-    tags=[TAG_STRING],
+    tags=["groups"],
 )
 
 

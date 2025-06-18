@@ -22,14 +22,12 @@ CreateModelClass = models.QueueCreate
 UpdateModelClass = models.QueueUpdate
 # Specify the associated database table
 DbClass = db.Queue
-# Specify the tag in the router documentation
-TAG_STRING = "Queues"
 
 
 # Build the router
 router = APIRouter(
     prefix=f"/{DbClass.class_string}",
-    tags=[TAG_STRING],
+    tags=["queues"],
 )
 
 

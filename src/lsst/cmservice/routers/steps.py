@@ -14,14 +14,12 @@ CreateModelClass = models.StepCreate
 UpdateModelClass = models.StepUpdate
 # Specify the associated database table
 DbClass = db.Step
-# Specify the tag in the router documentation
-TAG_STRING = "Steps"
 
 
 # Build the router
 router = APIRouter(
     prefix=f"/{DbClass.class_string}",
-    tags=[TAG_STRING],
+    tags=["steps"],
 )
 
 

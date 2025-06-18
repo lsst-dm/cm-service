@@ -14,14 +14,12 @@ CreateModelClass = models.ProductSetCreate
 UpdateModelClass = models.ProductSetUpdate
 # Specify the associated database table
 DbClass = db.ProductSet
-# Specify the tag in the router documentation
-TAG_STRING = "Product Sets"
 
 
 # Build the router
 router = APIRouter(
     prefix=f"/{DbClass.class_string}",
-    tags=[TAG_STRING],
+    tags=["product sets"],
 )
 
 

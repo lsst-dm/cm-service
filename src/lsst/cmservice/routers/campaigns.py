@@ -29,14 +29,12 @@ CreateModelClass = models.CampaignCreate
 UpdateModelClass = models.CampaignUpdate
 # Specify the associated database table
 DbClass = db.Campaign
-# Specify the tag in the router documentation
-TAG_STRING = "Campaigns"
 
 
 # Build the router
 router = APIRouter(
     prefix=f"/{DbClass.class_string}",
-    tags=[TAG_STRING],
+    tags=["campaigns"],
 )
 
 # Attach functions to the router
