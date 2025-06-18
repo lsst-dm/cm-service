@@ -2,9 +2,9 @@
 
 from collections.abc import AsyncGenerator
 
-# from pydantic import SecretStr  #noqa: ERA001
 from sqlalchemy import URL, make_url
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import AsyncAdaptedQueuePool, Pool
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ..config import config
@@ -21,6 +21,7 @@ class DatabaseSessionDependency:
     engine: AsyncEngine | None
     sessionmaker: async_sessionmaker[AsyncSession] | None
     url: URL
+    pool_class: type[Pool] = AsyncAdaptedQueuePool
 
     def __init__(self) -> None:
         self.engine = None
@@ -39,21 +40,23 @@ class DatabaseSessionDependency:
             If true (default), the database drivername will be forced to an
             async form.
         """
+        await self.aclose()
         if isinstance(config.db.url, str):
             self.url = make_url(config.db.url)
         if use_async and self.url.drivername == "postgresql":
             self.url = self.url.set(drivername="postgresql+asyncpg")
-        # FIXME use SecretStr for password
-        # if isinstance(config.db.password, SecretStr):
-        #     password = config.db.password.get_secret_value()  #noqa: ERA001
         if config.db.password is not None:
-            self.url = self.url.set(password=config.db.password)
-        if self.engine:
-            await self.engine.dispose()
+            self.url = self.url.set(password=config.db.password.get_secret_value())
+        pool_kwargs = (
+            config.db.model_dump(include=config.db.pool_fields)
+            if self.pool_class is AsyncAdaptedQueuePool
+            else {}
+        )
         self.engine = create_async_engine(
             url=self.url,
             echo=config.db.echo,
-            # TODO add pool-level configs
+            poolclass=self.pool_class,
+            **pool_kwargs,
         )
         self.sessionmaker = async_sessionmaker(self.engine, class_=AsyncSession, expire_on_commit=False)
 
@@ -76,7 +79,7 @@ class DatabaseSessionDependency:
         if self.engine:
             self.sessionmaker = None
             await self.engine.dispose()
-            self._engine = None
+            self.engine = None
 
 
 db_session_dependency = DatabaseSessionDependency()
