@@ -14,14 +14,12 @@ CreateModelClass = models.WmsTaskReportCreate
 UpdateModelClass = models.WmsTaskReportUpdate
 # Specify the associated database table
 DbClass = db.WmsTaskReport
-# Specify the tag in the router documentation
-TAG_STRING = "Wms Task Reports"
 
 
 # Build the router
 router = APIRouter(
     prefix=f"/{DbClass.class_string}",
-    tags=[TAG_STRING],
+    tags=["wms task reports"],
 )
 
 

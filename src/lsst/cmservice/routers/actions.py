@@ -10,7 +10,7 @@ from ..handlers import interface
 
 router = APIRouter(
     prefix="/actions",
-    tags=["Actions"],
+    tags=["actions"],
 )
 
 

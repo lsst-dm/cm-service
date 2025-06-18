@@ -14,14 +14,12 @@ CreateModelClass = models.PipetaskErrorCreate
 UpdateModelClass = models.PipetaskErrorUpdate
 # Specify the associated database table
 DbClass = db.PipetaskError
-# Specify the tag in the router documentation
-TAG_STRING = "Pipetask Errors"
 
 
 # Build the router
 router = APIRouter(
     prefix=f"/{DbClass.class_string}",
-    tags=[TAG_STRING],
+    tags=["pipetask errors"],
 )
 
 
