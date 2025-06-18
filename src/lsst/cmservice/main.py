@@ -15,6 +15,7 @@ from .routers import (
     index,
     tags_metadata,
     v1,
+    v2,
 )
 from .web_app import web_app
 
@@ -53,6 +54,7 @@ app.add_middleware(XForwardedMiddleware)
 app.include_router(healthz.health_router, prefix="")
 app.include_router(index.router, prefix="")
 app.include_router(v1.router, prefix=config.asgi.prefix)
+app.include_router(v2.router, prefix=config.asgi.prefix)
 
 # Start the frontend web application.
 if config.asgi.enable_frontend:

@@ -12,6 +12,7 @@ name: "CI"
 
 env:
   UV_FROZEN: "1"
+  TEST__LOCAL_DB: "1"  # signals test fixtures to not use testcontainers
 
 jobs:
   rebase-checker:

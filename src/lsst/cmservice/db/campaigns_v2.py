@@ -69,6 +69,10 @@ or a value.
 """
 
 
+type StatusField = Annotated[StatusEnum, StatusEnumValidator, EnumSerializer]
+type KindField = Annotated[ManifestKind, ManifestKindEnumValidator, EnumSerializer]
+
+
 class BaseSQLModel(SQLModel):
     __table_args__ = {"schema": config.db.table_schema}
 
@@ -80,7 +84,7 @@ class CampaignBase(BaseSQLModel):
     name: str
     namespace: UUID
     owner: str | None = Field(default=None)
-    status: Annotated[StatusEnum, StatusEnumValidator, EnumSerializer] | None = Field(
+    status: StatusField | None = Field(
         default=StatusEnum.waiting,
         sa_column=Column("status", Enum(StatusEnum, length=20, native_enum=False, create_constraint=False)),
     )
@@ -115,6 +119,15 @@ class Campaign(CampaignModel, table=True):
     machine: UUID | None
 
 
+class CampaignUpdate(SQLModel):
+    """Model representing updatable fields for a PATCH operation on a Campaign
+    using RFC7396.
+    """
+
+    owner: str | None = None
+    status: StatusField | None = None
+
+
 class NodeBase(BaseSQLModel):
     """nodes_v2 db table"""
 
@@ -122,11 +135,11 @@ class NodeBase(BaseSQLModel):
     name: str
     namespace: UUID
     version: int
-    kind: Annotated[ManifestKind, ManifestKindEnumValidator, EnumSerializer] = Field(
+    kind: KindField = Field(
         default=ManifestKind.other,
         sa_column=Column("kind", Enum(ManifestKind, length=20, native_enum=False, create_constraint=False)),
     )
-    status: Annotated[StatusEnum, StatusEnumValidator, EnumSerializer] | None = Field(
+    status: StatusField | None = Field(
         default=StatusEnum.waiting,
         sa_column=Column("status", Enum(StatusEnum, length=20, native_enum=False, create_constraint=False)),
     )
@@ -209,7 +222,7 @@ class ManifestBase(BaseSQLModel):
     name: str
     version: int
     namespace: UUID
-    kind: Annotated[ManifestKind, EnumSerializer] = Field(
+    kind: KindField = Field(
         default=ManifestKind.other,
         sa_column=Column("kind", Enum(ManifestKind, length=20, native_enum=False, create_constraint=False)),
     )
@@ -255,10 +268,10 @@ class Task(SQLModel, table=True):
     site_affinity: list[str] = Field(
         sa_column=Column("site_affinity", MutableList.as_mutable(postgresql.ARRAY(String())))
     )
-    status: Annotated[StatusEnum, StatusEnumValidator, EnumSerializer] = Field(
+    status: StatusField = Field(
         sa_column=Column("status", Enum(StatusEnum, length=20, native_enum=False, create_constraint=False)),
     )
-    previous_status: Annotated[StatusEnum, StatusEnumValidator, EnumSerializer] = Field(
+    previous_status: StatusField = Field(
         sa_column=Column(
             "previous_status", Enum(StatusEnum, length=20, native_enum=False, create_constraint=False)
         ),
@@ -270,8 +283,16 @@ class ActivityLogBase(BaseSQLModel):
     namespace: UUID
     node: UUID
     operator: str
-    from_status: Annotated[StatusEnum, EnumSerializer]
-    to_status: Annotated[StatusEnum, EnumSerializer]
+    to_status: StatusField = Field(
+        sa_column=Column(
+            "to_status", Enum(StatusEnum, length=20, native_enum=False, create_constraint=False)
+        ),
+    )
+    from_status: StatusField = Field(
+        sa_column=Column(
+            "from_status", Enum(StatusEnum, length=20, native_enum=False, create_constraint=False)
+        ),
+    )
     detail: dict = jsonb_column("detail")
 
 

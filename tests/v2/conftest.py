@@ -1,23 +1,24 @@
 """Shared conftest module for v2 unit and functional tests."""
 
+import importlib
 import os
 from collections.abc import AsyncGenerator, Generator
-from uuid import uuid4
+from typing import TYPE_CHECKING
 
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 from sqlmodel import SQLModel
 from testcontainers.postgres import PostgresContainer
 
 from lsst.cmservice.common.types import AnyAsyncSession
 from lsst.cmservice.config import config
-from lsst.cmservice.db.base import Base
 from lsst.cmservice.db.session import DatabaseSessionDependency, db_session_dependency
-from lsst.cmservice.main import app
+
+if TYPE_CHECKING:
+    from fastapi import FastAPI
 
 POSTGRES_CONTAINER_IMAGE = "postgres:16"
 
@@ -38,12 +39,10 @@ async def rawdb(monkeypatch_module: pytest.MonkeyPatch) -> AsyncGenerator[Databa
     configuration parameters.
     """
 
-    # use a different table schema for each test session
-    table_schema = uuid4().hex[-8:]
-    monkeypatch_module.setattr(target=config.db, name="table_schema", value=table_schema)
     monkeypatch_module.setattr(target=config.asgi, name="enable_frontend", value=False)
 
     if os.getenv("TEST__LOCAL_DB") is not None:
+        db_session_dependency.pool_class = NullPool
         await db_session_dependency.initialize()
         assert db_session_dependency.engine is not None
         yield db_session_dependency
@@ -60,6 +59,7 @@ async def rawdb(monkeypatch_module: pytest.MonkeyPatch) -> AsyncGenerator[Databa
             monkeypatch_module.setattr(target=config.db, name="url", value=psql_url)
             monkeypatch_module.setattr(target=config.db, name="password", value=postgres.password)
             monkeypatch_module.setattr(target=config.db, name="echo", value=True)
+            db_session_dependency.pool_class = NullPool
             await db_session_dependency.initialize()
             assert db_session_dependency.engine is not None
             yield db_session_dependency
@@ -75,26 +75,29 @@ async def testdb(rawdb: DatabaseSessionDependency) -> AsyncGenerator[DatabaseSes
     """
     # v1 objects are created from the legacy DeclarativeBase class and
     # v2 objects are created from the SQLModel metadata.
-    async with create_async_engine(url=rawdb.url, poolclass=NullPool).begin() as aconn:
-        await aconn.run_sync(SQLModel.metadata.create_all)
-        await aconn.run_sync(Base.metadata.create_all)
-    yield rawdb
-    async with create_async_engine(url=rawdb.url, poolclass=NullPool).begin() as aconn:
+    assert rawdb.engine is not None
+    async with rawdb.engine.begin() as aconn:
         await aconn.run_sync(SQLModel.metadata.drop_all)
-        await aconn.run_sync(Base.metadata.drop_all)
+        await aconn.run_sync(SQLModel.metadata.create_all)
+    yield rawdb
+    async with rawdb.engine.begin() as aconn:
+        await aconn.run_sync(SQLModel.metadata.drop_all)
 
 
 @pytest_asyncio.fixture(name="session", scope="module", loop_scope="module")
 async def session_fixture(testdb: DatabaseSessionDependency) -> AsyncGenerator[AnyAsyncSession]:
     """Test fixture for an async database session"""
-
+    assert testdb.engine is not None
     assert testdb.sessionmaker is not None
     async with testdb.sessionmaker() as session:
-        yield session
+        try:
+            yield session
+        finally:
+            await session.close()
+    await testdb.engine.dispose()
 
 
-@pytest_asyncio.fixture(name="client")
-async def client_fixture(session: AnyAsyncSession) -> AsyncGenerator[TestClient]:
+def client_fixture(session: AnyAsyncSession) -> Generator[TestClient]:
     """Test fixture for a FastAPI test client with dependency injection
     overriden.
     """
@@ -102,22 +105,29 @@ async def client_fixture(session: AnyAsyncSession) -> AsyncGenerator[TestClient]
     def get_session_override() -> AnyAsyncSession:
         return session
 
+    main_ = importlib.import_module("lsst.cmservice.main")
+    app: FastAPI = getattr(main_, "app")
+
     app.dependency_overrides[db_session_dependency] = get_session_override
     client = TestClient(app)
     yield client
     app.dependency_overrides.clear()
 
 
-@pytest_asyncio.fixture(name="aclient")
+@pytest_asyncio.fixture(name="aclient", scope="module", loop_scope="module")
 async def async_client_fixture(session: AnyAsyncSession) -> AsyncGenerator[AsyncClient]:
     """Test fixture for an HTTPX async test client with dependency injection
     overriden.
     """
+    main_ = importlib.import_module("lsst.cmservice.main")
+    app: FastAPI = getattr(main_, "app")
 
     def get_session_override() -> AnyAsyncSession:
         return session
 
     app.dependency_overrides[db_session_dependency] = get_session_override
-    async with AsyncClient(transport=ASGITransport(app), base_url="http://test") as aclient:
+    async with AsyncClient(
+        follow_redirects=True, transport=ASGITransport(app), base_url="http://test"
+    ) as aclient:
         yield aclient
     app.dependency_overrides.clear()
