@@ -58,7 +58,7 @@ class Step(Base, ElementMixin):
     metadata_: Mapped[dict] = mapped_column("metadata_", type_=MutableDict.as_mutable(JSONB), default=dict)
     child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
     collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
-    spec_aliases: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    spec_aliases: Mapped[dict | None] = mapped_column(type_=JSON)
 
     spec_block_: Mapped[SpecBlock] = relationship("SpecBlock", viewonly=True)
     parent_: Mapped[Campaign] = relationship("Campaign", back_populates="s_")
