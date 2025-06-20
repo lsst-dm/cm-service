@@ -28,7 +28,7 @@ class Specification(Base, RowMixin):
     data: Mapped[dict] = mapped_column(type_=JSON, default=dict)
     child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
     collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
-    spec_aliases: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    spec_aliases: Mapped[dict | None] = mapped_column(type_=JSON)
 
     col_names_for_table = ["id", "name"]
 
