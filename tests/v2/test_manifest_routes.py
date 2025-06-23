@@ -217,11 +217,43 @@ async def test_async_patch_manifest(aclient: AsyncClient) -> None:
     assert patched_manifest["metadata"]["owner"] == "bob_loblaw"
     assert "owner" not in patched_manifest["spec"]
 
+    # Using the "test" operator as a gating function, try but fail to update
+    # the previously moved owner field
+    x = await aclient.patch(
+        f"/cm-service/v2/manifests/{manifest_name}",
+        headers={"Content-Type": "application/json-patch+json"},
+        json=[
+            {
+                "op": "test",
+                "path": "/spec/owner",
+                "value": "bob_loblaw",
+            },
+            {
+                "op": "replace",
+                "path": "/spec/owner",
+                "value": "lob_boblaw",
+            },
+            {
+                "op": "add",
+                "path": "/metadata/scope",
+                "value": "drp",
+            },
+        ],
+    )
+    assert x.is_client_error
+
     # Get the manifest with multiple versions
     # First, make sure when not indicated, the most recent version is returned
+    # Note: the previous patch with a failing test op must not have created any
+    # new version.
     x = await aclient.get(f"/cm-service/v2/manifests/{manifest_name}")
     assert x.is_success
     assert x.json()["version"] == 3
+
+    # RFC6902 prescribes an all-or-nothing patch operation, so the previous op
+    # with a failing test assertion must not have otherwise completed, e.g.,
+    # the addition of a "scope" key to the manifest's metadata
+    assert "scope" not in x.json().get("metadata")
 
     # Next, get a specific version of the manifest
     x = await aclient.get(f"/cm-service/v2/manifests/{manifest_name}?version=2")

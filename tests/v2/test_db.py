@@ -1,16 +1,18 @@
 """Tests v2 database operations"""
 
-from uuid import uuid5
+from uuid import uuid4, uuid5
 
 import pytest
 from sqlmodel import select
 
-from lsst.cmservice.db.campaigns_v2 import Campaign, _default_campaign_namespace
+from lsst.cmservice.db.campaigns_v2 import Campaign, Machine, _default_campaign_namespace
 from lsst.cmservice.db.session import DatabaseSessionDependency
 
 
 @pytest.mark.asyncio
 async def test_create_campaigns_v2(testdb: DatabaseSessionDependency) -> None:
+    """Tests the campaigns_v2 table by creating and updating a Campaign."""
+
     assert testdb.sessionmaker is not None
 
     campaign_name = "test_campaign"
@@ -50,3 +52,26 @@ async def test_create_campaigns_v2(testdb: DatabaseSessionDependency) -> None:
         assert campaign.configuration["crtime"] == 0
         assert campaign.metadata_["crtime"] == 1750107719
         assert campaign.metadata_["mtime"] == 0
+
+
+@pytest.mark.asyncio
+async def test_create_machines_v2(testdb: DatabaseSessionDependency) -> None:
+    """Tests the machines_v2 table by storing + retrieving a pickled object."""
+
+    assert testdb.sessionmaker is not None
+
+    # the machines table is a PickleType so it doesn't really matter for this
+    # test what kind of object is being pickled.
+    o = {"a": [1, 2, 3, 4, {"aa": [[0, 1], [2, 3]]}]}
+
+    machine_id = uuid4()
+    machine = Machine(id=machine_id, state=o)
+    async with testdb.sessionmaker() as session:
+        session.add(machine)
+        await session.commit()
+
+    async with testdb.sessionmaker() as session:
+        s = select(Machine).where(Machine.id == machine_id).limit(1)
+        unpickled = (await session.exec(s)).one()
+
+    assert unpickled.state == o
