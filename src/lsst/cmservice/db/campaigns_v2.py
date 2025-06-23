@@ -1,3 +1,5 @@
+"""ORM Models for v2 tables and objects."""
+
 from datetime import datetime
 from typing import Any
 from uuid import NAMESPACE_DNS, UUID, uuid5
@@ -43,15 +45,6 @@ def jsonb_column(name: str, aliases: list[str] | None = None) -> Any:
     )
 
 
-# NOTES
-# - model validation is not triggered when table=True
-# - Every object model needs to have three flavors:
-#   1. the declarative model of the object's database table
-#   2. the model of the manifest when creating a new object
-#   3. the model of the manifest when updating an object
-#   4. a response model for APIs related to the object
-
-
 class BaseSQLModel(SQLModel):
     __table_args__ = {"schema": config.db.table_schema}
     metadata = metadata
@@ -71,10 +64,6 @@ class CampaignBase(BaseSQLModel):
     metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])
     configuration: dict = jsonb_column("configuration", aliases=["configuration", "data", "spec"])
 
-
-class CampaignModel(CampaignBase):
-    """model used for resource creation."""
-
     @model_validator(mode="before")
     @classmethod
     def custom_model_validator(cls, data: Any, info: ValidationInfo) -> Any:
@@ -83,7 +72,7 @@ class CampaignModel(CampaignBase):
         """
         if isinstance(data, dict):
             if "name" not in data:
-                raise ValueError("'name' must be specified.")
+                raise ValueError("<campaign> name missing.")
             if "namespace" not in data:
                 data["namespace"] = _default_campaign_namespace
             if "id" not in data:
@@ -91,7 +80,7 @@ class CampaignModel(CampaignBase):
         return data
 
 
-class Campaign(CampaignModel, table=True):
+class Campaign(CampaignBase, table=True):
     """Model used for database operations involving campaigns_v2 table rows"""
 
     __tablename__: str = "campaigns_v2"  # type: ignore[misc]
@@ -126,26 +115,25 @@ class NodeBase(BaseSQLModel):
     metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])
     configuration: dict = jsonb_column("configuration", aliases=["configuration", "data", "spec"])
 
-
-class NodeModel(NodeBase):
-    """model validating class for Nodes"""
-
     @model_validator(mode="before")
     @classmethod
     def custom_model_validator(cls, data: Any, info: ValidationInfo) -> Any:
+        """Validates the model based on different types of raw inputs,
+        where some default non-optional fields can be auto-populated.
+        """
         if isinstance(data, dict):
-            if "version" not in data:
-                data["version"] = 1
-            if "name" not in data:
-                raise ValueError("'name' must be specified.")
-            if "namespace" not in data:
-                data["namespace"] = _default_campaign_namespace
+            if (node_name := data.get("name")) is None:
+                raise ValueError("<node> name missing.")
+            if (node_namespace := data.get("namespace")) is None:
+                raise ValueError("<node> namespace missing.")
+            if (node_version := data.get("version")) is None:
+                data["version"] = node_version = 1
             if "id" not in data:
-                data["id"] = uuid5(namespace=data["namespace"], name=f"""{data["name"]}.{data["version"]}""")
+                data["id"] = uuid5(namespace=node_namespace, name=f"{node_name}.{node_version}")
         return data
 
 
-class Node(NodeModel, table=True):
+class Node(NodeBase, table=True):
     __tablename__: str = "nodes_v2"  # type: ignore[misc]
 
     machine: UUID | None = Field(foreign_key="machines_v2.id", default=None, ondelete="CASCADE")
@@ -163,28 +151,12 @@ class EdgeBase(BaseSQLModel):
     configuration: dict = jsonb_column("configuration", aliases=["configuration", "data", "spec"])
 
 
-class EdgeModel(EdgeBase):
-    """model validating class for Edges"""
-
-    @model_validator(mode="before")
-    @classmethod
-    def custom_model_validator(cls, data: Any, info: ValidationInfo) -> Any:
-        if isinstance(data, dict):
-            if "name" not in data:
-                raise ValueError("'name' must be specified.")
-            if "namespace" not in data:
-                raise ValueError("Edges may only exist in a 'namespace'.")
-            if "id" not in data:
-                data["id"] = uuid5(namespace=data["namespace"], name=data["name"])
-        return data
-
-
-class EdgeResponseModel(EdgeModel):
+class EdgeResponseModel(EdgeBase):
     source: Any
     target: Any
 
 
-class Edge(EdgeModel, table=True):
+class Edge(EdgeBase, table=True):
     __tablename__: str = "edges_v2"  # type: ignore[misc]
 
 
@@ -214,24 +186,6 @@ class ManifestBase(BaseSQLModel):
     )
     metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])
     spec: dict = jsonb_column("spec", aliases=["spec", "configuration", "data"])
-
-
-class ManifestModel(ManifestBase):
-    """model validating class for Manifests"""
-
-    @model_validator(mode="before")
-    @classmethod
-    def custom_model_validator(cls, data: Any, info: ValidationInfo) -> Any:
-        if isinstance(data, dict):
-            if "version" not in data:
-                data["version"] = 1
-            if "name" not in data:
-                raise ValueError("'name' must be specified.")
-            if "namespace" not in data:
-                data["namespace"] = _default_campaign_namespace
-            if "id" not in data:
-                data["id"] = uuid5(namespace=data["namespace"], name=f"""{data["name"]}.{data["version"]}""")
-        return data
 
 
 class Manifest(ManifestBase, table=True):

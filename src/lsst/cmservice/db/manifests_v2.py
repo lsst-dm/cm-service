@@ -5,6 +5,7 @@ not necessarily represent the object's database or ORM model.
 """
 
 from typing import Self
+from uuid import uuid4
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationInfo, model_validator
 
@@ -97,5 +98,45 @@ class CampaignManifest(Manifest[CampaignMetadata, ManifestSpec]):
         """Validate an Campaign Manifest after a model has been created."""
         if self.kind is not ManifestKind.campaign:
             raise ValueError("Campaigns may only be created from a <campaign> manifest")
+
+        return self
+
+
+class EdgeMetadata(ManifestMetadata):
+    """Metadata model for an Edge Manifest.
+
+    A default random alphanumeric 8-byte name is generated if no name provided.
+    """
+
+    name: str = Field(default_factory=lambda: uuid4().hex[:8])
+
+
+class EdgeSpec(ManifestSpec):
+    """Spec model for an Edge Manifest."""
+
+    source: str
+    target: str
+
+
+class EdgeManifest(Manifest[EdgeMetadata, EdgeSpec]):
+    """validating model for Edges"""
+
+    @model_validator(mode="after")
+    def custom_model_validator(self, info: ValidationInfo) -> Self:
+        """Validate an Edge Manifest after a model has been created."""
+        if self.kind is not ManifestKind.edge:
+            raise ValueError("Edges may only be created from an <edge> manifest")
+
+        return self
+
+
+class NodeManifest(Manifest[VersionedMetadata, ManifestSpec]):
+    """validating model for Nodes"""
+
+    @model_validator(mode="after")
+    def custom_model_validator(self, info: ValidationInfo) -> Self:
+        """Validate a Node Manifest after a model has been created."""
+        if self.kind is not ManifestKind.node:
+            raise ValueError("Nodes may only be created from an <node> manifest")
 
         return self
