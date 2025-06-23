@@ -4,17 +4,19 @@ import importlib
 import os
 from collections.abc import AsyncGenerator, Generator
 from typing import TYPE_CHECKING
+from uuid import uuid4
 
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.pool import NullPool
-from sqlmodel import SQLModel
+from sqlalchemy.schema import CreateSchema, DropSchema
 from testcontainers.postgres import PostgresContainer
 
 from lsst.cmservice.common.types import AnyAsyncSession
 from lsst.cmservice.config import config
+from lsst.cmservice.db.campaigns_v2 import metadata
 from lsst.cmservice.db.session import DatabaseSessionDependency, db_session_dependency
 
 if TYPE_CHECKING:
@@ -37,9 +39,13 @@ async def rawdb(monkeypatch_module: pytest.MonkeyPatch) -> AsyncGenerator[Databa
     `TEST__LOCAL_DB` is not set; otherwise the fixture will assume that the
     correct database is available to the test environment through ordinary
     configuration parameters.
+
+    The tests are performed within a random temporary schema that is created
+    and dropped along with the tables.
     """
 
     monkeypatch_module.setattr(target=config.asgi, name="enable_frontend", value=False)
+    monkeypatch_module.setattr(target=config.db, name="table_schema", value=uuid4().hex[:8])
 
     if os.getenv("TEST__LOCAL_DB") is not None:
         db_session_dependency.pool_class = NullPool
@@ -77,11 +83,15 @@ async def testdb(rawdb: DatabaseSessionDependency) -> AsyncGenerator[DatabaseSes
     # v2 objects are created from the SQLModel metadata.
     assert rawdb.engine is not None
     async with rawdb.engine.begin() as aconn:
-        await aconn.run_sync(SQLModel.metadata.drop_all)
-        await aconn.run_sync(SQLModel.metadata.create_all)
+        await aconn.run_sync(metadata.drop_all)
+        await aconn.execute(CreateSchema(config.db.table_schema, if_not_exists=True))
+        await aconn.run_sync(metadata.create_all)
+        await aconn.commit()
     yield rawdb
     async with rawdb.engine.begin() as aconn:
-        await aconn.run_sync(SQLModel.metadata.drop_all)
+        await aconn.run_sync(metadata.drop_all)
+        await aconn.execute(DropSchema(config.db.table_schema, if_exists=True))
+        await aconn.commit()
 
 
 @pytest_asyncio.fixture(name="session", scope="module", loop_scope="module")

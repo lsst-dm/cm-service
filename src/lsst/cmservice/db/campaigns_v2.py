@@ -1,18 +1,22 @@
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Any
 from uuid import NAMESPACE_DNS, UUID, uuid5
 
-from pydantic import AliasChoices, PlainSerializer, PlainValidator, ValidationInfo, model_validator
+from pydantic import AliasChoices, ValidationInfo, model_validator
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.types import PickleType
-from sqlmodel import Column, Enum, Field, SQLModel, String
+from sqlmodel import Column, Enum, Field, MetaData, SQLModel, String
 
 from ..common.enums import ManifestKind, StatusEnum
+from ..common.types import KindField, StatusField
 from ..config import config
 
 _default_campaign_namespace = uuid5(namespace=NAMESPACE_DNS, name="io.lsst.cmservice")
 """Default UUID5 namespace for campaigns"""
+
+metadata: MetaData = MetaData(schema=config.db.table_schema)
+"""SQLModel metadata for table models"""
 
 
 def jsonb_column(name: str, aliases: list[str] | None = None) -> Any:
@@ -47,34 +51,10 @@ def jsonb_column(name: str, aliases: list[str] | None = None) -> Any:
 #   3. the model of the manifest when updating an object
 #   4. a response model for APIs related to the object
 
-EnumSerializer = PlainSerializer(
-    lambda x: x.name,
-    return_type="str",
-    when_used="always",
-)
-"""A serializer for enums that produces its name, not the value."""
-
-
-StatusEnumValidator = PlainValidator(lambda x: StatusEnum[x] if isinstance(x, str) else StatusEnum(x))
-"""A validator for the StatusEnum that can parse the enum from either a name
-or a value.
-"""
-
-
-ManifestKindEnumValidator = PlainValidator(
-    lambda x: ManifestKind[x] if isinstance(x, str) else ManifestKind(x)
-)
-"""A validator for the ManifestKindEnum that can parse the enum from a name
-or a value.
-"""
-
-
-type StatusField = Annotated[StatusEnum, StatusEnumValidator, EnumSerializer]
-type KindField = Annotated[ManifestKind, ManifestKindEnumValidator, EnumSerializer]
-
 
 class BaseSQLModel(SQLModel):
     __table_args__ = {"schema": config.db.table_schema}
+    metadata = metadata
 
 
 class CampaignBase(BaseSQLModel):
@@ -116,10 +96,10 @@ class Campaign(CampaignModel, table=True):
 
     __tablename__: str = "campaigns_v2"  # type: ignore[misc]
 
-    machine: UUID | None
+    machine: UUID | None = Field(foreign_key="machines_v2.id", default=None, ondelete="CASCADE")
 
 
-class CampaignUpdate(SQLModel):
+class CampaignUpdate(BaseSQLModel):
     """Model representing updatable fields for a PATCH operation on a Campaign
     using RFC7396.
     """
@@ -168,7 +148,7 @@ class NodeModel(NodeBase):
 class Node(NodeModel, table=True):
     __tablename__: str = "nodes_v2"  # type: ignore[misc]
 
-    machine: UUID | None
+    machine: UUID | None = Field(foreign_key="machines_v2.id", default=None, ondelete="CASCADE")
 
 
 class EdgeBase(BaseSQLModel):
@@ -215,13 +195,19 @@ class MachineBase(BaseSQLModel):
     state: Any | None = Field(sa_column=Column("state", PickleType))
 
 
+class Machine(MachineBase, table=True):
+    """machines_v2 db table."""
+
+    __tablename__: str = "machines_v2"  # type: ignore[misc]
+
+
 class ManifestBase(BaseSQLModel):
     """manifests_v2 db table"""
 
     id: UUID = Field(primary_key=True)
     name: str
     version: int
-    namespace: UUID
+    namespace: UUID = Field(foreign_key="campaigns_v2.id")
     kind: KindField = Field(
         default=ManifestKind.other,
         sa_column=Column("kind", Enum(ManifestKind, length=20, native_enum=False, create_constraint=False)),
@@ -252,14 +238,14 @@ class Manifest(ManifestBase, table=True):
     __tablename__: str = "manifests_v2"  # type: ignore[misc]
 
 
-class Task(SQLModel, table=True):
+class Task(BaseSQLModel, table=True):
     """tasks_v2 db table"""
 
     __tablename__: str = "tasks_v2"  # type: ignore[misc]
 
     id: UUID = Field(primary_key=True)
-    namespace: UUID
-    node: UUID
+    namespace: UUID = Field(foreign_key="campaigns_v2.id")
+    node: UUID = Field(foreign_key="nodes_v2.id")
     priority: int
     created_at: datetime
     last_processed_at: datetime
@@ -280,8 +266,8 @@ class Task(SQLModel, table=True):
 
 class ActivityLogBase(BaseSQLModel):
     id: UUID = Field(primary_key=True)
-    namespace: UUID
-    node: UUID
+    namespace: UUID = Field(foreign_key="campaigns_v2.id")
+    node: UUID = Field(foreign_key="nodes_v2.id")
     operator: str
     to_status: StatusField = Field(
         sa_column=Column(

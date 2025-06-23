@@ -551,8 +551,8 @@ class DatabaseConfiguration(BaseModel):
         description="The password for the cm-service database",
     )
 
-    table_schema: str | None = Field(
-        default=None,
+    table_schema: str = Field(
+        default="public",
         description="Schema to use for cm-service database",
     )
 
