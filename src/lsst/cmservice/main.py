@@ -3,13 +3,13 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
-from safir.dependencies.db_session import db_session_dependency
 from safir.dependencies.http_client import http_client_dependency
 from safir.logging import configure_logging, configure_uvicorn_logging
 from safir.middleware.x_forwarded import XForwardedMiddleware
 
 from . import __version__
 from .config import config
+from .db.session import db_session_dependency
 from .routers import (
     healthz,
     index,
@@ -96,9 +96,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     """Hook FastAPI init/cleanups."""
     app.state.tasks = set()
     # Dependency inits before app starts running
-    await db_session_dependency.initialize(config.db.url, config.db.password)
-    assert db_session_dependency._engine is not None
-    db_session_dependency._engine.echo = config.db.echo
+    await db_session_dependency.initialize()
+    assert db_session_dependency.engine is not None
 
     # App runs here...
     yield

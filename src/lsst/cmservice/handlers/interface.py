@@ -1,7 +1,6 @@
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import async_scoped_session
 
 from .. import db
 from ..common.enums import LevelEnum, NodeTypeEnum, StatusEnum, TableEnum
@@ -13,6 +12,7 @@ from ..common.errors import (
     test_type_and_raise,
 )
 from ..common.logging import LOGGER
+from ..common.types import AnyAsyncSession
 from . import functions
 
 TABLE_DICT: dict[TableEnum, type[db.RowMixin]] = {
@@ -64,7 +64,7 @@ def get_table(
 
 
 async def get_row_by_table_and_id(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     row_id: int,
     table_enum: TableEnum,
 ) -> db.RowMixin:
@@ -72,7 +72,7 @@ async def get_row_by_table_and_id(
 
     Parameters
     ----------
-    session : async_scoped_session
+    session : AnyAsyncSession
         DB session manager
 
     row_id: int
@@ -105,7 +105,7 @@ async def get_row_by_table_and_id(
 
 
 async def get_node_by_level_and_id(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     element_id: int,
     level: LevelEnum,
 ) -> db.NodeMixin:
@@ -113,7 +113,7 @@ async def get_node_by_level_and_id(
 
     Parameters
     ----------
-    session : async_scoped_session
+    session : AnyAsyncSession
         DB session manager
 
     element_id: int
@@ -164,14 +164,14 @@ def get_node_type_by_fullname(
 
 
 async def get_element_by_fullname(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     fullname: str,
 ) -> db.ElementMixin:
     """Get a `Element` from the DB
 
     Parameters
     ----------
-    session : async_scoped_session
+    session : AnyAsyncSession
         DB session manager
 
     fullname: str
@@ -208,14 +208,14 @@ async def get_element_by_fullname(
 
 
 async def get_node_by_fullname(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     fullname: str,
 ) -> db.NodeMixin:
     """Get a `Node` from the DB
 
     Parameters
     ----------
-    session : async_scoped_session
+    session : AnyAsyncSession
         DB session manager
 
     fullname: str
@@ -241,7 +241,7 @@ async def get_node_by_fullname(
 
 
 async def process_script(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     fullname: str,
     fake_status: StatusEnum | None = None,
 ) -> tuple[bool, StatusEnum]:
@@ -249,7 +249,7 @@ async def process_script(
 
     Parameters
     ----------
-    session : async_scoped_session
+    session : AnyAsyncSession
         DB session manager
 
     fullname: str
@@ -276,7 +276,7 @@ async def process_script(
 
 
 async def process_element(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     fullname: str,
     fake_status: StatusEnum | None = None,
 ) -> tuple[bool, StatusEnum]:
@@ -284,7 +284,7 @@ async def process_element(
 
     Parameters
     ----------
-    session : async_scoped_session
+    session : AnyAsyncSession
         DB session manager
 
     fullname: str
@@ -313,7 +313,7 @@ async def process_element(
 
 
 async def process(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     fullname: str,
     fake_status: StatusEnum | None = None,
 ) -> tuple[bool, StatusEnum]:
@@ -321,7 +321,7 @@ async def process(
 
     Parameters
     ----------
-    session : async_scoped_session
+    session : AnyAsyncSession
         DB session manager
 
     fullname: str
@@ -356,7 +356,7 @@ async def process(
 
 
 async def reset_script(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     fullname: str,
     status: StatusEnum,
     *,
@@ -374,7 +374,7 @@ async def reset_script(
 
     Parameters
     ----------
-    session : async_scoped_session
+    session : AnyAsyncSession
         DB session manager
 
     fullname: str
@@ -403,7 +403,7 @@ async def reset_script(
 
 
 async def rescue_job(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     fullname: str,
 ) -> db.Job:
     """Run a rescue on a `Job`
@@ -414,7 +414,7 @@ async def rescue_job(
 
     Parameters
     ----------
-    session : async_scoped_session
+    session : AnyAsyncSession
         DB session manager
 
     fullname: str
@@ -441,7 +441,7 @@ async def rescue_job(
 
 
 async def mark_job_rescued(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     fullname: str,
 ) -> list[db.Job]:
     """Mark a `Job` as rescued
@@ -452,7 +452,7 @@ async def mark_job_rescued(
 
     Parameters
     ----------
-    session : async_scoped_session
+    session : AnyAsyncSession
         DB session manager
 
     fullname: str
@@ -481,14 +481,14 @@ async def mark_job_rescued(
 
 
 async def create_campaign(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     **kwargs: Any,
 ) -> db.Campaign:
     """Create a new Campaign
 
     Parameters
     ----------
-    session : async_scoped_session
+    session : AnyAsyncSession
         DB session manager
 
     kwargs : Any
@@ -504,7 +504,7 @@ async def create_campaign(
 
 
 async def load_and_create_campaign(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     yaml_file: str,
     name: str,
     spec_block_assoc_name: str | None = None,
@@ -514,7 +514,7 @@ async def load_and_create_campaign(
 
     Parameters
     ----------
-    session : async_scoped_session
+    session : AnyAsyncSession
         DB session manager
 
     yaml_file: str
@@ -552,7 +552,7 @@ async def load_and_create_campaign(
 
 
 async def add_steps(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     fullname: str,
     child_configs: list[dict[str, Any]],
 ) -> db.Campaign:
@@ -560,7 +560,7 @@ async def add_steps(
 
     Parameters
     ----------
-    session : async_scoped_session
+    session : AnyAsyncSession
         DB session manager
 
     fullname: str
@@ -586,14 +586,14 @@ async def add_steps(
 
 
 async def load_error_types(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     yaml_file: str,
 ) -> list[db.PipetaskErrorType]:
     """Load a set of `PipetaskErrorType`s from a yaml file
 
     Parameters
     ----------
-    session : async_scoped_session
+    session : AnyAsyncSession
         DB session manager
 
     yaml_file: str,
@@ -609,7 +609,7 @@ async def load_error_types(
 
 
 async def load_manifest_report(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     yaml_file: str,
     fullname: str,
     *,
@@ -619,7 +619,7 @@ async def load_manifest_report(
 
     Parameters
     ----------
-    session : async_scoped_session
+    session : AnyAsyncSession
         DB session manager
 
     yaml_file: str,
@@ -641,7 +641,7 @@ async def load_manifest_report(
 
 
 async def match_pipetask_errors(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     *,
     rematch: bool = False,
 ) -> list[db.PipetaskError]:
@@ -651,7 +651,7 @@ async def match_pipetask_errors(
 
     Parameters
     ----------
-    session : async_scoped_session
+    session : AnyAsyncSession
         DB session manager
 
     rematch: bool

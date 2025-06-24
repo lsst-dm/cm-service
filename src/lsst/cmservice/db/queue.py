@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON, and_, select
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
-from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
@@ -21,6 +20,10 @@ from .job import Job
 from .node import NodeMixin
 from .script import Script
 from .step import Step
+
+if TYPE_CHECKING:
+    from ..common.types import AnyAsyncSession
+
 
 logger = LOGGER.bind(module=__name__)
 
@@ -71,13 +74,13 @@ class Queue(Base, NodeMixin):
 
     async def get_node(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> NodeMixin:
         """Get the parent `Node`
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns
@@ -108,14 +111,14 @@ class Queue(Base, NodeMixin):
     @classmethod
     async def get_queue_item(
         cls,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> Queue:
         """Get the queue row corresponding to a partiuclar node
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
         Keywords
         --------
@@ -157,7 +160,7 @@ class Queue(Base, NodeMixin):
     @classmethod
     async def get_create_kwargs(
         cls,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> dict:
         fullname = kwargs["fullname"]
@@ -200,7 +203,7 @@ class Queue(Base, NodeMixin):
 
     async def node_sleep_time(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> int:
         """Check how long to sleep based on what is running"""
         node = await self.get_node(session)
@@ -224,7 +227,7 @@ class Queue(Base, NodeMixin):
 
     async def process_node(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> bool:  # pragma: no cover
         """Process associated node and update queue row"""
         node = await self.get_node(session)

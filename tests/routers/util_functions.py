@@ -1,18 +1,16 @@
 from pathlib import Path
-from typing import TypeAlias, TypeVar
+from typing import TypeAlias
 
 from httpx import AsyncClient, Response
 from pydantic import TypeAdapter
 
 from lsst.cmservice import models
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum
+from lsst.cmservice.common.types import AnyCampaignElement
 from lsst.cmservice.config import config
 
-T = TypeVar("T")
-E = TypeVar("E", models.Group, models.Campaign, models.Step, models.Job)
 
-
-def check_and_parse_response(
+def check_and_parse_response[T](
     response: Response,
     return_class: type[T],
 ) -> T:
@@ -32,7 +30,7 @@ def expect_failed_response(
 
 async def add_scripts(
     client: AsyncClient,
-    element: E,
+    element: AnyCampaignElement,
     api_version: str,
 ) -> tuple[list[models.Script], models.Dependency]:
     prep_script_model = models.ScriptCreate(
@@ -183,7 +181,7 @@ async def delete_all_rows(
     client: AsyncClient,
     api_version: str,
     entry_class_name: str,
-    entry_class: TypeAlias = models.ElementMixin,
+    entry_class: TypeAlias,
 ) -> None:
     response = await client.get(f"{config.asgi.prefix}/{api_version}/{entry_class_name}/list")
     rows = check_and_parse_response(response, list[entry_class])
@@ -242,7 +240,7 @@ async def check_update_methods(
     api_version: str,
     entry: models.ElementMixin,
     entry_class_name: str,
-    entry_class: TypeAlias = models.ElementMixin,
+    entry_class: type[models.ElementMixin],
 ) -> None:
     update_model = models.UpdateNodeQuery(
         fullname=entry.fullname,
@@ -252,8 +250,8 @@ async def check_update_methods(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/update/{entry.id}/data_dict",
         content=update_model.model_dump_json(),
     )
-    check = check_and_parse_response(response, entry_class)
-    assert check.data["test"] == "dummy", "update_data_dict failed"
+    check_a = check_and_parse_response(response, entry_class)
+    assert check_a.data["test"] == "dummy", "update_data_dict failed"
 
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/update/-1/data_dict",
@@ -264,8 +262,8 @@ async def check_update_methods(
     response = await client.get(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/{entry.id}/data_dict",
     )
-    check = check_and_parse_response(response, dict)
-    assert check["test"] == "dummy", "get_data_dict failed"
+    check_b = check_and_parse_response(response, dict)
+    assert check_b["test"] == "dummy", "get_data_dict failed"
 
     response = await client.get(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/-1/data_dict",
@@ -280,8 +278,9 @@ async def check_update_methods(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/update/{entry.id}/collections",
         content=update_model.model_dump_json(),
     )
-    check = check_and_parse_response(response, entry_class)
-    assert check.collections["test"] == "dummy", "update_collections failed"
+    check_c = check_and_parse_response(response, entry_class)
+    assert check_c.collections is not None
+    assert check_c.collections["test"] == "dummy", "update_collections failed"
 
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/update/-1/collections",
@@ -292,8 +291,8 @@ async def check_update_methods(
     response = await client.get(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/{entry.id}/collections",
     )
-    check = check_and_parse_response(response, dict)
-    assert check["test"] == "dummy", "get_collections failed"
+    check_d = check_and_parse_response(response, dict)
+    assert check_d["test"] == "dummy", "get_collections failed"
 
     response = await client.get(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/-1/collections",
@@ -303,8 +302,8 @@ async def check_update_methods(
     response = await client.get(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/{entry.id}/resolved_collections",
     )
-    check = check_and_parse_response(response, dict)
-    assert check["test"] == "dummy", "get_resolved_collections failed"
+    check_e = check_and_parse_response(response, dict)
+    assert check_e["test"] == "dummy", "get_resolved_collections failed"
 
     response = await client.get(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/-1/resolved_collections",
@@ -319,8 +318,9 @@ async def check_update_methods(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/update/{entry.id}/child_config",
         content=update_model.model_dump_json(),
     )
-    check = check_and_parse_response(response, entry_class)
-    assert check.child_config["test"] == "dummy", "update_child_config failed"
+    check_f = check_and_parse_response(response, entry_class)
+    assert check_f.child_config is not None
+    assert check_f.child_config["test"] == "dummy", "update_child_config failed"
 
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/update/-1/child_config",
@@ -331,8 +331,8 @@ async def check_update_methods(
     response = await client.get(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/{entry.id}/child_config",
     )
-    check = check_and_parse_response(response, dict)
-    assert check["test"] == "dummy", "get_child_config failed"
+    check_g = check_and_parse_response(response, dict)
+    assert check_g["test"] == "dummy", "get_child_config failed"
 
     response = await client.get(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/-1/child_config",
@@ -347,8 +347,9 @@ async def check_update_methods(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/update/{entry.id}/spec_aliases",
         content=update_model.model_dump_json(),
     )
-    check = check_and_parse_response(response, entry_class)
-    assert check.spec_aliases["test"] == "dummy", "update_spec_aliases failed"
+    check_h = check_and_parse_response(response, entry_class)
+    assert check_h.spec_aliases is not None
+    assert check_h.spec_aliases["test"] == "dummy", "update_spec_aliases failed"
 
     response = await client.post(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/update/-1/spec_aliases",
@@ -359,8 +360,8 @@ async def check_update_methods(
     response = await client.get(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/{entry.id}/spec_aliases",
     )
-    check = check_and_parse_response(response, dict)
-    assert check["test"] == "dummy", "get_spec_aliases failed"
+    check_i = check_and_parse_response(response, dict)
+    assert check_i["test"] == "dummy", "get_spec_aliases failed"
 
     response = await client.get(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/-1/spec_aliases",
@@ -670,12 +671,12 @@ async def check_scripts(
     expect_failed_response(response, 404)
 
 
-async def check_get_methods(
+async def check_get_methods[E: AnyCampaignElement](
     client: AsyncClient,
     api_version: str,
     entry: E,
     entry_class_name: str,
-    entry_class: TypeAlias = models.ElementMixin,
+    entry_class: type[E],
 ) -> None:
     response = await client.get(
         f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/{entry.id}",

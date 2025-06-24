@@ -12,13 +12,10 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
-from safir.dependencies.db_session import db_session_dependency
 from safir.dependencies.http_client import http_client_dependency
-from sqlalchemy.ext.asyncio import async_scoped_session
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from lsst.cmservice.common.enums import LevelEnum
-from lsst.cmservice.config import config
 from lsst.cmservice.web_app.pages.campaigns import get_all_campaigns, get_campaign_details, search_campaigns
 from lsst.cmservice.web_app.pages.group_details import get_group_by_id
 from lsst.cmservice.web_app.pages.job_details import get_job_by_id
@@ -36,14 +33,16 @@ from lsst.cmservice.web_app.utils.utils import (
     update_data_dict,
 )
 
+from ..common.types import AnyAsyncSession
+from ..db.session import db_session_dependency
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncGenerator:
     """Hook FastAPI init/cleanups."""
     # Dependency inits before app starts running
-    await db_session_dependency.initialize(config.db.url, config.db.password)
-    assert db_session_dependency._engine is not None
-    db_session_dependency._engine.echo = config.db.echo
+    await db_session_dependency.initialize()
+    assert db_session_dependency.engine is not None
 
     # App runs here...
     yield
@@ -92,7 +91,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
 @web_app.get("/campaigns/", response_class=HTMLResponse)
 async def get_campaigns(
     request: Request,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> HTMLResponse:
     try:
         async with session.begin():
@@ -137,7 +136,7 @@ async def error_page(
 async def search(
     request: Request,
     search_term: Annotated[str, Form()],
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> HTMLResponse:
     try:
         results = await search_campaigns(session, search_term)
@@ -163,7 +162,7 @@ async def search(
 async def get_steps(
     request: Request,
     campaign_id: int,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> HTMLResponse:
     try:
         campaign = await get_campaign_by_id(session, campaign_id)
@@ -194,7 +193,7 @@ async def get_step(
     request: Request,
     campaign_id: int,
     step_id: int,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> HTMLResponse:
     try:
         step, step_groups, step_scripts = await get_step_details_by_id(session, step_id)
@@ -218,7 +217,7 @@ async def get_step(
 async def get_group(
     request: Request,
     group_id: int,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> HTMLResponse:
     try:
         group_details, jobs, scripts = await get_group_by_id(session, group_id)
@@ -243,7 +242,7 @@ async def get_job(
     step_id: int,
     group_id: int,
     job_id: int,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> HTMLResponse:
     try:
         job_details, scripts = await get_job_by_id(session, job_id)
@@ -269,7 +268,7 @@ async def get_job(
 @web_app.get("/script/{campaign_id}/{step_id}/{group_id}/{job_id}/{script_id}/", response_class=HTMLResponse)
 async def get_script(
     request: Request,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
     script_id: int,
     campaign_id: int | None = None,
     step_id: int | None = None,
@@ -329,7 +328,7 @@ async def update_element_collections(
     request: Request,
     element_id: int,
     element_type: int,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> HTMLResponse:
     try:
         element = await get_element(session, element_id, element_type)
@@ -357,7 +356,7 @@ async def update_element_child_config(
     request: Request,
     element_id: int,
     element_type: int,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> HTMLResponse:
     try:
         element = await get_element(session, element_id, element_type)
@@ -388,7 +387,7 @@ async def update_element_data_dict(
     request: Request,
     element_id: int,
     element_type: int,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> HTMLResponse:
     try:
         element = await get_element(session, element_id, element_type)

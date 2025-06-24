@@ -5,7 +5,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, TypeAlias
 
 from httpx import ConnectError, HTTPStatusError
-from pydantic import BaseModel, TypeAdapter
+from pydantic import TypeAdapter
 
 from .. import models
 from ..common.logging import LOGGER
@@ -17,7 +17,7 @@ logger = LOGGER.bind(module=__name__)
 
 
 def get_rows_no_parent_function(
-    response_model_class: TypeAlias = BaseModel,
+    response_model_class: TypeAlias,
     query: str = "",
 ) -> Callable:
     """Return a function that gets all the rows from a table
@@ -28,7 +28,7 @@ def get_rows_no_parent_function(
 
     Parameters
     ----------
-    response_model_class: TypeAlias = BaseModel,
+    response_model_class: TypeAlias,
         Pydantic class used to serialize the return value
 
     query: str
@@ -53,7 +53,7 @@ def get_rows_no_parent_function(
 
 
 def get_rows_function(
-    response_model_class: TypeAlias = BaseModel,
+    response_model_class: TypeAlias,
     query: str = "",
 ) -> Callable:  # pragma: no cover
     """Return a function that gets all the rows from a table
@@ -66,7 +66,7 @@ def get_rows_function(
 
     Parameters
     ----------
-    response_model_class: TypeAlias = BaseModel,
+    response_model_class: TypeAlias,
         Pydantic class used to serialize the return value
 
     query: str
@@ -99,7 +99,7 @@ def get_rows_function(
 
 
 def get_row_function(
-    response_model_class: TypeAlias = BaseModel,
+    response_model_class: TypeAlias,
     query: str = "",
 ) -> Callable:
     """Return a function that gets a single row from a table (by ID)
@@ -107,7 +107,7 @@ def get_row_function(
 
     Parameters
     ----------
-    response_model_class: TypeAlias = BaseModel,
+    response_model_class: TypeAlias,
         Pydantic class used to serialize the return value
 
     query: str
@@ -131,8 +131,8 @@ def get_row_function(
 
 
 def create_row_function(
-    response_model_class: TypeAlias = BaseModel,
-    create_model_class: TypeAlias = BaseModel,
+    response_model_class: TypeAlias,
+    create_model_class: TypeAlias,
     query: str = "",
 ) -> Callable:
     """Return a function that creates a single row in a table
@@ -140,10 +140,10 @@ def create_row_function(
 
     Parameters
     ----------
-    response_model_class: TypeAlias = BaseModel,
+    response_model_class: TypeAlias,
         Pydantic class used to serialize the return value
 
-    create_model_class: TypeAlias = BaseModel,
+    create_model_class: TypeAlias,
         Pydantic class used to serialize the inputs value
 
     query: str
@@ -168,8 +168,8 @@ def create_row_function(
 
 
 def update_row_function(
-    response_model_class: TypeAlias = BaseModel,
-    update_model_class: TypeAlias = BaseModel,
+    response_model_class: TypeAlias,
+    update_model_class: TypeAlias,
     query: str = "",
 ) -> Callable:
     """Return a function that updates a single row in a table
@@ -177,10 +177,10 @@ def update_row_function(
 
     Parameters
     ----------
-    response_model_class: TypeAlias = BaseModel,
+    response_model_class: TypeAlias,
         Pydantic class used to serialize the return value
 
-    update_model_class: TypeAlias = BaseModel,
+    update_model_class: TypeAlias,
         Pydantic class used to serialize the input values
 
     query: str
@@ -233,7 +233,7 @@ def delete_row_function(
 
 
 def get_row_by_fullname_function(
-    response_model_class: TypeAlias = BaseModel,
+    response_model_class: TypeAlias,
     query: str = "",
 ) -> Callable:
     """Return a function that gets a single row from a table (by fullname)
@@ -241,7 +241,7 @@ def get_row_by_fullname_function(
 
     Parameters
     ----------
-    response_model_class: TypeAlias = BaseModel,
+    response_model_class: TypeAlias,
         Pydantic class used to serialize the return value
 
     query: str
@@ -268,7 +268,7 @@ def get_row_by_fullname_function(
 
 
 def get_row_by_name_function(
-    response_model_class: TypeAlias = BaseModel,
+    response_model_class: TypeAlias,
     query: str = "",
 ) -> Callable:
     """Return a function that gets a single row from a table (by name)
@@ -276,7 +276,7 @@ def get_row_by_name_function(
 
     Parameters
     ----------
-    response_model_class: TypeAlias = BaseModel,
+    response_model_class: TypeAlias,
         Pydantic class used to serialize the return value
 
     query: str
@@ -316,7 +316,7 @@ def get_node_property_function(
 
     Parameters
     ----------
-    response_model_class: TypeAlias = BaseModel,
+    response_model_class: TypeAlias,
         Pydantic class used to serialize the return value
 
     query: str
@@ -353,7 +353,7 @@ def get_node_post_query_function(
 
     Parameters
     ----------
-    response_model_class: TypeAlias = BaseModel,
+    response_model_class: TypeAlias,
         Pydantic class used to serialize the return value
 
     query_class: TypeAlias
@@ -394,7 +394,7 @@ def get_node_post_no_query_function(
 
     Parameters
     ----------
-    response_model_class: TypeAlias = BaseModel,
+    response_model_class: TypeAlias,
         Pydantic class used to serialize the return value
 
     query: str
@@ -421,7 +421,7 @@ def get_node_post_no_query_function(
 
 
 def get_general_post_function(
-    query_class: TypeAlias = BaseModel,
+    query_class: TypeAlias,
     response_model_class: TypeAlias = Any,
     query: str = "",
     results_key: str | None = None,
@@ -431,7 +431,7 @@ def get_general_post_function(
 
     Parameters
     ----------
-    response_model_class: TypeAlias = BaseModel,
+    response_model_class: TypeAlias,
         Pydantic class used to serialize the return value
 
     query: str
@@ -460,7 +460,7 @@ def get_general_post_function(
 
 
 def get_general_query_function(
-    query_class: TypeAlias = BaseModel,
+    query_class: TypeAlias,
     response_model_class: TypeAlias = Any,
     query: str = "",
     query_suffix: str = "",
@@ -474,7 +474,7 @@ def get_general_query_function(
     query_class: TypeAlias
         Pydantic class used to serialize the query parameters
 
-    response_model_class: TypeAlias = BaseModel,
+    response_model_class: TypeAlias,
         Pydantic class used to serialize the return value
 
     query: str

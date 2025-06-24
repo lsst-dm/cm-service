@@ -1,11 +1,11 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
-from safir.dependencies.db_session import db_session_dependency
-from sqlalchemy.ext.asyncio import async_scoped_session
 
 from .. import db, models
 from ..common.enums import StatusEnum
+from ..common.types import AnyAsyncSession
+from ..db.session import db_session_dependency
 from ..handlers import interface
 
 router = APIRouter(
@@ -21,7 +21,7 @@ router = APIRouter(
 )
 async def process(
     query: models.ProcessNodeQuery,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> tuple[bool, StatusEnum]:
     """Invoke the interface.process function"""
     params = query.model_dump()
@@ -43,7 +43,7 @@ async def process(
 )
 async def reset_script(
     query: models.ResetScriptQuery,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> db.Script:
     """Invoke the interface.reset_script function"""
     params = query.model_dump()
@@ -63,7 +63,7 @@ async def reset_script(
 )
 async def rescue_job(
     query: models.NodeQuery,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> db.Job:
     """Invoke the interface.rescue_job function"""
     params = query.model_dump()
@@ -83,7 +83,7 @@ async def rescue_job(
 )
 async def mark_job_rescued(
     query: models.NodeQuery,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> list[db.Job]:
     """Invoke the interface.mark_job_rescued function"""
     params = query.model_dump()
@@ -103,7 +103,7 @@ async def mark_job_rescued(
 )
 async def rematch_pipetask_errors(
     query: models.RematchQuery,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> list[db.PipetaskError]:
     """Invoke the interface.match_pipetask_errors function"""
     params = query.model_dump()
