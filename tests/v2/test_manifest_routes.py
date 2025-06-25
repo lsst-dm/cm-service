@@ -9,14 +9,14 @@ pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""
 
 
-async def test_async_list_manifests(aclient: AsyncClient) -> None:
+async def test_list_manifests(aclient: AsyncClient) -> None:
     x = await aclient.get("/cm-service/v2/manifests")
     assert x.is_success
     assert len(x.json()) == 0
     assert True
 
 
-async def test_async_load_manifests(aclient: AsyncClient) -> None:
+async def test_load_manifests(aclient: AsyncClient) -> None:
     campaign_name = uuid4().hex[-8:]
 
     # Try to create a campaign manifest
@@ -82,6 +82,7 @@ async def test_async_load_manifests(aclient: AsyncClient) -> None:
         json={
             "kind": "campaign",
             "metadata": {"name": campaign_name},
+            "spec": {},
         },
     )
     assert x.is_success
@@ -128,9 +129,10 @@ async def test_async_load_manifests(aclient: AsyncClient) -> None:
     assert x.is_success
     manifests = x.json()
     assert len(manifests) == 3
+    assert manifests[-1]["spec"]["one"] == 1
 
 
-async def test_async_patch_manifest(aclient: AsyncClient) -> None:
+async def test_patch_manifest(aclient: AsyncClient) -> None:
     """Tests partial update of manifests and single resource retrieval."""
     campaign_name = uuid4().hex[-8:]
     manifest_name = uuid4().hex[-8:]
@@ -141,6 +143,7 @@ async def test_async_patch_manifest(aclient: AsyncClient) -> None:
         json={
             "kind": "campaign",
             "metadata": {"name": campaign_name},
+            "spec": {},
         },
     )
     assert x.is_success

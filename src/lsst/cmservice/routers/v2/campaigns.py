@@ -13,10 +13,9 @@ from sqlalchemy.orm import aliased
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from ...common.enums import ManifestKind
 from ...common.logging import LOGGER
-from ...db.campaigns_v2 import Campaign, CampaignModel, CampaignUpdate, Edge, Node
-from ...db.manifests_v2 import ManifestWrapper
+from ...db.campaigns_v2 import Campaign, CampaignUpdate, Edge, Node
+from ...db.manifests_v2 import CampaignManifest
 from ...db.session import db_session_dependency
 
 # TODO should probably bind a logger to the fastapi app or something
@@ -40,7 +39,7 @@ async def read_campaign_collection(
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     limit: Annotated[int, Query(le=100)] = 10,
     offset: Annotated[int, Query()] = 0,
-) -> Sequence[CampaignModel]:
+) -> Sequence[Campaign]:
     """..."""
     try:
         campaigns = await session.exec(select(Campaign).offset(offset).limit(limit))
@@ -300,25 +299,15 @@ async def create_campaign_resource(
     request: Request,
     response: Response,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
-    manifest: ManifestWrapper,
+    manifest: CampaignManifest,
 ) -> Campaign:
-    # Validate the input by checking the "kind" of manifest is a campaign
-    if manifest.kind is not ManifestKind.campaign:
-        raise HTTPException(
-            status_code=422, detail="Campaigns may only be created from a 'campaign' manifest"
-        )
-    # and that the manifest includes any required fields, though this could
-    # just as well be a try/except ValueError around `_.model_validate()`
-    elif (campaign_name := manifest.metadata_.pop("name", None)) is None:
-        raise HTTPException(status_code=400, detail="Campaigns must have a name set in '.metadata.name'")
-
     # Create a campaign spec from the manifest, delegating the creation of new
     # dynamic fields to the model validation method, -OR- create new dynamic
     # fields here.
     campaign = Campaign.model_validate(
         dict(
-            name=campaign_name,
-            metadata_=manifest.metadata_,
+            name=manifest.metadata_.name,
+            metadata_=manifest.metadata_.model_dump(),
             # owner = ...  # TODO Get username from gafaelfawr # noqa: ERA001
         )
     )
@@ -326,6 +315,7 @@ async def create_campaign_resource(
     # A new campaign comes with a START and END node
     start_node = Node.model_validate(dict(name="START", namespace=campaign.id))
     end_node = Node.model_validate(dict(name="END", namespace=campaign.id))
+
     # Put the campaign in the database
     session.add(campaign)
     session.add(start_node)
