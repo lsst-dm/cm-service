@@ -4,12 +4,13 @@ import importlib
 import os
 from collections.abc import AsyncGenerator, Generator
 from typing import TYPE_CHECKING
-from uuid import uuid4
+from uuid import NAMESPACE_DNS, uuid4
 
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import insert
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import CreateSchema, DropSchema
 from testcontainers.postgres import PostgresContainer
@@ -86,6 +87,14 @@ async def testdb(rawdb: DatabaseSessionDependency) -> AsyncGenerator[DatabaseSes
         await aconn.run_sync(metadata.drop_all)
         await aconn.execute(CreateSchema(config.db.table_schema, if_not_exists=True))
         await aconn.run_sync(metadata.create_all)
+        await aconn.execute(
+            insert(metadata.tables[f"{metadata.schema}.campaigns_v2"]).values(
+                id="dda54a0c-6878-5c95-ac4f-007f6808049e",
+                namespace=str(NAMESPACE_DNS),
+                name="DEFAULT",
+                owner="root",
+            )
+        )
         await aconn.commit()
     yield rawdb
     async with rawdb.engine.begin() as aconn:

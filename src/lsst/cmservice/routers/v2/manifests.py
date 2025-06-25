@@ -12,11 +12,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from ...common.enums import ManifestKind
 from ...common.jsonpatch import JSONPatch, JSONPatchError, apply_json_patch
 from ...common.logging import LOGGER
 from ...db.campaigns_v2 import Campaign, Manifest, _default_campaign_namespace
-from ...db.manifests_v2 import ManifestWrapper
+from ...db.manifests_v2 import ManifestModel
 from ...db.session import db_session_dependency
 
 # TODO should probably bind a logger to the fastapi app or something
@@ -103,39 +102,23 @@ async def read_single_resource(
     summary="Add a manifest resource",
     status_code=204,
 )
-async def create_one_or_more_resources(
+async def create_one_or_more_manifests(
     request: Request,
     response: Response,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
-    manifests: ManifestWrapper | list[ManifestWrapper],
+    manifests: ManifestModel | list[ManifestModel],
 ) -> None:
-    # TODO should support query parameters that scope the namespace, such that
-    #      response headers from a campaign-create operation can immediately
-    #      follow a link to node-create for that campaign.
-
     # We could be given a single manifest or a list of them. In the singleton
     # case, wrap it in a list so we can treat everything equally
     if not isinstance(manifests, list):
         manifests = [manifests]
 
     for manifest in manifests:
-        # Validate the input by checking the "kind" of manifest.
-        # The difference between a "manifest" and a "node" is iffy, but all we
-        # want to assert here is that nodes, campaigns, and edges don't go in
-        # the manifest table
-        if manifest.kind in [ManifestKind.campaign, ManifestKind.node, ManifestKind.edge]:
-            raise HTTPException(status_code=422, detail=f"Manifests may not be a {manifest.kind.name} kind.")
-
-        # and that the manifest includes any required fields, though this could
-        # just as well be a try/except ValueError around `_.model_validate()`
-        elif (_name := manifest.metadata_.pop("name", None)) is None:
-            raise HTTPException(status_code=400, detail="Manifests must have a name set in '.metadata.name'")
-
-        # TODO match node with jsonschema and validate
+        _name = manifest.metadata_.name
 
         # A manifest must exist in the namespace of an existing campaign
         # or the default namespace
-        _namespace: str | None = manifest.metadata_.pop("namespace", None)
+        _namespace: str | None = manifest.metadata_.namespace
         if _namespace is None:
             _namespace_uuid = _default_campaign_namespace
         else:
@@ -153,9 +136,8 @@ async def create_one_or_more_resources(
                     raise HTTPException(status_code=422, detail="Requested namespace does not exist.")
                 _namespace_uuid = _campaign_id
 
-        # A node must be a new version if name+namespace already exists
-        # - check db for node as name+namespace, get version and increment
-        _version = int(manifest.metadata_.pop("version", 0))
+        # A manifest must be a new version if name+namespace already exists
+        # check db for manifest as name+namespace, get version and increment
 
         s = (
             select(Manifest)
@@ -164,9 +146,9 @@ async def create_one_or_more_resources(
             .order_by(col(Manifest.version).desc())
             .limit(1)
         )
-        _previous = (await session.exec(s)).one_or_none()
 
-        _version = _previous.version if _previous else _version
+        _previous = (await session.exec(s)).one_or_none()
+        _version = _previous.version if _previous else manifest.metadata_.version
         _version += 1
         _manifest = Manifest(
             id=uuid5(_namespace_uuid, f"{_name}.{_version}"),
@@ -174,8 +156,8 @@ async def create_one_or_more_resources(
             namespace=_namespace_uuid,
             kind=manifest.kind,
             version=_version,
-            metadata_=manifest.metadata_,
-            spec=manifest.spec,
+            metadata_=manifest.metadata_.model_dump(),
+            spec=manifest.spec.model_dump(),
         )
 
         # Put the node in the database
@@ -214,7 +196,7 @@ async def update_manifest_resource(
     - This API always targets the latest version of a manifest when applying
       a patch. This requires and maintains a "linear" sequence of versions;
       it is not permissible to "patch" a previous version and create a "tree"-
-      like history of manifests. For exmaple, every manifest may be diffed
+      like history of manifests. For example, every manifest may be diffed
       against any previous version without having to consider branches.
     """
     use_rfc6902 = False

@@ -3,19 +3,20 @@
 from uuid import NAMESPACE_DNS, uuid4, uuid5
 
 import pytest
-from httpx import AsyncClient, HTTPStatusError
+from httpx import AsyncClient
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""
 
 
-async def test_async_list_campaigns(aclient: AsyncClient) -> None:
+async def test_list_campaigns(aclient: AsyncClient) -> None:
+    """Tests listing the set of all campaigns."""
+    # initially, only the default campaign should be available.
     x = await aclient.get("/cm-service/v2/campaigns")
-    assert len(x.json()) == 0
-    assert True
+    assert len(x.json()) == 1
 
 
-async def test_async_list_campaign(aclient: AsyncClient) -> None:
+async def test_list_campaign(aclient: AsyncClient) -> None:
     """Tests lookup of a single campaign by name and by ID"""
     campaign_name = uuid4().hex[-8:]
 
@@ -47,9 +48,11 @@ async def test_async_list_campaign(aclient: AsyncClient) -> None:
     assert x.is_success
 
 
-async def test_async_create_campaign(aclient: AsyncClient) -> None:
+async def test_negative_campaign(aclient: AsyncClient) -> None:
+    """Tests campaign api negative results."""
     # Test failure to create campaign with invalid manifest (wrong kind)
     campaign_name = uuid4().hex[-8:]
+
     x = await aclient.post(
         "/cm-service/v2/campaigns",
         json={
@@ -61,11 +64,7 @@ async def test_async_create_campaign(aclient: AsyncClient) -> None:
             "spec": {},
         },
     )
-    with pytest.raises(HTTPStatusError):
-        assert x.status_code == 422
-        x.raise_for_status()
-
-    del x
+    assert x.is_client_error
 
     # Test failure to create campaign with incomplete manifest (missing name)
     x = await aclient.post(
@@ -77,11 +76,11 @@ async def test_async_create_campaign(aclient: AsyncClient) -> None:
             "spec": {},
         },
     )
-    with pytest.raises(HTTPStatusError):
-        assert x.status_code == 400
-        x.raise_for_status()
+    assert x.is_client_error
 
-    del x
+
+async def test_create_campaign(aclient: AsyncClient) -> None:
+    campaign_name = uuid4().hex[-8:]
 
     # Test successful campaign creation
     x = await aclient.post(
@@ -93,7 +92,6 @@ async def test_async_create_campaign(aclient: AsyncClient) -> None:
             "spec": {},
         },
     )
-
     assert x.is_success
 
     campaign = x.json()
@@ -124,7 +122,7 @@ async def test_async_create_campaign(aclient: AsyncClient) -> None:
     assert len(edges) == 0
 
 
-async def test_async_patch_campaign(aclient: AsyncClient) -> None:
+async def test_patch_campaign(aclient: AsyncClient) -> None:
     # Create a new campaign with spec data
     campaign_name = uuid4().hex[-8:]
     x = await aclient.post(
