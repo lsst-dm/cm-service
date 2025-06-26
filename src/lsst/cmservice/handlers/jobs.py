@@ -78,11 +78,11 @@ class BpsScriptHandler(ScriptHandler):
         await session.refresh(parent, attribute_names=["c_"])
         data_dict = await script.data_dict(session)
         resolved_cols = await script.resolve_collections(session)
+        prod_area = os.path.expandvars(config.bps.artifact_path)
 
         # Resolve mandatory data element inputs. All of these values must be
         # provided somewhere along the SpecBlock chain.
         try:
-            prod_area = os.path.expandvars(data_dict["prod_area"])
             butler_repo = os.path.expandvars(data_dict["butler_repo"])
             lsst_version = os.path.expandvars(data_dict.get("lsst_version", "w_latest"))
             lsst_distrib_dir = os.path.expandvars(data_dict["lsst_distrib_dir"])
@@ -575,7 +575,7 @@ class ManifestReportScriptHandler(ScriptHandler):
         if TYPE_CHECKING:
             assert isinstance(parent, Job)
         data_dict = await script.data_dict(session)
-        prod_area = await Path(os.path.expandvars(data_dict["prod_area"])).resolve()
+        prod_area = await Path(os.path.expandvars(config.bps.artifact_path)).resolve()
         resolved_cols = await script.resolve_collections(session)
         script_url = await self._set_script_files(session, script, prod_area)
         butler_repo = data_dict["butler_repo"]
@@ -626,8 +626,7 @@ class ManifestReportLoadHandler(FunctionHandler):
     ) -> StatusEnum:
         if TYPE_CHECKING:
             assert isinstance(parent, Job)
-        data_dict = await script.data_dict(session)
-        prod_area = await Path(os.path.expandvars(data_dict["prod_area"])).resolve()
+        prod_area = await Path(os.path.expandvars(config.bps.artifact_path)).resolve()
 
         report_url = parent.metadata_.get("report_url") or (
             prod_area / parent.fullname / "manifest_report.yaml"

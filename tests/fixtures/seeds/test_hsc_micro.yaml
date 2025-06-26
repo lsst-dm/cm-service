@@ -23,7 +23,6 @@
             split_min_groups: 2
     data:
       butler_repo: "/repo/main"
-      prod_area: "output/archive"
       data_query: "instrument = 'HSC' AND exposure in (30504, 30502) AND detector in (45, 46, 47, 48)"
       lsst_version: w_2025_01
       bps_wms_clustering_file: "${DRP_PIPE_DIR}/bps/clustering/HSC/DRP-RC2-clustering.yaml"
@@ -65,7 +64,6 @@
       campaign_validation: "{out}/validate"
     data:
       butler_repo: "/repo/main"
-      prod_area: "output/archive"
       data_query: "instrument = 'HSC'"
       lsst_version: "${WEEKLY}"
 - Specification:
