@@ -6,6 +6,5 @@ Campaign:
     campaign_source: HSC/raw/RC2
   data:
     lsst_version: w_2024_38
-    prod_area: /tmp/trivial
     butler_repo: "/repo/main"
     data_query: "instrument = 'HSC' AND exposure in (30504, 30502) AND detector in (45, 46, 47, 48)"
