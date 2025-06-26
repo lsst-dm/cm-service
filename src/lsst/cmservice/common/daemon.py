@@ -18,11 +18,11 @@ logger = LOGGER.bind(module=__name__)
 async def check_due_date(session: AnyAsyncSession, node: NodeMixin, time_next_check: datetime) -> None:
     """For a provided due date, check if the queue entry is overdue"""
 
-    due_date = node.metadata_.get("due_date", None)
+    due_date: int | None = node.metadata_.get("due_date", None)
     if due_date is None:
         return None
 
-    if time_next_check > due_date:
+    if time_next_check.timestamp() > due_date:
         campaign = await node.get_campaign(session)
         await notification.send_notification(for_status=StatusEnum.overdue, for_campaign=campaign)
 
