@@ -126,7 +126,7 @@ async def create_edge_resource(
         namespace: {campaign uuid}
     spec:
         source: {node name or id}
-        target: {ndoe name or id}
+        target: {node name or id}
     ```
     """
     edge_name = manifest.metadata_.name
@@ -153,6 +153,7 @@ async def create_edge_resource(
     # TODO the edge spec should support mappings for source/target nodes but
     # for now assume the provided name has `.vN` appended to it already or
     # default to v1
+    # TODO support node id in spec
     source_node = f"{source_node}.1" if "." not in source_node else str(source_node)
     target_node = f"{target_node}.1" if "." not in target_node else str(target_node)
 

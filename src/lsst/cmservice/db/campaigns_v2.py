@@ -100,6 +100,12 @@ class CampaignUpdate(BaseSQLModel):
 class NodeBase(BaseSQLModel):
     """nodes_v2 db table"""
 
+    def __hash__(self) -> int:
+        """A Node is hashable according to its unique ID, so it can be used in
+        sets and other places hashable types are required.
+        """
+        return self.id.int
+
     id: UUID = Field(primary_key=True)
     name: str
     namespace: UUID
@@ -108,7 +114,7 @@ class NodeBase(BaseSQLModel):
         default=ManifestKind.other,
         sa_column=Column("kind", Enum(ManifestKind, length=20, native_enum=False, create_constraint=False)),
     )
-    status: StatusField | None = Field(
+    status: StatusField = Field(
         default=StatusEnum.waiting,
         sa_column=Column("status", Enum(StatusEnum, length=20, native_enum=False, create_constraint=False)),
     )
