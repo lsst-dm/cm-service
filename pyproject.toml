@@ -223,8 +223,14 @@ tag_format = "{version}"
 match = "main"
 prerelease = false
 
+# A Ticketed release branch
 [tool.semantic_release.branches.release]
 match = "^tickets/DM-\\d+(.*)/release$"
+prerelease = false
+
+# A non-ticketed release branch
+[tool.semantic_release.branches.bugfix]
+match = "^release/\\d+.\\d+.\\d+$"
 prerelease = false
 
 [tool.semantic_release.branches.ticket]
