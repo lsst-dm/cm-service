@@ -29,7 +29,6 @@ Campaign:
       campaign_validation: "{out}/validate"
     data:
       butler_repo: "/repo/main"
-      prod_area: "output/archive"
       data_query: "instrument = 'HSC'"
       lsst_version: "${WEEKLY}"
 - Specification:
