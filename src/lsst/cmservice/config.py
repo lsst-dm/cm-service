@@ -60,6 +60,11 @@ class BpsConfiguration(BaseModel):
         default=16,
     )
 
+    artifact_path: str = Field(
+        description="Filesystem path location for writing artifacts (`prod_area`)",
+        default="/prod_area",
+    )
+
 
 class ButlerConfiguration(BaseModel):
     """Configuration settings for butler client operations.
