@@ -11,6 +11,7 @@ from lsst.cmservice.parsing.string import parse_element_fullname
         ("campaign_name/step_name/group0", "group"),
         ("campaign_name/step_name", "step"),
         ("campaign_name", "campaign"),
+        ("campaign-name", "campaign"),
     ],
 )
 def test_fullname_parsing(fullname: str, expected: str) -> None:
