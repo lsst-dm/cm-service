@@ -11,7 +11,7 @@ from httpx import AsyncClient
 from lsst.cmservice.common.enums import StatusEnum
 from lsst.cmservice.common.graph import graph_from_edge_list_v2, processable_graph_nodes, validate_graph
 from lsst.cmservice.common.types import AnyAsyncSession
-from lsst.cmservice.db.campaigns_v2 import Edge, Node
+from lsst.cmservice.db.campaigns_v2 import Edge
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""
@@ -132,7 +132,7 @@ async def test_build_and_walk_graph(
     ```
     """
     edge_list = [Edge.model_validate(edge) for edge in (await aclient.get(test_campaign)).json()]
-    graph = await graph_from_edge_list_v2(edge_list, Node, session)
+    graph = await graph_from_edge_list_v2(edge_list, session)
 
     # the START node should be the only processable Node
     for node in processable_graph_nodes(graph):
@@ -146,7 +146,7 @@ async def test_build_and_walk_graph(
 
     # Repeat the graph building and traversal, this time expecting a single
     # node that is not "START"
-    graph = await graph_from_edge_list_v2(edge_list, Node, session)
+    graph = await graph_from_edge_list_v2(edge_list, session)
     for node in processable_graph_nodes(graph):
         assert node.name != "START"
         assert node.status is StatusEnum.waiting
@@ -158,7 +158,7 @@ async def test_build_and_walk_graph(
 
     # Repeat the graph building and traversal, this time expecting a pair of
     # nodes processable in parallel
-    graph = await graph_from_edge_list_v2(edge_list, Node, session)
+    graph = await graph_from_edge_list_v2(edge_list, session)
     count = 0
     for node in processable_graph_nodes(graph):
         count += 1
@@ -172,7 +172,7 @@ async def test_build_and_walk_graph(
     assert count == 2
 
     # Finally, expect the END node
-    graph = await graph_from_edge_list_v2(edge_list, Node, session)
+    graph = await graph_from_edge_list_v2(edge_list, session)
     for node in processable_graph_nodes(graph):
         assert node.name == "END"
         assert node.status is StatusEnum.waiting
@@ -215,3 +215,16 @@ def test_validate_graph() -> None:
     # remove the unneeded node
     g.remove_node("CC")
     assert validate_graph(g, "A", "F")
+
+
+async def test_campaign_graph_route(aclient: AsyncClient, test_campaign: str) -> None:
+    """Tests the acquisition of a serialized graph from a REST endpoint and
+    the subsequent reconstruction of a valid graph from the node-link data.
+    """
+    graph_url = test_campaign.replace("/edges", "/graph")
+    x = await aclient.get(graph_url)
+    assert x.is_success
+
+    # Test reconstruction of the serialized graph
+    graph = nx.node_link_graph(x.json(), edges="edges")
+    assert validate_graph(graph)

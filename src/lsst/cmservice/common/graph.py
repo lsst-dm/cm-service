@@ -1,4 +1,5 @@
 from collections.abc import Iterable, Mapping, MutableSet, Sequence
+from typing import Literal
 
 import networkx as nx
 from sqlalchemy import select
@@ -39,14 +40,31 @@ async def graph_from_edge_list(
 
 async def graph_from_edge_list_v2(
     edges: Sequence[Edge],
-    node_type: type[Node],
     session: AnyAsyncSession,
+    node_type: type[Node] = Node,
+    node_view: Literal["simple", "model"] = "model",
 ) -> nx.DiGraph:
     """Given a sequence of Edges, create a directed graph for these
     edges with nodes derived from database lookups of the related objects.
+
+    Parameters
+    ----------
+    edges: Sequence[Edge]
+        The list of edges forming the graph
+
+    node_type: type
+        The pydantic or sqlmodel class representing the graph node model
+
+    node_view: "simple" or "model"
+        Whether the node metadata in the graph should be simplified (dict) or
+        using the full expunged model form.
+
+    session
+        An async database session
     """
     g = nx.DiGraph()
     g.add_edges_from([(e.source, e.target) for e in edges])
+    relabel_mapping = {}
 
     # The graph understands the nodes in terms of the IDs used in the edges,
     # but we want to hydrate the entire Node model for subsequent users of this
@@ -59,7 +77,19 @@ async def graph_from_edge_list_v2(
         # SQLAlchemy baggage along, so we expunge it from the session before
         # adding it to the graph.
         session.expunge(db_node)
-        g.nodes[node]["model"] = db_node
+        if node_view == "simple":
+            # for the simple node view, the goal is to minimize the amount of
+            # data attached to the node and ensure that this data is json-
+            # serializable and otherwise appropriate for an API response
+            g.nodes[node]["id"] = str(db_node.id)
+            g.nodes[node]["status"] = db_node.status.name
+            g.nodes[node]["kind"] = db_node.kind.name
+            relabel_mapping[node] = db_node.name
+        else:
+            g.nodes[node]["model"] = db_node
+
+    if relabel_mapping:
+        g = nx.relabel_nodes(g, mapping=relabel_mapping, copy=False)
 
     # TODO validate graph now raise exception, or leave it to the caller?
     return g
@@ -68,6 +98,11 @@ async def graph_from_edge_list_v2(
 def graph_to_dict(g: nx.DiGraph) -> Mapping:
     """Renders a networkx directed graph to a mapping format suitable for JSON
     serialization.
+
+    Notes
+    -----
+    The "edges" attribute name in the node link data is "edges" instead of the
+    default "links".
     """
     return nx.node_link_data(g, edges="edges")
 
