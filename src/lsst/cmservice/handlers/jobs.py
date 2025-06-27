@@ -287,7 +287,7 @@ class BpsScriptHandler(ScriptHandler):
         # Irrespective of status, if the bps stdout log file exists, try to
         # parse it for valuable information
         # FIXME is this appropriate? maybe it should only be for terminal state
-        bps_submit_dir: str | None
+        bps_submit_dir: str | None = None
         if fake_status is not None:
             wms_job_id = "fake_job"
             bps_submit_dir = "fake_path"
