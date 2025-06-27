@@ -177,7 +177,7 @@ async def update_node_resource(
     A Node's name, id, kind, or namespace may not be modified by this
     method, and attempts to do so will produce a 4XX client error.
 
-    This PATCH endpoint supports RFC6902 json-patch and RFCrequests.
+    This PATCH endpoint supports RFC6902 json-patch requests.
 
     Notes
     -----
@@ -232,5 +232,9 @@ async def update_node_resource(
     session.add(new_manifest_db)
     await session.commit()
 
-    # TODO response headers
+    response.headers["Self"] = request.url_for("read_node_resource", node_name=new_manifest_db.id).__str__()
+    response.headers["Campaign"] = request.url_for(
+        "read_campaign_resource", campaign_name=new_manifest_db.namespace
+    ).__str__()
+
     return new_manifest_db
