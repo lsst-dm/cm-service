@@ -4,7 +4,7 @@ The /campaigns endpoint supports a collection resource and single resources
 representing campaign objects within CM-Service.
 """
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Annotated
 from uuid import UUID, uuid5
 
@@ -13,6 +13,7 @@ from sqlalchemy.orm import aliased
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from ...common.graph import graph_from_edge_list_v2, graph_to_dict
 from ...common.logging import LOGGER
 from ...db.campaigns_v2 import Campaign, CampaignUpdate, Edge, Node
 from ...db.manifests_v2 import CampaignManifest
@@ -40,7 +41,9 @@ async def read_campaign_collection(
     limit: Annotated[int, Query(le=100)] = 10,
     offset: Annotated[int, Query()] = 0,
 ) -> Sequence[Campaign]:
-    """..."""
+    """A paginated API returning a list of all Campaigns known to the
+    application.
+    """
     try:
         campaigns = await session.exec(select(Campaign).offset(offset).limit(limit))
 
@@ -187,7 +190,9 @@ async def read_campaign_node_collection(
     limit: Annotated[int, Query(le=100)] = 10,
     offset: Annotated[int, Query()] = 0,
 ) -> Sequence[Node]:
-    # This is a convenience api that could also be `/nodes?campaign=...
+    """A paginated API returning a list of all Nodes in the namespace of a
+    single Campaign.
+    """
 
     # The input could be a campaign UUID or it could be a literal name.
     # TODO this could just as well be a campaign query with a join to nodes
@@ -222,7 +227,10 @@ async def read_campaign_edge_collection(
     *,
     resolve_names: bool = False,
 ) -> Sequence[Edge]:
-    # This is a convenience api that could also be `/edges?campaign=...
+    """A paginated API returning a list of all Edges in the namespace of a
+    single Campaign. This list of Edges can be used to construct the Campaign
+    graph.
+    """
 
     # The input could be a campaign UUID or it could be a literal name.
     # This is why raw SQL is better than ORMs
@@ -301,6 +309,7 @@ async def create_campaign_resource(
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     manifest: CampaignManifest,
 ) -> Campaign:
+    """An API to create a Campaign from an appropriate Manifest."""
     # Create a campaign spec from the manifest, delegating the creation of new
     # dynamic fields to the model validation method, -OR- create new dynamic
     # fields here.
@@ -333,3 +342,46 @@ async def create_campaign_resource(
     )
 
     return campaign
+
+
+@router.get(
+    "/{campaign_name_or_id}/graph",
+    status_code=200,
+    summary="Construct and return a Campaign's graph of nodes",
+)
+async def read_campaign_graph(
+    request: Request,
+    response: Response,
+    campaign_name_or_id: str,
+    session: Annotated[AsyncSession, Depends(db_session_dependency)],
+) -> Mapping:
+    """Reads the graph resource for a campaign and returns its JSON represent-
+    ation as serialized by the ``networkx.node_link_data()` function, i.e, the
+    "node-link format".
+    """
+
+    # The input could be a campaign UUID or it could be a literal name.
+    campaign_id: UUID | None
+    try:
+        campaign_id = UUID(campaign_name_or_id)
+    except ValueError:
+        s = select(Campaign.id).where(Campaign.name == campaign_name_or_id)
+        campaign_id = (await session.exec(s)).one_or_none()
+
+    if campaign_id is None:
+        raise HTTPException(status_code=404, detail="No such campaign found.")
+
+    # Fetch the Edges for the campaign
+    statement = select(Edge).filter_by(namespace=campaign_id)
+    edges = (await session.exec(statement)).all()
+
+    # Organize the edges into a graph. The graph nodes are annotated with their
+    # current database attributes.
+    # TODO it makes sense for the graph to include expunged Nodes in the meta-
+    # data for campaign processing, but for the purposes of this api route,
+    # only the most relevant information should be associated with each node,
+    # e.g., its name, status, id, and its URL
+    graph = await graph_from_edge_list_v2(edges=edges, node_type=Node, session=session, node_view="simple")
+
+    response.headers["Self"] = ""
+    return graph_to_dict(graph)
