@@ -2,7 +2,7 @@ from typing import Any
 
 import pytest
 
-from lsst.cmservice.common.jsonpatch import JSONPatch, JSONPatchError, apply_json_patch
+from lsst.cmservice.common.jsonpatch import JSONPatch, JSONPatchError, apply_json_merge, apply_json_patch
 
 
 @pytest.fixture
@@ -148,3 +148,17 @@ def test_jsonpatch_test(target_object: dict[str, Any]) -> None:
     op = JSONPatch(op="test", path="/spec/a_list/-", value="bob_alice")
     with pytest.raises(JSONPatchError):
         _ = apply_json_patch(op, target_object)
+
+
+def test_json_merge_patch(target_object: dict[str, Any]) -> None:
+    """Tests the RFC7396 JSON Merge patch function."""
+
+    patch = {
+        "metadata": {"owner": None, "pilot": "bob_loblaw"},
+        "spec": {"new_key": {"new_key": "new_value"}},
+    }
+    new_object = apply_json_merge(patch, target_object)
+
+    assert new_object["metadata"]["pilot"] == "bob_loblaw"
+    assert "owner" not in new_object["metadata"]
+    assert new_object["spec"]["new_key"]["new_key"] == "new_value"
