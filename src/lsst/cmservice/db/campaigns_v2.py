@@ -2,15 +2,16 @@
 
 from datetime import datetime
 from typing import Any
-from uuid import NAMESPACE_DNS, UUID, uuid5
+from uuid import NAMESPACE_DNS, UUID, uuid4, uuid5
 
 from pydantic import AliasChoices, ValidationInfo, model_validator
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.types import PickleType
-from sqlmodel import Column, Enum, Field, MetaData, SQLModel, String
+from sqlmodel import Column, DateTime, Enum, Field, MetaData, SQLModel, String
 
 from ..common.enums import ManifestKind, StatusEnum
+from ..common.timestamp import now_utc
 from ..common.types import KindField, StatusField
 from ..config import config
 
@@ -57,7 +58,7 @@ class CampaignBase(BaseSQLModel):
     name: str
     namespace: UUID
     owner: str | None = Field(default=None)
-    status: StatusField | None = Field(
+    status: StatusField = Field(
         default=StatusEnum.waiting,
         sa_column=Column("status", Enum(StatusEnum, length=20, native_enum=False, create_constraint=False)),
     )
@@ -169,8 +170,8 @@ class Edge(EdgeBase, table=True):
 class MachineBase(BaseSQLModel):
     """machines_v2 db table."""
 
-    id: UUID = Field(primary_key=True)
-    state: Any | None = Field(sa_column=Column("state", PickleType))
+    id: UUID = Field(primary_key=True, default_factory=uuid4)
+    state: Any = Field(sa_column=Column("state", PickleType))
 
 
 class Machine(MachineBase, table=True):
@@ -203,16 +204,25 @@ class Task(BaseSQLModel, table=True):
 
     __tablename__: str = "tasks_v2"  # type: ignore[misc]
 
-    id: UUID = Field(primary_key=True)
+    id: UUID = Field(primary_key=True, default_factory=uuid4)
     namespace: UUID = Field(foreign_key="campaigns_v2.id")
     node: UUID = Field(foreign_key="nodes_v2.id")
-    priority: int
-    created_at: datetime
-    last_processed_at: datetime
-    finished_at: datetime
-    wms_id: str
-    site_affinity: list[str] = Field(
-        sa_column=Column("site_affinity", MutableList.as_mutable(postgresql.ARRAY(String())))
+    priority: int | None = Field(default=None)
+    created_at: datetime = Field(
+        default_factory=now_utc,
+        sa_column=Column(DateTime(timezone=True)),
+    )
+    last_processed_at: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True)),
+    )
+    finished_at: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True)),
+    )
+    wms_id: str | None = Field(default=None)
+    site_affinity: list[str] | None = Field(
+        default=None, sa_column=Column("site_affinity", MutableList.as_mutable(postgresql.ARRAY(String())))
     )
     status: StatusField = Field(
         sa_column=Column("status", Enum(StatusEnum, length=20, native_enum=False, create_constraint=False)),
@@ -225,7 +235,7 @@ class Task(BaseSQLModel, table=True):
 
 
 class ActivityLogBase(BaseSQLModel):
-    id: UUID = Field(primary_key=True)
+    id: UUID = Field(primary_key=True, default_factory=uuid4)
     namespace: UUID = Field(foreign_key="campaigns_v2.id")
     node: UUID = Field(foreign_key="nodes_v2.id")
     operator: str
@@ -240,6 +250,7 @@ class ActivityLogBase(BaseSQLModel):
         ),
     )
     detail: dict = jsonb_column("detail")
+    metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])
 
 
 class ActivityLog(ActivityLogBase, table=True):

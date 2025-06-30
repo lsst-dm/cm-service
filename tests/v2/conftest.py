@@ -101,6 +101,9 @@ async def testdb(rawdb: DatabaseSessionDependency) -> AsyncGenerator[DatabaseSes
                 namespace=str(NAMESPACE_DNS),
                 name="DEFAULT",
                 owner="root",
+                status="accepted",
+                metadata={},
+                configuration={},
             )
         )
         await aconn.commit()
