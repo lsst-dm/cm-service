@@ -178,6 +178,17 @@ class StatusEnum(enum.Enum):
         """Is this a processable state for an elememnt"""
         return self.value >= StatusEnum.waiting.value and self.value <= StatusEnum.running.value
 
+    def next_status(self) -> StatusEnum:
+        """If the status is on the "happy" path, return the next status along
+        that path, otherwise return the failed status.
+        """
+        happy_path = [StatusEnum.waiting, StatusEnum.ready, StatusEnum.running, StatusEnum.accepted]
+        if self in happy_path:
+            i = happy_path.index(self)
+            return happy_path[i + 1]
+        else:
+            return StatusEnum.failed
+
 
 class TaskStatusEnum(enum.Enum):
     """Defines possible outcomes for Pipetask tasks"""
@@ -295,6 +306,10 @@ class ManifestKind(enum.Enum):
     campaign = enum.auto()
     node = enum.auto()
     edge = enum.auto()
+    # Node kinds
+    grouped_step = enum.auto()
+    step_group = enum.auto()
+    collect_groups = enum.auto()
     # Legacy kinds
     specification = enum.auto()
     spec_block = enum.auto()
