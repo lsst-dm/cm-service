@@ -827,6 +827,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "python-multipart" },
+    { name = "pytransitions" },
     { name = "rich" },
     { name = "safir", extra = ["db"] },
     { name = "sqlalchemy", extra = ["asyncio"] },
@@ -884,6 +885,7 @@ requires-dist = [
     { name = "pydantic", specifier = "==2.11.*" },
     { name = "pydantic-settings", specifier = "==2.9.*" },
     { name = "python-multipart", specifier = "==0.0.*" },
+    { name = "pytransitions", specifier = ">=0.9.2" },
     { name = "rich", specifier = "==13.9.*" },
     { name = "safir", extras = ["db"], specifier = "==7.0.*" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = "==2.0.*" },
@@ -910,7 +912,7 @@ dev = [
     { name = "respx", specifier = ">=0.22.0" },
     { name = "ruff", specifier = ">=0.8.0" },
     { name = "sqlalchemy", extras = ["mypy"], specifier = ">=2.0.36" },
-    { name = "testcontainers", extras = ["postgres"], specifier = ">=4.11.0" },
+    { name = "testcontainers", extras = ["postgres"], specifier = "==4.10.*" },
     { name = "types-pyyaml", specifier = ">=6.0.12.20240917" },
     { name = "types-tabulate", specifier = ">=0.9.0.20240106" },
 ]
@@ -1689,13 +1691,22 @@ wheels = [
 ]
 
 [[package]]
+name = "pytransitions"
+version = "0.9.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "six" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ad/3b/0c24c66483962fb45ba273607fff0bd07770890c5b52152f17398d7069cb/pytransitions-0.9.2.tar.gz", hash = "sha256:c4d2363b76864ff2b532a3c420a552f9c57becbac0582c1f236fea78d2570860", size = 123751, upload-time = "2024-12-10T07:18:00.416Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a2/69/d544505e6cf4c02e81eca91129179d93cda04b5611c91e176f76145a9cb9/pytransitions-0.9.2-py3-none-any.whl", hash = "sha256:796207d77f0b80719fcfb30f8a36702262f1dd940def13b970f4d8d91c4b5297", size = 112935, upload-time = "2024-12-10T07:17:57.05Z" },
+]
+
+[[package]]
 name = "pywin32"
 version = "310"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f7/b1/68aa2986129fb1011dabbe95f0136f44509afaf072b12b8f815905a39f33/pywin32-310-cp311-cp311-win32.whl", hash = "sha256:1e765f9564e83011a63321bb9d27ec456a0ed90d3732c4b2e312b855365ed8bd", size = 8784284, upload-time = "2025-03-17T00:55:53.124Z" },
-    { url = "https://files.pythonhosted.org/packages/b3/bd/d1592635992dd8db5bb8ace0551bc3a769de1ac8850200cfa517e72739fb/pywin32-310-cp311-cp311-win_amd64.whl", hash = "sha256:126298077a9d7c95c53823934f000599f66ec9296b09167810eb24875f32689c", size = 9520748, upload-time = "2025-03-17T00:55:55.203Z" },
-    { url = "https://files.pythonhosted.org/packages/90/b1/ac8b1ffce6603849eb45a91cf126c0fa5431f186c2e768bf56889c46f51c/pywin32-310-cp311-cp311-win_arm64.whl", hash = "sha256:19ec5fc9b1d51c4350be7bb00760ffce46e6c95eaf2f0b2f1150657b1a43c582", size = 8455941, upload-time = "2025-03-17T00:55:57.048Z" },
     { url = "https://files.pythonhosted.org/packages/6b/ec/4fdbe47932f671d6e348474ea35ed94227fb5df56a7c30cbbb42cd396ed0/pywin32-310-cp312-cp312-win32.whl", hash = "sha256:8a75a5cc3893e83a108c05d82198880704c44bbaee4d06e442e471d3c9ea4f3d", size = 8796239, upload-time = "2025-03-17T00:55:58.807Z" },
     { url = "https://files.pythonhosted.org/packages/e3/e5/b0627f8bb84e06991bea89ad8153a9e50ace40b2e1195d68e9dff6b03d0f/pywin32-310-cp312-cp312-win_amd64.whl", hash = "sha256:bf5c397c9a9a19a6f62f3fb821fbf36cac08f03770056711f765ec1503972060", size = 9503839, upload-time = "2025-03-17T00:56:00.8Z" },
     { url = "https://files.pythonhosted.org/packages/1f/32/9ccf53748df72301a89713936645a664ec001abd35ecc8578beda593d37d/pywin32-310-cp312-cp312-win_arm64.whl", hash = "sha256:2349cc906eae872d0663d4d6290d13b90621eaf78964bb1578632ff20e152966", size = 8459470, upload-time = "2025-03-17T00:56:02.601Z" },
@@ -2032,7 +2043,7 @@ wheels = [
 
 [[package]]
 name = "testcontainers"
-version = "4.11.0"
+version = "4.10.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "docker" },
@@ -2041,9 +2052,9 @@ dependencies = [
     { name = "urllib3" },
     { name = "wrapt" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/94/ea/5e89a6ddc294a081907189e3ec1e565694d76864a552163527f708d3ced1/testcontainers-4.11.0.tar.gz", hash = "sha256:48faa72d0ba8d141495d5aec08f8cd5d244ed77c1c4089a4ce1df7b5e12caaf3", size = 64426, upload-time = "2025-06-16T10:59:57.965Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a1/49/9c618aff1c50121d183cdfbc3a4a5cf2727a2cde1893efe6ca55c7009196/testcontainers-4.10.0.tar.gz", hash = "sha256:03f85c3e505d8b4edeb192c72a961cebbcba0dd94344ae778b4a159cb6dcf8d3", size = 63327, upload-time = "2025-04-02T16:13:27.582Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ea/e8/c54f0624f998f9210bff3df84f58ea47120b58412c4623a53277df4d1e75/testcontainers-4.11.0-py3-none-any.whl", hash = "sha256:36f0e1165ce2b504b1e8b8c9779ca738d3baad57d402e35c22ccf01a371fda0d", size = 108597, upload-time = "2025-06-16T10:59:56.153Z" },
+    { url = "https://files.pythonhosted.org/packages/1c/0a/824b0c1ecf224802125279c3effff2e25ed785ed046e67da6e53d928de4c/testcontainers-4.10.0-py3-none-any.whl", hash = "sha256:31ed1a81238c7e131a2a29df6db8f23717d892b592fa5a1977fd0dcd0c23fc23", size = 107414, upload-time = "2025-04-02T16:13:25.785Z" },
 ]
 
 [[package]]
