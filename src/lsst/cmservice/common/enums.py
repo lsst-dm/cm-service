@@ -145,7 +145,7 @@ class StatusEnum(enum.Enum):
 
     def is_successful_script(self) -> bool:
         """Is this successful state for Script"""
-        return self.value >= StatusEnum.reviewable.value
+        return self.value >= StatusEnum.accepted.value
 
     def is_bad(self) -> bool:
         """Is this a failed state"""
@@ -166,6 +166,7 @@ class StatusEnum(enum.Enum):
             [
                 self.is_successful_script(),
                 self.is_bad(),
+                self is StatusEnum.reviewable,
             ]
         )
 
