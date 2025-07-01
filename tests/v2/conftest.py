@@ -32,6 +32,14 @@ def monkeypatch_module() -> Generator[pytest.MonkeyPatch]:
         yield mp
 
 
+@pytest.fixture(scope="module", autouse=True)
+def patched_config(monkeypatch_module: pytest.MonkeyPatch, tmp_path_factory: pytest.TempPathFactory) -> None:
+    """Fixture which monkeypatches configuration settings"""
+    monkeypatch_module.setattr(
+        target=config.bps, name="artifact_path", value=tmp_path_factory.mktemp("output")
+    )
+
+
 @pytest_asyncio.fixture(scope="module", loop_scope="module")
 async def rawdb(monkeypatch_module: pytest.MonkeyPatch) -> AsyncGenerator[DatabaseSessionDependency]:
     """Test fixture for a postgres container.
@@ -150,3 +158,99 @@ async def async_client_fixture(session: AnyAsyncSession) -> AsyncGenerator[Async
     ) as aclient:
         yield aclient
     app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture(scope="function", loop_scope="module")
+async def test_campaign(aclient: AsyncClient) -> AsyncGenerator[str]:
+    """Fixture managing a test campaign with two (additional) nodes."""
+    campaign_name = uuid4().hex[-8:]
+    node_ids = []
+
+    x = await aclient.post(
+        "/cm-service/v2/campaigns",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "campaign",
+            "metadata": {"name": campaign_name},
+            "spec": {},
+        },
+    )
+    campaign_edge_url = x.headers["Edges"]
+    campaign = x.json()
+
+    # create a trio of nodes for the campaign
+    for _ in range(3):
+        x = await aclient.post(
+            "/cm-service/v2/nodes",
+            json={
+                "apiVersion": "io.lsst.cmservice/v1",
+                "kind": "node",
+                "metadata": {"name": uuid4().hex[-8:], "namespace": campaign["id"]},
+                "spec": {},
+            },
+        )
+        node = x.json()
+        node_ids.append(node["name"])
+
+    # Create edges between each campaign node with parallelization
+    _ = await aclient.post(
+        "/cm-service/v2/edges",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "edge",
+            "metadata": {"name": uuid4().hex[-8:], "namespace": campaign["id"]},
+            "spec": {
+                "source": "START",
+                "target": node_ids[0],
+            },
+        },
+    )
+    _ = await aclient.post(
+        "/cm-service/v2/edges",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "edge",
+            "metadata": {"name": uuid4().hex[-8:], "namespace": campaign["id"]},
+            "spec": {
+                "source": node_ids[0],
+                "target": node_ids[1],
+            },
+        },
+    )
+    _ = await aclient.post(
+        "/cm-service/v2/edges",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "edge",
+            "metadata": {"name": uuid4().hex[-8:], "namespace": campaign["id"]},
+            "spec": {
+                "source": node_ids[0],
+                "target": node_ids[2],
+            },
+        },
+    )
+    _ = await aclient.post(
+        "/cm-service/v2/edges",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "edge",
+            "metadata": {"name": uuid4().hex[-8:], "namespace": campaign["id"]},
+            "spec": {
+                "source": node_ids[1],
+                "target": "END",
+            },
+        },
+    )
+    _ = await aclient.post(
+        "/cm-service/v2/edges",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "edge",
+            "metadata": {"name": uuid4().hex[-8:], "namespace": campaign["id"]},
+            "spec": {
+                "source": node_ids[2],
+                "target": "END",
+            },
+        },
+    )
+    yield campaign_edge_url
