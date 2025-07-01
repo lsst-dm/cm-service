@@ -1,11 +1,7 @@
 """Tests graph operations using v2 objects"""
 
-from collections.abc import AsyncGenerator
-from uuid import uuid4
-
 import networkx as nx
 import pytest
-import pytest_asyncio
 from httpx import AsyncClient
 
 from lsst.cmservice.common.enums import StatusEnum
@@ -15,102 +11,6 @@ from lsst.cmservice.db.campaigns_v2 import Edge
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""
-
-
-@pytest_asyncio.fixture(scope="module", loop_scope="module")
-async def test_campaign(aclient: AsyncClient) -> AsyncGenerator[str]:
-    """Fixture managing a test campaign with two (additional) nodes."""
-    campaign_name = uuid4().hex[-8:]
-    node_ids = []
-
-    x = await aclient.post(
-        "/cm-service/v2/campaigns",
-        json={
-            "apiVersion": "io.lsst.cmservice/v1",
-            "kind": "campaign",
-            "metadata": {"name": campaign_name},
-            "spec": {},
-        },
-    )
-    campaign_edge_url = x.headers["Edges"]
-    campaign = x.json()
-
-    # create a trio of nodes for the campaign
-    for _ in range(3):
-        x = await aclient.post(
-            "/cm-service/v2/nodes",
-            json={
-                "apiVersion": "io.lsst.cmservice/v1",
-                "kind": "node",
-                "metadata": {"name": uuid4().hex[-8:], "namespace": campaign["id"]},
-                "spec": {},
-            },
-        )
-        node = x.json()
-        node_ids.append(node["name"])
-
-    # Create edges between each campaign node with parallelization
-    _ = await aclient.post(
-        "/cm-service/v2/edges",
-        json={
-            "apiVersion": "io.lsst.cmservice/v1",
-            "kind": "edge",
-            "metadata": {"name": uuid4().hex[-8:], "namespace": campaign["id"]},
-            "spec": {
-                "source": "START",
-                "target": node_ids[0],
-            },
-        },
-    )
-    _ = await aclient.post(
-        "/cm-service/v2/edges",
-        json={
-            "apiVersion": "io.lsst.cmservice/v1",
-            "kind": "edge",
-            "metadata": {"name": uuid4().hex[-8:], "namespace": campaign["id"]},
-            "spec": {
-                "source": node_ids[0],
-                "target": node_ids[1],
-            },
-        },
-    )
-    _ = await aclient.post(
-        "/cm-service/v2/edges",
-        json={
-            "apiVersion": "io.lsst.cmservice/v1",
-            "kind": "edge",
-            "metadata": {"name": uuid4().hex[-8:], "namespace": campaign["id"]},
-            "spec": {
-                "source": node_ids[0],
-                "target": node_ids[2],
-            },
-        },
-    )
-    _ = await aclient.post(
-        "/cm-service/v2/edges",
-        json={
-            "apiVersion": "io.lsst.cmservice/v1",
-            "kind": "edge",
-            "metadata": {"name": uuid4().hex[-8:], "namespace": campaign["id"]},
-            "spec": {
-                "source": node_ids[1],
-                "target": "END",
-            },
-        },
-    )
-    _ = await aclient.post(
-        "/cm-service/v2/edges",
-        json={
-            "apiVersion": "io.lsst.cmservice/v1",
-            "kind": "edge",
-            "metadata": {"name": uuid4().hex[-8:], "namespace": campaign["id"]},
-            "spec": {
-                "source": node_ids[2],
-                "target": "END",
-            },
-        },
-    )
-    yield campaign_edge_url
 
 
 async def test_build_and_walk_graph(
