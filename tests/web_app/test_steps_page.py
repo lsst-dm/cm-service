@@ -22,7 +22,7 @@ def mock_step() -> Step:
         id=1,
         name="first_step",
         parent_id=1,
-        fullname="first_production/first_campaign/first_step",
+        fullname="first_campaign/first_step/first_group",
         status=StatusEnum.accepted,
     )
     return step
@@ -53,14 +53,18 @@ async def test_get_step_details(
     assert isinstance(step_details, dict)
     assert step_details == {
         "id": 1,
-        "name": "first_step",
-        "fullname": "first_production/first_campaign/first_step",
+        "fullname": {
+            "campaign": "first_campaign",
+            "group": "first_group",
+            "step": "first_step",
+        },
         "status": "COMPLETE",
         "no_groups": 4,
         "no_groups_completed": 1,
         "no_groups_need_attention": 1,
         "no_groups_failed": 2,
         "level": LevelEnum.step.value,
+        "org_status": {"name": "accepted", "value": 5},
     }
 
 

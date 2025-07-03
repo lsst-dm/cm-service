@@ -50,6 +50,7 @@ def first_campaign(
         spec_block_id=1,
         data={"lsst_version": "lsst_version_1"},
         status=StatusEnum.accepted,
+        metadata_={"crtime": 946684800},
     )
 
     async def mock_resolve_collections(mock_session: Mock, *, throw_overrides: bool) -> dict:
@@ -72,6 +73,16 @@ def mock_groups() -> typing.Generator:
 
 
 @pytest.fixture()
+def mock_steps() -> typing.Generator:
+    yield []
+
+
+@pytest.fixture()
+def mock_step_detail() -> typing.Generator:
+    yield {}
+
+
+@pytest.fixture()
 def mock_campaign_groups(
     mock_session: Mock,
     first_campaign: Campaign,
@@ -83,14 +94,42 @@ def mock_campaign_groups(
     return mock_get_all_groups
 
 
+@pytest.fixture()
+def mock_campaign_steps(
+    mock_session: Mock,
+    first_campaign: Campaign,
+    mock_steps: typing.Callable,
+) -> typing.Callable:
+    async def mock_get_all_steps(mock_session: Mock, first_campaign: Campaign) -> typing.Callable:
+        return mock_steps
+
+    return mock_get_all_steps
+
+
+@pytest.fixture()
+def mock_step_details(
+    mock_session: Mock,
+    first_campaign: Campaign,
+    mock_steps: typing.Callable,
+) -> typing.Callable:
+    async def mock_get_step_detail(mock_session: Mock, first_campaign: Campaign) -> typing.Callable:
+        return mock_step_detail
+
+    return mock_get_step_detail
+
+
 @pytest.mark.asyncio
 async def test_get_campaign_details(
     first_campaign: Campaign,
     monkeypatch: MonkeyPatch,
     mock_session: Mock,
     mock_campaign_groups: typing.Callable,
+    mock_campaign_steps: typing.Callable,
+    mock_step_details: typing.Callable,
 ) -> None:
     monkeypatch.setattr("lsst.cmservice.web_app.pages.campaigns.get_campaign_groups", mock_campaign_groups)
+    monkeypatch.setattr("lsst.cmservice.web_app.pages.campaigns.get_campaign_steps", mock_campaign_steps)
+    monkeypatch.setattr("lsst.cmservice.web_app.pages.campaigns.get_step_details", mock_step_details)
     campaign_details = await get_campaign_details(mock_session, first_campaign)
     assert isinstance(campaign_details, dict)
     assert campaign_details == {
@@ -99,8 +138,9 @@ async def test_get_campaign_details(
         "lsst_version": "lsst_version_1",
         "source": "",
         "status": "COMPLETE",
-        "groups_completed": "2 of 2 groups completed",
-        "scripts_completed": "2 of 2 scripts completed",
+        "complete_steps": [],
+        "in_progress_steps": [],
+        "need_attention_steps": [],
         "need_attention_groups": [],
         "need_attention_scripts": [],
         "child_config": None,
@@ -113,9 +153,9 @@ async def test_get_campaign_details(
         "data": {
             "lsst_version": "lsst_version_1",
         },
-        "fullname": "first_production/first_campaign",
         "level": 1,
-        "production_name": "first_production",
+        "last_updated": "2000-01-01T00:00:00Z",
+        "org_status": {"name": "accepted", "value": 5},
     }
 
 

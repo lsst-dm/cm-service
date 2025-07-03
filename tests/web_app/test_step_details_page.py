@@ -34,8 +34,7 @@ async def test_get_step_details_by_id(engine: AsyncEngine) -> None:
 
         assert step == {
             "id": 2,
-            "name": f"step1_{uuid_int}",
-            "fullname": f"camp0_{uuid_int}/step1_{uuid_int}",
+            "fullname": {"campaign": f"camp0_{uuid_int}", "step": f"step1_{uuid_int}"},
             "status": "IN_PROGRESS",
             "no_groups": 5,
             "no_groups_completed": 0,
@@ -50,6 +49,7 @@ async def test_get_step_details_by_id(engine: AsyncEngine) -> None:
             },
             "data": {},
             "level": LevelEnum.step.value,
+            "org_status": {"name": "waiting", "value": 0},
         }
 
         assert step_groups == [
@@ -62,6 +62,7 @@ async def test_get_step_details_by_id(engine: AsyncEngine) -> None:
                 "collections": {},
                 "child_config": {},
                 "spec_aliases": {},
+                "org_status": {"name": "waiting", "value": 0},
             },
             {
                 "id": 2,
@@ -72,6 +73,7 @@ async def test_get_step_details_by_id(engine: AsyncEngine) -> None:
                 "collections": {},
                 "child_config": {},
                 "spec_aliases": {},
+                "org_status": {"name": "waiting", "value": 0},
             },
             {
                 "id": 3,
@@ -82,6 +84,7 @@ async def test_get_step_details_by_id(engine: AsyncEngine) -> None:
                 "collections": {},
                 "child_config": {},
                 "spec_aliases": {},
+                "org_status": {"name": "waiting", "value": 0},
             },
             {
                 "id": 4,
@@ -92,6 +95,7 @@ async def test_get_step_details_by_id(engine: AsyncEngine) -> None:
                 "collections": {},
                 "child_config": {},
                 "spec_aliases": {},
+                "org_status": {"name": "waiting", "value": 0},
             },
             {
                 "id": 5,
@@ -102,6 +106,7 @@ async def test_get_step_details_by_id(engine: AsyncEngine) -> None:
                 "collections": {},
                 "child_config": {},
                 "spec_aliases": {},
+                "org_status": {"name": "waiting", "value": 0},
             },
         ]
 
