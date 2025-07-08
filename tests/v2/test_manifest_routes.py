@@ -131,6 +131,13 @@ async def test_load_manifests(aclient: AsyncClient) -> None:
     assert len(manifests) == 3
     assert manifests[-1]["spec"]["one"] == 1
 
+    # Get all the loaded manifests from the campaign route
+    x = await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}/manifests")
+    assert x.is_success
+    manifests = x.json()
+    assert len(manifests) == 2
+    assert manifests[-1]["spec"]["one"] == 1
+
 
 async def test_patch_manifest(aclient: AsyncClient) -> None:
     """Tests partial update of manifests and single resource retrieval."""

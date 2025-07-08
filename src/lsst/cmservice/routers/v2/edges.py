@@ -9,7 +9,7 @@ from typing import Annotated
 from uuid import UUID, uuid5
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
-from sqlmodel import select
+from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ...common.logging import LOGGER
@@ -46,7 +46,8 @@ async def read_edges_collection(
     For campaign-scoped edges, one should use the /campaigns/{}/edges route.
     """
     try:
-        edges = await session.exec(select(Edge).offset(offset).limit(limit))
+        statement = select(Edge).order_by(col(Edge.name).desc()).offset(offset).limit(limit)
+        edges = await session.exec(statement)
         response.headers["Next"] = (
             request.url_for("read_edges_collection")
             .include_query_params(offset=(offset + limit), limit=limit)
