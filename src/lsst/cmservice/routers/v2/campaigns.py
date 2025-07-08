@@ -15,7 +15,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ...common.graph import graph_from_edge_list_v2, graph_to_dict
 from ...common.logging import LOGGER
-from ...db.campaigns_v2 import Campaign, CampaignUpdate, Edge, Node
+from ...common.timestamp import element_time
+from ...db.campaigns_v2 import Campaign, CampaignUpdate, Edge, Manifest, Node
 from ...db.manifests_v2 import CampaignManifest
 from ...db.session import db_session_dependency
 
@@ -42,10 +43,16 @@ async def read_campaign_collection(
     offset: Annotated[int, Query()] = 0,
 ) -> Sequence[Campaign]:
     """A paginated API returning a list of all Campaigns known to the
-    application.
+    application, from newest to oldest.
     """
     try:
-        campaigns = await session.exec(select(Campaign).offset(offset).limit(limit))
+        statement = (
+            select(Campaign)
+            .order_by(Campaign.metadata_["crtime"].desc().nulls_last())
+            .offset(offset)
+            .limit(limit)
+        )
+        campaigns = await session.exec(statement)
 
         response.headers["Next"] = str(
             request.url_for("read_campaign_collection").include_query_params(
@@ -94,6 +101,9 @@ async def read_campaign_resource(
         )
         response.headers["Edges"] = str(
             request.url_for("read_campaign_edge_collection", campaign_name=campaign.id)
+        )
+        response.headers["Manifests"] = str(
+            request.url_for("read_campaign_manifest_collection", campaign_name=campaign.id)
         )
         return campaign
     else:
@@ -196,22 +206,60 @@ async def read_campaign_node_collection(
 
     # The input could be a campaign UUID or it could be a literal name.
     # TODO this could just as well be a campaign query with a join to nodes
-    s = select(Node)
+    statement = select(Node).order_by(Node.metadata_["crtime"].asc().nulls_last())
+
     try:
         if campaign_id := UUID(campaign_name):
-            s = s.where(Node.namespace == campaign_id)
+            statement = statement.where(Node.namespace == campaign_id)
     except ValueError:
         # FIXME get an id from a name
         raise HTTPException(status_code=422, detail="campaign_name must be a uuid")
-    s = s.offset(offset).limit(limit)
-    nodes = await session.exec(s)
+    statement = statement.offset(offset).limit(limit)
+    nodes = await session.exec(statement)
     response.headers["Next"] = str(
         request.url_for(
             "read_campaign_node_collection",
-            campaign_name=campaign_name,
+            campaign_name=campaign_id,
         ).include_query_params(offset=(offset + limit), limit=limit),
     )
-    # TODO Previous
+    response.headers["Self"] = str(request.url_for("read_campaign_resource", campaign_name=campaign_id))
+    return nodes.all()
+
+
+@router.get(
+    "/{campaign_name}/manifests",
+    summary="Get campaign Manifests",
+)
+async def read_campaign_manifest_collection(
+    request: Request,
+    response: Response,
+    session: Annotated[AsyncSession, Depends(db_session_dependency)],
+    campaign_name: str,
+    limit: Annotated[int, Query(le=100)] = 10,
+    offset: Annotated[int, Query()] = 0,
+) -> Sequence[Manifest]:
+    """A paginated API returning a list of all Manifests in the namespace of a
+    single Campaign.
+    """
+
+    # The input could be a campaign UUID or it could be a literal name.
+    statement = select(Manifest).order_by(Manifest.metadata_["crtime"].asc().nulls_last())
+
+    try:
+        if campaign_id := UUID(campaign_name):
+            statement = statement.where(Manifest.namespace == campaign_id)
+    except ValueError:
+        # FIXME get an id from a name
+        raise HTTPException(status_code=422, detail="campaign_name must be a uuid")
+    statement = statement.offset(offset).limit(limit)
+    nodes = await session.exec(statement)
+    response.headers["Next"] = str(
+        request.url_for(
+            "read_campaign_manifest_collection",
+            campaign_name=campaign_id,
+        ).include_query_params(offset=(offset + limit), limit=limit),
+    )
+    response.headers["Self"] = str(request.url_for("read_campaign_resource", campaign_name=campaign_id))
     return nodes.all()
 
 
@@ -252,7 +300,7 @@ async def read_campaign_edge_collection(
             .join_from(Edge, target_nodes, Edge.target == target_nodes.id)
         )
     else:
-        s = select(Edge)
+        s = select(Edge).order_by(col(Edge.name).asc().nulls_last())
     try:
         if campaign_id := UUID(campaign_name):
             s = s.where(Edge.namespace == campaign_id)
@@ -260,6 +308,8 @@ async def read_campaign_edge_collection(
         # FIXME get an id from a name
         raise HTTPException(status_code=422, detail="campaign_name must be a uuid")
     edges = await session.exec(s)
+
+    response.headers["Self"] = str(request.url_for("read_campaign_resource", campaign_name=campaign_id))
     return edges.all()
 
 
@@ -313,10 +363,12 @@ async def create_campaign_resource(
     # Create a campaign spec from the manifest, delegating the creation of new
     # dynamic fields to the model validation method, -OR- create new dynamic
     # fields here.
+    campaign_metadata = manifest.metadata_.model_dump()
+    campaign_metadata |= {"crtime": element_time()}
     campaign = Campaign.model_validate(
         dict(
-            name=manifest.metadata_.name,
-            metadata_=manifest.metadata_.model_dump(),
+            name=campaign_metadata.pop("name"),
+            metadata_=campaign_metadata,
             # owner = ...  # TODO Get username from gafaelfawr # noqa: ERA001
         )
     )
@@ -376,12 +428,8 @@ async def read_campaign_graph(
     edges = (await session.exec(statement)).all()
 
     # Organize the edges into a graph. The graph nodes are annotated with their
-    # current database attributes.
-    # TODO it makes sense for the graph to include expunged Nodes in the meta-
-    # data for campaign processing, but for the purposes of this api route,
-    # only the most relevant information should be associated with each node,
-    # e.g., its name, status, id, and its URL
+    # current database attributes according to the "simple" node view.
     graph = await graph_from_edge_list_v2(edges=edges, node_type=Node, session=session, node_view="simple")
 
-    response.headers["Self"] = ""
+    response.headers["Self"] = str(request.url_for("read_campaign_resource", campaign_name=campaign_id))
     return graph_to_dict(graph)

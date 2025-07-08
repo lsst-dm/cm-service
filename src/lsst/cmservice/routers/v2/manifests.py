@@ -14,6 +14,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ...common.jsonpatch import JSONPatch, JSONPatchError, apply_json_patch
 from ...common.logging import LOGGER
+from ...common.timestamp import element_time
 from ...db.campaigns_v2 import Campaign, Manifest, _default_campaign_namespace
 from ...db.manifests_v2 import ManifestModel
 from ...db.session import db_session_dependency
@@ -51,7 +52,13 @@ async def read_manifest_collection(
             )
         )
     try:
-        nodes = await session.exec(select(Manifest).offset(offset).limit(limit))
+        statement = (
+            select(Manifest)
+            .order_by(Manifest.metadata_["crtime"].desc().nulls_last())
+            .offset(offset)
+            .limit(limit)
+        )
+        nodes = await session.exec(statement)
         return nodes.all()
     except Exception as msg:
         logger.exception()
@@ -150,13 +157,16 @@ async def create_one_or_more_manifests(
         _previous = (await session.exec(s)).one_or_none()
         _version = _previous.version if _previous else manifest.metadata_.version
         _version += 1
+
+        _manifest_metadata = manifest.metadata_.model_dump()
+        _manifest_metadata |= {"crtime": element_time()}
         _manifest = Manifest(
             id=uuid5(_namespace_uuid, f"{_name}.{_version}"),
-            name=_name,
+            name=_manifest_metadata.pop("name"),
             namespace=_namespace_uuid,
             kind=manifest.kind,
             version=_version,
-            metadata_=manifest.metadata_.model_dump(),
+            metadata_=_manifest_metadata,
             spec=manifest.spec.model_dump(),
         )
 
@@ -240,6 +250,7 @@ async def update_manifest_resource(
             )
 
     # create Manifest from new_manifest, add to session, and commit
+    new_manifest["metadata"] |= {"crtime": element_time()}
     new_manifest_db = Manifest.model_validate(new_manifest)
     session.add(new_manifest_db)
     await session.commit()

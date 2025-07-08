@@ -14,6 +14,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ...common.jsonpatch import JSONPatch, JSONPatchError, apply_json_patch
 from ...common.logging import LOGGER
+from ...common.timestamp import element_time
 from ...db.campaigns_v2 import Campaign, Node
 from ...db.manifests_v2 import NodeManifest
 from ...db.session import db_session_dependency
@@ -47,7 +48,10 @@ async def read_nodes_collection(
     For campaign-scoped nodes, one should use the /campaigns/{}/nodes route.
     """
     try:
-        nodes = await session.exec(select(Node).offset(offset).limit(limit))
+        statement = (
+            select(Node).order_by(Node.metadata_["crtime"].desc().nulls_last()).offset(offset).limit(limit)
+        )
+        nodes = await session.exec(statement)
         response.headers["Next"] = (
             request.url_for("read_nodes_collection")
             .include_query_params(offset=(offset + limit), limit=limit)
@@ -136,12 +140,15 @@ async def create_node_resource(
 
     node_version = previous_node.version if previous_node else node_version
     node_version += 1
+    node_metadata = manifest.metadata_.model_dump()
+    node_metadata |= {"crtime": element_time()}
     node = Node(
         id=uuid5(node_namespace_uuid, f"{node_name}.{node_version}"),
-        name=node_name,
+        name=node_metadata.pop("name"),
         namespace=node_namespace_uuid,
         version=node_version,
         configuration=manifest.spec.model_dump(),
+        metadata_=node_metadata,
     )
 
     # Put the node in the database
@@ -228,6 +235,7 @@ async def update_node_resource(
             )
 
     # create Manifest from new_manifest, add to session, and commit
+    new_manifest["metadata"] |= {"crtime": element_time()}
     new_manifest_db = Node.model_validate(new_manifest)
     session.add(new_manifest_db)
     await session.commit()
