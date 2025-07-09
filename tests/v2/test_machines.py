@@ -1,16 +1,19 @@
 """Tests for State Machines."""
 
 import pickle
+import random
 from unittest.mock import patch
 from urllib.parse import urlparse
 from uuid import UUID, uuid4, uuid5
 
 import pytest
+from httpx import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from lsst.cmservice.common.enums import StatusEnum
-from lsst.cmservice.db.campaigns_v2 import Machine, Node
+from lsst.cmservice.db.campaigns_v2 import Campaign, Machine, Node
 from lsst.cmservice.machines.node import NodeMachine, StartMachine
+from lsst.cmservice.machines.tasks import change_campaign_state_fsm as change_campaign_state
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""
@@ -172,3 +175,56 @@ async def test_machine_pickle(test_campaign: str, session: AsyncSession) -> None
     assert new_node_machine.state == new_node.status
 
     await session.close()
+
+
+async def test_change_campaign_state(
+    session: AsyncSession, aclient: AsyncClient, test_campaign: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Tests that the campaign state change background task sets a campaign
+    status when it is supposed to, and does not when it is not.
+    """
+    # the test_campaign fixture produces a valid graph so it should be possible
+    # to set the campaign to running, then paused
+    # extract the test campaign id from the fixture url
+    edge_list = (await aclient.get(test_campaign)).json()
+
+    campaign_id = urlparse(test_campaign).path.split("/")[-2:][0]
+    campaign = await session.get_one(Campaign, campaign_id)
+
+    x = (await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}")).json()
+    assert x["status"] == "waiting"
+
+    await change_campaign_state(campaign, StatusEnum.running, uuid4())
+    await session.refresh(campaign, attribute_names=["status"])
+    await session.commit()
+
+    x = (await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}")).json()
+    assert x["status"] == "running"
+
+    await change_campaign_state(campaign, StatusEnum.paused, uuid4())
+    await session.refresh(campaign, attribute_names=["status"])
+    await session.commit()
+
+    x = (await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}")).json()
+    assert x["status"] == "paused"
+
+    # Break the graph by removing an edge from the campaign, and try to enter
+    # the running state
+    edge_to_remove = random.choice(edge_list)["id"]
+    x = await aclient.delete(f"/cm-service/v2/edges/{edge_to_remove}")
+
+    caplog.clear()
+    await change_campaign_state(campaign, StatusEnum.running, uuid4())
+    await session.refresh(campaign, attribute_names=["status"])
+    await session.commit()
+
+    x = (await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}")).json()
+    assert x["status"] == "paused"
+
+    # Check log messages
+    log_entry_found = False
+    for r in caplog.records:
+        if "Invalid campaign graph" in r.message:
+            log_entry_found = True
+            break
+    assert log_entry_found

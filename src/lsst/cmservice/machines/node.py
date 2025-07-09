@@ -93,7 +93,7 @@ class NodeMachine(StatefulModel):
         )
         self.post_init()
 
-    def post_init(self):
+    def post_init(self) -> None:
         """Additional initialization method called at the end of ``__init__``,
         as a convenenience to child classes.
         """
