@@ -178,7 +178,7 @@ def upgrade() -> None:
         sa.Column("node", postgresql.UUID(), nullable=False),
         sa.Column("priority", postgresql.INTEGER(), nullable=True),
         sa.Column("created_at", postgresql.TIMESTAMP(timezone=True), nullable=False),
-        sa.Column("last_processed_at", postgresql.TIMESTAMP(timezone=True), nullable=True),
+        sa.Column("submitted_at", postgresql.TIMESTAMP(timezone=True), nullable=True),
         sa.Column("finished_at", postgresql.TIMESTAMP(timezone=True), nullable=True),
         sa.Column("wms_id", postgresql.VARCHAR(), nullable=True),
         sa.Column("site_affinity", postgresql.ARRAY(postgresql.VARCHAR()), nullable=True),
@@ -201,8 +201,10 @@ def upgrade() -> None:
         "activity_log_v2",
         sa.Column("id", postgresql.UUID(), nullable=False),
         sa.Column("namespace", postgresql.UUID(), nullable=False),
-        sa.Column("node", postgresql.UUID(), sa.ForeignKey(nodes_v2.c.id), nullable=False),
+        sa.Column("node", postgresql.UUID(), sa.ForeignKey(nodes_v2.c.id), nullable=True),
         sa.Column("operator", postgresql.VARCHAR(), nullable=False, default="root"),
+        sa.Column("created_at", postgresql.TIMESTAMP(timezone=True), nullable=False),
+        sa.Column("finished_at", postgresql.TIMESTAMP(timezone=True), nullable=True),
         sa.Column("from_status", ENUM_COLUMN_AS_VARCHAR, nullable=False),
         sa.Column("to_status", ENUM_COLUMN_AS_VARCHAR, nullable=False),
         sa.Column(
@@ -219,6 +221,7 @@ def upgrade() -> None:
             default=dict,
             server_default=sa.text("'{}'::json"),
         ),
+        sa.PrimaryKeyConstraint("id"),
         if_not_exists=True,
     )
 

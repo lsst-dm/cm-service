@@ -3,7 +3,6 @@ from typing import Literal
 from uuid import UUID
 
 import networkx as nx
-from sqlalchemy import select
 
 from ..db import Script, ScriptDependency, Step, StepDependency
 from ..db.campaigns_v2 import Edge, Node
@@ -71,9 +70,7 @@ async def graph_from_edge_list_v2(
     # but we want to hydrate the entire Node model for subsequent users of this
     # graph to reference without dipping back to the Database.
     for node in g.nodes:
-        s = select(Node).where(Node.id == node)
-        db_node: Node = (await session.execute(s)).scalars().one()
-
+        db_node = await session.get_one(Node, node)
         # This Node is going on an adventure where it does not need to drag its
         # SQLAlchemy baggage along, so we expunge it from the session before
         # adding it to the graph.
