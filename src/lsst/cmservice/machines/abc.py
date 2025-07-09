@@ -62,7 +62,7 @@ class StatefulModel(ABC):
     async def may_trigger(self, trigger_name: str) -> bool:
         raise NotImplementedError("Must be overridden by a Machine")
 
-    async def trigger(self, trigger_name: str) -> bool:
+    async def trigger(self, trigger_name: str, **kwargs: Any) -> bool:
         raise NotImplementedError("Must be overridden by a Machine")
 
     async def resume(self) -> bool:

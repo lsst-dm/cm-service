@@ -6,9 +6,9 @@ representing campaign objects within CM-Service.
 
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Annotated
-from uuid import UUID, uuid5
+from uuid import UUID, uuid4, uuid5
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, Response
 from sqlalchemy.orm import aliased
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -16,9 +16,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from ...common.graph import graph_from_edge_list_v2, graph_to_dict
 from ...common.logging import LOGGER
 from ...common.timestamp import element_time
-from ...db.campaigns_v2 import Campaign, CampaignUpdate, Edge, Manifest, Node
+from ...db.campaigns_v2 import ActivityLog, Campaign, CampaignUpdate, Edge, Manifest, Node
 from ...db.manifests_v2 import CampaignManifest
 from ...db.session import db_session_dependency
+from ...machines.tasks import change_campaign_state_fsm as change_campaign_state
 
 # TODO should probably bind a logger to the fastapi app or something
 logger = LOGGER.bind(module=__name__)
@@ -119,28 +120,27 @@ async def update_campaign_resource(
     request: Request,
     response: Response,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
+    background_tasks: BackgroundTasks,
     campaign_name: str,
     patch_data: CampaignUpdate,
 ) -> Campaign:
     """Partial update method for campaigns.
 
     Should primarily be used to set the status of a campaign, e.g., from
-    waiting->ready, in order to trigger any validation rules contained in that
-    transition.
+    waiting->running or running->paused.
 
-    Another common use case would be to set status to "paused".
+    Rather than directly manipulating the campaign's record, a change to status
+    uses a Background Task, which may or may not perform the requested update.
+    This is why the method returns a 202; the user needs to check back "later"
+    to see if the requested state change has occurred.
 
-    This could be used to update a campaign's metadata, but otherwise the
-    status is the only field available for modification, and even then there is
-    not an imperative "change the status" command, rather a request to evolve
-    the state of a campaign from A to B, which may or may not be successful.
+    Note
+    ----
+    For patching a Campaign status, this API accepts only RFC7396 "Merge-Patch"
+    updates with the appropriate request header set.
 
-    Rather than manipulating the campaign's record, a change to status should
-    instead create a work item for the task processing queue for an executor
-    to discover and attempt to act upon. Barring that, the work should be
-    delegated to a Background Task. This is why the method returns a 202; the
-    user needs to check back "later" to see if the requested state change has
-    occurred.
+    This route returns the Campaign subject to the PATCH, which may or may not
+    reflect all the requested updates (subject to background task resolution).
     """
     use_rfc7396 = False
     use_rfc6902 = False
@@ -170,12 +170,23 @@ async def update_campaign_resource(
     if campaign is None:
         raise HTTPException(status_code=404, detail="No such campaign")
 
-    # update the campaign with the patch data
-    update_data = patch_data.model_dump(exclude_unset=True)
+    # update the campaign with the patch data as a Merge operation
+    update_data = patch_data.model_dump(exclude={"status"}, exclude_unset=True)
     campaign.sqlmodel_update(update_data)
-    session.add(campaign)
     await session.commit()
-    await session.refresh(campaign)
+    session.expunge(campaign)
+
+    # If the patch data is requesting a status change, we will not affect that
+    # directly, but defer it to a background task
+    if patch_data.status is not None:
+        # TODO implement middleware to assign a request_id to every request
+        request_id = uuid4()
+        background_tasks.add_task(change_campaign_state, campaign, patch_data.status, request_id)
+        response.headers["StatusUpdate"] = (
+            f"""{request.url_for("read_campaign_activity_log", campaign_name_or_id=campaign.id)}"""
+            f"""?request-id={request_id}"""
+        ).strip()
+
     # set the response headers
     if campaign is not None:
         response.headers["Self"] = str(request.url_for("read_campaign_resource", campaign_name=campaign.id))
@@ -433,3 +444,40 @@ async def read_campaign_graph(
 
     response.headers["Self"] = str(request.url_for("read_campaign_resource", campaign_name=campaign_id))
     return graph_to_dict(graph)
+
+
+@router.get(
+    "/{campaign_name_or_id}/logs",
+    status_code=200,
+    summary="Obtain a collection of Activity Log records for a Campaign.",
+)
+async def read_campaign_activity_log(
+    request: Request,
+    response: Response,
+    session: Annotated[AsyncSession, Depends(db_session_dependency)],
+    campaign_name_or_id: str,
+    request_id: Annotated[str | None, Query(validation_alias="request_id", alias="request-id")] = None,
+) -> Sequence[ActivityLog]:
+    """Returns the collection of Activity Log resources associated with a
+    Campaign by its namespace. Optionally, a ``?request-id=...`` query param
+    may constrain entries to specific client requests.
+    """
+
+    # The input could be a campaign UUID or it could be a literal name.
+    campaign_id: UUID | None
+    try:
+        campaign_id = UUID(campaign_name_or_id)
+    except ValueError:
+        s = select(Campaign.id).where(Campaign.name == campaign_name_or_id)
+        campaign_id = (await session.exec(s)).one_or_none()
+
+    if campaign_id is None:
+        raise HTTPException(status_code=404, detail="No such campaign found.")
+
+    # Fetch the Activity Log entries for the campaign
+    statement = select(ActivityLog).where(ActivityLog.namespace == campaign_id)
+    if request_id is not None:
+        statement = statement.filter(ActivityLog.metadata_["request_id"].astext == request_id)
+    logs = (await session.exec(statement)).all()
+
+    return logs

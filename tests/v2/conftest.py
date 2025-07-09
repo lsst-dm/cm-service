@@ -38,6 +38,7 @@ def patched_config(monkeypatch_module: pytest.MonkeyPatch, tmp_path_factory: pyt
     monkeypatch_module.setattr(
         target=config.bps, name="artifact_path", value=tmp_path_factory.mktemp("output")
     )
+    monkeypatch_module.setattr(target=config.db, name="echo", value=False)
 
 
 @pytest_asyncio.fixture(scope="module", loop_scope="module")
@@ -145,15 +146,17 @@ def client_fixture(session: AnyAsyncSession) -> Generator[TestClient]:
 
 
 @pytest_asyncio.fixture(name="aclient", scope="module", loop_scope="module")
-async def async_client_fixture(session: AnyAsyncSession) -> AsyncGenerator[AsyncClient]:
+async def async_client_fixture(testdb: DatabaseSessionDependency) -> AsyncGenerator[AsyncClient]:
     """Test fixture for an HTTPX async test client with dependency injection
     overriden.
     """
     main_ = importlib.import_module("lsst.cmservice.main")
     app: FastAPI = getattr(main_, "app")
 
-    def get_session_override() -> AnyAsyncSession:
-        return session
+    async def get_session_override() -> AsyncGenerator[AnyAsyncSession]:
+        assert testdb.sessionmaker is not None
+        async with testdb.sessionmaker() as session:
+            yield session
 
     app.dependency_overrides[db_session_dependency] = get_session_override
     async with AsyncClient(

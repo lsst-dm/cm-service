@@ -160,6 +160,6 @@ def trigger_for_transition(task: Task, events: Mapping[str, Event]) -> str | Non
     return None
 
 
-def task_runner_callback(task: AsyncTask):
+def task_runner_callback(task: AsyncTask) -> None:
     """Callback function for `asyncio.TaskGroup` tasks."""
     logger.info("Transition complete", id=task.get_name())

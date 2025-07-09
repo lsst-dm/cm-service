@@ -1,5 +1,6 @@
 from collections.abc import Iterable, Mapping, MutableSet, Sequence
 from typing import Literal
+from uuid import UUID
 
 import networkx as nx
 from sqlalchemy import select
@@ -107,7 +108,7 @@ def graph_to_dict(g: nx.DiGraph) -> Mapping:
     return nx.node_link_data(g, edges="edges")
 
 
-def validate_graph(g: nx.DiGraph, source: str = "START", sink: str = "END") -> bool:
+def validate_graph(g: nx.DiGraph, source: UUID | str = "START", sink: UUID | str = "END") -> bool:
     """Validates a graph by asserting by traversal that a complete and correct
     path exists between `source` and `sink` nodes.
 

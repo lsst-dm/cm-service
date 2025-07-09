@@ -48,8 +48,11 @@ async def test_daemon_campaign(
     # now the daemon should consider the prepared campaign
     caplog.clear()
     await consider_campaigns(session)
-    assert "considering campaign" in caplog.records[0].message
-    assert "considering node" in caplog.records[1].message
+    found_log_messages = 0
+    for r in caplog.records:
+        if any(["considering campaign" in r.message, "considering node" in r.message]):
+            found_log_messages += 1
+    assert found_log_messages == 2
 
     # A task should now be in the task table
     tasks = (await session.exec(select(Task))).all()
