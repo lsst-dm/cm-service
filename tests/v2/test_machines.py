@@ -13,7 +13,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from lsst.cmservice.common.enums import StatusEnum
 from lsst.cmservice.db.campaigns_v2 import Campaign, Machine, Node
 from lsst.cmservice.machines.node import NodeMachine, StartMachine
-from lsst.cmservice.machines.tasks import change_campaign_state_fsm as change_campaign_state
+from lsst.cmservice.machines.tasks import change_campaign_state
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""

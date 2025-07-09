@@ -19,7 +19,7 @@ from ...common.timestamp import element_time
 from ...db.campaigns_v2 import ActivityLog, Campaign, CampaignUpdate, Edge, Manifest, Node
 from ...db.manifests_v2 import CampaignManifest
 from ...db.session import db_session_dependency
-from ...machines.tasks import change_campaign_state_fsm as change_campaign_state
+from ...machines.tasks import change_campaign_state
 
 # TODO should probably bind a logger to the fastapi app or something
 logger = LOGGER.bind(module=__name__)

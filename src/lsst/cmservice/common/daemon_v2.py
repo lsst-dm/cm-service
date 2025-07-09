@@ -1,8 +1,10 @@
 import pickle
 from asyncio import Task as AsyncTask
-from asyncio import TaskGroup
-from collections.abc import Mapping
+from asyncio import TaskGroup, create_task
+from collections.abc import Awaitable, Mapping
+from uuid import UUID, uuid5
 
+from sqlalchemy.dialects.postgresql import insert
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from transitions import Event
@@ -11,6 +13,7 @@ from ..common import graph, timestamp
 from ..common.enums import StatusEnum
 from ..config import config
 from ..db.campaigns_v2 import Campaign, Edge, Machine, Node, Task
+from ..db.session import get_async_session
 from ..machines.node import NodeMachine, node_machine_factory
 from .logging import LOGGER
 
@@ -45,13 +48,16 @@ async def consider_campaigns(session: AsyncSession) -> None:
 
         for node in graph.processable_graph_nodes(campaign_graph):
             logger.info("Daemon considering node", id=str(node.id))
+            desired_state = node.status.next_status()
             node_task = Task(
+                id=uuid5(node.id, desired_state.name),
                 namespace=campaign_id,
                 node=node.id,
-                status=node.status.next_status(),
+                status=desired_state,
                 previous_status=node.status,
             )
-            session.add(node_task)
+            statement = insert(node_task.__table__).values(**node_task.model_dump()).on_conflict_do_nothing()  # type: ignore[attr-defined]
+            await session.exec(statement)  # type: ignore[call-overload]
 
     await session.commit()
 
@@ -68,21 +74,24 @@ async def consider_nodes(session: AsyncSession) -> None:
     After handling, the Node's FSM is serialized and the Node is updated with
     new values as necessary. The Task is not returned to the Task table.
     """
-    statement = select(Task).with_for_update(skip_locked=True)
+    # Select and lock unsubmitted tasks
+    statement = select(Task).where(col(Task.submitted_at).is_(None))
     # TODO add filter criteria for priority and site affinity
-    tasks = (await session.exec(statement)).all()
+    statement = statement.with_for_update(skip_locked=True)
+
+    cm_tasks = (await session.exec(statement)).all()
 
     # Using a TaskGroup context manager means all "tasks" added to the group
     # are awaited when the CM exits, giving us concurrency for all the nodes
     # being considered in the current iteration.
     async with TaskGroup() as tg:
-        for task in tasks:
-            node = await session.get_one(Node, task.node)
+        for cm_task in cm_tasks:
+            node = await session.get_one(Node, cm_task.node)
 
             # the task's status field is the target status for the node, so the
             # daemon intends to evolve the node machine to that state.
             try:
-                assert node.status is task.previous_status
+                assert node.status is cm_task.previous_status
             except AssertionError:
                 logger.error("Node status out of sync with Machine", id=str(node.id))
                 continue
@@ -111,21 +120,20 @@ async def consider_nodes(session: AsyncSession) -> None:
             # - Add a caller-backed conditional to the triggers, to identify
             # .  triggers the daemon is "allowed" to use
             # - Determine the "desired" trigger from the task (source, dest)
-            if (trigger := trigger_for_transition(task, node_machine.machine.events)) is None:
+            if (trigger := trigger_for_transition(cm_task, node_machine.machine.events)) is None:
                 logger.warning(
                     "No trigger available for desired state transition",
-                    source=task.previous_status,
-                    dest=task.status,
+                    source=cm_task.previous_status,
+                    dest=cm_task.status,
                 )
                 continue
 
             # Add the node transition trigger method to the task group
-            # TODO give this a name and a callback
-            task_ = tg.create_task(node_machine.trigger(trigger), name=str(node.id))
-            task_.add_done_callback(task_runner_callback)
+            task = tg.create_task(node_machine.trigger(trigger), name=str(cm_task.id))
+            task.add_done_callback(task_runner_callback)
 
-            # wrap up - the task is removed from the db.
-            await session.delete(task)
+            # wrap up - update the task and commit
+            cm_task.submitted_at = timestamp.now_utc()
             await session.commit()
 
 
@@ -160,6 +168,30 @@ def trigger_for_transition(task: Task, events: Mapping[str, Event]) -> str | Non
     return None
 
 
-def task_runner_callback(task: AsyncTask) -> None:
+async def finalize_runner_callback(context: AsyncTask) -> None:
+    """Callback function for finalizing the CM Task runner."""
+
+    # Using the task name as the ID of a task, get the object and update its
+    # finished_at column. Alternately, we could delete the task from the table
+    # now.
+    logger.info("Finalizing CM Task", id=context.get_name())
+    session = await get_async_session()
+
+    cm_task = await session.get_one(Task, UUID(context.get_name()))
+    cm_task.finished_at = timestamp.now_utc()
+    await session.commit()
+    await session.close()
+
+
+def task_runner_callback(context: AsyncTask) -> None:
     """Callback function for `asyncio.TaskGroup` tasks."""
-    logger.info("Transition complete", id=task.get_name())
+    if (exc := context.exception()) is not None:
+        logger.error(exc)
+        return
+
+    logger.info("Transition complete", id=context.get_name())
+    callbacks: set[Awaitable] = set()
+    # TODO: notification callback
+    finalizer = create_task(finalize_runner_callback(context))
+    finalizer.add_done_callback(callbacks.discard)
+    callbacks.add(finalizer)

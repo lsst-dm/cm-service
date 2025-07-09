@@ -47,6 +47,8 @@ def jsonb_column(name: str, aliases: list[str] | None = None) -> Any:
 
 
 class BaseSQLModel(SQLModel):
+    """Shared base SQL model for all tables."""
+
     __table_args__ = {"schema": config.db.table_schema}
     metadata = metadata
 
@@ -64,6 +66,7 @@ class CampaignBase(BaseSQLModel):
     )
     metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])
     configuration: dict = jsonb_column("configuration", aliases=["configuration", "data", "spec"])
+    machine: UUID | None = Field(foreign_key="machines_v2.id", default=None, ondelete="CASCADE")
 
     @model_validator(mode="before")
     @classmethod
@@ -85,8 +88,6 @@ class Campaign(CampaignBase, table=True):
     """Model used for database operations involving campaigns_v2 table rows"""
 
     __tablename__: str = "campaigns_v2"  # type: ignore[misc]
-
-    machine: UUID | None = Field(foreign_key="machines_v2.id", default=None, ondelete="CASCADE")
 
 
 class CampaignUpdate(BaseSQLModel):
@@ -121,6 +122,7 @@ class NodeBase(BaseSQLModel):
     )
     metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])
     configuration: dict = jsonb_column("configuration", aliases=["configuration", "data", "spec"])
+    machine: UUID | None = Field(foreign_key="machines_v2.id", default=None, ondelete="CASCADE")
 
     @model_validator(mode="before")
     @classmethod
@@ -142,8 +144,6 @@ class NodeBase(BaseSQLModel):
 
 class Node(NodeBase, table=True):
     __tablename__: str = "nodes_v2"  # type: ignore[misc]
-
-    machine: UUID | None = Field(foreign_key="machines_v2.id", default=None, ondelete="CASCADE")
 
 
 class EdgeBase(BaseSQLModel):
@@ -204,19 +204,29 @@ class Task(BaseSQLModel, table=True):
 
     __tablename__: str = "tasks_v2"  # type: ignore[misc]
 
-    id: UUID = Field(primary_key=True, default_factory=uuid4)
-    namespace: UUID = Field(foreign_key="campaigns_v2.id")
-    node: UUID = Field(foreign_key="nodes_v2.id")
+    id: UUID = Field(
+        default_factory=uuid4,
+        primary_key=True,
+        description="A hash of the related Node ID and target status, as a UUID5.",
+    )
+    namespace: UUID = Field(foreign_key="campaigns_v2.id", description="The ID of a Campaign")
+    node: UUID = Field(foreign_key="nodes_v2.id", description="The ID of the target node")
     priority: int | None = Field(default=None)
     created_at: datetime = Field(
+        description="The `datetime` (UTC) at which this Task was first added to the queue",
         default_factory=now_utc,
         sa_column=Column(DateTime(timezone=True)),
     )
-    last_processed_at: datetime | None = Field(
+    submitted_at: datetime | None = Field(
+        description="The `datetime` (UTC) at which this Task was first submitted as work to the event loop",
         default=None,
         sa_column=Column(DateTime(timezone=True)),
     )
     finished_at: datetime | None = Field(
+        description=(
+            "The `datetime` (UTC) at which this Task successfully finalized. "
+            "A Task whose `finished_at` is not `None` is tombstoned and is subject to deletion."
+        ),
         default=None,
         sa_column=Column(DateTime(timezone=True)),
     )
@@ -225,9 +235,11 @@ class Task(BaseSQLModel, table=True):
         default=None, sa_column=Column("site_affinity", MutableList.as_mutable(postgresql.ARRAY(String())))
     )
     status: StatusField = Field(
+        description="The 'target' status to which this Task will attempt to transition the Node",
         sa_column=Column("status", Enum(StatusEnum, length=20, native_enum=False, create_constraint=False)),
     )
     previous_status: StatusField = Field(
+        description="The 'original' status from which this Task will attempt to transition the Node",
         sa_column=Column(
             "previous_status", Enum(StatusEnum, length=20, native_enum=False, create_constraint=False)
         ),
@@ -236,15 +248,31 @@ class Task(BaseSQLModel, table=True):
 
 class ActivityLogBase(BaseSQLModel):
     id: UUID = Field(primary_key=True, default_factory=uuid4)
-    namespace: UUID = Field(foreign_key="campaigns_v2.id")
-    node: UUID = Field(foreign_key="nodes_v2.id")
-    operator: str
+    namespace: UUID = Field(foreign_key="campaigns_v2.id", description="The ID of a Campaign")
+    node: UUID | None = Field(default=None, foreign_key="nodes_v2.id", description="The ID of a Node")
+    operator: str = Field(description="The name of the operator or pilot who triggered the activity")
+    created_at: datetime = Field(
+        description="The `datetime` in UTC at which this log entry was created.",
+        default_factory=now_utc,
+        sa_column=Column(DateTime(timezone=True)),
+    )
+    finished_at: datetime | None = Field(
+        description="The `datetime` in UTC at which this log entry was finalized.",
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+    )
     to_status: StatusField = Field(
+        description=(
+            "The `target` state to which this activity tried to transition. "
+            "This may be the same as `from_status` in cases where no transition was attempted "
+            "(such as for a conditional check)."
+        ),
         sa_column=Column(
             "to_status", Enum(StatusEnum, length=20, native_enum=False, create_constraint=False)
         ),
     )
     from_status: StatusField = Field(
+        description="The `original` state from which this activity tried to transition",
         sa_column=Column(
             "from_status", Enum(StatusEnum, length=20, native_enum=False, create_constraint=False)
         ),

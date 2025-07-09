@@ -2,13 +2,12 @@
 
 import importlib
 import os
-from collections.abc import AsyncGenerator, Generator
+from collections.abc import AsyncGenerator, Callable, Generator
 from typing import TYPE_CHECKING
 from uuid import NAMESPACE_DNS, uuid4
 
 import pytest
 import pytest_asyncio
-from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import insert
 from sqlalchemy.pool import NullPool
@@ -115,50 +114,45 @@ async def testdb(rawdb: DatabaseSessionDependency) -> AsyncGenerator[DatabaseSes
         await aconn.commit()
 
 
+@pytest_asyncio.fixture(name="session_factory", scope="module", loop_scope="module")
+async def session_factory_fixture(
+    testdb: DatabaseSessionDependency,
+) -> Callable[..., AsyncGenerator[AnyAsyncSession]]:
+    """Test fixture for providing an AsyncSession Factory."""
+
+    async def session_factory() -> AsyncGenerator[AnyAsyncSession]:
+        assert testdb.engine is not None
+        assert testdb.sessionmaker is not None
+        async with testdb.sessionmaker() as session:
+            try:
+                yield session
+            finally:
+                await session.close()
+        await testdb.engine.dispose()
+
+    return session_factory
+
+
 @pytest_asyncio.fixture(name="session", scope="module", loop_scope="module")
-async def session_fixture(testdb: DatabaseSessionDependency) -> AsyncGenerator[AnyAsyncSession]:
-    """Test fixture for an async database session"""
-    assert testdb.engine is not None
-    assert testdb.sessionmaker is not None
-    async with testdb.sessionmaker() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
-    await testdb.engine.dispose()
-
-
-def client_fixture(session: AnyAsyncSession) -> Generator[TestClient]:
-    """Test fixture for a FastAPI test client with dependency injection
-    overriden.
+async def session_fixture(session_factory: Callable) -> AsyncGenerator[AnyAsyncSession]:
+    """Test fixture for an async database session, useful for tests that need
+    a database session directly.
     """
-
-    def get_session_override() -> AnyAsyncSession:
-        return session
-
-    main_ = importlib.import_module("lsst.cmservice.main")
-    app: FastAPI = getattr(main_, "app")
-
-    app.dependency_overrides[db_session_dependency] = get_session_override
-    client = TestClient(app)
-    yield client
-    app.dependency_overrides.clear()
+    async for session in session_factory():
+        yield session
 
 
 @pytest_asyncio.fixture(name="aclient", scope="module", loop_scope="module")
-async def async_client_fixture(testdb: DatabaseSessionDependency) -> AsyncGenerator[AsyncClient]:
-    """Test fixture for an HTTPX async test client with dependency injection
-    overriden.
+async def async_client_fixture(
+    session_factory: Callable, testdb: DatabaseSessionDependency
+) -> AsyncGenerator[AsyncClient]:
+    """Test fixture for an HTTPX async test client backed by a FastAPI app with
+    its dependency injections overriden by factory fixtures.
     """
     main_ = importlib.import_module("lsst.cmservice.main")
     app: FastAPI = getattr(main_, "app")
+    app.dependency_overrides[db_session_dependency] = session_factory
 
-    async def get_session_override() -> AsyncGenerator[AnyAsyncSession]:
-        assert testdb.sessionmaker is not None
-        async with testdb.sessionmaker() as session:
-            yield session
-
-    app.dependency_overrides[db_session_dependency] = get_session_override
     async with AsyncClient(
         follow_redirects=True, transport=ASGITransport(app), base_url="http://test"
     ) as aclient:
@@ -168,7 +162,9 @@ async def async_client_fixture(testdb: DatabaseSessionDependency) -> AsyncGenera
 
 @pytest_asyncio.fixture(scope="function", loop_scope="module")
 async def test_campaign(aclient: AsyncClient) -> AsyncGenerator[str]:
-    """Fixture managing a test campaign with two (additional) nodes."""
+    """Fixture managing a test campaign with three (additional) nodes, which
+    yields the URL for the campaign's edges endpoint.
+    """
     campaign_name = uuid4().hex[-8:]
     node_ids = []
 

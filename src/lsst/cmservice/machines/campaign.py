@@ -11,7 +11,7 @@ information about the overall campaign progress to pilots and other users.
 """
 
 from typing import TYPE_CHECKING, Any
-from uuid import uuid4, uuid5
+from uuid import uuid5
 
 from sqlmodel import select
 from transitions import EventData
@@ -70,7 +70,6 @@ class CampaignMachine(NodeMachine):
     def __init__(
         self, *args: Any, o: Campaign, initial_state: StatusEnum = StatusEnum.waiting, **kwargs: Any
     ) -> None:
-        self.node = Node(id=uuid5(o.id, "START.1"), name="START", namespace=o.id, version=1)
         self.campaign = o
         self.machine = AsyncMachine(
             model=self,
@@ -100,12 +99,12 @@ class CampaignMachine(NodeMachine):
         if self.activity_log_entry is not None:
             self.activity_log_entry.detail["trigger"] = event.event.name
             self.activity_log_entry.detail["error"] = str(event.error)
+            self.activity_log_entry.finished_at = timestamp.now_utc()
 
     async def prepare_activity_log(self, event: EventData) -> None:
         """Callback method invoked by the Machine before every state-change."""
 
         if TYPE_CHECKING:
-            assert self.node is not None
             assert self.campaign is not None
 
         # TODO the activity log doesn't really support campaign-level entries
@@ -122,9 +121,7 @@ class CampaignMachine(NodeMachine):
         )
 
         self.activity_log_entry = ActivityLog(
-            id=uuid4(),
             namespace=self.campaign.id,
-            node=self.node.id,
             operator=event.kwargs.get("operator", "daemon"),
             from_status=from_state,
             to_status=to_state,
@@ -141,7 +138,7 @@ class CampaignMachine(NodeMachine):
 
         if self.activity_log_entry is not None:
             self.activity_log_entry.to_status = self.state
-            self.activity_log_entry.detail["finished_at"] = timestamp.element_time()
+            self.activity_log_entry.finished_at = timestamp.now_utc()
 
         # Ensure database record for transitioned object is updated
         self.campaign = await self.session.merge(self.campaign, load=False)
@@ -163,7 +160,7 @@ class CampaignMachine(NodeMachine):
         # for the log entry it is not persisted.
         if self.activity_log_entry is None:
             return
-        elif not len(self.activity_log_entry.detail):
+        elif self.activity_log_entry.finished_at is None:
             return
 
         try:

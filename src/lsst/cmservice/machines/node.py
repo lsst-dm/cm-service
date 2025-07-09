@@ -1,15 +1,13 @@
-# ruff: noqa
 """Module for state machine implementations related to Nodes."""
 
 import inspect
 import pickle
 import shutil
 import sys
-from collections.abc import Mapping
 from functools import cache
 from os.path import expandvars
-from typing import Any, TYPE_CHECKING
-from uuid import uuid4, uuid5
+from typing import TYPE_CHECKING, Any
+from uuid import uuid4
 
 from anyio import Path
 from fastapi.concurrency import run_in_threadpool
@@ -95,7 +93,7 @@ class NodeMachine(StatefulModel):
 
     def post_init(self) -> None:
         """Additional initialization method called at the end of ``__init__``,
-        as a convenenience to child classes.
+        as a convenience to child classes.
         """
         pass
 
@@ -120,6 +118,7 @@ class NodeMachine(StatefulModel):
         if self.activity_log_entry is not None:
             self.activity_log_entry.detail["trigger"] = event.event.name
             self.activity_log_entry.detail["error"] = str(event.error)
+            self.activity_log_entry.finished_at = timestamp.now_utc()
 
         # Auto-transition on error
         match event.event:
@@ -160,7 +159,6 @@ class NodeMachine(StatefulModel):
         )
 
         self.activity_log_entry = ActivityLog(
-            id=uuid4(),
             namespace=self.node.namespace,
             node=self.node.id,
             operator="daemon",
@@ -180,7 +178,7 @@ class NodeMachine(StatefulModel):
 
         if self.activity_log_entry is not None:
             self.activity_log_entry.to_status = self.state
-            self.activity_log_entry.detail["finished_at"] = timestamp.element_time()
+            self.activity_log_entry.finished_at = timestamp.now_utc()
 
         # Ensure database record for transitioned object is updated
         self.node = await self.session.merge(self.node, load=False)
@@ -189,7 +187,9 @@ class NodeMachine(StatefulModel):
 
     async def finalize(self, event: EventData) -> None:
         """Callback method invoked by the Machine unconditionally at the end
-        of every callback chain.
+        of every callback chain. During this callback, if the activity log
+        indicates that change has occurred, it is written to the db and the
+        machine is serialized to the Machines table for later use.
         """
         if TYPE_CHECKING:
             assert self.node is not None, "Stateful Model must have a Node member."
@@ -197,11 +197,10 @@ class NodeMachine(StatefulModel):
 
         # The activity log entry is added to the db. For failed transitions it
         # may include error detail. For other transitions it is not necessary
-        # to log every attempt, so if no callback has registered any detail
-        # for the log entry it is not persisted.
+        # to log every attempt.
         if self.activity_log_entry is None:
             return
-        elif not len(self.activity_log_entry.detail):
+        elif self.activity_log_entry.finished_at is None:
             return
 
         # ensure the orm instance is in the session
@@ -331,7 +330,7 @@ class StepMachine(NodeMachine):
     - finish
         - (condition) campaign graph is valid
     - unprepare (rollback)
-        - no particular action taken, but know that on the next use of "prepare"
+        - no action taken, but know that on the next use of "prepare"
           new versions of the group manifests may be created.
 
     Failure modes may include
