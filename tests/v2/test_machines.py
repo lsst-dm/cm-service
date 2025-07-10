@@ -30,6 +30,7 @@ async def test_node_machine(test_campaign: str, session: AsyncSession) -> None:
     node = await session.get_one(Node, node_id)
     x = node.status
     assert x is StatusEnum.waiting
+    await session.commit()
 
     node_machine = StartMachine(o=node)
     assert node_machine.is_waiting()
@@ -42,6 +43,7 @@ async def test_node_machine(test_campaign: str, session: AsyncSession) -> None:
     await session.refresh(node, attribute_names=["status"])
     x = node.status
     assert x is StatusEnum.ready
+    await session.commit()
 
     did_start = await node_machine.start()
     assert did_start
@@ -51,14 +53,14 @@ async def test_node_machine(test_campaign: str, session: AsyncSession) -> None:
     await session.refresh(node, attribute_names=["status"])
     x = node.status
     assert x is StatusEnum.running
+    await session.commit()
 
     did_finish = await node_machine.trigger("finish")
     assert did_finish
     await session.refresh(node, attribute_names=["status"])
     x = node.status
     assert x is StatusEnum.accepted
-
-    await session.close()
+    await session.commit()
 
 
 async def test_bad_transition(test_campaign: str, session: AsyncSession) -> None:
@@ -72,8 +74,9 @@ async def test_bad_transition(test_campaign: str, session: AsyncSession) -> None
     node = await session.get_one(Node, node_id)
     x = node.status
     assert x is StatusEnum.waiting
-    node_machine = StartMachine(o=node)
+    await session.commit()
 
+    node_machine = StartMachine(o=node)
     with patch(
         "lsst.cmservice.machines.node.StartMachine.do_prepare",
         side_effect=RuntimeError("Error: unknown error"),
@@ -97,6 +100,7 @@ async def test_bad_transition(test_campaign: str, session: AsyncSession) -> None
     await session.refresh(node, attribute_names=["status"])
     x = node.status
     assert x is StatusEnum.failed
+    await session.commit()
 
     # retry by rolling back to ready
     assert await node_machine.may_retry()
@@ -106,6 +110,7 @@ async def test_bad_transition(test_campaign: str, session: AsyncSession) -> None
     await session.refresh(node, attribute_names=["status"])
     x = node.status
     assert x is StatusEnum.ready
+    await session.commit()
 
     # start and finish without further error
     assert await node_machine.start()
@@ -114,7 +119,7 @@ async def test_bad_transition(test_campaign: str, session: AsyncSession) -> None
     await session.refresh(node, attribute_names=["status"])
     x = node.status
     assert x is StatusEnum.accepted
-    await session.close()
+    await session.commit()
 
 
 async def test_machine_pickle(test_campaign: str, session: AsyncSession) -> None:
@@ -126,8 +131,9 @@ async def test_machine_pickle(test_campaign: str, session: AsyncSession) -> None
     node = await session.get_one(Node, node_id)
     x = node.status
     assert x is StatusEnum.waiting
-    node_machine = NodeMachine(o=node)
+    await session.commit()
 
+    node_machine = NodeMachine(o=node)
     # evolve the machine to "prepared"
     await node_machine.prepare()
     assert node_machine.state is StatusEnum.ready
@@ -139,10 +145,8 @@ async def test_machine_pickle(test_campaign: str, session: AsyncSession) -> None
     # campaigns can have a reference to their machine, but the machine ids are
     # not necessarily deterministic (i.e., they do not have to be namespaced.)
     session.add(machine_db)
-    await session.commit()
     node.machine = machine_db.id
     await session.commit()
-    await session.refresh(node, attribute_names=["status", "machine"])
 
     await session.close()
     del node_machine
@@ -161,20 +165,21 @@ async def test_machine_pickle(test_campaign: str, session: AsyncSession) -> None
     # assign any members we had to disasssociate before pickling
     assert machine_unpickle.state is not None
     new_node_machine: NodeMachine = (pickle.loads(machine_unpickle.state)).model
-    new_node_machine.node = new_node
+    new_node_machine.db_model = new_node
 
     # test the rehydrated machine and continue to evolve it
     assert new_node_machine.state == new_node.status
+    await session.commit()
 
     await new_node_machine.start()
     await session.refresh(new_node, attribute_names=["status"])
     assert new_node_machine.state == new_node.status
+    await session.commit()
 
     await new_node_machine.finish()
     await session.refresh(new_node, attribute_names=["status"])
     assert new_node_machine.state == new_node.status
-
-    await session.close()
+    await session.commit()
 
 
 async def test_change_campaign_state(
@@ -190,6 +195,7 @@ async def test_change_campaign_state(
 
     campaign_id = urlparse(test_campaign).path.split("/")[-2:][0]
     campaign = await session.get_one(Campaign, campaign_id)
+    await session.commit()
 
     x = (await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}")).json()
     assert x["status"] == "waiting"

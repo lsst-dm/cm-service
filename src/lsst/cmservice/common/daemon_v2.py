@@ -110,7 +110,7 @@ async def consider_nodes(session: AsyncSession) -> None:
                 # unpickle the node's machine and rehydrate the Stateful Model
                 node_machine_pickle = await session.get_one(Machine, node.machine)
                 node_machine = (pickle.loads(node_machine_pickle.state)).model
-                node_machine.node = node
+                node_machine.db_model = node
                 # discard the pickled machine from this session and context
                 session.expunge(node_machine_pickle)
                 del node_machine_pickle
