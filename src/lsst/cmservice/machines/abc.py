@@ -17,16 +17,14 @@ involve states that are not referenced by any transition.
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
+from sqlmodel.ext.asyncio.session import AsyncSession
 from transitions import EventData, Machine
 from transitions.extensions.asyncio import AsyncMachine
 
 from ..common.enums import ManifestKind, StatusEnum
-from ..db.campaigns_v2 import Campaign, Node
-
-if TYPE_CHECKING:
-    from sqlmodel.ext.asyncio.session import AsyncSession
+from ..db.campaigns_v2 import ActivityLog, Campaign, Node
 
 type AnyStatefulObject = Campaign | Node
 type AnyMachine = Machine | AsyncMachine
@@ -38,9 +36,11 @@ class StatefulModel(ABC):
     """
 
     __kind__ = [ManifestKind.other]
-    state: StatusEnum
-    session: "AsyncSession | None"
+    activity_log_entry: ActivityLog | None = None
+    db_model: AnyStatefulObject | None
     machine: AnyMachine
+    state: StatusEnum
+    session: AsyncSession | None = None
 
     @abstractmethod
     def __init__(

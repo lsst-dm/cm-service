@@ -11,13 +11,13 @@ from uuid import uuid4
 
 from anyio import Path
 from fastapi.concurrency import run_in_threadpool
-from sqlmodel.ext.asyncio.session import AsyncSession
 from transitions import EventData
 from transitions.extensions.asyncio import AsyncEvent, AsyncMachine
 
 from ..common import timestamp
 from ..common.enums import ManifestKind, StatusEnum
 from ..common.logging import LOGGER
+from ..common.timestamp import element_time
 from ..config import config
 from ..db.campaigns_v2 import ActivityLog, Machine, Node
 from ..db.session import get_async_session
@@ -67,15 +67,11 @@ class NodeMachine(StatefulModel):
     """General state model for a Node in a Campaign Graph."""
 
     __kind__ = [ManifestKind.node]
-    node: Node | None
-    machine: AsyncMachine
-    activity_log_entry: ActivityLog | None = None
-    session: AsyncSession | None = None
 
     def __init__(
         self, *args: Any, o: Node, initial_state: StatusEnum = StatusEnum.waiting, **kwargs: Any
     ) -> None:
-        self.node = o
+        self.db_model = o
         self.machine = AsyncMachine(
             model=self,
             states=StatusEnum,
@@ -103,7 +99,7 @@ class NodeMachine(StatefulModel):
         # in the pickle
         state = self.__dict__.copy()
         del state["session"]
-        del state["node"]
+        del state["db_model"]
         del state["activity_log_entry"]
         return state
 
@@ -135,9 +131,9 @@ class NodeMachine(StatefulModel):
         # any callback from proceeding if no such member is defined, but type
         # checkers don't know this, which is why it repeated in a TYPE_CHECKING
         # guard in each method that accesses the ORM member.
-        assert self.node is not None, "Stateful Model must have a Node member."
+        assert self.db_model is not None, "Stateful Model must have a Node member."
 
-        logger.debug("Preparing session for transition", id=str(self.node.id))
+        logger.debug("Preparing session for transition", id=str(self.db_model.id))
         if self.session is not None:
             await self.session.close()
         else:
@@ -146,12 +142,12 @@ class NodeMachine(StatefulModel):
     async def prepare_activity_log(self, event: EventData) -> None:
         """Callback method invoked by the Machine before every state-change."""
         if TYPE_CHECKING:
-            assert self.node is not None
+            assert self.db_model is not None
 
         if self.activity_log_entry is not None:
             return None
 
-        logger.debug("Preparing activity log for transition", id=str(self.node.id))
+        logger.debug("Preparing activity log for transition", id=str(self.db_model.id))
 
         from_state = StatusEnum[event.transition.source] if event.transition else self.state
         to_state = (
@@ -159,8 +155,8 @@ class NodeMachine(StatefulModel):
         )
 
         self.activity_log_entry = ActivityLog(
-            namespace=self.node.namespace,
-            node=self.node.id,
+            namespace=self.db_model.namespace,
+            node=self.db_model.id,
             operator="daemon",
             from_status=from_state,
             to_status=to_state,
@@ -172,17 +168,18 @@ class NodeMachine(StatefulModel):
         """Callback method invoked by the Machine after every state-change."""
         # Update activity log entry with new state and timestamp
         if TYPE_CHECKING:
-            assert self.node is not None, "Stateful Model must have a Node member."
+            assert self.db_model is not None, "Stateful Model must have a Node member."
             assert self.session is not None
-        logger.debug("Updating the ORM instance after transition.", id=str(self.node.id))
+        logger.debug("Updating the ORM instance after transition.", id=str(self.db_model.id))
 
         if self.activity_log_entry is not None:
             self.activity_log_entry.to_status = self.state
             self.activity_log_entry.finished_at = timestamp.now_utc()
 
         # Ensure database record for transitioned object is updated
-        self.node = await self.session.merge(self.node, load=False)
-        self.node.status = self.state
+        self.db_model = await self.session.merge(self.db_model, load=False)
+        self.db_model.status = self.state
+        self.db_model.metadata_["mtime"] = element_time()
         await self.session.commit()
 
     async def finalize(self, event: EventData) -> None:
@@ -192,7 +189,7 @@ class NodeMachine(StatefulModel):
         machine is serialized to the Machines table for later use.
         """
         if TYPE_CHECKING:
-            assert self.node is not None, "Stateful Model must have a Node member."
+            assert self.db_model is not None
             assert self.session is not None
 
         # The activity log entry is added to the db. For failed transitions it
@@ -204,12 +201,12 @@ class NodeMachine(StatefulModel):
             return
 
         # ensure the orm instance is in the session
-        if self.node not in self.session:
-            self.node = await self.session.merge(self.node, load=False)
+        if self.db_model not in self.session:
+            self.db_model = await self.session.merge(self.db_model, load=False)
 
         # flush the activity log entry to the db
         try:
-            logger.debug("Finalizing the activity log after transition.", id=str(self.node.id))
+            logger.debug("Finalizing the activity log after transition.", id=str(self.db_model.id))
             self.session.add(self.activity_log_entry)
             await self.session.commit()
         except Exception:
@@ -221,12 +218,12 @@ class NodeMachine(StatefulModel):
 
         # create or update a machine entry in the db
         new_machine = Machine.model_validate(
-            dict(id=self.node.machine or uuid4(), state=pickle.dumps(self.machine))
+            dict(id=self.db_model.machine or uuid4(), state=pickle.dumps(self.machine))
         )
         try:
-            logger.debug("Serializing the state machine after transition.", id=str(self.node.id))
+            logger.debug("Serializing the state machine after transition.", id=str(self.db_model.id))
             await self.session.merge(new_machine)
-            self.node.machine = new_machine.id
+            self.db_model.machine = new_machine.id
             await self.session.commit()
         except Exception:
             logger.exception()
@@ -280,19 +277,19 @@ class StartMachine(NodeMachine):
         - artifact directory is created and writable.
         """
         if TYPE_CHECKING:
-            assert self.node is not None
+            assert self.db_model is not None
 
-        logger.info("Preparing START node", id=str(self.node.id))
+        logger.info("Preparing START node", id=str(self.db_model.id))
 
-        artifact_location = Path(expandvars(config.bps.artifact_path)) / str(self.node.namespace)
+        artifact_location = Path(expandvars(config.bps.artifact_path)) / str(self.db_model.namespace)
         await artifact_location.mkdir(parents=False, exist_ok=True)
 
     async def do_unprepare(self, event: EventData) -> None:
         if TYPE_CHECKING:
-            assert self.node is not None
+            assert self.db_model is not None
 
-        logger.info("Unpreparing START node", id=str(self.node.id))
-        artifact_location = Path(expandvars(config.bps.artifact_path)) / str(self.node.namespace)
+        logger.info("Unpreparing START node", id=str(self.db_model.id))
+        artifact_location = Path(expandvars(config.bps.artifact_path)) / str(self.db_model.namespace)
         await run_in_threadpool(shutil.rmtree, artifact_location)
 
     async def do_start(self, event: EventData) -> None:
@@ -304,9 +301,9 @@ class StartMachine(NodeMachine):
         may now be evolved.
         """
         if TYPE_CHECKING:
-            assert self.node is not None
+            assert self.db_model is not None
 
-        logger.debug("Starting START Node for Campaign", id=str(self.node.id))
+        logger.debug("Starting START Node for Campaign", id=str(self.db_model.id))
         return None
 
 

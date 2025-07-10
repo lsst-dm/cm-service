@@ -21,7 +21,6 @@ from ..common import timestamp
 from ..common.enums import ManifestKind, StatusEnum
 from ..common.graph import graph_from_edge_list_v2, validate_graph
 from ..common.logging import LOGGER
-from ..common.timestamp import element_time
 from ..db.campaigns_v2 import ActivityLog, Campaign, Edge, Node
 from .node import NodeMachine
 
@@ -65,12 +64,11 @@ class CampaignMachine(NodeMachine):
     """
 
     __kind__ = [ManifestKind.campaign]
-    campaign: Campaign | None
 
     def __init__(
         self, *args: Any, o: Campaign, initial_state: StatusEnum = StatusEnum.waiting, **kwargs: Any
     ) -> None:
-        self.campaign = o
+        self.db_model = o
         self.machine = AsyncMachine(
             model=self,
             states=StatusEnum,
@@ -90,12 +88,12 @@ class CampaignMachine(NodeMachine):
         if any exception is raised in a callback function.
         """
         if TYPE_CHECKING:
-            assert self.campaign is not None
+            assert self.db_model is not None
 
         if event.error is None:
             return
 
-        logger.exception(event.error, id=self.campaign.id)
+        logger.exception(event.error, id=self.db_model.id)
         if self.activity_log_entry is not None:
             self.activity_log_entry.detail["trigger"] = event.event.name
             self.activity_log_entry.detail["error"] = str(event.error)
@@ -105,7 +103,7 @@ class CampaignMachine(NodeMachine):
         """Callback method invoked by the Machine before every state-change."""
 
         if TYPE_CHECKING:
-            assert self.campaign is not None
+            assert self.db_model is not None
 
         # TODO the activity log doesn't really support campaign-level entries
         # because the node field has a FK constraint, so the convention intro-
@@ -121,7 +119,7 @@ class CampaignMachine(NodeMachine):
         )
 
         self.activity_log_entry = ActivityLog(
-            namespace=self.campaign.id,
+            namespace=self.db_model.id,
             operator=event.kwargs.get("operator", "daemon"),
             from_status=from_state,
             to_status=to_state,
@@ -129,29 +127,12 @@ class CampaignMachine(NodeMachine):
             metadata_={"request_id": event.kwargs.get("request_id")},
         )
 
-    async def update_persistent_status(self, event: EventData) -> None:
-        """Callback method invoked by the Machine after every state-change."""
-        # Update activity log entry with new state and timestamp
-        if TYPE_CHECKING:
-            assert self.campaign is not None
-            assert self.session is not None
-
-        if self.activity_log_entry is not None:
-            self.activity_log_entry.to_status = self.state
-            self.activity_log_entry.finished_at = timestamp.now_utc()
-
-        # Ensure database record for transitioned object is updated
-        self.campaign = await self.session.merge(self.campaign, load=False)
-        self.campaign.status = self.state
-        self.campaign.metadata_["mtime"] = element_time()
-        await self.session.commit()
-
     async def finalize(self, event: EventData) -> None:
         """Callback method invoked by the Machine unconditionally at the end
         of every callback chain.
         """
         if TYPE_CHECKING:
-            assert self.campaign is not None
+            assert self.db_model is not None
             assert self.session is not None
 
         # The activity log entry is added to the db. For failed transitions it
@@ -171,6 +152,7 @@ class CampaignMachine(NodeMachine):
             await self.session.rollback()
         finally:
             self.session.expunge(self.activity_log_entry)
+            self.activity_log_entry = None
 
         await self.session.close()
         self.session = None
@@ -187,10 +169,10 @@ class CampaignMachine(NodeMachine):
         fully evolved by an executor.
         """
         if TYPE_CHECKING:
-            assert self.campaign is not None
+            assert self.db_model is not None
             assert self.session is not None
-        end_node = await self.session.get_one(Node, uuid5(self.campaign.id, "END.1"))
-        logger.info(f"Checking whether campaign {self.campaign.name} is finished.", end_node=end_node.status)
+        end_node = await self.session.get_one(Node, uuid5(self.db_model.id, "END.1"))
+        logger.info(f"Checking whether campaign {self.db_model.name} is finished.", end_node=end_node.status)
         return end_node.status is StatusEnum.accepted
 
     async def has_valid_graph(self, event: EventData) -> bool:
@@ -200,13 +182,13 @@ class CampaignMachine(NodeMachine):
         that must be met before the campaign may transition to a "ready" state.
         """
         if TYPE_CHECKING:
-            assert self.campaign is not None
+            assert self.db_model is not None
             assert self.session is not None
 
-        edges = await self.session.exec(select(Edge).where(Edge.namespace == self.campaign.id))
+        edges = await self.session.exec(select(Edge).where(Edge.namespace == self.db_model.id))
         graph = await graph_from_edge_list_v2(edges.all(), self.session)
-        source = uuid5(self.campaign.id, "START.1")
-        sink = uuid5(self.campaign.id, "END.1")
+        source = uuid5(self.db_model.id, "START.1")
+        sink = uuid5(self.db_model.id, "END.1")
         graph_is_valid = validate_graph(graph, source, sink)
         if not graph_is_valid:
             raise InvalidCampaignGraphError("Invalid campaign graph")
