@@ -20,7 +20,7 @@ from ..common.logging import LOGGER
 from ..common.timestamp import element_time
 from ..config import config
 from ..db.campaigns_v2 import ActivityLog, Machine, Node
-from ..db.session import get_async_session
+from ..db.session import db_session_dependency
 from .abc import StatefulModel
 
 logger = LOGGER.bind(module=__name__)
@@ -137,7 +137,8 @@ class NodeMachine(StatefulModel):
         if self.session is not None:
             await self.session.close()
         else:
-            self.session = await get_async_session()
+            assert db_session_dependency.sessionmaker is not None
+            self.session = db_session_dependency.sessionmaker()
 
     async def prepare_activity_log(self, event: EventData) -> None:
         """Callback method invoked by the Machine before every state-change."""

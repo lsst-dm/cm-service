@@ -13,11 +13,11 @@ from ..config import config
 logger = LOGGER.bind(module=__name__)
 
 
-class DatabaseSessionDependency:
+class DatabaseManager:
     """A database session manager class designed to manage an async sqlalchemy
     engine and produce sessions.
 
-    A module-level instance of this class is created, and when called, a new
+    A module-level instance of this class is created, and when called a new
     async session is yielded.
     """
 
@@ -35,7 +35,7 @@ class DatabaseSessionDependency:
         *,
         use_async: bool = True,
     ) -> None:
-        """Initialize the session dependency.
+        """Initialize the database manager.
 
         Parameters
         ----------
@@ -93,11 +93,5 @@ class DatabaseSessionDependency:
             self.engine = None
 
 
-db_session_dependency = DatabaseSessionDependency()
-"""A module-level instance of the session manager"""
-
-
-# FIXME not sure why this pattern
-async def get_async_session() -> AsyncSession:
-    """Get a new session from the current database session factory."""
-    return await anext(db_session_dependency())
+db_session_dependency = DatabaseManager()
+"""A module-level instance of the database manager"""
