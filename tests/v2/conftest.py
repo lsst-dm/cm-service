@@ -17,7 +17,7 @@ from testcontainers.postgres import PostgresContainer
 from lsst.cmservice.common.types import AnyAsyncSession
 from lsst.cmservice.config import config
 from lsst.cmservice.db.campaigns_v2 import metadata
-from lsst.cmservice.db.session import DatabaseSessionDependency, db_session_dependency
+from lsst.cmservice.db.session import DatabaseManager, db_session_dependency
 
 if TYPE_CHECKING:
     from fastapi import FastAPI
@@ -41,7 +41,7 @@ def patched_config(monkeypatch_module: pytest.MonkeyPatch, tmp_path_factory: pyt
 
 
 @pytest_asyncio.fixture(scope="module", loop_scope="module")
-async def rawdb(monkeypatch_module: pytest.MonkeyPatch) -> AsyncGenerator[DatabaseSessionDependency]:
+async def rawdb(monkeypatch_module: pytest.MonkeyPatch) -> AsyncGenerator[DatabaseManager]:
     """Test fixture for a postgres container.
 
     A scoped ephemeral container will be created for the test if the env var
@@ -82,7 +82,7 @@ async def rawdb(monkeypatch_module: pytest.MonkeyPatch) -> AsyncGenerator[Databa
 
 
 @pytest_asyncio.fixture(scope="module", loop_scope="module")
-async def testdb(rawdb: DatabaseSessionDependency) -> AsyncGenerator[DatabaseSessionDependency]:
+async def testdb(rawdb: DatabaseManager) -> AsyncGenerator[DatabaseManager]:
     """Test fixture for a migrated postgres container.
 
     This fixture creates all the database objects defined for the ORM metadata
@@ -116,7 +116,7 @@ async def testdb(rawdb: DatabaseSessionDependency) -> AsyncGenerator[DatabaseSes
 
 @pytest_asyncio.fixture(name="session_factory", scope="module", loop_scope="module")
 async def session_factory_fixture(
-    testdb: DatabaseSessionDependency,
+    testdb: DatabaseManager,
 ) -> Callable[..., AsyncGenerator[AnyAsyncSession]]:
     """Test fixture for providing an AsyncSession Factory."""
 
@@ -144,7 +144,7 @@ async def session_fixture(session_factory: Callable) -> AsyncGenerator[AnyAsyncS
 
 @pytest_asyncio.fixture(name="aclient", scope="module", loop_scope="module")
 async def async_client_fixture(
-    session_factory: Callable, testdb: DatabaseSessionDependency
+    session_factory: Callable, testdb: DatabaseManager
 ) -> AsyncGenerator[AsyncClient]:
     """Test fixture for an HTTPX async test client backed by a FastAPI app with
     its dependency injections overriden by factory fixtures.

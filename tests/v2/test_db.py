@@ -6,11 +6,11 @@ import pytest
 from sqlmodel import select
 
 from lsst.cmservice.db.campaigns_v2 import Campaign, Machine, _default_campaign_namespace
-from lsst.cmservice.db.session import DatabaseSessionDependency
+from lsst.cmservice.db.session import DatabaseManager
 
 
 @pytest.mark.asyncio
-async def test_create_campaigns_v2(testdb: DatabaseSessionDependency) -> None:
+async def test_create_campaigns_v2(testdb: DatabaseManager) -> None:
     """Tests the campaigns_v2 table by creating and updating a Campaign."""
 
     assert testdb.sessionmaker is not None
@@ -55,7 +55,7 @@ async def test_create_campaigns_v2(testdb: DatabaseSessionDependency) -> None:
 
 
 @pytest.mark.asyncio
-async def test_create_machines_v2(testdb: DatabaseSessionDependency) -> None:
+async def test_create_machines_v2(testdb: DatabaseManager) -> None:
     """Tests the machines_v2 table by storing + retrieving a pickled object."""
 
     assert testdb.sessionmaker is not None

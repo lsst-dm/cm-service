@@ -24,7 +24,7 @@ from ..db.job import Job
 from ..db.pipetask_error import PipetaskError
 from ..db.pipetask_error_type import PipetaskErrorType
 from ..db.product_set import ProductSet
-from ..db.session import get_async_session
+from ..db.session import db_session_dependency
 from ..db.spec_block import SpecBlock
 from ..db.specification import Specification
 from ..db.step import Step
@@ -393,7 +393,8 @@ async def force_accept_node(
     """
     local_session = False
     if session is None:
-        session = await get_async_session()
+        assert db_session_dependency.sessionmaker is not None
+        session = db_session_dependency.sessionmaker()
         local_session = True
 
     the_node = await db_class.get_row(session, node)
@@ -444,7 +445,8 @@ async def render_campaign_steps(
     """
     local_session = False
     if session is None:
-        session = await get_async_session()
+        assert db_session_dependency.sessionmaker is not None
+        session = db_session_dependency.sessionmaker()
         local_session = True
     if isinstance(campaign, int):
         campaign = await Campaign.get_row(session, campaign)

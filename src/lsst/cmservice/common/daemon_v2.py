@@ -2,6 +2,7 @@ import pickle
 from asyncio import Task as AsyncTask
 from asyncio import TaskGroup, create_task
 from collections.abc import Awaitable, Mapping
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid5
 
 from sqlalchemy.dialects.postgresql import insert
@@ -13,7 +14,7 @@ from ..common import graph, timestamp
 from ..common.enums import StatusEnum
 from ..config import config
 from ..db.campaigns_v2 import Campaign, Edge, Machine, Node, Task
-from ..db.session import get_async_session
+from ..db.session import db_session_dependency
 from ..machines.node import NodeMachine, node_machine_factory
 from .logging import LOGGER
 
@@ -174,13 +175,13 @@ async def finalize_runner_callback(context: AsyncTask) -> None:
     # Using the task name as the ID of a task, get the object and update its
     # finished_at column. Alternately, we could delete the task from the table
     # now.
-    logger.info("Finalizing CM Task", id=context.get_name())
-    session = await get_async_session()
+    if TYPE_CHECKING:
+        assert db_session_dependency.sessionmaker is not None
 
-    cm_task = await session.get_one(Task, UUID(context.get_name()))
-    cm_task.finished_at = timestamp.now_utc()
-    await session.commit()
-    await session.close()
+    logger.info("Finalizing CM Task", id=context.get_name())
+    async with db_session_dependency.sessionmaker.begin() as session:
+        cm_task = await session.get_one(Task, UUID(context.get_name()))
+        cm_task.finished_at = timestamp.now_utc()
 
 
 def task_runner_callback(context: AsyncTask) -> None:
