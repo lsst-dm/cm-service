@@ -6,7 +6,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
-from sqlmodel import select
+from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ...common.logging import LOGGER
@@ -56,7 +56,7 @@ async def read_activity_collection(
     if since is not None:
         statement = statement.where(ActivityLog.finished_at >= since)  # type: ignore[operator]
 
-    statement = statement.offset(offset).limit(limit)
+    statement = statement.order_by(col(ActivityLog.created_at).desc()).offset(offset).limit(limit)
     activity_logs = (await session.exec(statement)).all()
     return activity_logs
 
@@ -77,7 +77,7 @@ async def read_activity_resource(
     # set the response headers
     if activity_log is not None:
         response.headers["Campaign"] = str(
-            request.url_for("read_campaign_resource", campaign_name=activity_log.namespace)
+            request.url_for("read_campaign_resource", campaign_name_or_id=activity_log.namespace)
         )
         response.headers["Node"] = str(request.url_for("read_node_resource", node_name=activity_log.node))
         response.headers["Self"] = str(

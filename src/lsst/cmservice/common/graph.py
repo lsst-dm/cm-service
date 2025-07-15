@@ -79,9 +79,10 @@ async def graph_from_edge_list_v2(
             # for the simple node view, the goal is to minimize the amount of
             # data attached to the node and ensure that this data is json-
             # serializable and otherwise appropriate for an API response
-            g.nodes[node]["id"] = str(db_node.id)
+            g.nodes[node]["uuid"] = str(db_node.id)
             g.nodes[node]["status"] = db_node.status.name
             g.nodes[node]["kind"] = db_node.kind.name
+            g.nodes[node]["version"] = db_node.version
             relabel_mapping[node] = db_node.name
         else:
             g.nodes[node]["model"] = db_node
@@ -89,7 +90,6 @@ async def graph_from_edge_list_v2(
     if relabel_mapping:
         g = nx.relabel_nodes(g, mapping=relabel_mapping, copy=False)
 
-    # TODO validate graph now raise exception, or leave it to the caller?
     return g
 
 

@@ -70,6 +70,7 @@ async def test_node_negative(aclient: AsyncClient) -> None:
 async def test_node_lifecycle(aclient: AsyncClient) -> None:
     """Tests node lifecycle."""
     campaign_name = uuid4().hex[:8]
+    node_name = uuid4().hex[:8]
 
     # Create a campaign for edges. Campaigns come with START and END nodes.
     x = await aclient.post(
@@ -88,7 +89,7 @@ async def test_node_lifecycle(aclient: AsyncClient) -> None:
         "/cm-service/v2/nodes",
         json={
             "kind": "node",
-            "metadata": {"name": uuid4().hex[8:], "namespace": campaign_id},
+            "metadata": {"name": node_name, "namespace": campaign_id},
             "spec": {
                 "handler": "lsst.cmservice.handlers.element_handler.ElementHandler",
                 "pipeline_yaml": "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step1",
@@ -107,6 +108,12 @@ async def test_node_lifecycle(aclient: AsyncClient) -> None:
     node = x.json()
     assert node["version"] == 1
     node_url = x.headers["Self"]
+
+    # Get a node using its name (fail) and its name+namespace (succeed)
+    x = await aclient.get("/cm-service/v2/nodes/{node_name}")
+    assert x.is_client_error
+    x = await aclient.get(f"/cm-service/v2/nodes/{node_name}?campaign-id={campaign_id}")
+    assert x.is_success
 
     # Edit a Node using RFC6902 json-patch
     x = await aclient.patch(

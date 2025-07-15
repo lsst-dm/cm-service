@@ -105,11 +105,6 @@ class CampaignMachine(NodeMachine):
         if TYPE_CHECKING:
             assert self.db_model is not None
 
-        # TODO the activity log doesn't really support campaign-level entries
-        # because the node field has a FK constraint, so the convention intro-
-        # duced here is to use the mandatory and deterministic "START" node
-        # for these entries.
-
         if self.activity_log_entry is not None:
             return None
 
