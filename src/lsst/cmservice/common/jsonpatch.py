@@ -3,7 +3,7 @@ objects based on RFC6902.
 """
 
 import operator
-from collections.abc import MutableMapping, MutableSequence
+from collections.abc import Mapping, MutableMapping, MutableSequence
 from functools import reduce
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -51,7 +51,7 @@ def apply_json_patch[T: MutableMapping](op: JSONPatch, o: T) -> T:
       numeric, e.g., {"1": "first", "2": "second"}
     - Unsupported: JSON pointer values that refer to an entire object, e.g.,
       "" -- the JSON Patch must have a root element ("/") per the model.
-    - Unsupported: JSON pointer values taht refer to a nameless object, e.g.,
+    - Unsupported: JSON pointer values that refer to a nameless object, e.g.,
       "/" -- JSON allows object keys to be the empty string ("") but this is
       disallowed by the application.
     """
@@ -222,3 +222,31 @@ def apply_json_patch[T: MutableMapping](op: JSONPatch, o: T) -> T:
             raise JSONPatchError(f"Unknown JSON Patch operation: {op.op}")
 
     return o
+
+
+def apply_json_merge[T: MutableMapping](patch: Any, o: T) -> T:
+    """Applies a patch to a mapping object as per the RFC7396 JSON Merge Patch.
+
+    Notably, this operation may only target a ``MutableMapping`` as an analogue
+    of a JSON object. This means that any keyed value in a Mapping may be
+    replaced, added, or removed by a JSON Merge. This is not appropriate for
+    patches that need to perform more tactical updates, such as modifying
+    elements of a ``Sequence``.
+
+    This function does not allow setting a field value in the target to `None`;
+    instead, any `None` value in a patch is an instruction to remove that
+    field from the target completely.
+
+    This function differs from the RFC in the following ways: it will not
+    replace the entire target object with a new mapping (i.e., the target must
+    be a Mapping).
+    """
+    if isinstance(patch, Mapping):
+        for k, v in patch.items():
+            if v is None:
+                _ = o.pop(k, None)
+            else:
+                o[k] = apply_json_merge(v, o.get(k, {}))
+        return o
+    else:
+        return patch
