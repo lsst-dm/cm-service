@@ -5,7 +5,6 @@ from collections import ChainMap, defaultdict
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.orm.collections import InstrumentedList
 
 from ..common import timestamp
@@ -27,6 +26,7 @@ from .spec_block import SpecBlock
 from .specification import Specification
 
 if TYPE_CHECKING:
+    from ..common.types import AnyAsyncSession
     from .campaign import Campaign
     from .element import ElementMixin
 
@@ -60,13 +60,13 @@ class NodeMixin(RowMixin):
 
     async def get_spec_block(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> SpecBlock:
         """Get the `SpecBlock` object associated to a particular row
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns
@@ -81,13 +81,13 @@ class NodeMixin(RowMixin):
 
     async def get_specification(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> Specification:
         """Get the `Specification` object associated to a particular row
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns
@@ -101,13 +101,13 @@ class NodeMixin(RowMixin):
 
     async def get_campaign(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> Campaign:
         """Get the parent `Campaign`
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns
@@ -119,13 +119,13 @@ class NodeMixin(RowMixin):
 
     async def get_parent(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> ElementMixin:
         """Get the parent `Element`
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns
@@ -140,7 +140,7 @@ class NodeMixin(RowMixin):
 
     async def get_handler(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> Handler:
         """Get the Handler object associated with a particular row
 
@@ -149,7 +149,7 @@ class NodeMixin(RowMixin):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns
@@ -167,7 +167,7 @@ class NodeMixin(RowMixin):
 
     async def resolve_collections(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         *,
         throw_overrides: bool = True,
     ) -> dict:
@@ -181,7 +181,7 @@ class NodeMixin(RowMixin):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         throw_overrides : bool
@@ -221,7 +221,7 @@ class NodeMixin(RowMixin):
 
     async def get_collections(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> dict:
         """Get the collection configuration associated with a particular row.
 
@@ -230,7 +230,7 @@ class NodeMixin(RowMixin):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns
@@ -262,7 +262,7 @@ class NodeMixin(RowMixin):
 
     async def get_child_config(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> dict:
         """Get the child configuration associated with a particular row.
 
@@ -271,7 +271,7 @@ class NodeMixin(RowMixin):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns
@@ -291,7 +291,7 @@ class NodeMixin(RowMixin):
 
     async def data_dict(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> dict:
         """Get the data configuration associated to a particular row
 
@@ -300,7 +300,7 @@ class NodeMixin(RowMixin):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns
@@ -326,7 +326,7 @@ class NodeMixin(RowMixin):
 
     async def get_spec_aliases(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> dict:
         """Get the spec_aliases associated with a particular node
 
@@ -335,7 +335,7 @@ class NodeMixin(RowMixin):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns
@@ -359,14 +359,14 @@ class NodeMixin(RowMixin):
 
     async def update_child_config(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> NodeMixin:
         """Update the child configuration associated with this Node
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         kwargs: Any
@@ -402,7 +402,7 @@ class NodeMixin(RowMixin):
 
     async def update_collections(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         *,
         force: bool = False,
         **kwargs: Any,
@@ -411,7 +411,7 @@ class NodeMixin(RowMixin):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         kwargs: Any
@@ -446,14 +446,14 @@ class NodeMixin(RowMixin):
 
     async def update_spec_aliases(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> NodeMixin:
         """Update the spec_alisases configuration associated with this Node
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         kwargs: Any
@@ -489,7 +489,7 @@ class NodeMixin(RowMixin):
 
     async def update_metadata_dict(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> NodeMixin:
         """Update the metadata configuration associated with this Node.
@@ -499,7 +499,7 @@ class NodeMixin(RowMixin):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         kwargs: Any
@@ -534,7 +534,7 @@ class NodeMixin(RowMixin):
 
     async def update_data_dict(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> NodeMixin:
         """Update the data configuration associated with this Node.
@@ -544,7 +544,7 @@ class NodeMixin(RowMixin):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         kwargs: Any
@@ -601,14 +601,14 @@ class NodeMixin(RowMixin):
 
     async def check_prerequisites(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> bool:
         """Check if the prerequisties for processing a particular node are
         completed.
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns
@@ -628,13 +628,13 @@ class NodeMixin(RowMixin):
 
     async def reject(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> NodeMixin:
         """Set a node as rejected
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns
@@ -656,13 +656,13 @@ class NodeMixin(RowMixin):
 
     async def accept(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> NodeMixin:
         """Set a node as accepted
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns
@@ -690,7 +690,7 @@ class NodeMixin(RowMixin):
 
     async def reset(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         *,
         fake_reset: bool = False,
     ) -> NodeMixin:
@@ -698,7 +698,7 @@ class NodeMixin(RowMixin):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         fake_reset: bool
@@ -718,7 +718,7 @@ class NodeMixin(RowMixin):
 
     async def _clean_up_node(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         *,
         fake_reset: bool = False,
     ) -> NodeMixin:
@@ -726,7 +726,7 @@ class NodeMixin(RowMixin):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         fake_reset: bool
@@ -741,7 +741,7 @@ class NodeMixin(RowMixin):
 
     async def process(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> tuple[bool, StatusEnum]:
         """Process this `Node` as much as possible
@@ -750,7 +750,7 @@ class NodeMixin(RowMixin):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns
@@ -766,7 +766,7 @@ class NodeMixin(RowMixin):
 
     async def run_check(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> tuple[bool, StatusEnum]:
         """Check on this Nodes's status
@@ -775,7 +775,7 @@ class NodeMixin(RowMixin):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns
@@ -790,7 +790,7 @@ class NodeMixin(RowMixin):
 
     async def estimate_sleep_time(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         minimum_sleep_time: int = 10,
     ) -> int:
         """Estimate how long to sleep before calling process again.
@@ -800,7 +800,7 @@ class NodeMixin(RowMixin):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns
@@ -815,7 +815,7 @@ class NodeMixin(RowMixin):
 
     async def update_mtime(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> None:
         """Update the mtime attribute in an element's hierarchy."""
         mtime = timestamp.element_time()

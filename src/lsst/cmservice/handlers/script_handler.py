@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from anyio import Path
-from sqlalchemy.ext.asyncio import async_scoped_session
 
 from ..common.bash import check_stamp_file, get_diagnostic_message, run_bash_job
 from ..common.enums import ErrorSourceEnum, ScriptMethodEnum, StatusEnum
@@ -26,6 +25,10 @@ from ..db.node import NodeMixin
 from ..db.script import Script
 from ..db.script_error import ScriptError
 
+if TYPE_CHECKING:
+    from ..common.types import AnyAsyncSession
+
+
 logger = LOGGER.bind(module=__name__)
 
 DOUBLE_QUOTE = '"'
@@ -36,7 +39,7 @@ class BaseScriptHandler(Handler):
 
     async def process(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         node: NodeMixin,
         **kwargs: Any,
     ) -> tuple[bool, StatusEnum]:
@@ -129,7 +132,7 @@ class BaseScriptHandler(Handler):
 
     async def run_check(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         node: NodeMixin,
         **kwargs: Any,
     ) -> tuple[bool, StatusEnum]:
@@ -145,7 +148,7 @@ class BaseScriptHandler(Handler):
 
     async def prepare(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
     ) -> StatusEnum:
@@ -157,7 +160,7 @@ class BaseScriptHandler(Handler):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         script: Script
@@ -178,7 +181,7 @@ class BaseScriptHandler(Handler):
 
     async def launch(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -191,7 +194,7 @@ class BaseScriptHandler(Handler):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         script: Script
@@ -209,7 +212,7 @@ class BaseScriptHandler(Handler):
 
     async def check(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -222,7 +225,7 @@ class BaseScriptHandler(Handler):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         script: Script
@@ -240,7 +243,7 @@ class BaseScriptHandler(Handler):
 
     async def review_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -253,7 +256,7 @@ class BaseScriptHandler(Handler):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         script: Script
@@ -272,7 +275,7 @@ class BaseScriptHandler(Handler):
 
     async def reset_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         node: NodeMixin,
         to_status: StatusEnum,
         *,
@@ -305,7 +308,7 @@ class BaseScriptHandler(Handler):
 
     async def _reset_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -315,7 +318,7 @@ class BaseScriptHandler(Handler):
 
     async def _purge_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -325,7 +328,7 @@ class BaseScriptHandler(Handler):
 
     async def update_status(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         status: StatusEnum,
         node: NodeMixin,
         **kwargs: Any,
@@ -352,7 +355,7 @@ class ScriptHandler(BaseScriptHandler):
 
     @staticmethod
     async def _check_stamp_file(
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         stamp_file: str | None,
         script: Script,
         parent: ElementMixin,
@@ -362,7 +365,7 @@ class ScriptHandler(BaseScriptHandler):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         stamp_file: str | None
@@ -390,7 +393,7 @@ class ScriptHandler(BaseScriptHandler):
 
     async def _check_slurm_job(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         slurm_id: str | None,
         script: Script,
         parent: ElementMixin,
@@ -400,7 +403,7 @@ class ScriptHandler(BaseScriptHandler):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         slurm_id : str
@@ -426,7 +429,7 @@ class ScriptHandler(BaseScriptHandler):
 
     async def _check_htcondor_job(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         htcondor_id: str | None,
         script: Script,
         parent: ElementMixin,
@@ -436,7 +439,7 @@ class ScriptHandler(BaseScriptHandler):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         htcondor_id : str | None
@@ -462,7 +465,7 @@ class ScriptHandler(BaseScriptHandler):
 
     async def prepare(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -486,7 +489,7 @@ class ScriptHandler(BaseScriptHandler):
 
     async def launch(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -535,7 +538,7 @@ class ScriptHandler(BaseScriptHandler):
 
     async def check(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -581,7 +584,7 @@ class ScriptHandler(BaseScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -590,7 +593,7 @@ class ScriptHandler(BaseScriptHandler):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         script: Script
@@ -608,7 +611,7 @@ class ScriptHandler(BaseScriptHandler):
 
     async def _set_script_files(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         prod_area: str | Path,
     ) -> str:
@@ -620,7 +623,7 @@ class ScriptHandler(BaseScriptHandler):
 
     async def _reset_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -649,7 +652,7 @@ class FunctionHandler(BaseScriptHandler):
 
     async def prepare(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -667,7 +670,7 @@ class FunctionHandler(BaseScriptHandler):
 
     async def launch(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -686,7 +689,7 @@ class FunctionHandler(BaseScriptHandler):
 
     async def check(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -703,7 +706,7 @@ class FunctionHandler(BaseScriptHandler):
 
     async def _do_prepare(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -712,7 +715,7 @@ class FunctionHandler(BaseScriptHandler):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         script: Script
@@ -730,7 +733,7 @@ class FunctionHandler(BaseScriptHandler):
 
     async def _do_run(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -739,7 +742,7 @@ class FunctionHandler(BaseScriptHandler):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         script: Script
@@ -757,7 +760,7 @@ class FunctionHandler(BaseScriptHandler):
 
     async def _do_check(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -766,7 +769,7 @@ class FunctionHandler(BaseScriptHandler):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         script: Script
@@ -784,7 +787,7 @@ class FunctionHandler(BaseScriptHandler):
 
     async def _reset_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,

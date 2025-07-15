@@ -14,14 +14,12 @@ CreateModelClass = models.PipetaskErrorTypeCreate
 UpdateModelClass = models.PipetaskErrorTypeUpdate
 # Specify the associated database table
 DbClass = db.PipetaskErrorType
-# Specify the tag in the router documentation
-TAG_STRING = "Pipetask Error Types"
 
 
 # Build the router
 router = APIRouter(
     prefix=f"/{DbClass.class_string}",
-    tags=[TAG_STRING],
+    tags=["pipetask error types"],
 )
 
 

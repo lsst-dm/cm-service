@@ -50,9 +50,4 @@ class CMScriptDependencyClient:
         f"{router_string}/create",
     )
 
-    update = wrappers.update_row_function(
-        ResponseModelClass,
-        f"{router_string}/update",
-    )
-
     delete = wrappers.delete_row_function(f"{router_string}/delete")

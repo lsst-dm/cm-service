@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy import JSON
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey, UniqueConstraint
@@ -18,6 +17,7 @@ from ..common.errors import (
     CMTooFewAcceptedJobsError,
     CMTooManyActiveScriptsError,
 )
+from ..common.types import AnyAsyncSession
 from ..models.merged_product_set import MergedProductSetDict
 from ..models.merged_task_set import MergedTaskSetDict
 from ..models.merged_wms_task_report import MergedWmsTaskReportDict
@@ -61,7 +61,7 @@ class Group(Base, ElementMixin):
     metadata_: Mapped[dict] = mapped_column("metadata_", type_=MutableDict.as_mutable(JSONB), default=dict)
     child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
     collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
-    spec_aliases: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    spec_aliases: Mapped[dict | None] = mapped_column(type_=JSON)
 
     spec_block_: Mapped[SpecBlock] = relationship("SpecBlock", viewonly=True)
     c_: Mapped["Campaign"] = relationship(
@@ -85,7 +85,7 @@ class Group(Base, ElementMixin):
 
     async def get_campaign(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> "Campaign":
         """Maps self.c_ to self.get_campaign() for consistency"""
         await session.refresh(self, attribute_names=["c_"])
@@ -96,7 +96,7 @@ class Group(Base, ElementMixin):
 
     async def children(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> Iterable:
         """Maps self.g_ to self.children() for consistency"""
         await session.refresh(self, attribute_names=["jobs_"])
@@ -104,7 +104,7 @@ class Group(Base, ElementMixin):
 
     async def get_wms_reports(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> MergedWmsTaskReportDict:
         the_dict = MergedWmsTaskReportDict(reports={})
@@ -116,7 +116,7 @@ class Group(Base, ElementMixin):
 
     async def get_tasks(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> MergedTaskSetDict:
         the_dict = MergedTaskSetDict(reports={})
@@ -127,7 +127,7 @@ class Group(Base, ElementMixin):
 
     async def get_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> MergedProductSetDict:
         the_dict = MergedProductSetDict(reports={})
@@ -139,7 +139,7 @@ class Group(Base, ElementMixin):
     @classmethod
     async def get_create_kwargs(
         cls,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> dict:
         try:
@@ -175,7 +175,7 @@ class Group(Base, ElementMixin):
 
     async def rescue_job(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> "Job":
         """Create a rescue `Job`
 
@@ -183,7 +183,7 @@ class Group(Base, ElementMixin):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns
@@ -208,13 +208,13 @@ class Group(Base, ElementMixin):
 
     async def mark_job_rescued(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> list["Job"]:
         """Mark jobs as `rescued` once one of their siblings is `accepted`
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns

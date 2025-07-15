@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
@@ -25,6 +24,7 @@ from .spec_block import SpecBlock
 from .step import Step
 
 if TYPE_CHECKING:
+    from ..common.types import AnyAsyncSession
     from .script_error import ScriptError
 
 
@@ -111,14 +111,14 @@ class Script(Base, NodeMixin):
 
     async def get_script_errors(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> list[ScriptError]:
         await session.refresh(self, attribute_names=["errors_"])
         return self.errors_
 
     async def get_campaign(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> Campaign:
         """Maps self.get_parent().c_ to self.get_campaign() for consistency"""
         parent = await self.get_parent(session)
@@ -131,13 +131,13 @@ class Script(Base, NodeMixin):
 
     async def get_parent(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> ElementMixin:
         """Get the parent `Element`
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns
@@ -165,7 +165,7 @@ class Script(Base, NodeMixin):
     @classmethod
     async def get_create_kwargs(
         cls,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> dict:
         try:
@@ -229,7 +229,7 @@ class Script(Base, NodeMixin):
 
     async def reset_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         to_status: StatusEnum,
         *,
         fake_reset: bool = False,
@@ -243,7 +243,7 @@ class Script(Base, NodeMixin):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         to_status : StatusEnum
@@ -262,7 +262,7 @@ class Script(Base, NodeMixin):
 
     async def review(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> StatusEnum:
         """Run review() function on this Script
@@ -272,7 +272,7 @@ class Script(Base, NodeMixin):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns

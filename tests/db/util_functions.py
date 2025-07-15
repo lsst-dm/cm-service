@@ -1,19 +1,19 @@
 import importlib
 from pathlib import Path
-from typing import TypeAlias, TypeVar
+from typing import TypeAlias
 
 import pytest
-from sqlalchemy.ext.asyncio import async_scoped_session
 
 from lsst.cmservice import db
 from lsst.cmservice.common import errors
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum, TableEnum
+from lsst.cmservice.common.types import AnyAsyncSession
 
-E = TypeVar("E", db.Group, db.Campaign, db.Step, db.Job)
+type AnyElement = db.Group | db.Campaign | db.Step | db.Job
 
 
 async def add_scripts(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     element: db.ElementMixin,
 ) -> tuple[list[db.Script], db.ScriptDependency]:
     prep_script = await db.Script.create_row(
@@ -42,7 +42,7 @@ async def add_scripts(
 
 
 async def create_tree(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     level: LevelEnum,
     uuid_int: int,
 ) -> None:
@@ -128,7 +128,7 @@ async def create_tree(
 
 
 async def delete_all_rows(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     table_class: TypeAlias = db.RowMixin,
 ) -> None:
     rows = await table_class.get_rows(session)
@@ -140,7 +140,7 @@ async def delete_all_rows(
 
 
 async def delete_all_artifacts(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     *,
     check_cascade: bool = False,
 ) -> None:
@@ -159,20 +159,20 @@ async def delete_all_artifacts(
 
 
 async def delete_all_spec_stuff(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
 ) -> None:
     await delete_all_rows(session, db.Specification)
     await delete_all_rows(session, db.SpecBlock)
 
 
 async def delete_all_queues(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
 ) -> None:
     await delete_all_rows(session, db.Queue)
 
 
 async def cleanup(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     *,
     check_cascade: bool = False,
 ) -> None:
@@ -182,11 +182,12 @@ async def cleanup(
 
     await session.commit()
     await session.close()
-    await session.remove()
+    if hasattr(session, "remove"):
+        await session.remove()
 
 
 async def check_update_methods(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     entry: db.NodeMixin,
     entry_class: TypeAlias = db.ElementMixin,
 ) -> None:
@@ -294,7 +295,7 @@ async def check_update_methods(
 
 
 async def check_scripts(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     entry: db.ElementMixin,
 ) -> None:
     interface = importlib.import_module("lsst.cmservice.handlers.interface")
@@ -378,8 +379,8 @@ async def check_scripts(
 
 
 async def check_get_methods(
-    session: async_scoped_session,
-    entry: E,
+    session: AnyAsyncSession,
+    entry: AnyElement,
     entry_class: TypeAlias = db.ElementMixin,
     parent_class: TypeAlias | None = db.ElementMixin,
 ) -> None:
@@ -461,7 +462,7 @@ async def check_get_methods(
 
 
 async def check_queue(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     entry: db.ElementMixin,
 ) -> None:
     # make and test queue object

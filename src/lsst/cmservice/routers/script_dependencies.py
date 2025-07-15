@@ -12,14 +12,12 @@ ResponseModelClass = models.Dependency
 CreateModelClass = models.DependencyCreate
 # Specify the associated database table
 DbClass = db.ScriptDependency
-# Specify the tag in the router documentation
-TAG_STRING = "Script Dependencies"
 
 
 # Build the router
 router = APIRouter(
     prefix=f"/{DbClass.class_string}",
-    tags=[TAG_STRING],
+    tags=["script dependencies"],
 )
 
 

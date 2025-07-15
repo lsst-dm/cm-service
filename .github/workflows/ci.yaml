@@ -12,6 +12,7 @@ name: "CI"
 
 env:
   UV_FROZEN: "1"
+  TEST__LOCAL_DB: "1"  # signals test fixtures to not use testcontainers
 
 jobs:
   rebase-checker:
@@ -30,7 +31,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Run pre-commit
         uses: pre-commit/action@v3.0.1
@@ -39,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11"]
+        python-version: ["3.12"]
     needs:
       - rebase-checker
     steps:
@@ -49,7 +50,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
-          version: "0.6.x"
+          version: "0.7.x"
           enable-cache: true
           python-version: ${{ matrix.python-version }}
 
@@ -63,7 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11"]
+        python-version: ["3.12"]
     needs:
       - lint
       - mypy
@@ -75,7 +76,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
-          version: "0.6.x"
+          version: "0.7.x"
           enable-cache: true
           python-version: ${{ matrix.python-version }}
 

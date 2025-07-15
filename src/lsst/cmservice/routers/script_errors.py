@@ -14,14 +14,12 @@ CreateModelClass = models.ScriptErrorCreate
 UpdateModelClass = models.ScriptErrorUpdate
 # Specify the associated database table
 DbClass = db.ScriptError
-# Specify the tag in the router documentation
-TAG_STRING = "ScriptErrors"
 
 
 # Build the router
 router = APIRouter(
     prefix=f"/{DbClass.class_string}",
-    tags=[TAG_STRING],
+    tags=["script errors"],
 )
 
 

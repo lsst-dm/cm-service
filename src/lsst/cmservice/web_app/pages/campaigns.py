@@ -2,14 +2,14 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import async_scoped_session
 
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum
+from lsst.cmservice.common.types import AnyAsyncSession
 from lsst.cmservice.db import Campaign, Group
 from lsst.cmservice.web_app.utils.utils import map_status
 
 
-async def get_campaign_details(session: async_scoped_session, campaign: Campaign) -> dict:
+async def get_campaign_details(session: AnyAsyncSession, campaign: Campaign) -> dict:
     if TYPE_CHECKING:
         assert isinstance(campaign.data, dict)
     collections = await campaign.resolve_collections(session, throw_overrides=False)
@@ -46,21 +46,21 @@ async def get_campaign_details(session: async_scoped_session, campaign: Campaign
     return campaign_details
 
 
-async def search_campaigns(session: async_scoped_session, search_term: str) -> Sequence:
+async def search_campaigns(session: AnyAsyncSession, search_term: str) -> Sequence:
     q = select(Campaign).where(Campaign.name.contains(search_term))
     async with session.begin_nested():
         results = await session.scalars(q)
         return results.all()
 
 
-async def get_campaign_groups(session: async_scoped_session, campaign: Campaign) -> Sequence:
+async def get_campaign_groups(session: AnyAsyncSession, campaign: Campaign) -> Sequence:
     q = select(Group).where(Group.c_ == campaign)
     async with session.begin_nested():
         results = await session.scalars(q)
         return results.all()
 
 
-async def get_all_campaigns(session: async_scoped_session) -> Sequence:
+async def get_all_campaigns(session: AnyAsyncSession) -> Sequence:
     q = select(Campaign)
     async with session.begin_nested():
         results = await session.scalars(q)

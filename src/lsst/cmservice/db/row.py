@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession, async_scoped_session
 
 from ..common.enums import StatusEnum
 from ..common.errors import (
@@ -21,8 +20,7 @@ logger = LOGGER.bind(module=__name__)
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    T = TypeVar("T", bound="RowMixin")
-    A = TypeVar("A", AsyncSession, async_scoped_session)
+    from ..common.types import AnyAsyncSession
 
 DELETABLE_STATES = [
     StatusEnum.failed,
@@ -38,23 +36,23 @@ class RowMixin:
     Defines an interface to manipulate any sort of table.
     """
 
-    id: Any  # Primary Key, typically an int
-    name: Any  # Human-readable name for row
     fullname: Any  # Human-readable unique name for row
-
+    id: Any  # Primary Key, typically an int
     class_string: str  # Name to use for help functions and descriptions
+    col_names_for_table: list
+    name: Any  # Human-readable name for row
 
     @classmethod
-    async def get_rows(
+    async def get_rows[T: RowMixin](
         cls: type[T],
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> Sequence[T]:
         """Get rows associated to a particular table
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : A
             DB session manager
 
         Keywords
@@ -109,16 +107,16 @@ class RowMixin:
         return results.all()
 
     @classmethod
-    async def get_row(
+    async def get_row[T: RowMixin](
         cls: type[T],
-        session: A,
+        session: AnyAsyncSession,
         row_id: int,
     ) -> T:
         """Get a single row, matching row.id == row_id
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : A
             DB session manager
 
         row_id: int
@@ -135,16 +133,16 @@ class RowMixin:
         return result
 
     @classmethod
-    async def get_row_by_name(
+    async def get_row_by_name[T: RowMixin](
         cls: type[T],
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         name: str,
     ) -> T:
         """Get a single row, with row.name == name
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : A
             DB session manager
 
         name : str
@@ -163,16 +161,16 @@ class RowMixin:
         return row
 
     @classmethod
-    async def get_row_by_fullname(
+    async def get_row_by_fullname[T: RowMixin](
         cls: type[T],
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         fullname: str,
     ) -> T:
         """Get a single row, with row.fullname == fullname
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : A
             DB session manager
 
         fullname : str
@@ -193,14 +191,14 @@ class RowMixin:
     @classmethod
     async def delete_row(
         cls,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         row_id: int,
     ) -> None:
         """Delete a single row, matching row.id == row_id
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : A
             DB session manager
 
         row_id: int
@@ -231,14 +229,14 @@ class RowMixin:
     @classmethod
     async def _delete_hook(
         cls,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         row_id: int,
     ) -> None:
         """Hook called during delete_row
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : A
             DB session manager
 
         row_id: int
@@ -250,9 +248,9 @@ class RowMixin:
         return
 
     @classmethod
-    async def update_row(
+    async def update_row[T: RowMixin](
         cls: type[T],
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         row_id: int,
         **kwargs: Any,
     ) -> T:
@@ -260,7 +258,7 @@ class RowMixin:
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : A
             DB session manager
 
         row_id: int
@@ -311,16 +309,16 @@ class RowMixin:
         return row
 
     @classmethod
-    async def create_row(
+    async def create_row[T: RowMixin](
         cls: type[T],
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> T:
         """Create a single row
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : A
             DB session manager
 
         kwargs: Any
@@ -346,8 +344,8 @@ class RowMixin:
 
     @classmethod
     async def get_create_kwargs(
-        cls: type[T],
-        session: async_scoped_session,
+        cls,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> dict:
         """Get additional keywords needed to create a row
@@ -358,7 +356,7 @@ class RowMixin:
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : A
             DB session manager
 
         kwargs: Any
@@ -371,16 +369,16 @@ class RowMixin:
         """
         return kwargs
 
-    async def update_values(
+    async def update_values[T: RowMixin](
         self: T,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> T:
         """Update values in a row
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : A
             DB session manager
 
         kwargs: Any

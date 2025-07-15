@@ -48,11 +48,11 @@ def parse_element_fullname(fullname: str) -> Fullname:
     fullname_r = re.compile(
         (
             r"^"
-            r"(?P<campaign>[\w]+){1}(?:\/)*"
-            r"(?P<step>[\w]+){0,1}(?:\/)*"
-            r"(?P<group>[\w]+){0,1}(?:\/)*"
-            r"(?P<job>[\w]+){0,1}(?:\/)*"
-            r"(?P<script>[\w]+){0,1}"
+            r"(?P<campaign>[\w-]+){1}(?:\/)*"
+            r"(?P<step>[\w-]+){0,1}(?:\/)*"
+            r"(?P<group>[\w-]+){0,1}(?:\/)*"
+            r"(?P<job>[\w-]+){0,1}(?:\/)*"
+            r"(?P<script>[\w-]+){0,1}"
             r"$"
         ),
         re.MULTILINE,

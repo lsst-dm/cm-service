@@ -1,6 +1,6 @@
 import uuid
 from pathlib import Path
-from typing import TypeAlias, TypeVar
+from typing import TypeAlias
 
 import yaml
 from click import BaseCommand
@@ -9,12 +9,10 @@ from pydantic import TypeAdapter
 
 from lsst.cmservice import models
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum
-
-T = TypeVar("T")
-E = TypeVar("E", models.Group, models.Campaign, models.Step, models.Job)
+from lsst.cmservice.common.types import AnyCampaignElement
 
 
-def check_and_parse_result(
+def check_and_parse_result[T](
     result: Result,
     return_class: type[T],
 ) -> T:
@@ -35,7 +33,7 @@ def expect_failed_result(
 def add_scripts(
     runner: CliRunner,
     client_top: BaseCommand,
-    element: models.ElementMixin,
+    element: AnyCampaignElement,
     namespace: uuid.UUID,
 ) -> tuple[list[models.Script], models.Dependency | None]:
     namespaced_spec_block_name = uuid.uuid5(namespace, "null_script")
@@ -171,7 +169,7 @@ def delete_all_rows(
     runner: CliRunner,
     client_top: BaseCommand,
     entry_class_name: str,
-    entry_class: TypeAlias = models.ElementMixin,
+    entry_class: TypeAlias,
 ) -> None:
     result = runner.invoke(client_top, f"{entry_class_name} list --output yaml")
     rows = check_and_parse_result(result, list[entry_class])
@@ -224,12 +222,12 @@ def cleanup(
     delete_all_queues(runner, client_top)
 
 
-def check_update_methods(
+def check_update_methods[E: AnyCampaignElement](
     runner: CliRunner,
     client_top: BaseCommand,
-    entry: models.ElementMixin,
+    entry: E,
     entry_class_name: str,
-    entry_class: TypeAlias = models.ElementMixin,
+    entry_class: type[E],
 ) -> None:
     result = runner.invoke(
         client_top,
@@ -319,6 +317,7 @@ def check_update_methods(
     )
     # FIXME: is this the return type we want?
     check_spec = check_and_parse_result(result, entry_class)
+    assert check_spec.spec_aliases is not None
     assert check_spec.spec_aliases["test"] == "dummy", "update_spec_aliases failed"
 
     result = runner.invoke(
@@ -339,7 +338,7 @@ def check_update_methods(
 def check_scripts(
     runner: CliRunner,
     client_top: BaseCommand,
-    entry: models.ElementMixin,
+    entry: AnyCampaignElement,
     entry_class_name: str,
 ) -> None:
     models.ScriptQuery(
@@ -417,9 +416,9 @@ def check_scripts(
 def check_get_methods(
     runner: CliRunner,
     client_top: BaseCommand,
-    entry: E,
+    entry: AnyCampaignElement,
     entry_class_name: str,
-    entry_class: TypeAlias = models.ElementMixin,
+    entry_class: type[AnyCampaignElement],
 ) -> None:
     result = runner.invoke(client_top, f"{entry_class_name} get all --output yaml --row_id {entry.id}")
     check_get = check_and_parse_result(result, entry_class)
@@ -481,7 +480,7 @@ def check_get_methods(
 def check_queue(
     runner: CliRunner,
     client_top: BaseCommand,
-    entry: models.ElementMixin,
+    entry: AnyCampaignElement,
     *,
     run_daemon: bool = False,
 ) -> None:

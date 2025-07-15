@@ -50,3 +50,18 @@ The CM Service consumes several secrets from the k8s application environment. Th
   - The AWS "default" profile is configured to use environment variables for its credentials source, so the appropriate secrets should be assigned to the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables.
 
   - Authentication values for other profiles are stored in a secret mounted as a file at `/etc/aws/credentials`.
+
+## Dev / Staging Deployments
+Development or staging builds are deployed to the USDF Kubernetes vcluster `usdf-cm-dev`.
+
+Prior to deploying a new build using a prerelease tag, release tag, or ticket branch tag, it may be necessary to clear the database of all data so it can be migrated from scratch.
+
+### Clearing the Database
+After appropriately setting the Kubernetes context and namespace:
+
+1. Scale down the daemon deployment using `kubectl scale deployment cm-service-daemon --replicas=0`.
+1. Obtain a shell in an API server pod using `kubectl exec -it cm-service-server-<hash> -- bash`.
+1. Within this shell, downgrade the database migration using `alembic downgrade base`.
+
+> [!CAUTION]
+> This operation unconditionally destroys the database contents and all objects.

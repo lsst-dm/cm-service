@@ -145,7 +145,7 @@ class StatusEnum(enum.Enum):
 
     def is_successful_script(self) -> bool:
         """Is this successful state for Script"""
-        return self.value >= StatusEnum.reviewable.value
+        return self.value >= StatusEnum.accepted.value
 
     def is_bad(self) -> bool:
         """Is this a failed state"""
@@ -166,6 +166,7 @@ class StatusEnum(enum.Enum):
             [
                 self.is_successful_script(),
                 self.is_bad(),
+                self is StatusEnum.reviewable,
             ]
         )
 
@@ -286,3 +287,20 @@ class WmsComputeSite(enum.Enum):
     lanc = 2
     ral = 3
     in2p3 = 4
+
+
+class ManifestKind(enum.Enum):
+    """Define a manifest kind"""
+
+    campaign = enum.auto()
+    node = enum.auto()
+    edge = enum.auto()
+    # Legacy kinds
+    specification = enum.auto()
+    spec_block = enum.auto()
+    step = enum.auto()
+    group = enum.auto()
+    job = enum.auto()
+    script = enum.auto()
+    # Fallback kind
+    other = enum.auto()

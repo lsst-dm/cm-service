@@ -14,16 +14,16 @@ class SpecificationBase(BaseModel):
     name: str
 
     # Parameter Overrides
-    data: dict | str | None = None
+    data: dict | None = None
 
     # Overrides for configuring child nodes
-    child_config: dict | str | None = None
+    child_config: dict | None = None
 
     # Overrides for making collection names
-    collections: dict | str | None = None
+    collections: dict | None = None
 
     # Overrides for which SpecBlocks to use in constructing child Nodes
-    spec_aliases: dict | str | None = None
+    spec_aliases: dict | None = None
 
 
 class SpecificationCreate(SpecificationBase):

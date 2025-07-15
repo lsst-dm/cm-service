@@ -8,17 +8,18 @@ import pytest
 import structlog
 from _pytest.monkeypatch import MonkeyPatch
 from safir.database import create_async_session
-from sqlalchemy.ext.asyncio import AsyncEngine, async_scoped_session
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from lsst.cmservice import db
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum
+from lsst.cmservice.common.types import AnyAsyncSession
 
 from .util_functions import cleanup, create_tree
 
 
 @pytest.mark.asyncio()
 async def check_run_script(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     parent: db.ElementMixin,
     script_name: str,
     spec_block_name: str,
@@ -47,7 +48,7 @@ async def check_run_script(
 
 @pytest.mark.asyncio()
 async def check_script(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     parent: db.ElementMixin,
     script_name: str,
     spec_block_name: str,

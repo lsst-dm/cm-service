@@ -3,10 +3,10 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
-from safir.dependencies.db_session import db_session_dependency
-from sqlalchemy.ext.asyncio import async_scoped_session
 
 from .. import db, models
+from ..common.types import AnyAsyncSession
+from ..db.session import db_session_dependency
 from . import wrappers
 
 # Template specialization
@@ -18,14 +18,12 @@ CreateModelClass = models.GroupCreate
 UpdateModelClass = models.GroupUpdate
 # Specify the associated database table
 DbClass = db.Group
-# Specify the tag in the router documentation
-TAG_STRING = "Groups"
 
 
 # Build the router
 router = APIRouter(
     prefix=f"/{DbClass.class_string}",
-    tags=[TAG_STRING],
+    tags=["groups"],
 )
 
 
@@ -95,7 +93,7 @@ get_products = wrappers.get_element_products_function(router, DbClass)
 )
 async def rescue_job(
     row_id: int,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> db.Job:
     """Invoke the Group.rescue_job function"""
     the_group = await DbClass.get_row(session, row_id)
@@ -110,7 +108,7 @@ async def rescue_job(
 )
 async def mark_job_rescued(
     row_id: int,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> list[db.Job]:
     """Invoke the Group.mark_job_rescued function"""
     the_group = await DbClass.get_row(session, row_id)

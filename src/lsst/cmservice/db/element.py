@@ -3,8 +3,6 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy.ext.asyncio import async_scoped_session
-
 from ..common.enums import LevelEnum, NodeTypeEnum, StatusEnum
 from ..common.errors import CMBadStateTransitionError, CMTooManyActiveScriptsError
 from ..config import config
@@ -14,6 +12,7 @@ from ..models.merged_wms_task_report import MergedWmsTaskReportDict
 from .node import NodeMixin
 
 if TYPE_CHECKING:
+    from ..common.types import AnyAsyncSession
     from .job import Job
     from .script import Script
 
@@ -37,7 +36,7 @@ class ElementMixin(NodeMixin):
 
     async def get_scripts(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script_name: str | None = None,
         *,
         remaining_only: bool = False,
@@ -47,7 +46,7 @@ class ElementMixin(NodeMixin):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         script_name: str | None
@@ -78,7 +77,7 @@ class ElementMixin(NodeMixin):
 
     async def get_jobs(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         *,
         remaining_only: bool = False,
         skip_superseded: bool = True,
@@ -87,7 +86,7 @@ class ElementMixin(NodeMixin):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         remaining_only: bool
@@ -113,7 +112,7 @@ class ElementMixin(NodeMixin):
 
     async def get_all_scripts(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         *,
         remaining_only: bool = False,
         skip_superseded: bool = True,
@@ -122,7 +121,7 @@ class ElementMixin(NodeMixin):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         remaining_only: bool
@@ -153,7 +152,7 @@ class ElementMixin(NodeMixin):
 
     async def children(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> Iterable:
         """Maps to [] for consistency"""
         assert session  # for mypy
@@ -161,7 +160,7 @@ class ElementMixin(NodeMixin):
 
     async def retry_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script_name: str,
         *,
         fake_reset: bool = True,
@@ -170,7 +169,7 @@ class ElementMixin(NodeMixin):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         script_name: str
@@ -198,7 +197,7 @@ class ElementMixin(NodeMixin):
 
     async def estimate_sleep_time(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         minimum_sleep_time: int = 10,
     ) -> int:
         """Estimate how long to sleep before calling process again.
@@ -208,7 +207,7 @@ class ElementMixin(NodeMixin):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns
@@ -234,14 +233,14 @@ class ElementMixin(NodeMixin):
 
     async def get_wms_reports(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> MergedWmsTaskReportDict:
         """Get the WmwTaskReports associated to this element
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns
@@ -253,7 +252,7 @@ class ElementMixin(NodeMixin):
 
     async def get_tasks(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> MergedTaskSetDict:
         """Get the TaskSet associated to this element
@@ -270,14 +269,14 @@ class ElementMixin(NodeMixin):
 
     async def get_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> MergedProductSetDict:
         """Get the ProductSet associated to this element
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns
@@ -289,7 +288,7 @@ class ElementMixin(NodeMixin):
 
     async def review(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> StatusEnum:
         """Run review() function on this Element
@@ -298,7 +297,7 @@ class ElementMixin(NodeMixin):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns

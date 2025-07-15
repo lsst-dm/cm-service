@@ -10,7 +10,6 @@ import yaml
 from anyio import Path, to_thread
 from fastapi.concurrency import run_in_threadpool
 from jinja2 import Environment, PackageLoader
-from sqlalchemy.ext.asyncio import async_scoped_session
 
 from lsst.ctrl.bps import BaseWmsService, WmsRunReport, WmsStates
 from lsst.utils import doImport
@@ -35,6 +34,10 @@ from ..db.task_set import TaskSet
 from ..db.wms_task_report import WmsTaskReport
 from .functions import compute_job_status, load_manifest_report, load_wms_reports, status_from_bps_report
 from .script_handler import FunctionHandler, ScriptHandler
+
+if TYPE_CHECKING:
+    from ..common.types import AnyAsyncSession
+
 
 WMS_TO_TASK_STATUS_MAP = {
     WmsStates.UNKNOWN: TaskStatusEnum.missing,
@@ -64,7 +67,7 @@ class BpsScriptHandler(ScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -75,11 +78,11 @@ class BpsScriptHandler(ScriptHandler):
         await session.refresh(parent, attribute_names=["c_"])
         data_dict = await script.data_dict(session)
         resolved_cols = await script.resolve_collections(session)
+        prod_area = os.path.expandvars(config.bps.artifact_path)
 
         # Resolve mandatory data element inputs. All of these values must be
         # provided somewhere along the SpecBlock chain.
         try:
-            prod_area = os.path.expandvars(data_dict["prod_area"])
             butler_repo = os.path.expandvars(data_dict["butler_repo"])
             lsst_version = os.path.expandvars(data_dict.get("lsst_version", "w_latest"))
             lsst_distrib_dir = os.path.expandvars(data_dict["lsst_distrib_dir"])
@@ -149,7 +152,7 @@ class BpsScriptHandler(ScriptHandler):
         #       unless they are unique to the submission and separated for
         #       readability. The use of any kind of "shared" or "global" config
         #       items breaks provenance for all campaigns that reference them.
-        bps_wms_extra_files = data_dict.get("bps_wms_extra_files", [])
+        bps_wms_extra_files: list = data_dict.get("bps_wms_extra_files", [])
         bps_wms_clustering_file = data_dict.get("bps_wms_clustering_file", None)
         bps_wms_resources_file = data_dict.get("bps_wms_resources_file", None)
         bps_wms_yaml_file = data_dict.get("bps_wms_yaml_file", None)
@@ -233,7 +236,7 @@ class BpsScriptHandler(ScriptHandler):
 
     async def _check_slurm_job(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         slurm_id: str | None,
         script: Script,
         parent: ElementMixin,
@@ -263,7 +266,7 @@ class BpsScriptHandler(ScriptHandler):
 
     async def _check_htcondor_job(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         htcondor_id: str | None,
         script: Script,
         parent: ElementMixin,
@@ -284,7 +287,7 @@ class BpsScriptHandler(ScriptHandler):
         # Irrespective of status, if the bps stdout log file exists, try to
         # parse it for valuable information
         # FIXME is this appropriate? maybe it should only be for terminal state
-        bps_submit_dir: str | None
+        bps_submit_dir: str | None = None
         if fake_status is not None:
             wms_job_id = "fake_job"
             bps_submit_dir = "fake_path"
@@ -303,7 +306,7 @@ class BpsScriptHandler(ScriptHandler):
 
     async def launch(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -330,7 +333,7 @@ class BpsScriptHandler(ScriptHandler):
 
     async def _reset_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -358,7 +361,7 @@ class BpsScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -407,7 +410,7 @@ class BpsReportHandler(FunctionHandler):
 
     async def _load_wms_reports(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         job: Job,
         wms_workflow_id: str | None,
         **kwargs: Any,
@@ -462,7 +465,7 @@ class BpsReportHandler(FunctionHandler):
 
     async def _do_prepare(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin | Job,
         **kwargs: Any,
@@ -478,7 +481,7 @@ class BpsReportHandler(FunctionHandler):
 
     async def _do_check(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin | Job,
         **kwargs: Any,
@@ -497,7 +500,7 @@ class BpsReportHandler(FunctionHandler):
 
     async def _reset_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -564,7 +567,7 @@ class ManifestReportScriptHandler(ScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -572,7 +575,7 @@ class ManifestReportScriptHandler(ScriptHandler):
         if TYPE_CHECKING:
             assert isinstance(parent, Job)
         data_dict = await script.data_dict(session)
-        prod_area = await Path(os.path.expandvars(data_dict["prod_area"])).resolve()
+        prod_area = await Path(os.path.expandvars(config.bps.artifact_path)).resolve()
         resolved_cols = await script.resolve_collections(session)
         script_url = await self._set_script_files(session, script, prod_area)
         butler_repo = data_dict["butler_repo"]
@@ -616,15 +619,14 @@ class ManifestReportLoadHandler(FunctionHandler):
 
     async def _do_prepare(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
         if TYPE_CHECKING:
             assert isinstance(parent, Job)
-        data_dict = await script.data_dict(session)
-        prod_area = await Path(os.path.expandvars(data_dict["prod_area"])).resolve()
+        prod_area = await Path(os.path.expandvars(config.bps.artifact_path)).resolve()
 
         report_url = parent.metadata_.get("report_url") or (
             prod_area / parent.fullname / "manifest_report.yaml"
@@ -644,7 +646,7 @@ class ManifestReportLoadHandler(FunctionHandler):
 
     async def _do_check(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin | Job,
         **kwargs: Any,
@@ -661,7 +663,7 @@ class ManifestReportLoadHandler(FunctionHandler):
 
     async def _load_pipetask_report(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         job: Job,
         pipetask_report_yaml: str,
         fake_status: StatusEnum | None = None,
@@ -688,7 +690,7 @@ class ManifestReportLoadHandler(FunctionHandler):
 
     async def _reset_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,

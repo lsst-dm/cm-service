@@ -3,8 +3,6 @@ from __future__ import annotations
 import types
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from sqlalchemy.ext.asyncio import async_scoped_session
-
 from lsst.utils import doImport
 from lsst.utils.introspection import get_full_type_name
 
@@ -13,6 +11,7 @@ from ..common.errors import CMBadHandlerTypeError
 from ..common.logging import LOGGER
 
 if TYPE_CHECKING:
+    from ..common.types import AnyAsyncSession
     from .element import ElementMixin
     from .node import NodeMixin
     from .script import Script
@@ -93,7 +92,7 @@ class Handler:
 
     async def process(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         node: NodeMixin,
         **kwargs: Any,
     ) -> tuple[bool, StatusEnum]:
@@ -101,7 +100,7 @@ class Handler:
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : A
             DB session manager
 
         node: NodeMixin
@@ -121,7 +120,7 @@ class Handler:
 
     async def run_check(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         node: NodeMixin,
         **kwargs: Any,
     ) -> tuple[bool, StatusEnum]:
@@ -129,7 +128,7 @@ class Handler:
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : A
             DB session manager
 
         node: NodeMixin
@@ -149,7 +148,7 @@ class Handler:
 
     async def reset(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         node: NodeMixin,
         to_status: StatusEnum,
         *,
@@ -159,7 +158,7 @@ class Handler:
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : A
             DB session manager
 
         node: NodeMixin
@@ -180,7 +179,7 @@ class Handler:
 
     async def reset_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         node: NodeMixin,
         to_status: StatusEnum,
         *,
@@ -190,7 +189,7 @@ class Handler:
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : A
             DB session manager
 
         node: NodeMixin
@@ -211,7 +210,7 @@ class Handler:
 
     async def review(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         element: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
@@ -219,7 +218,7 @@ class Handler:
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : A
             DB session manager
 
         element: ElementMixin
@@ -234,7 +233,7 @@ class Handler:
 
     async def review_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -243,7 +242,7 @@ class Handler:
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : A
             DB session manager
 
         script: Script
