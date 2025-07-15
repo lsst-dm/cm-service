@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Annotated
 from uuid import UUID, uuid5
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from pydantic import UUID5
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -77,6 +78,7 @@ async def read_node_resource(
     response: Response,
     node_name: str,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
+    campaign_id: Annotated[UUID5 | None, Query(validation_alias="campaign_id", alias="campaign-id")] = None,
 ) -> Node:
     """Fetch a single node from the database given either the node id
     or its name.
@@ -87,14 +89,21 @@ async def read_node_resource(
         if node_id := UUID(node_name):
             s = s.where(Node.id == node_id)
     except ValueError:
-        s = s.where(Node.name == node_name)
+        # node name by itself is not sufficient to identity a single node in
+        # the database, so we must also constrain the request with the campaign
+        # namespace or raise an error.
+        if campaign_id is None:
+            raise HTTPException(
+                status_code=400, detail="Cannot locate Node by name alone. Try including `?campaign-id=...`"
+            )
+        s = s.where(Node.name == node_name).where(Node.namespace == campaign_id)
 
     node = (await session.exec(s)).one_or_none()
     if node is None:
         raise HTTPException(status_code=404)
     response.headers["Self"] = request.url_for("read_node_resource", node_name=node.id).__str__()
     response.headers["Campaign"] = request.url_for(
-        "read_campaign_resource", campaign_name=node.namespace
+        "read_campaign_resource", campaign_name_or_id=node.namespace
     ).__str__()
     return node
 
@@ -140,15 +149,13 @@ async def create_node_resource(
 
     node_version = previous_node.version if previous_node else node_version
     node_version += 1
-    node_metadata = manifest.metadata_.model_dump()
-    node_metadata |= {"crtime": element_time()}
     node = Node(
         id=uuid5(node_namespace_uuid, f"{node_name}.{node_version}"),
-        name=node_metadata.pop("name"),
+        name=node_name,
         namespace=node_namespace_uuid,
         version=node_version,
-        configuration=manifest.spec.model_dump(),
-        metadata_=node_metadata,
+        configuration=manifest.spec.model_dump(exclude_none=True),
+        metadata_=manifest.metadata_.model_dump(exclude_none=True),
     )
 
     # Put the node in the database
@@ -157,7 +164,7 @@ async def create_node_resource(
     await session.refresh(node)
     response.headers["Self"] = request.url_for("read_node_resource", node_name=node.id).__str__()
     response.headers["Campaign"] = request.url_for(
-        "read_campaign_resource", campaign_name=node.namespace
+        "read_campaign_resource", campaign_name_or_id=node.namespace
     ).__str__()
     return node
 
@@ -242,7 +249,7 @@ async def update_node_resource(
 
     response.headers["Self"] = request.url_for("read_node_resource", node_name=new_manifest_db.id).__str__()
     response.headers["Campaign"] = request.url_for(
-        "read_campaign_resource", campaign_name=new_manifest_db.namespace
+        "read_campaign_resource", campaign_name_or_id=new_manifest_db.namespace
     ).__str__()
 
     return new_manifest_db

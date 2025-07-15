@@ -15,7 +15,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from ...common.jsonpatch import JSONPatch, JSONPatchError, apply_json_patch
 from ...common.logging import LOGGER
 from ...common.timestamp import element_time
-from ...db.campaigns_v2 import Campaign, Manifest, _default_campaign_namespace
+from ...db.campaigns_v2 import Campaign, Manifest
 from ...db.manifests_v2 import ManifestModel
 from ...db.session import db_session_dependency
 
@@ -125,23 +125,21 @@ async def create_one_or_more_manifests(
 
         # A manifest must exist in the namespace of an existing campaign
         # or the default namespace
-        _namespace: str | None = manifest.metadata_.namespace
-        if _namespace is None:
-            _namespace_uuid = _default_campaign_namespace
-        else:
-            try:
-                _namespace_uuid = UUID(_namespace)
-            except ValueError:
-                # get the campaign ID by its name to use as a namespace
-                # it is an error if the namespace/campaign does not exist
-                # FIXME but this could also be handled by FK constraints
-                if (
-                    _campaign_id := (
-                        await session.exec(select(Campaign.id).where(Campaign.name == _namespace))
-                    ).one_or_none()
-                ) is None:
-                    raise HTTPException(status_code=422, detail="Requested namespace does not exist.")
-                _namespace_uuid = _campaign_id
+        _namespace = manifest.metadata_.namespace
+
+        try:
+            _namespace_uuid = UUID(_namespace)
+        except ValueError:
+            # get the campaign ID by its name to use as a namespace
+            # it is an error if the namespace/campaign does not exist
+            # FIXME but this could also be handled by FK constraints
+            if (
+                _campaign_id := (
+                    await session.exec(select(Campaign.id).where(Campaign.name == _namespace))
+                ).one_or_none()
+            ) is None:
+                raise HTTPException(status_code=422, detail="Requested namespace does not exist.")
+            _namespace_uuid = _campaign_id
 
         # A manifest must be a new version if name+namespace already exists
         # check db for manifest as name+namespace, get version and increment
@@ -158,16 +156,14 @@ async def create_one_or_more_manifests(
         _version = _previous.version if _previous else manifest.metadata_.version
         _version += 1
 
-        _manifest_metadata = manifest.metadata_.model_dump()
-        _manifest_metadata |= {"crtime": element_time()}
         _manifest = Manifest(
             id=uuid5(_namespace_uuid, f"{_name}.{_version}"),
-            name=_manifest_metadata.pop("name"),
+            name=manifest.metadata_.name,
             namespace=_namespace_uuid,
             kind=manifest.kind,
             version=_version,
-            metadata_=_manifest_metadata,
-            spec=manifest.spec.model_dump(),
+            metadata_=manifest.metadata_.model_dump(exclude_none=True),
+            spec=manifest.spec.model_dump(exclude_none=True),
         )
 
         # Put the node in the database

@@ -122,7 +122,7 @@ async def test_create_campaign(aclient: AsyncClient) -> None:
     assert len(edges) == 0
 
 
-async def test_patch_campaign(aclient: AsyncClient) -> None:
+async def test_patch_campaign(aclient: AsyncClient, caplog: pytest.LogCaptureFixture) -> None:
     # Create a new campaign with spec data
     campaign_name = uuid4().hex[-8:]
     x = await aclient.post(
@@ -160,15 +160,29 @@ async def test_patch_campaign(aclient: AsyncClient) -> None:
     assert y.status_code == 501
 
     # Update the campaign using RFC7396 and campaign id
+    caplog.clear()
     y = await aclient.patch(
         campaign_url,
-        json={"status": "ready", "owner": "bob_loblaw"},
+        json={"status": "running", "owner": "bob_loblaw"},
         headers={"Content-Type": "application/merge-patch+json"},
     )
     assert y.is_success
+    # Obtain the Status Update URL from the response headers
+    status_update_url = y.headers["StatusUpdate"]
+
+    # Check the updates are as expected
     updated_campaign = y.json()
     assert updated_campaign["owner"] == "bob_loblaw"
-    assert updated_campaign["status"] == "ready"
+    # the status update will not be applied
+    assert updated_campaign["status"] == "waiting"
+
+    # we should see a failed transition in the log
+    log_entry_found = False
+    for r in caplog.records:
+        if "Invalid campaign graph" in r.message:
+            log_entry_found = True
+            break
+    assert log_entry_found
 
     # Update the campaign again using RFC7396, ensuring only a single field
     # is patched, using campaign name
@@ -180,4 +194,13 @@ async def test_patch_campaign(aclient: AsyncClient) -> None:
     assert y.is_success
     updated_campaign = y.json()
     assert updated_campaign["owner"] == "alice_bob"
-    assert updated_campaign["status"] == "ready"
+    # the previous status update will not be successful
+    assert updated_campaign["status"] == "waiting"
+
+    # The (failed) attempt to resume a campaign with a broken graph should
+    # produce an error detail at the reported location, i.e., at the logs
+    # API with a request-id query param.
+    y = await aclient.get(status_update_url)
+    assert y.is_success
+    activity_log_entry = y.json()[0]
+    assert activity_log_entry["detail"] == {"error": "Invalid campaign graph", "trigger": "start"}

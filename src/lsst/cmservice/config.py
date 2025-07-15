@@ -522,6 +522,26 @@ class DaemonConfiguration(BaseModel):
         ),
     )
 
+    v1_enabled: bool = Field(
+        default=True,
+        description="Whether the v1 daemon is enabled and included in the event loop.",
+    )
+
+    v2_enabled: bool = Field(
+        default=False,
+        description="Whether the v2 daemon is enabled and included in the event loop.",
+    )
+
+    process_campaigns: bool = Field(
+        default=True,
+        description="Whether the v2 daemon processes Campaigns in the event loop.",
+    )
+
+    process_nodes: bool = Field(
+        default=True,
+        description="Whether the v2 daemon processes Nodes in the event loop.",
+    )
+
 
 class NotificationConfiguration(BaseModel):
     """Configurations for notifications.

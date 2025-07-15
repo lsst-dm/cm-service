@@ -6,9 +6,11 @@ representing campaign objects within CM-Service.
 
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Annotated
-from uuid import UUID, uuid5
+from uuid import UUID, uuid4, uuid5
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, Response
+from pydantic import UUID5
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import aliased
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -16,9 +18,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from ...common.graph import graph_from_edge_list_v2, graph_to_dict
 from ...common.logging import LOGGER
 from ...common.timestamp import element_time
-from ...db.campaigns_v2 import Campaign, CampaignUpdate, Edge, Manifest, Node
+from ...db.campaigns_v2 import ActivityLog, Campaign, CampaignUpdate, Edge, Manifest, Node
 from ...db.manifests_v2 import CampaignManifest
 from ...db.session import db_session_dependency
+from ...machines.tasks import change_campaign_state
 
 # TODO should probably bind a logger to the fastapi app or something
 logger = LOGGER.bind(module=__name__)
@@ -72,14 +75,14 @@ async def read_campaign_collection(
 
 
 @router.get(
-    "/{campaign_name}",
+    "/{campaign_name_or_id}",
     summary="Get campaign detail",
 )
 async def read_campaign_resource(
     request: Request,
     response: Response,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
-    campaign_name: str,
+    campaign_name_or_id: str,
 ) -> Campaign:
     """Fetch a single campaign from the database given either the campaign id
     or its name.
@@ -87,23 +90,25 @@ async def read_campaign_resource(
     s = select(Campaign)
     # The input could be a campaign UUID or it could be a literal name.
     try:
-        if campaign_id := UUID(campaign_name):
+        if campaign_id := UUID(campaign_name_or_id):
             s = s.where(Campaign.id == campaign_id)
     except ValueError:
-        s = s.where(Campaign.name == campaign_name)
+        s = s.where(Campaign.name == campaign_name_or_id)
 
     campaign = (await session.exec(s)).one_or_none()
     # set the response headers
     if campaign is not None:
-        response.headers["Self"] = str(request.url_for("read_campaign_resource", campaign_name=campaign.id))
+        response.headers["Self"] = str(
+            request.url_for("read_campaign_resource", campaign_name_or_id=campaign.id)
+        )
         response.headers["Nodes"] = str(
-            request.url_for("read_campaign_node_collection", campaign_name=campaign.id)
+            request.url_for("read_campaign_node_collection", campaign_id=campaign.id)
         )
         response.headers["Edges"] = str(
-            request.url_for("read_campaign_edge_collection", campaign_name=campaign.id)
+            request.url_for("read_campaign_edge_collection", campaign_id=campaign.id)
         )
         response.headers["Manifests"] = str(
-            request.url_for("read_campaign_manifest_collection", campaign_name=campaign.id)
+            request.url_for("read_campaign_manifest_collection", campaign_id=campaign.id)
         )
         return campaign
     else:
@@ -119,28 +124,27 @@ async def update_campaign_resource(
     request: Request,
     response: Response,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
+    background_tasks: BackgroundTasks,
     campaign_name: str,
     patch_data: CampaignUpdate,
 ) -> Campaign:
     """Partial update method for campaigns.
 
     Should primarily be used to set the status of a campaign, e.g., from
-    waiting->ready, in order to trigger any validation rules contained in that
-    transition.
+    waiting->running or running->paused.
 
-    Another common use case would be to set status to "paused".
+    Rather than directly manipulating the campaign's record, a change to status
+    uses a Background Task, which may or may not perform the requested update.
+    This is why the method returns a 202; the user needs to check back "later"
+    to see if the requested state change has occurred.
 
-    This could be used to update a campaign's metadata, but otherwise the
-    status is the only field available for modification, and even then there is
-    not an imperative "change the status" command, rather a request to evolve
-    the state of a campaign from A to B, which may or may not be successful.
+    Note
+    ----
+    For patching a Campaign status, this API accepts only RFC7396 "Merge-Patch"
+    updates with the appropriate request header set.
 
-    Rather than manipulating the campaign's record, a change to status should
-    instead create a work item for the task processing queue for an executor
-    to discover and attempt to act upon. Barring that, the work should be
-    delegated to a Background Task. This is why the method returns a 202; the
-    user needs to check back "later" to see if the requested state change has
-    occurred.
+    This route returns the Campaign subject to the PATCH, which may or may not
+    reflect all the requested updates (subject to background task resolution).
     """
     use_rfc7396 = False
     use_rfc6902 = False
@@ -170,33 +174,46 @@ async def update_campaign_resource(
     if campaign is None:
         raise HTTPException(status_code=404, detail="No such campaign")
 
-    # update the campaign with the patch data
-    update_data = patch_data.model_dump(exclude_unset=True)
+    # update the campaign with the patch data as a Merge operation
+    update_data = patch_data.model_dump(exclude={"status"}, exclude_unset=True)
     campaign.sqlmodel_update(update_data)
-    session.add(campaign)
     await session.commit()
-    await session.refresh(campaign)
+    session.expunge(campaign)
+
+    # If the patch data is requesting a status change, we will not affect that
+    # directly, but defer it to a background task
+    if patch_data.status is not None:
+        # TODO implement middleware to assign a request_id to every request
+        request_id = uuid4()
+        background_tasks.add_task(change_campaign_state, campaign, patch_data.status, request_id)
+        response.headers["StatusUpdate"] = (
+            f"""{request.url_for("read_campaign_activity_log", campaign_name=campaign.id)}"""
+            f"""?request-id={request_id}"""
+        ).strip()
+
     # set the response headers
     if campaign is not None:
-        response.headers["Self"] = str(request.url_for("read_campaign_resource", campaign_name=campaign.id))
+        response.headers["Self"] = str(
+            request.url_for("read_campaign_resource", campaign_name_or_id=campaign.id)
+        )
         response.headers["Nodes"] = str(
-            request.url_for("read_campaign_node_collection", campaign_name=campaign.id)
+            request.url_for("read_campaign_node_collection", campaign_id=campaign.id)
         )
         response.headers["Edges"] = str(
-            request.url_for("read_campaign_edge_collection", campaign_name=campaign.id)
+            request.url_for("read_campaign_edge_collection", campaign_id=campaign.id)
         )
     return campaign
 
 
 @router.get(
-    "/{campaign_name}/nodes",
+    "/{campaign_id}/nodes",
     summary="Get campaign Nodes",
 )
 async def read_campaign_node_collection(
     request: Request,
     response: Response,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
-    campaign_name: str,
+    campaign_id: UUID5,
     limit: Annotated[int, Query(le=100)] = 10,
     offset: Annotated[int, Query()] = 0,
 ) -> Sequence[Node]:
@@ -204,37 +221,34 @@ async def read_campaign_node_collection(
     single Campaign.
     """
 
-    # The input could be a campaign UUID or it could be a literal name.
-    # TODO this could just as well be a campaign query with a join to nodes
-    statement = select(Node).order_by(Node.metadata_["crtime"].asc().nulls_last())
+    statement = (
+        select(Node)
+        .where(Node.namespace == campaign_id)
+        .order_by(Node.metadata_["crtime"].asc().nulls_last())
+        .offset(offset)
+        .limit(limit)
+    )
 
-    try:
-        if campaign_id := UUID(campaign_name):
-            statement = statement.where(Node.namespace == campaign_id)
-    except ValueError:
-        # FIXME get an id from a name
-        raise HTTPException(status_code=422, detail="campaign_name must be a uuid")
-    statement = statement.offset(offset).limit(limit)
     nodes = await session.exec(statement)
     response.headers["Next"] = str(
         request.url_for(
             "read_campaign_node_collection",
-            campaign_name=campaign_id,
+            campaign_id=campaign_id,
         ).include_query_params(offset=(offset + limit), limit=limit),
     )
-    response.headers["Self"] = str(request.url_for("read_campaign_resource", campaign_name=campaign_id))
+    response.headers["Self"] = str(request.url_for("read_campaign_resource", campaign_name_or_id=campaign_id))
     return nodes.all()
 
 
 @router.get(
-    "/{campaign_name}/manifests",
+    "/{campaign_id}/manifests",
     summary="Get campaign Manifests",
 )
 async def read_campaign_manifest_collection(
     request: Request,
     response: Response,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
-    campaign_name: str,
+    campaign_id: UUID5,
     limit: Annotated[int, Query(le=100)] = 10,
     offset: Annotated[int, Query()] = 0,
 ) -> Sequence[Manifest]:
@@ -242,36 +256,34 @@ async def read_campaign_manifest_collection(
     single Campaign.
     """
 
-    # The input could be a campaign UUID or it could be a literal name.
-    statement = select(Manifest).order_by(Manifest.metadata_["crtime"].asc().nulls_last())
+    statement = (
+        select(Manifest)
+        .where(Manifest.namespace == campaign_id)
+        .order_by(Manifest.metadata_["crtime"].asc().nulls_last())
+        .offset(offset)
+        .limit(limit)
+    )
 
-    try:
-        if campaign_id := UUID(campaign_name):
-            statement = statement.where(Manifest.namespace == campaign_id)
-    except ValueError:
-        # FIXME get an id from a name
-        raise HTTPException(status_code=422, detail="campaign_name must be a uuid")
-    statement = statement.offset(offset).limit(limit)
     nodes = await session.exec(statement)
     response.headers["Next"] = str(
         request.url_for(
             "read_campaign_manifest_collection",
-            campaign_name=campaign_id,
+            campaign_id=campaign_id,
         ).include_query_params(offset=(offset + limit), limit=limit),
     )
-    response.headers["Self"] = str(request.url_for("read_campaign_resource", campaign_name=campaign_id))
+    response.headers["Self"] = str(request.url_for("read_campaign_resource", campaign_name_or_id=campaign_id))
     return nodes.all()
 
 
 @router.get(
-    "/{campaign_name}/edges",
+    "/{campaign_id}/edges",
     summary="Get campaign Edges",
 )
 async def read_campaign_edge_collection(
     request: Request,
     response: Response,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
-    campaign_name: str,
+    campaign_id: UUID5,
     *,
     resolve_names: bool = False,
 ) -> Sequence[Edge]:
@@ -280,41 +292,33 @@ async def read_campaign_edge_collection(
     graph.
     """
 
-    # The input could be a campaign UUID or it could be a literal name.
-    # This is why raw SQL is better than ORMs
-    # This is probably better off as two queries instead of a "complicated"
-    # join.
     if resolve_names:
         source_nodes = aliased(Node, name="source")
         target_nodes = aliased(Node, name="target")
-        s = (
-            select(
+        statement = (
+            select(  # type: ignore[call-overload]
                 col(Edge.id).label("id"),
                 col(Edge.name).label("name"),
                 col(Edge.namespace).label("namespace"),
                 col(source_nodes.name).label("source"),
                 col(target_nodes.name).label("target"),
                 col(Edge.configuration).label("configuration"),
-            )  # type: ignore
+            )
             .join_from(Edge, source_nodes, Edge.source == source_nodes.id)
             .join_from(Edge, target_nodes, Edge.target == target_nodes.id)
         )
     else:
-        s = select(Edge).order_by(col(Edge.name).asc().nulls_last())
-    try:
-        if campaign_id := UUID(campaign_name):
-            s = s.where(Edge.namespace == campaign_id)
-    except ValueError:
-        # FIXME get an id from a name
-        raise HTTPException(status_code=422, detail="campaign_name must be a uuid")
-    edges = await session.exec(s)
+        statement = select(Edge).order_by(col(Edge.name).asc().nulls_last())
 
-    response.headers["Self"] = str(request.url_for("read_campaign_resource", campaign_name=campaign_id))
+    statement = statement.where(Edge.namespace == campaign_id)
+    edges = await session.exec(statement)
+
+    response.headers["Self"] = str(request.url_for("read_campaign_resource", campaign_name_or_id=campaign_id))
     return edges.all()
 
 
 @router.delete(
-    "/{campaign_name}/edges/{edge_name}",
+    "/{campaign_id}/edges/{edge_name}",
     summary="Delete campaign edge",
     status_code=204,
 )
@@ -322,16 +326,10 @@ async def delete_campaign_edge_resource(
     request: Request,
     response: Response,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
-    campaign_name: str,
+    campaign_id: UUID5,
     edge_name: str,
 ) -> None:
-    """Delete an edge resource from the campaign, using either name or id."""
-    # If the campaign name is not a uuid, find the appropriate id
-    try:
-        campaign_id = UUID(campaign_name)
-    except ValueError:
-        # FIXME get an id from a name
-        raise HTTPException(status_code=422, detail="campaign_name must be a uuid")
+    """Delete an edge resource from the campaign."""
 
     try:
         edge_id = UUID(edge_name)
@@ -359,52 +357,66 @@ async def create_campaign_resource(
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     manifest: CampaignManifest,
 ) -> Campaign:
-    """An API to create a Campaign from an appropriate Manifest."""
-    # Create a campaign spec from the manifest, delegating the creation of new
-    # dynamic fields to the model validation method, -OR- create new dynamic
-    # fields here.
-    campaign_metadata = manifest.metadata_.model_dump()
-    campaign_metadata |= {"crtime": element_time()}
+    """An API to create a Campaign from an appropriate Manifest.
+
+    If a duplicate campaign is created, the route returns the original campaign
+    from the database with a 409 (conflict) status code.
+    """
+
     campaign = Campaign.model_validate(
         dict(
-            name=campaign_metadata.pop("name"),
-            metadata_=campaign_metadata,
+            name=manifest.metadata_.name,
+            metadata_=manifest.metadata_.model_dump(),
             # owner = ...  # TODO Get username from gafaelfawr # noqa: ERA001
         )
     )
 
     # A new campaign comes with a START and END node
-    start_node = Node.model_validate(dict(name="START", namespace=campaign.id))
-    end_node = Node.model_validate(dict(name="END", namespace=campaign.id))
+    start_node = Node.model_validate(
+        dict(name="START", namespace=campaign.id, metadata_={"crtime": element_time()})
+    )
+    end_node = Node.model_validate(
+        dict(name="END", namespace=campaign.id, metadata_={"crtime": element_time()})
+    )
 
-    # Put the campaign in the database
-    session.add(campaign)
-    session.add(start_node)
-    session.add(end_node)
-    await session.commit()
-    await session.refresh(campaign)
+    try:
+        # Put the campaign in the database
+        session.add(campaign)
+        session.add(start_node)
+        session.add(end_node)
+        await session.commit()
+    except IntegrityError:
+        # campaign already exists in the database, set the conflict status
+        # response but allow the response to proceed
+        logger.exception()
+        await session.rollback()
+        campaign = await session.get_one(Campaign, campaign.id)
+        response.status_code = 409
+    except Exception as e:
+        logger.exception()
+        raise HTTPException(status_code=500, detail=str(e))
 
     # set the response headers
-    response.headers["Self"] = str(request.url_for("read_campaign_resource", campaign_name=campaign.id))
-    response.headers["Nodes"] = str(
-        request.url_for("read_campaign_node_collection", campaign_name=campaign.id)
-    )
-    response.headers["Edges"] = str(
-        request.url_for("read_campaign_edge_collection", campaign_name=campaign.id)
+    response.headers["Self"] = str(request.url_for("read_campaign_resource", campaign_name_or_id=campaign.id))
+    response.headers["Nodes"] = str(request.url_for("read_campaign_node_collection", campaign_id=campaign.id))
+    response.headers["Edges"] = str(request.url_for("read_campaign_edge_collection", campaign_id=campaign.id))
+    response.headers["Graph"] = str(request.url_for("read_campaign_graph", campaign_name=campaign.id))
+    response.headers["Activity"] = str(
+        request.url_for("read_campaign_activity_log", campaign_name=campaign.id)
     )
 
     return campaign
 
 
 @router.get(
-    "/{campaign_name_or_id}/graph",
+    "/{campaign_name}/graph",
     status_code=200,
     summary="Construct and return a Campaign's graph of nodes",
 )
 async def read_campaign_graph(
     request: Request,
     response: Response,
-    campaign_name_or_id: str,
+    campaign_name: str,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
 ) -> Mapping:
     """Reads the graph resource for a campaign and returns its JSON represent-
@@ -415,9 +427,9 @@ async def read_campaign_graph(
     # The input could be a campaign UUID or it could be a literal name.
     campaign_id: UUID | None
     try:
-        campaign_id = UUID(campaign_name_or_id)
+        campaign_id = UUID(campaign_name)
     except ValueError:
-        s = select(Campaign.id).where(Campaign.name == campaign_name_or_id)
+        s = select(Campaign.id).where(Campaign.name == campaign_name)
         campaign_id = (await session.exec(s)).one_or_none()
 
     if campaign_id is None:
@@ -431,5 +443,42 @@ async def read_campaign_graph(
     # current database attributes according to the "simple" node view.
     graph = await graph_from_edge_list_v2(edges=edges, node_type=Node, session=session, node_view="simple")
 
-    response.headers["Self"] = str(request.url_for("read_campaign_resource", campaign_name=campaign_id))
+    response.headers["Self"] = str(request.url_for("read_campaign_resource", campaign_name_or_id=campaign_id))
     return graph_to_dict(graph)
+
+
+@router.get(
+    "/{campaign_name}/logs",
+    status_code=200,
+    summary="Obtain a collection of Activity Log records for a Campaign.",
+)
+async def read_campaign_activity_log(
+    request: Request,
+    response: Response,
+    session: Annotated[AsyncSession, Depends(db_session_dependency)],
+    campaign_name: str,
+    request_id: Annotated[str | None, Query(validation_alias="request_id", alias="request-id")] = None,
+) -> Sequence[ActivityLog]:
+    """Returns the collection of Activity Log resources associated with a
+    Campaign by its namespace. Optionally, a ``?request-id=...`` query param
+    may constrain entries to specific client requests.
+    """
+
+    # The input could be a campaign UUID or it could be a literal name.
+    campaign_id: UUID | None
+    try:
+        campaign_id = UUID(campaign_name)
+    except ValueError:
+        s = select(Campaign.id).where(Campaign.name == campaign_name)
+        campaign_id = (await session.exec(s)).one_or_none()
+
+    if campaign_id is None:
+        raise HTTPException(status_code=404, detail="No such campaign found.")
+
+    # Fetch the Activity Log entries for the campaign
+    statement = select(ActivityLog).where(ActivityLog.namespace == campaign_id)
+    if request_id is not None:
+        statement = statement.filter(ActivityLog.metadata_["request_id"].astext == request_id)
+    logs = (await session.exec(statement)).all()
+
+    return logs

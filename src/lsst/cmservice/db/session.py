@@ -7,14 +7,17 @@ from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async
 from sqlalchemy.pool import AsyncAdaptedQueuePool, Pool
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from ..common.logging import LOGGER
 from ..config import config
 
+logger = LOGGER.bind(module=__name__)
 
-class DatabaseSessionDependency:
+
+class DatabaseManager:
     """A database session manager class designed to manage an async sqlalchemy
     engine and produce sessions.
 
-    A module-level instance of this class is created, and when called, a new
+    A module-level instance of this class is created, and when called a new
     async session is yielded.
     """
 
@@ -32,7 +35,7 @@ class DatabaseSessionDependency:
         *,
         use_async: bool = True,
     ) -> None:
-        """Initialize the session dependency.
+        """Initialize the database manager.
 
         Parameters
         ----------
@@ -61,7 +64,8 @@ class DatabaseSessionDependency:
         self.sessionmaker = async_sessionmaker(self.engine, class_=AsyncSession, expire_on_commit=False)
 
     async def __call__(self) -> AsyncGenerator[AsyncSession]:
-        """Yields a database session.
+        """Yields a database session, rolls it back on error and closes it on
+        completion.
 
         Yields
         -------
@@ -72,7 +76,14 @@ class DatabaseSessionDependency:
             raise RuntimeError("Async sessionmaker is not initialized")
 
         async with self.sessionmaker() as session:
-            yield session
+            try:
+                yield session
+            except Exception:
+                logger.exception()
+                await session.rollback()
+                raise
+            finally:
+                await session.close()
 
     async def aclose(self) -> None:
         """Shut down the database engine."""
@@ -82,10 +93,5 @@ class DatabaseSessionDependency:
             self.engine = None
 
 
-db_session_dependency = DatabaseSessionDependency()
-"""A module-level instance of the session manager"""
-
-
-# FIXME not sure why this pattern
-async def get_async_session() -> AsyncSession:
-    return await anext(db_session_dependency())
+db_session_dependency = DatabaseManager()
+"""A module-level instance of the database manager"""

@@ -1,8 +1,8 @@
 from collections.abc import Iterable, Mapping, MutableSet, Sequence
 from typing import Literal
+from uuid import UUID
 
 import networkx as nx
-from sqlalchemy import select
 
 from ..db import Script, ScriptDependency, Step, StepDependency
 from ..db.campaigns_v2 import Edge, Node
@@ -70,9 +70,7 @@ async def graph_from_edge_list_v2(
     # but we want to hydrate the entire Node model for subsequent users of this
     # graph to reference without dipping back to the Database.
     for node in g.nodes:
-        s = select(Node).where(Node.id == node)
-        db_node: Node = (await session.execute(s)).scalars().one()
-
+        db_node = await session.get_one(Node, node)
         # This Node is going on an adventure where it does not need to drag its
         # SQLAlchemy baggage along, so we expunge it from the session before
         # adding it to the graph.
@@ -81,9 +79,10 @@ async def graph_from_edge_list_v2(
             # for the simple node view, the goal is to minimize the amount of
             # data attached to the node and ensure that this data is json-
             # serializable and otherwise appropriate for an API response
-            g.nodes[node]["id"] = str(db_node.id)
+            g.nodes[node]["uuid"] = str(db_node.id)
             g.nodes[node]["status"] = db_node.status.name
             g.nodes[node]["kind"] = db_node.kind.name
+            g.nodes[node]["version"] = db_node.version
             relabel_mapping[node] = db_node.name
         else:
             g.nodes[node]["model"] = db_node
@@ -91,7 +90,6 @@ async def graph_from_edge_list_v2(
     if relabel_mapping:
         g = nx.relabel_nodes(g, mapping=relabel_mapping, copy=False)
 
-    # TODO validate graph now raise exception, or leave it to the caller?
     return g
 
 
@@ -107,7 +105,7 @@ def graph_to_dict(g: nx.DiGraph) -> Mapping:
     return nx.node_link_data(g, edges="edges")
 
 
-def validate_graph(g: nx.DiGraph, source: str = "START", sink: str = "END") -> bool:
+def validate_graph(g: nx.DiGraph, source: UUID | str = "START", sink: UUID | str = "END") -> bool:
     """Validates a graph by asserting by traversal that a complete and correct
     path exists between `source` and `sink` nodes.
 

@@ -2,13 +2,12 @@
 
 import importlib
 import os
-from collections.abc import AsyncGenerator, Generator
+from collections.abc import AsyncGenerator, Callable, Generator
 from typing import TYPE_CHECKING
 from uuid import NAMESPACE_DNS, uuid4
 
 import pytest
 import pytest_asyncio
-from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import insert
 from sqlalchemy.pool import NullPool
@@ -18,7 +17,7 @@ from testcontainers.postgres import PostgresContainer
 from lsst.cmservice.common.types import AnyAsyncSession
 from lsst.cmservice.config import config
 from lsst.cmservice.db.campaigns_v2 import metadata
-from lsst.cmservice.db.session import DatabaseSessionDependency, db_session_dependency
+from lsst.cmservice.db.session import DatabaseManager, db_session_dependency
 
 if TYPE_CHECKING:
     from fastapi import FastAPI
@@ -32,8 +31,17 @@ def monkeypatch_module() -> Generator[pytest.MonkeyPatch]:
         yield mp
 
 
+@pytest.fixture(scope="module", autouse=True)
+def patched_config(monkeypatch_module: pytest.MonkeyPatch, tmp_path_factory: pytest.TempPathFactory) -> None:
+    """Fixture which monkeypatches configuration settings"""
+    monkeypatch_module.setattr(
+        target=config.bps, name="artifact_path", value=tmp_path_factory.mktemp("output")
+    )
+    monkeypatch_module.setattr(target=config.db, name="echo", value=False)
+
+
 @pytest_asyncio.fixture(scope="module", loop_scope="module")
-async def rawdb(monkeypatch_module: pytest.MonkeyPatch) -> AsyncGenerator[DatabaseSessionDependency]:
+async def rawdb(monkeypatch_module: pytest.MonkeyPatch) -> AsyncGenerator[DatabaseManager]:
     """Test fixture for a postgres container.
 
     A scoped ephemeral container will be created for the test if the env var
@@ -74,7 +82,7 @@ async def rawdb(monkeypatch_module: pytest.MonkeyPatch) -> AsyncGenerator[Databa
 
 
 @pytest_asyncio.fixture(scope="module", loop_scope="module")
-async def testdb(rawdb: DatabaseSessionDependency) -> AsyncGenerator[DatabaseSessionDependency]:
+async def testdb(rawdb: DatabaseManager) -> AsyncGenerator[DatabaseManager]:
     """Test fixture for a migrated postgres container.
 
     This fixture creates all the database objects defined for the ORM metadata
@@ -93,6 +101,9 @@ async def testdb(rawdb: DatabaseSessionDependency) -> AsyncGenerator[DatabaseSes
                 namespace=str(NAMESPACE_DNS),
                 name="DEFAULT",
                 owner="root",
+                status="accepted",
+                metadata={},
+                configuration={},
             )
         )
         await aconn.commit()
@@ -103,50 +114,145 @@ async def testdb(rawdb: DatabaseSessionDependency) -> AsyncGenerator[DatabaseSes
         await aconn.commit()
 
 
+@pytest_asyncio.fixture(name="session_factory", scope="module", loop_scope="module")
+async def session_factory_fixture(
+    testdb: DatabaseManager,
+) -> Callable[..., AsyncGenerator[AnyAsyncSession]]:
+    """Test fixture for providing an AsyncSession Factory."""
+
+    async def session_factory() -> AsyncGenerator[AnyAsyncSession]:
+        assert testdb.engine is not None
+        assert testdb.sessionmaker is not None
+        async with testdb.sessionmaker() as session:
+            try:
+                yield session
+            finally:
+                await session.close()
+        await testdb.engine.dispose()
+
+    return session_factory
+
+
 @pytest_asyncio.fixture(name="session", scope="module", loop_scope="module")
-async def session_fixture(testdb: DatabaseSessionDependency) -> AsyncGenerator[AnyAsyncSession]:
-    """Test fixture for an async database session"""
-    assert testdb.engine is not None
-    assert testdb.sessionmaker is not None
-    async with testdb.sessionmaker() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
-    await testdb.engine.dispose()
-
-
-def client_fixture(session: AnyAsyncSession) -> Generator[TestClient]:
-    """Test fixture for a FastAPI test client with dependency injection
-    overriden.
+async def session_fixture(session_factory: Callable) -> AsyncGenerator[AnyAsyncSession]:
+    """Test fixture for an async database session, useful for tests that need
+    a database session directly.
     """
-
-    def get_session_override() -> AnyAsyncSession:
-        return session
-
-    main_ = importlib.import_module("lsst.cmservice.main")
-    app: FastAPI = getattr(main_, "app")
-
-    app.dependency_overrides[db_session_dependency] = get_session_override
-    client = TestClient(app)
-    yield client
-    app.dependency_overrides.clear()
+    async for session in session_factory():
+        yield session
 
 
 @pytest_asyncio.fixture(name="aclient", scope="module", loop_scope="module")
-async def async_client_fixture(session: AnyAsyncSession) -> AsyncGenerator[AsyncClient]:
-    """Test fixture for an HTTPX async test client with dependency injection
-    overriden.
+async def async_client_fixture(
+    session_factory: Callable, testdb: DatabaseManager
+) -> AsyncGenerator[AsyncClient]:
+    """Test fixture for an HTTPX async test client backed by a FastAPI app with
+    its dependency injections overriden by factory fixtures.
     """
     main_ = importlib.import_module("lsst.cmservice.main")
     app: FastAPI = getattr(main_, "app")
+    app.dependency_overrides[db_session_dependency] = session_factory
 
-    def get_session_override() -> AnyAsyncSession:
-        return session
-
-    app.dependency_overrides[db_session_dependency] = get_session_override
     async with AsyncClient(
         follow_redirects=True, transport=ASGITransport(app), base_url="http://test"
     ) as aclient:
         yield aclient
     app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture(scope="function", loop_scope="module")
+async def test_campaign(aclient: AsyncClient) -> AsyncGenerator[str]:
+    """Fixture managing a test campaign with three (additional) nodes, which
+    yields the URL for the campaign's edges endpoint.
+    """
+    campaign_name = uuid4().hex[-8:]
+    node_ids = []
+
+    x = await aclient.post(
+        "/cm-service/v2/campaigns",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "campaign",
+            "metadata": {"name": campaign_name},
+            "spec": {},
+        },
+    )
+    campaign_edge_url = x.headers["Edges"]
+    campaign = x.json()
+
+    # create a trio of nodes for the campaign
+    for _ in range(3):
+        x = await aclient.post(
+            "/cm-service/v2/nodes",
+            json={
+                "apiVersion": "io.lsst.cmservice/v1",
+                "kind": "node",
+                "metadata": {"name": uuid4().hex[-8:], "namespace": campaign["id"]},
+                "spec": {},
+            },
+        )
+        node = x.json()
+        node_ids.append(node["name"])
+
+    # Create edges between each campaign node with parallelization
+    _ = await aclient.post(
+        "/cm-service/v2/edges",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "edge",
+            "metadata": {"name": uuid4().hex[-8:], "namespace": campaign["id"]},
+            "spec": {
+                "source": "START",
+                "target": node_ids[0],
+            },
+        },
+    )
+    _ = await aclient.post(
+        "/cm-service/v2/edges",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "edge",
+            "metadata": {"name": uuid4().hex[-8:], "namespace": campaign["id"]},
+            "spec": {
+                "source": node_ids[0],
+                "target": node_ids[1],
+            },
+        },
+    )
+    _ = await aclient.post(
+        "/cm-service/v2/edges",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "edge",
+            "metadata": {"name": uuid4().hex[-8:], "namespace": campaign["id"]},
+            "spec": {
+                "source": node_ids[0],
+                "target": node_ids[2],
+            },
+        },
+    )
+    _ = await aclient.post(
+        "/cm-service/v2/edges",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "edge",
+            "metadata": {"name": uuid4().hex[-8:], "namespace": campaign["id"]},
+            "spec": {
+                "source": node_ids[1],
+                "target": "END",
+            },
+        },
+    )
+    _ = await aclient.post(
+        "/cm-service/v2/edges",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "edge",
+            "metadata": {"name": uuid4().hex[-8:], "namespace": campaign["id"]},
+            "spec": {
+                "source": node_ids[2],
+                "target": "END",
+            },
+        },
+    )
+    yield campaign_edge_url

@@ -10,6 +10,7 @@ from uuid import uuid4
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationInfo, model_validator
 
 from ..common.enums import DEFAULT_NAMESPACE, ManifestKind
+from ..common.timestamp import element_time
 from ..common.types import KindField
 
 
@@ -30,17 +31,6 @@ class Manifest[MetadataT, SpecT](BaseModel):
     )
 
 
-class ManifestMetadata(BaseModel):
-    """Generic metadata model for Manifests.
-
-    Conventionally denormalized fields are excluded from the model_dump when
-    serialized for ORM use.
-    """
-
-    name: str
-    namespace: str
-
-
 class ManifestSpec(BaseModel):
     """Generic spec model for Manifests.
 
@@ -55,18 +45,30 @@ class ManifestSpec(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
+class ManifestMetadata(BaseModel):
+    """Generic metadata model for Manifests.
+
+    Conventionally denormalized fields are excluded from the model_dump when
+    serialized for ORM use.
+    """
+
+    name: str = Field(exclude=True)
+    namespace: str = Field(exclude=True)
+    crtime: int = Field(default_factory=element_time)
+
+
 class VersionedMetadata(ManifestMetadata):
     """Metadata model for versioned Manifests."""
 
-    version: int = 0
+    version: int = Field(exclude=True, default=0)
 
 
 class ManifestModelMetadata(VersionedMetadata):
     """Manifest model for general Manifests. These manifests are versioned but
-    a namespace is optional.
+    a namespace is optional (defaultable).
     """
 
-    namespace: str = Field(default=str(DEFAULT_NAMESPACE))
+    namespace: str = Field(default=str(DEFAULT_NAMESPACE), exclude=True)
 
 
 class ManifestModel(Manifest[ManifestModelMetadata, ManifestSpec]):
@@ -81,16 +83,7 @@ class ManifestModel(Manifest[ManifestModelMetadata, ManifestSpec]):
         return self
 
 
-class CampaignMetadata(BaseModel):
-    """Metadata model for a Campaign Manifest.
-
-    Campaign metadata does not require a namespace field.
-    """
-
-    name: str
-
-
-class CampaignManifest(Manifest[CampaignMetadata, ManifestSpec]):
+class CampaignManifest(Manifest[ManifestModelMetadata, ManifestSpec]):
     """validating model for campaigns"""
 
     @model_validator(mode="after")
@@ -108,14 +101,15 @@ class EdgeMetadata(ManifestMetadata):
     A default random alphanumeric 8-byte name is generated if no name provided.
     """
 
-    name: str = Field(default_factory=lambda: uuid4().hex[:8])
+    name: str = Field(default_factory=lambda: uuid4().hex[:8], exclude=True)
+    crtime: int = Field(default_factory=element_time)
 
 
 class EdgeSpec(ManifestSpec):
     """Spec model for an Edge Manifest."""
 
-    source: str
-    target: str
+    source: str = Field(exclude=True)
+    target: str = Field(exclude=True)
 
 
 class EdgeManifest(Manifest[EdgeMetadata, EdgeSpec]):
