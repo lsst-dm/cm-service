@@ -14,6 +14,7 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import CreateSchema, DropSchema
 from testcontainers.postgres import PostgresContainer
 
+from lsst.cmservice.common.flags import Features
 from lsst.cmservice.common.types import AnyAsyncSession
 from lsst.cmservice.config import config
 from lsst.cmservice.db.campaigns_v2 import metadata
@@ -38,6 +39,9 @@ def patched_config(monkeypatch_module: pytest.MonkeyPatch, tmp_path_factory: pyt
         target=config.bps, name="artifact_path", value=tmp_path_factory.mktemp("output")
     )
     monkeypatch_module.setattr(target=config.db, name="echo", value=False)
+    monkeypatch_module.setattr(
+        target=config.features, name="enabled", value=Features.API_V2 | Features.DAEMON_V2
+    )
 
 
 @pytest_asyncio.fixture(scope="module", loop_scope="module")
