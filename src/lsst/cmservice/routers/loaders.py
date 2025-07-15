@@ -9,7 +9,7 @@ from ..handlers import functions, interface
 
 router = APIRouter(
     prefix="/load",
-    tags=["Loaders"],
+    tags=["loaders"],
 )
 
 

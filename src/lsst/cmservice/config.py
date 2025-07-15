@@ -8,6 +8,7 @@ from pydantic import (
     AliasChoices,
     BaseModel,
     Field,
+    SecretStr,
     computed_field,
     field_serializer,
     field_validator,
@@ -461,6 +462,11 @@ class AsgiConfiguration(BaseModel):
         default="/cm-service",
     )
 
+    enable_frontend: bool = Field(
+        description="Whether to run the frontend web app",
+        default=True,
+    )
+
     frontend_prefix: str = Field(
         description="The URL prefix for the frontend web app",
         default="/web_app",
@@ -540,19 +546,44 @@ class DatabaseConfiguration(BaseModel):
         description="The URL for the cm-service database",
     )
 
-    password: str | None = Field(
+    password: SecretStr | None = Field(
         default=None,
         description="The password for the cm-service database",
     )
 
-    table_schema: str | None = Field(
-        default=None,
+    table_schema: str = Field(
+        default="public",
         description="Schema to use for cm-service database",
     )
 
     echo: bool = Field(
         default=False,
         description="SQLAlchemy engine echo setting for the cm-service database",
+    )
+
+    max_overflow: int = Field(
+        default=10,
+        description="Maximum connection overflow allowed for QueuePool.",
+    )
+
+    pool_size: int = Field(
+        default=5,
+        description="Number of open connections kept in the QueuePool",
+    )
+
+    pool_recycle: int = Field(
+        default=-1,
+        description="Timeout in seconds before connections are recycled",
+    )
+
+    pool_timeout: int = Field(
+        default=30,
+        description="Wait timeout for acquiring a connection from the pool",
+    )
+
+    pool_fields: set[str] = Field(
+        default={"max_overflow", "pool_size", "pool_recycle", "pool_timeout"},
+        description="Set of fields used for connection pool configuration",
     )
 
 

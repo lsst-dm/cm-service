@@ -1,18 +1,24 @@
+"""ORM Models for v2 tables and objects."""
+
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Any
 from uuid import NAMESPACE_DNS, UUID, uuid5
 
-from pydantic import AliasChoices, PlainSerializer, PlainValidator, ValidationInfo, model_validator
+from pydantic import AliasChoices, ValidationInfo, model_validator
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.types import PickleType
-from sqlmodel import Column, Enum, Field, SQLModel, String
+from sqlmodel import Column, Enum, Field, MetaData, SQLModel, String
 
 from ..common.enums import ManifestKind, StatusEnum
+from ..common.types import KindField, StatusField
 from ..config import config
 
 _default_campaign_namespace = uuid5(namespace=NAMESPACE_DNS, name="io.lsst.cmservice")
 """Default UUID5 namespace for campaigns"""
+
+metadata: MetaData = MetaData(schema=config.db.table_schema)
+"""SQLModel metadata for table models"""
 
 
 def jsonb_column(name: str, aliases: list[str] | None = None) -> Any:
@@ -39,38 +45,9 @@ def jsonb_column(name: str, aliases: list[str] | None = None) -> Any:
     )
 
 
-# NOTES
-# - model validation is not triggered when table=True
-# - Every object model needs to have three flavors:
-#   1. the declarative model of the object's database table
-#   2. the model of the manifest when creating a new object
-#   3. the model of the manifest when updating an object
-#   4. a response model for APIs related to the object
-
-EnumSerializer = PlainSerializer(
-    lambda x: x.name,
-    return_type="str",
-    when_used="always",
-)
-"""A serializer for enums that produces its name, not the value."""
-
-
-StatusEnumValidator = PlainValidator(lambda x: StatusEnum[x] if isinstance(x, str) else StatusEnum(x))
-"""A validator for the StatusEnum that can parse the enum from either a name
-or a value.
-"""
-
-
-ManifestKindEnumValidator = PlainValidator(
-    lambda x: ManifestKind[x] if isinstance(x, str) else ManifestKind(x)
-)
-"""A validator for the ManifestKindEnum that can parse the enum from a name
-or a value.
-"""
-
-
 class BaseSQLModel(SQLModel):
     __table_args__ = {"schema": config.db.table_schema}
+    metadata = metadata
 
 
 class CampaignBase(BaseSQLModel):
@@ -80,16 +57,12 @@ class CampaignBase(BaseSQLModel):
     name: str
     namespace: UUID
     owner: str | None = Field(default=None)
-    status: Annotated[StatusEnum, StatusEnumValidator, EnumSerializer] | None = Field(
+    status: StatusField | None = Field(
         default=StatusEnum.waiting,
         sa_column=Column("status", Enum(StatusEnum, length=20, native_enum=False, create_constraint=False)),
     )
     metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])
     configuration: dict = jsonb_column("configuration", aliases=["configuration", "data", "spec"])
-
-
-class CampaignModel(CampaignBase):
-    """model used for resource creation."""
 
     @model_validator(mode="before")
     @classmethod
@@ -99,7 +72,7 @@ class CampaignModel(CampaignBase):
         """
         if isinstance(data, dict):
             if "name" not in data:
-                raise ValueError("'name' must be specified.")
+                raise ValueError("<campaign> name missing.")
             if "namespace" not in data:
                 data["namespace"] = _default_campaign_namespace
             if "id" not in data:
@@ -107,55 +80,69 @@ class CampaignModel(CampaignBase):
         return data
 
 
-class Campaign(CampaignModel, table=True):
+class Campaign(CampaignBase, table=True):
     """Model used for database operations involving campaigns_v2 table rows"""
 
     __tablename__: str = "campaigns_v2"  # type: ignore[misc]
 
-    machine: UUID | None
+    machine: UUID | None = Field(foreign_key="machines_v2.id", default=None, ondelete="CASCADE")
+
+
+class CampaignUpdate(BaseSQLModel):
+    """Model representing updatable fields for a PATCH operation on a Campaign
+    using RFC7396.
+    """
+
+    owner: str | None = None
+    status: StatusField | None = None
 
 
 class NodeBase(BaseSQLModel):
     """nodes_v2 db table"""
 
+    def __hash__(self) -> int:
+        """A Node is hashable according to its unique ID, so it can be used in
+        sets and other places hashable types are required.
+        """
+        return self.id.int
+
     id: UUID = Field(primary_key=True)
     name: str
     namespace: UUID
     version: int
-    kind: Annotated[ManifestKind, ManifestKindEnumValidator, EnumSerializer] = Field(
+    kind: KindField = Field(
         default=ManifestKind.other,
         sa_column=Column("kind", Enum(ManifestKind, length=20, native_enum=False, create_constraint=False)),
     )
-    status: Annotated[StatusEnum, StatusEnumValidator, EnumSerializer] | None = Field(
+    status: StatusField = Field(
         default=StatusEnum.waiting,
         sa_column=Column("status", Enum(StatusEnum, length=20, native_enum=False, create_constraint=False)),
     )
     metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])
     configuration: dict = jsonb_column("configuration", aliases=["configuration", "data", "spec"])
 
-
-class NodeModel(NodeBase):
-    """model validating class for Nodes"""
-
     @model_validator(mode="before")
     @classmethod
     def custom_model_validator(cls, data: Any, info: ValidationInfo) -> Any:
+        """Validates the model based on different types of raw inputs,
+        where some default non-optional fields can be auto-populated.
+        """
         if isinstance(data, dict):
-            if "version" not in data:
-                data["version"] = 1
-            if "name" not in data:
-                raise ValueError("'name' must be specified.")
-            if "namespace" not in data:
-                data["namespace"] = _default_campaign_namespace
+            if (node_name := data.get("name")) is None:
+                raise ValueError("<node> name missing.")
+            if (node_namespace := data.get("namespace")) is None:
+                raise ValueError("<node> namespace missing.")
+            if (node_version := data.get("version")) is None:
+                data["version"] = node_version = 1
             if "id" not in data:
-                data["id"] = uuid5(namespace=data["namespace"], name=f"""{data["name"]}.{data["version"]}""")
+                data["id"] = uuid5(namespace=node_namespace, name=f"{node_name}.{node_version}")
         return data
 
 
-class Node(NodeModel, table=True):
+class Node(NodeBase, table=True):
     __tablename__: str = "nodes_v2"  # type: ignore[misc]
 
-    machine: UUID | None
+    machine: UUID | None = Field(foreign_key="machines_v2.id", default=None, ondelete="CASCADE")
 
 
 class EdgeBase(BaseSQLModel):
@@ -170,28 +157,12 @@ class EdgeBase(BaseSQLModel):
     configuration: dict = jsonb_column("configuration", aliases=["configuration", "data", "spec"])
 
 
-class EdgeModel(EdgeBase):
-    """model validating class for Edges"""
-
-    @model_validator(mode="before")
-    @classmethod
-    def custom_model_validator(cls, data: Any, info: ValidationInfo) -> Any:
-        if isinstance(data, dict):
-            if "name" not in data:
-                raise ValueError("'name' must be specified.")
-            if "namespace" not in data:
-                raise ValueError("Edges may only exist in a 'namespace'.")
-            if "id" not in data:
-                data["id"] = uuid5(namespace=data["namespace"], name=data["name"])
-        return data
-
-
-class EdgeResponseModel(EdgeModel):
+class EdgeResponseModel(EdgeBase):
     source: Any
     target: Any
 
 
-class Edge(EdgeModel, table=True):
+class Edge(EdgeBase, table=True):
     __tablename__: str = "edges_v2"  # type: ignore[misc]
 
 
@@ -202,14 +173,20 @@ class MachineBase(BaseSQLModel):
     state: Any | None = Field(sa_column=Column("state", PickleType))
 
 
+class Machine(MachineBase, table=True):
+    """machines_v2 db table."""
+
+    __tablename__: str = "machines_v2"  # type: ignore[misc]
+
+
 class ManifestBase(BaseSQLModel):
     """manifests_v2 db table"""
 
     id: UUID = Field(primary_key=True)
     name: str
     version: int
-    namespace: UUID
-    kind: Annotated[ManifestKind, EnumSerializer] = Field(
+    namespace: UUID = Field(foreign_key="campaigns_v2.id")
+    kind: KindField = Field(
         default=ManifestKind.other,
         sa_column=Column("kind", Enum(ManifestKind, length=20, native_enum=False, create_constraint=False)),
     )
@@ -217,36 +194,18 @@ class ManifestBase(BaseSQLModel):
     spec: dict = jsonb_column("spec", aliases=["spec", "configuration", "data"])
 
 
-class ManifestModel(ManifestBase):
-    """model validating class for Manifests"""
-
-    @model_validator(mode="before")
-    @classmethod
-    def custom_model_validator(cls, data: Any, info: ValidationInfo) -> Any:
-        if isinstance(data, dict):
-            if "version" not in data:
-                data["version"] = 1
-            if "name" not in data:
-                raise ValueError("'name' must be specified.")
-            if "namespace" not in data:
-                data["namespace"] = _default_campaign_namespace
-            if "id" not in data:
-                data["id"] = uuid5(namespace=data["namespace"], name=f"""{data["name"]}.{data["version"]}""")
-        return data
-
-
 class Manifest(ManifestBase, table=True):
     __tablename__: str = "manifests_v2"  # type: ignore[misc]
 
 
-class Task(SQLModel, table=True):
+class Task(BaseSQLModel, table=True):
     """tasks_v2 db table"""
 
     __tablename__: str = "tasks_v2"  # type: ignore[misc]
 
     id: UUID = Field(primary_key=True)
-    namespace: UUID
-    node: UUID
+    namespace: UUID = Field(foreign_key="campaigns_v2.id")
+    node: UUID = Field(foreign_key="nodes_v2.id")
     priority: int
     created_at: datetime
     last_processed_at: datetime
@@ -255,10 +214,10 @@ class Task(SQLModel, table=True):
     site_affinity: list[str] = Field(
         sa_column=Column("site_affinity", MutableList.as_mutable(postgresql.ARRAY(String())))
     )
-    status: Annotated[StatusEnum, StatusEnumValidator, EnumSerializer] = Field(
+    status: StatusField = Field(
         sa_column=Column("status", Enum(StatusEnum, length=20, native_enum=False, create_constraint=False)),
     )
-    previous_status: Annotated[StatusEnum, StatusEnumValidator, EnumSerializer] = Field(
+    previous_status: StatusField = Field(
         sa_column=Column(
             "previous_status", Enum(StatusEnum, length=20, native_enum=False, create_constraint=False)
         ),
@@ -267,11 +226,19 @@ class Task(SQLModel, table=True):
 
 class ActivityLogBase(BaseSQLModel):
     id: UUID = Field(primary_key=True)
-    namespace: UUID
-    node: UUID
+    namespace: UUID = Field(foreign_key="campaigns_v2.id")
+    node: UUID = Field(foreign_key="nodes_v2.id")
     operator: str
-    from_status: Annotated[StatusEnum, EnumSerializer]
-    to_status: Annotated[StatusEnum, EnumSerializer]
+    to_status: StatusField = Field(
+        sa_column=Column(
+            "to_status", Enum(StatusEnum, length=20, native_enum=False, create_constraint=False)
+        ),
+    )
+    from_status: StatusField = Field(
+        sa_column=Column(
+            "from_status", Enum(StatusEnum, length=20, native_enum=False, create_constraint=False)
+        ),
+    )
     detail: dict = jsonb_column("detail")
 
 

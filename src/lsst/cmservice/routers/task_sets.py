@@ -14,14 +14,12 @@ CreateModelClass = models.TaskSetCreate
 UpdateModelClass = models.TaskSetUpdate
 # Specify the associated database table
 DbClass = db.TaskSet
-# Specify the tag in the router documentation
-TAG_STRING = "Task Sets"
 
 
 # Build the router
 router = APIRouter(
     prefix=f"/{DbClass.class_string}",
-    tags=[TAG_STRING],
+    tags=["task sets"],
 )
 
 

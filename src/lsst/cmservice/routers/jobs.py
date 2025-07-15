@@ -24,14 +24,12 @@ CreateModelClass = models.JobCreate
 UpdateModelClass = models.JobUpdate
 # Specify the associated database table
 DbClass = db.Job
-# Specify the tag in the router documentation
-TAG_STRING = "Jobs"
 
 
 # Build the router
 router = APIRouter(
     prefix=f"/{DbClass.class_string}",
-    tags=[TAG_STRING],
+    tags=["jobs"],
 )
 
 

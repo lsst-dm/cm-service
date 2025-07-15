@@ -21,14 +21,12 @@ CreateModelClass = models.ScriptCreate
 UpdateModelClass = models.ScriptUpdate
 # Specify the associated database table
 DbClass = db.Script
-# Specify the tag in the router documentation
-TAG_STRING = "Scripts"
 
 
 # Build the router
 router = APIRouter(
     prefix=f"/{DbClass.class_string}",
-    tags=[TAG_STRING],
+    tags=["scripts"],
 )
 
 
