@@ -95,10 +95,10 @@ async def read_edge_resource(
     response.headers["Source"] = request.url_for("read_node_resource", node_name=edge.source).__str__()
     response.headers["Target"] = request.url_for("read_node_resource", node_name=edge.target).__str__()
     response.headers["Campaign"] = request.url_for(
-        "read_campaign_resource", campaign_name=edge.namespace
+        "read_campaign_resource", campaign_name_or_id=edge.namespace
     ).__str__()
     response.headers["Graph"] = request.url_for(
-        "read_campaign_edge_collection", campaign_name=edge.namespace
+        "read_campaign_edge_collection", campaign_id=edge.namespace
     ).__str__()
     return edge
 
@@ -135,13 +135,12 @@ async def create_edge_resource(
     target_node = manifest.spec.target
 
     # A edge must exist in the namespace of an existing campaign
-    edge_namespace: str = manifest.metadata_.namespace
     try:
-        edge_namespace_uuid: UUID | None = UUID(edge_namespace)
+        edge_namespace_uuid: UUID | None = UUID(manifest.metadata_.namespace)
     except ValueError:
         # get the campaign ID by its name to use as a namespace
         edge_namespace_uuid = (
-            await session.exec(select(Campaign.id).where(Campaign.name == edge_namespace))
+            await session.exec(select(Campaign.id).where(Campaign.name == manifest.metadata_.namespace))
         ).one_or_none()
 
     # it is an error if the provided namespace (campaign) does not exist
@@ -168,7 +167,8 @@ async def create_edge_resource(
         namespace=edge_namespace_uuid,
         source=uuid5(edge_namespace_uuid, source_node),
         target=uuid5(edge_namespace_uuid, target_node),
-        configuration=manifest.spec.model_dump(),
+        metadata_=manifest.metadata_.model_dump(exclude_none=True),
+        configuration=manifest.spec.model_dump(exclude_none=True),
     )
 
     # The merge operation is effectively an upsert should an edge matching the
@@ -180,10 +180,10 @@ async def create_edge_resource(
     response.headers["Source"] = request.url_for("read_node_resource", node_name=edge.source).__str__()
     response.headers["Target"] = request.url_for("read_node_resource", node_name=edge.target).__str__()
     response.headers["Campaign"] = request.url_for(
-        "read_campaign_resource", campaign_name=edge.namespace
+        "read_campaign_resource", campaign_name_or_id=edge.namespace
     ).__str__()
     response.headers["Graph"] = request.url_for(
-        "read_campaign_edge_collection", campaign_name=edge.namespace
+        "read_campaign_edge_collection", campaign_id=edge.namespace
     ).__str__()
     return edge
 

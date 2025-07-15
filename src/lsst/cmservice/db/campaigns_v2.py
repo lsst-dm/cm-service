@@ -1,10 +1,10 @@
 """ORM Models for v2 tables and objects."""
 
-from datetime import datetime
+from collections.abc import MutableSequence
 from typing import Any
 from uuid import NAMESPACE_DNS, UUID, uuid4, uuid5
 
-from pydantic import AliasChoices, ValidationInfo, model_validator
+from pydantic import AliasChoices, AwareDatetime, ValidationInfo, model_validator
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.types import PickleType
@@ -97,6 +97,20 @@ class CampaignUpdate(BaseSQLModel):
 
     owner: str | None = None
     status: StatusField | None = None
+
+
+class CampaignSummary(CampaignBase):
+    """Model for the response of a Campaign Summary route."""
+
+    node_summary: MutableSequence["NodeStatusSummary"]
+
+
+class NodeStatusSummary(BaseSQLModel):
+    """Model for a Node Status Summary."""
+
+    status: StatusField = Field(description="A state name")
+    count: int = Field(description="Count of nodes in this state")
+    mtime: AwareDatetime | None = Field(description="The most recent update time for nodes in this state")
 
 
 class NodeBase(BaseSQLModel):
@@ -212,17 +226,17 @@ class Task(BaseSQLModel, table=True):
     namespace: UUID = Field(foreign_key="campaigns_v2.id", description="The ID of a Campaign")
     node: UUID = Field(foreign_key="nodes_v2.id", description="The ID of the target node")
     priority: int | None = Field(default=None)
-    created_at: datetime = Field(
+    created_at: AwareDatetime = Field(
         description="The `datetime` (UTC) at which this Task was first added to the queue",
         default_factory=now_utc,
         sa_column=Column(DateTime(timezone=True)),
     )
-    submitted_at: datetime | None = Field(
+    submitted_at: AwareDatetime | None = Field(
         description="The `datetime` (UTC) at which this Task was first submitted as work to the event loop",
         default=None,
         sa_column=Column(DateTime(timezone=True)),
     )
-    finished_at: datetime | None = Field(
+    finished_at: AwareDatetime | None = Field(
         description=(
             "The `datetime` (UTC) at which this Task successfully finalized. "
             "A Task whose `finished_at` is not `None` is tombstoned and is subject to deletion."
@@ -251,12 +265,12 @@ class ActivityLogBase(BaseSQLModel):
     namespace: UUID = Field(foreign_key="campaigns_v2.id", description="The ID of a Campaign")
     node: UUID | None = Field(default=None, foreign_key="nodes_v2.id", description="The ID of a Node")
     operator: str = Field(description="The name of the operator or pilot who triggered the activity")
-    created_at: datetime = Field(
+    created_at: AwareDatetime = Field(
         description="The `datetime` in UTC at which this log entry was created.",
         default_factory=now_utc,
         sa_column=Column(DateTime(timezone=True)),
     )
-    finished_at: datetime | None = Field(
+    finished_at: AwareDatetime | None = Field(
         description="The `datetime` in UTC at which this log entry was finalized.",
         default=None,
         sa_column=Column(DateTime(timezone=True), nullable=True),
