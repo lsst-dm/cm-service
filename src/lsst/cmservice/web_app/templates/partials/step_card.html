@@ -1,12 +1,10 @@
 <div class="step-card overflow-hidden px-4 py-5 shadow sm:p-6 relative h-300 mb-3" xmlns="http://www.w3.org/1999/html">
     <div class="flex items-center">
-        <a class="text-large font-bold hover:text-gray-500" href="{{ url_for('get_step', campaign_id=campaign.id, step_id=step.id) }}">{{step.name}}</a>
+        <a class="text-large font-bold hover:text-gray-500" href="{{ url_for('get_step', campaign_id=campaign.id, step_id=step.id) }}">{{step.fullname.step}}</a>
     </div>
+    <div class="text-sm font-normal pb-3 uppercase">{{step.status}} - {{step.org_status.name}}</div>
     <a href="{{ url_for('get_step', campaign_id=campaign.id, step_id=step.id) }}">
         <div class="flex items-center">
-            <span class="text-sm font-normal">{{step.fullname}}</span>
-        </div>
-        <div class="flex items-center pt-4">
             <span class="text-xs font-normal">{{ step.no_groups}} Group(s)</span>
         </div>
         {% if step.no_groups != 0 %}

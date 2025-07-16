@@ -46,7 +46,7 @@ async def get_script_by_id(
 
         if script is not None:
             fullname = script.fullname.split("/")
-            for i in range(2, len(fullname) - 1):
+            for i in range(2, len(fullname)):
                 match i:
                     case 2:
                         if step_id is None:
@@ -93,6 +93,7 @@ async def get_script_by_id(
                 "fullname": script.fullname,
                 "superseded": script.superseded,
                 "status": map_status(script.status),
+                "org_status": {"name": script.status.name, "value": script.status.value},
                 "data": script.data,
                 "collections": filtered_collections,
                 "child_config": script.child_config,

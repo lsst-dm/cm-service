@@ -52,6 +52,7 @@ async def test_get_job_by_id(engine: AsyncEngine) -> None:
             },
             "products": [],
             "level": LevelEnum.job.value,
+            "org_status": {"name": "waiting", "value": 0},
         }
 
         # delete everything we just made in the session

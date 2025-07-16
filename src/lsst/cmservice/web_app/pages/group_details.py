@@ -65,6 +65,7 @@ async def get_group_by_id(
                 "fullname": group.fullname,
                 "superseded": group.superseded,
                 "status": map_status(group.status),
+                "org_status": {"name": group.status.name, "value": group.status.value},
                 "data": group.data,
                 "collections": {key: collections[key] for key in collections if key.startswith("group_")},
                 "child_config": group.child_config,
@@ -85,7 +86,7 @@ async def get_group_jobs(session: async_scoped_session, group: Group) -> list[di
             "id": job.id,
             "name": job.name,
             "superseded": job.superseded,
-            "status": map_status(job.status),
+            "status": f"{map_status(job.status)} - {job.status.name.upper()}",
             "data": job.data,
             "submit_status": "Submitted" if job.wms_job_id is not None else "",
             "submit_url": job.wms_job_id

@@ -7,6 +7,7 @@
 {% include "partials/edit_collections_modal.html" %}
 {% include "partials/edit_child_config_modal.html" %}
 {% include "partials/edit_data_dict_modal.html" %}
+{% set expand_collections = False %}
 <script>
     window.addEventListener("DOMContentLoaded", () => {
         const errorModal = document.querySelector("#errorModal");
@@ -15,9 +16,10 @@
         const errorMessage = document.querySelector("[error-message]")
 
         document.querySelector("#editDataBtn").addEventListener("click", () => {
-            let campaign_status = "{{campaign.status}}";
+            let campaign_status = "{{campaign.org_status.value}}";
             // TODO: revisit status mapping between frontend and backend
-            if(campaign_status !== "COMPLETE" && campaign_status !== "IN_PROGRESS") {
+            // If status is less than StatusEnum.prepared
+            if(campaign_status < 2) {
                 document.querySelector("#edit-data-dict-modal").showModal();
             } else {
                 errorMessage.innerText = "Cannot update data for a running campaign!";
@@ -26,9 +28,10 @@
         });
 
         document.querySelector("#editCollectionsBtn").addEventListener("click", () => {
-            let campaign_status = "{{campaign.status}}";
+            let campaign_status = "{{campaign.org_status.value}}";
             // TODO: revisit status mapping between frontend and backend
-            if(campaign_status !== "COMPLETE" && campaign_status !== "IN_PROGRESS") {
+            // If status is less than StatusEnum.prepared
+            if(campaign_status < 2) {
                 document.querySelector("#edit-collection-modal").showModal();
             } else {
                 errorMessage.innerText = "Cannot update collections for a running campaign!";
@@ -37,9 +40,10 @@
         });
 
         document.querySelector("#editChildConfigBtn").addEventListener("click", () => {
-            let campaign_status = "{{campaign.status}}";
+            let campaign_status = "{{campaign.org_status.value}}";
             // TODO: revisit status mapping between frontend and backend
-            if(campaign_status !== "COMPLETE" && campaign_status !== "IN_PROGRESS") {
+            // If status is less than StatusEnum.prepared
+            if(campaign_status < 2) {
                 document.querySelector("#edit-child-config-modal").showModal();
             } else {
                 errorMessage.innerText = "Cannot update child config for a running campaign!";
@@ -84,51 +88,21 @@
   </ol>
 </nav>
 <div class="w-full">
-    <div class="overflow-hidden px-4 py-5 sm:p-6 relative w-1/2">
+    <div class="overflow-hidden px-2 py-5 sm:p-6 relative w-1/2">
+        <div class="flex">
+            <span class="text-2xl font-bold">{{campaign.name}}</span>
+        </div>
         <div class="flex items-center">
-            <span class="text-2xl font-bold">{{campaign.fullname}}</span>
+            <span class="text-sm font-medium uppercase">{{campaign.org_status.name}}</span>
         </div>
-        <div class="block items-center pt-6">
-            <span class="text-sm font-bold align-top">Collections</span>
-            <button id="editCollectionsBtn">
-                <span class="inline-flex h-5 w-5 hover:text-teal-600">
-                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
-                      <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
-                      <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" />
-                    </svg>
-                </span>
-            </button>
-            <div id="collections">
-                {% include "partials/collections.html" %}
-            </div>
+        <div class="block pt-2">
+            {% include "partials/collections_collapsible.html" %}
         </div>
-        <div class="block items-center pt-6">
-            <span class="text-sm font-bold align-top">Data</span>
-            <button id="editDataBtn">
-                <span class="inline-flex h-5 w-5 hover:text-teal-600">
-                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
-                      <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
-                      <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" />
-                    </svg>
-                </span>
-            </button>
-            <div id="data-dict" hx-swap-oob="outerHTML:#data-dict">
-                {% include "partials/data_dict.html" %}
-            </div>
+        <div class="block pt-2">
+            {% include "partials/data_collapsible.html" %}
         </div>
-        <div class="block items-center pt-6">
-            <span class="text-sm font-bold align-top">Child Config</span>
-            <button id="editChildConfigBtn">
-                <span class="inline-flex h-5 w-5 hover:text-teal-600">
-                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
-                      <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
-                      <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" />
-                    </svg>
-                </span>
-            </button>
-            <div id="child-config">
-                {% include "partials/child_config.html" %}
-            </div>
+        <div class="block pt-2">
+            {% include "partials/child_config_collapsible.html" %}
         </div>
     </div>
 </div>
