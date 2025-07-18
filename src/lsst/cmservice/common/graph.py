@@ -1,9 +1,12 @@
 from collections.abc import Iterable, Mapping, MutableSet, Sequence
-from typing import Literal
-from uuid import UUID
+from typing import TYPE_CHECKING, Literal
+from uuid import UUID, uuid4, uuid5
 
 import networkx as nx
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
+from ..common.timestamp import element_time
 from ..db import Script, ScriptDependency, Step, StepDependency
 from ..db.campaigns_v2 import Edge, Node
 from ..parsing.string import parse_element_fullname
@@ -192,3 +195,101 @@ def processable_graph_nodes(g: nx.DiGraph) -> Iterable[Node]:
 
     # the inspection should stop when there are no more nodes to check
     yield from processable_nodes
+
+
+async def insert_node_to_graph(
+    node_0: UUID,
+    node_1: UUID,
+    *,
+    namespace: UUID,
+    session: AsyncSession | None = None,
+    commit: bool = True,
+) -> None:
+    """Apply an insert operation to a graph by adding a new node_1 immediately
+    adjacent to node_0 where all downstream node_0 edges are moved to node_1.
+
+    ```
+    A --> B  becomes  A --> X --> B
+
+    A --> B  becomes A --> X --> B
+      `-> C                  `-> C
+    ```
+    """
+    if TYPE_CHECKING:
+        assert session is not None
+
+    s = select(Edge).where(Edge.source == node_0)
+    adjacent_edges = (await session.exec(s)).all()
+
+    # Move all the adjacent edges from node_0 to node_1
+    for edge in adjacent_edges:
+        edge.source = node_1
+        edge.metadata_["mtime"] = element_time()
+
+    # Make node_0 and node_1 adjacent
+    new_adjacency_name = uuid4()
+    new_adjacency = Edge(
+        id=uuid5(namespace, new_adjacency_name.bytes),
+        name=new_adjacency_name.hex,
+        namespace=namespace,
+        source=node_0,
+        target=node_1,
+    )
+    session.add(new_adjacency)
+    if commit:
+        await session.commit()
+
+
+async def append_node_to_graph(
+    node_0: UUID,
+    node_1: UUID,
+    *,
+    namespace: UUID,
+    session: AsyncSession | None = None,
+    commit: bool = True,
+) -> None:
+    """Apply an append operation to a graph by adding a new node_1 parallel
+    to an existing node_0 where all adjacencies are copied to node_1.
+
+    ```
+    A --> B --> C  becomes  A --> B --> C
+                              `-> X -/
+    ```
+    """
+    if TYPE_CHECKING:
+        assert session is not None
+
+    # create new "downstream" edges with node_1
+    s = select(Edge).where(Edge.source == node_0)
+    downstream_edges = (await session.exec(s)).all()
+
+    # create new "upstream" edges with node_1
+    s = select(Edge).where(Edge.target == node_0)
+    upstream_edges = (await session.exec(s)).all()
+
+    for edge in downstream_edges:
+        session.expunge(edge)
+        new_adjacency_name = uuid4()
+        new_adjacency = Edge(
+            id=uuid5(namespace, new_adjacency_name.bytes),
+            name=new_adjacency_name.hex,
+            namespace=namespace,
+            source=node_1,
+            target=edge.target,
+        )
+        session.add(new_adjacency)
+
+    for edge in upstream_edges:
+        session.expunge(edge)
+        new_adjacency_name = uuid4()
+        new_adjacency = Edge(
+            id=uuid5(namespace, new_adjacency_name.bytes),
+            name=new_adjacency_name.hex,
+            namespace=namespace,
+            source=edge.source,
+            target=node_1,
+        )
+        session.add(new_adjacency)
+
+    if commit:
+        await session.commit()

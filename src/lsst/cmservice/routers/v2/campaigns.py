@@ -5,20 +5,32 @@ representing campaign objects within CM-Service.
 """
 
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, Literal, cast
 from uuid import UUID, uuid4, uuid5
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, Response
 from pydantic import UUID5
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.dialects.postgresql import INTEGER
+from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.orm import aliased
-from sqlmodel import col, select
+from sqlmodel import cast as sqlcast
+from sqlmodel import col, distinct, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from ...common.graph import graph_from_edge_list_v2, graph_to_dict
+from ...common.enums import DEFAULT_NAMESPACE, StatusEnum
+from ...common.graph import append_node_to_graph, graph_from_edge_list_v2, graph_to_dict, insert_node_to_graph
 from ...common.logging import LOGGER
 from ...common.timestamp import element_time
-from ...db.campaigns_v2 import ActivityLog, Campaign, CampaignUpdate, Edge, Manifest, Node
+from ...db.campaigns_v2 import (
+    ActivityLog,
+    Campaign,
+    CampaignSummary,
+    CampaignUpdate,
+    Edge,
+    Manifest,
+    Node,
+    NodeStatusSummary,
+)
 from ...db.manifests_v2 import CampaignManifest
 from ...db.session import db_session_dependency
 from ...machines.tasks import change_campaign_state
@@ -51,6 +63,7 @@ async def read_campaign_collection(
     try:
         statement = (
             select(Campaign)
+            .where(Campaign.id != DEFAULT_NAMESPACE)
             .order_by(Campaign.metadata_["crtime"].desc().nulls_last())
             .offset(offset)
             .limit(limit)
@@ -74,16 +87,14 @@ async def read_campaign_collection(
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
-@router.get(
-    "/{campaign_name_or_id}",
-    summary="Get campaign detail",
-)
+@router.get("/{campaign_name_or_id}", response_model=Campaign, summary="Get campaign detail")
+@router.head("/{campaign_name_or_id}", response_model=None, summary="Get campaign headers")
 async def read_campaign_resource(
     request: Request,
     response: Response,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     campaign_name_or_id: str,
-) -> Campaign:
+) -> Campaign | None:
     """Fetch a single campaign from the database given either the campaign id
     or its name.
     """
@@ -97,22 +108,106 @@ async def read_campaign_resource(
 
     campaign = (await session.exec(s)).one_or_none()
     # set the response headers
-    if campaign is not None:
-        response.headers["Self"] = str(
-            request.url_for("read_campaign_resource", campaign_name_or_id=campaign.id)
-        )
-        response.headers["Nodes"] = str(
-            request.url_for("read_campaign_node_collection", campaign_id=campaign.id)
-        )
-        response.headers["Edges"] = str(
-            request.url_for("read_campaign_edge_collection", campaign_id=campaign.id)
-        )
-        response.headers["Manifests"] = str(
-            request.url_for("read_campaign_manifest_collection", campaign_id=campaign.id)
-        )
-        return campaign
-    else:
+    if campaign is None:
         raise HTTPException(status_code=404)
+
+    response.headers["Self"] = str(request.url_for("read_campaign_resource", campaign_name_or_id=campaign.id))
+    response.headers["Nodes"] = str(request.url_for("read_campaign_node_collection", campaign_id=campaign.id))
+    response.headers["Edges"] = str(request.url_for("read_campaign_edge_collection", campaign_id=campaign.id))
+    response.headers["Manifests"] = str(
+        request.url_for("read_campaign_manifest_collection", campaign_id=campaign.id)
+    )
+    response.headers["Graph"] = str(request.url_for("read_campaign_graph", campaign_name=campaign.id))
+    response.headers["Logs"] = str(request.url_for("read_campaign_activity_log", campaign_name=campaign.id))
+    if request.method == "HEAD":
+        return None
+    else:
+        return campaign
+
+
+@router.get(
+    "/{campaign_id}/summary",
+    summary="Get campaign summary",
+)
+async def read_campaign_summary(
+    request: Request,
+    response: Response,
+    session: Annotated[AsyncSession, Depends(db_session_dependency)],
+    campaign_id: UUID5,
+) -> CampaignSummary:
+    """Read a campaign summary resource, which consists of a subset of campaign
+    information together with a count of active (i.e., in-graph) campaign nodes
+    by status.
+    """
+    # FIXME this might be more effective as separate queries, one for the
+    # campaign and a follow-up for the nodes / logs /etc. The single-query
+    # join approach would be better served by a data structure that supports
+    # a pivot operation, either with "crosstab" in the query or with a pandas
+    # dataframe with the result. The approach used here, where the raw result
+    # set is iterated in a way to "correctly" construct the response model,
+    # is a bit contrived.
+
+    # support a "summary" view that produces the count of nodes in each state
+    # select
+    #  cm.id, cm.name, cm.owner, cm.metadata, cm.status,
+    #  nd.status as node_status,
+    #  count(distinct nd.id) as node_count
+    # from campaigns_v2 cm
+    # join edges_v2 ed on cm.id=ed.namespace
+    # join nodes_v2 nd on ed.namespace=nd.namespace
+    # where cm.id = {campaign_id}
+    # group by cm.id, nd.status
+    s = (
+        select(  # type: ignore[call-overload]
+            col(Campaign.id),
+            col(Campaign.name),
+            col(Campaign.owner),
+            col(Campaign.metadata_),
+            col(Campaign.status),
+            col(Node.status).label("node_status"),
+            func.count(distinct(col(Edge.id))).label("edge_count"),
+            func.count(distinct(col(Node.id))).label("node_count"),
+            func.max(sqlcast(Node.metadata_["mtime"], INTEGER)).label("node_mtime"),
+        )
+        .outerjoin(Edge, col(Campaign.id) == Edge.namespace)
+        .outerjoin(Node, col(Edge.namespace) == Node.namespace)
+        .where(Campaign.id == campaign_id)
+        .group_by(col(Campaign.id), col(Node.status))
+    )
+    r = await session.execute(s)
+    try:
+        first = next(r)
+    except StopIteration:
+        raise HTTPException(status_code=404, detail="Campaign not found.")
+
+    campaign_summary = CampaignSummary(
+        **{
+            f: first._mapping[f]
+            for f in cast(str, filter(lambda x: x in Campaign.model_fields, first._mapping))
+        },
+    )
+
+    # The summary will only report Node Status Summary for Campaign Nodes that
+    # are part of the Campaign Graph, so if there are no edges in the campaign,
+    # there will be none.
+    if first._mapping["edge_count"] > 0:
+        campaign_summary.node_summary.append(
+            NodeStatusSummary(
+                status=first._mapping["node_status"],
+                count=first._mapping["node_count"],
+                mtime=first._mapping["node_mtime"],
+            )
+        )
+
+    for row in r:
+        campaign_summary.node_summary.append(
+            NodeStatusSummary(
+                status=row._mapping["node_status"],
+                count=row._mapping["node_count"],
+                mtime=row._mapping["node_mtime"],
+            )
+        )
+    return campaign_summary
 
 
 @router.patch(
@@ -205,6 +300,7 @@ async def update_campaign_resource(
     return campaign
 
 
+# TODO head method and include a node count header
 @router.get(
     "/{campaign_id}/nodes",
     summary="Get campaign Nodes",
@@ -216,6 +312,7 @@ async def read_campaign_node_collection(
     campaign_id: UUID5,
     limit: Annotated[int, Query(le=100)] = 10,
     offset: Annotated[int, Query()] = 0,
+    name: Annotated[str | None, Query()] = None,
 ) -> Sequence[Node]:
     """A paginated API returning a list of all Nodes in the namespace of a
     single Campaign.
@@ -224,10 +321,14 @@ async def read_campaign_node_collection(
     statement = (
         select(Node)
         .where(Node.namespace == campaign_id)
+        .order_by(col(Node.version).desc())
         .order_by(Node.metadata_["crtime"].asc().nulls_last())
         .offset(offset)
         .limit(limit)
     )
+
+    if name is not None:
+        statement = statement.where(col(Node.name) == name)
 
     nodes = await session.exec(statement)
     response.headers["Next"] = str(
@@ -259,6 +360,7 @@ async def read_campaign_manifest_collection(
     statement = (
         select(Manifest)
         .where(Manifest.namespace == campaign_id)
+        .order_by(col(Manifest.version).desc())
         .order_by(Manifest.metadata_["crtime"].asc().nulls_last())
         .offset(offset)
         .limit(limit)
@@ -482,3 +584,156 @@ async def read_campaign_activity_log(
     logs = (await session.exec(statement)).all()
 
     return logs
+
+
+@router.put(
+    "/{campaign_id}/graph/nodes/{node_0_id}",
+    status_code=204,
+    summary="Replace Node[0] with Node[1] in a Campaign Graph",
+)
+async def replace_node_in_graph(
+    request: Request,
+    response: Response,
+    session: Annotated[AsyncSession, Depends(db_session_dependency)],
+    campaign_id: UUID5,
+    node_0_id: UUID5,
+    node_1_id: Annotated[UUID5, Query(validation_alias="node_1_id", alias="with-node")],
+) -> None:
+    """Replaces Node[0] in Campaign graph with provided Node[1]. The in and out
+    edges for Node[0] are replaced with the same edges for Node[1]. The
+    campaign must be in a "waiting" state for this operation to proceed, else
+    a 409/Conflict is raised. A 404/Not Found is returned if any of the
+    provided IDs are not found.
+
+    This API is called with Node[0] as the target resource of the operation in
+    the path and the Node[1] as a query parameter, e.g.,
+    "http://.../graph/nodes/<node_0_id>?with-node=<node_1_id>"
+    """
+    try:
+        campaign = await session.get_one(Campaign, campaign_id)
+        node_0 = await session.get_one(Node, node_0_id)
+        node_1 = await session.get_one(Node, node_1_id)
+    except NoResultFound:
+        raise HTTPException(status_code=404)
+
+    # Ensure the campaign is in a receptive state and that the subject nodes
+    # are in its namespace.
+    try:
+        assert campaign.status in [StatusEnum.waiting, StatusEnum.paused]
+    except AssertionError:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Graph for Campaign in status {campaign.status.name} cannot be modified.",
+        )
+    try:
+        assert node_0.namespace == campaign.id
+        assert node_1.namespace == campaign.id
+    except AssertionError:
+        raise HTTPException(
+            status_code=409,
+            detail="Alien nodes cannot be added to a campaign graph.",
+        )
+
+    # update edges that involve node_0 as a source
+    s = select(Edge).where(Edge.source == node_0.id)
+    edges = (await session.exec(s)).all()
+
+    # Bail out if the Node isn't actually in the campaign graph. This could be
+    # a no-op but we want to tell the caller they've made an error.
+    if not len(edges):
+        raise HTTPException(status_code=404, detail="Node_0 not in graph.")
+
+    for edge in edges:
+        edge.source = node_1.id
+        edge.metadata_["mtime"] = element_time()
+
+    # update edges that involve node_0 as a target
+    s = select(Edge).where(Edge.target == node_0.id)
+    edges = (await session.exec(s)).all()
+
+    for edge in edges:
+        edge.target = node_1.id
+        edge.metadata_["mtime"] = element_time()
+
+    await session.commit()
+
+    response.headers["Edges"] = str(request.url_for("read_campaign_edge_collection", campaign_id=campaign.id))
+    response.headers["Graph"] = str(request.url_for("read_campaign_graph", campaign_name=campaign.id))
+    return None
+
+
+@router.patch(
+    "/{campaign_id}/graph/nodes/{node_0_id}",
+    status_code=204,
+    summary="Change Node[0] in a Campaign Graph by inserting or appending Node[1]",
+)
+async def update_node_in_graph(
+    request: Request,
+    response: Response,
+    session: Annotated[AsyncSession, Depends(db_session_dependency)],
+    background_tasks: BackgroundTasks,
+    campaign_id: UUID5,
+    node_0_id: UUID5,
+    node_1_id: Annotated[UUID5, Query(validation_alias="node_1_id", alias="add-node")],
+    operation: Annotated[Literal["insert", "append"], Query()],
+) -> None:
+    """Updates Node[0] in a Campaign graph in terms of its relationship to a
+    new Node[1]. This update can be an INSERT or an APPEND operation.
+
+    In an INSERT operation, Node[1] is added to the graph immediately adjacent
+    to Node[0]. All of Node[0]'s (outbound) edges are moved to Node[1] and
+    an edge is created between Node[0] and Node[1].
+
+    In an APPEND operation, Node[1] is added to the graph parallel to Node[0],
+    preserving Node[0] but duplicating all its adjacencies as new edges for
+    Node[1].
+
+    The campaign must be in a mutable state and all Nodes must be in the same
+    campaign namespace.
+    """
+    try:
+        campaign = await session.get_one(Campaign, campaign_id)
+        node_0 = await session.get_one(Node, node_0_id)
+        node_1 = await session.get_one(Node, node_1_id)
+    except NoResultFound:
+        raise HTTPException(status_code=404)
+
+    # Ensure the campaign is in a receptive state and that the subject nodes
+    # are in its namespace.
+    try:
+        assert campaign.status in [StatusEnum.waiting, StatusEnum.paused]
+    except AssertionError:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Graph for Campaign in status {campaign.status.name} cannot be modified.",
+        )
+    try:
+        assert node_0.namespace == campaign.id
+        assert node_1.namespace == campaign.id
+    except AssertionError:
+        raise HTTPException(
+            status_code=409,
+            detail="Alien nodes cannot be added to a campaign graph.",
+        )
+
+    # the append and insert operations are performed in library functions,
+    # since this is reusable functionality that the node state machines will
+    # also need to use for group-splitting operations.
+    # TODO delegate to background task
+    match operation:
+        case "append":
+            await append_node_to_graph(node_0_id, node_1_id, namespace=campaign_id, session=session)
+        case "insert":
+            await insert_node_to_graph(node_0_id, node_1_id, namespace=campaign_id, session=session)
+        case _:
+            # not possible due to pydantic validation
+            raise HTTPException(422)
+
+    response.headers["Edges"] = str(request.url_for("read_campaign_edge_collection", campaign_id=campaign.id))
+    response.headers["Graph"] = str(request.url_for("read_campaign_graph", campaign_name=campaign.id))
+    return None
+
+
+# TODO additional graph-node operations?
+# - delete "/{campaign_id}/graph/nodes/{node_id}": remove a node from a graph,
+#   self-healing by applying the node's predecessors to its adjacencies.
