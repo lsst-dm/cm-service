@@ -1,5 +1,9 @@
 """Tests graph operations using v2 objects"""
 
+import random
+from urllib.parse import urlparse
+from uuid import UUID
+
 import networkx as nx
 import pytest
 from httpx import AsyncClient
@@ -128,3 +132,125 @@ async def test_campaign_graph_route(aclient: AsyncClient, test_campaign: str) ->
     # Test reconstruction of the serialized graph
     graph = nx.node_link_graph(x.json(), edges="edges")
     assert validate_graph(graph)
+
+
+async def test_replace_node_in_graph(aclient: AsyncClient, test_campaign: str) -> None:
+    """Test the manipulation of a campaign graph by changing a node in-place"""
+    campaign_id = urlparse(url=test_campaign).path.split("/")[-2:][0]
+
+    # pick a random node from the campaign
+    r = await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}/nodes")
+    node_0_id = random.choice([n["id"] for n in r.json() if n["name"] not in ("START", "END")])
+
+    # create a new Node in the campaign
+    r = await aclient.post(
+        "/cm-service/v2/nodes",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "node",
+            "metadata": {"name": "node_1", "namespace": campaign_id},
+            "spec": {},
+        },
+    )
+    assert r.is_success
+    node_1_id = r.json()["id"]
+
+    # replace an existing node in the graph with the new one
+    r = await aclient.put(
+        f"/cm-service/v2/campaigns/{campaign_id}/graph/nodes/{node_0_id}?with-node={node_1_id}",
+    )
+    assert r.is_success
+
+    # validate the old node is no longer in the graph but the new one is
+    r = await aclient.get(test_campaign.replace("/edges", "/graph"))
+    graph = r.json()
+    f1 = filter(lambda n: 1 if n["uuid"] == node_0_id else 0, graph["nodes"])
+    f2 = filter(lambda n: 1 if n["uuid"] == node_1_id else 0, graph["nodes"])
+    assert not len(list(f1))
+    assert len(list(f2))
+
+
+async def test_insert_node_in_graph(
+    aclient: AsyncClient, session: AnyAsyncSession, test_campaign: str
+) -> None:
+    """Tests the manipulation of a campaign graph by inserting a new node."""
+    campaign_id = urlparse(url=test_campaign).path.split("/")[-2:][0]
+
+    # pick a random node from the campaign
+    r = await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}/nodes")
+    campaign_nodes = r.json()
+    node_0_id = random.choice([n["id"] for n in campaign_nodes if n["name"] not in ("START", "END")])
+
+    # create a new Node in the campaign
+    r = await aclient.post(
+        "/cm-service/v2/nodes",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "node",
+            "metadata": {"name": "node_1", "namespace": campaign_id},
+            "spec": {},
+        },
+    )
+    assert r.is_success
+    node_1_id = r.json()["id"]
+
+    # INSERT the new node in the campaign downstream of Node_0
+    r = await aclient.patch(
+        f"/cm-service/v2/campaigns/{campaign_id}/graph/nodes/{node_0_id}?add-node={node_1_id}&operation=insert",
+    )
+    assert r.is_success
+
+    # read and construct the updated campaign graph:
+    edge_list = [Edge.model_validate(edge) for edge in (await aclient.get(test_campaign)).json()]
+    graph = await graph_from_edge_list_v2(edge_list, session)
+
+    # validate that node_0 is now adjacent only to node_1
+    node_0 = UUID(node_0_id)
+    node_1 = UUID(node_1_id)
+    assert graph.has_node(node_0)
+    assert graph.has_node(node_1)
+    assert list(graph.successors(node_0)) == [node_1]
+
+
+async def test_append_node_in_graph(
+    aclient: AsyncClient, session: AnyAsyncSession, test_campaign: str
+) -> None:
+    """Tests the manipulation of a campaign graph by appending a new node."""
+    campaign_id = urlparse(url=test_campaign).path.split("/")[-2:][0]
+
+    # pick a random node from the campaign
+    r = await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}/nodes")
+    campaign_nodes = r.json()
+    node_0_id = random.choice([n["id"] for n in campaign_nodes if n["name"] not in ("START", "END")])
+
+    # create a new Node in the campaign
+    r = await aclient.post(
+        "/cm-service/v2/nodes",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "node",
+            "metadata": {"name": "node_1", "namespace": campaign_id},
+            "spec": {},
+        },
+    )
+    assert r.is_success
+    node_1_id = r.json()["id"]
+
+    # INSERT the new node in the campaign downstream of Node_0
+    r = await aclient.patch(
+        f"/cm-service/v2/campaigns/{campaign_id}/graph/nodes/{node_0_id}?add-node={node_1_id}&operation=append",
+    )
+    assert r.is_success
+
+    # read and construct the updated campaign graph:
+    edge_list = [Edge.model_validate(edge) for edge in (await aclient.get(test_campaign)).json()]
+    graph = await graph_from_edge_list_v2(edge_list, session)
+
+    # validate that node_1 is now parallel to node_0
+    node_0 = UUID(node_0_id)
+    node_1 = UUID(node_1_id)
+    assert graph.has_node(node_0)
+    assert graph.has_node(node_1)
+
+    assert list(graph.successors(node_0)) == list(graph.successors(node_1))
+    assert list(graph.predecessors(node_0)) == list(graph.predecessors(node_1))

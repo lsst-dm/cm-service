@@ -17,6 +17,7 @@ from pydantic import (
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from .common.enums import ScriptMethodEnum, StatusEnum, WmsComputeSite
+from .common.flags import EnabledFeatures
 
 __all__ = ["Configuration", "config"]
 
@@ -634,6 +635,7 @@ class Configuration(BaseSettings):
     slurm: SlurmConfiguration = SlurmConfiguration()
     panda: PandaConfiguration = PandaConfiguration()
     notifications: NotificationConfiguration = NotificationConfiguration()
+    features: EnabledFeatures = EnabledFeatures()
 
     # Root fields
     script_handler: ScriptMethodEnum = Field(

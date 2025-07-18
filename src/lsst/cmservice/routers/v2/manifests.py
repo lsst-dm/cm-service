@@ -65,17 +65,15 @@ async def read_manifest_collection(
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
-@router.get(
-    "/{manifest_name_or_id}",
-    summary="Get manifest detail",
-)
+@router.get("/{manifest_name_or_id}", response_model=Manifest, summary="Get manifest detail")
+@router.head("/{manifest_name_or_id}", response_model=None, summary="Get manifest headers")
 async def read_single_resource(
     request: Request,
     response: Response,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     manifest_name_or_id: str,
     manifest_version: Annotated[int | None, Query(ge=0, alias="version")] = None,
-) -> Manifest:
+) -> Manifest | None:
     """Fetch a single manifest from the database given either an id or name.
 
     When available, only the most recent version of the Manifest is returned,
@@ -95,13 +93,15 @@ async def read_single_resource(
         s = s.where(Manifest.version == manifest_version)
 
     manifest = (await session.exec(s)).one_or_none()
-    if manifest is not None:
-        response.headers["Self"] = str(
-            request.url_for("read_single_resource", manifest_name_or_id=manifest.id)
-        )
-        return manifest
-    else:
+
+    if manifest is None:
         raise HTTPException(status_code=404)
+
+    response.headers["Self"] = str(request.url_for("read_single_resource", manifest_name_or_id=manifest.id))
+    if request.method == "HEAD":
+        return None
+    else:
+        return manifest
 
 
 @router.post(
