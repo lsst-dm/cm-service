@@ -102,7 +102,7 @@ class CampaignUpdate(BaseSQLModel):
 class CampaignSummary(CampaignBase):
     """Model for the response of a Campaign Summary route."""
 
-    node_summary: MutableSequence["NodeStatusSummary"]
+    node_summary: MutableSequence["NodeStatusSummary"] = Field(default_factory=list)
 
 
 class NodeStatusSummary(BaseSQLModel):

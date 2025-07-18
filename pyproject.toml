@@ -45,6 +45,7 @@ dependencies = [
     "networkx>=3.5",
     "sqlmodel>=0.0.24",
     "pytransitions>=0.9.2",
+    "deepdiff>=8.5.0",
 ]
 
 [dependency-groups]
