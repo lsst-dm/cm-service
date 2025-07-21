@@ -244,9 +244,9 @@ async def update_node_resource(
     new_manifest["id"] = uuid5(new_manifest["namespace"], f"{new_manifest['name']}.{new_manifest['version']}")
 
     if use_rfc6902:
-        if TYPE_CHECKING:
-            assert type(patch_data) is Sequence[JSONPatch]
         for patch in patch_data:
+            if TYPE_CHECKING:
+                assert isinstance(patch, JSONPatch)
             try:
                 apply_json_patch(patch, new_manifest)
             except JSONPatchError as e:
