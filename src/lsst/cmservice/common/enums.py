@@ -318,5 +318,10 @@ class ManifestKind(enum.Enum):
     group = enum.auto()
     job = enum.auto()
     script = enum.auto()
+    # Library Kinds
+    lsst = enum.auto()
+    butler = enum.auto()
+    wms = enum.auto()
+    site = enum.auto()
     # Fallback kind
     other = enum.auto()

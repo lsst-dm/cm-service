@@ -8,7 +8,7 @@ from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Annotated, Literal, cast
 from uuid import UUID, uuid4, uuid5
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Path, Query, Request, Response
 from pydantic import UUID5
 from sqlalchemy.dialects.postgresql import INTEGER
 from sqlalchemy.exc import IntegrityError, NoResultFound
@@ -31,7 +31,7 @@ from ...db.campaigns_v2 import (
     Node,
     NodeStatusSummary,
 )
-from ...db.manifests_v2 import CampaignManifest
+from ...db.manifests_v2 import CampaignManifest, ManifestRequest
 from ...db.session import db_session_dependency
 from ...machines.tasks import change_campaign_state
 
@@ -379,6 +379,51 @@ async def read_campaign_manifest_collection(
     )
     response.headers["Self"] = str(request.url_for("read_campaign_resource", campaign_name_or_id=campaign_id))
     return nodes.all()
+
+
+@router.get("/{campaign_id}/manifest/{kind}", summary="Get campaign Manifest by kind/name/version")
+@router.get("/{campaign_id}/manifest/{kind}/{name}", summary="Get campaign Manifest by kind/name/version")
+@router.get(
+    "/{campaign_id}/manifest/{kind}/{name}/{version}", summary="Get campaign Manifest by kind/name/version"
+)
+async def read_campaign_manifest_resource(
+    request: Request,
+    response: Response,
+    session: Annotated[AsyncSession, Depends(db_session_dependency)],
+    manifest: Annotated[ManifestRequest, Path()],
+) -> Manifest:
+    """An API that returns a single specific Manifest as identified by some
+    combination of its kind, name, and version.
+
+    A manifest is returned from the campaign namespace which best matches:
+
+    1. The specific matching Manifest of requested kind-name-version;
+    2. The most recent (version-wise) available kind of manifest with a
+       matching name;
+    3. The most recent available kind of manifest with any name.
+    """
+    match manifest:
+        case ManifestRequest(kind=kind, name=name, version=version) if kind is not None:
+            s = (
+                select(Manifest)
+                .where(Manifest.kind == kind)
+                .where(Manifest.namespace == manifest.campaign_id)
+                .order_by(col(Manifest.version).desc())
+                .limit(1)
+            )
+            if name is not None:
+                s.where(Manifest.name == name)
+            if version is not None:
+                s.where(Manifest.version == version)
+            r = (await session.exec(s)).one_or_none()
+        case _:
+            raise HTTPException(status_code=422)
+
+    if r is None:
+        raise HTTPException(status_code=404, detail="No such manifest could be located")
+
+    response.headers["Self"] = str(request.url_for("read_single_manifest", manifest_name_or_id=r.id))
+    return r
 
 
 @router.get(
