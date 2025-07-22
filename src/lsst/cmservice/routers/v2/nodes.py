@@ -221,7 +221,7 @@ async def update_node_resource(
     else:
         raise HTTPException(status_code=406, detail="Unsupported Content-Type")
 
-    s = select(Node)
+    s = select(Node).with_for_update()
     # The input could be a UUID or it could be a literal name.
     try:
         if _id := UUID(node_name_or_id):

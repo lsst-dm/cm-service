@@ -213,7 +213,7 @@ async def insert_node_to_graph(
     if TYPE_CHECKING:
         assert session is not None
 
-    s = select(Edge).where(Edge.source == node_0)
+    s = select(Edge).with_for_update().where(Edge.source == node_0)
     adjacent_edges = (await session.exec(s)).all()
 
     # Move all the adjacent edges from node_0 to node_1
@@ -249,11 +249,11 @@ async def append_node_to_graph(
         assert session is not None
 
     # create new "downstream" edges with node_1
-    s = select(Edge).where(Edge.source == node_0)
+    s = select(Edge).with_for_update().where(Edge.source == node_0)
     downstream_edges = (await session.exec(s)).all()
 
     # create new "upstream" edges with node_1
-    s = select(Edge).where(Edge.target == node_0)
+    s = select(Edge).with_for_update().where(Edge.target == node_0)
     upstream_edges = (await session.exec(s)).all()
 
     for edge in downstream_edges:

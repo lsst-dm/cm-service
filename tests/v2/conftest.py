@@ -14,6 +14,7 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import CreateSchema, DropSchema
 from testcontainers.postgres import PostgresContainer
 
+from lsst.cmservice.common.enums import DEFAULT_NAMESPACE
 from lsst.cmservice.common.flags import Features
 from lsst.cmservice.common.types import AnyAsyncSession
 from lsst.cmservice.config import config
@@ -260,3 +261,48 @@ async def test_campaign(aclient: AsyncClient) -> AsyncGenerator[str]:
         },
     )
     yield campaign_edge_url
+
+
+@pytest_asyncio.fixture(scope="module", loop_scope="module")
+async def manifest_fixtures(aclient: AsyncClient) -> None:
+    """Fixture seeding a test campaign with additional library manifests."""
+    default_namespace = str(DEFAULT_NAMESPACE)
+    _ = await aclient.post(
+        "/cm-service/v2/manifests",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "lsst",
+            "metadata": {"name": "w_latest", "namespace": default_namespace},
+            "spec": {"stack": "w_latest"},
+        },
+    )
+
+    _ = await aclient.post(
+        "/cm-service/v2/manifests",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "butler",
+            "metadata": {"name": "main", "namespace": default_namespace},
+            "spec": {"repo": "/repo/main"},
+        },
+    )
+
+    _ = await aclient.post(
+        "/cm-service/v2/manifests",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "wms",
+            "metadata": {"name": "htcondor", "namespace": default_namespace},
+            "spec": {},
+        },
+    )
+
+    _ = await aclient.post(
+        "/cm-service/v2/manifests",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "site",
+            "metadata": {"name": "mars", "namespace": default_namespace},
+            "spec": {},
+        },
+    )

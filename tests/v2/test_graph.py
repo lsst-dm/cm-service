@@ -252,5 +252,5 @@ async def test_append_node_in_graph(
     assert graph.has_node(node_0)
     assert graph.has_node(node_1)
 
-    assert list(graph.successors(node_0)) == list(graph.successors(node_1))
-    assert list(graph.predecessors(node_0)) == list(graph.predecessors(node_1))
+    assert set(graph.successors(node_0)) == set(graph.successors(node_1))
+    assert set(graph.predecessors(node_0)) == set(graph.predecessors(node_1))
