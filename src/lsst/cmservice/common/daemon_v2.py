@@ -139,10 +139,13 @@ async def consider_nodes(session: AsyncSession) -> None:
             await session.commit()
 
 
-async def daemon_iteration(session: AsyncSession) -> None:
+async def daemon_iteration() -> None:
     """A single iteraton of the CM daemon's work loop, which is carried out in
     two phases: Campaigns and Nodes.
     """
+    if TYPE_CHECKING:
+        assert db_session_dependency.sessionmaker is not None
+    session = db_session_dependency.sessionmaker()
     iteration_start = timestamp.now_utc()
     logger.debug("Daemon V2 Iteration: %s", iteration_start)
     if Features.DAEMON_CAMPAIGNS in config.features.enabled:
