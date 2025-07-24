@@ -16,11 +16,13 @@ from transitions.extensions.asyncio import AsyncEvent, AsyncMachine
 
 from ..common import timestamp
 from ..common.enums import ManifestKind, StatusEnum
+from ..common.flags import Features
 from ..common.logging import LOGGER
 from ..common.timestamp import element_time
 from ..config import config
-from ..db.campaigns_v2 import ActivityLog, Machine, Node
+from ..db.campaigns_v2 import ActivityLog, Campaign, Machine, Node
 from ..db.session import db_session_dependency
+from . import lib
 from .abc import StatefulModel
 
 logger = LOGGER.bind(module=__name__)
@@ -47,7 +49,11 @@ TRANSITIONS = [
     },
     # The bad transitions
     {"trigger": "block", "source": StatusEnum.running, "dest": StatusEnum.blocked},
-    {"trigger": "fail", "source": StatusEnum.running, "dest": StatusEnum.failed},
+    {
+        "trigger": "fail",
+        "source": [StatusEnum.waiting, StatusEnum.ready, StatusEnum.running],
+        "dest": StatusEnum.failed,
+    },
     # User-initiated transitions
     {"trigger": "pause", "source": StatusEnum.running, "dest": StatusEnum.paused},
     {"trigger": "unblock", "source": StatusEnum.blocked, "dest": StatusEnum.running},
@@ -57,6 +63,7 @@ TRANSITIONS = [
     {"trigger": "unprepare", "source": StatusEnum.ready, "dest": StatusEnum.waiting},
     {"trigger": "stop", "source": StatusEnum.paused, "dest": StatusEnum.ready},
     {"trigger": "retry", "source": StatusEnum.failed, "dest": StatusEnum.ready},
+    {"trigger": "reset", "source": StatusEnum.failed, "dest": StatusEnum.waiting},
 ]
 """Transitions available to a Node, expressed as source-destination pairs
 with a named trigger-verb.
@@ -118,6 +125,10 @@ class NodeMachine(StatefulModel):
 
         # Auto-transition on error
         match event.event:
+            case AsyncEvent(name="prepare"):
+                await self.trigger("fail")
+            case AsyncEvent(name="start"):
+                await self.trigger("fail")
             case AsyncEvent(name="finish"):
                 # TODO if we need to distinguish between types of failures,
                 #      e.g., fail vs block, we'd have to inspect the error here
@@ -218,19 +229,20 @@ class NodeMachine(StatefulModel):
             self.activity_log_entry = None
 
         # create or update a machine entry in the db
-        new_machine = Machine.model_validate(
-            dict(id=self.db_model.machine or uuid4(), state=pickle.dumps(self.machine))
-        )
-        try:
-            logger.debug("Serializing the state machine after transition.", id=str(self.db_model.id))
-            await self.session.merge(new_machine)
-            self.db_model.machine = new_machine.id
-            await self.session.commit()
-        except Exception:
-            logger.exception()
-            await self.session.rollback()
-        finally:
-            self.session.expunge(new_machine)
+        if Features.STORE_FSM in config.features.enabled:
+            new_machine = Machine.model_validate(
+                dict(id=self.db_model.machine or uuid4(), state=pickle.dumps(self.machine))
+            )
+            try:
+                logger.debug("Serializing the state machine after transition.", id=str(self.db_model.id))
+                await self.session.merge(new_machine)
+                self.db_model.machine = new_machine.id
+                await self.session.commit()
+            except Exception:
+                logger.exception()
+                await self.session.rollback()
+            finally:
+                self.session.expunge(new_machine)
 
         await self.session.close()
         self.session = None
@@ -256,56 +268,101 @@ class StartMachine(NodeMachine):
     END node could serve a similar purpose.
     """
 
-    __kind__ = [ManifestKind.node]
+    __kind__ = [ManifestKind.start]
 
     def post_init(self) -> None:
         """Post init, set class-specific callback triggers."""
         self.machine.before_prepare("do_prepare")
         self.machine.before_unprepare("do_unprepare")
         self.machine.before_start("do_start")
+        self.machine.before_reset("do_reset")
+
+    async def get_artifact_path(self) -> Path | None:
+        """Determine filesystem location as a `pathlib` or `anyio` ``Path``
+        object, returning ``None`` if the path cannot be determined.
+        """
+        if self.session is None:
+            return None
+        if self.db_model is None:
+            return None
+        if TYPE_CHECKING:
+            assert isinstance(self.db_model, Node)
+
+        fallback_configuration = {"lsst": {"artifact_path": expandvars(config.bps.artifact_path)}}
+        config_chain = await lib.assemble_config_chain(
+            self.session, self.db_model, manifest_kind=ManifestKind.lsst, extra=[fallback_configuration]
+        )
+        artifact_path = config_chain["lsst"]["artifact_path"]
+        return Path(artifact_path) / str(self.db_model.namespace)
 
     async def do_prepare(self, event: EventData) -> None:
         """Action method invoked when executing the "prepare" transition.
 
-        For a Campaign to enter the ready state, the machine must consider:
+        For a Campaign to enter the ready state, the START node must consider:
 
-        Conditions
-        ----------
-        - the campaign's graph is valid.
-
-        Callbacks
-        ---------
         - artifact directory is created and writable.
         """
         if TYPE_CHECKING:
-            assert self.db_model is not None
+            assert isinstance(self.db_model, Node)
+            assert self.session is not None
 
         logger.info("Preparing START node", id=str(self.db_model.id))
 
-        artifact_location = Path(expandvars(config.bps.artifact_path)) / str(self.db_model.namespace)
-        await artifact_location.mkdir(parents=False, exist_ok=True)
+        if artifact_location := await self.get_artifact_path():
+            await artifact_location.mkdir(parents=False, exist_ok=True)
 
     async def do_unprepare(self, event: EventData) -> None:
         if TYPE_CHECKING:
-            assert self.db_model is not None
+            assert isinstance(self.db_model, Node)
+            assert self.session is not None
 
         logger.info("Unpreparing START node", id=str(self.db_model.id))
-        artifact_location = Path(expandvars(config.bps.artifact_path)) / str(self.db_model.namespace)
-        await run_in_threadpool(shutil.rmtree, artifact_location)
+
+        artifact_location = await self.get_artifact_path()
+        if artifact_location and artifact_location.exists():
+            await run_in_threadpool(shutil.rmtree, artifact_location)
 
     async def do_start(self, event: EventData) -> None:
-        """Callback invoked when entering the "running" state.
-
-        There is no particular work performed when a campaign enters a running
-        state other than to update the record's entry in the database which
-        acts as a flag to an executor to signal that a campaign's graph Nodes
-        may now be evolved.
-        """
+        """Callback invoked when entering the "running" state."""
         if TYPE_CHECKING:
             assert self.db_model is not None
 
         logger.debug("Starting START Node for Campaign", id=str(self.db_model.id))
         return None
+
+    async def do_reset(self, event: EventData) -> None:
+        logger.error("Resetting node")
+
+
+class EndMachine(NodeMachine):
+    """Specific state model for a Node of kind End.
+
+    The End Node is responsible for wrapping-up the successful completion of a
+    Campaign.
+    """
+
+    __kind__ = [ManifestKind.end]
+
+    def post_init(self) -> None:
+        """Post init, set class-specific callback triggers."""
+        # Wrap up campaign butler collections
+        # update parent campaign status
+        self.machine.before_finish("do_finish")
+
+    async def do_finish(self, event: EventData) -> None:
+        """When transitioning to a terminal positive state, also set the same
+        status on the Campaign.
+        """
+        if TYPE_CHECKING:
+            assert self.db_model is not None
+            assert self.session is not None
+        # Set the campaign status to accepted.
+        # TODO optionally, we could hydrate a Campaign FSM instance and call
+        #      its trigger.
+        parent_campaign = await self.session.get_one(Campaign, self.db_model.namespace, with_for_update=True)
+        parent_campaign.status = StatusEnum.accepted
+        parent_campaign.metadata_["mtime"] = timestamp.element_time()
+        await self.session.commit()
 
 
 class StepMachine(NodeMachine):
