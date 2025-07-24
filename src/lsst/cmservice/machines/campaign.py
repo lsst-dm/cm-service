@@ -182,6 +182,7 @@ class CampaignMachine(NodeMachine):
 
         edges = await self.session.exec(select(Edge).where(Edge.namespace == self.db_model.id))
         graph = await graph_from_edge_list_v2(edges.all(), self.session)
+        # FIXME allow for revisions to start/end nodes
         source = uuid5(self.db_model.id, "START.1")
         sink = uuid5(self.db_model.id, "END.1")
         graph_is_valid = validate_graph(graph, source, sink)

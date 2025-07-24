@@ -18,6 +18,9 @@ def EnumValidator[T: EnumType](value: Any, enum_: T) -> T:
     Used as a Validator for a pydantic field.
     """
     try:
+        if isinstance(value, str):
+            # if enum name lookup doesn't work, try its upper-case version
+            value = value if value in enum_.__members__ else value.upper()
         new_enum: T = enum_[value] if value in enum_.__members__ else enum_(value)
     except (KeyError, ValueError):
         raise ValueError(f"Value must be a member of {enum_.__qualname__}")
@@ -25,7 +28,7 @@ def EnumValidator[T: EnumType](value: Any, enum_: T) -> T:
 
 
 EnumSerializer = PlainSerializer(
-    lambda x: x.name,
+    lambda x: x.name.lower(),
     return_type="str",
     when_used="always",
 )
