@@ -43,17 +43,22 @@ async def read_nodes_collection(
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     offset: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(le=100)] = 10,
+    namespace: Annotated[UUID5 | None, Query(validation_alias="campaign_id", alias="campaign-id")] = None,
+    node_name: Annotated[str | None, Query(validation_alias="node_name", alias="node-name")] = None,
 ) -> Sequence[Node]:
     """Fetches and returns all nodes known to the service.
 
-    Notes
-    -----
-    For campaign-scoped nodes, one should use the /campaigns/{}/nodes route.
+    For campaign-scoped nodes, set the `campaign-id=` query parameter. The
+    request can be further scoped with additional `node-name=` parameter.
     """
+    statement = (
+        select(Node).order_by(Node.metadata_["crtime"].desc().nulls_last()).offset(offset).limit(limit)
+    )
+    if namespace is not None:
+        statement = statement.where(Node.namespace == namespace)
+    if node_name is not None:
+        statement = statement.where(Node.name == node_name)
     try:
-        statement = (
-            select(Node).order_by(Node.metadata_["crtime"].desc().nulls_last()).offset(offset).limit(limit)
-        )
         nodes = await session.exec(statement)
         response.headers["Next"] = (
             request.url_for("read_nodes_collection")
@@ -109,11 +114,23 @@ async def read_node_resource(
     if node is None:
         raise HTTPException(status_code=404)
     response.headers["Self"] = request.url_for("read_node_resource", node_name=node.id).__str__()
+    response.headers["Version"] = str(node.version)
     response.headers["Campaign"] = request.url_for(
         "read_campaign_resource", campaign_name_or_id=node.namespace
     ).__str__()
 
     if request.method == "HEAD":
+        head_s = (
+            select(Node.version)
+            .where(Node.namespace == node.namespace)
+            .where(Node.name == node.name)
+            .order_by(col(Node.version).desc())
+            .limit(1)
+        )
+        latest_node_version = (await session.exec(head_s)).one_or_none()
+        response.headers["Latest"] = str(latest_node_version)
+        response.headers["Namespace"] = str(node.namespace)
+        response.headers["Name"] = node.name
         return None
     else:
         return node
