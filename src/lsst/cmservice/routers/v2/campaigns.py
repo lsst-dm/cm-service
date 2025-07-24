@@ -17,7 +17,7 @@ from sqlmodel import cast as sqlcast
 from sqlmodel import col, distinct, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from ...common.enums import DEFAULT_NAMESPACE, StatusEnum
+from ...common.enums import DEFAULT_NAMESPACE, ManifestKind, StatusEnum
 from ...common.graph import append_node_to_graph, graph_from_edge_list_v2, graph_to_dict, insert_node_to_graph
 from ...common.logging import LOGGER
 from ...common.timestamp import element_time
@@ -285,6 +285,8 @@ async def update_campaign_resource(
         # TODO implement middleware to assign a request_id to every request
         request_id = uuid4()
         background_tasks.add_task(change_campaign_state, campaign, patch_data.status, request_id)
+        # FIXME does this URL need to be campaign-scoped or does a general
+        #       activity log URL make sense?
         response.headers["StatusUpdate"] = (
             f"""{request.url_for("read_campaign_activity_log", campaign_name=campaign.id)}"""
             f"""?request-id={request_id}"""
@@ -524,10 +526,12 @@ async def create_campaign_resource(
 
     # A new campaign comes with a START and END node
     start_node = Node.model_validate(
-        dict(name="START", namespace=campaign.id, metadata_={"crtime": element_time()})
+        dict(
+            name="START", namespace=campaign.id, kind=ManifestKind.start, metadata_={"crtime": element_time()}
+        )
     )
     end_node = Node.model_validate(
-        dict(name="END", namespace=campaign.id, metadata_={"crtime": element_time()})
+        dict(name="END", namespace=campaign.id, kind=ManifestKind.end, metadata_={"crtime": element_time()})
     )
 
     try:
