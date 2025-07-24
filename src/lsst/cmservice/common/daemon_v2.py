@@ -106,7 +106,7 @@ async def consider_nodes(session: AsyncSession) -> None:
             node_machine_pickle: Machine | None
             if node.machine is None:
                 # create a new machine for the node
-                node_machine = node_machine_factory(node.kind)(o=node)
+                node_machine = node_machine_factory(node.kind)(o=node, initial_state=node.status)
                 node_machine_pickle = None
             else:
                 # unpickle the node's machine and rehydrate the Stateful Model

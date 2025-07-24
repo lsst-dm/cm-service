@@ -113,6 +113,12 @@ class StatefulModel(ABC):
     async def may_retry(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
+    async def may_reset(self) -> bool:
+        raise NotImplementedError("This should be overridden")
+
+    async def reset(self) -> bool:
+        raise NotImplementedError("This should be overridden")
+
     async def finish(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
