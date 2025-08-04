@@ -200,7 +200,7 @@ async def delete_edge_resource(
     edge_id: UUID,
 ) -> None:
     """Delete an edge given its id."""
-    s = select(Edge).where(Edge.id == edge_id)
+    s = select(Edge).with_for_update().where(Edge.id == edge_id)
     edge_to_delete = (await session.exec(s)).one_or_none()
 
     if edge_to_delete is None:

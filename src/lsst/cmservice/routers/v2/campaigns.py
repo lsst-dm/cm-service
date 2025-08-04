@@ -8,7 +8,7 @@ from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Annotated, Literal, cast
 from uuid import UUID, uuid4, uuid5
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query, Request, Response
 from pydantic import UUID5
 from sqlalchemy.dialects.postgresql import INTEGER
 from sqlalchemy.exc import IntegrityError, NoResultFound
@@ -51,11 +51,13 @@ router = APIRouter(
     summary="Get a list of campaigns",
 )
 async def read_campaign_collection(
+    *,
     request: Request,
     response: Response,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     limit: Annotated[int, Query(le=100)] = 10,
     offset: Annotated[int, Query()] = 0,
+    include_hidden: Annotated[bool, Header(alias="CM-Admin-View")] = False,
 ) -> Sequence[Campaign]:
     """A paginated API returning a list of all Campaigns known to the
     application, from newest to oldest.
@@ -63,11 +65,13 @@ async def read_campaign_collection(
     try:
         statement = (
             select(Campaign)
-            .where(Campaign.id != DEFAULT_NAMESPACE)
             .order_by(Campaign.metadata_["crtime"].desc().nulls_last())
             .offset(offset)
             .limit(limit)
         )
+        if not include_hidden:
+            statement = statement.where(Campaign.id != DEFAULT_NAMESPACE)
+
         campaigns = await session.exec(statement)
 
         response.headers["Next"] = str(
@@ -257,16 +261,16 @@ async def update_campaign_resource(
     if TYPE_CHECKING:
         assert use_rfc7396
         assert not use_rfc6902
-    s = select(Campaign)
-    # The input could be a campaign UUID or it could be a literal name.
+
+    s = select(Campaign).with_for_update()
+
     try:
         if campaign_id := UUID(campaign_name):
             s = s.where(Campaign.id == campaign_id)
     except ValueError:
         s = s.where(Campaign.name == campaign_name)
 
-    campaign = (await session.exec(s)).one_or_none()
-    if campaign is None:
+    if (campaign := (await session.exec(s)).one_or_none()) is None:
         raise HTTPException(status_code=404, detail="No such campaign")
 
     # update the campaign with the patch data as a Merge operation
@@ -438,7 +442,7 @@ async def delete_campaign_edge_resource(
     except ValueError:
         edge_id = uuid5(campaign_id, edge_name)
 
-    s = select(Edge).where(Edge.id == edge_id)
+    s = select(Edge).with_for_update().where(Edge.id == edge_id)
     edge_to_delete = (await session.exec(s)).one_or_none()
 
     if edge_to_delete is not None:
@@ -609,6 +613,8 @@ async def replace_node_in_graph(
     the path and the Node[1] as a query parameter, e.g.,
     "http://.../graph/nodes/<node_0_id>?with-node=<node_1_id>"
     """
+    # FIXME this should use a header param instead of a query param to be
+    # consistent with other PUT apis.
     try:
         campaign = await session.get_one(Campaign, campaign_id)
         node_0 = await session.get_one(Node, node_0_id)
@@ -635,7 +641,7 @@ async def replace_node_in_graph(
         )
 
     # update edges that involve node_0 as a source
-    s = select(Edge).where(Edge.source == node_0.id)
+    s = select(Edge).with_for_update().where(Edge.source == node_0.id)
     edges = (await session.exec(s)).all()
 
     # Bail out if the Node isn't actually in the campaign graph. This could be
@@ -648,7 +654,7 @@ async def replace_node_in_graph(
         edge.metadata_["mtime"] = element_time()
 
     # update edges that involve node_0 as a target
-    s = select(Edge).where(Edge.target == node_0.id)
+    s = select(Edge).with_for_update().where(Edge.target == node_0.id)
     edges = (await session.exec(s)).all()
 
     for edge in edges:

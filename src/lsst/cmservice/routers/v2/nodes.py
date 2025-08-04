@@ -14,6 +14,7 @@ from pydantic import UUID5
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from ...common.enums import StatusEnum
 from ...common.jsonpatch import JSONPatch, JSONPatchError, apply_json_patch
 from ...common.logging import LOGGER
 from ...common.timestamp import element_time
@@ -220,7 +221,7 @@ async def update_node_resource(
     else:
         raise HTTPException(status_code=406, detail="Unsupported Content-Type")
 
-    s = select(Node)
+    s = select(Node).with_for_update()
     # The input could be a UUID or it could be a literal name.
     try:
         if _id := UUID(node_name_or_id):
@@ -261,6 +262,7 @@ async def update_node_resource(
     # create Manifest from new_manifest, add to session, and commit
     new_manifest["metadata"] = {"crtime": element_time()}
     new_manifest_db = Node.model_validate(new_manifest)
+    new_manifest_db.status = StatusEnum.waiting
     session.add(new_manifest_db)
     await session.commit()
 
