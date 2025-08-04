@@ -211,10 +211,7 @@ async def update_manifest_resource(
     else:
         raise HTTPException(status_code=406, detail="Unsupported Content-Type")
 
-    if TYPE_CHECKING:
-        assert use_rfc6902
-
-    s = select(Manifest)
+    s = select(Manifest).with_for_update()
     # The input could be a UUID or it could be a literal name.
     try:
         if _id := UUID(manifest_name_or_id):
