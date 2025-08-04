@@ -185,7 +185,8 @@ class StatusEnum(enum.Enum):
         happy_path = [StatusEnum.waiting, StatusEnum.ready, StatusEnum.running, StatusEnum.accepted]
         if self in happy_path:
             i = happy_path.index(self)
-            return happy_path[i + 1]
+            next_index = min(i + 1, len(happy_path) - 1)
+            return happy_path[next_index]
         else:
             return StatusEnum.failed
 
