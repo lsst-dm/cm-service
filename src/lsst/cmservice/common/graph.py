@@ -182,7 +182,9 @@ def processable_graph_nodes(g: nx.DiGraph) -> Iterable[Node]:
     for path in nx.all_simple_paths(g, source, sink):
         for n in path:
             node: Node = g.nodes[n]["model"]
-            if node.status.is_processable_element():
+            # A "script" considers "reviewable" a terminal status; nodes share
+            # this opinion.
+            if node.status.is_processable_script():
                 processable_nodes.add(node)
                 # We found a processable node in this path, stop traversal
                 break

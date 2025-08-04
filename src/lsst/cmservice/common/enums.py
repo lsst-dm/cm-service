@@ -171,11 +171,11 @@ class StatusEnum(enum.Enum):
         )
 
     def is_processable_element(self) -> bool:
-        """Is this a processable state for an elememnt"""
+        """Is this a processable state for an element"""
         return self.value >= StatusEnum.waiting.value and self.value <= StatusEnum.reviewable.value
 
     def is_processable_script(self) -> bool:
-        """Is this a processable state for an elememnt"""
+        """Is this a processable state for a script"""
         return self.value >= StatusEnum.waiting.value and self.value <= StatusEnum.running.value
 
     def next_status(self) -> StatusEnum:
