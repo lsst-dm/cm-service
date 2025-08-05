@@ -13,7 +13,7 @@ pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""
 
 
-@pytest_asyncio.fixture(scope="function", loop_scope="module")
+@pytest_asyncio.fixture(scope="module", loop_scope="module")
 async def manifest_fixtures(aclient: AsyncClient) -> None:
     """Fixture seeding a test campaign with additional library manifests."""
     default_namespace = str(DEFAULT_NAMESPACE)

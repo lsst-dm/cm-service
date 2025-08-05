@@ -113,6 +113,8 @@ async def test_daemon_node(
     await consider_campaigns(session)
     await consider_nodes(session)
 
+    ...
+
     # As we continue to iterate the daemon over the campaign's 5 nodes
     # (including its START and END), each node in the graph is evolved.
     # To simulate this, we'll pull the END node from the database and wait
@@ -133,6 +135,7 @@ async def test_daemon_node(
         await session.refresh(end_node, attribute_names=["status"])
         if not i:
             raise RuntimeError("Node evolution took too long")
+
     ...
 
 

@@ -285,10 +285,12 @@ async def copy_manifest_resource(
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     manifest_id: UUID5,
     namespace_copy_target: Annotated[UUID5, Header()],
+    name_copy_target: Annotated[str | None, Header()] = None,
 ) -> Manifest:
     """Copies a manifest resource to a new namespace. The version of the new
     manifest is set to 1. The new namespace must be present in the request
-    header "namespace-copy-target".
+    header "namespace-copy-target". The manifest's name is preserved unless the
+    "name-copy-target" header is also set.
     """
     manifest = await session.get(Manifest, manifest_id)
     if manifest is None:
@@ -297,6 +299,7 @@ async def copy_manifest_resource(
     make_transient(manifest)
     manifest.namespace = namespace_copy_target
     manifest.version = 1
+    manifest.name = name_copy_target or manifest.name
     manifest.id = uuid5(manifest.namespace, f"{manifest.name}.1")
 
     try:
