@@ -105,7 +105,7 @@ def graph_to_dict(g: nx.DiGraph) -> Mapping:
     The "edges" attribute name in the node link data is "edges" instead of the
     default "links".
     """
-    return nx.node_link_data(g, edges="edges")
+    return nx.node_link_data(g, edges="edges")  # pyright: ignore[reportCallIssue]
 
 
 def validate_graph(g: nx.DiGraph, source: UUID | str = "START", sink: UUID | str = "END") -> bool:
