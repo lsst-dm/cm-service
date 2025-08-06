@@ -417,7 +417,7 @@ async def update_element_data_dict(
 
 @web_app.post("/collections/{element_id}/{element_type}/update")
 async def update_collections_htmx(
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
     element_id: int,
     element_type: int,
     request: Request,
@@ -484,7 +484,7 @@ async def remove_new_field(element_id: int, element_type: int, field_id: str) ->
 
 @web_app.post("/data-dict/{element_id}/{element_type}/update")
 async def update_data_dict_htmx(
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
     element_id: int,
     element_type: int,
     request: Request,
@@ -524,7 +524,7 @@ async def update_data_dict_htmx(
 
 @web_app.post("/child-config/{element_id}/{element_type}/update")
 async def update_child_config_htmx(
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
     element_id: int,
     element_type: int,
     request: Request,
