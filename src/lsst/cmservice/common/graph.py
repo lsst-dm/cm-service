@@ -16,6 +16,9 @@ type AnyGraphEdge = StepDependency | ScriptDependency
 type AnyGraphNode = Step | Script
 
 
+class InvalidCampaignGraphError(Exception): ...
+
+
 async def graph_from_edge_list(
     edges: Sequence[AnyGraphEdge],
     node_type: type[AnyGraphNode],
@@ -108,13 +111,36 @@ def graph_to_dict(g: nx.DiGraph) -> Mapping:
     return nx.node_link_data(g, edges="edges")  # pyright: ignore[reportCallIssue]
 
 
-def validate_graph(g: nx.DiGraph, source: UUID | str = "START", sink: UUID | str = "END") -> bool:
+def validate_graph(g: nx.DiGraph, source_name: str = "START", sink_name: str = "END") -> bool:
     """Validates a graph by asserting by traversal that a complete and correct
     path exists between `source` and `sink` nodes.
 
     "Correct" means that there are no cycles or isolate nodes (nodes with
     degree 0) and no nodes with degree 1.
     """
+    try:
+        # discover and check the source and sink nodes if given as a string
+        source_nodes = [n[1].id for n in g.nodes(data="model") if n[1].name == source_name]  # pyright: ignore[reportArgumentType]
+        sink_nodes = [n[1].id for n in g.nodes(data="model") if n[1].name == sink_name]  # pyright: ignore[reportArgumentType]
+        if len(source_nodes) > 1:
+            raise InvalidCampaignGraphError("Graph has more than one START node")
+        elif len(source_nodes) < 1:
+            raise InvalidCampaignGraphError("Graph has no START node")
+        else:
+            source = source_nodes[0]
+        if len(sink_nodes) > 1:
+            raise InvalidCampaignGraphError("Graph has more than one END node")
+        elif len(sink_nodes) < 1:
+            raise InvalidCampaignGraphError("Graph has no END node")
+        else:
+            sink = sink_nodes[0]
+    except (AttributeError, KeyError):
+        # Graph nodes data do not have a model component, which should only
+        # occur in unit tests or when the graph has been serialized with a
+        # "simple" view
+        source = source_name
+        sink = sink_name
+
     try:
         # Test that G is a directed graph with no cycles
         is_valid = nx.is_directed_acyclic_graph(g)
