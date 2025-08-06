@@ -1,12 +1,15 @@
 {% for key, value in element.data|items %}
-<div class="flex flex-row">
-    <div class="basis-1/3"><label class="pr-2 text-sm/6 font-medium text-gray-900">{{key}}</label></div>
-    <div class="basis-2/3">
-        <input
-                type="text"
-                name="{{key}}"
-                value="{{value}}"
-                class="text-xs font-normal text-gray-900 w-full border-2"/>
+<div class="flex flex-row data-row mb-2">
+    <div class="basis-1/3">
+        <label class="pr-2 text-sm/6 font-medium text-gray-900">{{key}}</label>
+        <input type="hidden" name="keys" value="{{key}}"/>
+    </div>
+     <div class="basis-2/3">
+        <input type="text"
+               name="values"
+               value="{{value}}"
+               class="text-xs font-normal text-gray-900 w-full border-2"
+               placeholder="Field value"/>
     </div>
 </div>
 {% endfor %}

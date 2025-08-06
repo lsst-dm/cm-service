@@ -2,6 +2,7 @@
   <table class="table-auto w-full text-sm text-left text-gray-700">
     <tbody class="divide-y divide-gray-100">
       {% for key, value in element.collections|items %}
+      {% if key != "" and key.startswith("step_") %}  <!-- Skip empty keys used for new fields -->
       <tr class="hover:bg-gray-50 transition-colors">
         <th class="font-medium pr-4 py-2 text-gray-600 whitespace-nowrap align-top">
           {{ key }}
@@ -14,6 +15,7 @@
           {% endif %}
         </td>
       </tr>
+      {% endif %}
       {% endfor %}
     </tbody>
   </table>
