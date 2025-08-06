@@ -2,7 +2,7 @@
 
 import random
 from urllib.parse import urlparse
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import networkx as nx
 import pytest
@@ -93,37 +93,59 @@ async def test_build_and_walk_graph(
         await session.commit()
 
 
-def test_validate_graph() -> None:
+async def test_validate_graph() -> None:
     """Test basic graph validation operations using a simple DAG."""
-    edge_list = [("A", "B"), ("B", "C"), ("C", "D"), ("C", "E"), ("D", "F"), ("E", "F")]
+
+    class FakeNode:
+        def __init__(self, name: str):
+            self.id = uuid4()
+            self.name = name
 
     g = nx.DiGraph()
+    n = {}
+    for a in "ABCDEF":
+        node = FakeNode(a)
+        n[a] = node.id
+        g.add_node(node.id, model=node)
+
+    edge_list = [
+        (n["A"], n["B"]),
+        (n["B"], n["C"]),
+        (n["C"], n["D"]),
+        (n["C"], n["E"]),
+        (n["D"], n["F"]),
+        (n["E"], n["F"]),
+    ]
+
     g.add_edges_from(edge_list)
 
     # this is a valid graph
     assert validate_graph(g, "A", "F")
 
     # add a new parallel node with no path to sink
-    g.add_edge("C", "CC")
+    new_node = FakeNode("G")
+    n["G"] = new_node.id
+    g.add_node(n["G"], model=new_node)
+    g.add_edge(n["C"], n["G"])
     assert not validate_graph(g, "A", "F")
 
     # create a cycle with the new node
-    g.add_edge("CC", "A")
+    g.add_edge(n["G"], n["A"])
     assert not validate_graph(g, "A", "F")
 
     # correct the path
-    g.remove_edge("CC", "A")
-    g.add_edge("CC", "F")
+    g.remove_edge(n["G"], n["A"])
+    g.add_edge(n["G"], n["F"])
     assert validate_graph(g, "A", "F")
 
     # remove the edges from a node
-    g.remove_edge("CC", "F")
-    g.remove_edge("C", "CC")
-    # the graph is invalid because "CC" is now an isolate
+    g.remove_edge(n["G"], n["F"])
+    g.remove_edge(n["C"], n["G"])
+    # the graph is invalid because CC is now an isolate
     assert not validate_graph(g, "A", "F")
 
     # remove the unneeded node
-    g.remove_node("CC")
+    g.remove_node(n["G"])
     assert validate_graph(g, "A", "F")
 
 
@@ -137,7 +159,7 @@ async def test_campaign_graph_route(aclient: AsyncClient, test_campaign: str) ->
     assert x.is_success
 
     # Test reconstruction of the serialized graph
-    graph = nx.node_link_graph(x.json(), edges="edges")
+    graph = nx.node_link_graph(x.json(), edges="edges")  # pyright: ignore[reportCallIssue]
     assert validate_graph(graph)
 
 

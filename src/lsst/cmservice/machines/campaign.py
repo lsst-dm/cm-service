@@ -19,7 +19,7 @@ from transitions.extensions.asyncio import AsyncMachine
 
 from ..common import timestamp
 from ..common.enums import ManifestKind, StatusEnum
-from ..common.graph import graph_from_edge_list_v2, validate_graph
+from ..common.graph import InvalidCampaignGraphError, graph_from_edge_list_v2, validate_graph
 from ..common.logging import LOGGER
 from ..db.campaigns_v2 import ActivityLog, Campaign, Edge, Node
 from .node import NodeMachine
@@ -53,9 +53,6 @@ TRANSITIONS = [
 """Transitions available to a Campaign, expressed as source-destination pairs
 with a named trigger-verb.
 """
-
-
-class InvalidCampaignGraphError(Exception): ...
 
 
 class CampaignMachine(NodeMachine):
@@ -182,10 +179,11 @@ class CampaignMachine(NodeMachine):
 
         edges = await self.session.exec(select(Edge).where(Edge.namespace == self.db_model.id))
         graph = await graph_from_edge_list_v2(edges.all(), self.session)
-        # FIXME allow for revisions to start/end nodes
-        source = uuid5(self.db_model.id, "START.1")
-        sink = uuid5(self.db_model.id, "END.1")
-        graph_is_valid = validate_graph(graph, source, sink)
+
+        # There may only be a single START or END node in a graph, but the
+        # version of this node is variable. Regardless, the START must always
+        # be the source and the END must always be the sink.
+        graph_is_valid = validate_graph(graph, "START", "END")
         if not graph_is_valid:
             raise InvalidCampaignGraphError("Invalid campaign graph")
         return graph_is_valid
