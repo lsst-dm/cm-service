@@ -1,10 +1,14 @@
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from transitions import EventData
 
 from ...common.enums import ManifestKind, StatusEnum
+from ...common.logging import LOGGER
+from ...common.splitter import Splitter, SplitterEnum, SplitterMapping
 from ...db.campaigns_v2 import Node
 from .meta import NodeMachine
+
+logger = LOGGER.bind(module=__name__)
 
 
 class StepMachine(NodeMachine):
@@ -46,11 +50,88 @@ class StepMachine(NodeMachine):
         self.machine.before_unprepare("do_unprepare")
         self.machine.before_finish("do_finish")
 
-    async def do_prepare(self, event: EventData) -> None: ...
+    async def get_base_query(self) -> str:
+        """Determines the base Butler query to which group predicates are
+        appended. This query is any `base_query` configured in the Campaign's
+        Butler manifest ANDed with any `base_query` configured in the Node's
+        configuration.
+        """
+        if TYPE_CHECKING:
+            assert isinstance(self.db_model, Node)
 
-    async def do_unprepare(self, event: EventData) -> None: ...
+        node_query = self.db_model.configuration.get("base_query")
+        campaign_query = "1"
+        return f"{campaign_query} AND {node_query}"
 
-    async def do_start(self, event: EventData) -> None: ...
+    async def get_splitter(self) -> Splitter:
+        """Generates group-predicates according to the Node grouping rules."""
+        if TYPE_CHECKING:
+            assert isinstance(self.db_model, Node)
+
+        # select a splitter based on the Node's configuration
+        group_config = self.db_model.configuration.get("groups", None)
+        if group_config is None:
+            return SplitterMapping["null"]()
+
+        match SplitterEnum[group_config["split_by"]]:
+            case SplitterEnum.VALUES:
+                splitter_type = SplitterMapping[SplitterEnum.VALUES.value]
+            case SplitterEnum.QUERY:
+                splitter_type = SplitterMapping[SplitterEnum.QUERY.value]
+
+        return splitter_type(**group_config)
+
+    async def make_group(self, with_query: str) -> None:
+        """Creates a Step-Group Node in the campaign graph adjacent to self."""
+        logger.info("Creating step-group node", query=with_query)
+
+    async def make_collect_step(self) -> None:
+        """Creates a Collect-Groups Node in the campaign graph adjacent to
+        each Step-Group.
+        """
+        ...
+
+    async def do_prepare(self, event: EventData) -> None:
+        """Prepare should create new nodes for each of the step groups.
+
+        Definition of group loadout is determined by a "groups" key in the
+        node's configuration. If the "groups" key is ``null`` then no group-
+        splitting occurs, but the Node still spawns a single nominal group.
+
+        The result of group splitting is the generation of new predicates to
+        include in the Node's "base_query".
+
+        The full specification of a Node's grouping configuration is defined
+        in the ``grouped_step_config.jsonschema`` file. A simplified version
+        follows.
+
+        ```
+        base_query: str
+        groups:
+          split_by: Literal["values", "query"]
+          field: str
+          values: List[] (only if split_by == values)
+          dataset: str (only if split_by == query)
+          min_groups: int
+          max_size: int
+        ```
+        """
+        base_query = await self.get_base_query()
+        splitter = await self.get_splitter()
+        async for predicate in await splitter.split():
+            await self.make_group(with_query=f"{base_query} AND {predicate}")
+        await self.make_collect_step()
+
+    async def do_unprepare(self, event: EventData) -> None:
+        """Unprepare should remove step groups from the graph, but only if they
+        are still ``waiting`` and have not been manually edited; in this state
+        a node is disposable.
+        """
+        ...
+
+    async def do_start(self, event: EventData) -> None:
+        """Start should create butler collections for the step."""
+        ...
 
     async def do_finish(self, event: EventData) -> None: ...
 

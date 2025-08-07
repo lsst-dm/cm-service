@@ -327,3 +327,4 @@ class ManifestKind(enum.Enum):
     site = enum.auto()
     # Fallback kind
     other = enum.auto()
+    dummy = enum.auto()
