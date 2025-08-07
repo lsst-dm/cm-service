@@ -14,14 +14,12 @@ CreateModelClass = models.SpecBlockCreate
 UpdateModelClass = models.SpecBlockUpdate
 # Specify the associated database table
 DbClass = db.SpecBlock
-# Specify the tag in the router documentation
-TAG_STRING = "SpecBlocks"
 
 
 # Build the router
 router = APIRouter(
     prefix=f"/{DbClass.class_string}",
-    tags=[TAG_STRING],
+    tags=["specblocks"],
 )
 
 

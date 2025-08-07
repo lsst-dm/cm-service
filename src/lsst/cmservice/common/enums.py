@@ -145,7 +145,7 @@ class StatusEnum(enum.Enum):
 
     def is_successful_script(self) -> bool:
         """Is this successful state for Script"""
-        return self.value >= StatusEnum.reviewable.value
+        return self.value >= StatusEnum.accepted.value
 
     def is_bad(self) -> bool:
         """Is this a failed state"""
@@ -166,6 +166,7 @@ class StatusEnum(enum.Enum):
             [
                 self.is_successful_script(),
                 self.is_bad(),
+                self is StatusEnum.reviewable,
             ]
         )
 
@@ -176,6 +177,17 @@ class StatusEnum(enum.Enum):
     def is_processable_script(self) -> bool:
         """Is this a processable state for an elememnt"""
         return self.value >= StatusEnum.waiting.value and self.value <= StatusEnum.running.value
+
+    def next_status(self) -> StatusEnum:
+        """If the status is on the "happy" path, return the next status along
+        that path, otherwise return the failed status.
+        """
+        happy_path = [StatusEnum.waiting, StatusEnum.ready, StatusEnum.running, StatusEnum.accepted]
+        if self in happy_path:
+            i = happy_path.index(self)
+            return happy_path[i + 1]
+        else:
+            return StatusEnum.failed
 
 
 class TaskStatusEnum(enum.Enum):
@@ -286,3 +298,24 @@ class WmsComputeSite(enum.Enum):
     lanc = 2
     ral = 3
     in2p3 = 4
+
+
+class ManifestKind(enum.Enum):
+    """Define a manifest kind"""
+
+    campaign = enum.auto()
+    node = enum.auto()
+    edge = enum.auto()
+    # Node kinds
+    grouped_step = enum.auto()
+    step_group = enum.auto()
+    collect_groups = enum.auto()
+    # Legacy kinds
+    specification = enum.auto()
+    spec_block = enum.auto()
+    step = enum.auto()
+    group = enum.auto()
+    job = enum.auto()
+    script = enum.auto()
+    # Fallback kind
+    other = enum.auto()

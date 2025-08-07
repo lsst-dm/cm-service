@@ -9,7 +9,6 @@ import yaml
 from anyio import Path
 from pydantic.v1.utils import deep_update
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import async_scoped_session
 
 from lsst.ctrl.bps.bps_reports import compile_job_summary
 from lsst.ctrl.bps.wms_service import WmsRunReport, WmsStates
@@ -17,6 +16,7 @@ from lsst.ctrl.bps.wms_service import WmsRunReport, WmsStates
 from ..common.enums import DEFAULT_NAMESPACE, StatusEnum
 from ..common.errors import CMMissingFullnameError, CMYamlParseError
 from ..common.logging import LOGGER
+from ..common.types import AnyAsyncSession
 from ..config import config
 from ..db.campaign import Campaign
 from ..db.element import ElementMixin
@@ -24,7 +24,7 @@ from ..db.job import Job
 from ..db.pipetask_error import PipetaskError
 from ..db.pipetask_error_type import PipetaskErrorType
 from ..db.product_set import ProductSet
-from ..db.session import get_async_scoped_session
+from ..db.session import db_session_dependency
 from ..db.spec_block import SpecBlock
 from ..db.specification import Specification
 from ..db.step import Step
@@ -36,7 +36,7 @@ logger = LOGGER.bind(module=__name__)
 
 
 async def upsert_spec_block(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     config_values: dict,
     loaded_specs: dict,
     *,
@@ -48,7 +48,7 @@ async def upsert_spec_block(
 
     Parameters
     ----------
-    session: async_scoped_session
+    session: AnyAsyncSession
         DB session manager
 
     config_values: dict
@@ -127,7 +127,7 @@ async def upsert_spec_block(
 
 
 async def upsert_specification(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     config_values: dict,
     *,
     allow_update: bool = False,
@@ -138,7 +138,7 @@ async def upsert_specification(
 
     Parameters
     ----------
-    session: async_scoped_session
+    session: AnyAsyncSession
         DB session manager
 
     config_values: dict
@@ -166,7 +166,7 @@ async def upsert_specification(
 
 
 async def load_specification(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     yaml_file: str | Path | deque,
     loaded_specs: dict | None = None,
     *,
@@ -178,7 +178,7 @@ async def load_specification(
 
     Parameters
     ----------
-    session: async_scoped_session
+    session: AnyAsyncSession
         DB session manager
 
     yaml_file: str | anyio.Path
@@ -259,13 +259,13 @@ async def load_specification(
 
 
 async def add_step_prerequisite(
-    session: async_scoped_session, depend_id: int, prereq_id: int, namespace: UUID | None = None
+    session: AnyAsyncSession, depend_id: int, prereq_id: int, namespace: UUID | None = None
 ) -> StepDependency:
     """Create and return a StepDependency
 
     Parameters
     ----------
-    session: async_scoped_session
+    session: AnyAsyncSession
         DB session manager
 
     depend_id: int
@@ -288,7 +288,7 @@ async def add_step_prerequisite(
 
 
 async def add_steps(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     campaign: Campaign,
     step_config_list: list[dict[str, dict]] | None,
 ) -> Campaign:
@@ -296,7 +296,7 @@ async def add_steps(
 
     Parameters
     ----------
-    session: async_scoped_session
+    session: AnyAsyncSession
         DB session manager
 
     campaign: Campaign
@@ -386,14 +386,15 @@ async def force_accept_node(
     node: int,
     db_class: type[ElementMixin],
     output_collection: str | None = None,
-    session: async_scoped_session | None = None,
+    session: AnyAsyncSession | None = None,
 ) -> None:
     """Force accept a node by bypassing state transition checks and setting
     node and node's scripts to accepted.
     """
     local_session = False
     if session is None:
-        session = await get_async_scoped_session()
+        assert db_session_dependency.sessionmaker is not None
+        session = db_session_dependency.sessionmaker()
         local_session = True
 
     the_node = await db_class.get_row(session, node)
@@ -431,7 +432,7 @@ async def force_accept_node(
 
 async def render_campaign_steps(
     campaign: Campaign | int,
-    session: async_scoped_session | None = None,
+    session: AnyAsyncSession | None = None,
 ) -> None:
     """Render the steps for a campaign.
 
@@ -444,7 +445,8 @@ async def render_campaign_steps(
     """
     local_session = False
     if session is None:
-        session = await get_async_scoped_session()
+        assert db_session_dependency.sessionmaker is not None
+        session = db_session_dependency.sessionmaker()
         local_session = True
     if isinstance(campaign, int):
         campaign = await Campaign.get_row(session, campaign)
@@ -466,7 +468,7 @@ async def render_campaign_steps(
 
 
 async def match_pipetask_error(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     task_name: str,
     diagnostic_message: str,
 ) -> PipetaskErrorType | None:
@@ -474,7 +476,7 @@ async def match_pipetask_error(
 
     Parameters
     ----------
-    session: async_scoped_session
+    session: AnyAsyncSession
         DB session manager
 
     task_name: str
@@ -495,7 +497,7 @@ async def match_pipetask_error(
 
 
 async def load_manifest_report(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     job_name: str,
     yaml_file: str | Path,
     fake_status: StatusEnum | None = None,
@@ -506,7 +508,7 @@ async def load_manifest_report(
 
     Parameters
     ----------
-    session: async_scoped_session
+    session: AnyAsyncSession
         DB session manager
 
     job_name: str
@@ -715,7 +717,7 @@ def status_from_bps_report(
 
 
 async def load_wms_reports(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     job: Job,
     wms_run_report: WmsRunReport | None,
 ) -> Job:  # pragma: no cover
@@ -725,7 +727,7 @@ async def load_wms_reports(
 
     Parameters
     ----------
-    session: async_scoped_session
+    session: AnyAsyncSession
         DB session manager
 
     job_name: str
@@ -764,14 +766,14 @@ async def load_wms_reports(
 
 
 async def load_error_types(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     yaml_file: str | Path,
 ) -> list[PipetaskErrorType]:
     """Parse and load error types
 
     Parameters
     ----------
-    session: async_scoped_session
+    session: AnyAsyncSession
         DB session manager
 
     yaml_file: str | anyio.Path
@@ -810,7 +812,7 @@ async def load_error_types(
 
 
 async def compute_job_status(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     job: Job,
 ) -> StatusEnum:
     await session.refresh(

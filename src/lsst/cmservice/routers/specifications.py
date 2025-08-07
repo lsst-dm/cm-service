@@ -14,14 +14,12 @@ CreateModelClass = models.SpecificationCreate
 UpdateModelClass = models.SpecificationUpdate
 # Specify the associated database table
 DbClass = db.Specification
-# Specify the tag in the router documentation
-TAG_STRING = "Specifications"
 
 
 # Build the router
 router = APIRouter(
     prefix=f"/{DbClass.class_string}",
-    tags=[TAG_STRING],
+    tags=["specifications"],
 )
 
 

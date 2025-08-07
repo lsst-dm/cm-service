@@ -138,13 +138,13 @@ class LoadAndCreateCampaign(YamlFileQuery):
     # If empty use {spec_name}#campaign
     spec_block_assoc_name: str | None = None
     # Parameter Overrides
-    data: dict | str | None = None
+    data: dict | None = None
     # Overrides for configuring child nodes
-    child_config: dict | str | None = None
+    child_config: dict | None = None
     # Overrides for making collection names
-    collections: dict | str | None = None
+    collections: dict | None = None
     # Overrides for which SpecBlocks to use in constructing child Nodes
-    spec_aliases: dict | str | None = None
+    spec_aliases: dict | None = None
     # Override for Callback handler class
     handler: str | None = None
     # Allow updating existing specifications

@@ -4,8 +4,6 @@ from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 from uuid import UUID, uuid5
 
-from sqlalchemy.ext.asyncio import async_scoped_session
-
 from ..common.enums import LevelEnum, StatusEnum
 from ..common.errors import CMYamlParseError, test_type_and_raise
 from ..common.notification import send_notification
@@ -18,6 +16,9 @@ from ..db.script import Script
 from ..db.script_dependency import ScriptDependency
 from .functions import render_campaign_steps
 
+if TYPE_CHECKING:
+    from ..common.types import AnyAsyncSession
+
 
 class ElementHandler(Handler):
     """SubClass of Handler to deal with generic 'Element' operations,
@@ -26,7 +27,7 @@ class ElementHandler(Handler):
 
     @staticmethod
     async def _add_prerequisite(
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script_id: int,
         prereq_id: int,
         namespace: UUID | None = None,
@@ -35,7 +36,7 @@ class ElementHandler(Handler):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         script_id: int
@@ -59,7 +60,7 @@ class ElementHandler(Handler):
 
     async def process(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         node: NodeMixin,
         **kwargs: Any,
     ) -> tuple[bool, StatusEnum]:
@@ -67,7 +68,7 @@ class ElementHandler(Handler):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         node: NodeMixin
@@ -116,7 +117,7 @@ class ElementHandler(Handler):
 
     async def run_check(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         node: NodeMixin,
         **kwargs: Any,
     ) -> tuple[bool, StatusEnum]:
@@ -126,7 +127,7 @@ class ElementHandler(Handler):
 
     async def prepare(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         element: ElementMixin,
     ) -> tuple[bool, StatusEnum]:
         """Prepare `Element` for processing
@@ -135,7 +136,7 @@ class ElementHandler(Handler):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         element: ElementMixin
@@ -218,7 +219,7 @@ class ElementHandler(Handler):
 
     async def continue_processing(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         element: ElementMixin,
         **kwargs: Any,
     ) -> tuple[bool, StatusEnum]:
@@ -228,7 +229,7 @@ class ElementHandler(Handler):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         element: ElementMixin
@@ -253,7 +254,7 @@ class ElementHandler(Handler):
 
     async def review(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         element: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
@@ -265,7 +266,7 @@ class ElementHandler(Handler):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         element: ElementMixin
@@ -282,7 +283,7 @@ class ElementHandler(Handler):
 
     async def _run_script_checks(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         element: ElementMixin,
         **kwargs: Any,
     ) -> bool:
@@ -290,7 +291,7 @@ class ElementHandler(Handler):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         element: ElementMixin
@@ -320,7 +321,7 @@ class ElementHandler(Handler):
 
     async def _run_job_checks(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         element: ElementMixin,
         **kwargs: Any,
     ) -> bool:
@@ -328,7 +329,7 @@ class ElementHandler(Handler):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         element: ElementMixin
@@ -357,7 +358,7 @@ class ElementHandler(Handler):
 
     async def check(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         element: ElementMixin,
         **kwargs: Any,
     ) -> tuple[bool, StatusEnum]:
@@ -366,7 +367,7 @@ class ElementHandler(Handler):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         element: ElementMixin
@@ -424,7 +425,7 @@ class ElementHandler(Handler):
 
     async def _post_check(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         element: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
@@ -432,7 +433,7 @@ class ElementHandler(Handler):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         element: ElementMixin
@@ -451,7 +452,7 @@ class CampaignHandler(ElementHandler):
 
     async def prepare(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         element: ElementMixin,
     ) -> tuple[bool, StatusEnum]:
         if TYPE_CHECKING:
@@ -466,7 +467,7 @@ class CampaignHandler(ElementHandler):
 
     async def _post_check(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         element: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
@@ -474,7 +475,7 @@ class CampaignHandler(ElementHandler):
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         element: ElementMixin

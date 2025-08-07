@@ -1,14 +1,14 @@
 from typing import Any
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import async_scoped_session
 
+from lsst.cmservice.common.types import AnyAsyncSession
 from lsst.cmservice.db import Group, NodeMixin
 from lsst.cmservice.web_app.utils.utils import map_status
 
 
 async def get_group_by_id(
-    session: async_scoped_session,
+    session: AnyAsyncSession,
     group_id: int,
     campaign_id: int | None = None,
     step_id: int | None = None,
@@ -42,16 +42,21 @@ async def get_group_by_id(
 
             if len(wms_report) > 0:
                 aggregated_report_dict["succeeded"] = sum(task["n_succeeded"] for task in wms_report)
-                aggregated_report_dict["failed"] = wms_report[-1]["n_failed"]
-                aggregated_report_dict["running"] = wms_report[-1]["n_running"]
-                aggregated_report_dict["pending"] = wms_report[-1]["n_pending"] + wms_report[-1]["n_ready"]
-                aggregated_report_dict["other"] = (
-                    wms_report[-1]["n_unknown"]
-                    + wms_report[-1]["n_misfit"]
-                    + wms_report[-1]["n_unready"]
-                    + wms_report[-1]["n_deleted"]
-                    + wms_report[-1]["n_pruned"]
-                    + wms_report[-1]["n_held"]
+                aggregated_report_dict["failed"] = sum(task["n_failed"] for task in wms_report)
+                aggregated_report_dict["running"] = sum(task["n_running"] for task in wms_report)
+                aggregated_report_dict["pending"] = sum(
+                    (task["n_pending"] + task["n_ready"]) for task in wms_report
+                )
+                aggregated_report_dict["other"] = sum(
+                    (
+                        task["n_unknown"]
+                        + task["n_misfit"]
+                        + task["n_unready"]
+                        + task["n_deleted"]
+                        + task["n_pruned"]
+                        + task["n_held"]
+                    )
+                    for task in wms_report
                 )
 
                 aggregated_report_dict["expected"] = sum(aggregated_report_dict.values())
@@ -79,7 +84,7 @@ async def get_group_by_id(
         return group_details, jobs, scripts
 
 
-async def get_group_jobs(session: async_scoped_session, group: Group) -> list[dict]:
+async def get_group_jobs(session: AnyAsyncSession, group: Group) -> list[dict]:
     jobs = await group.children(session)
     return [
         {
@@ -98,7 +103,7 @@ async def get_group_jobs(session: async_scoped_session, group: Group) -> list[di
     ]
 
 
-async def get_group_scripts(session: async_scoped_session, group: Group) -> list[dict]:
+async def get_group_scripts(session: AnyAsyncSession, group: Group) -> list[dict]:
     scripts = await group.get_scripts(session)
     return [
         {
@@ -113,6 +118,6 @@ async def get_group_scripts(session: async_scoped_session, group: Group) -> list
     ]
 
 
-async def get_group_node(session: async_scoped_session, group_id: int) -> NodeMixin:
+async def get_group_node(session: AnyAsyncSession, group_id: int) -> NodeMixin:
     group = await Group.get_row(session, group_id)
     return group

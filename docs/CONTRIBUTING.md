@@ -19,9 +19,7 @@ Releases are performed at an unspecified cadence, to be no shorter than 1 week a
 - Releases are named according to their semantic version (major.minor.patch).
 - Releases are made by adding a named tag to the trunk branch.
 - Each release will increment the minor version and set the patch level to 0, e.g., `1.0.12` -> `1.1.0`
-- If a bugfix commit needs to be added to a release, then a retroactive branch will be created from the
-  release tag; the commit is cherry-picked into the release branch and a new tag is written with an incremented
-  patch level, e.g., `1.23.0` -> `1.23.1`.
+- If a bugfix commit in the trunk needs to be added to a release, then a retroactive branch will be created from the affected release tag; any fix commits are cherry-picked into the release branch and a new tag is written with an incremented patch level, e.g., `1.23.0` -> `1.23.1`. This release branch is never merged to `main` (trunk) but is kept for subsequent cherry-picked fixes.
 - The major version is incremented only in the presence of user-facing breaking changes.
 
 This project uses `python-semantic-release` to manage releases. A release may be triggered by any ticket branch

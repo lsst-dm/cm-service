@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
@@ -22,6 +21,7 @@ from .spec_block import SpecBlock
 from .specification import Specification
 
 if TYPE_CHECKING:
+    from ..common.types import AnyAsyncSession
     from .job import Job
     from .script import Script
     from .step import Step
@@ -62,7 +62,7 @@ class Campaign(Base, ElementMixin):
     metadata_: Mapped[dict] = mapped_column("metadata_", type_=MutableDict.as_mutable(JSONB), default=dict)
     child_config: Mapped[dict | list | None] = mapped_column(type_=JSON)
     collections: Mapped[dict | list | None] = mapped_column(type_=JSON)
-    spec_aliases: Mapped[dict | list | None] = mapped_column(type_=JSON)
+    spec_aliases: Mapped[dict | None] = mapped_column(type_=JSON)
 
     spec_: Mapped[Specification] = relationship(
         "Specification",
@@ -94,7 +94,7 @@ class Campaign(Base, ElementMixin):
 
     async def get_campaign(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> Campaign:
         """Maps self to self.get_campaign() for consistency"""
         assert session  # For mypy
@@ -105,7 +105,7 @@ class Campaign(Base, ElementMixin):
 
     async def children(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> Iterable:
         """Maps self.s_ to self.children() for consistency"""
         await session.refresh(self, attribute_names=["s_"])
@@ -113,7 +113,7 @@ class Campaign(Base, ElementMixin):
 
     async def get_wms_reports(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> MergedWmsTaskReportDict:
         the_dict = MergedWmsTaskReportDict(reports={})
@@ -125,7 +125,7 @@ class Campaign(Base, ElementMixin):
 
     async def get_tasks(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> MergedTaskSetDict:
         the_dict = MergedTaskSetDict(reports={})
@@ -136,7 +136,7 @@ class Campaign(Base, ElementMixin):
 
     async def get_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> MergedProductSetDict:
         the_dict = MergedProductSetDict(reports={})
@@ -148,7 +148,7 @@ class Campaign(Base, ElementMixin):
     @classmethod
     async def get_create_kwargs(
         cls,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> dict:
         name = kwargs["name"]

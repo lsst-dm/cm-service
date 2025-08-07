@@ -3,12 +3,12 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
-from safir.dependencies.db_session import db_session_dependency
-from sqlalchemy.ext.asyncio import async_scoped_session
 
 from .. import db, models
 from ..common.errors import CMMissingIDError
 from ..common.logging import LOGGER
+from ..common.types import AnyAsyncSession
+from ..db.session import db_session_dependency
 from . import wrappers
 
 logger = LOGGER.bind(module=__name__)
@@ -22,14 +22,12 @@ CreateModelClass = models.QueueCreate
 UpdateModelClass = models.QueueUpdate
 # Specify the associated database table
 DbClass = db.Queue
-# Specify the tag in the router documentation
-TAG_STRING = "Queues"
 
 
 # Build the router
 router = APIRouter(
     prefix=f"/{DbClass.class_string}",
-    tags=[TAG_STRING],
+    tags=["queues"],
 )
 
 
@@ -51,7 +49,7 @@ update_row = wrappers.put_row_function(router, ResponseModelClass, UpdateModelCl
     summary="Process the associated element",
 )
 async def process_element(
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
     row_id: int,
 ) -> bool:
     """Process associated element
@@ -61,7 +59,7 @@ async def process_element(
     row_id: int
         ID of the Queue row in question
 
-    session: async_scoped_session
+    session: AnyAsyncSession
         DB session manager
 
     Returns
@@ -86,7 +84,7 @@ async def process_element(
     summary="Toggle the pause status of a queue entry",
 )
 async def toggle_active(
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
     row_id: int,
 ) -> bool:
     """Toggle the active status of a queue entry.
@@ -96,7 +94,7 @@ async def toggle_active(
     row_id: int
         ID of the Queue row in question
 
-    session: async_scoped_session
+    session: AnyAsyncSession
         DB session manager
 
     Returns
@@ -121,7 +119,7 @@ async def toggle_active(
     summary="Check how long to sleep based on what is running",
 )
 async def sleep_time(
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
     row_id: int,
 ) -> int:
     """Check how long to sleep based on what is running
@@ -131,7 +129,7 @@ async def sleep_time(
     row_id: int
         ID of the Queue row in question
 
-    session: async_scoped_session
+    session: AnyAsyncSession
         DB session manager
 
     Returns

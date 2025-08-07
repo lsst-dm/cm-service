@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 import sqlalchemy.dialects.postgresql as sapg
-from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
@@ -13,6 +12,7 @@ from .base import Base
 from .row import RowMixin
 
 if TYPE_CHECKING:
+    from ..common.types import AnyAsyncSession
     from .step import Step
 
 
@@ -41,13 +41,13 @@ class StepDependency(Base, RowMixin):
 
     async def is_done(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
     ) -> bool:
         """Check if this dependency is completed
 
         Parameters
         ----------
-        session : async_scoped_session
+        session : AnyAsyncSession
             DB session manager
 
         Returns

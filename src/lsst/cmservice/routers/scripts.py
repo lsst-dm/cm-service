@@ -4,12 +4,12 @@ from collections.abc import Sequence
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
-from safir.dependencies.db_session import db_session_dependency
-from sqlalchemy.ext.asyncio import async_scoped_session
 
 from .. import db, models
 from ..common.enums import StatusEnum
 from ..common.errors import CMMissingIDError
+from ..common.types import AnyAsyncSession
+from ..db.session import db_session_dependency
 from . import wrappers
 
 # Template specialization
@@ -21,14 +21,12 @@ CreateModelClass = models.ScriptCreate
 UpdateModelClass = models.ScriptUpdate
 # Specify the associated database table
 DbClass = db.Script
-# Specify the tag in the router documentation
-TAG_STRING = "Scripts"
 
 
 # Build the router
 router = APIRouter(
     prefix=f"/{DbClass.class_string}",
-    tags=[TAG_STRING],
+    tags=["scripts"],
 )
 
 
@@ -87,7 +85,7 @@ check_prerequisites = wrappers.get_node_check_prerequisites_function(router, DbC
 async def reset_script(
     row_id: int,
     query: models.ResetQuery,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> StatusEnum:
     """Reset a script to an earlier status
 
@@ -96,7 +94,7 @@ async def reset_script(
     row_id: int
         ID of the script in question
 
-    session: async_scoped_session
+    session: AnyAsyncSession
         DB session manager
 
     Returns
@@ -123,7 +121,7 @@ async def reset_script(
 )
 async def get_script_errors(
     row_id: int,
-    session: Annotated[async_scoped_session, Depends(db_session_dependency)],
+    session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> Sequence[db.ScriptError]:
     try:
         async with session.begin():

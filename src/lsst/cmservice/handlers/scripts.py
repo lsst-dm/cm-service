@@ -5,7 +5,6 @@ import textwrap
 from typing import TYPE_CHECKING, Any
 
 from anyio import Path
-from sqlalchemy.ext.asyncio import async_scoped_session
 
 from ..common.bash import write_bash_script
 from ..common.butler import (
@@ -23,6 +22,10 @@ from ..db.script import Script
 from ..db.step import Step
 from .script_handler import ScriptHandler
 
+if TYPE_CHECKING:
+    from ..common.types import AnyAsyncSession
+
+
 logger = LOGGER.bind(module=__name__)
 
 
@@ -31,7 +34,7 @@ class NullScriptHandler(ScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -40,7 +43,7 @@ class NullScriptHandler(ScriptHandler):
         data_dict = await script.data_dict(session)
         try:
             output_coll = resolved_cols["output"]
-            script_url = await self._set_script_files(session, script, data_dict["prod_area"])
+            script_url = await self._set_script_files(session, script, config.bps.artifact_path)
             butler_repo = data_dict["butler_repo"]
         except KeyError as e:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {e}") from e
@@ -58,7 +61,7 @@ class NullScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -82,7 +85,7 @@ class ChainCreateScriptHandler(ScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -92,7 +95,7 @@ class ChainCreateScriptHandler(ScriptHandler):
         try:
             output_coll = resolved_cols["output"]
             input_colls = resolved_cols["inputs"]
-            script_url = await self._set_script_files(session, script, data_dict["prod_area"])
+            script_url = await self._set_script_files(session, script, config.bps.artifact_path)
             butler_repo = data_dict["butler_repo"]
         except KeyError as msg:
             logger.exception()
@@ -117,7 +120,7 @@ class ChainCreateScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -148,7 +151,7 @@ class ChainPrependScriptHandler(ScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -158,7 +161,7 @@ class ChainPrependScriptHandler(ScriptHandler):
         try:
             output_coll = resolved_cols["output"]
             input_coll = resolved_cols["input"]
-            script_url = await self._set_script_files(session, script, data_dict["prod_area"])
+            script_url = await self._set_script_files(session, script, config.bps.artifact_path)
             butler_repo = data_dict["butler_repo"]
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
@@ -178,7 +181,7 @@ class ChainPrependScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -210,7 +213,7 @@ class ChainCollectScriptHandler(ScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -238,7 +241,7 @@ class ChainCollectScriptHandler(ScriptHandler):
             raise CMMissingScriptInputError(
                 "Must specify what to collect in ChainCollectScriptHandler, jobs or steps",
             )
-        script_url = await self._set_script_files(session, script, data_dict["prod_area"])
+        script_url = await self._set_script_files(session, script, config.bps.artifact_path)
         butler_repo = data_dict["butler_repo"]
         command = f"{config.butler.butler_bin} collection-chain {butler_repo} {output_coll}"
         for collect_coll_ in collect_colls:
@@ -257,7 +260,7 @@ class ChainCollectScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -288,7 +291,7 @@ class TagInputsScriptHandler(ScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -298,7 +301,7 @@ class TagInputsScriptHandler(ScriptHandler):
         try:
             output_coll = resolved_cols["output"]
             input_coll = resolved_cols["input"]
-            script_url = await self._set_script_files(session, script, data_dict["prod_area"])
+            script_url = await self._set_script_files(session, script, config.bps.artifact_path)
             butler_repo = data_dict["butler_repo"]
             data_query = data_dict.get("data_query")
         except KeyError as msg:
@@ -318,7 +321,7 @@ class TagInputsScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -345,7 +348,7 @@ class TagCreateScriptHandler(ScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -354,7 +357,7 @@ class TagCreateScriptHandler(ScriptHandler):
         data_dict = await script.data_dict(session)
         try:
             output_coll = resolved_cols["output"]
-            script_url = await self._set_script_files(session, script, data_dict["prod_area"])
+            script_url = await self._set_script_files(session, script, config.bps.artifact_path)
             butler_repo = data_dict["butler_repo"]
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
@@ -371,7 +374,7 @@ class TagCreateScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -400,7 +403,7 @@ class TagAssociateScriptHandler(ScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -410,7 +413,7 @@ class TagAssociateScriptHandler(ScriptHandler):
         try:
             input_coll = resolved_cols["input"]
             output_coll = resolved_cols["output"]
-            script_url = await self._set_script_files(session, script, data_dict["prod_area"])
+            script_url = await self._set_script_files(session, script, config.bps.artifact_path)
             butler_repo = data_dict["butler_repo"]
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
@@ -428,7 +431,7 @@ class TagAssociateScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -462,7 +465,7 @@ class PrepareStepScriptHandler(ScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -474,7 +477,7 @@ class PrepareStepScriptHandler(ScriptHandler):
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
         try:
-            script_url = await self._set_script_files(session, script, data_dict["prod_area"])
+            script_url = await self._set_script_files(session, script, config.bps.artifact_path)
             butler_repo = data_dict["butler_repo"]
             output_coll = resolved_cols["output"]
         except KeyError as msg:
@@ -505,7 +508,7 @@ class PrepareStepScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -527,14 +530,14 @@ class ResourceUsageScriptHandler(ScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
-        prod_area = os.path.expandvars(data_dict["prod_area"])
+        prod_area = os.path.expandvars(config.bps.artifact_path)
         script_url = await self._set_script_files(session, script, prod_area)
         butler_repo = data_dict["butler_repo"]
         usage_graph_url = os.path.expandvars(f"{prod_area}/{parent.fullname}/resource_usage.qgraph")
@@ -557,7 +560,7 @@ class ResourceUsageScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -584,14 +587,14 @@ class HipsMapsScriptHandler(ScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
     ) -> StatusEnum:
         resolved_cols = await script.resolve_collections(session)
         data_dict = await script.data_dict(session)
-        prod_area = os.path.expandvars(data_dict["prod_area"])
+        prod_area = os.path.expandvars(config.bps.artifact_path)
         script_url = await self._set_script_files(session, script, prod_area)
         butler_repo = data_dict["butler_repo"]
         hips_maps_graph_url = os.path.expandvars(f"{prod_area}/{parent.fullname}/hips_maps.qgraph")
@@ -649,7 +652,7 @@ class HipsMapsScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,
@@ -683,7 +686,7 @@ class ValidateScriptHandler(ScriptHandler):
 
     async def _write_script(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         parent: ElementMixin,
         **kwargs: Any,
@@ -693,7 +696,7 @@ class ValidateScriptHandler(ScriptHandler):
         try:
             input_coll = resolved_cols["input"]
             output_coll = resolved_cols["output"]
-            script_url = await self._set_script_files(session, script, data_dict["prod_area"])
+            script_url = await self._set_script_files(session, script, config.bps.artifact_path)
             butler_repo = data_dict["butler_repo"]
         except KeyError as msg:
             raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
@@ -710,7 +713,7 @@ class ValidateScriptHandler(ScriptHandler):
 
     async def _purge_products(
         self,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         script: Script,
         to_status: StatusEnum,
         *,

@@ -1,15 +1,17 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON
-from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
 from .handler import Handler
 from .row import RowMixin
+
+if TYPE_CHECKING:
+    from ..common.types import AnyAsyncSession
 
 
 class SpecBlock(Base, RowMixin):
@@ -45,7 +47,7 @@ class SpecBlock(Base, RowMixin):
     @classmethod
     async def get_create_kwargs(
         cls,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         **kwargs: Any,
     ) -> dict:
         handler = kwargs["handler"]
@@ -64,7 +66,7 @@ class SpecBlock(Base, RowMixin):
     @classmethod
     async def _delete_hook(
         cls,
-        session: async_scoped_session,
+        session: AnyAsyncSession,
         row_id: int,
     ) -> None:
         Handler.remove_from_cache(row_id)
