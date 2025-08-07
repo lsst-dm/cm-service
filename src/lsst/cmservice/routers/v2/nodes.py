@@ -120,14 +120,14 @@ async def read_node_resource(
     ).__str__()
 
     if request.method == "HEAD":
-        head_s = (
+        head_statement = (
             select(Node.version)
             .where(Node.namespace == node.namespace)
             .where(Node.name == node.name)
             .order_by(col(Node.version).desc())
             .limit(1)
         )
-        latest_node_version = (await session.exec(head_s)).one_or_none()
+        latest_node_version = (await session.exec(head_statement)).one_or_none()
         response.headers["Latest"] = str(latest_node_version)
         response.headers["Namespace"] = str(node.namespace)
         response.headers["Name"] = node.name
