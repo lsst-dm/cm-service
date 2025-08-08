@@ -166,6 +166,9 @@ async def create_node_resource(
     # - check db for node as name+namespace, get current version and increment
     node_version = int(manifest.metadata_.version)
 
+    # A node may specify its kind via metadata, but defaults to "other"
+    node_kind = manifest.metadata_.kind
+
     s = (
         select(Node)
         .where(Node.name == node_name)
@@ -181,6 +184,7 @@ async def create_node_resource(
         id=uuid5(node_namespace_uuid, f"{node_name}.{node_version}"),
         name=node_name,
         namespace=node_namespace_uuid,
+        kind=node_kind,
         version=node_version,
         configuration=manifest.spec.model_dump(exclude_none=True),
         metadata_=manifest.metadata_.model_dump(exclude_none=True),
