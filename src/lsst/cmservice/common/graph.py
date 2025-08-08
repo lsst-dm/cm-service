@@ -1,9 +1,12 @@
 from collections.abc import Iterable, Mapping, MutableSet, Sequence
-from typing import Literal
-from uuid import UUID
+from typing import TYPE_CHECKING, Literal
+from uuid import UUID, uuid4, uuid5
 
 import networkx as nx
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
+from ..common.timestamp import element_time
 from ..db import Script, ScriptDependency, Step, StepDependency
 from ..db.campaigns_v2 import Edge, Node
 from ..parsing.string import parse_element_fullname
@@ -11,6 +14,9 @@ from .types import AnyAsyncSession
 
 type AnyGraphEdge = StepDependency | ScriptDependency
 type AnyGraphNode = Step | Script
+
+
+class InvalidCampaignGraphError(Exception): ...
 
 
 async def graph_from_edge_list(
@@ -102,16 +108,39 @@ def graph_to_dict(g: nx.DiGraph) -> Mapping:
     The "edges" attribute name in the node link data is "edges" instead of the
     default "links".
     """
-    return nx.node_link_data(g, edges="edges")
+    return nx.node_link_data(g, edges="edges")  # pyright: ignore[reportCallIssue]
 
 
-def validate_graph(g: nx.DiGraph, source: UUID | str = "START", sink: UUID | str = "END") -> bool:
+def validate_graph(g: nx.DiGraph, source_name: str = "START", sink_name: str = "END") -> bool:
     """Validates a graph by asserting by traversal that a complete and correct
     path exists between `source` and `sink` nodes.
 
     "Correct" means that there are no cycles or isolate nodes (nodes with
     degree 0) and no nodes with degree 1.
     """
+    try:
+        # discover and check the source and sink nodes if given as a string
+        source_nodes = [n[1].id for n in g.nodes(data="model") if n[1].name == source_name]  # pyright: ignore[reportArgumentType]
+        sink_nodes = [n[1].id for n in g.nodes(data="model") if n[1].name == sink_name]  # pyright: ignore[reportArgumentType]
+        if len(source_nodes) > 1:
+            raise InvalidCampaignGraphError("Graph has more than one START node")
+        elif len(source_nodes) < 1:
+            raise InvalidCampaignGraphError("Graph has no START node")
+        else:
+            source = source_nodes[0]
+        if len(sink_nodes) > 1:
+            raise InvalidCampaignGraphError("Graph has more than one END node")
+        elif len(sink_nodes) < 1:
+            raise InvalidCampaignGraphError("Graph has no END node")
+        else:
+            sink = sink_nodes[0]
+    except (AttributeError, KeyError):
+        # Graph nodes data do not have a model component, which should only
+        # occur in unit tests or when the graph has been serialized with a
+        # "simple" view
+        source = source_name
+        sink = sink_name
+
     try:
         # Test that G is a directed graph with no cycles
         is_valid = nx.is_directed_acyclic_graph(g)
@@ -179,7 +208,9 @@ def processable_graph_nodes(g: nx.DiGraph) -> Iterable[Node]:
     for path in nx.all_simple_paths(g, source, sink):
         for n in path:
             node: Node = g.nodes[n]["model"]
-            if node.status.is_processable_element():
+            # A "script" considers "reviewable" a terminal status; nodes share
+            # this opinion.
+            if node.status.is_processable_script():
                 processable_nodes.add(node)
                 # We found a processable node in this path, stop traversal
                 break
@@ -192,3 +223,89 @@ def processable_graph_nodes(g: nx.DiGraph) -> Iterable[Node]:
 
     # the inspection should stop when there are no more nodes to check
     yield from processable_nodes
+
+
+async def insert_node_to_graph(
+    node_0: UUID, node_1: UUID, namespace: UUID, session: AsyncSession | None = None
+) -> None:
+    """Apply an insert operation to a graph by adding a new node_1 immediately
+    adjacent to node_0 where all downstream node_0 edges are moved to node_1.
+
+    ```
+    A --> B  becomes  A --> X --> B
+
+    A --> B  becomes A --> X --> B
+      `-> C                  `-> C
+    ```
+    """
+    if TYPE_CHECKING:
+        assert session is not None
+
+    s = select(Edge).with_for_update().where(Edge.source == node_0)
+    adjacent_edges = (await session.exec(s)).all()
+
+    # Move all the adjacent edges from node_0 to node_1
+    for edge in adjacent_edges:
+        edge.source = node_1
+        edge.metadata_["mtime"] = element_time()
+
+    # Make node_0 and node_1 adjacent
+    new_adjacency_name = uuid4()
+    new_adjacency = Edge(
+        id=uuid5(namespace, new_adjacency_name.bytes),
+        name=new_adjacency_name.hex,
+        namespace=namespace,
+        source=node_0,
+        target=node_1,
+    )
+    session.add(new_adjacency)
+    await session.commit()
+
+
+async def append_node_to_graph(
+    node_0: UUID, node_1: UUID, namespace: UUID, session: AsyncSession | None = None
+) -> None:
+    """Apply an append operation to a graph by adding a new node_1 parallel
+    to an existing node_0 where all adjacencies are copied to node_1.
+
+    ```
+    A --> B --> C  becomes  A --> B --> C
+                              `-> X -/
+    ```
+    """
+    if TYPE_CHECKING:
+        assert session is not None
+
+    # create new "downstream" edges with node_1
+    s = select(Edge).with_for_update().where(Edge.source == node_0)
+    downstream_edges = (await session.exec(s)).all()
+
+    # create new "upstream" edges with node_1
+    s = select(Edge).with_for_update().where(Edge.target == node_0)
+    upstream_edges = (await session.exec(s)).all()
+
+    for edge in downstream_edges:
+        session.expunge(edge)
+        new_adjacency_name = uuid4()
+        new_adjacency = Edge(
+            id=uuid5(namespace, new_adjacency_name.bytes),
+            name=new_adjacency_name.hex,
+            namespace=namespace,
+            source=node_1,
+            target=edge.target,
+        )
+        session.add(new_adjacency)
+
+    for edge in upstream_edges:
+        session.expunge(edge)
+        new_adjacency_name = uuid4()
+        new_adjacency = Edge(
+            id=uuid5(namespace, new_adjacency_name.bytes),
+            name=new_adjacency_name.hex,
+            namespace=namespace,
+            source=edge.source,
+            target=node_1,
+        )
+        session.add(new_adjacency)
+
+    await session.commit()

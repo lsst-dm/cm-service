@@ -14,6 +14,8 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import CreateSchema, DropSchema
 from testcontainers.postgres import PostgresContainer
 
+from lsst.cmservice.common.enums import DEFAULT_NAMESPACE
+from lsst.cmservice.common.flags import Features
 from lsst.cmservice.common.types import AnyAsyncSession
 from lsst.cmservice.config import config
 from lsst.cmservice.db.campaigns_v2 import metadata
@@ -38,6 +40,9 @@ def patched_config(monkeypatch_module: pytest.MonkeyPatch, tmp_path_factory: pyt
         target=config.bps, name="artifact_path", value=tmp_path_factory.mktemp("output")
     )
     monkeypatch_module.setattr(target=config.db, name="echo", value=False)
+    monkeypatch_module.setattr(
+        target=config.features, name="enabled", value=Features.API_V2 | Features.DAEMON_V2
+    )
 
 
 @pytest_asyncio.fixture(scope="module", loop_scope="module")
@@ -256,3 +261,48 @@ async def test_campaign(aclient: AsyncClient) -> AsyncGenerator[str]:
         },
     )
     yield campaign_edge_url
+
+
+@pytest_asyncio.fixture(scope="module", loop_scope="module")
+async def manifest_fixtures(aclient: AsyncClient) -> None:
+    """Fixture seeding a test campaign with additional library manifests."""
+    default_namespace = str(DEFAULT_NAMESPACE)
+    _ = await aclient.post(
+        "/cm-service/v2/manifests",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "lsst",
+            "metadata": {"name": "w_latest", "namespace": default_namespace},
+            "spec": {"stack": "w_latest"},
+        },
+    )
+
+    _ = await aclient.post(
+        "/cm-service/v2/manifests",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "butler",
+            "metadata": {"name": "main", "namespace": default_namespace},
+            "spec": {"repo": "/repo/main"},
+        },
+    )
+
+    _ = await aclient.post(
+        "/cm-service/v2/manifests",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "wms",
+            "metadata": {"name": "htcondor", "namespace": default_namespace},
+            "spec": {},
+        },
+    )
+
+    _ = await aclient.post(
+        "/cm-service/v2/manifests",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "site",
+            "metadata": {"name": "mars", "namespace": default_namespace},
+            "spec": {},
+        },
+    )

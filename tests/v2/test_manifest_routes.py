@@ -1,9 +1,12 @@
 """Tests v2 fastapi manifest routes"""
 
-from uuid import uuid4
+from urllib.parse import urlparse
+from uuid import uuid4, uuid5
 
 import pytest
 from httpx import AsyncClient
+
+from lsst.cmservice.common.enums import DEFAULT_NAMESPACE
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""
@@ -269,3 +272,40 @@ async def test_patch_manifest(aclient: AsyncClient) -> None:
     x = await aclient.get(f"/cm-service/v2/manifests/{manifest_name}?version=2")
     assert x.is_success
     assert x.json()["version"] == 2
+
+
+async def test_get_manifest_resource(
+    aclient: AsyncClient, test_campaign: str, manifest_fixtures: None
+) -> None:
+    """Tests various campaign-manifest acquisition route parameters"""
+    default_namespace = str(DEFAULT_NAMESPACE)
+
+    x = await aclient.get(f"/cm-service/v2/campaigns/{default_namespace}/manifest/lsst")
+    assert x.is_success
+
+    x = await aclient.get(f"/cm-service/v2/campaigns/{default_namespace}/manifest/butler/main")
+    assert x.is_success
+
+    x = await aclient.get(f"/cm-service/v2/campaigns/{default_namespace}/manifest/site/mars/0")
+    assert x.is_success
+
+
+async def test_copy_manifest_resource(
+    aclient: AsyncClient, test_campaign: str, manifest_fixtures: None
+) -> None:
+    """Tests the manifest copy operation"""
+    campaign_id = urlparse(url=test_campaign).path.split("/")[-2:][0]
+    default_namespace = str(DEFAULT_NAMESPACE)
+
+    x = await aclient.get(f"/cm-service/v2/campaigns/{default_namespace}/manifest/lsst")
+    original_url = x.headers["Self"]
+
+    x = await aclient.put(original_url, headers={"Namespace-Copy-Target": campaign_id})
+
+    x = await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}/manifest/lsst")
+    assert x.is_success
+
+    x = await aclient.put(
+        original_url, headers={"Namespace-Copy-Target": str(uuid5(DEFAULT_NAMESPACE, "random_campaign"))}
+    )
+    assert x.is_client_error

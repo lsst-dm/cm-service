@@ -8,10 +8,15 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Annotated
 from uuid import UUID, uuid5
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from deepdiff import Delta
+from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query, Request, Response
+from pydantic import UUID5
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import make_transient
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from ...common.enums import DEFAULT_NAMESPACE
 from ...common.jsonpatch import JSONPatch, JSONPatchError, apply_json_patch
 from ...common.logging import LOGGER
 from ...common.timestamp import element_time
@@ -65,17 +70,15 @@ async def read_manifest_collection(
         raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
 
 
-@router.get(
-    "/{manifest_name_or_id}",
-    summary="Get manifest detail",
-)
-async def read_single_resource(
+@router.get("/{manifest_name_or_id}", response_model=Manifest, summary="Get manifest detail")
+@router.head("/{manifest_name_or_id}", response_model=None, summary="Get manifest headers")
+async def read_single_manifest(
     request: Request,
     response: Response,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     manifest_name_or_id: str,
     manifest_version: Annotated[int | None, Query(ge=0, alias="version")] = None,
-) -> Manifest:
+) -> Manifest | None:
     """Fetch a single manifest from the database given either an id or name.
 
     When available, only the most recent version of the Manifest is returned,
@@ -83,6 +86,7 @@ async def read_single_resource(
     """
     s = select(Manifest)
     # The input could be a UUID or it could be a literal name.
+    # FIXME let pydantic take care of this
     try:
         if _id := UUID(manifest_name_or_id):
             s = s.where(Manifest.id == _id)
@@ -95,13 +99,15 @@ async def read_single_resource(
         s = s.where(Manifest.version == manifest_version)
 
     manifest = (await session.exec(s)).one_or_none()
-    if manifest is not None:
-        response.headers["Self"] = str(
-            request.url_for("read_single_resource", manifest_name_or_id=manifest.id)
-        )
-        return manifest
-    else:
+
+    if manifest is None:
         raise HTTPException(status_code=404)
+
+    response.headers["Self"] = str(request.url_for("read_single_manifest", manifest_name_or_id=manifest.id))
+    if request.method == "HEAD":
+        return None
+    else:
+        return manifest
 
 
 @router.post(
@@ -143,18 +149,22 @@ async def create_one_or_more_manifests(
 
         # A manifest must be a new version if name+namespace already exists
         # check db for manifest as name+namespace, get version and increment
+        # Library manifests that target the default namespace are always
+        # version 0
+        if _namespace_uuid != DEFAULT_NAMESPACE:
+            s = (
+                select(Manifest)
+                .where(Manifest.name == _name)
+                .where(Manifest.namespace == _namespace_uuid)
+                .order_by(col(Manifest.version).desc())
+                .limit(1)
+            )
 
-        s = (
-            select(Manifest)
-            .where(Manifest.name == _name)
-            .where(Manifest.namespace == _namespace_uuid)
-            .order_by(col(Manifest.version).desc())
-            .limit(1)
-        )
-
-        _previous = (await session.exec(s)).one_or_none()
-        _version = _previous.version if _previous else manifest.metadata_.version
-        _version += 1
+            _previous = (await session.exec(s)).one_or_none()
+            _version = _previous.version if _previous else manifest.metadata_.version
+            _version += 1
+        else:
+            _version = 0
 
         _manifest = Manifest(
             id=uuid5(_namespace_uuid, f"{_name}.{_version}"),
@@ -183,7 +193,7 @@ async def update_manifest_resource(
     response: Response,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     manifest_name_or_id: str,
-    patch_data: Sequence[JSONPatch],
+    patch_data: Annotated[bytes, Body()] | Sequence[JSONPatch],
 ) -> Manifest:
     """Partial update method for manifests.
 
@@ -206,15 +216,15 @@ async def update_manifest_resource(
       against any previous version without having to consider branches.
     """
     use_rfc6902 = False
+    use_deepdiff = False
     if request.headers["Content-Type"] == "application/json-patch+json":
         use_rfc6902 = True
+    elif request.headers["Content-Type"] == "application/octet-stream":
+        use_deepdiff = True
     else:
         raise HTTPException(status_code=406, detail="Unsupported Content-Type")
 
-    if TYPE_CHECKING:
-        assert use_rfc6902
-
-    s = select(Manifest)
+    s = select(Manifest).with_for_update()
     # The input could be a UUID or it could be a literal name.
     try:
         if _id := UUID(manifest_name_or_id):
@@ -236,14 +246,21 @@ async def update_manifest_resource(
     new_manifest["version"] += 1
     new_manifest["id"] = uuid5(new_manifest["namespace"], f"{new_manifest['name']}.{new_manifest['version']}")
 
-    for patch in patch_data:
-        try:
-            apply_json_patch(patch, new_manifest)
-        except JSONPatchError as e:
-            raise HTTPException(
-                status_code=422,
-                detail=f"Unable to process one or more patch operations: {e}",
-            )
+    if use_rfc6902:
+        for patch in patch_data:
+            if TYPE_CHECKING:
+                assert isinstance(patch, JSONPatch)
+            try:
+                apply_json_patch(patch, new_manifest)
+            except JSONPatchError as e:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Unable to process one or more patch operations: {e}",
+                )
+    elif use_deepdiff:
+        if TYPE_CHECKING:
+            assert isinstance(patch_data, bytes)
+        new_manifest["spec"] += Delta(patch_data)
 
     # create Manifest from new_manifest, add to session, and commit
     new_manifest["metadata"] |= {"crtime": element_time()}
@@ -251,5 +268,46 @@ async def update_manifest_resource(
     session.add(new_manifest_db)
     await session.commit()
 
-    # TODO response headers
+    response.headers["Self"] = str(
+        request.url_for("read_single_manifest", manifest_name_or_id=new_manifest_db.id)
+    )
     return new_manifest_db
+
+
+@router.put(
+    "/{manifest_id}",
+    summary="Copies a manifest to a new namespace specified in the request header",
+    status_code=202,
+)
+async def copy_manifest_resource(
+    request: Request,
+    response: Response,
+    session: Annotated[AsyncSession, Depends(db_session_dependency)],
+    manifest_id: UUID5,
+    namespace_copy_target: Annotated[UUID5, Header()],
+    name_copy_target: Annotated[str | None, Header()] = None,
+) -> Manifest:
+    """Copies a manifest resource to a new namespace. The version of the new
+    manifest is set to 1. The new namespace must be present in the request
+    header "namespace-copy-target". The manifest's name is preserved unless the
+    "name-copy-target" header is also set.
+    """
+    manifest = await session.get(Manifest, manifest_id)
+    if manifest is None:
+        raise HTTPException(status_code=404)
+
+    make_transient(manifest)
+    manifest.namespace = namespace_copy_target
+    manifest.version = 1
+    manifest.name = name_copy_target or manifest.name
+    manifest.id = uuid5(manifest.namespace, f"{manifest.name}.1")
+
+    try:
+        session.add(manifest)
+        await session.commit()
+    except IntegrityError:
+        # A nonexistent target namespace will raise a FK violation error
+        raise HTTPException(status_code=404, detail="Target campaign or namespace not found")
+
+    response.headers["Self"] = str(request.url_for("read_single_manifest", manifest_name_or_id=manifest.id))
+    return manifest

@@ -12,6 +12,7 @@ from transitions import Event
 
 from ..common import graph, timestamp
 from ..common.enums import StatusEnum
+from ..common.flags import Features
 from ..config import config
 from ..db.campaigns_v2 import Campaign, Edge, Machine, Node, Task
 from ..db.session import db_session_dependency
@@ -57,7 +58,17 @@ async def consider_campaigns(session: AsyncSession) -> None:
                 status=desired_state,
                 previous_status=node.status,
             )
-            statement = insert(node_task.__table__).values(**node_task.model_dump()).on_conflict_do_nothing()  # type: ignore[attr-defined]
+            statement = insert(node_task.__table__).values(**node_task.model_dump())  # type: ignore[attr-defined]
+
+            # When testing or developing, allow the daemon to upsert tasks
+            # that already exist by unsetting their submitted_at/finished_at
+            if Features.ALLOW_TASK_UPSERT in config.features.enabled:
+                statement = statement.on_conflict_do_update(
+                    constraint="tasks_v2_pkey",  # FIXME discover this constraint programatically
+                    set_={col(Task.finished_at): None, col(Task.submitted_at): None},
+                )
+            else:
+                statement = statement.on_conflict_do_nothing()
             await session.exec(statement)  # type: ignore[call-overload]
 
     await session.commit()
@@ -105,7 +116,7 @@ async def consider_nodes(session: AsyncSession) -> None:
             node_machine_pickle: Machine | None
             if node.machine is None:
                 # create a new machine for the node
-                node_machine = node_machine_factory(node.kind)(o=node)
+                node_machine = node_machine_factory(node.kind)(o=node, initial_state=node.status)
                 node_machine_pickle = None
             else:
                 # unpickle the node's machine and rehydrate the Stateful Model
@@ -119,7 +130,7 @@ async def consider_nodes(session: AsyncSession) -> None:
             # check possible triggers for state
             # TODO how to pick the "best" trigger from multiple available?
             # - Add a caller-backed conditional to the triggers, to identify
-            # .  triggers the daemon is "allowed" to use
+            #   triggers the daemon is "allowed" to use
             # - Determine the "desired" trigger from the task (source, dest)
             if (trigger := trigger_for_transition(cm_task, node_machine.machine.events)) is None:
                 logger.warning(
@@ -138,15 +149,18 @@ async def consider_nodes(session: AsyncSession) -> None:
             await session.commit()
 
 
-async def daemon_iteration(session: AsyncSession) -> None:
+async def daemon_iteration() -> None:
     """A single iteraton of the CM daemon's work loop, which is carried out in
     two phases: Campaigns and Nodes.
     """
+    if TYPE_CHECKING:
+        assert db_session_dependency.sessionmaker is not None
+    session = db_session_dependency.sessionmaker()
     iteration_start = timestamp.now_utc()
     logger.debug("Daemon V2 Iteration: %s", iteration_start)
-    if config.daemon.process_campaigns:
+    if Features.DAEMON_CAMPAIGNS in config.features.enabled:
         await consider_campaigns(session)
-    if config.daemon.process_nodes:
+    if Features.DAEMON_NODES in config.features.enabled:
         await consider_nodes(session)
     await session.close()
 

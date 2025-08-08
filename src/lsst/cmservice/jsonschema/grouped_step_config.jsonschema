@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lsst-dm/cm-service",
+  "title": "Grouped Step Configuration",
+  "description": "Configuration for a grouped step",
+  "type": "object",
+  "properties": {
+    "base_query": {
+      "description": "A Butler query string that when ANDed with any additonal `base_query` defined on the Campaign's ``butler`` manifest forms the complete Butler query used for the step. Any group-specific predicates are AND'ed with this base query in each group.",
+      "type": "string"
+    },
+    "groups": {
+      "description": "An object describing the manner in which groups are formed for this node. A `null` value is the same as specifying a single group with no additional query predicates.",
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "split_by": {
+          "description": "The method by which groups are assembled. Values-based groups are set up with a single value predicate for each group. Query-based groups try to algorithmically fit the available data elements into groups.",
+          "type": "string",
+          "enum": [
+            "values",
+            "query"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "split_by": {
+                "const": "values"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "values": {
+                "description": "An array of scalar values, when used with `field`, will form a query predicate for a single group.",
+                "oneOf": [
+                  {"type": "array", "items": {"type": "number"}},
+                  {"type": "array", "items": {"type": "string"}}
+                ]
+              },
+              "field": {
+                "description": "The name of a Butler field to associate with each grouping `value` to form a query predicate.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "values", "field"
+            ]
+          },
+          "required": [
+            "split_by"
+          ]
+        },
+        {
+          "if": {
+            "properties": {
+              "split_by": {
+                "const": "query"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "dataset": {
+                "type": "string"
+              },
+              "field": {
+                "type": "string"
+              },
+              "min_groups": {
+                "description": "The minimum number of groups created to fit all elements, as long as there is at least 1 member",
+                "type": "integer",
+                "default": 1
+              },
+              "max_size": {
+                "description": "The maximum number of elements to fit into a single group, irrespective of other concerns",
+                "type": "integer",
+                "default": 100000000
+              }
+            },
+            "required": [
+              "dataset", "field"
+            ]
+          },
+          "required": [
+            "split_by"
+          ]
+        }
+      ]
+    }
+  },
+  "required": [
+    "base_query",
+    "groups"
+  ]
+}

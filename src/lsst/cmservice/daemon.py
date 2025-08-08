@@ -12,6 +12,7 @@ from . import __version__
 from .common.butler import BUTLER_FACTORY  # noqa: F401
 from .common.daemon import daemon_iteration
 from .common.daemon_v2 import daemon_iteration as daemon_iteration_v2
+from .common.flags import Features
 from .common.logging import LOGGER
 from .common.panda import get_panda_token
 from .config import config
@@ -50,17 +51,17 @@ async def main_loop(app: FastAPI) -> None:
     """
     sleep_time = config.daemon.processing_interval
 
-    session = await anext(db_session_dependency())
     logger.info("Daemon starting.")
     _iteration_count = 0
 
     while True:
         _iteration_count += 1
         logger.info("Daemon starting iteration.")
-        if config.daemon.v1_enabled:
+        if Features.DAEMON_V1 in config.features.enabled:
+            session = await anext(db_session_dependency())
             await daemon_iteration(session)
-        if config.daemon.v2_enabled:
-            await daemon_iteration_v2(session)
+        if Features.DAEMON_V2 in config.features.enabled:
+            await daemon_iteration_v2()
         _iteration_time = current_time()
         logger.info(f"Daemon completed {_iteration_count} iterations at {_iteration_time}.")
         _next_wakeup = _iteration_time + sleep_time
