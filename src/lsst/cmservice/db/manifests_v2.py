@@ -143,7 +143,18 @@ class EdgeManifest(Manifest[EdgeMetadata, EdgeSpec]):
         return self
 
 
-class NodeManifest(Manifest[VersionedMetadata, ManifestSpec]):
+class NodeMetadata(VersionedMetadata):
+    """Metadata model for a Node Manifest.
+
+    Nodes may specify their specific kind via metadata, which defaults to
+    "other". Note this is different to the kind of the Manifest, which for a
+    Node is always "node".
+    """
+
+    kind: KindField = Field(default=ManifestKind.other, exclude=True)
+
+
+class NodeManifest(Manifest[NodeMetadata, ManifestSpec]):
     """validating model for Nodes"""
 
     @model_validator(mode="after")
