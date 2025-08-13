@@ -90,10 +90,11 @@ class CampaignMachine(NodeMachine):
         if event.error is None:
             return
 
-        logger.exception(event.error, id=self.db_model.id)
+        logger.exception(event.error, id=str(self.db_model.id), exc=event.error.__class__.__qualname__)
         if self.activity_log_entry is not None:
             self.activity_log_entry.detail["trigger"] = event.event.name
             self.activity_log_entry.detail["error"] = str(event.error)
+            self.activity_log_entry.detail["exception"] = event.error.__class__.__qualname__
             self.activity_log_entry.finished_at = timestamp.now_utc()
 
     async def prepare_activity_log(self, event: EventData) -> None:
