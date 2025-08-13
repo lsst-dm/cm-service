@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lsst-dm/cm-service",
+  "title": "Butler Manifest Specification",
+  "description": "Specification for a Butler Manifest",
+  "type": "object",
+  "properties": {
+    "repo": {
+      "description": "The name of a Butler repo. This name must resolve to one of the Butlers known to the application's Butler Factory.",
+      "type": "string"
+    },
+    "base_query": {
+      "description": "The base query pattern used by any queries to this Butler Registry.",
+      "type": "string",
+      "default": "1"
+    },
+    "collections": {
+      "description": "A mapping of collections used throughout the campaign.",
+      "type": "object",
+      "properties": {
+        "input": {
+          "description": "This collection is used in each Step's inCollection.",
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "output": {
+          "description": "The name of a Campaign's final chained output collection.",
+          "type": "string"
+        },
+        "ancillary": {
+          "description": "A list of additional collections to chain together with those in the 'collections' array.",
+          "type": "array",
+          "default": []
+        },
+      },
+      "required": ["input", "output"],
+      "additionalProperties": false
+    },
+  },
+  "required": ["repo", "collections"],
+  "additionalProperties": false
+}

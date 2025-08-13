@@ -1,4 +1,4 @@
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Mapping, Sequence
 
 from .abc import Splitter
 
@@ -17,10 +17,13 @@ class ValuesSplitter(Splitter):
         The set of scalar values to use in each group-predicate.
     """
 
-    def __init__(self, field: str, values: list[str | int]):
+    def __init__(self, *args: Sequence, field: str, values: list[str | int], **kwargs: Mapping):
         self.field = field
         self.values = values
 
-    async def split(self) -> AsyncGenerator:
+    async def split(self) -> AsyncGenerator[str, None]:
+        """Generates group query predicates based on a single scalar value for
+        a field.
+        """
         for value in self.values:
             yield f"{self.field} in ({value})"

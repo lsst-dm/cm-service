@@ -1,11 +1,17 @@
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
+from uuid import UUID, uuid5
 
+from sqlmodel import desc, or_, select
 from transitions import EventData
 
-from ...common.enums import ManifestKind, StatusEnum
+from ...common.enums import DEFAULT_NAMESPACE, ManifestKind, StatusEnum
+from ...common.graph import append_node_to_graph, insert_node_to_graph
 from ...common.logging import LOGGER
 from ...common.splitter import Splitter, SplitterEnum, SplitterMapping
-from ...db.campaigns_v2 import Node
+from ...common.timestamp import element_time
+from ...db.campaigns_v2 import Manifest, Node
+from ...db.manifests_v2 import ButlerManifest, LibraryManifest
 from .meta import NodeMachine
 
 logger = LOGGER.bind(module=__name__)
@@ -22,12 +28,11 @@ class StepMachine(NodeMachine):
     A summary of the logic at each transition:
 
     - prepare
+        - create new StepCollect Node in graph
         - determine number of groups and group membership
-        - create new Manifest for each Group
+        - create new StepGroup Nodes in graph
     - start
-        - create new StepGroup Nodes (reading prepared Manifests)
-        - create new StepCollect Node
-        - create edges
+        - create step collections
     - finish
         - (condition) campaign graph is valid
     - unprepare (rollback)
@@ -37,6 +42,12 @@ class StepMachine(NodeMachine):
     Failure modes may include
         - Butler errors (can't query for group membership)
         - Bad inputs (group membership rules don't make sense)
+
+    Attributes
+    ----------
+    anchor_group : Node
+        As groups are created, the first one is cached as an "anchor group"
+        for subsequent groups to parallelize with.
     """
 
     __kind__ = [ManifestKind.grouped_step]
@@ -44,13 +55,44 @@ class StepMachine(NodeMachine):
     def __init__(
         self, *args: Any, o: Node, initial_state: StatusEnum = StatusEnum.waiting, **kwargs: Any
     ) -> None:
-        super().__init__(*args, o, initial_state, **kwargs)
+        super().__init__(*args, o=o, initial_state=initial_state, **kwargs)
+        self.anchor_group: UUID | None = None
+        self.butler: ButlerManifest | None = None
         self.machine.before_prepare("do_prepare")
         self.machine.before_start("do_start")
         self.machine.before_unprepare("do_unprepare")
         self.machine.before_finish("do_finish")
 
-    async def get_base_query(self) -> str:
+    async def get_manifest[T: LibraryManifest](
+        self, manifest_kind: ManifestKind, manifest_type: type[T]
+    ) -> T:
+        """Fetches the appropriate Manifest for the Campaign. The newest
+        manifest of the specified Kind is retrieved from the campaign or
+        the library namespace, and an object of `type[manifest_type]` is
+        created and returned.
+        """
+        if TYPE_CHECKING:
+            assert isinstance(self.db_model, Node)
+            assert self.session is not None
+
+        # Look in the campaign namespace for the most recent Butler manifest,
+        # falling back to the default namespace if one is not found.
+        s = (
+            select(Manifest)
+            .where(Manifest.kind == manifest_kind)
+            .where(
+                or_(Manifest.namespace == self.db_model.namespace, Manifest.namespace == DEFAULT_NAMESPACE)
+            )
+            .order_by(desc(Manifest.version))
+            .limit(1)
+        )
+        manifest = (await self.session.exec(s)).one()
+        self.session.expunge(manifest)
+        o = manifest_type(**manifest.model_dump())
+        o.metadata_.version = manifest.version
+        return o
+
+    async def get_predicates(self) -> tuple[str]:
         """Determines the base Butler query to which group predicates are
         appended. This query is any `base_query` configured in the Campaign's
         Butler manifest ANDed with any `base_query` configured in the Node's
@@ -58,38 +100,168 @@ class StepMachine(NodeMachine):
         """
         if TYPE_CHECKING:
             assert isinstance(self.db_model, Node)
+            assert self.butler is not None
 
-        node_query = self.db_model.configuration.get("base_query")
-        campaign_query = "1"
-        return f"{campaign_query} AND {node_query}"
+        step_predicates: Sequence[str] = self.db_model.configuration.get("predicates", [])
+        return tuple(self.butler.spec.predicates + step_predicates)
 
     async def get_splitter(self) -> Splitter:
         """Generates group-predicates according to the Node grouping rules."""
         if TYPE_CHECKING:
-            assert isinstance(self.db_model, Node)
+            assert self.butler is not None
+            assert self.db_model is not None
 
         # select a splitter based on the Node's configuration
-        group_config = self.db_model.configuration.get("groups", None)
-        if group_config is None:
+        splitter_config = self.db_model.configuration.get("groups", None)
+        if splitter_config is None:
             return SplitterMapping["null"]()
 
-        match SplitterEnum[group_config["split_by"]]:
+        match SplitterEnum(splitter_config["split_by"]):
             case SplitterEnum.VALUES:
                 splitter_type = SplitterMapping[SplitterEnum.VALUES.value]
             case SplitterEnum.QUERY:
                 splitter_type = SplitterMapping[SplitterEnum.QUERY.value]
+                splitter_config["butler_label"] = self.butler.spec.repo
 
-        return splitter_type(**group_config)
+        return splitter_type(**splitter_config)
 
-    async def make_group(self, with_query: str) -> None:
+    async def make_group(self, with_predicates: Sequence[str]) -> None:
         """Creates a Step-Group Node in the campaign graph adjacent to self."""
-        logger.info("Creating step-group node", query=with_query)
+        if TYPE_CHECKING:
+            assert self.db_model is not None
+            assert self.session is not None
+            assert self.butler is not None
+
+        logger.info("Creating step-group node", query=with_predicates)
+
+        # The group ID should be effectively deterministic, so we create a uuid
+        # in the parent step's namespace using the groups' query as its most
+        # identifiable attribute.
+        group_id = uuid5(self.db_model.id, hash(with_predicates).to_bytes(8, signed=True))
+
+        # The group's name isn't very interesting or important, so we make sure
+        # it's identifiably a group member of its parent step while including
+        # a random component.
+        group_name = f"{self.db_model.name}_group_{group_id.hex[:8]}"
+
+        # FIXME this might not be the first attempt at group-splitting, so do
+        #       not assume version 1
+        group_version = 1
+
+        # TODO intial status for a group could be "paused" if campaign is set
+        #      to auto-pause on group
+        group_status = StatusEnum.waiting
+
+        # The group configuration should be a fully-hydrated context for the
+        # eventual rendering of the group's artifact templates.
+        # TODO this will need to include the appropriate LSST stack manifest
+        #      and any facility/site manifests
+        group_butler = self.butler.spec.model_copy(
+            update={
+                "predicates": with_predicates,
+                "collections": self.butler.spec.collections.model_copy(
+                    update={
+                        "step_input": (f"{self.butler.spec.collections.out}/{self.db_model.name}/input"),
+                        "step_output": (f"{self.butler.spec.collections.out}/{self.db_model.name}_output"),
+                        "step_public_output": (f"{self.butler.spec.collections.out}/{self.db_model.name}"),
+                        "group_output": (
+                            f"{self.butler.spec.collections.out}/{self.db_model.name}/{group_id.hex[:8]}"
+                        ),
+                        "run": (
+                            f"{self.butler.spec.collections.out}/"
+                            f"{self.db_model.name}/"
+                            f"{group_id.hex[:8]}/"
+                            f"version_{group_version}"
+                        ),
+                    },
+                ),
+            },
+        )
+        # TODO model validate?
+        group_configuration = {
+            "butler": group_butler.model_dump(),
+            "lsst": {},
+            "facility": {},
+            "wms": {},
+        }
+        group_metadata = {
+            "crtime": element_time(),
+            "manifests": {
+                "butler": self.butler.metadata_.version,
+                "lsst": 0,
+                "facility": 0,
+                "wms": 0,
+            },
+        }
+        group = Node(
+            id=group_id,
+            name=group_name,
+            namespace=self.db_model.namespace,
+            version=group_version,
+            kind=ManifestKind.group,
+            status=group_status,
+            metadata_=group_metadata,
+            configuration=group_configuration,
+        )
+
+        # add new group to session
+        self.session.add(group)
+        # add new group to graph via append, in parallel with the anchor group
+        # or via insert as the anchor group
+        if self.anchor_group is not None:
+            await append_node_to_graph(
+                node_0=self.anchor_group,
+                node_1=group_id,
+                namespace=self.db_model.namespace,
+                session=self.session,
+                commit=False,
+            )
+        else:
+            self.anchor_group = group_id
+            await insert_node_to_graph(
+                node_0=self.db_model.id,
+                node_1=group_id,
+                namespace=self.db_model.namespace,
+                session=self.session,
+                commit=False,
+            )
 
     async def make_collect_step(self) -> None:
         """Creates a Collect-Groups Node in the campaign graph adjacent to
         each Step-Group.
         """
-        ...
+        if TYPE_CHECKING:
+            assert self.db_model is not None
+            assert self.session is not None
+
+        collect_name = f"{self.db_model.name}_collect_groups"
+        collect_configuration = {
+            "butler": {},
+            "lsst": {},
+            "facility": {},
+            "wms": {},
+        }
+
+        collect = Node(
+            name=collect_name,
+            namespace=self.db_model.namespace,
+            id=uuid5(self.db_model.id, f"{collect_name}.1"),
+            version=1,
+            kind=ManifestKind.collect_groups,
+            status=StatusEnum.waiting,
+            metadata_=dict(crtime=element_time()),
+            configuration=collect_configuration,
+        )
+        self.session.add(collect)
+
+        # add collect step to graph via insert
+        await insert_node_to_graph(
+            node_0=self.db_model.id,
+            node_1=collect.id,
+            namespace=self.db_model.namespace,
+            session=self.session,
+            commit=False,
+        )
 
     async def do_prepare(self, event: EventData) -> None:
         """Prepare should create new nodes for each of the step groups.
@@ -106,7 +278,7 @@ class StepMachine(NodeMachine):
         follows.
 
         ```
-        base_query: str
+        predicates: list[str]
         groups:
           split_by: Literal["values", "query"]
           field: str
@@ -116,11 +288,20 @@ class StepMachine(NodeMachine):
           max_size: int
         ```
         """
-        base_query = await self.get_base_query()
+        if TYPE_CHECKING:
+            assert self.session is not None
+
+        self.butler = await self.get_manifest(ManifestKind.butler, ButlerManifest)
+
+        predicates = await self.get_predicates()
         splitter = await self.get_splitter()
-        async for predicate in await splitter.split():
-            await self.make_group(with_query=f"{base_query} AND {predicate}")
+
         await self.make_collect_step()
+
+        async for predicate in splitter.split():
+            await self.make_group(with_predicates=(predicates + (predicate,)))
+
+        await self.session.commit()
 
     async def do_unprepare(self, event: EventData) -> None:
         """Unprepare should remove step groups from the graph, but only if they
@@ -134,28 +315,6 @@ class StepMachine(NodeMachine):
         ...
 
     async def do_finish(self, event: EventData) -> None: ...
-
-    async def is_successful(self, event: EventData) -> bool:
-        """Checks whether the WMS job is finished or not based on the result of
-        a bps-report or similar. Returns a True value if the batch is done and
-        good, a False value if it is still running. Raises an exception in any
-        other terminal WMS state (HELD or FAILED).
-
-        ```
-        bps_report: WmsStatusReport = get_wms_status_from_bps(...)
-
-        match bps_report:
-           case WmsStatusReport(wms_status="FINISHED"):
-                return True
-           case WmsStatusReport(wms_status="HELD"):
-                raise WmsBlockedError()
-           case WmsStatusReport(wms_status="FAILED"):
-                raise WmsFailedError()
-           case WmsStatusReport(wms_status="RUNNING"):
-                return False
-        ```
-        """
-        return True
 
 
 class GroupMachine(NodeMachine):
@@ -196,7 +355,27 @@ class GroupMachine(NodeMachine):
 
     __kind__ = [ManifestKind.step_group]
 
-    ...
+    async def is_successful(self, event: EventData) -> bool:
+        """Checks whether the WMS job is finished or not based on the result of
+        a bps-report or similar. Returns a True value if the batch is done and
+        good, a False value if it is still running. Raises an exception in any
+        other terminal WMS state (HELD or FAILED).
+
+        ```
+        bps_report: WmsStatusReport = get_wms_status_from_bps(...)
+
+        match bps_report:
+           case WmsStatusReport(wms_status="FINISHED"):
+                return True
+           case WmsStatusReport(wms_status="HELD"):
+                raise WmsBlockedError()
+           case WmsStatusReport(wms_status="FAILED"):
+                raise WmsFailedError()
+           case WmsStatusReport(wms_status="RUNNING"):
+                return False
+        ```
+        """
+        return True
 
 
 class StepCollectMachine(NodeMachine):

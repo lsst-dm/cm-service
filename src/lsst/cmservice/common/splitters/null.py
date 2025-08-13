@@ -8,5 +8,5 @@ class NullSplitter(Splitter):
     it always generates a single group from an input step.
     """
 
-    async def split(self) -> AsyncGenerator:
+    async def split(self) -> AsyncGenerator[str, None]:
         yield "1"
