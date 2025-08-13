@@ -185,7 +185,7 @@ async def test_patch_campaign(aclient: AsyncClient, caplog: pytest.LogCaptureFix
     # we should see a failed transition in the log
     log_entry_found = False
     for r in caplog.records:
-        if "Invalid campaign graph" in r.message:
+        if "InvalidCampaignGraphError" in r.message:
             log_entry_found = True
             break
     assert log_entry_found
@@ -209,4 +209,5 @@ async def test_patch_campaign(aclient: AsyncClient, caplog: pytest.LogCaptureFix
     y = await aclient.get(status_update_url)
     assert y.is_success
     activity_log_entry = y.json()[0]
-    assert activity_log_entry["detail"] == {"error": "Invalid campaign graph", "trigger": "start"}
+    assert activity_log_entry["detail"]["trigger"] == "start"
+    assert activity_log_entry["detail"]["exception"] == "InvalidCampaignGraphError"

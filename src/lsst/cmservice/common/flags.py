@@ -19,6 +19,8 @@ class Features(IntFlag):
     DAEMON_V1 = auto()
     DAEMON_V2 = auto()
     WEBAPP_V1 = auto()
+    STORE_FSM = auto()
+    ALLOW_TASK_UPSERT = auto()
 
 
 class EnabledFeatures(BaseSettings):

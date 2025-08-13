@@ -308,9 +308,11 @@ class ManifestKind(enum.Enum):
     node = enum.auto()
     edge = enum.auto()
     # Node kinds
+    start = enum.auto()
     grouped_step = enum.auto()
     step_group = enum.auto()
     collect_groups = enum.auto()
+    end = enum.auto()
     # Legacy kinds
     specification = enum.auto()
     spec_block = enum.auto()
