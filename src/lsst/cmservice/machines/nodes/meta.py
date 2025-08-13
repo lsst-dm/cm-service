@@ -67,13 +67,17 @@ class NodeMachine(StatefulModel):
         """Error handler function for the Stateful Model, called by the Machine
         if any exception is raised in a callback function.
         """
+        if TYPE_CHECKING:
+            assert self.db_model is not None
+
         if event.error is None:
             return
 
-        logger.exception(event.error)
+        logger.exception(event.error, id=str(self.db_model.id), exc=event.error.__class__.__qualname__)
         if self.activity_log_entry is not None:
             self.activity_log_entry.detail["trigger"] = event.event.name
             self.activity_log_entry.detail["error"] = str(event.error)
+            self.activity_log_entry.detail["exception"] = event.error.__class__.__qualname__
             self.activity_log_entry.finished_at = timestamp.now_utc()
 
         # Auto-transition on error

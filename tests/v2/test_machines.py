@@ -230,7 +230,7 @@ async def test_change_campaign_state(
     # Check log messages
     log_entry_found = False
     for r in caplog.records:
-        if "Invalid campaign graph" in r.message:
+        if "InvalidCampaignGraphError" in r.message:
             log_entry_found = True
             break
     assert log_entry_found
