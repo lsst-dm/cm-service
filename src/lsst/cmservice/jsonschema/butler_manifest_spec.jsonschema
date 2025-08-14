@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lsst-dm/cm-service",
+  "title": "Butler Manifest Specification",
+  "description": "Specification for a Butler Manifest",
+  "type": "object",
+  "properties": {
+    "repo": {
+      "description": "The name of a Butler repo. This name must resolve to one of the Butlers known to the application's Butler Factory.",
+      "type": "string"
+    },
+    "predicates": {
+      "description": "The predicate components used to form a data query used with this Butler Registry.",
+      "type": "array",
+      "items": {"type": "string"},
+      "default": []
+    },
+    "collections": {
+      "description": "A mapping of collections used throughout the campaign.",
+      "type": "object",
+      "properties": {
+        "campaign_input": {
+          "description": "This collection is used in each Step's inCollection.",
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "in": {
+          "description": "This collection is used in each Step's inCollection.",
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "campaign_output": {
+          "description": "The name of a Campaign's final private chained output collection.",
+          "type": "string",
+          "default": "{campaign_public_output}/out"
+        },
+        "out": {
+          "description": "The name of a Campaign's final public chained output collection.",
+          "type": "string"
+        },
+        "campaign_public_output": {
+          "description": "The name of a Campaign's final public chained output collection.",
+          "type": "string"
+        },
+        "ancillary": {
+          "description": "A list of additional collections to chain together with those in the 'campaign_input' array.",
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true,
+          "default": []
+        },
+      },
+      "oneOf": [
+        {"required": ["in", "out"]},
+        {"required": ["in", "campaign_public_output"]},
+        {"required": ["campaign_input", "out"]},
+        {"required": ["campaign_input", "campaign_public_output"]},
+      ],
+      "additionalProperties": false
+    },
+  },
+  "required": ["repo", "collections"],
+  "additionalProperties": false
+}
