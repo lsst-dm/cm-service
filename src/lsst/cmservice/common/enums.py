@@ -327,3 +327,14 @@ class ManifestKind(enum.Enum):
     site = enum.auto()
     # Fallback kind
     other = enum.auto()
+    dummy = enum.auto()
+
+
+class SplitterEnum(enum.Enum):
+    """An enumeration of supported splitter kinds where the value is the string
+    constant used in the Node configuration.
+    """
+
+    NULL = "null"
+    QUERY = "query"
+    VALUES = "values"
