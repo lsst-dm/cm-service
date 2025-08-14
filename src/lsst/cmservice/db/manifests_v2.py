@@ -1,7 +1,7 @@
 """Module for models representing generic CM Service manifests.
 
-These manifests are used in APIs, especially when creating resources. They do
-not necessarily represent the object's database or ORM model.
+These manifests are generally used in APIs, especially when creating resources.
+They do not necessarily represent the object's database or ORM model.
 """
 
 from typing import Self
@@ -64,7 +64,15 @@ class ManifestSpec(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
-class ManifestMetadata(BaseModel):
+class VersionedMetadata(BaseModel):
+    """Metadata model for versioned Manifests with timestamps."""
+
+    version: int = Field(exclude=True, default=0)
+    crtime: int = Field(default_factory=element_time)
+    mtime: int | None = Field(default=None)
+
+
+class ManifestMetadata(VersionedMetadata):
     """Generic metadata model for Manifests.
 
     Conventionally denormalized fields are excluded from the model_dump when
@@ -73,16 +81,9 @@ class ManifestMetadata(BaseModel):
 
     name: str = Field(exclude=True)
     namespace: str = Field(exclude=True)
-    crtime: int = Field(default_factory=element_time)
 
 
-class VersionedMetadata(ManifestMetadata):
-    """Metadata model for versioned Manifests."""
-
-    version: int = Field(exclude=True, default=0)
-
-
-class ManifestModelMetadata(VersionedMetadata):
+class ManifestModelMetadata(ManifestMetadata):
     """Manifest model for general Manifests. These manifests are versioned but
     a namespace is optional (defaultable).
     """
@@ -91,7 +92,10 @@ class ManifestModelMetadata(VersionedMetadata):
 
 
 class ManifestModel(Manifest[ManifestModelMetadata, ManifestSpec]):
-    """Manifest model for generic Manifest handling."""
+    """Validating model for handling generic Manifests in an API where the
+    manifest may not be a Campaign, Node, or Edge kind. Instead, this model is
+    used to validate "Library" manifests added to the "manifests" table.
+    """
 
     @model_validator(mode="after")
     def custom_model_validator(self, info: ValidationInfo) -> Self:
@@ -103,7 +107,7 @@ class ManifestModel(Manifest[ManifestModelMetadata, ManifestSpec]):
 
 
 class CampaignManifest(Manifest[ManifestModelMetadata, ManifestSpec]):
-    """validating model for campaigns"""
+    """Validating model for a Campaign Manifest"""
 
     @model_validator(mode="after")
     def custom_model_validator(self, info: ValidationInfo) -> Self:
@@ -121,18 +125,17 @@ class EdgeMetadata(ManifestMetadata):
     """
 
     name: str = Field(default_factory=lambda: uuid4().hex[:8], exclude=True)
-    crtime: int = Field(default_factory=element_time)
 
 
 class EdgeSpec(ManifestSpec):
-    """Spec model for an Edge Manifest."""
+    """Configuration Spec model for an Edge Manifest."""
 
     source: str = Field(exclude=True)
     target: str = Field(exclude=True)
 
 
 class EdgeManifest(Manifest[EdgeMetadata, EdgeSpec]):
-    """validating model for Edges"""
+    """Validating model for Edge Manifests, used by an API."""
 
     @model_validator(mode="after")
     def custom_model_validator(self, info: ValidationInfo) -> Self:
@@ -143,8 +146,8 @@ class EdgeManifest(Manifest[EdgeMetadata, EdgeSpec]):
         return self
 
 
-class NodeMetadata(VersionedMetadata):
-    """Metadata model for a Node Manifest.
+class NodeMetadata(ManifestMetadata):
+    """Metadata model for a campaign graph Node.
 
     Nodes may specify their specific kind via metadata, which defaults to
     "other". Note this is different to the kind of the Manifest, which for a
@@ -155,7 +158,7 @@ class NodeMetadata(VersionedMetadata):
 
 
 class NodeManifest(Manifest[NodeMetadata, ManifestSpec]):
-    """validating model for Nodes"""
+    """validating model for Node Manifests, used by an API."""
 
     @model_validator(mode="after")
     def custom_model_validator(self, info: ValidationInfo) -> Self:
