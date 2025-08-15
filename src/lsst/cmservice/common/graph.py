@@ -295,3 +295,97 @@ async def append_node_to_graph(
 
     if commit:
         await session.commit()
+
+
+async def delete_node_from_graph(
+    node_0: UUID,
+    *,
+    namespace: UUID,
+    session: AsyncSession | None = None,
+    heal: bool = True,
+    keep_node: bool = True,
+    commit: bool = True,
+) -> None:
+    """Delete an existing node_0 with optional (but default) self-healing. The
+    node is preserved unless keep_node is set to False. In either case, the
+    primary objects subject to deletion are the Edges between nodes; this is
+    not a "delete node from database" function.
+
+    When healing, all successor edges for node_0 are re-established on all
+    predecessor nodes.
+
+    Examples
+    --------
+    Deleting Node B...
+
+    ```
+    A --> B --> C  becomes  A --> C
+    ```
+
+    ```
+    A --> B --> C  becomes  A --> C
+    AA /    `-> D             `-> D
+                           AA --> C
+                              `-> D
+    ```
+
+    Notes
+    -----
+    A harmless artifact appears when deleting a node in a parallel group with
+    healing, which can become an error if multiple parallel nodes are deleted
+    with heal, because multipaths are not allowed.
+
+    When manipulating parallel paths, heal should be False except for a single
+    element in the parallel group.
+
+    Deleting Node B...
+
+    ```
+    A --> B --> C  becomes  A --------> C
+      `-> D -/                `-> D -/
+    ```
+
+    Deleting Node D...
+    ```
+    A --------> C  becomes  A --------> C
+      `-> D -/                `------/
+    ```
+    """
+    if TYPE_CHECKING:
+        assert session is not None
+
+    s = select(Edge).with_for_update().where(Edge.source == node_0)
+    downstream_edges = (await session.exec(s)).all()
+
+    s = select(Edge).with_for_update().where(Edge.target == node_0)
+    upstream_edges = (await session.exec(s)).all()
+
+    # The list of predecessor nodes will reform downstream edges during heal
+    predecessors: list[UUID] = []
+    for edge in upstream_edges:
+        predecessors.append(edge.source)
+        await session.delete(edge)
+
+    for edge in downstream_edges:
+        await session.delete(edge)
+
+        if heal:
+            # create new edges that replicate the upstream edges to point to
+            # the immediate predecessors
+            for node_1 in predecessors:
+                new_adjacency_name = uuid4()
+                new_adjacency = Edge(
+                    id=uuid5(namespace, new_adjacency_name.bytes),
+                    name=new_adjacency_name.hex,
+                    namespace=namespace,
+                    source=node_1,
+                    target=edge.target,
+                )
+                session.add(new_adjacency)
+
+    if not keep_node:
+        node = await session.get_one(Node, node_0, with_for_update=True)
+        await session.delete(node)
+
+    if commit:
+        await session.commit()
