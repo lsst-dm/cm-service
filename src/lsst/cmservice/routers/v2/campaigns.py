@@ -773,7 +773,11 @@ async def update_node_in_graph(
     # TODO delegate to background task
     match operation:
         case "append":
-            await append_node_to_graph(node_0_id, node_1_id, namespace=campaign_id, session=session)
+            try:
+                await append_node_to_graph(node_0_id, node_1_id, namespace=campaign_id, session=session)
+            except NotImplementedError:
+                # Invalid append operation
+                raise HTTPException(400, detail=f"Nodes of kind {node_0.kind} cannot be APPENDED")
         case "insert":
             await insert_node_to_graph(node_0_id, node_1_id, namespace=campaign_id, session=session)
         case _:
