@@ -5,13 +5,32 @@ not necessarily represent the object's database or ORM model.
 """
 
 from typing import Self
-from uuid import uuid4
+from uuid import UUID, uuid4
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationInfo, model_validator
+from pydantic import UUID5, AliasChoices, BaseModel, ConfigDict, Field, ValidationInfo, model_validator
 
 from ..common.enums import DEFAULT_NAMESPACE, ManifestKind
 from ..common.timestamp import element_time
 from ..common.types import KindField
+
+
+class ManifestRequest(BaseModel):
+    """Request Model for routes requesting manifests."""
+
+    campaign_id: UUID5 = Field(DEFAULT_NAMESPACE, description="The campaign namespace for the manifest")
+    id: UUID5 | None = Field(None, description="A manifest ID")
+    kind: KindField | UUID5 | None = Field(..., description="The kind of manifest")
+    name: str | None = Field(None, description="The name of a manifest")
+    version: int | None = Field(None, description="The version of the manifest")
+
+    @model_validator(mode="after")
+    def custom_model_validator(self, info: ValidationInfo) -> Self:
+        """Validate an Campaign Manifest after a model has been created."""
+        if isinstance(self.kind, UUID):
+            self.id = self.kind
+            self.kind = None
+
+        return self
 
 
 class Manifest[MetadataT, SpecT](BaseModel):
@@ -124,7 +143,18 @@ class EdgeManifest(Manifest[EdgeMetadata, EdgeSpec]):
         return self
 
 
-class NodeManifest(Manifest[VersionedMetadata, ManifestSpec]):
+class NodeMetadata(VersionedMetadata):
+    """Metadata model for a Node Manifest.
+
+    Nodes may specify their specific kind via metadata, which defaults to
+    "other". Note this is different to the kind of the Manifest, which for a
+    Node is always "node".
+    """
+
+    kind: KindField = Field(default=ManifestKind.other, exclude=True)
+
+
+class NodeManifest(Manifest[NodeMetadata, ManifestSpec]):
     """validating model for Nodes"""
 
     @model_validator(mode="after")

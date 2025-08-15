@@ -73,16 +73,12 @@ async def read_activity_resource(
 ) -> ActivityLog:
     """Fetch a single activity log from the database given the log's ID"""
 
-    activity_log = await session.get(ActivityLog, activity_log_id)
-    # set the response headers
-    if activity_log is not None:
-        response.headers["Campaign"] = str(
-            request.url_for("read_campaign_resource", campaign_name_or_id=activity_log.namespace)
-        )
-        response.headers["Node"] = str(request.url_for("read_node_resource", node_name=activity_log.node))
-        response.headers["Self"] = str(
-            request.url_for("read_activity_resource", activity_log_id=activity_log_id)
-        )
-        return activity_log
-    else:
+    if (activity_log := await session.get(ActivityLog, activity_log_id)) is None:
         raise HTTPException(status_code=404)
+
+    response.headers["Campaign"] = str(
+        request.url_for("read_campaign_resource", campaign_name_or_id=activity_log.namespace)
+    )
+    response.headers["Node"] = str(request.url_for("read_node_resource", node_name=activity_log.node))
+    response.headers["Self"] = str(request.url_for("read_activity_resource", activity_log_id=activity_log_id))
+    return activity_log
