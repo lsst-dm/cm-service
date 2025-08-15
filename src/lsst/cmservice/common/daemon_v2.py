@@ -12,6 +12,7 @@ from transitions import Event
 
 from ..common import graph, timestamp
 from ..common.enums import StatusEnum
+from ..common.flags import Features
 from ..config import config
 from ..db.campaigns_v2 import Campaign, Edge, Machine, Node, Task
 from ..db.session import db_session_dependency
@@ -144,9 +145,9 @@ async def daemon_iteration(session: AsyncSession) -> None:
     """
     iteration_start = timestamp.now_utc()
     logger.debug("Daemon V2 Iteration: %s", iteration_start)
-    if config.daemon.process_campaigns:
+    if Features.DAEMON_CAMPAIGNS in config.features.enabled:
         await consider_campaigns(session)
-    if config.daemon.process_nodes:
+    if Features.DAEMON_NODES in config.features.enabled:
         await consider_nodes(session)
     await session.close()
 

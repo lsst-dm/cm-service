@@ -15,11 +15,12 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from lsst.cmservice import db
 from lsst.cmservice.common.enums import ScriptMethodEnum
+from lsst.cmservice.common.flags import Features
 from lsst.cmservice.config import config as config_
 
 
 @pytest.fixture(autouse=True)
-def set_app_config(monkeypatch: Any) -> None:
+def set_app_config() -> None:
     """Set any required app configuration for testing."""
     config_.script_handler = ScriptMethodEnum.bash
 
@@ -37,12 +38,18 @@ async def engine_fixture() -> AsyncIterator[AsyncEngine]:
 
 
 @pytest_asyncio.fixture(name="app")
-async def app_fixture() -> AsyncIterator[FastAPI]:
+async def app_fixture(monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[FastAPI]:
     """Return a configured test application.
 
     Wraps the application in a lifespan manager so that startup and shutdown
     events are sent during test execution.
     """
+    config = importlib.import_module("lsst.cmservice.config")
+    monkeypatch.setattr(
+        target=config.config.features,
+        name="enabled",
+        value=Features.API_V1 | Features.API_V2 | Features.WEBAPP_V1,
+    )
     main_ = importlib.import_module("lsst.cmservice.main")
     app: FastAPI = getattr(main_, "app")
     async with LifespanManager(app):
@@ -59,8 +66,11 @@ async def client_fixture(app: FastAPI) -> AsyncIterator[AsyncClient]:
 # FIXME this fixture should be replaced by patching the CLIRunner's httpx
 #       client (see client_fixture)
 @pytest_asyncio.fixture(name="uvicorn")
-async def uvicorn_fixture(tmp_path_factory: TempPathFactory) -> AsyncIterator[UvicornProcess]:
+async def uvicorn_fixture(
+    monkeypatch: pytest.MonkeyPatch, tmp_path_factory: TempPathFactory
+) -> AsyncIterator[UvicornProcess]:
     """Spawn and return a uvicorn process hosting the test app."""
+    monkeypatch.setenv("FEATURE_API_V1", "1")
     my_uvicorn = spawn_uvicorn(
         working_directory=tmp_path_factory.mktemp("uvicorn"),
         app="lsst.cmservice.main:app",

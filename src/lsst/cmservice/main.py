@@ -8,6 +8,7 @@ from safir.logging import configure_logging, configure_uvicorn_logging
 from safir.middleware.x_forwarded import XForwardedMiddleware
 
 from . import __version__
+from .common.flags import Features
 from .config import config
 from .db.session import db_session_dependency
 from .routers import (
@@ -53,11 +54,13 @@ app.add_middleware(XForwardedMiddleware)
 
 app.include_router(healthz.health_router, prefix="")
 app.include_router(index.router, prefix="")
-app.include_router(v1.router, prefix=config.asgi.prefix)
-app.include_router(v2.router, prefix=config.asgi.prefix)
+if Features.API_V1 in config.features.enabled:
+    app.include_router(v1.router, prefix=config.asgi.prefix)
+if Features.API_V2 in config.features.enabled:
+    app.include_router(v2.router, prefix=config.asgi.prefix)
 
 # Start the frontend web application.
-if config.asgi.enable_frontend:
+if Features.WEBAPP_V1 in config.features.enabled:
     app.mount(config.asgi.frontend_prefix, web_app)
 
 
