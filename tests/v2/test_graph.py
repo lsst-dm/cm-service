@@ -7,6 +7,7 @@ from uuid import UUID
 import networkx as nx
 import pytest
 from httpx import AsyncClient
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from lsst.cmservice.common.enums import StatusEnum
 from lsst.cmservice.common.graph import (
@@ -15,7 +16,7 @@ from lsst.cmservice.common.graph import (
     processable_graph_nodes,
     validate_graph,
 )
-from lsst.cmservice.common.types import AnyAsyncSession, AsyncSession
+from lsst.cmservice.common.types import AnyAsyncSession
 from lsst.cmservice.db.campaigns_v2 import Edge
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
@@ -241,7 +242,7 @@ async def test_append_node_in_graph(
     assert r.is_success
     node_1_id = r.json()["id"]
 
-    # INSERT the new node in the campaign downstream of Node_0
+    # APPEND the new node in the campaign parallel to Node_0
     r = await aclient.patch(
         f"/cm-service/v2/campaigns/{campaign_id}/graph/nodes/{node_0_id}?add-node={node_1_id}&operation=append",
     )
@@ -259,6 +260,14 @@ async def test_append_node_in_graph(
 
     assert set(graph.successors(node_0)) == set(graph.successors(node_1))
     assert set(graph.predecessors(node_0)) == set(graph.predecessors(node_1))
+
+    # Get the start or end node
+    meta_node_id = random.choice([n["id"] for n in campaign_nodes if n["name"] in ("START", "END")])
+    # Try and fail to APPEND a new node parallel to the start or end
+    r = await aclient.patch(
+        f"/cm-service/v2/campaigns/{campaign_id}/graph/nodes/{meta_node_id}?add-node={node_1_id}&operation=append",
+    )
+    assert r.is_client_error
 
 
 async def test_delete_node_from_graph(

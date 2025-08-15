@@ -6,6 +6,7 @@ import networkx as nx
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from ..common.enums import ManifestKind
 from ..common.timestamp import element_time
 from ..db import Script, ScriptDependency, Step, StepDependency
 from ..db.campaigns_v2 import Edge, Node
@@ -83,10 +84,11 @@ async def graph_from_edge_list_v2(
             # data attached to the node and ensure that this data is json-
             # serializable and otherwise appropriate for an API response
             g.nodes[node]["uuid"] = str(db_node.id)
+            g.nodes[node]["name"] = db_node.name
             g.nodes[node]["status"] = db_node.status.name
             g.nodes[node]["kind"] = db_node.kind.name
             g.nodes[node]["version"] = db_node.version
-            relabel_mapping[node] = db_node.name
+            relabel_mapping[node] = f"{db_node.name}.{db_node.version}"
         else:
             g.nodes[node]["model"] = db_node
 
@@ -257,13 +259,70 @@ async def append_node_to_graph(
     A --> B --> C  becomes  A --> B --> C
                               `-> X -/
     ```
+
+    This behavior is appropriate for the common use case of adding group nodes
+    in parallel to an "anchor" group node, such as the case where "B" was added
+    to the graph as an "insert" and it is known that additional nodes must be
+    parallel to it.
+
+    Different contexts with different kinds of "anchor" nodes for this op
+    require a different algorithm, for example the case of adding a "Step" node
+    in parallel with an existing "Step" node that has already prepared its
+    groups -- the new node should not form adjacencies with those groups!
+
+    ```
+    A --> B --> B1 --> Bx --> C
+            `-> B2 -/
+    ```
+
+    In this case, appending a node X to B where Bn are its groups and Bx is its
+    collect-step, X should be adjacent to C, not to B1 and B2:
+
+    ```
+    A ---> B --> B1 ---> Bx --> C
+      `      `-> B2 -/      /
+       `-> X --------------/
+    ```
+
+    In this case, when determining the "downstream edges" to inherit for the
+    new node X, nodes of kind "group" and "collect" should be invisible to the
+    algorithm.
+
+    Other contexts may be unsupported or meaningless to the application, in
+    which case the append request should abend with an error or a warning along
+    with a no-op.
+
+    For example, appending a node to a "collect-step" is not a meaningful oper-
+    ation because there should only ever be one node adjacent to a set of group
+    nodes. Likewise, no node should ever be made parallel to a "start" or "end"
+    node as this would create an invalid graph. Future node kinds, for instance
+    a "breakpoint" or "approval" node, would likewise not support append oper-
+    ations as this would give the graph a way to bypass an intentional check-
+    point.
+
+    Raises
+    ------
+    NotImplementedError
+        Raised if the node parallelization context is not supported or not yet
+        implemented. It is left to the caller to decide how to proceed.
     """
     if TYPE_CHECKING:
         assert session is not None
 
-    # create new "downstream" edges with node_1
-    s = select(Edge).with_for_update().where(Edge.source == node_0)
-    downstream_edges = (await session.exec(s)).all()
+    # define a context for this operation based on the node_0 kind.
+    n_0 = await session.get_one(Node, ident=node_0)
+
+    match n_0.kind:
+        case ManifestKind.group | ManifestKind.other:
+            # create new "downstream" edges with node_1
+            s = select(Edge).with_for_update().where(Edge.source == node_0)
+            downstream_edges = (await session.exec(s)).all()
+        case ManifestKind.grouped_step:
+            # node_1 should become adjacent to the next node in node_0's path
+            # that is not a group or a collect node.
+            raise NotImplementedError
+        case _:
+            raise NotImplementedError
 
     # create new "upstream" edges with node_1
     s = select(Edge).with_for_update().where(Edge.target == node_0)
