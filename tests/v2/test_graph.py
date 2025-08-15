@@ -9,8 +9,13 @@ import pytest
 from httpx import AsyncClient
 
 from lsst.cmservice.common.enums import StatusEnum
-from lsst.cmservice.common.graph import graph_from_edge_list_v2, processable_graph_nodes, validate_graph
-from lsst.cmservice.common.types import AnyAsyncSession
+from lsst.cmservice.common.graph import (
+    delete_node_from_graph,
+    graph_from_edge_list_v2,
+    processable_graph_nodes,
+    validate_graph,
+)
+from lsst.cmservice.common.types import AnyAsyncSession, AsyncSession
 from lsst.cmservice.db.campaigns_v2 import Edge
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
@@ -254,3 +259,29 @@ async def test_append_node_in_graph(
 
     assert set(graph.successors(node_0)) == set(graph.successors(node_1))
     assert set(graph.predecessors(node_0)) == set(graph.predecessors(node_1))
+
+
+async def test_delete_node_from_graph(
+    aclient: AsyncClient, session: AsyncSession, test_campaign: str
+) -> None:
+    """Tests the manipulation of a campaign graph by deleting a node."""
+    campaign_id = urlparse(url=test_campaign).path.split("/")[-2:][0]
+
+    edge_list = [Edge.model_validate(edge) for edge in (await aclient.get(test_campaign)).json()]
+    graph = await graph_from_edge_list_v2(edge_list, session)
+
+    start_node = [n[0] for n in graph.degree if n[1] == 1][0]  # pyright: ignore[reportGeneralTypeIssues]
+
+    # node A is the only neighbor of the START Node
+    node_a = next(nx.all_neighbors(graph, start_node))
+
+    # delete node A from the graph with healing, sacrificing the node
+    await delete_node_from_graph(
+        node_0=node_a,
+        namespace=UUID(campaign_id),
+        session=session,
+        heal=True,
+        keep_node=False,
+        commit=True,
+    )
+    ...
