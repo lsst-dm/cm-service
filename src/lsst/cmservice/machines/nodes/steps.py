@@ -434,67 +434,6 @@ class StepMachine(NodeMachine):
         ...
 
 
-class GroupMachine(NodeMachine):
-    """Specific state model for a Node of kind StepGroup.
-
-    At each transition:
-
-    - prepare
-        - create artifact output directory
-        - collect all relevant configuration Manifests
-        - render bps workflow artifacts
-        - create butler in collection(s)
-
-    - start
-        - bps submit
-        - (after_start) determine bps submit directory
-
-    - finish
-        - (condition) bps report == done
-        - create butler out collection(s)
-
-    - fail
-        - read/parse bps output logs
-
-    - stop (rollback)
-        - bps cancel
-
-    - unprepare (rollback)
-        - remove artifact output directory
-        - Butler collections are not modified (paint-over pattern)
-
-    Failure modes may include:
-        - Unwritable artifact output directory
-        - Manifests insufficient to render bps workflow artifacts
-        - Butler errors
-        - BPS or other middleware errors
-    """
-
-    __kind__ = [ManifestKind.step_group]
-
-    async def is_successful(self, event: EventData) -> bool:
-        """Checks whether the WMS job is finished or not based on the result of
-        a bps-report or similar. Returns a True value if the batch is done and
-        good, a False value if it is still running. Raises an exception in any
-        other terminal WMS state (HELD or FAILED).
-
-        ```
-        bps_report: WmsStatusReport = get_wms_status_from_bps(...)
-
-        match bps_report:
-           case WmsStatusReport(wms_status="FINISHED"):
-                return True
-           case WmsStatusReport(wms_status="HELD"):
-                raise WmsBlockedError()
-           case WmsStatusReport(wms_status="FAILED"):
-                raise WmsFailedError()
-           case WmsStatusReport(wms_status="RUNNING"):
-                return False
-        ```
-        """
-        return True
-
-
 class StepCollectMachine(NodeMachine):
     """Specific state model for a Node of kind StepCollect.
 
