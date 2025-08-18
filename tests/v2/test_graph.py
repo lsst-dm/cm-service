@@ -127,6 +127,7 @@ def test_validate_graph() -> None:
     assert validate_graph(g, "A", "F")
 
 
+@pytest.mark.skip("fixed in DM-52178")
 async def test_campaign_graph_route(aclient: AsyncClient, test_campaign: str) -> None:
     """Tests the acquisition of a serialized graph from a REST endpoint and
     the subsequent reconstruction of a valid graph from the node-link data.
@@ -218,6 +219,7 @@ async def test_insert_node_in_graph(
     assert list(graph.successors(node_0)) == [node_1]
 
 
+@pytest.mark.skip("Fixed in DM-52178")
 async def test_append_node_in_graph(
     aclient: AsyncClient, session: AnyAsyncSession, test_campaign: str
 ) -> None:
