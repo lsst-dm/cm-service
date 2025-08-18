@@ -1,10 +1,12 @@
+"""Module defining the base StatefulModel of a CM Node as well as basic meta
+nodes, including START/END/BREAKPOINT nodes.
+"""
+
 import pickle
 import shutil
-from os.path import expandvars
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-from anyio import Path
 from fastapi.concurrency import run_in_threadpool
 from transitions import EventData
 from transitions.extensions.asyncio import AsyncEvent, AsyncMachine
@@ -16,9 +18,9 @@ from ...common.logging import LOGGER
 from ...config import config
 from ...db.campaigns_v2 import ActivityLog, Campaign, Machine, Node
 from ...db.session import db_session_dependency
-from .. import lib
 from ..abc import StatefulModel
 from . import TRANSITIONS
+from .mixin import ActionNodeMixin
 
 logger = LOGGER.bind(module=__name__)
 
@@ -217,7 +219,7 @@ class NodeMachine(StatefulModel):
         return True
 
 
-class StartMachine(NodeMachine):
+class StartMachine(NodeMachine, ActionNodeMixin):
     """Conceptually, a campaign's START node may participate in activities like
     any other kind of node, even though its purpose is to provide a solid well-
     known root to the campaign graph. Some activities assigned to the Campaign
@@ -234,24 +236,6 @@ class StartMachine(NodeMachine):
         self.machine.before_start("do_start")
         self.machine.before_reset("do_reset")
 
-    async def get_artifact_path(self) -> Path | None:
-        """Determine filesystem location as a `pathlib` or `anyio` ``Path``
-        object, returning ``None`` if the path cannot be determined.
-        """
-        if self.session is None:
-            return None
-        if self.db_model is None:
-            return None
-        if TYPE_CHECKING:
-            assert isinstance(self.db_model, Node)
-
-        fallback_configuration = {"lsst": {"artifact_path": expandvars(config.bps.artifact_path)}}
-        config_chain = await lib.assemble_config_chain(
-            self.session, self.db_model, manifest_kind=ManifestKind.lsst, extra=[fallback_configuration]
-        )
-        artifact_path = config_chain["lsst"]["artifact_path"]
-        return Path(artifact_path) / str(self.db_model.namespace)
-
     async def do_prepare(self, event: EventData) -> None:
         """Action method invoked when executing the "prepare" transition.
 
@@ -265,7 +249,7 @@ class StartMachine(NodeMachine):
 
         logger.info("Preparing START node", id=str(self.db_model.id))
 
-        if artifact_location := await self.get_artifact_path():
+        if artifact_location := await self.get_artifact_path(event):
             await artifact_location.mkdir(parents=False, exist_ok=True)
 
     async def do_unprepare(self, event: EventData) -> None:
@@ -275,7 +259,7 @@ class StartMachine(NodeMachine):
 
         logger.info("Unpreparing START node", id=str(self.db_model.id))
 
-        artifact_location = await self.get_artifact_path()
+        artifact_location = await self.get_artifact_path(event)
         if artifact_location and artifact_location.exists():
             await run_in_threadpool(shutil.rmtree, artifact_location)
 
@@ -320,3 +304,15 @@ class EndMachine(NodeMachine):
         parent_campaign.status = StatusEnum.accepted
         parent_campaign.metadata_["mtime"] = timestamp.element_time()
         await self.session.commit()
+
+
+class BreakPointMachine(NodeMachine):
+    """Specific state model for a Node of kind Breakpoint.
+
+    The BreakPoint Node is responsible for interrupting a campaign's graph
+    until it is put into an accepted state by intentional manual action.
+
+    The CM Daemon will refuse to evolve a Node of this kind.
+    """
+
+    __kind__ = [ManifestKind.breakpoint]

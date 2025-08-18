@@ -11,24 +11,13 @@ from functools import cache
 from ..common.enums import ManifestKind
 from ..common.logging import LOGGER
 from .nodes import TRANSITIONS as TRANSITIONS
-from .nodes.meta import (
-    EndMachine as EndMachine,
-)
-from .nodes.meta import (
-    NodeMachine as NodeMachine,
-)
-from .nodes.meta import (
-    StartMachine as StartMachine,
-)
-from .nodes.steps import (
-    GroupMachine as GroupMachine,
-)
-from .nodes.steps import (
-    StepCollectMachine as StepCollectMachine,
-)
-from .nodes.steps import (
-    StepMachine as StepMachine,
-)
+from .nodes.group import GroupMachine as GroupMachine
+from .nodes.meta import BreakPointMachine as BreakPointMachine
+from .nodes.meta import EndMachine as EndMachine
+from .nodes.meta import NodeMachine as NodeMachine
+from .nodes.meta import StartMachine as StartMachine
+from .nodes.steps import StepCollectMachine as StepCollectMachine
+from .nodes.steps import StepMachine as StepMachine
 
 logger = LOGGER.bind(module=__name__)
 
