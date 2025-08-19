@@ -341,11 +341,11 @@ async def append_node_to_graph(
     n_0 = await session.get_one(Node, ident=node_0)
 
     match n_0.kind:
-        case ManifestKind.group | ManifestKind.other:
+        case ManifestKind.group | ManifestKind.step_group | ManifestKind.other:
             # create new "downstream" edges with node_1
             s = select(Edge).with_for_update().where(Edge.source == node_0)
             downstream_edges = (await session.exec(s)).all()
-        case ManifestKind.grouped_step:
+        case ManifestKind.grouped_step | ManifestKind.step:
             # node_1 should become adjacent to the next nodes in node_0's path
             # that are not a group or a collect node.
             # this ORM statement forms a recursive CTE for traversing a graph
@@ -389,7 +389,7 @@ async def append_node_to_graph(
             # want to append.
             s = select(Edge).with_for_update().where(Edge.source == downstream_edge.source)
             downstream_edges = (await session.exec(s)).all()
-        case ManifestKind.start | ManifestKind.end:
+        case ManifestKind.breakpoint | ManifestKind.start | ManifestKind.end:
             # node_1 may not become adjacent to these kinds of nodes; this is
             # not a default, this is a specific implementation decision.
             raise NotImplementedError
