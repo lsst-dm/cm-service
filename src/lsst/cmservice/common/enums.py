@@ -312,6 +312,7 @@ class ManifestKind(enum.Enum):
     grouped_step = enum.auto()
     step_group = enum.auto()
     collect_groups = enum.auto()
+    breakpoint = enum.auto()
     end = enum.auto()
     # Legacy kinds
     specification = enum.auto()
