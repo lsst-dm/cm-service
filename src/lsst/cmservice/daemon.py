@@ -48,7 +48,11 @@ async def main_loop(app: FastAPI) -> None:
     """
     sleep_time = config.daemon.processing_interval
 
-    session = await anext(db_session_dependency())
+    if db_session_dependency.sessionmaker is None:
+        raise RuntimeError("Database SessionMaker is not ready!")
+
+    session = db_session_dependency.sessionmaker()
+
     logger.info("Starting Daemon...")
     _iteration_count = 0
 
