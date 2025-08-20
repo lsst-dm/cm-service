@@ -21,6 +21,7 @@ class Features(IntFlag):
     WEBAPP_V1 = auto()
     STORE_FSM = auto()
     ALLOW_TASK_UPSERT = auto()
+    MOCK_BUTLER = auto()
 
 
 class EnabledFeatures(BaseSettings):
