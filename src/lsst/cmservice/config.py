@@ -106,11 +106,6 @@ class ButlerConfiguration(BaseModel):
         default=True,
     )
 
-    mock: bool = Field(
-        description="Whether to mock out Butler calls.",
-        default=False,
-    )
-
 
 class HipsConfiguration(BaseModel):
     """Configuration settings for HiPS operations.

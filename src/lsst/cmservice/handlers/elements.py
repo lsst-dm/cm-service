@@ -10,6 +10,7 @@ from anyio import to_thread
 from ..common.butler import BUTLER_FACTORY
 from ..common.enums import StatusEnum
 from ..common.errors import CMMissingScriptInputError, test_type_and_raise
+from ..common.flags import Features
 from ..common.logging import LOGGER
 from ..config import config
 from ..db.campaign import Campaign
@@ -224,7 +225,7 @@ class SplitByQuery(Splitter):
         split_dataset = kwargs["split_dataset"]
         split_min_groups = kwargs.get("split_min_groups", 1)
         split_max_group_size = kwargs.get("split_max_group_size", 100000000)
-        mock_butler: bool = kwargs.get("fake_status", config.butler.mock)
+        mock_butler: bool = kwargs.get("fake_status", Features.MOCK_BUTLER in config.features.enabled)
         if mock_butler:
             sorted_field_values = np.arange(10)
         else:
