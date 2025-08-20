@@ -481,11 +481,6 @@ class DaemonConfiguration(BaseModel):
     Set according to DAEMON__FIELD environment variables.
     """
 
-    allocate_resources: bool = Field(
-        default=False,
-        description="Whether the daemon should try to allocate its own htcondor or slurm resources.",
-    )
-
     processing_interval: int = Field(
         default=30,
         description=(
