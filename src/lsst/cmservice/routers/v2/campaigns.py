@@ -6,8 +6,9 @@ representing campaign objects within CM-Service.
 
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Annotated, Literal, cast
-from uuid import UUID, uuid4, uuid5
+from uuid import UUID, uuid5
 
+from asgi_correlation_id import correlation_id
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Path, Query, Request, Response
 from pydantic import UUID5
 from sqlalchemy.dialects.postgresql import INTEGER
@@ -282,8 +283,8 @@ async def update_campaign_resource(
     # If the patch data is requesting a status change, we will not affect that
     # directly, but defer it to a background task
     if patch_data.status is not None:
-        # TODO implement middleware to assign a request_id to every request
-        request_id = uuid4()
+        if (request_id := correlation_id.get()) is None:
+            raise HTTPException(status_code=500, detail="Cannot patch resource without a X-Request-Id")
         background_tasks.add_task(change_campaign_state, campaign, patch_data.status, request_id)
         # FIXME does this URL need to be campaign-scoped or does a general
         #       activity log URL make sense?

@@ -1,5 +1,6 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from uuid import uuid4
 
 import uvicorn
 from asgi_correlation_id import CorrelationIdMiddleware
@@ -52,7 +53,7 @@ app = FastAPI(
 )
 
 app.add_middleware(LoggingMiddleware)
-app.add_middleware(CorrelationIdMiddleware)
+app.add_middleware(CorrelationIdMiddleware, generator=lambda: str(uuid4()))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
