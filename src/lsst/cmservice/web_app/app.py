@@ -1,11 +1,9 @@
-import logging
 import traceback
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated
 
-import structlog
 from fastapi import APIRouter, Depends, FastAPI, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -15,6 +13,7 @@ from safir.dependencies.http_client import http_client_dependency
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from lsst.cmservice.common.enums import LevelEnum
+from lsst.cmservice.common.logging import LOGGER
 from lsst.cmservice.web_app.pages.campaigns import get_all_campaigns, get_campaign_details, search_campaigns
 from lsst.cmservice.web_app.pages.group_details import get_group_by_id
 from lsst.cmservice.web_app.pages.job_details import get_job_by_id
@@ -63,8 +62,7 @@ router = APIRouter(
 )
 
 
-structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(logging.INFO))
-logger = structlog.get_logger()
+logger = LOGGER.bind(module=__name__)
 
 web_app.mount("/static", StaticFiles(directory=str(Path(BASE_DIR, "static"))), name="static")
 
