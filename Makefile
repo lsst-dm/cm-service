@@ -27,8 +27,7 @@ clean:
 	rm -rf $(PY_VENV)
 	rm -f test_cm.db
 	rm -rf ./output
-	find src -type d -name '__pycache__' | xargs rm -rf
-	find tests -type d -name '__pycache__' | xargs rm -rf
+	find . -type d -name '__pycache__' | xargs rm -rf
 
 .PHONY: update-deps
 update-deps:
@@ -84,7 +83,10 @@ lint:
 
 .PHONY: typing
 typing:
-	mypy src tests
+	mypy -p lsst.cmservice.core -p lsst.cmservice.api -p lsst.cmservice.client
+	mypy packages/cm-core/tests
+	mypy packages/cm-client-cli/tests
+	mypy packages/cm-api/tests
 
 
 #------------------------------------------------------------------------------
@@ -111,7 +113,9 @@ test: export DB__TABLE_SCHEMA=cm_service_test
 test: export BPS__ARTIFACT_PATH=$(PWD)/output
 test: run-compose
 	alembic upgrade head
-	pytest -vvv --asyncio-mode=auto --cov=lsst.cmservice --cov-branch --cov-report=term --cov-report=html ${PYTEST_ARGS}
+	uv run --package lsst-cmservice-core pytest packages/cm-core/tests ${PYTEST_ARGS}
+	uv run --package lsst-cmservice-api pytest packages/cm-api/tests ${PYTEST_ARGS}
+	uv run --package lsst-cmservice-client-cli pytest packages/cm-client-cli/tests ${PYTEST_ARGS}
 
 .PHONY: run
 run: PGPORT=$(shell docker compose port postgresql 5432 | cut -d: -f2)
@@ -120,7 +124,7 @@ run: export DB__PASSWORD=INSECURE-PASSWORD
 run: export DB__ECHO=true
 run: run-compose
 	alembic upgrade head
-	python3 -m lsst.cmservice.main
+	python3 -m lsst.cmservice.api.main
 
 .PHONY: run-worker
 run-worker: PGPORT=$(shell docker compose port postgresql 5432 | cut -d: -f2)
@@ -129,7 +133,7 @@ run-worker: export DB__PASSWORD=INSECURE-PASSWORD
 run-worker: export DB__ECHO=true
 run-worker: run-compose
 	alembic upgrade head
-	python3 -m lsst.cmservice.daemon
+	python3 -m lsst.cmservice.api.daemon
 
 .PHONY: migrate
 migrate: export PGUSER=cm-service
@@ -168,7 +172,7 @@ run-usdf-dev: export DB__URL=postgresql://cm-service@${DB__HOST}:5432/cm-service
 run-usdf-dev: export DB__PASSWORD=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get secret/cm-pg-app -o jsonpath='{.data.password}' | base64 --decode)
 run-usdf-dev: export DB__ECHO=true
 run-usdf-dev:
-	python3 -m lsst.cmservice.main
+	python3 -m lsst.cmservice.api.main
 
 get-env-%: DB__HOST=$(shell kubectl --cluster=$* -n cm-service get svc/cm-pg-lb -o jsonpath='{..ingress[0].ip}')
 get-env-%: export DB__URL=postgresql://cm-servicer@${DB__HOST}:5432/cm-service

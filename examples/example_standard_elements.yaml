@@ -4,7 +4,7 @@
 # Job Template, runs a single workflow, checks on the status, upload bps and pipetask reports
 - SpecBlock:
     name: job
-    handler: lsst.cmservice.handlers.job_handler.JobHandler
+    handler: lsst.cmservice.api.handlers.job_handler.JobHandler
     collections:
       # This is that RUN collection produced by bps
       job_run: "{out}/{step}/{group}/{job}"
@@ -36,7 +36,7 @@
 # Group Template, runs a group, hopefully using a single job to do so
 - SpecBlock:
     name: group
-    handler: lsst.cmservice.handlers.element_handler.ElementHandler
+    handler: lsst.cmservice.api.handlers.element_handler.ElementHandler
     collections:
       group_output: "{out}/{step}/{group}"
       group_validation: "{out}/{step}/{group}/validate"
@@ -50,7 +50,7 @@
 # This will prepare the step by chaining the correct inputs, create and run the groups, and collect the outputs
 - SpecBlock:
     name: step
-    handler: lsst.cmservice.handlers.element_handler.ElementHandler
+    handler: lsst.cmservice.api.handlers.element_handler.ElementHandler
     collections:
       step_input: "{out}/{step}/input"
       step_output: "{out}/{step}_output"
@@ -88,7 +88,7 @@
 # Note that the steps are not defined here.
 - SpecBlock:
     name: base_campaign
-    handler: lsst.cmservice.handlers.element_handler.CampaignHandler
+    handler: lsst.cmservice.api.handlers.element_handler.CampaignHandler
     collections:
       out: MUST_OVERRIDE
       campaign_source: MUST_OVERRIDE
@@ -157,7 +157,7 @@
 # Note that the steps are not defined here.
 - SpecBlock:
     name: base_campaign_fixed_input
-    handler: lsst.cmservice.handlers.element_handler.CampaignHandler
+    handler: lsst.cmservice.api.handlers.element_handler.CampaignHandler
     collections:
       out: MUST_OVERRIDE
       campaign_input: MUST_OVERRIDE
@@ -195,7 +195,7 @@
 # Campaign template for base campaign+hips maps
 - SpecBlock:
     name: base_campaign+hips
-    handler: lsst.cmservice.handlers.element_handler.CampaignHandler
+    handler: lsst.cmservice.api.handlers.element_handler.CampaignHandler
     collections:
       out: MUST_OVERRIDE
       campaign_source: MUST_OVERRIDE
@@ -273,7 +273,7 @@
 # Note that the steps are not defined here.
 - SpecBlock:
     name: base_campaign_fixed_input+hips
-    handler: lsst.cmservice.handlers.element_handler.CampaignHandler
+    handler: lsst.cmservice.api.handlers.element_handler.CampaignHandler
     collections:
       out: MUST_OVERRIDE
       campaign_input: MUST_OVERRIDE

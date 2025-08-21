@@ -5,6 +5,7 @@
 !pyproject.toml
 !uv.lock
 !alembic.ini
-!src/lsst/
+!packages/*/src/lsst/
+!packages/*/pyproject.toml
 !examples/
 !alembic/

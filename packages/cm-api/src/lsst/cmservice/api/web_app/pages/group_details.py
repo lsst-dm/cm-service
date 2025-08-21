@@ -1,0 +1,123 @@
+from typing import Any
+
+from sqlalchemy import select
+
+from lsst.cmservice.api.web_app.utils.utils import map_status
+from lsst.cmservice.core.common.types import AnyAsyncSession
+from lsst.cmservice.core.db import Group, NodeMixin
+
+
+async def get_group_by_id(
+    session: AnyAsyncSession,
+    group_id: int,
+    campaign_id: int | None = None,
+    step_id: int | None = None,
+) -> tuple[dict[str, Any] | None, list[dict[Any, Any]] | None, list[dict[Any, Any]] | None]:
+    q = select(Group).where(Group.id == group_id)
+    async with session.begin_nested():
+        results = await session.scalars(q)
+        group = results.first()
+
+        group_details = None
+        jobs = None
+        scripts = None
+
+        if group is not None:
+            if campaign_id is None:
+                campaign = await group.get_campaign(session)
+                c_id = campaign.id
+            s_id = group.parent_id if step_id is None else step_id
+
+            wms_reports_dict = await group.get_wms_reports(session)
+            wms_report = [y.__dict__ for y in wms_reports_dict.reports.values()]
+
+            aggregated_report_dict = {
+                "running": 0,
+                "succeeded": 0,
+                "failed": 0,
+                "pending": 0,
+                "other": 0,
+                "expected": 0,
+            }
+
+            if len(wms_report) > 0:
+                aggregated_report_dict["succeeded"] = sum(task["n_succeeded"] for task in wms_report)
+                aggregated_report_dict["failed"] = sum(task["n_failed"] for task in wms_report)
+                aggregated_report_dict["running"] = sum(task["n_running"] for task in wms_report)
+                aggregated_report_dict["pending"] = sum(
+                    (task["n_pending"] + task["n_ready"]) for task in wms_report
+                )
+                aggregated_report_dict["other"] = sum(
+                    (
+                        task["n_unknown"]
+                        + task["n_misfit"]
+                        + task["n_unready"]
+                        + task["n_deleted"]
+                        + task["n_pruned"]
+                        + task["n_held"]
+                    )
+                    for task in wms_report
+                )
+
+                aggregated_report_dict["expected"] = sum(aggregated_report_dict.values())
+
+            collections = await group.resolve_collections(session, throw_overrides=False)
+            jobs = await get_group_jobs(session, group)
+            scripts = await get_group_scripts(session, group)
+            group_details = {
+                "id": group.id,
+                "name": group.name,
+                "fullname": group.fullname,
+                "superseded": group.superseded,
+                "status": map_status(group.status),
+                "org_status": {"name": group.status.name, "value": group.status.value},
+                "data": group.data,
+                "collections": {key: collections[key] for key in collections if key.startswith("group_")},
+                "child_config": group.child_config,
+                "wms_report": wms_report,
+                "aggregated_wms_report": aggregated_report_dict,
+                "step_id": s_id,
+                "campaign_id": c_id,
+                "level": group.level.value,
+            }
+
+        return group_details, jobs, scripts
+
+
+async def get_group_jobs(session: AnyAsyncSession, group: Group) -> list[dict]:
+    jobs = await group.children(session)
+    return [
+        {
+            "id": job.id,
+            "name": job.name,
+            "superseded": job.superseded,
+            "status": f"{map_status(job.status)} - {job.status.name.upper()}",
+            "data": job.data,
+            "submit_status": "Submitted" if job.wms_job_id is not None else "",
+            "submit_url": job.wms_job_id
+            if (job.wms_job_id is not None and not job.wms_job_id.isnumeric())
+            else "",
+            "stamp_url": job.stamp_url,
+        }
+        for job in jobs
+    ]
+
+
+async def get_group_scripts(session: AnyAsyncSession, group: Group) -> list[dict]:
+    scripts = await group.get_scripts(session)
+    return [
+        {
+            "id": script.id,
+            "name": script.name,
+            "fullname": script.fullname,
+            "superseded": script.superseded,
+            "status": str(script.status.name).upper(),
+            "log_url": script.log_url,
+        }
+        for script in scripts
+    ]
+
+
+async def get_group_node(session: AnyAsyncSession, group_id: int) -> NodeMixin:
+    group = await Group.get_row(session, group_id)
+    return group

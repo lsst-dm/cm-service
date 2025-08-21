@@ -1,6 +1,3 @@
-# Run PostgreSQL for testing with a local development server.
-# This is used by make run, which starts cm-service in the foreground.
-
 name: "${USER}-cm-service"
 services:
   migratedb:

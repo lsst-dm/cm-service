@@ -21,7 +21,7 @@ fi
 
 UV_OS="$(uname -s)"
 UV_ARCH="$(uname -m)"
-UV_VERSION="0.5.18"
+UV_VERSION="0.8.4"
 UV_RELEASE="https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-${UV_ARCH}-unknown-linux-gnu.tar.gz"
 XDG_BIN_HOME=${XDG_BIN_HOME:-$HOME/.local/bin}
 XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}

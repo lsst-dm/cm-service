@@ -1,0 +1,14 @@
+Campaign:
+  name: tobyj_hsc_micro_b
+  spec_name: hsc_micro_htcondor
+  collections:
+    out: u/tobyj/DM-49899/micro_b
+    campaign_source: HSC/raw/RC2
+    campaign_ancillary_inputs: "HSC/calib,HSC/masks,HSC/fgcmcal/lut/RC2,refcats,skymaps"
+  data:
+    compute_site: usdf
+    lsst_version: w_2025_15
+    lsst_distrib_dir: /cvmfs/sw.lsst.eu/almalinux-x86_64/lsst_distrib
+    prod_area: /sdf/group/rubin/shared/campaigns/users/usdf-cm-dev
+    butler_repo: "/repo/main"
+    data_query: "instrument = 'HSC' AND exposure in (30504, 30502) AND detector in (45, 46, 47, 48)"

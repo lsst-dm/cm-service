@@ -1,0 +1,33 @@
+import pytest
+from pydantic import BaseModel, ValidationError
+
+from lsst.cmservice.core.common.enums import ManifestKind, StatusEnum
+from lsst.cmservice.core.common.types import KindField, StatusField
+
+
+class FakeModel(BaseModel):
+    status: StatusField
+    kind: KindField
+
+
+def test_validators() -> None:
+    """Test model field enum validators."""
+    # test enum validation by name and value
+    x = FakeModel(status=0, kind="campaign")
+    assert x.status is StatusEnum.waiting
+    assert x.kind is ManifestKind.campaign
+
+    # test bad input (wrong name)
+    with pytest.raises(ValidationError):
+        x = FakeModel(status="bad", kind="edge")
+
+    # test bad input (bad value)
+    with pytest.raises(ValidationError):
+        x = FakeModel(status="waiting", kind=99)
+
+
+def test_serializers() -> None:
+    x = FakeModel(status="accepted", kind="node")
+    y = x.model_dump()
+    assert y["status"] == "accepted"
+    assert y["kind"] == "node"
