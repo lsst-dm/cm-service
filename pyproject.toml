@@ -19,6 +19,10 @@ classifiers = [
 requires-python = ">=3.12,<3.13"
 dynamic = ["version"]
 
+[project.urls]
+Homepage = "https://cm-service.lsst.io"
+Source = "https://github.com/lsst-dm/cm-service"
+
 dependencies = [
     "lsst-cmservice-api",
     "lsst-cmservice-client-cli",
@@ -175,3 +179,46 @@ add-ignore = [
     # To avoid all the pydantic config class giving errors
     "D106",
 ]
+
+[tool.semantic_release]
+version_variables = [
+    "src/lsst/cmservice/__init__.py:__version__",
+    "packages/cm-core/src/lsst/cmservice/core/__init__.py:__version__",
+    "packages/cm-api/src/lsst/cmservice/api/__init__.py:__version__",
+    "packages/cm-client-cli/src/lsst/cmservice/client/__init__.py:__version__",
+]
+commit_author = {env = "GIT_COMMIT_AUTHOR"}
+tag_format = "{version}"
+
+[tool.semantic_release.branches.main]
+match = "main"
+prerelease = false
+
+# A Ticketed release branch
+[tool.semantic_release.branches.release]
+match = "^tickets/DM-\\d+(.*)/release$"
+prerelease = false
+
+# A non-ticketed release branch
+[tool.semantic_release.branches.bugfix]
+match = "^release/\\d+.\\d+.\\d+$"
+prerelease = false
+
+[tool.semantic_release.branches.ticket]
+match = "^tickets/DM-\\d+(.*)$"
+prerelease_token = "rc"
+prerelease = true
+
+[tool.semantic_release.branches.user]
+match = "^u/(.*)/(.*)$"
+prerelease_token = "alpha"
+prerelease = true
+
+[tool.semantic_release.changelog]
+
+[tool.semantic_release.publish]
+upload_to_vcs_release = false
+
+[tool.semantic_release.remote]
+name = "origin"
+type = "github"

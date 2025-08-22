@@ -5,6 +5,7 @@
   - `feat`: indicates a `minor` version bump.
   - `fix`: indicates a `patch` version bump.
   - `BREAKING CHANGE:` in the commit message body indicates a `major` version bump.
+- Please scope commits to specific packages, e.g., `feat(core): add new feature`.
 - Please rebase commits in branches to the minimum necessary. Bugfix commmits (`fix: ...`) should be standalone and focused
   commits that can be back-ported to other branches via cherry-picking.
 
@@ -21,6 +22,7 @@ Releases are performed at an unspecified cadence, to be no shorter than 1 week a
 - Each release will increment the minor version and set the patch level to 0, e.g., `1.0.12` -> `1.1.0`
 - If a bugfix commit in the trunk needs to be added to a release, then a retroactive branch will be created from the affected release tag; any fix commits are cherry-picked into the release branch and a new tag is written with an incremented patch level, e.g., `1.23.0` -> `1.23.1`. This release branch is never merged to `main` (trunk) but is kept for subsequent cherry-picked fixes.
 - The major version is incremented only in the presence of user-facing breaking changes.
+- For convenience, all workspace member packages are versioned together.
 
 This project uses `python-semantic-release` to manage releases. A release may be triggered by any ticket branch
 being merged into `main`. A release must increment the application version according to semantic versioning (i.e.,
