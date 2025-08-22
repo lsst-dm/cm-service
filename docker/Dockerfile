@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 ARG PYTHON_VERSION="3.12"
-ARG UV_VERSION="0.7"
+ARG UV_VERSION="0.8"
 ARG ASGI_PORT="8080"
 
 #==============================================================================
@@ -81,12 +81,17 @@ COPY . .
 # Install project production dependency graph in /opt/venv
 RUN --mount=type=cache,target=/root/.cache/uv <<ENDRUN
     set -e
-    /bin/uv sync --no-group dev --no-install-project --no-editable
+    /bin/uv sync --no-group dev --no-install-workspace --no-editable
 ENDRUN
 
+# Install workspace package in /opt/venv
+RUN --mount=type=cache,target=/root/.cache/uv <<ENDRUN
+    set -e
+    /bin/uv sync --package lsst-cmservice-api --no-editable
+ENDRUN
 
 #==============================================================================
-# RUNTIME IMAGE - CM-Service
+# RUNTIME IMAGE - CM-Service API Server
 FROM base-image AS cmservice
 
 # Make sure frontend output won't go into the layer store
@@ -104,12 +109,11 @@ WORKDIR /home/lsstsvc1
 # Copy the application and examples
 ENV CM_CONFIGS=/home/lsstsvc1/examples
 COPY examples ./examples
-COPY src/lsst ./lsst
 COPY alembic ./alembic
 COPY alembic.ini .
 
 ENTRYPOINT ["/opt/venv/bin/python3", "-m"]
-CMD ["lsst.cmservice.main"]
+CMD ["lsst.cmservice.api.main"]
 
 
 #==============================================================================
@@ -120,4 +124,4 @@ USER ROOT
 COPY --from=htcondor /opt/htcondor /opt/htcondor
 
 USER lsstsvc1
-CMD ["lsst.cmservice.daemon"]
+CMD ["lsst.cmservice.api.daemon"]

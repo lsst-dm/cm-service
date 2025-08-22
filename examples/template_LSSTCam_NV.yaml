@@ -186,103 +186,103 @@ Campaign:
 # define the null Script
 - SpecBlock:
     name: null_script
-    handler: lsst.cmservice.handlers.scripts.NullScriptHandler
+    handler: lsst.cmservice.api.handlers.scripts.NullScriptHandler
 # create an empty CHAINED collection
 - SpecBlock:
     name: chain_create_script
-    handler: lsst.cmservice.handlers.scripts.ChainCreateScriptHandler
+    handler: lsst.cmservice.api.handlers.scripts.ChainCreateScriptHandler
 # prepend to a CHAINED collection
 - SpecBlock:
     name: chain_prepend_script
-    handler: lsst.cmservice.handlers.scripts.ChainPrependScriptHandler
+    handler: lsst.cmservice.api.handlers.scripts.ChainPrependScriptHandler
 # collect Job RUN collections into a CHAINED collection
 - SpecBlock:
     name: chain_collect_jobs_script
-    handler: lsst.cmservice.handlers.scripts.ChainCollectScriptHandler
+    handler: lsst.cmservice.api.handlers.scripts.ChainCollectScriptHandler
     data:
       collect: jobs
 # collect Step CHAINED collections into a CHAINED collections
 - SpecBlock:
     name: chain_collect_steps_script
-    handler: lsst.cmservice.handlers.scripts.ChainCollectScriptHandler
+    handler: lsst.cmservice.api.handlers.scripts.ChainCollectScriptHandler
     data:
       collect: steps
 # make a TAGGED collection with a query
 - SpecBlock:
     name: tag_inputs_script
-    handler: lsst.cmservice.handlers.scripts.TagInputsScriptHandler
+    handler: lsst.cmservice.api.handlers.scripts.TagInputsScriptHandler
 # make an empty TAGGED collection
 - SpecBlock:
     name: tag_create_script
-    handler: lsst.cmservice.handlers.scripts.TagCreateScriptHandler
+    handler: lsst.cmservice.api.handlers.scripts.TagCreateScriptHandler
 # add datasets to an existing TAGGED collection
 - SpecBlock:
     name: tag_associate_script
-    handler: lsst.cmservice.handlers.scripts.TagAssociateScriptHandler
+    handler: lsst.cmservice.api.handlers.scripts.TagAssociateScriptHandler
 # Prepare a step by making an input collection
 - SpecBlock:
     name: prepare_step_script
-    handler: lsst.cmservice.handlers.scripts.PrepareStepScriptHandler
+    handler: lsst.cmservice.api.handlers.scripts.PrepareStepScriptHandler
     collections:
       global_inputs: ["{campaign_input}"]
 # Run a validation script (probably a query into sasquatch)
 - SpecBlock:
     name: validate_script
-    handler: lsst.cmservice.handlers.scripts.ValidateScriptHandler
+    handler: lsst.cmservice.api.handlers.scripts.ValidateScriptHandler
 # Run a bps submit script
 - SpecBlock:
     name: bps_panda_submit_script
-    handler: lsst.cmservice.handlers.jobs.PandaScriptHandler
+    handler: lsst.cmservice.api.handlers.jobs.PandaScriptHandler
     data:
       bps_wms_yaml_file: "${CTRL_BPS_PANDA_DIR}/config/bps_usdf.yaml"
 # Run a bps report script
 - SpecBlock:
     name: bps_panda_report_script
-    handler: lsst.cmservice.handlers.jobs.PandaReportHandler
+    handler: lsst.cmservice.api.handlers.jobs.PandaReportHandler
 # Run a htcondor submit script
 - SpecBlock:
     name: bps_htcondor_submit_script
-    handler: lsst.cmservice.handlers.jobs.HTCondorScriptHandler
+    handler: lsst.cmservice.api.handlers.jobs.HTCondorScriptHandler
     data:
       notify_on_start: true
 # Run a bps report script
 - SpecBlock:
     name: bps_htcondor_report_script
-    handler: lsst.cmservice.handlers.jobs.HTCondorReportHandler
+    handler: lsst.cmservice.api.handlers.jobs.HTCondorReportHandler
 # Run a manifest checker report script
 - SpecBlock:
     name: manifest_report_script
-    handler: lsst.cmservice.handlers.jobs.ManifestReportScriptHandler
+    handler: lsst.cmservice.api.handlers.jobs.ManifestReportScriptHandler
 # Load a manifest checker report script
 - SpecBlock:
     name: manifest_report_load
-    handler: lsst.cmservice.handlers.jobs.ManifestReportLoadHandler
+    handler: lsst.cmservice.api.handlers.jobs.ManifestReportLoadHandler
 # Create and run Jobs associated to a Group
 - SpecBlock:
     name: run_jobs
-    handler: lsst.cmservice.handlers.elements.RunJobsScriptHandler
+    handler: lsst.cmservice.api.handlers.elements.RunJobsScriptHandler
 # Create and run Groups associated to a Step
 - SpecBlock:
     name: run_groups
-    handler: lsst.cmservice.handlers.elements.RunGroupsScriptHandler
+    handler: lsst.cmservice.api.handlers.elements.RunGroupsScriptHandler
 # Create and run Steps associated to a Campaign
 - SpecBlock:
     name: run_steps
-    handler: lsst.cmservice.handlers.elements.RunStepsScriptHandler
+    handler: lsst.cmservice.api.handlers.elements.RunStepsScriptHandler
 # Run a campaign resource usage script
 - SpecBlock:
     name: resource_usage_script
-    handler: lsst.cmservice.handlers.scripts.ResourceUsageScriptHandler
+    handler: lsst.cmservice.api.handlers.scripts.ResourceUsageScriptHandler
 # Run a script to generate HIPS maps
 - SpecBlock:
     name: hips_maps_script
-    handler: lsst.cmservice.handlers.scripts.HipsMapsScriptHandler
+    handler: lsst.cmservice.api.handlers.scripts.HipsMapsScriptHandler
 ---
 # COMMON SPECBLOCKS for ELEMENTS
 # Job Template, runs a single workflow, checks on the status, upload bps and pipetask reports
 - SpecBlock:
     name: job
-    handler: lsst.cmservice.handlers.job_handler.JobHandler
+    handler: lsst.cmservice.api.handlers.job_handler.JobHandler
     collections:
       # This is that RUN collection produced by bps
       job_run: "{out}/{step}/{group}/{job}"
@@ -314,7 +314,7 @@ Campaign:
 # Group Template, runs a group, hopefully using a single job to do so
 - SpecBlock:
     name: group
-    handler: lsst.cmservice.handlers.element_handler.ElementHandler
+    handler: lsst.cmservice.api.handlers.element_handler.ElementHandler
     collections:
       group_output: "{out}/{step}/{group}"
       group_validation: "{out}/{step}/{group}/validate"
@@ -328,7 +328,7 @@ Campaign:
 # This will prepare the step by chaining the correct inputs, create and run the groups, and collect the outputs
 - SpecBlock:
     name: step
-    handler: lsst.cmservice.handlers.element_handler.ElementHandler
+    handler: lsst.cmservice.api.handlers.element_handler.ElementHandler
     collections:
       step_input: "{out}/{step}/input"
       step_output: "{out}/{step}_output"
@@ -365,7 +365,7 @@ Campaign:
 # Note that the steps are not defined here.
 - SpecBlock:
     name: base_campaign
-    handler: lsst.cmservice.handlers.element_handler.CampaignHandler
+    handler: lsst.cmservice.api.handlers.element_handler.CampaignHandler
     data:
       lsst_distrib_dir: /cvmfs/sw.lsst.eu/almalinux-x86_64/lsst_distrib/
     collections:

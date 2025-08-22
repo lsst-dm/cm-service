@@ -68,11 +68,17 @@ Additional developer conveniences:
 
 ## Project Management
 
-* `uv add <dependency>` will add a dependency to the project; `uv add --group dev ...` will mark it as
+CM-Service is constructed as a collection of independent but inter-dependent *workspace* members.
+Each workspace member has its own project directory inthe `packages/` directory.
+Each workspace member project includes a `pyproject.toml` and `src/` and `tests/` directories.
+Each member's `pyproject.toml` defines dependencies for the specific workspace project, which may include *other* workspace members.
+As a convience, all `dev` group dependencies are specified in a single dependency group in the *root* project workspace.
+
+* `uv add --project <project> <dependency>` will add a dependency to the `project`; `uv add --group dev ...` will mark it as
    a development dependency.
 
 * `make update` will cause `uv` to upgrade all available dependencies within the constraints set for
-  the dependency in the `pyproject.toml` file.
+  the dependency in any workspace `pyproject.toml` file.
 
 * `uv run <cmd>` will execute `<cmd>` within the project environment, which is useful for cases where
   the virtual environment is not activated.
@@ -85,3 +91,11 @@ Additional developer conveniences:
 
 * `uv` uses a global package cache for speed and efficiency; you manage this cache with `uv cache prune` or
   `uv cache clean` for the nuclear option.
+
+* `uv build --all-packages` can be used to produce wheel files for all the workspace member packages, but this is generally not necessary to build the project or use its tools. No component of this project is published to pypi or other package registries, but it may be included in other projects if needed using standard Github URL dependency specifications.
+
+### Typing
+This project is governed by the `mypy` static type checker, either by calling `make typing` or by CI.
+Other type checkers may be incidentally applied to the project, such as `pyright` (especially via the VS Code Python extention), but for the most part action is not taken to satisfy any type checker other than `mypy`.
+
+Each workspace member project has a `py.typed` marker file indicating its typed status.
