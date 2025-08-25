@@ -11,8 +11,12 @@ pytestmark = pytest.mark.asyncio(loop_scope="module")
 
 async def test_list_campaigns(aclient: AsyncClient) -> None:
     """Tests listing the set of all campaigns."""
-    # initially, only the default campaign should be available.
+    # initially, only the default campaign should be available, which is hidden
+    # from view via this api
     x = await aclient.get("/cm-service/v2/campaigns")
+    assert len(x.json()) == 0
+
+    x = await aclient.get("/cm-service/v2/campaigns", headers={"CM-Admin-View": "true"})
     assert len(x.json()) == 1
 
 
@@ -80,6 +84,7 @@ async def test_negative_campaign(aclient: AsyncClient) -> None:
 
 
 async def test_create_campaign(aclient: AsyncClient) -> None:
+    """Tests the campaign creation API"""
     campaign_name = uuid4().hex[-8:]
 
     # Test successful campaign creation
@@ -123,6 +128,7 @@ async def test_create_campaign(aclient: AsyncClient) -> None:
 
 
 async def test_patch_campaign(aclient: AsyncClient, caplog: pytest.LogCaptureFixture) -> None:
+    """Tests the campaign update API"""
     # Create a new campaign with spec data
     campaign_name = uuid4().hex[-8:]
     x = await aclient.post(

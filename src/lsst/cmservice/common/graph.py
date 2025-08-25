@@ -1,9 +1,13 @@
 from collections.abc import Iterable, Mapping, MutableSet, Sequence
-from typing import Literal
-from uuid import UUID
+from typing import TYPE_CHECKING, Literal
+from uuid import UUID, uuid4, uuid5
 
 import networkx as nx
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
+from ..common.enums import ManifestKind
+from ..common.timestamp import element_time
 from ..db import Script, ScriptDependency, Step, StepDependency
 from ..db.campaigns_v2 import Edge, Node
 from ..parsing.string import parse_element_fullname
@@ -80,10 +84,11 @@ async def graph_from_edge_list_v2(
             # data attached to the node and ensure that this data is json-
             # serializable and otherwise appropriate for an API response
             g.nodes[node]["uuid"] = str(db_node.id)
+            g.nodes[node]["name"] = db_node.name
             g.nodes[node]["status"] = db_node.status.name
             g.nodes[node]["kind"] = db_node.kind.name
             g.nodes[node]["version"] = db_node.version
-            relabel_mapping[node] = db_node.name
+            relabel_mapping[node] = f"{db_node.name}.{db_node.version}"
         else:
             g.nodes[node]["model"] = db_node
 
@@ -102,7 +107,7 @@ def graph_to_dict(g: nx.DiGraph) -> Mapping:
     The "edges" attribute name in the node link data is "edges" instead of the
     default "links".
     """
-    return nx.node_link_data(g, edges="edges")
+    return nx.node_link_data(g, edges="edges")  # pyright: ignore[reportCallIssue]
 
 
 def validate_graph(g: nx.DiGraph, source: UUID | str = "START", sink: UUID | str = "END") -> bool:
@@ -179,7 +184,9 @@ def processable_graph_nodes(g: nx.DiGraph) -> Iterable[Node]:
     for path in nx.all_simple_paths(g, source, sink):
         for n in path:
             node: Node = g.nodes[n]["model"]
-            if node.status.is_processable_element():
+            # A "script" considers "reviewable" a terminal status; nodes share
+            # this opinion.
+            if node.status.is_processable_script():
                 processable_nodes.add(node)
                 # We found a processable node in this path, stop traversal
                 break
@@ -192,3 +199,252 @@ def processable_graph_nodes(g: nx.DiGraph) -> Iterable[Node]:
 
     # the inspection should stop when there are no more nodes to check
     yield from processable_nodes
+
+
+async def insert_node_to_graph(
+    node_0: UUID,
+    node_1: UUID,
+    *,
+    namespace: UUID,
+    session: AsyncSession | None = None,
+    commit: bool = True,
+) -> None:
+    """Apply an insert operation to a graph by adding a new node_1 immediately
+    adjacent to node_0 where all downstream node_0 edges are moved to node_1.
+
+    ```
+    A --> B  becomes  A --> X --> B
+
+    A --> B  becomes A --> X --> B
+      `-> C                  `-> C
+    ```
+    """
+    if TYPE_CHECKING:
+        assert session is not None
+
+    s = select(Edge).with_for_update().where(Edge.source == node_0)
+    adjacent_edges = (await session.exec(s)).all()
+
+    # Move all the adjacent edges from node_0 to node_1
+    for edge in adjacent_edges:
+        edge.source = node_1
+        edge.metadata_["mtime"] = element_time()
+
+    # Make node_0 and node_1 adjacent
+    new_adjacency_name = uuid4()
+    new_adjacency = Edge(
+        id=uuid5(namespace, new_adjacency_name.bytes),
+        name=new_adjacency_name.hex,
+        namespace=namespace,
+        source=node_0,
+        target=node_1,
+    )
+    session.add(new_adjacency)
+    if commit:
+        await session.commit()
+
+
+async def append_node_to_graph(
+    node_0: UUID,
+    node_1: UUID,
+    *,
+    namespace: UUID,
+    session: AsyncSession | None = None,
+    commit: bool = True,
+) -> None:
+    """Apply an append operation to a graph by adding a new node_1 parallel
+    to an existing node_0 where all adjacencies are copied to node_1.
+
+    ```
+    A --> B --> C  becomes  A --> B --> C
+                              `-> X -/
+    ```
+
+    This behavior is appropriate for the common use case of adding group nodes
+    in parallel to an "anchor" group node, such as the case where "B" was added
+    to the graph as an "insert" and it is known that additional nodes must be
+    parallel to it.
+
+    Different contexts with different kinds of "anchor" nodes for this op
+    require a different algorithm, for example the case of adding a "Step" node
+    in parallel with an existing "Step" node that has already prepared its
+    groups -- the new node should not form adjacencies with those groups!
+
+    ```
+    A --> B --> B1 --> Bx --> C
+            `-> B2 -/
+    ```
+
+    In this case, appending a node X to B where Bn are its groups and Bx is its
+    collect-step, X should be adjacent to C, not to B1 and B2:
+
+    ```
+    A ---> B --> B1 ---> Bx --> C
+      `      `-> B2 -/      /
+       `-> X --------------/
+    ```
+
+    In this case, when determining the "downstream edges" to inherit for the
+    new node X, nodes of kind "group" and "collect" should be invisible to the
+    algorithm.
+
+    Other contexts may be unsupported or meaningless to the application, in
+    which case the append request should abend with an error or a warning along
+    with a no-op.
+
+    For example, appending a node to a "collect-step" is not a meaningful oper-
+    ation because there should only ever be one node adjacent to a set of group
+    nodes. Likewise, no node should ever be made parallel to a "start" or "end"
+    node as this would create an invalid graph. Future node kinds, for instance
+    a "breakpoint" or "approval" node, would likewise not support append oper-
+    ations as this would give the graph a way to bypass an intentional check-
+    point.
+
+    Raises
+    ------
+    NotImplementedError
+        Raised if the node parallelization context is not supported or not yet
+        implemented. It is left to the caller to decide how to proceed.
+    """
+    if TYPE_CHECKING:
+        assert session is not None
+
+    # define a context for this operation based on the node_0 kind.
+    n_0 = await session.get_one(Node, ident=node_0)
+
+    match n_0.kind:
+        case ManifestKind.group | ManifestKind.other:
+            # create new "downstream" edges with node_1
+            s = select(Edge).with_for_update().where(Edge.source == node_0)
+            downstream_edges = (await session.exec(s)).all()
+        case ManifestKind.grouped_step:
+            # node_1 should become adjacent to the next node in node_0's path
+            # that is not a group or a collect node.
+            raise NotImplementedError
+        case _:
+            raise NotImplementedError
+
+    # create new "upstream" edges with node_1
+    s = select(Edge).with_for_update().where(Edge.target == node_0)
+    upstream_edges = (await session.exec(s)).all()
+
+    for edge in downstream_edges:
+        session.expunge(edge)
+        new_adjacency_name = uuid4()
+        new_adjacency = Edge(
+            id=uuid5(namespace, new_adjacency_name.bytes),
+            name=new_adjacency_name.hex,
+            namespace=namespace,
+            source=node_1,
+            target=edge.target,
+        )
+        session.add(new_adjacency)
+
+    for edge in upstream_edges:
+        session.expunge(edge)
+        new_adjacency_name = uuid4()
+        new_adjacency = Edge(
+            id=uuid5(namespace, new_adjacency_name.bytes),
+            name=new_adjacency_name.hex,
+            namespace=namespace,
+            source=edge.source,
+            target=node_1,
+        )
+        session.add(new_adjacency)
+
+    if commit:
+        await session.commit()
+
+
+async def delete_node_from_graph(
+    node_0: UUID,
+    *,
+    namespace: UUID,
+    session: AsyncSession | None = None,
+    heal: bool = True,
+    keep_node: bool = True,
+    commit: bool = True,
+) -> None:
+    """Delete an existing node_0 with optional (but default) self-healing. The
+    node is preserved unless keep_node is set to False. In either case, the
+    primary objects subject to deletion are the Edges between nodes; this is
+    not a "delete node from database" function.
+
+    When healing, all successor edges for node_0 are re-established on all
+    predecessor nodes.
+
+    Examples
+    --------
+    Deleting Node B...
+
+    ```
+    A --> B --> C  becomes  A --> C
+    ```
+
+    ```
+    A --> B --> C  becomes  A --> C
+    AA /    `-> D             `-> D
+                           AA --> C
+                              `-> D
+    ```
+
+    Notes
+    -----
+    A harmless artifact appears when deleting a node in a parallel group with
+    healing, which can become an error if multiple parallel nodes are deleted
+    with heal, because multipaths are not allowed.
+
+    When manipulating parallel paths, heal should be False except for a single
+    element in the parallel group.
+
+    Deleting Node B...
+
+    ```
+    A --> B --> C  becomes  A --------> C
+      `-> D -/                `-> D -/
+    ```
+
+    Deleting Node D...
+    ```
+    A --------> C  becomes  A --------> C
+      `-> D -/                `------/
+    ```
+    """
+    if TYPE_CHECKING:
+        assert session is not None
+
+    s = select(Edge).with_for_update().where(Edge.source == node_0)
+    downstream_edges = (await session.exec(s)).all()
+
+    s = select(Edge).with_for_update().where(Edge.target == node_0)
+    upstream_edges = (await session.exec(s)).all()
+
+    # The list of predecessor nodes will reform downstream edges during heal
+    predecessors: list[UUID] = []
+    for edge in upstream_edges:
+        predecessors.append(edge.source)
+        await session.delete(edge)
+
+    for edge in downstream_edges:
+        await session.delete(edge)
+
+        if heal:
+            # create new edges that replicate the upstream edges to point to
+            # the immediate predecessors
+            for node_1 in predecessors:
+                new_adjacency_name = uuid4()
+                new_adjacency = Edge(
+                    id=uuid5(namespace, new_adjacency_name.bytes),
+                    name=new_adjacency_name.hex,
+                    namespace=namespace,
+                    source=node_1,
+                    target=edge.target,
+                )
+                session.add(new_adjacency)
+
+    if not keep_node:
+        node = await session.get_one(Node, node_0, with_for_update=True)
+        await session.delete(node)
+
+    if commit:
+        await session.commit()
