@@ -2,7 +2,7 @@ from typing import Annotated
 
 from sqlalchemy.ext.asyncio import AsyncSession as AsyncSessionSA
 from sqlalchemy.ext.asyncio import async_scoped_session
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlmodel.ext.asyncio.session import AsyncSession as AsyncSession
 
 from .. import models
 from ..models.serde import EnumSerializer, ManifestKindEnumValidator, StatusEnumValidator

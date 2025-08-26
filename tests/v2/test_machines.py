@@ -84,8 +84,17 @@ async def test_bad_transition(test_campaign: str, session: AsyncSession) -> None
         assert await node_machine.may_trigger("prepare")
         assert not await node_machine.trigger("prepare")
 
-    assert await node_machine.prepare()
-    assert await node_machine.start()
+    # Failure to prepare should transition the node, and reset should recover
+    assert node_machine.is_failed()
+    assert node_machine.may_reset()
+    assert await node_machine.reset()
+
+    with patch(
+        "lsst.cmservice.machines.node.StartMachine.do_prepare",
+        return_value=None,
+    ):
+        assert await node_machine.prepare()
+        assert await node_machine.start()
 
     # test the automatic transition to failure when an exception is raised in
     # the success check conditional callback
@@ -230,7 +239,7 @@ async def test_change_campaign_state(
     # Check log messages
     log_entry_found = False
     for r in caplog.records:
-        if "Invalid campaign graph" in r.message:
+        if "InvalidCampaignGraphError" in r.message:
             log_entry_found = True
             break
     assert log_entry_found
