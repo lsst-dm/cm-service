@@ -4,7 +4,6 @@ from typing import Any
 
 import pytest
 import pytest_asyncio
-import structlog
 from asgi_lifespan import LifespanManager
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
@@ -16,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from lsst.cmservice import db
 from lsst.cmservice.common.enums import ScriptMethodEnum
 from lsst.cmservice.common.flags import Features
+from lsst.cmservice.common.logging import LOGGER
 from lsst.cmservice.config import config as config_
 
 
@@ -30,7 +30,7 @@ def set_app_config() -> None:
 @pytest_asyncio.fixture(name="engine")
 async def engine_fixture() -> AsyncIterator[AsyncEngine]:
     """Return a SQLAlchemy AsyncEngine configured to talk to the app db."""
-    logger = structlog.get_logger(__name__)
+    logger = LOGGER.bind(module=__name__)
     the_engine = create_database_engine(config_.db.url, config_.db.password)
     await initialize_database(the_engine, logger, schema=db.Base.metadata, reset=True)
     yield the_engine

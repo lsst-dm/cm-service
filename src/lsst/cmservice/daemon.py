@@ -6,20 +6,17 @@ from contextlib import asynccontextmanager
 import uvicorn
 from anyio import current_time, sleep_until
 from fastapi import FastAPI
-from safir.logging import configure_uvicorn_logging
 
 from . import __version__
 from .common.butler import BUTLER_FACTORY  # noqa: F401
 from .common.daemon import daemon_iteration
 from .common.daemon_v2 import daemon_iteration as daemon_iteration_v2
 from .common.flags import Features
-from .common.logging import LOGGER
+from .common.logging import LOGGER, LoggingMiddleware
 from .common.panda import get_panda_token
 from .config import config
 from .db.session import db_session_dependency
 from .routers.healthz import health_router
-
-configure_uvicorn_logging(config.logging.level)
 
 logger = LOGGER.bind(module=__name__)
 
@@ -51,7 +48,8 @@ async def main_loop(app: FastAPI) -> None:
     """
     sleep_time = config.daemon.processing_interval
 
-    logger.info("Daemon starting.")
+    session = await anext(db_session_dependency())
+    logger.info("Starting Daemon...")
     _iteration_count = 0
 
     while True:
@@ -74,10 +72,11 @@ def main() -> None:
         lifespan=lifespan,
         version=__version__,
     )
+    app.add_middleware(LoggingMiddleware)
 
     app.include_router(health_router)
 
-    uvicorn.run(app, host=config.asgi.host, port=config.asgi.port, reload=config.asgi.reload)
+    uvicorn.run(app, host=config.asgi.host, port=config.asgi.port, reload=config.asgi.reload, log_config=None)
 
 
 if __name__ == "__main__":
