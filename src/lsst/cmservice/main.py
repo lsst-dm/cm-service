@@ -18,7 +18,6 @@ from .routers import (
     v1,
     v2,
 )
-from .web_app import web_app
 
 configure_uvicorn_logging(config.logging.level)
 configure_logging(profile=config.logging.profile, log_level=config.logging.level, name=config.asgi.title)
@@ -61,6 +60,8 @@ if Features.API_V2 in config.features.enabled:
 
 # Start the frontend web application.
 if Features.WEBAPP_V1 in config.features.enabled:
+    from .web_app import web_app
+
     app.mount(config.asgi.frontend_prefix, web_app)
 
 

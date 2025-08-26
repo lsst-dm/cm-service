@@ -4,6 +4,7 @@ from sqlalchemy.future import select
 
 from ..common import notification, timestamp
 from ..common.enums import StatusEnum
+from ..common.flags import Features
 from ..common.types import AnyAsyncSession
 from ..config import config
 from ..db.node import NodeMixin
@@ -71,7 +72,7 @@ async def daemon_iteration(session: AnyAsyncSession) -> None:
     # doesn't work.
     # FIXME this could be run async
     try:
-        if config.daemon.allocate_resources and processed_nodes > 0:
+        if (Features.DAEMON_ALLOCATE in config.features.enabled) and (processed_nodes > 0):
             allocate_resources()
     except Exception:
         logger.exception()

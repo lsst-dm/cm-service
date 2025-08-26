@@ -51,6 +51,9 @@ async def main_loop(app: FastAPI) -> None:
     """
     sleep_time = config.daemon.processing_interval
 
+    assert db_session_dependency.sessionmaker is not None
+    session = db_session_dependency.sessionmaker()
+
     logger.info("Daemon starting.")
     _iteration_count = 0
 
