@@ -148,7 +148,7 @@ class CampaignMachine(NodeMachine):
             self.activity_log_entry = None
 
         await self.session.close()
-        self.session = None
+        del self.session
         self.activity_log_entry = None
 
     async def is_successful(self, event: EventData) -> bool:

@@ -16,6 +16,7 @@ from .nodes.meta import BreakPointMachine as BreakPointMachine
 from .nodes.meta import EndMachine as EndMachine
 from .nodes.meta import NodeMachine as NodeMachine
 from .nodes.meta import StartMachine as StartMachine
+from .nodes.mixin import HTCondorLaunchMixin as HTCondorLaunchMixin
 from .nodes.steps import StepCollectMachine as StepCollectMachine
 from .nodes.steps import StepMachine as StepMachine
 

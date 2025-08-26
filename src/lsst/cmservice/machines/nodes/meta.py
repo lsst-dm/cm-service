@@ -7,6 +7,7 @@ import shutil
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
+from anyio import Path
 from fastapi.concurrency import run_in_threadpool
 from transitions import EventData
 from transitions.extensions.asyncio import AsyncEvent, AsyncMachine
@@ -20,7 +21,7 @@ from ...db.campaigns_v2 import ActivityLog, Campaign, Machine, Node
 from ...db.session import db_session_dependency
 from ..abc import StatefulModel
 from . import TRANSITIONS
-from .mixin import ActionNodeMixin
+from .mixin import FilesystemActionMixin
 
 logger = LOGGER.bind(module=__name__)
 
@@ -60,9 +61,10 @@ class NodeMachine(StatefulModel):
         # Remove members that are not picklable or should not be included
         # in the pickle
         state = self.__dict__.copy()
-        del state["session"]
         del state["db_model"]
         del state["activity_log_entry"]
+        if "session" in state.keys():
+            del state["session"]
         return state
 
     async def error_handler(self, event: EventData) -> None:
@@ -104,7 +106,7 @@ class NodeMachine(StatefulModel):
         assert self.db_model is not None, "Stateful Model must have a Node member."
 
         logger.debug("Preparing session for transition", id=str(self.db_model.id))
-        if self.session is not None:
+        if hasattr(self, "session"):
             await self.session.close()
         else:
             assert db_session_dependency.sessionmaker is not None
@@ -204,7 +206,7 @@ class NodeMachine(StatefulModel):
                 self.session.expunge(new_machine)
 
         await self.session.close()
-        self.session = None
+        del self.session
 
     async def is_startable(self, event: EventData) -> bool:
         """Conditional method called to check whether a ``start`` trigger may
@@ -219,7 +221,7 @@ class NodeMachine(StatefulModel):
         return True
 
 
-class StartMachine(NodeMachine, ActionNodeMixin):
+class StartMachine(NodeMachine, FilesystemActionMixin):
     """Conceptually, a campaign's START node may participate in activities like
     any other kind of node, even though its purpose is to provide a solid well-
     known root to the campaign graph. Some activities assigned to the Campaign
@@ -228,6 +230,7 @@ class StartMachine(NodeMachine, ActionNodeMixin):
     """
 
     __kind__ = [ManifestKind.start]
+    artifact_path: Path
 
     def post_init(self) -> None:
         """Post init, set class-specific callback triggers."""
@@ -249,8 +252,8 @@ class StartMachine(NodeMachine, ActionNodeMixin):
 
         logger.info("Preparing START node", id=str(self.db_model.id))
 
-        if artifact_location := await self.get_artifact_path(event):
-            await artifact_location.mkdir(parents=False, exist_ok=True)
+        # Call prepare callback provided by Mixins
+        await self.action_prepare(event)
 
     async def do_unprepare(self, event: EventData) -> None:
         if TYPE_CHECKING:
@@ -258,10 +261,10 @@ class StartMachine(NodeMachine, ActionNodeMixin):
             assert self.session is not None
 
         logger.info("Unpreparing START node", id=str(self.db_model.id))
+        await self.get_artifact_path(event)
 
-        artifact_location = await self.get_artifact_path(event)
-        if artifact_location and artifact_location.exists():
-            await run_in_threadpool(shutil.rmtree, artifact_location)
+        if await self.artifact_path.exists():
+            await run_in_threadpool(shutil.rmtree, self.artifact_path)
 
     async def do_start(self, event: EventData) -> None:
         """Callback invoked when entering the "running" state."""
