@@ -1,5 +1,5 @@
 from collections.abc import Iterable, Mapping, MutableSet, Sequence
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, TypedDict
 from uuid import UUID, uuid4, uuid5
 
 import networkx as nx
@@ -18,6 +18,14 @@ type AnyGraphNode = Step | Script
 
 
 class InvalidCampaignGraphError(Exception): ...
+
+
+class NodeData(TypedDict):
+    """A type describing the dictionary representation of a digraph's Node data
+    when a 'model' view is employed (default).
+    """
+
+    model: Node
 
 
 async def graph_from_edge_list(
@@ -372,11 +380,11 @@ async def append_node_to_graph(
     n_0 = await session.get_one(Node, ident=node_0)
 
     match n_0.kind:
-        case ManifestKind.group | ManifestKind.step_group | ManifestKind.other:
+        case ManifestKind.group | ManifestKind.other:
             # create new "downstream" edges with node_1
             s = select(Edge).with_for_update().where(Edge.source == node_0)
             downstream_edges = (await session.exec(s)).all()
-        case ManifestKind.grouped_step | ManifestKind.step:
+        case ManifestKind.step:
             # node_1 should become adjacent to the next nodes in node_0's path
             # that are not a group or a collect node.
             # this ORM statement forms a recursive CTE for traversing a graph

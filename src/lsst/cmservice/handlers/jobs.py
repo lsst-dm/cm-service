@@ -225,7 +225,7 @@ class BpsScriptHandler(ScriptHandler):
         # Get the yaml template using package lookup
         config_template_environment = Environment(loader=PackageLoader("lsst.cmservice"))
         config_template_environment.filters["toyaml"] = yaml.dump
-        config_template = config_template_environment.get_template("bps_submit_yaml.j2")
+        config_template = config_template_environment.get_template("legacy_bps_submit_yaml.j2")
         try:
             # Render bps_submit_yaml template to `config_url`
             yaml_output = config_template.render(workflow_config)
