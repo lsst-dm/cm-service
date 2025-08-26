@@ -309,20 +309,19 @@ class ManifestKind(enum.Enum):
     edge = enum.auto()
     # Node kinds
     start = enum.auto()
-    grouped_step = enum.auto()
-    step_group = enum.auto()
+    step = enum.auto()
+    group = enum.auto()
     collect_groups = enum.auto()
     breakpoint = enum.auto()
     end = enum.auto()
     # Legacy kinds
     specification = enum.auto()
     spec_block = enum.auto()
-    step = enum.auto()
-    group = enum.auto()
     job = enum.auto()
     script = enum.auto()
     # Library Kinds
     lsst = enum.auto()
+    bps = enum.auto()
     butler = enum.auto()
     wms = enum.auto()
     site = enum.auto()

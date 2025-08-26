@@ -37,10 +37,10 @@ class StatefulModel(ABC):
 
     __kind__ = [ManifestKind.other]
     activity_log_entry: ActivityLog | None = None
-    db_model: AnyStatefulObject | None
+    db_model: AnyStatefulObject
     machine: AnyMachine
     state: StatusEnum
-    session: AsyncSession | None = None
+    session: AsyncSession
 
     @abstractmethod
     def __init__(

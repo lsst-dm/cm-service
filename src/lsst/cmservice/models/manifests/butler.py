@@ -25,7 +25,9 @@ class ButlerCollectionsSpec(BaseModel):
     """
 
     campaign_input: list[str] = Field(
-        description="The campaign source collection", validation_alias=AliasChoices("campaign_input", "in")
+        description="The campaign source collection",
+        default_factory=list,
+        validation_alias=AliasChoices("campaign_input", "in"),
     )
     ancillary: list[str] = Field(default_factory=list)
     campaign_public_output: str = Field(

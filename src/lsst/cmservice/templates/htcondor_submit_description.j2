@@ -1,0 +1,21 @@
+executable = {{wms.wms_executable_path}}
+{%- if wms.wms_executable_arguments %}
+arguments = {{wms.wms_executable_arguments}}
+{%- endif %}
+{# BLANK LINE #}
+output = {{wms.wms_submission_log_path}}
+error = {{wms.wms_log_path}}
+log = {{wms.wms_log_path}}
+{# BLANK LINE #}
+initialdir = {{wms.working_directory}}
+batch_name = {{wms.batch_name}}
+should_transfer_files = Yes
+when_to_transfer_output = ON_EXIT
+get_env = True
+{# BLANK LINE #}
+request_cpus = {{wms.request_cpus}}
+request_memory = {{wms.request_mem}}
+request_disk = {{wms.request_disk}}
+{# BLANK LINE #}
+queue
+{# BLANK LINE #}

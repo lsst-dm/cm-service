@@ -202,7 +202,7 @@ async def write_bash_script(
     """
     # Get the yaml template using package lookup
     template_environment = Environment(loader=PackageLoader("lsst.cmservice"))
-    bash_template = template_environment.get_template("wms_submit_sh.j2")
+    bash_template = template_environment.get_template("legacy_wms_submit_sh.j2")
 
     fake = kwargs.get("fake")
     rollback_prefix = Path(kwargs.get("rollback", "."))

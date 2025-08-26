@@ -2,9 +2,11 @@
 nodes, including START/END/BREAKPOINT nodes.
 """
 
+from __future__ import annotations
+
 import pickle
 import shutil
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from uuid import uuid4
 
 from fastapi.concurrency import run_in_threadpool
@@ -18,15 +20,21 @@ from ...common.logging import LOGGER
 from ...config import config
 from ...db.campaigns_v2 import ActivityLog, Campaign, Machine, Node
 from ...db.session import db_session_dependency
+from ...models.manifest import ButlerManifest
 from ..abc import StatefulModel
 from . import TRANSITIONS
-from .mixin import ActionNodeMixin
+from .mixin import FilesystemActionMixin, HTCondorLaunchMixin, NodeMixIn
 
 logger = LOGGER.bind(module=__name__)
 
 
 class NodeMachine(StatefulModel):
-    """General state model for a Node in a Campaign Graph."""
+    """General state model for a Node in a Campaign Graph.
+
+    The methods and attributes of this class are limited to those directly
+    related to State Machine operations. Other functionality for specific kinds
+    of Nodes are implemented as MixIn classes that extend this implementation.
+    """
 
     __kind__ = [ManifestKind.node]
 
@@ -60,18 +68,16 @@ class NodeMachine(StatefulModel):
         # Remove members that are not picklable or should not be included
         # in the pickle
         state = self.__dict__.copy()
-        del state["session"]
         del state["db_model"]
         del state["activity_log_entry"]
+        if "session" in state.keys():
+            del state["session"]
         return state
 
     async def error_handler(self, event: EventData) -> None:
         """Error handler function for the Stateful Model, called by the Machine
         if any exception is raised in a callback function.
         """
-        if TYPE_CHECKING:
-            assert self.db_model is not None
-
         if event.error is None:
             return
 
@@ -97,14 +103,11 @@ class NodeMachine(StatefulModel):
 
     async def prepare_session(self, event: EventData) -> None:
         """Prepares the machine by acquiring a database session."""
-        # This positive assertion concerning the ORM member will prevent
-        # any callback from proceeding if no such member is defined, but type
-        # checkers don't know this, which is why it repeated in a TYPE_CHECKING
-        # guard in each method that accesses the ORM member.
-        assert self.db_model is not None, "Stateful Model must have a Node member."
+        if not hasattr(self, "db_model") or self.db_model is None:
+            raise RuntimeError("Stateful Model must have a Node member.")
 
         logger.debug("Preparing session for transition", id=str(self.db_model.id))
-        if self.session is not None:
+        if hasattr(self, "session"):
             await self.session.close()
         else:
             assert db_session_dependency.sessionmaker is not None
@@ -112,9 +115,6 @@ class NodeMachine(StatefulModel):
 
     async def prepare_activity_log(self, event: EventData) -> None:
         """Callback method invoked by the Machine before every state-change."""
-        if TYPE_CHECKING:
-            assert self.db_model is not None
-
         if self.activity_log_entry is not None:
             return None
 
@@ -138,9 +138,6 @@ class NodeMachine(StatefulModel):
     async def update_persistent_status(self, event: EventData) -> None:
         """Callback method invoked by the Machine after every state-change."""
         # Update activity log entry with new state and timestamp
-        if TYPE_CHECKING:
-            assert self.db_model is not None, "Stateful Model must have a Node member."
-            assert self.session is not None
         logger.debug("Updating the ORM instance after transition.", id=str(self.db_model.id))
 
         if self.activity_log_entry is not None:
@@ -159,10 +156,6 @@ class NodeMachine(StatefulModel):
         indicates that change has occurred, it is written to the db and the
         machine is serialized to the Machines table for later use.
         """
-        if TYPE_CHECKING:
-            assert self.db_model is not None
-            assert self.session is not None
-
         # The activity log entry is added to the db. For failed transitions it
         # may include error detail. For other transitions it is not necessary
         # to log every attempt.
@@ -204,7 +197,7 @@ class NodeMachine(StatefulModel):
                 self.session.expunge(new_machine)
 
         await self.session.close()
-        self.session = None
+        del self.session
 
     async def is_startable(self, event: EventData) -> bool:
         """Conditional method called to check whether a ``start`` trigger may
@@ -219,7 +212,7 @@ class NodeMachine(StatefulModel):
         return True
 
 
-class StartMachine(NodeMachine, ActionNodeMixin):
+class StartMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchMixin):
     """Conceptually, a campaign's START node may participate in activities like
     any other kind of node, even though its purpose is to provide a solid well-
     known root to the campaign graph. Some activities assigned to the Campaign
@@ -235,6 +228,45 @@ class StartMachine(NodeMachine, ActionNodeMixin):
         self.machine.before_unprepare("do_unprepare")
         self.machine.before_start("do_start")
         self.machine.before_reset("do_reset")
+        self.templates = [
+            ("wms_submit_sh.j2", f"{self.db_model.name}.sh"),
+        ]
+
+    async def butler_prepare(self, event: EventData) -> None:
+        """Prepares Butler collections for the campaign."""
+        self.butler = await self.get_manifest(ManifestKind.butler, ButlerManifest)
+
+        # TODO Campaigns should support options about how their collections are
+        # organized.
+        # - CHAIN_ONLY: all input and ancillary collections are chained into a
+        #               single collection used by each step.
+        # - TAGGED_CHAIN: the first input collection is used with the campaign
+        #                 predicates to create a tagged collection, which is
+        #                 then chained to any addition input and/or ancillary
+        #                 collections.
+        # - NONE: no campaign-level collection is created. Instead, each step
+        #         creates its own input collection by chaining the campaign
+        #         inputs.
+        self.command_templates = [
+            (
+                "{{butler.exe_bin}} collection-chain {{butler.repo}} {{butler.collections.campaign_output}}"
+                "{% for collection in butler.collections.campaign_input %} {{collection}}{% endfor %}"
+                "{% for collection in butler.collections.ancillary %} {{collection}}{% endfor %}"
+            )
+        ]
+        # Prepare a Butler runtime config to add to the Node's config chain,
+        # which includes additional collection information beyond what's spec-
+        # ified in the Node's reference Butler manifest.
+        butler_config: dict[str, Any] = {}
+        butler_config["exe_bin"] = config.butler.butler_bin
+        butler_config["collections"] = self.butler.spec.collections.model_copy(
+            update={
+                "tagged_input": f"{self.butler.spec.collections.campaign_public_output}/tagged",
+                "chained_input": f"{self.butler.spec.collections.campaign_public_output}/chained",
+            },
+        )
+
+        self.configuration_chain["butler"] = self.configuration_chain["butler"].new_child(butler_config)
 
     async def do_prepare(self, event: EventData) -> None:
         """Action method invoked when executing the "prepare" transition.
@@ -242,32 +274,25 @@ class StartMachine(NodeMachine, ActionNodeMixin):
         For a Campaign to enter the ready state, the START node must consider:
 
         - artifact directory is created and writable.
+        - mandatory campaign-level butler collections are created.
         """
-        if TYPE_CHECKING:
-            assert isinstance(self.db_model, Node)
-            assert self.session is not None
-
         logger.info("Preparing START node", id=str(self.db_model.id))
 
-        if artifact_location := await self.get_artifact_path(event):
-            await artifact_location.mkdir(parents=False, exist_ok=True)
+        # Call prepare callback provided by Mixins
+        await self.action_prepare(event)
+        await self.butler_prepare(event)
+        await self.launch_prepare(event)
+        await self.render_action_templates(event)
 
     async def do_unprepare(self, event: EventData) -> None:
-        if TYPE_CHECKING:
-            assert isinstance(self.db_model, Node)
-            assert self.session is not None
-
         logger.info("Unpreparing START node", id=str(self.db_model.id))
+        await self.get_artifact_path(event)
 
-        artifact_location = await self.get_artifact_path(event)
-        if artifact_location and artifact_location.exists():
-            await run_in_threadpool(shutil.rmtree, artifact_location)
+        if await self.artifact_path.exists():
+            await run_in_threadpool(shutil.rmtree, self.artifact_path)
 
     async def do_start(self, event: EventData) -> None:
         """Callback invoked when entering the "running" state."""
-        if TYPE_CHECKING:
-            assert self.db_model is not None
-
         logger.debug("Starting START Node for Campaign", id=str(self.db_model.id))
         return None
 
@@ -275,7 +300,7 @@ class StartMachine(NodeMachine, ActionNodeMixin):
         logger.error("Resetting node")
 
 
-class EndMachine(NodeMachine):
+class EndMachine(NodeMachine, NodeMixIn):
     """Specific state model for a Node of kind End.
 
     The End Node is responsible for wrapping-up the successful completion of a
@@ -294,9 +319,6 @@ class EndMachine(NodeMachine):
         """When transitioning to a terminal positive state, also set the same
         status on the Campaign.
         """
-        if TYPE_CHECKING:
-            assert self.db_model is not None
-            assert self.session is not None
         # Set the campaign status to accepted.
         # TODO optionally, we could hydrate a Campaign FSM instance and call
         #      its trigger.
