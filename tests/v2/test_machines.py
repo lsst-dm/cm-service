@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 from uuid import UUID, uuid4, uuid5
 
 import pytest
+from anyio import Path
 from httpx import AsyncClient
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
