@@ -306,3 +306,184 @@ async def manifest_fixtures(aclient: AsyncClient) -> None:
             "spec": {},
         },
     )
+
+
+@pytest_asyncio.fixture(scope="function", loop_scope="module")
+async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
+    """Fixture managing a test campaign with steps featuring groups, which
+    yields the URL for the campaign's edges endpoint.
+
+    The "bishop" step has a null-group config; the "ripley" step as a values-
+    based group config; the "hicks" step has a query-based group config.
+    """
+    campaign_name = uuid4().hex[-8:]
+
+    x = await aclient.post(
+        "/cm-service/v2/campaigns",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "campaign",
+            "metadata": {"name": campaign_name},
+            "spec": {},
+        },
+    )
+    campaign_edge_url = x.headers["Edges"]
+    campaign = x.json()
+
+    # Create library manifests for the campaign
+    x = await aclient.post(
+        "/cm-service/v2/manifests",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "butler",
+            "metadata": {"name": "muthur", "namespace": campaign["id"]},
+            "spec": {
+                "repo": "MU/TH/UR",
+                "predicates": ["instrument='NOSTROMO'"],
+                "collections": {
+                    "campaign_input": ["NOSTROMO/catalog/ZetaReticuli/Calpamos"],
+                    "campaign_public_output": f"u/adallas/{campaign_name}",
+                    "campaign_output": f"u/adallas/{campaign_name}/out",
+                },
+            },
+        },
+    )
+    x = await aclient.post(
+        "/cm-service/v2/manifests",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "lsst",
+            "metadata": {"name": "w_latest", "namespace": campaign["id"]},
+            "spec": {
+                "lsst_version": "w_latest",
+                "lsst_distrib_dir": "/path/to/lsst/distrib",
+            },
+        },
+    )
+    x = await aclient.post(
+        "/cm-service/v2/manifests",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "wms",
+            "metadata": {"name": "htcondor", "namespace": campaign["id"]},
+            "spec": {
+                "batch_system": "htcondor",
+                "service_class": "lsst.ctrl.bps.htcondor.HTCondorService",
+            },
+        },
+    )
+
+    # Make a step node with null groups
+    x = await aclient.post(
+        "/cm-service/v2/nodes",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "node",
+            "metadata": {"name": "lambert", "namespace": campaign["id"], "kind": "grouped_step"},
+            "spec": {
+                "pipeline_yaml": "${WEYLAND_YUTANI}/personnel/commissioned.yaml#navigator",
+                "predicates": ["skymap='lv_426'"],
+                "groups": None,
+            },
+        },
+    )
+    node_a = x.json()
+
+    # Make a step node with values-based groups
+    x = await aclient.post(
+        "/cm-service/v2/nodes",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "node",
+            "metadata": {"name": "ash", "namespace": campaign["id"], "kind": "grouped_step"},
+            "spec": {
+                "pipeline_yaml": "${WEYLAND_YUTANI}/personnel/synthetic.yaml",
+                "predicates": ["skymap='lv_426'"],
+                "groups": {
+                    "split_by": "values",
+                    "dimension": "xenomorph",
+                    "values": [
+                        1234,
+                        [2345, 3456, 4567],
+                        "facehugger",
+                        {"min": 5678, "max": 6789, "endpoint": True},
+                    ],
+                },
+            },
+        },
+    )
+    node_b = x.json()
+
+    # Make a step node with query-based groups
+    x = await aclient.post(
+        "/cm-service/v2/nodes",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "node",
+            "metadata": {"name": "ripley", "namespace": campaign["id"], "kind": "grouped_step"},
+            "spec": {
+                "pipeline_yaml": "${WEYLAND_YUTANI}/personnel/commissioned.yaml#warrant_officer",
+                "predicates": ["skymap='lv_426'"],
+                "groups": {
+                    "split_by": "query",
+                    "dataset": "species",
+                    "dimension": "xenomorph",
+                    "min_groups": 4,
+                    "max_size": 1_000_000,
+                },
+            },
+        },
+    )
+    node_c = x.json()
+
+    # Create edges between each campaign node
+    _ = await aclient.post(
+        "/cm-service/v2/edges",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "edge",
+            "metadata": {"name": uuid4().hex[-8:], "namespace": campaign["id"]},
+            "spec": {
+                "source": "START",
+                "target": node_a["name"],
+            },
+        },
+    )
+    _ = await aclient.post(
+        "/cm-service/v2/edges",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "edge",
+            "metadata": {"name": uuid4().hex[-8:], "namespace": campaign["id"]},
+            "spec": {
+                "source": node_a["name"],
+                "target": node_b["name"],
+            },
+        },
+    )
+    _ = await aclient.post(
+        "/cm-service/v2/edges",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "edge",
+            "metadata": {"name": uuid4().hex[-8:], "namespace": campaign["id"]},
+            "spec": {
+                "source": node_b["name"],
+                "target": node_c["name"],
+            },
+        },
+    )
+    _ = await aclient.post(
+        "/cm-service/v2/edges",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "edge",
+            "metadata": {"name": uuid4().hex[-8:], "namespace": campaign["id"]},
+            "spec": {
+                "source": node_c["name"],
+                "target": "END",
+            },
+        },
+    )
+
+    yield campaign_edge_url
