@@ -1,6 +1,10 @@
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
+from uuid import UUID
 
 from sqlalchemy import select
+from sqlmodel import col
+from sqlmodel import select as select_
 
 from .. import db
 from ..common.enums import LevelEnum, NodeTypeEnum, StatusEnum, TableEnum
@@ -12,7 +16,8 @@ from ..common.errors import (
     test_type_and_raise,
 )
 from ..common.logging import LOGGER
-from ..common.types import AnyAsyncSession
+from ..common.types import AnyAsyncSession, AsyncSession
+from ..db.campaigns_v2 import ActivityLog
 from . import functions
 
 TABLE_DICT: dict[TableEnum, type[db.RowMixin]] = {
@@ -663,3 +668,32 @@ async def match_pipetask_errors(
         Newly matched (or rematched) PipetaskErrors
     """
     return []
+
+
+async def get_activity_log_errors(
+    session: AsyncSession,
+    campaign: str | UUID,
+) -> Sequence[ActivityLog]:
+    """Queries the activity log table and returns entries that represent error
+    conditions, i.e., the `detail` JSONB column has an "error" key.
+
+    Parameters
+    ----------
+    session : AsyncSession
+        A sqlmodel Async Session
+
+    campaign: UUID | str
+        A campaign id as a UUID or a str that can be cast as a UUID.
+
+    Returns
+    -------
+    error_instances : Sequence[ActivityLog]
+        A list of Campaign activity log entries that contain errors.
+    """
+    s = (
+        select_(ActivityLog)
+        .where(col(ActivityLog.namespace) == campaign)
+        .where(col(ActivityLog.detail)["error"].is_not(None))
+    )
+    error_log_entries = (await session.exec(s)).all()
+    return error_log_entries
