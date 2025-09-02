@@ -209,14 +209,14 @@ async def test_change_campaign_state(
     x = (await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}")).json()
     assert x["status"] == "waiting"
 
-    await change_campaign_state(campaign, StatusEnum.running, uuid4())
+    await change_campaign_state(campaign, StatusEnum.running, str(uuid4()))
     await session.refresh(campaign, attribute_names=["status"])
     await session.commit()
 
     x = (await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}")).json()
     assert x["status"] == "running"
 
-    await change_campaign_state(campaign, StatusEnum.paused, uuid4())
+    await change_campaign_state(campaign, StatusEnum.paused, str(uuid4()))
     await session.refresh(campaign, attribute_names=["status"])
     await session.commit()
 
@@ -229,7 +229,7 @@ async def test_change_campaign_state(
     x = await aclient.delete(f"/cm-service/v2/edges/{edge_to_remove}")
 
     caplog.clear()
-    await change_campaign_state(campaign, StatusEnum.running, uuid4())
+    await change_campaign_state(campaign, StatusEnum.running, str(uuid4()))
     await session.refresh(campaign, attribute_names=["status"])
     await session.commit()
 

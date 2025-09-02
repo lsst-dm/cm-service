@@ -18,6 +18,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from .common.enums import ScriptMethodEnum, StatusEnum, WmsComputeSite
 from .common.flags import EnabledFeatures
+from .common.logging import LOGGER_SETTINGS, LoggingConfiguration
 
 __all__ = ["Configuration", "config"]
 
@@ -484,25 +485,6 @@ class AsgiConfiguration(BaseModel):
     )
 
 
-class LoggingConfiguration(BaseModel):
-    """Configuration for the application's logging facility."""
-
-    handle: str = Field(
-        default="cm-service",
-        title="Handle or name of the root logger",
-    )
-
-    level: str = Field(
-        default="INFO",
-        title="Log level of the application's logger",
-    )
-
-    profile: str = Field(
-        default="development",
-        title="Application logging profile",
-    )
-
-
 class DaemonConfiguration(BaseModel):
     """Settings for the Daemon nested model.
 
@@ -611,7 +593,7 @@ class Configuration(BaseSettings):
     db: DatabaseConfiguration = DatabaseConfiguration()
     hips: HipsConfiguration = HipsConfiguration()
     htcondor: HTCondorConfiguration = HTCondorConfiguration()
-    logging: LoggingConfiguration = LoggingConfiguration()
+    logging: LoggingConfiguration = LOGGER_SETTINGS
     slurm: SlurmConfiguration = SlurmConfiguration()
     panda: PandaConfiguration = PandaConfiguration()
     notifications: NotificationConfiguration = NotificationConfiguration()

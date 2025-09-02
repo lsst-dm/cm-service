@@ -1,6 +1,6 @@
 """Tests v2 fastapi campaign routes"""
 
-from uuid import NAMESPACE_DNS, uuid4, uuid5
+from uuid import NAMESPACE_DNS, UUID, uuid4, uuid5
 
 import pytest
 from httpx import AsyncClient
@@ -156,7 +156,8 @@ async def test_patch_campaign(aclient: AsyncClient, caplog: pytest.LogCaptureFix
     )
     assert y.status_code == 406
 
-    # Update the campaign using RFC6902
+    # Update the campaign using RFC6902, expecting an error and that the app's
+    # middleware has provided a request Id
     y = await aclient.patch(
         campaign_url,
         json={"status": "ready", "owner": "bob_loblaw"},
@@ -164,15 +165,20 @@ async def test_patch_campaign(aclient: AsyncClient, caplog: pytest.LogCaptureFix
     )
     # RFC6902 not implemented
     assert y.status_code == 501
+    assert UUID(y.headers["X-Request-Id"])
 
     # Update the campaign using RFC7396 and campaign id
+    # Confirm that a client-provided request-id persists through the app's
+    # middleware and is included in the response header.
     caplog.clear()
+    request_id = uuid4()
     y = await aclient.patch(
         campaign_url,
         json={"status": "running", "owner": "bob_loblaw"},
-        headers={"Content-Type": "application/merge-patch+json"},
+        headers={"Content-Type": "application/merge-patch+json", "X-Request-ID": f"{request_id}"},
     )
     assert y.is_success
+    assert str(request_id) == y.headers["X-Request-Id"]
     # Obtain the Status Update URL from the response headers
     status_update_url = y.headers["StatusUpdate"]
 
