@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Literal
 from uuid import UUID, uuid4, uuid5
 
 import networkx as nx
-from sqlmodel import select
+from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ..common.enums import ManifestKind
@@ -336,6 +336,8 @@ async def append_node_to_graph(
         assert session is not None
 
     # define a context for this operation based on the node_0 kind.
+    # FIXME if the function accepted a Node in addition to an ID, this
+    # potentially extra select statement could be avoided.
     n_0 = await session.get_one(Node, ident=node_0)
 
     match n_0.kind:
@@ -344,10 +346,56 @@ async def append_node_to_graph(
             s = select(Edge).with_for_update().where(Edge.source == node_0)
             downstream_edges = (await session.exec(s)).all()
         case ManifestKind.grouped_step:
-            # node_1 should become adjacent to the next node in node_0's path
-            # that is not a group or a collect node.
+            # node_1 should become adjacent to the next nodes in node_0's path
+            # that are not a group or a collect node.
+            # this ORM statement forms a recursive CTE for traversing a graph
+            # starting at the edge for which node_0 is a source. The recursive
+            # CTE returns all edges along the directed path from node_0, and
+            # in the end we ignore edges involving nodes that are "invisible"
+            # to this operation. The general form of this Query is
+            #
+            # WITH RECURSIVE ed AS (
+            #  SELECT * from edges where source = node_0
+            #  UNION
+            #  SELECT * from edges JOIN ed on (edges.source = ed.target)
+            # ) SELECT * from ed
+            # join nodes on (edge.target = node.id)
+            # where node.kind not in (...)
+            cte = (
+                select(
+                    col(Edge.id).label("id"),
+                    col(Edge.source).label("source"),
+                    col(Edge.target).label("target"),
+                )
+                .where(Edge.source == node_0)
+                .cte("ed", recursive=True)
+            )
+            next_valid_nodes = select(Edge.id, Edge.source, Edge.target).join(
+                cte, col(Edge.source) == cte.c.target
+            )
+            s = (
+                select(Edge)
+                .join(cte.union(next_valid_nodes), col(Edge.id) == cte.c.id)
+                .join(Node, col(Edge.target) == Node.id)
+                .where(col(Node.kind).not_in([ManifestKind.group, ManifestKind.collect_groups]))
+                .limit(1)
+            )
+            downstream_edge = (await session.exec(s)).one_or_none()
+            if downstream_edge is None:
+                raise RuntimeError
+            # this edge is the "exit" of the target step-group's network of
+            # groups via its collect-step, so to form "parallel" adjancencies
+            # with the original step, we use this as a proxy for the node we
+            # want to append.
+            s = select(Edge).with_for_update().where(Edge.source == downstream_edge.source)
+            downstream_edges = (await session.exec(s)).all()
+        case ManifestKind.start | ManifestKind.end:
+            # node_1 may not become adjacent to these kinds of nodes; this is
+            # not a default, this is a specific implementation decision.
             raise NotImplementedError
         case _:
+            # Additional use cases may be added to this logic, but the default
+            # fall-through case is an error.
             raise NotImplementedError
 
     # create new "upstream" edges with node_1
