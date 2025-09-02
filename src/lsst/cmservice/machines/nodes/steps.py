@@ -168,6 +168,7 @@ class StepMachine(NodeMachine):
         # The group's name isn't very interesting or important, so we make sure
         # it's identifiably a group member of its parent step while including
         # a random component.
+        # TODO Make the nonce a more ordinal or communicable name
         group_nonce = group_id.hex[:8]
         group_name = f"{self.db_model.name}_group_{group_nonce}"
 

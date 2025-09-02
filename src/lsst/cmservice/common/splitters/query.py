@@ -103,9 +103,11 @@ class QuerySplitter(Splitter):
         refs = await to_thread.run_sync(refs_f)
         # TODO could we just as well return an N-dimensional array and pull out
         # the specific target dimension later?
-        dimension_dtype: str | type = type(refs[0].dataId[self.dimension])
-        if dimension_dtype is str:
-            dimension_dtype = "<U16"
+        dimension_dtype: np.dtypes.StringDType | type
+        if (
+            dimension_dtype := refs[0].dataId.universe.dimensions[self.dimension].primaryKey.getPythonType()
+        ) is str:
+            dimension_dtype = np.dtypes.StringDType()
         return np.fromiter({ref.dataId[self.dimension] for ref in refs}, dtype=dimension_dtype)
 
     async def split(self) -> AsyncGenerator[str, None]:

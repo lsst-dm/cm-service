@@ -73,3 +73,7 @@ def test_array_splitting() -> None:
     for a, b in pairwise(partition_indices):
         predicates.append(f"{dimension} >= {d[a]} AND {dimension} < {d[b]}")
     predicates.append(f"{dimension} >= {d[partition_indices[-1]]}")
+
+    assert len(predicates) == 10
+    assert predicates[0] == f"{dimension} >= 0 AND {dimension} < 93267"
+    assert predicates[-1] == f"{dimension} >= 839405"
