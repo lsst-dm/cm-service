@@ -58,7 +58,9 @@ async def rawdb(monkeypatch_module: pytest.MonkeyPatch) -> AsyncGenerator[Databa
     and dropped along with the tables.
     """
 
-    monkeypatch_module.setattr(target=config.asgi, name="enable_frontend", value=False)
+    monkeypatch_module.setattr(
+        target=config.features, name="enabled", value=config.features.enabled | Features.WEBAPP_V1
+    )
     monkeypatch_module.setattr(target=config.db, name="table_schema", value=uuid4().hex[:8])
 
     if os.getenv("TEST__LOCAL_DB") is not None:
