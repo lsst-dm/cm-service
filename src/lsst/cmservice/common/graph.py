@@ -101,6 +101,37 @@ async def graph_from_edge_list_v2(
     return g
 
 
+def subgraph_between_nodes(g: nx.DiGraph, source: UUID, sink: UUID) -> nx.DiGraph:
+    """Determine subgraph of graph ``g`` based on an arbitrary source and sink
+    node in the graph. If no such subgraph exists, returns an empty graph.
+    """
+    nodes = set()
+    for path in nx.all_simple_paths(g, source=source, target=sink):
+        nodes.update(path)
+    return g.subgraph(nodes)
+
+
+def find_endpoints_in_directed_graph(g: nx.DiGraph) -> tuple[UUID, UUID]:
+    """Determines and returns the source and sink nodes in a directed graph.
+
+    In a valid graph, the source node is the one and only node with a in degree
+    of 0 and the sink is the one and only node with an out degree of 0.
+
+    Raises
+    ------
+    RuntimeError
+        If the endpoints cannot be correctly determined. This may indicate an
+        invalid graph with loops, breaks, etc.
+    """
+    # For a valid graph, the "longest path" in it necessarily has the source
+    # and sink nodes as its endpoints.
+    path: list[UUID] = nx.dag_longest_path(g)  # pyright: ignore[reportAssignmentType]
+    # Validate that the potential endpoints correctly have a degree of 1
+    if not all([d[1] == 1 for d in nx.degree(g, (path[0], path[-1]))]):
+        raise RuntimeError("Unable to determine endpoints in graph.")
+    return (path[0], path[-1])
+
+
 def graph_to_dict(g: nx.DiGraph) -> Mapping:
     """Renders a networkx directed graph to a mapping format suitable for JSON
     serialization.
