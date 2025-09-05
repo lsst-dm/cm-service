@@ -126,7 +126,8 @@ class FilesystemActionMixin(ActionMixIn):
                 rendered_output: str = Template(intermediate_output).render(self.configuration_chain)
                 await output_path.write_text(rendered_output)
             except yaml.YAMLError as yaml_error:
-                raise yaml.YAMLError(f"Error rendering YAML template; threw {yaml_error}")
+                msg = f"Error rendering YAML template; threw {yaml_error}"
+                raise yaml.YAMLError(msg)
 
     async def action_prepare(self, event: EventData) -> None:
         """Wrapper method for Action node preparation."""
@@ -229,7 +230,9 @@ class HTCondorLaunchMixin(LaunchMixIn):
                     stderr_msg = ""
                     async for text in TextReceiveStream(condor_submit.stderr):
                         stderr_msg += text
-                    raise CMHTCondorSubmitError(f"Bad htcondor submit: f{stderr_msg}")
+                    msg = f"Bad htcondor submit: f{stderr_msg}"
+                    raise CMHTCondorSubmitError(msg)
 
         except Exception as e:
-            raise CMHTCondorSubmitError(f"Bad htcondor submit: {e}") from e
+            msg = f"Bad htcondor submit: {e}"
+            raise CMHTCondorSubmitError(msg) from e

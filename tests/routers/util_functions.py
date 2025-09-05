@@ -15,7 +15,8 @@ def check_and_parse_response[T](
     return_class: type[T],
 ) -> T:
     if not response.is_success:
-        raise ValueError(f"{response.request} failed with {response.text}")
+        msg = f"{response.request} failed with {response.text}"
+        raise ValueError(msg)
     return_obj = TypeAdapter(return_class).validate_python(response.json())
     return return_obj
 
@@ -25,7 +26,8 @@ def expect_failed_response(
     expected_code: int = 500,
 ) -> None:
     if response.status_code != expected_code:
-        raise ValueError(f"{response.request} did not fail as expected {response.status_code}")
+        msg = f"{response.request} did not fail as expected {response.status_code}"
+        raise ValueError(msg)
 
 
 async def add_scripts(

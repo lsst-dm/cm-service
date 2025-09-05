@@ -65,4 +65,4 @@ class ValuesSplitter(Splitter):
                     value_list = ",".join([str(x) for x in value])
                     yield f"({self.dimension} IN ({value_list})"
                 case _:
-                    raise CMInvalidGroupingError(f"Unsupported grouping value: {value}")
+                    raise CMInvalidGroupingError

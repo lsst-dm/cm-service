@@ -205,7 +205,8 @@ async def load_specification(
     else:
         yaml_file = Path(yaml_file)
         if not await yaml_file.exists():
-            raise CMYamlParseError(f"Specification does not exist at path {yaml_file}")
+            msg = f"Specification does not exist at path {yaml_file}"
+            raise CMYamlParseError(msg)
         spec_yaml = await yaml_file.read_bytes()
         try:
             spec_data = deque()
@@ -213,11 +214,11 @@ async def load_specification(
             for spec in spec_batches:
                 spec_data += spec
         except yaml.YAMLError as yaml_error:
-            raise CMYamlParseError(
-                f"Error parsing specification {yaml_file}; threw {yaml_error}"
-            ) from yaml_error
+            msg = f"Error parsing specification {yaml_file}; threw {yaml_error}"
+            raise CMYamlParseError(msg) from yaml_error
         except Exception as e:
-            raise CMYamlParseError(f"{e}") from e
+            msg = f"{e}"
+            raise CMYamlParseError(msg) from e
 
     while spec_data:
         config_item = spec_data.popleft()
@@ -332,15 +333,15 @@ async def add_steps(
     for step_ in step_config_list:
         try:
             step_config_ = step_["Step"]
-        except KeyError as msg:
-            raise CMYamlParseError(f"Expecting Step not: {step_.keys()}") from msg
+        except KeyError as e:
+            msg = f"Expecting Step not: {step_.keys()}"
+            raise CMYamlParseError(msg) from e
         child_name_ = step_config_.pop("name")
         spec_block_name = step_config_.pop("spec_block")
 
         if spec_block_name is None:  # pragma: no cover
-            raise CMYamlParseError(
-                f"Step {child_name_} of {campaign.fullname} does contain 'spec_block'",
-            )
+            msg = f"Step {child_name_} of {campaign.fullname} does contain 'spec_block'"
+            raise CMYamlParseError(msg)
 
         namespaced_step_name = (
             str(uuid5(campaign_namespace, child_name_)) if campaign_namespace else child_name_
@@ -534,16 +535,17 @@ async def load_manifest_report(
     if fake_status is not None:
         return job
     if not await yaml_file.exists():
-        raise CMYamlParseError(f"Manifest report yaml does not exist at path {yaml_file}")
+        msg = f"Manifest report yaml does not exist at path {yaml_file}"
+        raise CMYamlParseError(msg)
     try:
         manifest_yaml = await yaml_file.read_bytes()
         manifest_data = yaml.safe_load(manifest_yaml)
     except yaml.YAMLError as yaml_error:
-        raise CMYamlParseError(
-            f"Error parsing manifest report yaml at path {yaml_file}; threw {yaml_error}"
-        ) from yaml_error
+        msg = f"Error parsing manifest report yaml at path {yaml_file}; threw {yaml_error}"
+        raise CMYamlParseError(msg) from yaml_error
     except Exception as e:
-        raise CMYamlParseError(f"{e}") from e
+        msg = f"{e}"
+        raise CMYamlParseError(msg) from e
     for task_name_, task_data_ in manifest_data.items():
         failed_quanta = task_data_.get("failed_quanta", {})
         outputs = task_data_.get("outputs", {})
@@ -786,23 +788,25 @@ async def load_error_types(
     """
     yaml_file = Path(yaml_file)
     if not await yaml_file.exists():
-        raise CMYamlParseError(f"Error type yaml does not exist at path {yaml_file}")
+        msg = f"Error type yaml does not exist at path {yaml_file}"
+        raise CMYamlParseError(msg)
     try:
         error_yaml = await yaml_file.read_bytes()
         error_types = yaml.safe_load(error_yaml)
     except yaml.YAMLError as yaml_error:
-        raise CMYamlParseError(
-            f"Error parsing error type yaml at path {yaml_file}; threw {yaml_error}"
-        ) from yaml_error
+        msg = f"Error parsing error type yaml at path {yaml_file}; threw {yaml_error}"
+        raise CMYamlParseError(msg) from yaml_error
     except Exception as e:
-        raise CMYamlParseError(f"{e}") from e
+        msg = f"{e}"
+        raise CMYamlParseError(msg) from e
 
     ret_list: list[PipetaskErrorType] = []
     for error_type_ in error_types:
         try:
             val = error_type_["PipetaskErrorType"]
-        except KeyError as msg:
-            raise CMYamlParseError(f"Expecting PipetaskErrorType items not: {error_type_.keys()})") from msg
+        except KeyError as e:
+            msg = f"Expecting PipetaskErrorType items not: {error_type_.keys()})"
+            raise CMYamlParseError(msg) from e
 
         val["diagnostic_message"] = val["diagnostic_message"].strip()
         new_error_type = await PipetaskErrorType.create_row(session, **val)

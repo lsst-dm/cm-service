@@ -100,12 +100,14 @@ async def get_row_by_table_and_id(
     try:
         table_class = get_table(table_enum)
     except KeyError as e:
-        raise CMBadEnumError(f"Unknown table {table_enum}") from e
+        msg = f"Unknown table {table_enum}"
+        raise CMBadEnumError(msg) from e
     query = select(table_class).where(table_class.id == row_id)
     result_s = await session.scalars(query)
     result = None if result_s is None else result_s.first()
     if result is None:
-        raise CMMissingFullnameError(f"{table_class} {row_id} not found")
+        msg = f"{table_class} {row_id} not found"
+        raise CMMissingFullnameError(msg)
     return result
 
 
@@ -141,10 +143,12 @@ async def get_node_by_level_and_id(
     try:
         element_class = LEVEL_DICT[level]
     except KeyError as e:
-        raise CMBadEnumError(f"Unknown level {level}") from e
+        msg = f"Unknown level {level}"
+        raise CMBadEnumError(msg) from e
     result = await session.get(element_class, element_id)
     if result is None:
-        raise CMMissingFullnameError(f"{element_class} {element_id} not found")
+        msg = f"{element_class} {element_id} not found"
+        raise CMMissingFullnameError(msg)
     return result
 
 
@@ -353,11 +357,11 @@ async def process(
     node_type = get_node_type_by_fullname(fullname)
     if node_type is NodeTypeEnum.element:
         return await process_element(session, fullname, fake_status=fake_status)
-    if node_type is NodeTypeEnum.script:
+    elif node_type is NodeTypeEnum.script:
         return await process_script(session, fullname[7:], fake_status=fake_status)
-    raise CMBadExecutionMethodError(
-        f"Tried to process an row from a table of type {node_type}"
-    )  # pragma: no cover
+    else:
+        msg = f"Tried to process an row from a table of type {node_type}"
+        raise CMBadExecutionMethodError(msg)  # pragma: no cover
 
 
 async def reset_script(
