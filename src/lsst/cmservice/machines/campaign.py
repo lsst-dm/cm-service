@@ -10,7 +10,7 @@ should focus on validity and completeness of its graph, while providing useful
 information about the overall campaign progress to pilots and other users.
 """
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from uuid import uuid5
 
 from sqlmodel import select
@@ -84,9 +84,6 @@ class CampaignMachine(NodeMachine):
         """Error handler function for the Stateful Model, called by the Machine
         if any exception is raised in a callback function.
         """
-        if TYPE_CHECKING:
-            assert self.db_model is not None
-
         if event.error is None:
             return
 
@@ -99,10 +96,6 @@ class CampaignMachine(NodeMachine):
 
     async def prepare_activity_log(self, event: EventData) -> None:
         """Callback method invoked by the Machine before every state-change."""
-
-        if TYPE_CHECKING:
-            assert self.db_model is not None
-
         if self.activity_log_entry is not None:
             return None
 
@@ -124,10 +117,6 @@ class CampaignMachine(NodeMachine):
         """Callback method invoked by the Machine unconditionally at the end
         of every callback chain.
         """
-        if TYPE_CHECKING:
-            assert self.db_model is not None
-            assert self.session is not None
-
         # The activity log entry is added to the db. For failed transitions it
         # may include error detail. For other transitions it is not necessary
         # to log every attempt, so if no callback has registered any detail
@@ -148,7 +137,7 @@ class CampaignMachine(NodeMachine):
             self.activity_log_entry = None
 
         await self.session.close()
-        self.session = None
+        del self.session
         self.activity_log_entry = None
 
     async def is_successful(self, event: EventData) -> bool:
@@ -161,9 +150,6 @@ class CampaignMachine(NodeMachine):
         "END" node may only be reached if all other nodes have been success-
         fully evolved by an executor.
         """
-        if TYPE_CHECKING:
-            assert self.db_model is not None
-            assert self.session is not None
         end_node = await self.session.get_one(Node, uuid5(self.db_model.id, "END.1"))
         logger.info(f"Checking whether campaign {self.db_model.name} is finished.", end_node=end_node.status)
         return end_node.status is StatusEnum.accepted
@@ -174,10 +160,6 @@ class CampaignMachine(NodeMachine):
         This callback asserts that the campaign graph is valid as a condition
         that must be met before the campaign may transition to a "ready" state.
         """
-        if TYPE_CHECKING:
-            assert self.db_model is not None
-            assert self.session is not None
-
         edges = await self.session.exec(select(Edge).where(Edge.namespace == self.db_model.id))
         graph = await graph_from_edge_list_v2(edges.all(), self.session)
 

@@ -1,5 +1,5 @@
 from collections.abc import Iterable, Mapping, MutableSet, Sequence
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, TypedDict
 from uuid import UUID, uuid4, uuid5
 
 import networkx as nx
@@ -18,6 +18,14 @@ type AnyGraphNode = Step | Script
 
 
 class InvalidCampaignGraphError(Exception): ...
+
+
+class NodeData(TypedDict):
+    """A type describing the dictionary representation of a digraph's Node data
+    when a 'model' view is employed (default).
+    """
+
+    model: Node
 
 
 async def graph_from_edge_list(
@@ -99,6 +107,37 @@ async def graph_from_edge_list_v2(
         g = nx.relabel_nodes(g, mapping=relabel_mapping, copy=False)
 
     return g
+
+
+def subgraph_between_nodes(g: nx.DiGraph, source: UUID, sink: UUID) -> nx.DiGraph:
+    """Determine subgraph of graph ``g`` based on an arbitrary source and sink
+    node in the graph. If no such subgraph exists, returns an empty graph.
+    """
+    nodes = set()
+    for path in nx.all_simple_paths(g, source=source, target=sink):
+        nodes.update(path)
+    return g.subgraph(nodes)
+
+
+def find_endpoints_in_directed_graph(g: nx.DiGraph) -> tuple[UUID, UUID]:
+    """Determines and returns the source and sink nodes in a directed graph.
+
+    In a valid graph, the source node is the one and only node with a in degree
+    of 0 and the sink is the one and only node with an out degree of 0.
+
+    Raises
+    ------
+    RuntimeError
+        If the endpoints cannot be correctly determined. This may indicate an
+        invalid graph with loops, breaks, etc.
+    """
+    # For a valid graph, the "longest path" in it necessarily has the source
+    # and sink nodes as its endpoints.
+    path: list[UUID] = nx.dag_longest_path(g)  # pyright: ignore[reportAssignmentType]
+    # Validate that the potential endpoints correctly have a degree of 1
+    if not all([d[1] == 1 for d in nx.degree(g, (path[0], path[-1]))]):
+        raise RuntimeError("Unable to determine endpoints in graph.")
+    return (path[0], path[-1])
 
 
 def graph_to_dict(g: nx.DiGraph) -> Mapping:
@@ -345,7 +384,7 @@ async def append_node_to_graph(
             # create new "downstream" edges with node_1
             s = select(Edge).with_for_update().where(Edge.source == node_0)
             downstream_edges = (await session.exec(s)).all()
-        case ManifestKind.grouped_step:
+        case ManifestKind.step:
             # node_1 should become adjacent to the next nodes in node_0's path
             # that are not a group or a collect node.
             # this ORM statement forms a recursive CTE for traversing a graph
@@ -389,7 +428,7 @@ async def append_node_to_graph(
             # want to append.
             s = select(Edge).with_for_update().where(Edge.source == downstream_edge.source)
             downstream_edges = (await session.exec(s)).all()
-        case ManifestKind.start | ManifestKind.end:
+        case ManifestKind.breakpoint | ManifestKind.start | ManifestKind.end:
             # node_1 may not become adjacent to these kinds of nodes; this is
             # not a default, this is a specific implementation decision.
             raise NotImplementedError
