@@ -17,7 +17,8 @@ def check_and_parse_result[T](
     return_class: type[T],
 ) -> T:
     if not result.exit_code == 0:
-        raise ValueError(f"{result} failed with {result.exit_code} {result.output}")
+        msg = f"{result} failed with {result.exit_code} {result.output}"
+        raise ValueError(msg)
     return_obj = TypeAdapter(return_class).validate_python(yaml.unsafe_load(result.stdout))
     return return_obj
 
@@ -27,7 +28,8 @@ def expect_failed_result(
     expected_code: int = 1,
 ) -> None:
     if result.exit_code != expected_code:
-        raise ValueError(f"{result} did not fail as expected {result.exit_code}")
+        msg = f"{result} did not fail as expected {result.exit_code}"
+        raise ValueError(msg)
 
 
 def add_scripts(
@@ -177,7 +179,8 @@ def delete_all_rows(
     for row_ in rows:
         result = runner.invoke(client_top, f"{entry_class_name} delete --row_id {row_.id}")
         if not result.exit_code == 0:
-            raise ValueError(f"{result} failed with {result.exit_code} {result.output}")
+            msg = f"{result} failed with {result.exit_code} {result.output}"
+            raise ValueError(msg)
 
 
 def delete_all_artifacts(

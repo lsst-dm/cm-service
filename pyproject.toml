@@ -155,6 +155,8 @@ select = [
     "FAST", # FastAPI
     "FURB", # refurb
     "PERF", # perflint
+    "EM102", # f-string-in-exception
+    "G004", # logging-f-string
 ]
 extend-select = [
     "RUF100", # Warn about unused noqa

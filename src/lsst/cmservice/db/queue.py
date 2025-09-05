@@ -105,7 +105,8 @@ class Queue(Base, NodeMixin):
             await session.refresh(self, attribute_names=["script_"])
             node = self.script_
         else:  # pragma: no cover
-            raise CMBadEnumError(f"Bad level for script: {self.node_level}")
+            msg = f"Bad level for script: {self.node_level}"
+            raise CMBadEnumError(msg)
         return node
 
     @classmethod
@@ -144,7 +145,8 @@ class Queue(Base, NodeMixin):
             # parse out the "script:" at the beginning fof ullname
             node = await Script.get_row_by_fullname(session, fullname[7:])
         else:  # pragma: no cover
-            raise CMBadEnumError(f"Bad level for queue: {node_level}")
+            msg = f"Bad level for queue: {node_level}"
+            raise CMBadEnumError(msg)
         query = select(cls).where(
             and_(
                 cls.node_level == node_level,
@@ -154,7 +156,8 @@ class Queue(Base, NodeMixin):
         rows = await session.scalars(query)
         row = rows.first()
         if row is None:  # pragma: no cover
-            raise CMMissingFullnameError(f"{cls} {node_level} {node.id} not found")
+            msg = f"{cls} {node_level} {node.id} not found"
+            raise CMMissingFullnameError(msg)
         return row
 
     @classmethod
@@ -196,7 +199,8 @@ class Queue(Base, NodeMixin):
             node = await Script.get_row_by_fullname(session, fullname[7:])
             ret_dict["script_id"] = node.id
         else:  # pragma: no cover
-            raise CMBadEnumError(f"Bad level for queue: {node_level}")
+            msg = f"Bad level for queue: {node_level}"
+            raise CMBadEnumError(msg)
 
         ret_dict["node_id"] = node.id
         return ret_dict

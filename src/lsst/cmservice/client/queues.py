@@ -82,8 +82,9 @@ class CMQueueClient:
         results = self._client.get(f"{router_string}/sleep_time/{row_id}").json()
         try:
             return TypeAdapter(int).validate_json(str(results))
-        except ValidationError as msg:  # pragma: no cover
-            raise ValueError(f"Bad response: {results}") from msg
+        except ValidationError as e:  # pragma: no cover
+            msg = f"Bad response: {results}"
+            raise ValueError(msg) from e
 
     def process(
         self,

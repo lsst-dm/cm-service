@@ -76,7 +76,8 @@ class Handler:
         if cached_handler is None:
             handler_class = doImport(class_name)
             if isinstance(handler_class, types.ModuleType):  # pragma: no cover
-                raise CMBadHandlerTypeError(f"{type(handler_class)} is a Module, not a handler class")
+                msg = f"{type(handler_class)} is a Module, not a handler class"
+                raise CMBadHandlerTypeError(msg)
             cached_handler = handler_class(spec_block_id, **kwargs)
             Handler.handler_cache[spec_block_id] = cached_handler
         return cached_handler
@@ -116,7 +117,8 @@ class Handler:
         status : StatusEnum
             Status of the processing
         """
-        raise NotImplementedError(f"{type(self)}.process")
+        msg = f"{type(self)}.process"
+        raise NotImplementedError(msg)
 
     async def run_check(
         self,
@@ -144,7 +146,8 @@ class Handler:
         status : StatusEnum
             Status of the processing
         """
-        raise NotImplementedError(f"{type(self)}.run_check")
+        msg = f"{type(self)}.run_check"
+        raise NotImplementedError(msg)
 
     async def reset(
         self,
@@ -175,7 +178,8 @@ class Handler:
         status : StatusEnum
             Status of the processing
         """
-        raise NotImplementedError(f"{type(self)}.reset")
+        msg = f"{type(self)}.reset"
+        raise NotImplementedError(msg)
 
     async def reset_script(
         self,
@@ -206,7 +210,8 @@ class Handler:
         status : StatusEnum
             Status of the processing
         """
-        raise NotImplementedError(f"{type(self)}.reset_script")
+        msg = f"{type(self)}.reset_script"
+        raise NotImplementedError(msg)
 
     async def review(
         self,
@@ -229,7 +234,8 @@ class Handler:
         status : StatusEnum
             Status of the processing
         """
-        raise NotImplementedError(f"{type(self)}.review")
+        msg = f"{type(self)}.review"
+        raise NotImplementedError(msg)
 
     async def review_script(
         self,
@@ -256,4 +262,5 @@ class Handler:
         status : StatusEnum
             Status of the processing
         """
-        raise NotImplementedError(f"{type(self)}.review_script")
+        msg = f"{type(self)}.review_script"
+        raise NotImplementedError(msg)
