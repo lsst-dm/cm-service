@@ -167,7 +167,8 @@ class Step(Base, ElementMixin):
             spec_block_name = kwargs["spec_block_name"]
             original_name = kwargs.get("original_name", name)
         except KeyError as e:
-            raise CMMissingRowCreateInputError(f"Missing input to create Step: {e}") from e
+            msg = f"Missing input to create Step: {e}"
+            raise CMMissingRowCreateInputError(msg) from e
 
         campaign = await Campaign.get_row_by_fullname(session, parent_name)
         specification = await campaign.get_specification(session)

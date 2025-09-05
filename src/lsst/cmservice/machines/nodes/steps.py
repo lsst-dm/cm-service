@@ -121,7 +121,8 @@ class StepMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
             manifest = (await self.session.exec(s)).one()
             self.session.expunge(manifest)
         except NoResultFound:
-            raise CMNoSuchManifestError(f"A required manifest was not found in the database: {manifest_kind}")
+            msg = f"A required manifest was not found in the database: {manifest_kind}"
+            raise CMNoSuchManifestError(msg)
 
         o = manifest_type(**manifest.model_dump())
         o.metadata_.version = manifest.version

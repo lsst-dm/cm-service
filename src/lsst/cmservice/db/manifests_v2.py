@@ -101,7 +101,8 @@ class ManifestModel(Manifest[ManifestModelMetadata, ManifestSpec]):
     def custom_model_validator(self, info: ValidationInfo) -> Self:
         """Validate an Campaign Manifest after a model has been created."""
         if self.kind in [ManifestKind.campaign, ManifestKind.node, ManifestKind.edge]:
-            raise ValueError(f"Manifests may not be a {self.kind.name} kind.")
+            msg = f"Manifests may not be a {self.kind.name} kind."
+            raise ValueError(msg)
 
         return self
 
