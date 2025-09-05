@@ -89,8 +89,9 @@ class BpsScriptHandler(ScriptHandler):
             pipeline_yaml = os.path.expandvars(data_dict["pipeline_yaml"])
             run_coll = resolved_cols["run"]
             input_colls = resolved_cols["inputs"]
-        except KeyError as msg:
-            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        except KeyError as e:
+            msg = f"{script.fullname} missing an input: {e}"
+            raise CMMissingScriptInputError(msg) from e
 
         # workflow_config is the values dictionary to use while rendering a
         # yaml template, NOT the yaml template itself!
@@ -230,8 +231,9 @@ class BpsScriptHandler(ScriptHandler):
             # Render bps_submit_yaml template to `config_url`
             yaml_output = config_template.render(workflow_config)
             await Path(config_url).write_text(yaml_output)
-        except yaml.YAMLError as yaml_error:
-            raise yaml.YAMLError(f"Error writing a script to run BPS job {script}; threw {yaml_error}")
+        except yaml.YAMLError as e:
+            msg = f"Error writing a script to run BPS job {script}; threw {e}"
+            raise yaml.YAMLError(msg)
         return StatusEnum.prepared
 
     async def _check_slurm_job(
@@ -372,8 +374,9 @@ class BpsScriptHandler(ScriptHandler):
         try:
             run_coll = resolved_cols["run"]
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:
-            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        except KeyError as e:
+            msg = f"{script.fullname} missing an input: {e}"
+            raise CMMissingScriptInputError(msg) from e
 
         await remove_run_collections(butler_repo, run_coll, fake_reset=fake_reset)
 
@@ -391,7 +394,8 @@ class BpsReportHandler(FunctionHandler):
     def _get_wms_svc(self, **kwargs: Any) -> BaseWmsService | None:
         # FIXME this should happen in __init__
         if self.wms_svc_class_name is None:  # pragma: no cover
-            raise CMBadExecutionMethodError(f"{type(self)} should not be used, use a sub-class instead")
+            msg = f"{type(self)} should not be used, use a sub-class instead"
+            raise CMBadExecutionMethodError(msg)
 
         try:
             self._wms_svc_class = doImport(self.wms_svc_class_name)
@@ -402,9 +406,8 @@ class BpsReportHandler(FunctionHandler):
 
         if self._wms_svc is None:
             if isinstance(self._wms_svc_class, types.ModuleType):  # pragma: no cover
-                raise CMBadExecutionMethodError(
-                    f"Site class={self.wms_svc_class_name} is not a BaseWmsService subclass",
-                )
+                msg = f"Site class={self.wms_svc_class_name} is not a BaseWmsService subclass"
+                raise CMBadExecutionMethodError(msg)
             self._wms_svc = self._wms_svc_class(kwargs)
         return self._wms_svc
 
@@ -515,7 +518,8 @@ class BpsReportHandler(FunctionHandler):
             assert type(parent) is Job
 
         if parent.level != LevelEnum.job:  # pragma: no cover
-            raise CMBadParameterTypeError(f"Script parent is a {parent.level}, not a LevelEnum.job")
+            msg = f"Script parent is a {parent.level}, not a LevelEnum.job"
+            raise CMBadParameterTypeError(msg)
         await session.refresh(parent, attribute_names=["wms_reports_"])
         for wms_report_ in parent.wms_reports_:
             await WmsTaskReport.delete_row(session, wms_report_.id)
@@ -683,7 +687,8 @@ class ManifestReportLoadHandler(FunctionHandler):
             session, job.fullname, pipetask_report_yaml, fake_status=fake_status
         )
         if not job.id == check_job.id:  # pragma: no cover
-            raise CMIDMismatchError(f"job.id {job.id} != check_job.id {check_job.id}")
+            msg = f"job.id {job.id} != check_job.id {check_job.id}"
+            raise CMIDMismatchError(msg)
 
         status = await compute_job_status(session, job)
         return status
@@ -705,7 +710,8 @@ class ManifestReportLoadHandler(FunctionHandler):
             assert type(parent) is Job
 
         if parent.level != LevelEnum.job:  # pragma: no cover
-            raise CMBadParameterTypeError(f"Script parent is a {parent.level}, not a LevelEnum.job")
+            msg = f"Script parent is a {parent.level}, not a LevelEnum.job"
+            raise CMBadParameterTypeError(msg)
         await session.refresh(parent, attribute_names=["tasks_"])
         for task_ in parent.tasks_:
             await TaskSet.delete_row(session, task_.id)

@@ -71,7 +71,7 @@ logger.info("Starting web app...")
 
 @web_app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> Response:
-    logger.error(f"HTTP {exc.status_code} on {request.url}: {exc.detail}")
+    logger.error("HTTP Error", extra=dict(url=request.url), code=exc.status_code, detail=exc.detail)
 
     is_json_request = (
         "application/json" in request.headers.get("accept", "")
@@ -165,7 +165,8 @@ async def get_steps(
     try:
         campaign = await get_campaign_by_id(session, campaign_id)
         if campaign is None:
-            raise Exception(f"Campaign {campaign_id} not found!")
+            msg = f"Campaign {campaign_id} not found!"
+            raise Exception(msg)
         campaign_details = await get_campaign_details(session, campaign)
         steps = await get_campaign_steps(session, campaign_id)
         campaign_steps = []

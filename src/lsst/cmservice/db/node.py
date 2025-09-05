@@ -378,12 +378,12 @@ class NodeMixin(RowMixin):
             Updated Node
         """
         if not hasattr(self, "child_config"):  # pragma: no cover
-            raise CMBadExecutionMethodError(f"{self.fullname} does not have attribute child_config")
+            msg = f"{self.fullname} does not have attribute child_config"
+            raise CMBadExecutionMethodError(msg)
 
         if self.status.value >= StatusEnum.prepared.value:
-            raise CMBadStateTransitionError(
-                f"Tried to modify a node that is in use. {self.fullname}:{self.status}",
-            )
+            msg = f"Tried to modify a node that is in use. {self.fullname}:{self.status}"
+            raise CMBadStateTransitionError(msg)
 
         try:
             if self.child_config:
@@ -423,12 +423,12 @@ class NodeMixin(RowMixin):
             Updated Node
         """
         if not hasattr(self, "collections"):  # pragma: no cover
-            raise CMBadExecutionMethodError(f"{self.fullname} does not have attribute collections")
+            msg = f"{self.fullname} does not have attribute collections"
+            raise CMBadExecutionMethodError(msg)
 
         if not force and self.status.value >= StatusEnum.prepared.value:
-            raise CMBadStateTransitionError(
-                f"Tried to modify a node that is in use. {self.fullname}:{self.status}",
-            )
+            msg = f"Tried to modify a node that is in use. {self.fullname}:{self.status}"
+            raise CMBadStateTransitionError(msg)
 
         try:
             if self.collections:
@@ -465,11 +465,13 @@ class NodeMixin(RowMixin):
             Updated Node
         """
         if not hasattr(self, "spec_aliases"):  # pragma: no cover
-            raise CMBadExecutionMethodError(f"{self.fullname} does not have attribute spec_aliases")
+            msg = f"{self.fullname} does not have attribute spec_aliases"
+            raise CMBadExecutionMethodError(msg)
 
         if self.status.value >= StatusEnum.prepared.value:
+            msg = f"Tried to modify a node that is in use. {self.fullname}:{self.status}"
             raise CMBadStateTransitionError(
-                f"Tried to modify a node that is in use. {self.fullname}:{self.status}",
+                msg,
             )
 
         try:
@@ -520,7 +522,8 @@ class NodeMixin(RowMixin):
             database ``IntegrityError``.
         """
         if not hasattr(self, "metadata_"):  # pragma: no cover
-            raise CMBadExecutionMethodError(f"{self.fullname} does not have attribute data")
+            msg = f"{self.fullname} does not have attribute data"
+            raise CMBadExecutionMethodError(msg)
 
         try:
             async with session.begin_nested():
@@ -565,7 +568,8 @@ class NodeMixin(RowMixin):
             new keys may be added.
         """
         if not hasattr(self, "data"):  # pragma: no cover
-            raise CMBadExecutionMethodError(f"{self.fullname} does not have attribute data")
+            msg = f"{self.fullname} does not have attribute data"
+            raise CMBadExecutionMethodError(msg)
 
         # Separate kwargs between new and existing keys
         # If only new keys are being added to the data dict, then we do not
@@ -578,9 +582,8 @@ class NodeMixin(RowMixin):
                 len(existing_keys),
             ]
         ):
-            raise CMBadStateTransitionError(
-                f"Tried to modify a node that is in use. {self.fullname}:{self.status}",
-            )
+            msg = f"Tried to modify a node that is in use. {self.fullname}:{self.status}"
+            raise CMBadStateTransitionError(msg)
 
         # FIXME if the data field is Mutable, then it wouldn't be necessary to
         # copy the whole data dictionary in order to update it.
@@ -643,9 +646,8 @@ class NodeMixin(RowMixin):
             Node being rejected
         """
         if self.status in [StatusEnum.accepted, StatusEnum.rescued]:
-            raise CMBadStateTransitionError(
-                f"Can not reject {self.fullname} as it is in status {self.status}"
-            )
+            msg = f"Can not reject {self.fullname} as it is in status {self.status}"
+            raise CMBadStateTransitionError(msg)
 
         await self.update_values(session, status=StatusEnum.rejected)
         if self.level is LevelEnum.campaign:
@@ -676,9 +678,8 @@ class NodeMixin(RowMixin):
             StatusEnum.reviewable,
             StatusEnum.rescuable,
         ]:
-            raise CMBadStateTransitionError(
-                f"Can not accept {self.fullname} as it is in status {self.status}"
-            )
+            msg = f"Can not accept {self.fullname} as it is in status {self.status}"
+            raise CMBadStateTransitionError(msg)
 
         await self.update_values(session, status=StatusEnum.accepted)
 
@@ -710,7 +711,8 @@ class NodeMixin(RowMixin):
             Node being reset
         """
         if self.status not in [StatusEnum.blocked, StatusEnum.rejected, StatusEnum.failed, StatusEnum.ready]:
-            raise CMBadStateTransitionError(f"Can not reset {self.fullname} as it is in status {self.status}")
+            msg = f"Can not reset {self.fullname} as it is in status {self.status}"
+            raise CMBadStateTransitionError(msg)
 
         await self._clean_up_node(session, fake_reset=fake_reset)
         await self.update_values(session, status=StatusEnum.waiting, superseded=False)

@@ -131,5 +131,6 @@ class CMNoSuchManifestError(Exception):
 
 def test_type_and_raise[T](object: Any, expected_type: type[T], var_name: str) -> T:
     if not isinstance(object, expected_type):
-        raise CMBadParameterTypeError(f"{var_name} expected type {expected_type} got {type(object)}")
+        msg = f"{var_name} expected type {expected_type} got {type(object)}"
+        raise CMBadParameterTypeError(msg)
     return object

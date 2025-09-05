@@ -168,20 +168,23 @@ class ElementHandler(Handler):
         for script_item in spec_block.scripts:
             try:
                 script_vals = script_item["Script"].copy()
-            except KeyError as msg:
-                raise CMYamlParseError(f"Expected Script tag, found {script_item.keys()}") from msg
+            except KeyError as e:
+                msg = f"Expected Script tag, found {script_item.keys()}"
+                raise CMYamlParseError(msg) from e
             test_type_and_raise(script_vals, dict, "ElementHandler Script yaml tag")
             try:
                 script_name = script_vals.pop("name")
                 namespaced_script_name = (
                     str(uuid5(campaign_namespace, script_name)) if campaign_namespace else script_name
                 )
-            except KeyError as msg:
-                raise CMYamlParseError(f"Unnnamed Script block {script_vals}") from msg
+            except KeyError as e:
+                msg = f"Unnnamed Script block {script_vals}"
+                raise CMYamlParseError(msg) from e
 
             script_spec_block_name = script_vals.get("spec_block", None)
             if script_spec_block_name is None:  # pragma: no cover
-                raise CMYamlParseError(f"Script block {script_name} does not contain spec_block")
+                msg = f"Script block {script_name} does not contain spec_block"
+                raise CMYamlParseError(msg)
 
             # If the spec_aliases does not have a key for the current script
             # name, then it is not an alias.

@@ -147,7 +147,8 @@ class Group(Base, ElementMixin):
             name = kwargs["name"]
             spec_block_name = kwargs["spec_block_name"]
         except KeyError as e:
-            raise CMMissingRowCreateInputError(f"Missing input to create Group: {e}") from e
+            msg = f"Missing input to create Group: {e}"
+            raise CMMissingRowCreateInputError(msg) from e
         step = await Step.get_row_by_fullname(session, parent_name)
         spec_aliases = await step.get_spec_aliases(session)
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
@@ -194,7 +195,8 @@ class Group(Base, ElementMixin):
         jobs = await self.get_jobs(session)
         rescuable_jobs = [j for j in jobs if j.status is StatusEnum.rescuable]
         if not rescuable_jobs:
-            raise CMTooFewAcceptedJobsError(f"Expected at least one rescuable job for {self.fullname}, got 0")
+            msg = f"Expected at least one rescuable job for {self.fullname}, got 0"
+            raise CMTooFewAcceptedJobsError(msg)
         latest_resuable_job = rescuable_jobs[-1]
         try:
             new_job = await latest_resuable_job.copy_job(session, self)
@@ -232,14 +234,15 @@ class Group(Base, ElementMixin):
                 pass
             elif job_.status is StatusEnum.accepted:
                 if has_accepted:
-                    raise CMTooManyActiveScriptsError(f"More that one accepted job found: {job_.fullname}")
+                    msg = f"More that one accepted job found: {job_.fullname}"
+                    raise CMTooManyActiveScriptsError(msg)
                 has_accepted = True
             else:
-                raise CMBadStateTransitionError(
-                    f"Job should be rescuable or accepted: {job_.fullname} is {job_.status}",
-                )
+                msg = f"Job should be rescuable or accepted: {job_.fullname} is {job_.status}"
+                raise CMBadStateTransitionError(msg)
         if not has_accepted:
-            raise CMTooFewAcceptedJobsError(f"Expected at least one accepted job for {self.fullname}, got 0")
+            msg = f"Expected at least one accepted job for {self.fullname}, got 0"
+            raise CMTooFewAcceptedJobsError(msg)
         for job_ in ret_list:
             await job_.update_values(session, status=StatusEnum.rescued)
         return ret_list

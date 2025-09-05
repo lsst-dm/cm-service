@@ -65,9 +65,9 @@ async def main_loop(app: FastAPI) -> None:
         if Features.DAEMON_V2 in config.features.enabled:
             await daemon_iteration_v2()
         _iteration_time = current_time()
-        logger.info(f"Daemon completed {_iteration_count} iterations at {_iteration_time}.")
+        logger.info("Daemon completed %s iterations at %s.", _iteration_count, _iteration_time)
         _next_wakeup = _iteration_time + sleep_time
-        logger.info(f"Daemon next iteration at {_next_wakeup}.")
+        logger.info("Daemon next iteration at %s.", _next_wakeup)
         await sleep_until(_next_wakeup)
 
 

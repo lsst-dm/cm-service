@@ -91,7 +91,8 @@ class RunJobsScriptHandler(RunElementScriptHandler):
         spec_aliases = await parent.get_spec_aliases(session)
         spec_block_name = child_config.pop("spec_block", None)
         if spec_block_name is None:  # pragma: no cover
-            raise CMMissingScriptInputError(f"child_config for {script.fullname} does not contain spec_block")
+            msg = f"child_config for {script.fullname} does not contain spec_block"
+            raise CMMissingScriptInputError(msg)
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
         _new_job = await Job.create_row(
             session,
@@ -233,7 +234,7 @@ class SplitByQuery(Splitter):
                 butler_repo, collections=[input_coll, campaign_input_coll]
             )
             if butler is None:
-                logger.error(f"butler repo {butler_repo} is not known to the application.")
+                logger.error("butler repo is not known to the application.", repo=butler_repo)
                 raise RuntimeError("No such butler")
             itr_q_f = partial(
                 butler.registry.queryDataIds,
@@ -294,7 +295,8 @@ class RunGroupsScriptHandler(RunElementScriptHandler):
         spec_aliases = await parent.get_spec_aliases(session)
         spec_block_name = child_config.pop("spec_block", None)
         if spec_block_name is None:  # pragma: no cover
-            raise CMMissingScriptInputError(f"child_config for {script.fullname} does not contain spec_block")
+            msg = f"child_config for {script.fullname} does not contain spec_block"
+            raise CMMissingScriptInputError(msg)
         spec_block_name = spec_aliases.get(spec_block_name, spec_block_name)
 
         split_method: str = child_config.pop("split_method", "no_split")

@@ -164,9 +164,8 @@ class Campaign(Base, ElementMixin):
         else:
             tokens = spec_block_assoc_name.split("#")
             if len(tokens) != 2:
-                raise ValueError(
-                    f"spec_block_assoc_name not in format spec_name#campaign: {spec_block_assoc_name}",
-                )
+                msg = f"spec_block_assoc_name not in format spec_name#campaign: {spec_block_assoc_name}"
+                raise ValueError(msg)
             spec_name = tokens[0]
             spec_block_name = tokens[1]
 

@@ -82,7 +82,7 @@ class CMLoadClient:
         if spec_block and not allow_update:
             return spec_block
 
-        logger.info(f"Loading spec_block {spec_name} as {key}")
+        logger.info("Loading spec_block %s as %s", spec_name, key)
 
         # A spec that "includes" another spec is effectively declaring a clone
         # of the referenced spec that should have already been "loaded" such
@@ -180,7 +180,7 @@ class CMLoadClient:
         if specification is not None and not allow_update:
             return specification
 
-        logger.info(f"""Loading specification {spec_name} as {namespaced_spec_name}""")
+        logger.info("Loading specification %s as %s", spec_name, namespaced_spec_name)
 
         if specification is None:
             # update specifications dict with namespaced names
@@ -380,10 +380,9 @@ class CMLoadClient:
 
         try:
             manifest = config_data
-        except KeyError as msg:
-            raise CMYamlParseError(
-                f"Could not find 'Campaign' tag in {campaign_yaml}",
-            ) from msg
+        except KeyError as e:
+            msg = f"Could not find 'Campaign' tag in {campaign_yaml}"
+            raise CMYamlParseError(msg) from e
 
         assert isinstance(manifest, dict)
         if "data" not in manifest:
@@ -415,7 +414,7 @@ class CMLoadClient:
         manifest["spec_block_assoc_name"] = f"{namespaced_spec_name}#campaign"
         # assert the the loaded campaign is using namespaced objects
         manifest["data"]["namespace"] = str(namespace)
-        logger.info(f"""Loading campaign {manifest["name"]} with namespace {namespace}""")
+        logger.info("Loading campaign %s with namespace %s", manifest["name"], namespace)
 
         # Load the remaining manifests as lists of specblocks
         loaded_specs: dict[str, Any] = {}
@@ -508,10 +507,9 @@ class CMLoadClient:
         for error_type_ in error_types:
             try:
                 val = error_type_["PipetaskErrorType"]
-            except KeyError as msg:
-                raise CMYamlParseError(
-                    f"Expecting PipetaskErrorType items not: {error_type_.keys()})",
-                ) from msg
+            except KeyError as e:
+                msg = f"Expecting PipetaskErrorType items not: {error_type_.keys()})"
+                raise CMYamlParseError(msg) from e
 
             val["error_source"] = ErrorSourceEnum[val["error_source"]]
             val["error_action"] = ErrorActionEnum[val["error_action"]]

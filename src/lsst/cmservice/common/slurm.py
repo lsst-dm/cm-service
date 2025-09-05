@@ -84,14 +84,16 @@ async def submit_slurm_job(
                 stderr_msg = ""
                 async for text in TextReceiveStream(slurm_submit.stderr):
                     stderr_msg += text
-                raise CMSlurmSubmitError(f"Bad slurm submit: {stderr_msg}")
+                msg = f"Bad slurm submit: {stderr_msg}"
+                raise CMSlurmSubmitError(msg)
             assert slurm_submit.stdout
             stdout_msg = ""
             async for text in TextReceiveStream(slurm_submit.stdout):
                 stdout_msg += text
             return stdout_msg.split("|")[0]
     except Exception as e:
-        raise CMSlurmSubmitError(f"Bad slurm submit: {e}") from e
+        msg = f"Bad slurm submit: {e}"
+        raise CMSlurmSubmitError(msg) from e
 
 
 async def check_slurm_job(
@@ -127,7 +129,8 @@ async def check_slurm_job(
                 stderr_msg = ""
                 async for text in TextReceiveStream(slurm_check.stderr):
                     stderr_msg += text
-                raise CMSlurmCheckError(f"Bad slurm check: {stderr_msg}")
+                msg = f"Bad slurm check: {stderr_msg}"
+                raise CMSlurmCheckError(msg)
             try:
                 assert slurm_check.stdout
                 stdout_msg = ""
@@ -141,7 +144,9 @@ async def check_slurm_job(
                     return slurm_status_map["PENDING"]
                 slurm_status = tokens[1]
             except Exception as e:
-                raise CMSlurmCheckError(f"Badly formatted slurm check: {e}") from e
+                msg = f"Badly formatted slurm check: {e}"
+                raise CMSlurmCheckError(msg) from e
     except Exception as e:
-        raise CMSlurmCheckError(f"Bad slurm check: {e}") from e
+        msg = f"Bad slurm check: {e}"
+        raise CMSlurmCheckError(msg) from e
     return slurm_status_map[slurm_status]  # pragma: no cover
