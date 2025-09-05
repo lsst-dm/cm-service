@@ -45,9 +45,8 @@ class JobHandler(ElementHandler):
                 continue
             if error_type_.error_action is ErrorActionEnum.accept:
                 continue
-            raise CMBadEnumError(  # pragma: no cover
-                f"Unexpected ErrorActionnEnum {error_type_.error_action}"
-            )
+            msg = f"Unexpected ErrorActionnEnum {error_type_.error_action}"
+            raise CMBadEnumError(msg)  # pragma: no cover
 
         if is_failure:
             return StatusEnum.failed

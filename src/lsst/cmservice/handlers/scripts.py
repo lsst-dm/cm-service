@@ -46,7 +46,8 @@ class NullScriptHandler(ScriptHandler):
             script_url = await self._set_script_files(session, script, config.bps.artifact_path)
             butler_repo = data_dict["butler_repo"]
         except KeyError as e:
-            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {e}") from e
+            msg = f"{script.fullname} missing an input: {e}"
+            raise CMMissingScriptInputError(msg) from e
 
         template_values = {
             "script_method": script.run_method.name,
@@ -97,9 +98,10 @@ class ChainCreateScriptHandler(ScriptHandler):
             input_colls = resolved_cols["inputs"]
             script_url = await self._set_script_files(session, script, config.bps.artifact_path)
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:
+        except KeyError as e:
             logger.exception()
-            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+            msg = f"{script.fullname} missing an input: {e}"
+            raise CMMissingScriptInputError(msg) from e
         command = f"{config.butler.butler_bin} collection-chain {butler_repo} {output_coll}"
         # This is here out of paranoia.
         # script.resolved_collections should convert the list to a string
@@ -131,8 +133,9 @@ class ChainCreateScriptHandler(ScriptHandler):
         try:
             output_coll = resolved_cols["output"]
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:
-            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        except KeyError as e:
+            msg = f"{script.fullname} missing an input: {e}"
+            raise CMMissingScriptInputError(msg) from e
 
         await remove_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
 
@@ -163,8 +166,9 @@ class ChainPrependScriptHandler(ScriptHandler):
             input_coll = resolved_cols["input"]
             script_url = await self._set_script_files(session, script, config.bps.artifact_path)
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:
-            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        except KeyError as e:
+            msg = f"{script.fullname} missing an input: {e}"
+            raise CMMissingScriptInputError(msg) from e
         command = (
             f"{config.butler.butler_bin} collection-chain "
             f"{butler_repo} {output_coll} --mode prepend {input_coll}"
@@ -193,8 +197,9 @@ class ChainPrependScriptHandler(ScriptHandler):
             input_coll = resolved_cols["input"]
             output_coll = resolved_cols["output"]
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:
-            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        except KeyError as e:
+            msg = f"{script.fullname} missing an input: {e}"
+            raise CMMissingScriptInputError(msg) from e
 
         await remove_collection_from_chain(butler_repo, input_coll, output_coll, fake_reset=fake_reset)
 
@@ -224,8 +229,9 @@ class ChainCollectScriptHandler(ScriptHandler):
             output_coll = resolved_cols["output"]
             input_colls = resolved_cols["inputs"]
             to_collect = data_dict["collect"]
-        except KeyError as msg:
-            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        except KeyError as e:
+            msg = f"{script.fullname} missing an input: {e}"
+            raise CMMissingScriptInputError(msg) from e
         collect_colls = []
         if to_collect == "jobs":
             jobs = await parent.get_jobs(session)
@@ -271,8 +277,9 @@ class ChainCollectScriptHandler(ScriptHandler):
         try:
             output_coll = resolved_cols["output"]
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:
-            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        except KeyError as e:
+            msg = f"{script.fullname} missing an input: {e}"
+            raise CMMissingScriptInputError(msg) from e
 
         await remove_non_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
 
@@ -304,8 +311,9 @@ class TagInputsScriptHandler(ScriptHandler):
             script_url = await self._set_script_files(session, script, config.bps.artifact_path)
             butler_repo = data_dict["butler_repo"]
             data_query = data_dict.get("data_query")
-        except KeyError as msg:
-            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        except KeyError as e:
+            msg = f"{script.fullname} missing an input: {e}"
+            raise CMMissingScriptInputError(msg) from e
         command = f"{config.butler.butler_bin} associate {butler_repo} {output_coll}"
         command += f" --collections {input_coll}"
         command += f' --where "{data_query}"' if data_query else ""
@@ -332,8 +340,9 @@ class TagInputsScriptHandler(ScriptHandler):
         try:
             output_coll = resolved_cols["output"]
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:
-            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        except KeyError as e:
+            msg = f"{script.fullname} missing an input: {e}"
+            raise CMMissingScriptInputError(msg) from e
 
         await remove_non_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
 
@@ -359,8 +368,9 @@ class TagCreateScriptHandler(ScriptHandler):
             output_coll = resolved_cols["output"]
             script_url = await self._set_script_files(session, script, config.bps.artifact_path)
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:
-            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        except KeyError as e:
+            msg = f"{script.fullname} missing an input: {e}"
+            raise CMMissingScriptInputError(msg) from e
         command = f"{config.butler.butler_bin} associate {butler_repo} {output_coll}"
 
         template_values = {
@@ -385,8 +395,9 @@ class TagCreateScriptHandler(ScriptHandler):
         try:
             output_coll = resolved_cols["output"]
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:
-            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        except KeyError as e:
+            msg = f"{script.fullname} missing an input: {e}"
+            raise CMMissingScriptInputError(msg) from e
 
         await remove_non_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
 
@@ -415,8 +426,9 @@ class TagAssociateScriptHandler(ScriptHandler):
             output_coll = resolved_cols["output"]
             script_url = await self._set_script_files(session, script, config.bps.artifact_path)
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:
-            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        except KeyError as e:
+            msg = f"{script.fullname} missing an input: {e}"
+            raise CMMissingScriptInputError(msg) from e
         command = f"{config.butler.butler_bin} associate {butler_repo} {output_coll}"
         command += f" --collections {input_coll}"
 
@@ -443,8 +455,9 @@ class TagAssociateScriptHandler(ScriptHandler):
             input_coll = resolved_cols["input"]
             output_coll = resolved_cols["output"]
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:
-            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        except KeyError as e:
+            msg = f"{script.fullname} missing an input: {e}"
+            raise CMMissingScriptInputError(msg) from e
 
         await remove_datasets_from_collections(butler_repo, input_coll, output_coll, fake_reset=fake_reset)
 
@@ -480,8 +493,9 @@ class PrepareStepScriptHandler(ScriptHandler):
             script_url = await self._set_script_files(session, script, config.bps.artifact_path)
             butler_repo = data_dict["butler_repo"]
             output_coll = resolved_cols["output"]
-        except KeyError as msg:
-            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        except KeyError as e:
+            msg = f"{script.fullname} missing an input: {e}"
+            raise CMMissingScriptInputError(msg) from e
 
         prereq_colls: list[str] = []
 
@@ -519,8 +533,9 @@ class PrepareStepScriptHandler(ScriptHandler):
         try:
             output_coll = resolved_cols["output"]
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:
-            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        except KeyError as e:
+            msg = f"{script.fullname} missing an input: {e}"
+            raise CMMissingScriptInputError(msg) from e
 
         await remove_non_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
 
@@ -572,12 +587,14 @@ class ResourceUsageScriptHandler(ScriptHandler):
         data_dict = await script.data_dict(session)
         parent = await script.get_parent(session)
         if parent.level != LevelEnum.campaign:  # pragma: no cover
-            raise CMBadExecutionMethodError(f"Script parent is a {parent.level}, not a LevelEnum.campaign")
+            msg = f"Script parent is a {parent.level}, not a LevelEnum.campaign"
+            raise CMBadExecutionMethodError(msg)
         try:
             resource_coll = resolved_cols["campaign_resource_usage"]
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:
-            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        except KeyError as e:
+            msg = f"{script.fullname} missing an input: {e}"
+            raise CMMissingScriptInputError(msg) from e
         await remove_run_collections(butler_repo, resource_coll, fake_reset=fake_reset)
         return await super()._purge_products(session, script, to_status, fake_reset=fake_reset)
 
@@ -664,12 +681,14 @@ class HipsMapsScriptHandler(ScriptHandler):
         data_dict = await script.data_dict(session)
         parent = await script.get_parent(session)
         if parent.level != LevelEnum.campaign:  # pragma: no cover
-            raise CMBadExecutionMethodError(f"Script parent is a {parent.level}, not a LevelEnum.campaign")
+            msg = f"Script parent is a {parent.level}, not a LevelEnum.campaign"
+            raise CMBadExecutionMethodError(msg)
         try:
             hips_maps_coll = resolved_cols["campaign_hips_maps"]
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:  # pragma: no cover
-            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        except KeyError as e:  # pragma: no cover
+            msg = f"{script.fullname} missing an input: {e}"
+            raise CMMissingScriptInputError(msg) from e
         if to_status.value < StatusEnum.running.value:
             await remove_run_collections(butler_repo, hips_maps_coll, fake_reset=fake_reset)
         return await super()._purge_products(session, script, to_status)
@@ -698,8 +717,9 @@ class ValidateScriptHandler(ScriptHandler):
             output_coll = resolved_cols["output"]
             script_url = await self._set_script_files(session, script, config.bps.artifact_path)
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:
-            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        except KeyError as e:
+            msg = f"{script.fullname} missing an input: {e}"
+            raise CMMissingScriptInputError(msg) from e
         command = f"{config.bps.pipetask_bin} validate {butler_repo} {input_coll} {output_coll}"
 
         template_values = {
@@ -724,7 +744,8 @@ class ValidateScriptHandler(ScriptHandler):
         try:
             output_coll = resolved_cols["output"]
             butler_repo = data_dict["butler_repo"]
-        except KeyError as msg:
-            raise CMMissingScriptInputError(f"{script.fullname} missing an input: {msg}") from msg
+        except KeyError as e:
+            msg = f"{script.fullname} missing an input: {e}"
+            raise CMMissingScriptInputError(msg) from e
 
         await remove_run_collections(butler_repo, output_coll, fake_reset=fake_reset)
