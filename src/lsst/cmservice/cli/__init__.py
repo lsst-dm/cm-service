@@ -15,3 +15,5 @@ action: specfic database actions
 load: reading yaml files an loading objects into the database
 query: getting objects from the database
 """
+
+from ..common.logging import LOGGER as LOGGER

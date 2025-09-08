@@ -34,7 +34,7 @@ dependencies = [
     "pydantic==2.11.*",
     "pydantic-settings==2.9.*",
     "python-multipart==0.0.*",
-    "structlog==24.4.*",
+    "structlog==25.*",
     "tabulate==0.9.*",
     "sqlalchemy[asyncio]==2.0.*",
     "safir[db]==7.0.*",
@@ -45,6 +45,7 @@ dependencies = [
     "sqlmodel>=0.0.24",
     "pytransitions==0.9.*",
     "deepdiff==8.5.*",
+    "asgi-correlation-id>=4.3.4",
 ]
 
 [dependency-groups]

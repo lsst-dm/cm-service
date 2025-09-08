@@ -1,14 +1,17 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from uuid import uuid4
 
 import uvicorn
+from asgi_correlation_id import CorrelationIdMiddleware
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from safir.dependencies.http_client import http_client_dependency
-from safir.logging import configure_logging, configure_uvicorn_logging
 from safir.middleware.x_forwarded import XForwardedMiddleware
 
 from . import __version__
 from .common.flags import Features
+from .common.logging import LOGGER, LoggingMiddleware
 from .config import config
 from .db.session import db_session_dependency
 from .routers import (
@@ -20,8 +23,7 @@ from .routers import (
 )
 from .web_app import web_app
 
-configure_uvicorn_logging(config.logging.level)
-configure_logging(profile=config.logging.profile, log_level=config.logging.level, name=config.asgi.title)
+logger = LOGGER.bind(module=__name__)
 
 
 @asynccontextmanager
@@ -50,6 +52,15 @@ app = FastAPI(
     redoc_url=None,
 )
 
+app.add_middleware(LoggingMiddleware)
+app.add_middleware(CorrelationIdMiddleware, generator=lambda: str(uuid4()))
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["X-Requested-With", "X-Request-ID"],
+    expose_headers=["X-Request-ID"],
+)
 app.add_middleware(XForwardedMiddleware)
 
 app.include_router(healthz.health_router, prefix="")
@@ -65,6 +76,11 @@ if Features.WEBAPP_V1 in config.features.enabled:
 
 
 if __name__ == "__main__":
+    logger.info("Starting API Server...")
     uvicorn.run(
-        "lsst.cmservice.main:app", host=config.asgi.host, port=config.asgi.port, reload=config.asgi.reload
+        "lsst.cmservice.main:app",
+        host=config.asgi.host,
+        port=config.asgi.port,
+        reload=config.asgi.reload,
+        log_config=None,
     )
