@@ -9,7 +9,6 @@ import shutil
 from typing import Any
 from uuid import uuid4
 
-from anyio import Path
 from fastapi.concurrency import run_in_threadpool
 from transitions import EventData
 from transitions.extensions.asyncio import AsyncEvent, AsyncMachine
@@ -222,7 +221,6 @@ class StartMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunch
     """
 
     __kind__ = [ManifestKind.start]
-    artifact_path: Path
 
     def post_init(self) -> None:
         """Post init, set class-specific callback triggers."""
