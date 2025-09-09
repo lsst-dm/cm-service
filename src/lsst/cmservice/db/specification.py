@@ -68,5 +68,6 @@ class Specification(Base, RowMixin):
                 aliases.get(spec_block_name, spec_block_name),
             )
             return spec_block
-        except CMMissingFullnameError as msg:
-            raise CMSpecificationError(f"Could not find spec_block {spec_block_name} in {self}") from msg
+        except CMMissingFullnameError as e:
+            msg = f"Could not find spec_block {spec_block_name} in {self}"
+            raise CMSpecificationError(msg) from e

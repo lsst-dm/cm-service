@@ -121,10 +121,12 @@ async def submit_htcondor_job(
                 stderr_msg = ""
                 async for text in TextReceiveStream(condor_submit.stderr):
                     stderr_msg += text
-                raise CMHTCondorSubmitError(f"Bad htcondor submit: f{stderr_msg}")
+                msg = f"Bad htcondor submit: f{stderr_msg}"
+                raise CMHTCondorSubmitError(msg)
 
     except Exception as e:
-        raise CMHTCondorSubmitError(f"Bad htcondor submit: {e}") from e
+        msg = f"Bad htcondor submit: {e}"
+        raise CMHTCondorSubmitError(msg) from e
 
 
 async def check_htcondor_job(
@@ -169,7 +171,8 @@ async def check_htcondor_job(
                 async for text in TextReceiveStream(condor_q.stderr):
                     stderr_msg += text
                 logger.error("Bad htcondor check", stderr=stderr_msg)
-                raise CMHTCondorCheckError(f"Bad htcondor check: {stderr_msg}")
+                msg = f"Bad htcondor check: {stderr_msg}"
+                raise CMHTCondorCheckError(msg)
             try:
                 assert condor_q.stdout
                 lines = ""
@@ -179,7 +182,8 @@ async def check_htcondor_job(
                 htcondor_status = htcondor_stdout[-1]["JobStatus"]
                 exit_code = htcondor_stdout[-1].get("ExitCode")
             except (AssertionError, json.JSONDecodeError, IndexError, KeyError) as e:
-                raise CMHTCondorCheckError(f"Badly formatted htcondor check: {e}") from e
+                msg = f"Badly formatted htcondor check: {e}"
+                raise CMHTCondorCheckError(msg) from e
     # FIXME the bare exception here is not great but the list of possible
     #       conditions is long.
     except Exception:
