@@ -140,6 +140,7 @@ class FilesystemActionMixin(ActionMixIn):
                 "lsst_distrib_dir": expandvars(config.bps.lsst_distrib_dir),
                 "lsst_version": expandvars(config.bps.lsst_version),
                 "project": "DEFAULT",
+                "campaign": self.db_model.namespace.hex,
             },
             "bps": {
                 "operator": "lsstsvc1",

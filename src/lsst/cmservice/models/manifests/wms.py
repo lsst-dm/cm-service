@@ -5,6 +5,8 @@ Configuration provided by a WMS manifest generally align with the WMS config-
 uration block of a BPS submit file.
 """
 
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Annotated, Literal
 
@@ -17,10 +19,11 @@ class WmsSpec(ManifestSpec):
     batch_system: Annotated[
         str, Literal["htcondor", "panda"], Field(validation_alias=AliasChoices("batch_system", "wms"))
     ]
-    service_class: Annotated[str, Field(description="wmsServiceClass used by the batch system")]
+    include_files: list[str] | None = Field(default=None)
     environment: Mapping = Field(
         default_factory=dict, description="A mapping of environment variables to set prior to bps submit."
     )
+    service_class: Annotated[str, Field(description="wmsServiceClass used by the batch system")]
 
 
 class WmsManifest(LibraryManifest[WmsSpec]): ...

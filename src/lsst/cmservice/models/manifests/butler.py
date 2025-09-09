@@ -3,6 +3,8 @@ Butler, which aligns a Butler repo with a data query and a set of collections
 for a Campaign.
 """
 
+from __future__ import annotations
+
 from collections.abc import Sequence
 from uuid import uuid4
 
@@ -14,9 +16,10 @@ from . import LibraryManifest, ManifestSpec
 class ButlerSpec(ManifestSpec):
     """Spec model for a Butler Manifest."""
 
-    repo: str = Field(description="Name of a Butler known to the application's Butler Factory.")
+    collections: ButlerCollectionsSpec
     predicates: Sequence[str] = Field(default_factory=list)
-    collections: "ButlerCollectionsSpec"
+    repo: str = Field(description="Name of a Butler known to the application's Butler Factory.")
+    include_files: list[str] | None = Field(default=None)
 
 
 class ButlerCollectionsSpec(BaseModel):
