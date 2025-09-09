@@ -106,11 +106,6 @@ class ButlerConfiguration(BaseModel):
         default=True,
     )
 
-    mock: bool = Field(
-        description="Whether to mock out Butler calls.",
-        default=False,
-    )
-
 
 class HipsConfiguration(BaseModel):
     """Configuration settings for HiPS operations.
@@ -464,11 +459,6 @@ class AsgiConfiguration(BaseModel):
         default="/cm-service",
     )
 
-    enable_frontend: bool = Field(
-        description="Whether to run the frontend web app",
-        default=True,
-    )
-
     frontend_prefix: str = Field(
         description="The URL prefix for the frontend web app",
         default="/web_app",
@@ -490,11 +480,6 @@ class DaemonConfiguration(BaseModel):
 
     Set according to DAEMON__FIELD environment variables.
     """
-
-    allocate_resources: bool = Field(
-        default=False,
-        description="Whether the daemon should try to allocate its own htcondor or slurm resources.",
-    )
 
     processing_interval: int = Field(
         default=30,

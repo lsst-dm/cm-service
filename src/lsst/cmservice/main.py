@@ -21,7 +21,6 @@ from .routers import (
     v1,
     v2,
 )
-from .web_app import web_app
 
 logger = LOGGER.bind(module=__name__)
 
@@ -72,6 +71,8 @@ if Features.API_V2 in config.features.enabled:
 
 # Start the frontend web application.
 if Features.WEBAPP_V1 in config.features.enabled:
+    from .web_app import web_app
+
     app.mount(config.asgi.frontend_prefix, web_app)
 
 

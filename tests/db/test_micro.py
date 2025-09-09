@@ -9,6 +9,7 @@ from safir.database import create_async_session
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from lsst.cmservice.common.enums import ScriptMethodEnum, StatusEnum
+from lsst.cmservice.common.flags import Features
 
 from .util_functions import cleanup
 
@@ -28,7 +29,7 @@ async def test_micro_db(
     monkeypatch.setenv("FIXTURES", str(fixtures))
     ScriptHandler = importlib.import_module("lsst.cmservice.handlers.script_handler").ScriptHandler
     interface = importlib.import_module("lsst.cmservice.handlers.interface")
-    monkeypatch.setattr("lsst.cmservice.config.config.butler.mock", True)
+    monkeypatch.setattr("lsst.cmservice.config.config.features.enabled", Features.MOCK_BUTLER)
 
     orig_method = ScriptHandler.default_method
     ScriptHandler.default_method = script_method

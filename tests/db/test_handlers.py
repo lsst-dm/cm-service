@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from lsst.cmservice import db
 from lsst.cmservice.common.enums import LevelEnum, StatusEnum
+from lsst.cmservice.common.flags import Features
 from lsst.cmservice.common.types import AnyAsyncSession
 
 from .util_functions import cleanup, create_tree
@@ -180,7 +181,7 @@ async def test_handlers_step_level_db(
     monkeypatch: MonkeyPatch,
 ) -> None:
     """Test to run the write and purge methods of various scripts"""
-    monkeypatch.setattr("lsst.cmservice.config.config.butler.mock", True)
+    monkeypatch.setattr("lsst.cmservice.config.config.features.enabled", Features.MOCK_BUTLER)
     temp_dir = str(tmp_path / "archive")
 
     logger = structlog.get_logger(__name__)
@@ -221,7 +222,7 @@ async def test_handlers_group_level_db(
     monkeypatch: MonkeyPatch,
 ) -> None:
     """Test to run the write and purge methods of various scripts"""
-    monkeypatch.setattr("lsst.cmservice.config.config.butler.mock", True)
+    monkeypatch.setattr("lsst.cmservice.config.config.features.enabled", Features.MOCK_BUTLER)
     temp_dir = str(tmp_path / "archive")
 
     logger = structlog.get_logger(__name__)

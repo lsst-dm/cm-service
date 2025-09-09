@@ -31,6 +31,7 @@ from lsst.resources import ResourcePathExpression
 
 from ..config import config
 from . import errors
+from .flags import Features
 from .logging import LOGGER
 
 logger = LOGGER.bind(module=__name__)
@@ -196,7 +197,7 @@ async def remove_run_collections(
     fake_reset: bool
         Allow for missing butler
     """
-    fake_reset = fake_reset or config.butler.mock
+    fake_reset = fake_reset or (Features.MOCK_BUTLER in config.features.enabled)
     try:
         butler_f = partial(
             Butler.from_config,
@@ -237,7 +238,7 @@ async def remove_non_run_collections(
     fake_reset: bool
         Allow for missing butler
     """
-    fake_reset = fake_reset or config.butler.mock
+    fake_reset = fake_reset or (Features.MOCK_BUTLER in config.features.enabled)
     try:
         butler_f = partial(
             Butler.from_config,
@@ -279,7 +280,7 @@ async def remove_collection_from_chain(
     fake_reset: bool
         Allow for missing butler
     """
-    fake_reset = fake_reset or config.butler.mock
+    fake_reset = fake_reset or (Features.MOCK_BUTLER in config.features.enabled)
     if fake_reset:
         return
     raise NotImplementedError
@@ -308,7 +309,7 @@ async def remove_datasets_from_collections(
     fake_reset: bool
         Allow for missing butler
     """
-    fake_reset = fake_reset or config.butler.mock
+    fake_reset = fake_reset or (Features.MOCK_BUTLER in config.features.enabled)
     if fake_reset:
         return
     raise NotImplementedError
