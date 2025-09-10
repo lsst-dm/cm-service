@@ -82,6 +82,9 @@ dev = [
 web = [
     "lsst-cmservice-web",
 ]
+cli = [
+    "lsst-cmservice-commandline",
+]
 
 [project.scripts]
 cm-service = "lsst.cmservice.cli.server:server"
@@ -95,7 +98,9 @@ Source = "https://github.com/lsst-dm/cm-service"
 default-groups = "all"
 
 [tool.uv.sources]
+lsst-cm-service = { workspace = true }
 lsst-cmservice-web = { workspace = true }
+lsst-cmservice-commandline = { workspace = true }
 
 [tool.uv.workspace]
 members = ["packages/*"]
