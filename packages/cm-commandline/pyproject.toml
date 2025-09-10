@@ -1,21 +1,19 @@
 [project]
-name = "lsst-cmservice-web"
+name = "lsst-cmservice-commandline"
 dynamic = ["version"]
-description = "CM Service Web App"
+description = "CM Service Command Line Interface"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "deepdiff>=8.6.1",
-    "networkx>=3.5",
-    "nicegui>=2.21.1",
-    "pydantic>=2.11.7",
-    "pydantic-extra-types>=2.10.5",
-    "pydantic-settings>=2.9.1",
-    "structlog>=24.4.0",
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.9",
+    "pyyaml>=6.0.2",
+    "rich>=13.0.0",
+    "typer>=0.17.0",
     "lsst-cm-service",
 ]
 
 [project.scripts]
-web = "lsst.cmservice.web.libexec:go"
+cm = "lsst.cmservice.commandline.cli:app"
 
 [build-system]
 requires = ["hatchling"]
@@ -29,4 +27,4 @@ ignore-vcs = true
 packages = ["src/lsst"]
 
 [tool.hatch.version]
-path = "src/lsst/cmservice/web/__init__.py"
+path = "src/lsst/cmservice/commandline/__init__.py"
