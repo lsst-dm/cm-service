@@ -37,6 +37,12 @@ class NodeMixIn(MixIn):
         the library namespace, and an object of `type[manifest_type]` is
         created and returned.
 
+        Notes
+        -----
+        The Manifest instance returned by this method is not an ORM model and
+        cannot be used to manipulate the manifest in the database. The fetched
+        ORM object is expunged from the session.
+
         Raises
         ------
         CMNoSuchManifestError
@@ -139,7 +145,6 @@ class FilesystemActionMixin(ActionMixIn):
                 "artifact_path": expandvars(config.bps.artifact_path),
                 "lsst_distrib_dir": expandvars(config.bps.lsst_distrib_dir),
                 "lsst_version": expandvars(config.bps.lsst_version),
-                "project": "DEFAULT",
                 "campaign": self.db_model.namespace.hex,
             },
             "bps": {

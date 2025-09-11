@@ -8,14 +8,22 @@ error = {{wms.wms_log_path}}
 log = {{wms.wms_log_path}}
 {# BLANK LINE #}
 initialdir = {{wms.working_directory}}
+{%- if wms.batch_name %}
 batch_name = {{wms.batch_name}}
+{%- endif %}
 should_transfer_files = Yes
 when_to_transfer_output = ON_EXIT
 get_env = True
 {# BLANK LINE #}
+{%- if wms.request_cpus %}
 request_cpus = {{wms.request_cpus}}
+{%- endif %}
+{%- if wms.request_mem %}
 request_memory = {{wms.request_mem}}
+{%- endif %}
+{%- if wms.request_disk %}
 request_disk = {{wms.request_disk}}
+{%- endif %}
 {# BLANK LINE #}
 queue
 {# BLANK LINE #}
