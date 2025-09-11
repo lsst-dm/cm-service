@@ -179,8 +179,13 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
                 ),
             },
         )
-        # TODO model validate?
-        # FIXME What are we trying to accomplish here?
+        # For each campaign manifest, the Step Node's own manifest, if any, is
+        # applied to create a flattened manifest to apply to the group's spec.
+        # The version of the campaign manifest used to create this flattened
+        # view is added to the group's metadata dictionary.
+        # TODO since every group gets the same configuration spec, this should
+        # be done once per step instead of once per group. This is not true
+        # for the butler collections (above)
         group_configuration = {
             "butler": group_butler.model_dump(exclude_none=True),
             "bps": self.bps.spec.model_dump(exclude_none=True) | self.db_model.configuration.get("bps", {}),
@@ -583,7 +588,7 @@ class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin
             (
                 "{{butler.exe_bin}} collection-chain {{butler.repo}} "
                 "{{butler.collections.step_public_output}} {{butler.collections.step_output}} "
-                "{% for collection in butler.collections.campaign_input %} {{collection}}{% endfor %} "
+                "{{butler.collections.step_input}}"
             ),
         ]
         # Prepare a Butler runtime config to add to the Node's config chain
