@@ -168,7 +168,7 @@ async def async_client_fixture(
 
 
 @pytest_asyncio.fixture(scope="function", loop_scope="module")
-async def test_campaign(aclient: AsyncClient) -> AsyncGenerator[str]:
+async def test_campaign(aclient: AsyncClient, manifest_fixtures: None) -> AsyncGenerator[str]:
     """Fixture managing a test campaign with three (additional) nodes, which
     yields the URL for the campaign's edges endpoint.
     """
@@ -284,8 +284,12 @@ async def manifest_fixtures(aclient: AsyncClient) -> None:
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "butler",
-            "metadata": {"name": "main", "namespace": default_namespace},
-            "spec": {"repo": "/repo/main"},
+            "metadata": {"name": "muthur", "namespace": default_namespace},
+            "spec": {
+                "repo": "/repo/mock",
+                "predicates": [],
+                "collections": {},
+            },
         },
     )
 
@@ -359,6 +363,12 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
             "spec": {
                 "lsst_version": "w_latest",
                 "lsst_distrib_dir": "/path/to/lsst/distrib",
+                "ticket": "DM-ZZZZZ",
+                "campaign": "test_campaign_with_groups",
+                "project": "integration-testing",
+                "prepend": "export LSST_S3_USE_THREADS=False",
+                "custom_lsst_setup": "setup -j -r /path/to/some/custom/pipe_base",
+                "append": 'echo "All done!"',
             },
         },
     )
@@ -371,6 +381,52 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
             "spec": {
                 "batch_system": "htcondor",
                 "service_class": "lsst.ctrl.bps.htcondor.HTCondorService",
+                "batch_name": "cm-service-test",
+                "request_cpus": "1",
+                "request_mem": "1024M",
+                "request_disk": "10240K",
+                "include_files": [
+                    "/path/to/a/duplicate/file.yaml",
+                    "${PIPE_DIR}/wms/htcondor/include.yaml",
+                ],
+            },
+        },
+    )
+    x = await aclient.post(
+        "/cm-service/v2/manifests",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "bps",
+            "metadata": {"name": "bps", "namespace": campaign["id"]},
+            "spec": {
+                "environment": {
+                    "LSST_S3_USE_THREADS": "False",
+                    "DAF_BUTLER_CACHE_EXPIRATION_MODE": "disabled",
+                },
+                "clustering": {
+                    "step1detector": {
+                        "equalDimensions": "exposure:visit",
+                        "partitionDimensions": "exposure",
+                        "partitionMaxClusters": 10000,
+                    },
+                },
+                "include_files": [
+                    "/path/to/a/duplicate/file.yaml",
+                    "${PIPE_DIR}/bps/clustering/include.yaml",
+                ],
+                "extra_qgraph_options": "--dataset-query-constraint finalVisitSummary",
+                "extra_run_quantum_options": "--no-raise-on-partial-outputs",
+            },
+        },
+    )
+    x = await aclient.post(
+        "/cm-service/v2/manifests",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "site",
+            "metadata": {"name": "usdf-cm-test", "namespace": campaign["id"]},
+            "spec": {
+                "facility": "USDF",
             },
         },
     )
@@ -381,9 +437,15 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "node",
-            "metadata": {"name": "lambert", "namespace": campaign["id"], "kind": "grouped_step"},
+            "metadata": {"name": "lambert", "namespace": campaign["id"], "kind": "step"},
             "spec": {
-                "pipeline_yaml": "${WEYLAND_YUTANI}/personnel/commissioned.yaml#navigator",
+                "bps": {
+                    "pipeline_yaml": "${WEYLAND_YUTANI}/personnel/commissioned.yaml#navigator",
+                    "literals": {
+                        "numberOfRetries": 2,
+                        "retryUnlessExit": [2],
+                    },
+                },
                 "predicates": ["skymap='lv_426'"],
                 "groups": None,
             },
@@ -397,9 +459,11 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "node",
-            "metadata": {"name": "ash", "namespace": campaign["id"], "kind": "grouped_step"},
+            "metadata": {"name": "ash", "namespace": campaign["id"], "kind": "step"},
             "spec": {
-                "pipeline_yaml": "${WEYLAND_YUTANI}/personnel/synthetic.yaml",
+                "bps": {
+                    "pipeline_yaml": "${WEYLAND_YUTANI}/personnel/synthetic.yaml",
+                },
                 "predicates": ["skymap='lv_426'"],
                 "groups": {
                     "split_by": "values",
@@ -422,9 +486,11 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "node",
-            "metadata": {"name": "ripley", "namespace": campaign["id"], "kind": "grouped_step"},
+            "metadata": {"name": "ripley", "namespace": campaign["id"], "kind": "step"},
             "spec": {
-                "pipeline_yaml": "${WEYLAND_YUTANI}/personnel/commissioned.yaml#warrant_officer",
+                "bps": {
+                    "pipeline_yaml": "${WEYLAND_YUTANI}/personnel/commissioned.yaml#warrant_officer",
+                },
                 "predicates": ["skymap='lv_426'"],
                 "groups": {
                     "split_by": "query",

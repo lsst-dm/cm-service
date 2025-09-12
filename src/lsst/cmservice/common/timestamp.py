@@ -38,12 +38,15 @@ def utc_datetime(timestamp: int | dt.datetime) -> dt.datetime:
         return timestamp.replace(tzinfo=dt.UTC)
 
 
-def iso_timestamp(timestamp: int) -> str:
+def iso_timestamp(timestamp: int | None) -> str | None:
     """Produce an ISO8601 or RFC3339 timestamp string from an epoch time.
 
     Returns
     -------
-    str
-        A datetime formatted as YYYY-mm-ddTHH:MM:SSZ
+    str | None
+        A datetime formatted as YYYY-mm-ddTHH:MM:SS+00:00, or None if no input
+        given.
     """
-    return utc_datetime(timestamp).strftime("%Y-%m-%dT%H:%M:%SZ")
+    if timestamp:
+        return utc_datetime(timestamp).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+    return None

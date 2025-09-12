@@ -70,6 +70,7 @@ class VersionedMetadata(BaseModel):
     version: int = Field(exclude=True, default=0)
     crtime: int = Field(default_factory=element_time)
     mtime: int | None = Field(default=None)
+    labels: dict[str, str] = Field(default_factory=dict)
 
 
 class ManifestMetadata(VersionedMetadata):

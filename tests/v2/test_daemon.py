@@ -150,6 +150,6 @@ def test_dynamic_node_machine() -> None:
     x = node_machine_factory(k)
     assert x is NodeMachine
 
-    k = ManifestKind.step_group
+    k = ManifestKind.group
     x = node_machine_factory(k)
     assert x is GroupMachine

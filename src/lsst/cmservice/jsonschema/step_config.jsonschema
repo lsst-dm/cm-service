@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/lsst-dm/cm-service",
-  "title": "Grouped Step Configuration",
-  "description": "Configuration for a grouped step",
+  "title": "Step Configuration",
+  "description": "Configuration for a campaign step.",
   "type": "object",
   "properties": {
     "pipeline_yaml": {

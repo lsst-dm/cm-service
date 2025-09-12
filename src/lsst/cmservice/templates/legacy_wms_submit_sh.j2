@@ -2,24 +2,27 @@
 set -e
 {# BLANK LINE #}
 {#- PHASE: HEADER =========================================================== #}
-{%- if lsst.prepend %}
-{{ lsst.prepend }}
+{%- if prepend %}
+{{ prepend }}
 {# BLANK LINE #}
 {%- endif %}
-{%- if lsst.launcher %}
 {#- PHASE: LSST SETUP ======================================================= #}
-{%- for line in lsst.launcher %}
-{{ line | trim }}
-{%- endfor %}
+{%- if script_method == "bash" %}
+{#- Assuming native environment already setup #}
+{%- elif script_method == "htcondor" %}
+export LSST_VERSION="{{ lsst_version }}"
+export LSST_DISTRIB_DIR="{{ lsst_distrib_dir.rstrip("/") }}"
+source ${LSST_DISTRIB_DIR}/${LSST_VERSION}/loadLSST.bash
+setup lsst_distrib
 {# BLANK LINE #}
 {%- endif %}
-{%- if lsst.custom_lsst_setup %}
-{{ lsst.custom_lsst_setup }}
+{%- if custom_lsst_setup %}
+{{ custom_lsst_setup }}
 {# BLANK LINE #}
 {%- endif %}
 {#- PHASE: WMS SETUP ======================================================== #}
-{%- if wms.batch_system == "htcondor" %}
-{%- elif wms.batch_system == "panda" %}
+{%- if wms == "htcondor" %}
+{%- elif wms == "panda" %}
 {#- what value is this LATEST_PANDA path? #}
 {#- LATEST_PANDA=$(ls -td /cvmfs/sw.lsst.eu/almalinux-x86_64/panda_env/v* | head -1) #}
 export PANDA_SYS=${CONDA_PREFIX}
@@ -30,17 +33,15 @@ export BPS_WMS_SERVICE_CLASS=lsst.ctrl.bps.panda.PanDAService
 unset PANDA_CONFIG_ROOT
 {# BLANK LINE #}
 {%- endif %}
-{%- if wms.custom_wms_setup %}
-{{ wms.custom_wms_setup }}
+{%- if custom_wms_setup %}
+{{ custom_wms_setup }}
 {# BLANK LINE #}
 {%- endif %}
-{#- PHASE: COMMANDS ========================================================= #}
-{%- for command in lsst.command %}
-{{ command | trim }}
-{%- endfor %}
+{#- PHASE: COMMAND ========================================================== #}
+{{ command }}
 {# BLANK LINE #}
 {#- PHASE: TRAILER ========================================================== #}
-{%- if lsst.append %}
-{{ lsst.append }}
+{%- if append %}
+{{ append }}
 {# BLANK LINE #}
 {%- endif %}

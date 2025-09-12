@@ -4,58 +4,12 @@ from urllib.parse import urlparse
 from uuid import uuid4, uuid5
 
 import pytest
-import pytest_asyncio
 from httpx import AsyncClient
 
 from lsst.cmservice.common.enums import DEFAULT_NAMESPACE
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""
-
-
-@pytest_asyncio.fixture(scope="module", loop_scope="module")
-async def manifest_fixtures(aclient: AsyncClient) -> None:
-    """Fixture seeding a test campaign with additional library manifests."""
-    default_namespace = str(DEFAULT_NAMESPACE)
-    _ = await aclient.post(
-        "/cm-service/v2/manifests",
-        json={
-            "apiVersion": "io.lsst.cmservice/v1",
-            "kind": "lsst",
-            "metadata": {"name": "w_latest", "namespace": default_namespace},
-            "spec": {"stack": "w_latest"},
-        },
-    )
-
-    _ = await aclient.post(
-        "/cm-service/v2/manifests",
-        json={
-            "apiVersion": "io.lsst.cmservice/v1",
-            "kind": "butler",
-            "metadata": {"name": "main", "namespace": default_namespace},
-            "spec": {"repo": "/repo/main"},
-        },
-    )
-
-    _ = await aclient.post(
-        "/cm-service/v2/manifests",
-        json={
-            "apiVersion": "io.lsst.cmservice/v1",
-            "kind": "wms",
-            "metadata": {"name": "htcondor", "namespace": default_namespace},
-            "spec": {},
-        },
-    )
-
-    _ = await aclient.post(
-        "/cm-service/v2/manifests",
-        json={
-            "apiVersion": "io.lsst.cmservice/v1",
-            "kind": "site",
-            "metadata": {"name": "mars", "namespace": default_namespace},
-            "spec": {},
-        },
-    )
 
 
 async def test_list_manifests(aclient: AsyncClient) -> None:

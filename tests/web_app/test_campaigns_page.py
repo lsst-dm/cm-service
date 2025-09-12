@@ -154,7 +154,7 @@ async def test_get_campaign_details(
             "lsst_version": "lsst_version_1",
         },
         "level": 1,
-        "last_updated": "2000-01-01T00:00:00Z",
+        "last_updated": "2000-01-01T00:00:00+00:00",
         "org_status": {"name": "accepted", "value": 5},
     }
 
