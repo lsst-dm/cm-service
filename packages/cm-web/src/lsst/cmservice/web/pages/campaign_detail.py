@@ -149,6 +149,7 @@ def campaign_detail_node_card(node: dict, node_versions: list, graph: nx.DiGraph
                         color=node_status.hex,
                     ).tooltip(node["status"])
                 with ui.row().classes("items-center"):
+                    ui.chip(node["kind"], icon="fingerprint", color="white").tooltip("Node Kind")
                     node_version_chip = ui.chip(
                         node["version"],
                         icon="commit",

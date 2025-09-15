@@ -69,6 +69,17 @@ def node_activity_timeline(node: dict) -> None:
                 entry_title = f"{name} became {entry['to_status']}"
                 entry_color = "primary"
 
+                match entry["to_status"]:
+                    case "ready":
+                        artifact_path = node["metadata"].get("artifact_path", None)
+                        entry_body += artifact_path or ""
+                    case "running":
+                        job_id = node["metadata"].get("launcher", {}).get("job_id", "Unknown")
+                        execute_host = node["metadata"].get("launcher", {}).get("execute_host", "Unknown")
+                        entry_body += f"Job {job_id} on launch host {execute_host}"
+                    case _:
+                        ...
+
             ui.timeline_entry(
                 body=entry_body,
                 title=entry_title,
@@ -84,6 +95,14 @@ def node_activity_timeline(node: dict) -> None:
         )
 
 
+def node_metadata_display(node: dict) -> None:
+    """Displays a Node's metadata dictionary as a YAML document in a syntax-
+    highlighted Code widget.
+    """
+    node_metadata = dump(node["metadata"])
+    ui.code(content=node_metadata, language="yaml").classes("w-full")
+
+
 @ui.page("/node/{id}")
 async def node_detail(id: str) -> None:
     """Builds a Node Detail ui page."""
@@ -94,6 +113,7 @@ async def node_detail(id: str) -> None:
         with ui.row():
             with ui.link(target=f"/campaign/{node['namespace']}"):
                 ui.chip("Campaign", icon="shape_line", color="white").tooltip(node["namespace"])
+            ui.chip(node["kind"], icon="fingerprint", color="white").tooltip("Node Kind")
             ui.chip(node["version"], icon="commit", color="white").tooltip("Node Version")
             ui.chip(node["status"], icon=node_status.emoji, color=node_status.hex).tooltip("Node Status")
             if node["status"] == "failed":
@@ -103,9 +123,12 @@ async def node_detail(id: str) -> None:
         with ui.tabs().classes("items-center w-full") as tabs:
             timeline_tab = ui.tab("Timeline")
             config_tab = ui.tab("Configuration")
+            metadata_tab = ui.tab("Metadata")
 
         with ui.tab_panels(tabs, value=timeline_tab).classes("w-full"):
             with ui.tab_panel(timeline_tab):
                 node_activity_timeline(node)
             with ui.tab_panel(config_tab):
                 node_config_history_carousel(node)
+            with ui.tab_panel(metadata_tab):
+                node_metadata_display(node)
