@@ -52,9 +52,11 @@ async def campaign_overview(client_: Annotated[Client, Depends(get_client)]) -> 
                     with ui.card_actions().props("align=right").classes("items-center text-sm w-full"):
                         campaign_toggle = partial(toggle_campaign_state, campaign=campaign)
                         campaign_running: bool = campaign["status"] == "running"
-                        ui.switch(value=campaign_running, on_change=campaign_toggle).bind_text_from(
-                            campaign, target_name="status"
-                        )
+                        campaign_terminal: bool = campaign["status"] in ("accepted", "failed")
+                        campaign_switch = ui.switch(
+                            value=campaign_running, on_change=campaign_toggle
+                        ).bind_text_from(campaign, target_name="status")
+                        campaign_switch.enabled = not campaign_terminal
                         ui.space()
                         ui.label(campaign_id).classes("italic text-gray-75 font-thin")
                         ui.space()

@@ -94,6 +94,7 @@ async def node_detail(id: str) -> None:
         with ui.row():
             with ui.link(target=f"/campaign/{node['namespace']}"):
                 ui.chip("Campaign", icon="shape_line", color="white").tooltip(node["namespace"])
+            ui.chip(node["kind"], icon="fingerprint", color="white").tooltip("Node Kind")
             ui.chip(node["version"], icon="commit", color="white").tooltip("Node Version")
             ui.chip(node["status"], icon=node_status.emoji, color=node_status.hex).tooltip("Node Status")
             if node["status"] == "failed":
