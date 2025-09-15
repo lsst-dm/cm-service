@@ -1,17 +1,17 @@
 from httpx import HTTPStatusError, Response
 from nicegui import ui
 
-from ..lib.client import http_client
+from ..lib.client_factory import CLIENT_FACTORY
 
 
-def get_one_node(id: str, namespace: str | None) -> Response:
+async def get_one_node(id: str, namespace: str | None) -> Response:
     # TODO get nodes and fallback to manifests on 404?
     url = f"/nodes/{id}"
     if namespace is not None:
         url += f"?campaign-id={namespace}"
-    with http_client() as client:
+    async with CLIENT_FACTORY.aclient() as client:
         try:
-            r = client.get(url)
+            r = await client.get(url)
             r.raise_for_status()
         except HTTPStatusError as e:
             match e.response:
@@ -22,14 +22,14 @@ def get_one_node(id: str, namespace: str | None) -> Response:
         return r
 
 
-def describe_one_node(id: str) -> dict:
+async def describe_one_node(id: str) -> dict:
     data = {}
-    with http_client() as client:
+    async with CLIENT_FACTORY.aclient() as client:
         try:
-            r = client.get(f"/nodes/{id}")
+            r = await client.get(f"/nodes/{id}")
             r.raise_for_status()
             data["node"] = r.json()
-            r = client.get(f"/logs?node={id}")
+            r = await client.get(f"/logs?node={id}")
             r.raise_for_status()
             data["logs"] = r.json()
         except HTTPStatusError:
@@ -37,10 +37,10 @@ def describe_one_node(id: str) -> dict:
     return data
 
 
-def replace_node(n0: str, n1: str, namespace: str) -> Response:
-    with http_client() as client:
+async def replace_node(n0: str, n1: str, namespace: str) -> Response:
+    async with CLIENT_FACTORY.aclient() as client:
         try:
-            r = client.put(f"/campaigns/{namespace}/graph/nodes/{n0}?with-node={n1}")
+            r = await client.put(f"/campaigns/{namespace}/graph/nodes/{n0}?with-node={n1}")
             r.raise_for_status()
             ui.notify("Node replaced.")
         except HTTPStatusError as e:

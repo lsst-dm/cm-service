@@ -1,6 +1,6 @@
 from functools import partial
 
-from nicegui import run, ui
+from nicegui import ui
 
 from .. import api
 from .configdiff import patch_resource
@@ -19,7 +19,7 @@ async def configuration_edit(manifest_id: str, namespace: str) -> None:
     On submit, changes are used to issue a PATCH to the manifest API.
     """
     # get current configuration of manifest/node from db
-    manifest_response = await run.io_bound(api.get_one_manifest, id=manifest_id, namespace=namespace)
+    manifest_response = await api.get_one_manifest(id=manifest_id, namespace=namespace)
     if manifest_response is None:
         return None
     manifest_url = manifest_response.headers["Self"]
@@ -46,7 +46,7 @@ async def configuration_edit(manifest_id: str, namespace: str) -> None:
             # what was Library version 0 is now also Campaign version 1.
             # FIXME: this is confusing, and necessary only insofar as we are
             # getting a "manifest_url" appropriate for the patch operation.
-            r = api.put_one_manifest(manifest_id, name_edit.value, namespace)
+            r = await api.put_one_manifest(manifest_id, name_edit.value, namespace)
             manifest_url = r.headers["Self"]
 
         await patch_resource(manifest_url, current_configuration, result)

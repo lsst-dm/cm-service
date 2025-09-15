@@ -1,66 +1,66 @@
 import asyncio
-from collections.abc import Generator, Sequence
+from collections.abc import AsyncGenerator, Sequence
 from functools import partial
 
-from httpx import Client
+from httpx import AsyncClient
 from nicegui import ui
 from nicegui.events import ValueChangeEventArguments
 
 from lsst.cmservice.common.enums import DEFAULT_NAMESPACE
 
-from ..lib.client import aget_client
+from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.configedit import configuration_edit
 from .manifests import get_one_manifest
 
 
-def get_campaign_summary(client: Client) -> Generator[dict]:
+async def get_campaign_summary(client: AsyncClient) -> AsyncGenerator[dict]:
     """Generates a summary dictionary for all campaigns known to the API."""
-    r = client.get("/campaigns")
+    r = await client.get("/campaigns")
     r.raise_for_status()
     campaigns: Sequence[dict] = r.json()
     for campaign in campaigns:
         campaign_id = campaign.get("id")
-        summary = client.get(f"/campaigns/{campaign_id}/summary")
+        summary = await client.get(f"/campaigns/{campaign_id}/summary")
         summary.raise_for_status()
         if summary.status_code == 204:
             continue
         yield summary.json()
 
 
-def describe_one_campaign(id: str, client: Client) -> dict:
+async def describe_one_campaign(id: str, client: AsyncClient) -> dict:
     """Builds a detailed campaign dictionary by assembling multiple API calls
     for a single campaign.
     """
-    r = client.get(f"/campaigns/{id}")
+    r = await client.get(f"/campaigns/{id}")
     r.raise_for_status()
     campaign_detail = {"campaign": r.json()}
 
     campaign_detail["nodes"] = []
-    n = client.get(r.headers["Nodes"])
+    n = await client.get(r.headers["Nodes"])
     n.raise_for_status()
     nodes = n.json()
     while nodes:
         campaign_detail["nodes"].extend(nodes)
-        n = client.get(n.headers["Next"])
+        n = await client.get(n.headers["Next"])
         n.raise_for_status()
         nodes = n.json()
 
-    m = client.get(r.headers["Manifests"])
+    m = await client.get(r.headers["Manifests"])
     m.raise_for_status()
     campaign_detail["manifests"] = m.json()
 
-    g = client.get(f"/campaigns/{id}/graph")
+    g = await client.get(f"/campaigns/{id}/graph")
     g.raise_for_status()
     campaign_detail["graph"] = g.json()
 
-    a = client.get(f"/campaigns/{id}/logs")
+    a = await client.get(f"/campaigns/{id}/logs")
     a.raise_for_status()
     campaign_detail["logs"] = a.json()
 
     return campaign_detail
 
 
-def compile_campaign_manifests(id: str, manifests: list[dict]) -> None:
+async def compile_campaign_manifests(id: str, manifests: list[dict]) -> None:
     """Renders a row or table of campaign manifest cards, substituting library
     manifests for any mandatory manifests not present in the campaign.
     """
@@ -70,7 +70,9 @@ def compile_campaign_manifests(id: str, manifests: list[dict]) -> None:
 
     for kind in mandatory_kinds:
         if not list(filter(lambda m: m["kind"] == kind, manifests)):
-            manifest_ = get_one_manifest(namespace=str(DEFAULT_NAMESPACE), kind=kind, name=None, version=None)
+            manifest_ = await get_one_manifest(
+                namespace=str(DEFAULT_NAMESPACE), kind=kind, name=None, version=None
+            )
             if manifest_ is not None:
                 manifests.append(manifest_.json())
     with ui.row():
@@ -114,7 +116,7 @@ async def toggle_campaign_state(e: ValueChangeEventArguments, campaign: dict) ->
         n.message = f"Pausing campaign {campaign_name}"
         patch_data = {"status": "paused"}
 
-    async with aget_client() as aclient:
+    async with CLIENT_FACTORY.aclient() as aclient:
         r = await aclient.patch(
             f"/campaigns/{campaign_id}",
             json=patch_data,

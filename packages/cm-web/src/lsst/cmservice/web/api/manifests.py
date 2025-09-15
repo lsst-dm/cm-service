@@ -1,9 +1,9 @@
 from httpx import Response, codes
 
-from ..lib.client import http_client
+from ..lib.client_factory import CLIENT_FACTORY
 
 
-def get_one_manifest(
+async def get_one_manifest(
     namespace: str,
     id: str | None = None,
     kind: str | None = None,
@@ -20,20 +20,20 @@ def get_one_manifest(
             if version is not None:
                 url += f"/{version}"
 
-    with http_client() as client:
-        r = client.get(url)
+    async with CLIENT_FACTORY.aclient() as client:
+        r = await client.get(url)
         if r.status_code == codes.NOT_FOUND:
             return None
         r.raise_for_status()
         return r
 
 
-def put_one_manifest(manifest_id: str, manifest_name: str, to_namespace: str) -> Response:
+async def put_one_manifest(manifest_id: str, manifest_name: str, to_namespace: str) -> Response:
     """Copies a manifest into the designated target namespace."""
     url = f"/manifests/{manifest_id}"
 
-    with http_client() as client:
-        r = client.put(
+    async with CLIENT_FACTORY.aclient() as client:
+        r = await client.put(
             url,
             headers={
                 "Namespace-Copy-Target": to_namespace,

@@ -2,23 +2,23 @@ from functools import partial
 from typing import Annotated
 
 from fastapi import Depends
-from httpx import Client
+from httpx import AsyncClient
 from nicegui import run, ui
 
 from ..api.campaigns import get_campaign_summary, toggle_campaign_state
 from ..components import dicebear
-from ..lib.client import get_client
+from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.enum import Palette, StatusDecorators
 from .common import cm_frame
 
 
 @ui.page("/")
-async def campaign_overview(client_: Annotated[Client, Depends(get_client)]) -> None:
+async def campaign_overview(client_: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)]) -> None:
     campaigns = await run.io_bound(get_campaign_summary, client=client_)
 
     with cm_frame("Campaign Overview"):
         with ui.grid(columns="auto 4fr"):
-            for campaign in campaigns:
+            async for campaign in campaigns:
                 campaign_id = campaign["id"]
                 node_times: list[str] = []
 
@@ -52,9 +52,11 @@ async def campaign_overview(client_: Annotated[Client, Depends(get_client)]) -> 
                     with ui.card_actions().props("align=right").classes("items-center text-sm w-full"):
                         campaign_toggle = partial(toggle_campaign_state, campaign=campaign)
                         campaign_running: bool = campaign["status"] == "running"
-                        ui.switch(value=campaign_running, on_change=campaign_toggle).bind_text_from(
-                            campaign, target_name="status"
-                        )
+                        campaign_terminal: bool = campaign["status"] in ("accepted", "failed")
+                        campaign_switch = ui.switch(
+                            value=campaign_running, on_change=campaign_toggle
+                        ).bind_text_from(campaign, target_name="status")
+                        campaign_switch.enabled = not campaign_terminal
                         ui.space()
                         ui.label(campaign_id).classes("italic text-gray-75 font-thin")
                         ui.space()

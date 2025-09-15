@@ -2,7 +2,7 @@ import json
 
 from deepdiff import DeepDiff, Delta
 
-from .client import aget_client
+from .client_factory import CLIENT_FACTORY
 
 
 async def patch_resource(manifest_url: str, t1: dict, t2: dict) -> None:
@@ -22,7 +22,7 @@ async def patch_resource(manifest_url: str, t1: dict, t2: dict) -> None:
     diff = DeepDiff(t1, t2)
     delta = Delta(diff)
 
-    async with aget_client() as session:
+    async with CLIENT_FACTORY.aclient() as session:
         r = await session.patch(
             headers={"Content-Type": "application/octet-stream"},
             url=manifest_url,

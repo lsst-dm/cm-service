@@ -10,7 +10,7 @@ from .. import api
 from ..api.campaigns import toggle_campaign_state
 from ..components import dicebear
 from ..components.graph import nx_to_mermaid
-from ..lib.client import get_client
+from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.configdiff import patch_resource
 from ..lib.enum import StatusDecorators
 from ..lib.timestamp import timestamp
@@ -35,7 +35,7 @@ async def configuration_edit(manifest_id: str, namespace: str) -> None:
     resource.
     """
     # get current configuration of manifest/node from db
-    manifest_response = await run.io_bound(api.get_one_node, id=manifest_id, namespace=namespace)
+    manifest_response = await api.get_one_node(id=manifest_id, namespace=namespace)
     manifest_url = manifest_response.headers["Self"]
     manifest = manifest_response.json()
 
@@ -57,9 +57,11 @@ async def configuration_edit(manifest_id: str, namespace: str) -> None:
 
 
 @ui.page("/campaign/{campaign_id}")
-async def campaign_detail(campaign_id: str, client_: Annotated[httpx.Client, Depends(get_client)]) -> None:
+async def campaign_detail(
+    campaign_id: str, client_: Annotated[httpx.AsyncClient, Depends(CLIENT_FACTORY.get_aclient)]
+) -> None:
     """Builds a campaign detail page"""
-    data = await run.io_bound(api.describe_one_campaign, client=client_, id=campaign_id)
+    data = await api.describe_one_campaign(client=client_, id=campaign_id)
     graph: nx.DiGraph = await run.cpu_bound(
         nx.node_link_graph,
         data["graph"],
@@ -80,7 +82,7 @@ async def campaign_detail(campaign_id: str, client_: Annotated[httpx.Client, Dep
 
         # Current campaign manifests
         with ui.expansion("Campaign Manifests", icon="extension").classes("w-full"):
-            api.compile_campaign_manifests(id=campaign["id"], manifests=data["manifests"])
+            await api.compile_campaign_manifests(id=campaign["id"], manifests=data["manifests"])
 
         ui.separator()
 
@@ -124,10 +126,10 @@ async def campaign_detail(campaign_id: str, client_: Annotated[httpx.Client, Dep
                     node_graph_name in graph.nodes
                     and node["version"] == graph.nodes[node_graph_name]["version"]
                 ):
-                    campaign_detail_node_card(node, node_versions, graph)
+                    await campaign_detail_node_card(node, node_versions, graph)
 
 
-def campaign_detail_node_card(node: dict, node_versions: list, graph: nx.DiGraph) -> None:
+async def campaign_detail_node_card(node: dict, node_versions: list, graph: nx.DiGraph) -> None:
     """Builds a card ui element with Node details, as used for nodes active in
     a campaign's graph.
     """
@@ -149,18 +151,19 @@ def campaign_detail_node_card(node: dict, node_versions: list, graph: nx.DiGraph
                         color=node_status.hex,
                     ).tooltip(node["status"])
                 with ui.row().classes("items-center"):
+                    ui.chip(node["kind"], icon="fingerprint", color="white").tooltip("Node Kind")
                     node_version_chip = ui.chip(
                         node["version"],
                         icon="commit",
                         color="white",
                     ).tooltip("Node Version")
                     ui.chip(
-                        graph.in_degree(node_graph_name),
+                        graph.in_degree(node_graph_name),  # pyright: ignore[reportArgumentType]
                         icon="input",
                         color="white",
                     ).tooltip("Incoming Nodes")
                     ui.chip(
-                        graph.out_degree(node_graph_name),
+                        graph.out_degree(node_graph_name),  # pyright: ignore[reportArgumentType]
                         icon="output",
                         color="white",
                     ).tooltip("Downstream Nodes")
