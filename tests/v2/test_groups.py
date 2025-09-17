@@ -112,7 +112,7 @@ async def test_append_node_to_prepared_step(
     assert set(graph.predecessors("node_1.1")) == set(graph.predecessors("ash.1"))
 
 
-def test_array_splitting() -> None:
+async def test_array_splitting() -> None:
     """Test demonstrates the partitioning of an arbitrarily large np array via
     partial sorting.
     """

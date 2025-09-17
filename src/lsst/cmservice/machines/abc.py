@@ -59,6 +59,20 @@ class StatefulModel(ABC):
     @abstractmethod
     async def finalize(self, event: EventData) -> None: ...
 
+    @abstractmethod
+    async def is_startable(self, event: EventData) -> bool: ...
+
+    @abstractmethod
+    async def is_done_running(self, event: EventData) -> bool: ...
+
+    @abstractmethod
+    async def launch(self, event: EventData) -> None:
+        raise NotImplementedError("Must be provided by a Launcher Mixin")
+
+    @abstractmethod
+    async def check(self, event: EventData) -> bool:
+        raise NotImplementedError("Must be provided by a Launcher Mixin")
+
     async def may_trigger(self, trigger_name: str) -> bool:
         raise NotImplementedError("Must be overridden by a Machine")
 

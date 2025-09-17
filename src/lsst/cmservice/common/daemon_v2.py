@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID, uuid5
 
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm import make_transient
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from transitions import Event
@@ -111,6 +112,9 @@ async def consider_nodes(session: AsyncSession) -> None:
             # Expunge the node from *this* session because it will be added to
             # whatever session the node_machine acquires during its transition
             session.expunge(node)
+            # Make the node transient to support cross-session transfers with
+            # modifications
+            make_transient(node)
 
             node_machine: NodeMachine
             node_machine_pickle: Machine | None

@@ -62,3 +62,6 @@ class LaunchMixIn(MixIn, ABC):
 
     @abstractmethod
     async def launch(self, event: EventData) -> None: ...
+
+    @abstractmethod
+    async def check(self, event: EventData) -> bool: ...

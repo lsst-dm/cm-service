@@ -2,12 +2,13 @@
 
 import pickle
 import random
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from urllib.parse import urlparse
 from uuid import UUID, uuid4, uuid5
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy.orm import make_transient
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -27,9 +28,12 @@ pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""
 
 
-async def test_node_machine(test_campaign: str, session: AsyncSession) -> None:
+@patch("lsst.cmservice.machines.nodes.mixin.HTCondorLaunchMixin.launch", return_value=None)
+@patch("lsst.cmservice.machines.nodes.mixin.HTCondorLaunchMixin.check", return_value=True)
+async def test_node_machine(
+    mock_check: Mock, mock_launch: Mock, test_campaign: str, session: AsyncSession
+) -> None:
     """Test the critical/happy path of a node state machine."""
-
     # extract the test campaign id from the fixture url and determine the START
     # node id
     campaign_id = urlparse(url=test_campaign).path.split("/")[-2:][0]
@@ -39,8 +43,10 @@ async def test_node_machine(test_campaign: str, session: AsyncSession) -> None:
     x = node.status
     assert x is StatusEnum.waiting
     await session.commit()
-
+    make_transient(node)
     node_machine = StartMachine(o=node)
+    del node
+
     assert node_machine.is_waiting()
     assert await node_machine.may_prepare()
 
@@ -48,10 +54,9 @@ async def test_node_machine(test_campaign: str, session: AsyncSession) -> None:
     assert did_prepare
     assert await node_machine.may_start()
 
-    await session.refresh(node, attribute_names=["status"])
+    node = await session.get_one(Node, node_id)
     x = node.status
     assert x is StatusEnum.ready
-    await session.commit()
 
     did_start = await node_machine.start()
     assert did_start
@@ -61,20 +66,24 @@ async def test_node_machine(test_campaign: str, session: AsyncSession) -> None:
     await session.refresh(node, attribute_names=["status"])
     x = node.status
     assert x is StatusEnum.running
-    await session.commit()
 
     did_finish = await node_machine.trigger("finish")
     assert did_finish
+
     await session.refresh(node, attribute_names=["status"])
     x = node.status
     assert x is StatusEnum.accepted
-    await session.commit()
 
 
-async def test_bad_transition(test_campaign: str, session: AsyncSession) -> None:
+@patch("lsst.cmservice.machines.nodes.mixin.HTCondorLaunchMixin.launch", return_value=None)
+@patch("lsst.cmservice.machines.nodes.mixin.HTCondorLaunchMixin.check", return_value=True)
+async def test_bad_transition(
+    mock_check: Mock, mock_launch: Mock, test_campaign: str, session: AsyncSession
+) -> None:
     """Forces a state transition to raise an exception and tests the generation
     of an activity log record.
     """
+
     # extract the test campaign id from the fixture url
     campaign_id = urlparse(url=test_campaign).path.split("/")[-2:][0]
     node_id = uuid5(UUID(campaign_id), "START.1")
@@ -83,8 +92,10 @@ async def test_bad_transition(test_campaign: str, session: AsyncSession) -> None
     x = node.status
     assert x is StatusEnum.waiting
     await session.commit()
-
+    make_transient(node)
     node_machine = StartMachine(o=node)
+    del node
+
     with patch(
         "lsst.cmservice.machines.node.StartMachine.do_prepare",
         side_effect=RuntimeError("Error: unknown error"),
@@ -94,7 +105,7 @@ async def test_bad_transition(test_campaign: str, session: AsyncSession) -> None
 
     # Failure to prepare should transition the node, and reset should recover
     assert node_machine.is_failed()
-    assert node_machine.may_reset()
+    assert await node_machine.may_reset()
     assert await node_machine.reset()
 
     with patch(
@@ -114,10 +125,9 @@ async def test_bad_transition(test_campaign: str, session: AsyncSession) -> None
 
     # Both the state machine and db object should reflect the failed state
     assert node_machine.is_failed()
-    await session.refresh(node, attribute_names=["status"])
+    node = await session.get_one(Node, node_id)
     x = node.status
     assert x is StatusEnum.failed
-    await session.commit()
 
     # retry by rolling back to ready
     assert await node_machine.may_retry()
@@ -127,7 +137,6 @@ async def test_bad_transition(test_campaign: str, session: AsyncSession) -> None
     await session.refresh(node, attribute_names=["status"])
     x = node.status
     assert x is StatusEnum.ready
-    await session.commit()
 
     # start and finish without further error
     assert await node_machine.start()
@@ -136,7 +145,6 @@ async def test_bad_transition(test_campaign: str, session: AsyncSession) -> None
     await session.refresh(node, attribute_names=["status"])
     x = node.status
     assert x is StatusEnum.accepted
-    await session.commit()
 
 
 async def test_machine_pickle(test_campaign: str, session: AsyncSession) -> None:
@@ -149,8 +157,10 @@ async def test_machine_pickle(test_campaign: str, session: AsyncSession) -> None
     x = node.status
     assert x is StatusEnum.waiting
     await session.commit()
-
+    make_transient(node)
     node_machine = NodeMachine(o=node)
+    del node
+
     # evolve the machine to "prepared"
     await node_machine.prepare()
     assert node_machine.state is StatusEnum.ready
@@ -162,6 +172,7 @@ async def test_machine_pickle(test_campaign: str, session: AsyncSession) -> None
     # campaigns can have a reference to their machine, but the machine ids are
     # not necessarily deterministic (i.e., they do not have to be namespaced.)
     session.add(machine_db)
+    node = await session.get_one(Node, node_id)
     node.machine = machine_db.id
     await session.commit()
 
@@ -261,8 +272,10 @@ async def test_action_node_htcondor(test_campaign_groups: str, session: AsyncSes
     # Prepare the start step
     node_id = uuid5(UUID(campaign_id), "START.1")
     node = await session.get_one(Node, node_id)
-    start_machine = StartMachine(o=node)
     await session.commit()
+    make_transient(node)
+    start_machine = StartMachine(o=node)
+    del node
     await start_machine.trigger("prepare")
 
     # Prepare a step with null-based grouping
