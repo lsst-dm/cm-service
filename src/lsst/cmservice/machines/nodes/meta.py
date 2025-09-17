@@ -292,8 +292,13 @@ class StartMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunch
             await run_in_threadpool(shutil.rmtree, self.artifact_path)
 
     async def do_start(self, event: EventData) -> None:
-        """Callback invoked when entering the "running" state."""
+        """Action method invoked when executing the "start" transition.
+
+        For a Start node to enter the started state, it must call the "launch"
+        method provided by its ``LaunchMixin``.
+        """
         logger.debug("Starting START Node for Campaign", id=str(self.db_model.id))
+        await self.launch(event)
         return None
 
     async def do_reset(self, event: EventData) -> None:

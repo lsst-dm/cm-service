@@ -4,16 +4,15 @@ from os.path import expandvars
 from typing import TYPE_CHECKING, Any
 
 import yaml
-from anyio import Path, open_process
-from anyio.streams.text import TextReceiveStream
+from anyio import Path
 from jinja2 import Environment, PackageLoader, Template
 from sqlalchemy.exc import NoResultFound
 from sqlmodel import desc, or_, select
 from transitions import EventData
 
 from ...common.enums import DEFAULT_NAMESPACE, ManifestKind
-from ...common.errors import CMHTCondorSubmitError, CMNoSuchManifestError
-from ...common.htcondor import build_htcondor_submit_environment
+from ...common.errors import CMNoSuchManifestError
+from ...common.htcondor import HTCondorManager
 from ...common.logging import LOGGER
 from ...config import config
 from ...db.campaigns_v2 import Manifest, Node
@@ -271,6 +270,7 @@ class HTCondorLaunchMixin(LaunchMixIn):
         """Dispatch a launch event to the launch method associated with the
         node's WMS.
         """
+        self.launch_manager = HTCondorManager()
         await self.submit_htcondor_job(event)
 
     async def submit_htcondor_job(self, event: EventData) -> None:
@@ -282,20 +282,16 @@ class HTCondorLaunchMixin(LaunchMixIn):
         if config.mock_status is not None:
             return
 
-        try:
-            wms_submission_path = self.configuration_chain["wms"].get("wms_submission_path")
-            assert wms_submission_path is not None
+        # The wms_submission_path must be set in the configuration chain
+        # by the `launch_prepare` method.
+        wms_submission_path = self.configuration_chain["wms"].get("wms_submission_path")
+        if wms_submission_path is None:
+            msg = "No HTCondor submit description file known to node."
+            raise RuntimeError(msg)
 
-            async with await open_process(
-                [config.htcondor.condor_submit_bin, "-file", wms_submission_path],
-                env=build_htcondor_submit_environment(),
-            ) as condor_submit:
-                if await condor_submit.wait() != 0:  # pragma: no cover
-                    assert condor_submit.stderr
-                    stderr_msg = ""
-                    async for text in TextReceiveStream(condor_submit.stderr):
-                        stderr_msg += text
-                    raise CMHTCondorSubmitError(f"Bad htcondor submit: f{stderr_msg}")
-
-        except Exception as e:
-            raise CMHTCondorSubmitError(f"Bad htcondor submit: {e}") from e
+        # TODO the node should consider its own "weight" and determine
+        # whether the job can be sent to the local universe for immediate
+        # processing on a schedd or if it should go to the vanilla universe
+        # for regular scheduling (which may involve needing to also allo-
+        # cate resources)
+        await self.launch_manager.launch(submission_spec=wms_submission_path)

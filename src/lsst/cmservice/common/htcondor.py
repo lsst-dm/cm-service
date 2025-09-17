@@ -2,10 +2,11 @@
 
 import importlib.util
 import json
+import random
 import sys
 from collections.abc import Mapping
 from types import ModuleType
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from anyio import Path, open_process
 from anyio.streams.text import TextReceiveStream
@@ -13,6 +14,7 @@ from anyio.streams.text import TextReceiveStream
 from ..config import config
 from .enums import StatusEnum
 from .errors import CMHTCondorCheckError, CMHTCondorSubmitError
+from .launchers import LaunchManager
 from .logging import LOGGER
 from .panda import get_panda_token
 
@@ -306,3 +308,162 @@ def import_htcondor() -> ModuleType | None:
     htcondor.reload_config()
 
     return htcondor
+
+
+class HTCondorManager(LaunchManager):
+    collector: Any | None
+    schedd: Any | None
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self._htcondor: ModuleType | None = import_htcondor()
+        if self._htcondor is not None:
+            self.collector = self._htcondor.Collector(config.htcondor.collector_host)
+        else:
+            self.collector = None
+        self.schedd = None
+
+    async def submit_description_from_file(self, submission_spec: str | Path) -> dict[str, str]:
+        """Given an htcondor submit description file, parse it into a dict
+        representation of key-value pair strings.
+        """
+        if TYPE_CHECKING:
+            assert self._htcondor is not None
+
+        submit_dict = {}
+        if isinstance(submission_spec, Path):
+            submission_spec = await submission_spec.read_text()
+
+        for line in submission_spec.splitlines():
+            # each line should be some variation of key = value except a final
+            # queue command
+            if "=" not in line:
+                continue
+            k, v = line.split("=")
+            # TODO use htcondor.classad.quote with the value
+            submit_dict[k.strip()] = self._htcondor.classad.quote(v.strip())
+
+        return submit_dict
+
+    def get_token(self) -> None:
+        """Request an HTCondor authentication token."""
+        # Careful, the TokenRequest interface is blocking
+        ...
+
+    def select_schedd(self) -> None:
+        """Determine a schedd host to use with this instance of an HTCondor
+        Manager.
+        """
+        if self._htcondor is None or self.collector is None:
+            return None
+
+        schedds = self.collector.locateAll(self._htcondor.DaemonTypes.Schedd)
+
+        # the schedd to which we submit a job is randomly chosen from the list
+        self.schedd = self._htcondor.Schedd(random.choice(schedds))
+
+    async def submit_ad(self, submission_spec: Path | dict | str) -> Any | None:
+        """Submits a job ad to the currently selected schedd and returns the
+        cluster id as a job reference.
+        """
+        if self._htcondor is None or self.collector is None:
+            return None
+
+        # Ensure we have obtained a Schedd ad from the collector
+        self.select_schedd()
+
+        if self.schedd is None:
+            return None
+
+        # Parse the submit description file as a dictionary for "easier"
+        # manipulation.
+        if not isinstance(submission_spec, dict):
+            submission_spec = await self.submit_description_from_file(submission_spec)
+
+        # Set the htcondor config in the submission environment
+        # The environment command in the submit file is a double-quoted,
+        # whitespace-delimited list of name=value pairs where literal quotes
+        # are doubled ("" or '').
+        submission_environment = " ".join(
+            [f"{k}={v}" for k, v in build_htcondor_submit_environment().items()]
+        )
+        submission_spec["environment"] = submission_environment
+        submission_spec["universe"] = "local"
+
+        submit_ad = self._htcondor.Submit(submission_spec)
+        cluster_id = self.schedd.submit(submit_ad)
+        return cluster_id
+
+    async def check(self, cluster_id: int, condor_log: Path) -> bool:
+        """Using the cluster_id or the htcondor log file, check job status.
+
+        This launcher method should be invoked by a Node Machine during its
+        equivalent of a `is_successful` check, i.e., for determining whether
+        the machine may transition from a running to a terminal state.
+
+        This method should only return True if the Job is successful and the
+        return value/exit code is 0. It should return False if the job is not
+        complete. Otherwise, it should raise an exception for the Node Machine
+        to handle.
+        """
+        if self._htcondor is None or self.collector is None:
+            msg = "HTCondor is not available or cannot be imported"
+            raise RuntimeError(msg)
+
+        # Using htcondor.JobEventLog with the userlog specified in the job
+        # submit ad, we can approximate the `condor_q -userlog` command without
+        # querying job history from the schedd. This limits us to what we can
+        # understand about the job through a JobEvent entry, which is quite
+        # limited compared to a Job ClassAd we could get from the schedd.
+        job_event_log = self._htcondor.JobEventLog(str(condor_log))
+
+        for event in job_event_log.events(stop_after=0):
+            # make sure the event is related to our job
+            if event.cluster != cluster_id or event.proc != 0:
+                continue
+
+            match event.type:
+                case self._htcondor.JobEventType.JOB_TERMINATED:
+                    normal_termination = event.get("TerminatedNormally", False)
+                    return_value = event.get("ReturnValue", -1)
+
+                    if normal_termination and return_value == 0:
+                        # Job succeeded
+                        return True
+                    elif normal_termination:
+                        # Job failed successfully
+                        msg = f"Job ended with return value {return_value}"
+                        raise RuntimeError(msg)
+                    else:
+                        # Job failed unsuccessfully
+                        signal = event.get("TerminatedBySignal", "<Unknown>")
+                        msg = f"Job terminated on signal {signal}"
+                        raise RuntimeError(msg)
+                case self._htcondor.JobEventType.JOB_ABORTED:
+                    msg = "Job was aborted"
+                    raise RuntimeError(msg)
+                case self._htcondor.JobEventType.JOB_HELD:
+                    # TODO raise an exception the Node Machine can recognize as
+                    # requiring a transition to the blocked state instead of
+                    # failed.
+                    msg = "Job has been held"
+                    raise RuntimeError(msg)
+                case self._htcondor.JobEventType.CLUSTER_REMOVE:
+                    msg = "Job has been removed"
+                    raise RuntimeError(msg)
+                case _:
+                    # Proceed past any non-terminal event in the log
+                    continue
+        # For any other result, treat the Job as still running (or maybe idle)
+        return False
+
+    async def launch(self, submission_spec: Path | dict | str) -> int:
+        """Main entrypoint for a LaunchManager instance.
+
+        The prepared submission file is sent to HTCondor and a SubmitResult is
+        returned, which includes the job's ``cluster_id`` (an int).
+        """
+        job_id = await self.submit_ad(submission_spec)
+        if job_id is None:
+            msg = "No submit result returned from htcondor"
+            raise RuntimeError(msg)
+        return job_id.cluster()
