@@ -143,7 +143,7 @@ class StatefulModel(ABC):
     async def may_fail(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
-    async def is_overdue(self) -> bool:
+    def is_overdue(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
     async def to_overdue(self) -> bool:
@@ -152,7 +152,7 @@ class StatefulModel(ABC):
     async def may_to_overdue(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
-    async def is_failed(self) -> bool:
+    def is_failed(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
     async def to_failed(self) -> bool:
@@ -161,7 +161,7 @@ class StatefulModel(ABC):
     async def may_to_failed(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
-    async def is_rejected(self) -> bool:
+    def is_rejected(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
     async def to_rejected(self) -> bool:
@@ -170,7 +170,7 @@ class StatefulModel(ABC):
     async def may_to_rejected(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
-    async def is_blocked(self) -> bool:
+    def is_blocked(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
     async def to_blocked(self) -> bool:
@@ -179,7 +179,7 @@ class StatefulModel(ABC):
     async def may_to_blocked(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
-    async def is_paused(self) -> bool:
+    def is_paused(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
     async def to_paused(self) -> bool:
@@ -188,7 +188,7 @@ class StatefulModel(ABC):
     async def may_to_paused(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
-    async def is_rescuable(self) -> bool:
+    def is_rescuable(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
     async def to_rescuable(self) -> bool:
@@ -197,7 +197,7 @@ class StatefulModel(ABC):
     async def may_to_rescuable(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
-    async def is_waiting(self) -> bool:
+    def is_waiting(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
     async def to_waiting(self) -> bool:
@@ -206,7 +206,7 @@ class StatefulModel(ABC):
     async def may_to_waiting(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
-    async def is_ready(self) -> bool:
+    def is_ready(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
     async def to_ready(self) -> bool:
@@ -215,7 +215,7 @@ class StatefulModel(ABC):
     async def may_to_ready(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
-    async def is_prepared(self) -> bool:
+    def is_prepared(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
     async def to_prepared(self) -> bool:
@@ -224,7 +224,7 @@ class StatefulModel(ABC):
     async def may_to_prepared(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
-    async def is_running(self) -> bool:
+    def is_running(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
     async def to_running(self) -> bool:
@@ -233,7 +233,7 @@ class StatefulModel(ABC):
     async def may_to_running(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
-    async def is_reviewable(self) -> bool:
+    def is_reviewable(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
     async def to_reviewable(self) -> bool:
@@ -242,7 +242,7 @@ class StatefulModel(ABC):
     async def may_to_reviewable(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
-    async def is_accepted(self) -> bool:
+    def is_accepted(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
     async def to_accepted(self) -> bool:
@@ -251,7 +251,7 @@ class StatefulModel(ABC):
     async def may_to_accepted(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
-    async def is_rescued(self) -> bool:
+    def is_rescued(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
     async def to_rescued(self) -> bool:
