@@ -187,14 +187,15 @@ class NodeMachine(StatefulModel):
             )
             try:
                 logger.debug("Serializing the state machine after transition.", id=str(self.db_model.id))
-                await self.session.merge(new_machine)
+                new_machine = await self.session.merge(new_machine)
                 self.db_model.machine = new_machine.id
                 await self.session.commit()
             except Exception:
                 logger.exception()
                 await self.session.rollback()
             finally:
-                self.session.expunge(new_machine)
+                if new_machine in self.session:
+                    self.session.expunge(new_machine)
 
         await self.session.close()
         del self.session
