@@ -1,0 +1,16 @@
+001 (1094571.000.000) 2025-09-18 08:58:29 Job executing on host: <172.24.49.226:20353?addrs=172.24.49.226-20353&alias=sdfiana031.sdf.slac.stanford.edu>
+...
+021 (1094571.000.000) 2025-09-18 08:58:29 Error from starter on <172.24.49.226:20353?addrs=172.24.49.226-20353&alias=sdfiana031.sdf.slac.stanford.edu>:
+	Failed to execute '/sdf/group/rubin/shared/campaigns/users/usdf-cm-dev/e31713e4-769b-5905-a329-ee3ba4ca4780/start/START/START.sh': (errno=13: 'Permission denied')
+...
+004 (1094571.000.000) 2025-09-18 08:58:29 Job was evicted.
+	(0) CPU times
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+	0  -  Run Bytes Sent By Job
+	0  -  Run Bytes Received By Job
+...
+012 (1094571.000.000) 2025-09-18 08:58:29 Job was held.
+	Failed to execute '/sdf/group/rubin/shared/campaigns/users/usdf-cm-dev/e31713e4-769b-5905-a329-ee3ba4ca4780/start/START/START.sh': (errno=13: 'Permission denied')
+	Code 6 Subcode 13
+...

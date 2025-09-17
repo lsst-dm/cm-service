@@ -339,8 +339,7 @@ class HTCondorManager(LaunchManager):
             if "=" not in line:
                 continue
             k, v = line.split("=")
-            # TODO use htcondor.classad.quote with the value
-            submit_dict[k.strip()] = self._htcondor.classad.quote(v.strip())
+            submit_dict[k.strip()] = v.strip()
 
         return submit_dict
 
@@ -386,8 +385,21 @@ class HTCondorManager(LaunchManager):
         submission_environment = " ".join(
             [f"{k}={v}" for k, v in build_htcondor_submit_environment().items()]
         )
-        submission_spec["environment"] = submission_environment
-        submission_spec["universe"] = "local"
+        submission_spec["environment"] = f'"{submission_environment}"'
+        submission_spec["getenv"] = "False"
+
+        # TODO some nodes may be too "heavy" for local universe execution.
+        #      if not otherwise specified, use the local universe.
+        if "universe" not in submission_spec:
+            submission_spec["universe"] = "local"
+
+        # Check for the existence and executability of the executable
+        executable = Path(submission_spec["executable"])
+        if await executable.exists():
+            await executable.chmod(0o755)
+        else:
+            msg = f"Launch Manager cannot locate {str(executable)}"
+            raise FileNotFoundError(msg)
 
         submit_ad = self._htcondor.Submit(submission_spec)
         cluster_id = self.schedd.submit(submit_ad)
@@ -404,6 +416,15 @@ class HTCondorManager(LaunchManager):
         return value/exit code is 0. It should return False if the job is not
         complete. Otherwise, it should raise an exception for the Node Machine
         to handle.
+
+        Parameters
+        ----------
+        cluster_id : int
+            The integer number of the htcondor job cluster id as provided in a
+            ``htcondor.SubmitResult`` object and stored with the campaign node.
+            If the cluster_id is greater than 0, then it may be used to ident-
+            ify entries in the HTCondor job log. Otherwise, the job log entries
+            may not disambiguate between multiple cluster_ids in the same log.
         """
         if self._htcondor is None or self.collector is None:
             msg = "HTCondor is not available or cannot be imported"
@@ -418,7 +439,7 @@ class HTCondorManager(LaunchManager):
 
         for event in job_event_log.events(stop_after=0):
             # make sure the event is related to our job
-            if event.cluster != cluster_id or event.proc != 0:
+            if (cluster_id > 0 and event.cluster != cluster_id) or event.proc != 0:
                 continue
 
             match event.type:
@@ -432,11 +453,13 @@ class HTCondorManager(LaunchManager):
                     elif normal_termination:
                         # Job failed successfully
                         msg = f"Job ended with return value {return_value}"
+                        logger.debug(msg, cluster_id=cluster_id)
                         raise RuntimeError(msg)
                     else:
                         # Job failed unsuccessfully
                         signal = event.get("TerminatedBySignal", "<Unknown>")
                         msg = f"Job terminated on signal {signal}"
+                        logger.debug(msg, cluster_id=cluster_id)
                         raise RuntimeError(msg)
                 case self._htcondor.JobEventType.JOB_ABORTED:
                     msg = "Job was aborted"
@@ -453,7 +476,7 @@ class HTCondorManager(LaunchManager):
                 case _:
                     # Proceed past any non-terminal event in the log
                     continue
-        # For any other result, treat the Job as still running (or maybe idle)
+        logger.debug("HTCondor jobs seems to be still running or is idle", cluster_id=cluster_id)
         return False
 
     async def launch(self, submission_spec: Path | dict | str) -> int:

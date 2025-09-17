@@ -10,6 +10,8 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi.concurrency import run_in_threadpool
+from sqlalchemy import inspect
+from sqlalchemy.orm import make_transient_to_detached
 from transitions import EventData
 from transitions.extensions.asyncio import AsyncEvent, AsyncMachine
 
@@ -70,6 +72,8 @@ class NodeMachine(StatefulModel):
         state = self.__dict__.copy()
         del state["db_model"]
         del state["activity_log_entry"]
+        if "launch_manager" in state.keys():
+            del state["launch_manager"]
         if "session" in state.keys():
             del state["session"]
         return state
@@ -144,10 +148,23 @@ class NodeMachine(StatefulModel):
             self.activity_log_entry.to_status = self.state
             self.activity_log_entry.finished_at = timestamp.now_utc()
 
-        # Ensure database record for transitioned object is updated
+        # Workaround to issue with sqlalchemy tracking changes to mutable types
+        # Update the node mtime and reapply the entire metadata dict
+        # FIXME it could also be possible to, instead of making the object
+        # transient before creating the machine (see daemon), just allow the
+        # load=True default when merging and nevermind the premature optim-
+        # ization of avoiding the select it generates.
+        new_metadata = self.db_model.metadata_.copy()
+        new_metadata["mtime"] = timestamp.element_time()
+
+        # Repatriate the transient node object and add it to the session, along
+        # with any modifications made during the machine transition functions
+        if (insp := inspect(self.db_model)) is not None:
+            if insp.transient:
+                make_transient_to_detached(self.db_model)
         self.db_model = await self.session.merge(self.db_model, load=False)
         self.db_model.status = self.state
-        self.db_model.metadata_["mtime"] = timestamp.element_time()
+        self.db_model.metadata_ = new_metadata
         await self.session.commit()
 
     async def finalize(self, event: EventData) -> None:
@@ -163,6 +180,8 @@ class NodeMachine(StatefulModel):
             return
         elif self.activity_log_entry.finished_at is None:
             return
+
+        logger.debug("Finalizing the machine after transition.", id=str(self.db_model.id))
 
         # ensure the orm instance is in the session
         if self.db_model not in self.session:
@@ -206,11 +225,44 @@ class NodeMachine(StatefulModel):
         """
         return True
 
+    async def launch(self, event: EventData) -> None:
+        # Overriden by LaunchMixin, no-op otherwise
+        return None
+
+    async def check(self, event: EventData) -> bool:
+        # Overriden by LaunchMixin, no-op otherwise
+        return True
+
+    async def do_start(self, event: EventData) -> None:
+        """Action method invoked when executing the "start" transition.
+
+        For a Start node to enter the started state, it must call the "launch"
+        method provided by its ``LaunchMixin``.
+        """
+        logger.debug(
+            "Starting Node for Campaign", id=str(self.db_model.id), campaign=str(self.db_model.namespace)
+        )
+
+        if not hasattr(self, "configuration_chain"):
+            # this can happen if the Node FSM was not pickled between trans-
+            # itions (see `Features.STORE_FSM`).
+            # TODO reconstitute the necessary parts of the configuration chain
+            #      to affect a start trigger
+            ...
+        await self.launch(event)
+        return None
+
     async def is_done_running(self, event: EventData) -> bool:
         """Conditional method called to check whether a ``finish`` trigger may
         be called.
         """
-        return True
+        logger.debug(
+            "Checking whether Node is done running",
+            id=str(self.db_model.id),
+            campaign=str(self.db_model.namespace),
+        )
+        done = await self.check(event)
+        return done
 
 
 class StartMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchMixin):
@@ -259,7 +311,9 @@ class StartMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunch
         # which includes additional collection information beyond what's spec-
         # ified in the Node's reference Butler manifest.
         butler_config: dict[str, Any] = {}
-        butler_config["exe_bin"] = config.butler.butler_bin
+        butler_config["exe_bin"] = (
+            "true" if Features.MOCK_BUTLER in config.features.enabled else config.butler.butler_bin
+        )
         butler_config["collections"] = self.butler.spec.collections.model_copy(
             update={
                 "tagged_input": f"{self.butler.spec.collections.campaign_public_output}/tagged",
@@ -291,16 +345,6 @@ class StartMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunch
 
         if await self.artifact_path.exists():
             await run_in_threadpool(shutil.rmtree, self.artifact_path)
-
-    async def do_start(self, event: EventData) -> None:
-        """Action method invoked when executing the "start" transition.
-
-        For a Start node to enter the started state, it must call the "launch"
-        method provided by its ``LaunchMixin``.
-        """
-        logger.debug("Starting START Node for Campaign", id=str(self.db_model.id))
-        await self.launch(event)
-        return None
 
     async def do_reset(self, event: EventData) -> None:
         logger.error("Resetting node")

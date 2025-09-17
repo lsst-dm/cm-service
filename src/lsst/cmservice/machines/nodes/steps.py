@@ -9,6 +9,7 @@ from sqlmodel import select
 from transitions import EventData
 
 from ...common.enums import ManifestKind, StatusEnum
+from ...common.flags import Features
 from ...common.graph import (
     NodeData,
     append_node_to_graph,
@@ -343,7 +344,9 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
         # which includes additional collection information beyond what's spec-
         # ified in the Node's reference Butler manifest.
         butler_config: dict[str, Any] = {}
-        butler_config["exe_bin"] = config.butler.butler_bin
+        butler_config["exe_bin"] = (
+            "true" if Features.MOCK_BUTLER in config.features.enabled else config.butler.butler_bin
+        )
         butler_config["collections"] = self.butler.spec.collections.model_copy(
             update={
                 "intermediates": intermediate_collections,
@@ -593,7 +596,9 @@ class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin
         ]
         # Prepare a Butler runtime config to add to the Node's config chain
         butler_config: dict[str, Any] = {}
-        butler_config["exe_bin"] = config.butler.butler_bin
+        butler_config["exe_bin"] = (
+            "true" if Features.MOCK_BUTLER in config.features.enabled else config.butler.butler_bin
+        )
         # FIXME this should follow the same grammar as other butler runtime
         # configs used in other nodes, but it doesn't really matter as long
         # as the variable is found at render time.
