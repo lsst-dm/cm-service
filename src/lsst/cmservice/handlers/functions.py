@@ -667,12 +667,6 @@ def status_from_bps_report(
     wms_run_report: WmsRunReport,
         bps report return object
 
-    campaign: str | None
-        The name of the campaign to which the bps report is relevant
-
-    job: str | None
-        The name of the job to which the bps report is relevant
-
     Returns
     -------
     status: StatusEnum
@@ -692,10 +686,15 @@ def status_from_bps_report(
     # and a notification should be sent and A BLOCKED status returned
     for blocked_job in filter(lambda x: x.state in [WmsStates.HELD], wms_run_report.jobs):
         return StatusEnum.blocked
+
     if the_state == WmsStates.RUNNING:
         return StatusEnum.running
     elif the_state == WmsStates.SUCCEEDED:
         return StatusEnum.accepted
+    elif the_state == WmsStates.DELETED:
+        # TODO the DELETED state could reasonably be considered "rejected"
+        # since it is probably the result of manual cancellation.
+        return StatusEnum.failed
     elif the_state in [
         WmsStates.UNKNOWN,
         WmsStates.MISFIT,

@@ -37,8 +37,8 @@ unset PANDA_CONFIG_ROOT
 {#- PHASE: COMMANDS ========================================================= #}
 {%- for command in lsst.command %}
 {{ command | trim }}
-{%- endfor %}
 {# BLANK LINE #}
+{%- endfor %}
 {#- PHASE: TRAILER ========================================================== #}
 {%- if lsst.append %}
 {{ lsst.append }}

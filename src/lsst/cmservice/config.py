@@ -421,8 +421,20 @@ class SlurmConfiguration(BaseModel):
     )
 
     duration: str = Field(
-        description="Expected Duration for a cmservice script that needs to be scheduled.",
+        description=(
+            "Expected Duration for a cmservice script that needs to be scheduled (maximum wall-clock time)."
+        ),
         default="0-1:0:0",
+    )
+
+    idle_timeout: int = Field(
+        description="glide-in inactivity shutdown time in seconds",
+        default=240,
+    )
+
+    node_count: int = Field(
+        description="number of glideins to submit; these are chunks of a node, size the number of cores/cpus",
+        default=50,
     )
 
     # FIXME should be an enum if this sticks around
