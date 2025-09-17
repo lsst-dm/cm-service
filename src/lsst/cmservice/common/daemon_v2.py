@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID, uuid5
 
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm import make_transient
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from transitions import Event
@@ -108,9 +109,10 @@ async def consider_nodes(session: AsyncSession) -> None:
                 logger.error("Node status out of sync with Machine", id=str(node.id))
                 continue
 
-            # Expunge the node from *this* session because it will be added to
-            # whatever session the node_machine acquires during its transition
+            # Expunge the node from *this* session and make it transient to
+            # support cross-session transfers with modifications
             session.expunge(node)
+            make_transient(node)
 
             node_machine: NodeMachine
             node_machine_pickle: Machine | None
@@ -123,6 +125,7 @@ async def consider_nodes(session: AsyncSession) -> None:
                 node_machine_pickle = await session.get_one(Machine, node.machine)
                 node_machine = (pickle.loads(node_machine_pickle.state)).model
                 node_machine.db_model = node
+                node_machine.state = node.status
                 # discard the pickled machine from this session and context
                 session.expunge(node_machine_pickle)
                 del node_machine_pickle

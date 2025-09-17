@@ -145,8 +145,9 @@ def allocate_resources() -> None:
     submission_spec = {
         "executable": f"{config.htcondor.remote_user_home}/.local/bin/allocateNodes.py",
         "arguments": (
-            f"--auto --account {config.slurm.account} -n 50 -m {config.slurm.duration} "
-            f"-q {config.slurm.partition} -g 240 -c {config.slurm.cores}"
+            f"--auto --account {config.slurm.account} -n {config.slurm.node_count} "
+            f"-m {config.slurm.duration} -q {config.slurm.partition} "
+            f"-g {config.slurm.idle_timeout} -c {config.slurm.cores} "
             f"{exclusive}"
             f"{config.slurm.extra_arguments} "
             f"{config.slurm.platform}"

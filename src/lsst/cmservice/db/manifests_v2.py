@@ -157,6 +157,10 @@ class NodeMetadata(ManifestMetadata):
     """
 
     kind: KindField = Field(default=ManifestKind.other, exclude=True)
+    weight: int = Field(
+        default=1,
+        description="The relative weight of the node as an integer value where 1=light and 5=heavy.",
+    )
 
 
 class NodeManifest(Manifest[NodeMetadata, ManifestSpec]):

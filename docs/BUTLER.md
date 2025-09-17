@@ -81,7 +81,6 @@ During Campaign stepwise processing, each Step in the Campaign includes Butler c
 ### Postflight
 During Campaign postflight, Butler collection operations are used to further chain together Campaign elements, eventually resulting in a single *chained* collection for the entire Campaign.
 
-1. Each step-specific *chained* collection is itself chained to a Campaign *chained* "output" collection.
+1. Each step-specific *output* collection (i.e., the "step output") is chained to a Campaign *chained* "output" collection.
 1. A "resource_usage" *run* collection is created as a side effect of executing `pipetask run $(build-gather-resource-usage-qg)` using the Campaign *chained* "output" collection.
-1. A *chained* collection is made of the non-public step outputs.
-1. The final "public" *chained* collection, named according to the Campaign's `collection.out` parameter, includes the Campaign (non-public) "output" collection, the Campaign "input" collection, and the Campaign "resource_usage" collection.
+1. The final "public" campaign *chained* collection, named according to the Campaign's `collection.out` parameter, includes the Campaign (non-public) "output" collection, the Campaign "input" collection, and the Campaign "resource_usage" collection.

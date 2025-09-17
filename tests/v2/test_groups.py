@@ -1,7 +1,9 @@
+from collections import ChainMap
 from itertools import pairwise
-from unittest.mock import Mock, patch
+from pathlib import Path
+from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import urlparse
-from uuid import UUID, uuid5
+from uuid import UUID, uuid4, uuid5
 
 import networkx as nx
 import numpy as np
@@ -9,9 +11,10 @@ import pytest
 from httpx import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from lsst.cmservice.common.enums import DEFAULT_NAMESPACE, ManifestKind
 from lsst.cmservice.common.graph import validate_graph
 from lsst.cmservice.db.campaigns_v2 import Node
-from lsst.cmservice.machines.node import StepMachine
+from lsst.cmservice.machines.node import GroupMachine, StepMachine
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""
@@ -112,7 +115,7 @@ async def test_append_node_to_prepared_step(
     assert set(graph.predecessors("node_1.1")) == set(graph.predecessors("ash.1"))
 
 
-def test_array_splitting() -> None:
+async def test_array_splitting() -> None:
     """Test demonstrates the partitioning of an arbitrarily large np array via
     partial sorting.
     """
@@ -134,3 +137,41 @@ def test_array_splitting() -> None:
     assert len(predicates) == 10
     assert predicates[0] == f"{dimension} >= 0 AND {dimension} < 93267"
     assert predicates[-1] == f"{dimension} >= 839405"
+
+
+async def test_bps_stdout_parsing(session: AsyncSession) -> None:
+    """Tests the bps stdout parsing behavior of a GroupMachine"""
+    node = Node(
+        id=uuid4(),
+        name="group_node",
+        namespace=DEFAULT_NAMESPACE,
+        version=1,
+        kind=ManifestKind.group,
+        metadata_={},
+    )
+    session.add(node)
+    await session.commit()
+
+    event = MagicMock()
+    event.transition.source = "running"
+    event.transition.dest = "running"
+
+    # Test the successful case
+    bps = {"stdout_log": str(Path(__file__).parent.parent / "fixtures/bps/bps_stdout.log")}
+    machine = GroupMachine(o=node)
+    machine.session = session
+    machine.configuration_chain = {"bps": ChainMap(bps)}
+
+    await machine.capture_bps_stdout(event)
+    await session.commit()
+    assert node.metadata_["bps"].get("Submit dir") is not None
+
+    # Test the missing file case
+    bps = {"stdout_log": str(Path(__file__).parent.parent / "fixtures/bps/missing_stdout.log")}
+    machine = GroupMachine(o=node)
+    machine.session = session
+    machine.configuration_chain = {"bps": ChainMap(bps)}
+
+    await machine.capture_bps_stdout(event)
+    await session.commit()
+    assert node.metadata_["bps"].get("Submit dir") is None

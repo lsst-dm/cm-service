@@ -1,0 +1,17 @@
+executable = /sdf/group/rubin/shared/campaigns/users/usdf-cm-dev/de9e5b3b-9aca-5708-b8b4-07ac056a700c/step/step1c/step1c.sh
+
+output = /sdf/group/rubin/shared/campaigns/users/usdf-cm-dev/de9e5b3b-9aca-5708-b8b4-07ac056a700c/step/step1c/step1c_condorsub.log
+error = /sdf/group/rubin/shared/campaigns/users/usdf-cm-dev/de9e5b3b-9aca-5708-b8b4-07ac056a700c/step/step1c/step1c.condorlog
+log = /sdf/group/rubin/shared/campaigns/users/usdf-cm-dev/de9e5b3b-9aca-5708-b8b4-07ac056a700c/step/step1c/step1c.condorlog
+
+initialdir = /sdf/group/rubin/shared/campaigns/users/usdf-cm-dev/de9e5b3b-9aca-5708-b8b4-07ac056a700c/step/step1c
+batch_name = usdf-cm-test
+should_transfer_files = Yes
+when_to_transfer_output = ON_EXIT
+get_env = True
+
+request_cpus = 1
+request_memory = 1024M
+request_disk = 10240M
+
+queue
