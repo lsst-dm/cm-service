@@ -8,11 +8,19 @@ from uuid import UUID, uuid4, uuid5
 
 import pytest
 from httpx import AsyncClient
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from lsst.cmservice.common.enums import StatusEnum
+from lsst.cmservice.common.enums import ManifestKind, StatusEnum
 from lsst.cmservice.db.campaigns_v2 import Campaign, Machine, Node
-from lsst.cmservice.machines.node import NodeMachine, StartMachine
+from lsst.cmservice.handlers.interface import get_activity_log_errors
+from lsst.cmservice.machines.node import (
+    GroupMachine,
+    NodeMachine,
+    StartMachine,
+    StepCollectMachine,
+    StepMachine,
+)
 from lsst.cmservice.machines.tasks import change_campaign_state
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
@@ -243,3 +251,53 @@ async def test_change_campaign_state(
             log_entry_found = True
             break
     assert log_entry_found
+
+
+async def test_action_node_htcondor(test_campaign_groups: str, session: AsyncSession) -> None:
+    """Tests the operation of an Action node with HTCondor WMS Mixin."""
+
+    campaign_id = urlparse(url=test_campaign_groups).path.split("/")[-2:][0]
+
+    # Prepare the start step
+    node_id = uuid5(UUID(campaign_id), "START.1")
+    node = await session.get_one(Node, node_id)
+    start_machine = StartMachine(o=node)
+    await session.commit()
+    await start_machine.trigger("prepare")
+
+    # Prepare a step with null-based grouping
+    node_id = uuid5(UUID(campaign_id), "lambert.1")
+    node = await session.get_one(Node, node_id)
+    node_machine = StepMachine(o=node)
+    await session.commit()
+    await node_machine.trigger("prepare")
+
+    # Prepare a step with values-based grouping
+    node_id = uuid5(UUID(campaign_id), "ash.1")
+    node = await session.get_one(Node, node_id)
+    node_machine = StepMachine(o=node)
+    await session.commit()
+    await node_machine.trigger("prepare")
+
+    # Obtain one of the prepared groups
+    s = select(Node).where(Node.kind == ManifestKind.group).where(Node.namespace == campaign_id).limit(1)
+    group = (await session.exec(s)).one_or_none()
+    assert group is not None
+
+    # Obtain the collect step
+    s = (
+        select(Node)
+        .where(Node.kind == ManifestKind.collect_groups)
+        .where(Node.namespace == campaign_id)
+        .limit(1)
+    )
+    collect = (await session.exec(s)).one_or_none()
+    assert collect is not None
+
+    group_machine = GroupMachine(o=group)
+    await group_machine.trigger("prepare")
+    assert len(await get_activity_log_errors(session, campaign_id)) == 0
+
+    collect_machine = StepCollectMachine(o=collect)
+    await collect_machine.trigger("prepare")
+    assert len(await get_activity_log_errors(session, campaign_id)) == 0

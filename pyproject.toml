@@ -27,7 +27,7 @@ dependencies = [
     "click==8.1.*",
     "fastapi==0.115.*",
     "greenlet==3.1.*",
-    "htcondor==24.0.7; sys_platform == 'linux'",
+    "htcondor==24.0.*; sys_platform == 'linux'",
     "jinja2==3.1.*",
     "numpy==2.1.*",
     "psycopg2-binary==2.9.*",
@@ -44,7 +44,7 @@ dependencies = [
     "networkx>=3.5",
     "sqlmodel>=0.0.24",
     "pytransitions==0.9.*",
-    "deepdiff==8.5.*",
+    "deepdiff>=8.6.1,<9",
     "asgi-correlation-id>=4.3.4",
 ]
 

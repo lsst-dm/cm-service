@@ -118,6 +118,7 @@ def configure_logging(log_level: int) -> None:
         ("httpcore", True),
         ("httpcore.http11", True),
         ("httpcore.connection", True),
+        ("sqlalchemy.engine", True),
     ]:
         logging.getLogger(logger).handlers.clear()
         logging.getLogger(logger).propagate = propagate

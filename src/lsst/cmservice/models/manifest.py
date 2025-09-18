@@ -1,4 +1,5 @@
 from .manifests import LibraryManifest as LibraryManifest
+from .manifests.bps import BpsManifest as BpsManifest
 from .manifests.butler import ButlerManifest as ButlerManifest
 from .manifests.facility import FacilityManifest as FacilityManifest
 from .manifests.lsst import LsstManifest as LsstManifest

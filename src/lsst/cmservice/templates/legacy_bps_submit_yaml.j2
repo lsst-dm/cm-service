@@ -1,0 +1,92 @@
+########################################
+{%- if ticket %}
+# https://rubinobs.atlassian.net/browse/{{ ticket }}
+{%- endif %}
+{%- if description %}
+# {{ description }}
+{%- endif %}
+########################################
+project: {{ project }}
+campaign: {{ campaign }}
+submitPath: {{ submit_path }}
+{# BLANK LINE #}
+########################################
+# LSST SETUP
+########################################
+LSST_VERSION: {{ lsst_version }}
+{# BLANK LINE #}
+{%- if bps_variables|length > 0 %}
+########################################
+# BPS VARIABLES
+########################################
+{%- for key, value in bps_variables | items %}
+{{ key }}: "{{ value }}"
+{%- endfor %}
+{# BLANK LINE #}
+{%- endif %}
+########################################
+# PIPELINE CONFIGURATION
+########################################
+pipelineYaml: {{ pipeline_yaml }}
+{%- if include_configs | length > 0 %}
+includeConfigs:
+{%- for config in include_configs %}
+  - {{ config }}
+{%- endfor %}
+{%- endif %}
+{%- if bps_literals | length > 0 %}
+{%- for key, value in bps_literals | items %}
+{{ key }}: {{ value }}
+{%- endfor %}
+{%- endif %}
+{# BLANK LINE #}
+{%- if bps_environment %}
+########################################
+# SUBMISSION ENVIRONMENT VARIABLES
+########################################
+environment:
+{%- for key, value in bps_environment|items %}
+  {{ key }}: "{{ value }}"
+{%- endfor %}
+{# BLANK LINE #}
+{%- endif %}
+########################################
+# BPS PAYLOAD OPTIONS
+########################################
+payload:
+{%- for key, value in payload|items %}
+  {{ key }}: "{{ value | trim }}"
+{%- endfor %}
+{%- if extra_qgraph_options %}
+extraQgraphOptions: {{ extra_qgraph_options | replace("\n", " ") | trim }}
+{%- endif %}
+{%- if extra_run_quantum_options %}
+extraRunQuantumOptions: {{ extra_run_quantum_options | replace("\n", " ") | trim }}
+{%- endif %}
+{%- if extra_init_options %}
+extraInitOptions: {{ extra_init_options | replace("\n", " ") | trim }}
+{%- endif %}
+{%- if extra_update_qgraph_options %}
+extraUpdateQgraphOptions: {{ extra_update_qgraph_options | replace("\n", " ") | trim }}
+{%- endif %}
+{# BLANK LINE #}
+{%- if clustering %}
+########################################
+# CLUSTERING CONFIGURATION
+########################################
+clustering:
+  {{ clustering | toyaml | indent(2) -}}
+{# BLANK LINE #}
+{%- endif%}
+########################################
+# SITE WMS CONFIGURATION
+########################################
+{%- if wms == "htcondor" %}
+wmsServiceClass: lsst.ctrl.bps.htcondor.HTCondorService
+{%- elif wms == "panda" %}
+wmsServiceClass: lsst.ctrl.bps.panda.PanDAService
+{%- endif %}
+{%- if compute_site %}
+{{ compute_site | toyaml -}}
+{%- endif %}
+{# BLANK LINE #}
