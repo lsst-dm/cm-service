@@ -23,7 +23,8 @@ def EnumValidator[T: EnumType](value: Any, enum_: T) -> T:
             value = value if value in enum_.__members__ else value.upper()
         new_enum: T = enum_[value] if value in enum_.__members__ else enum_(value)
     except (KeyError, ValueError):
-        raise ValueError(f"Value must be a member of {enum_.__qualname__}")
+        msg = f"Value must be a member of {enum_.__qualname__}"
+        raise ValueError(msg)
     return new_enum
 
 

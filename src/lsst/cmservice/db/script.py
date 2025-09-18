@@ -159,7 +159,8 @@ class Script(Base, NodeMixin):
             await session.refresh(self, attribute_names=["j_"])
             element = self.j_
         else:  # pragma: no cover
-            raise CMBadEnumError(f"Bad level for script: {self.parent_level}")
+            msg = f"Bad level for script: {self.parent_level}"
+            raise CMBadEnumError(msg)
         return element
 
     @classmethod
@@ -174,7 +175,8 @@ class Script(Base, NodeMixin):
             spec_block_name = kwargs["spec_block_name"]
             original_name = kwargs.get("original_name", name)
         except KeyError as e:
-            raise CMMissingRowCreateInputError(f"Missing input to create Script: {e}") from e
+            msg = f"Missing input to create Script: {e}"
+            raise CMMissingRowCreateInputError(msg) from e
         attempt = kwargs.get("attempt", 0)
         parent_level = kwargs.get("parent_level", None)
         if parent_level is None:
@@ -216,7 +218,8 @@ class Script(Base, NodeMixin):
             element = await Job.get_row_by_fullname(session, parent_name)
             ret_dict["j_id"] = element.id
         else:  # pragma: no cover
-            raise CMBadEnumError(f"Bad level for script: {parent_level}")
+            msg = f"Bad level for script: {parent_level}"
+            raise CMBadEnumError(msg)
         ret_dict["parent_id"] = element.id
 
         specification = await element.get_specification(session)
