@@ -20,7 +20,7 @@ $(UV_LOCKFILE):
 	uv lock --build-isolation
 
 $(PY_VENV): $(UV_LOCKFILE)
-	uv sync --frozen
+	uv sync --frozen --all-packages
 
 .PHONY: clean
 clean:
@@ -130,6 +130,10 @@ run-worker: export DB__ECHO=true
 run-worker: run-compose
 	alembic upgrade head
 	python3 -m lsst.cmservice.daemon
+
+.PHONY: run-web
+run-web: $(PY_VENV)
+	uv run web
 
 .PHONY: migrate
 migrate: export PGUSER=cm-service
