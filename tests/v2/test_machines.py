@@ -13,6 +13,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from lsst.cmservice.common.enums import ManifestKind, StatusEnum
+from lsst.cmservice.common.launchers import LauncherCheckResponse
 from lsst.cmservice.db.campaigns_v2 import Campaign, Machine, Node
 from lsst.cmservice.handlers.interface import get_activity_log_errors
 from lsst.cmservice.machines.node import (
@@ -29,7 +30,10 @@ pytestmark = pytest.mark.asyncio(loop_scope="module")
 
 
 @patch("lsst.cmservice.machines.nodes.mixin.HTCondorLaunchMixin.launch", return_value=None)
-@patch("lsst.cmservice.machines.nodes.mixin.HTCondorLaunchMixin.check", return_value=True)
+@patch(
+    "lsst.cmservice.machines.nodes.mixin.HTCondorLaunchMixin.check",
+    return_value=LauncherCheckResponse(success=True),
+)
 async def test_node_machine(
     mock_check: Mock, mock_launch: Mock, test_campaign: str, session: AsyncSession
 ) -> None:
@@ -76,7 +80,10 @@ async def test_node_machine(
 
 
 @patch("lsst.cmservice.machines.nodes.mixin.HTCondorLaunchMixin.launch", return_value=None)
-@patch("lsst.cmservice.machines.nodes.mixin.HTCondorLaunchMixin.check", return_value=True)
+@patch(
+    "lsst.cmservice.machines.nodes.mixin.HTCondorLaunchMixin.check",
+    return_value=LauncherCheckResponse(success=True),
+)
 async def test_bad_transition(
     mock_check: Mock, mock_launch: Mock, test_campaign: str, session: AsyncSession
 ) -> None:

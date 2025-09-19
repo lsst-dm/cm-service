@@ -468,10 +468,6 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
                 f"{self.db_model.name} was rolled back via '{event.event.name}'"
             )
 
-    async def do_start(self, event: EventData) -> None:
-        """Start should create butler collections for the step."""
-        ...
-
     async def do_finish(self, event: EventData) -> None:
         """Finish should assert as a condition that the step's butler
         collections exist and that the campaign graph is valid.

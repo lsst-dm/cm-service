@@ -14,7 +14,7 @@ from anyio.streams.text import TextReceiveStream
 from ..config import config
 from .enums import StatusEnum
 from .errors import CMHTCondorCheckError, CMHTCondorSubmitError
-from .launchers import LaunchManager
+from .launchers import LauncherCheckResponse, LaunchManager
 from .logging import LOGGER
 from .panda import get_panda_token
 
@@ -311,6 +311,10 @@ def import_htcondor() -> ModuleType | None:
 
 
 class HTCondorManager(LaunchManager):
+    """A Launch Manager for HTCondor Jobs. Allows the execution of node scripts
+    during state transitions.
+    """
+
     collector: Any | None
     schedd: Any | None
 
@@ -355,6 +359,7 @@ class HTCondorManager(LaunchManager):
         if self._htcondor is None or self.collector is None:
             return None
 
+        # TODO make async with anyio run_thread?
         schedds = self.collector.locateAll(self._htcondor.DaemonTypes.Schedd)
 
         # the schedd to which we submit a job is randomly chosen from the list
@@ -362,7 +367,14 @@ class HTCondorManager(LaunchManager):
 
     async def submit_ad(self, submission_spec: Path | dict | str) -> Any | None:
         """Submits a job ad to the currently selected schedd and returns the
-        cluster id as a job reference.
+        job reference which includes the cluster id.
+
+        If anything goes wrong, returns None.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the executable indicated by the submission file does not exist.
         """
         if self._htcondor is None or self.collector is None:
             return None
@@ -374,7 +386,9 @@ class HTCondorManager(LaunchManager):
             return None
 
         # Parse the submit description file as a dictionary for "easier"
-        # manipulation.
+        # manipulation. The file would have been generated during a Node's
+        # prepare trigger. We want it as a dict instead so we can directly
+        # manipulate it without complicated string methods.
         if not isinstance(submission_spec, dict):
             submission_spec = await self.submit_description_from_file(submission_spec)
 
@@ -403,19 +417,18 @@ class HTCondorManager(LaunchManager):
 
         submit_ad = self._htcondor.Submit(submission_spec)
         cluster_id = self.schedd.submit(submit_ad)
+        # TODO should log the schedd name and cluster id for reference. It's
+        # probably not a bad idea to persist these metadata in the launch
+        # just to have it available; it should agree with the same metdata
+        # gathered in the check method when the event log is parsed.
         return cluster_id
 
-    async def check(self, cluster_id: int, condor_log: Path) -> bool:
+    async def check(self, cluster_id: int, condor_log: Path) -> LauncherCheckResponse:
         """Using the cluster_id or the htcondor log file, check job status.
 
         This launcher method should be invoked by a Node Machine during its
         equivalent of a `is_successful` check, i.e., for determining whether
         the machine may transition from a running to a terminal state.
-
-        This method should only return True if the Job is successful and the
-        return value/exit code is 0. It should return False if the job is not
-        complete. Otherwise, it should raise an exception for the Node Machine
-        to handle.
 
         Parameters
         ----------
@@ -425,7 +438,32 @@ class HTCondorManager(LaunchManager):
             If the cluster_id is greater than 0, then it may be used to ident-
             ify entries in the HTCondor job log. Otherwise, the job log entries
             may not disambiguate between multiple cluster_ids in the same log.
+
+        Returns
+        -------
+        ``lsst.cmservice.common.launcher.LauncherCheckResponse``
+            This method should only return True if the Job is successful and
+            the return value/exit code is 0. It should return False if the job
+            is not complete. Otherwise, it should raise an exception for the
+            Node Machine to handle.
+
+        Raises
+        ------
+        RuntimeError
+            Raised when a error is encountered. Errors may include inability
+            to import required packages or when error conditions are encounter-
+            ed during the check. For HTCondor event log parsing, any abnormal
+            termination or job abend (held, aborted, removal) will raise an
+            exception. This exception should be eventually handled by the Node
+            state machine's error handler (therefore should be reraised if
+            caught anywhere else).
         """
+        response = LauncherCheckResponse(success=False)
+
+        # TODO it would be nice if this method returned a richer value so the
+        # calling Node could reflect more job information in its metadata. Esp-
+        # ecially with the EXECUTE event, pass back the event time and host;
+        # and for abnormal termination the exit code could be useful.
         if self._htcondor is None or self.collector is None:
             msg = "HTCondor is not available or cannot be imported"
             raise RuntimeError(msg)
@@ -435,10 +473,15 @@ class HTCondorManager(LaunchManager):
         # querying job history from the schedd. This limits us to what we can
         # understand about the job through a JobEvent entry, which is quite
         # limited compared to a Job ClassAd we could get from the schedd.
+        # FIXME the JobEventLog raises an HTCondorIOError if the eventlog can't
+        # be found. We should check its existence first, although the eventlog
+        # is meant to be "touched" by the schedd as soon as the submit goes
+        # through (i.e., a 0-byte file should be present).
         job_event_log = self._htcondor.JobEventLog(str(condor_log))
 
         for event in job_event_log.events(stop_after=0):
-            # make sure the event is related to our job
+            # make sure the event is related to our job; if the provided
+            # cluster id is 0, then we do not try to disambiguate job events.
             if (cluster_id > 0 and event.cluster != cluster_id) or event.proc != 0:
                 continue
 
@@ -449,7 +492,7 @@ class HTCondorManager(LaunchManager):
 
                     if normal_termination and return_value == 0:
                         # Job succeeded
-                        return True
+                        response.success = True
                     elif normal_termination:
                         # Job failed successfully
                         msg = f"Job ended with return value {return_value}"
@@ -473,17 +516,44 @@ class HTCondorManager(LaunchManager):
                 case self._htcondor.JobEventType.CLUSTER_REMOVE:
                     msg = "Job has been removed"
                     raise RuntimeError(msg)
+                case self._htcondor.JobEventType.EXECUTE:
+                    host = event.get("ExecuteHost", "Unknown")
+                    timestamp = event.get("EventTime", None)
+                    msg = f"Job has been executed on {host} at {timestamp}"
+                    logger.info(msg, cluster_id=cluster_id)
+                    response.job_id = event.cluster
+                    if timestamp is not None:
+                        response.timestamp = timestamp
+                    response.metadata_["execute_host"] = host
+                    continue
                 case _:
                     # Proceed past any non-terminal event in the log
+                    logger.debug("HTCondor jobs seems to be still running or is idle", cluster_id=cluster_id)
                     continue
-        logger.debug("HTCondor jobs seems to be still running or is idle", cluster_id=cluster_id)
-        return False
+        return response
 
     async def launch(self, submission_spec: Path | dict | str) -> int:
         """Main entrypoint for a LaunchManager instance.
 
         The prepared submission file is sent to HTCondor and a SubmitResult is
         returned, which includes the job's ``cluster_id`` (an int).
+
+        Parameters
+        ----------
+        submission_spec : Path | dict | str
+            An HTCondor submission description, as a Path to such a file, a
+            dictionary of k-v pairs, or a string literal.
+
+        Raises
+        ------
+        RuntimeError
+            If no job id is returned by the HTCondor Submit method, indicating
+            a failure to submit.
+
+        Returns
+        -------
+        int
+            The HTCondor job cluster ID as an integer.
         """
         job_id = await self.submit_ad(submission_spec)
         if job_id is None:

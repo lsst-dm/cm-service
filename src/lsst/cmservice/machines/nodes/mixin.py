@@ -13,6 +13,7 @@ from transitions import EventData
 from ...common.enums import DEFAULT_NAMESPACE, ManifestKind, StatusEnum
 from ...common.errors import CMNoSuchManifestError
 from ...common.htcondor import HTCondorManager
+from ...common.launchers import LauncherCheckResponse
 from ...common.logging import LOGGER
 from ...config import config
 from ...db.campaigns_v2 import Manifest, Node
@@ -292,14 +293,10 @@ class HTCondorLaunchMixin(LaunchMixIn):
         cluster_id = await self.launch_manager.launch(submission_spec=wms_submission_path)
         self.db_model.metadata_["wms_job"] = cluster_id
 
-    async def check(self, event: EventData) -> bool:
+    async def check(self, event: EventData) -> LauncherCheckResponse:
         """Calls the check method of the launch manager."""
-        # TODO it might be nice if the checker collected metadata about the
-        # job's progress during the check. For HTCondor this could include the
-        # timestamp that EXECUTE started, the node on which it was launched and
-        # the timestamp of termination.
         if config.mock_status is not None:
-            return config.mock_status is StatusEnum.accepted
+            return LauncherCheckResponse(success=(config.mock_status is StatusEnum.accepted))
 
         self.launch_manager = HTCondorManager()
 

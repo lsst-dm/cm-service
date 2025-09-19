@@ -227,7 +227,7 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         if await self.artifact_path.exists():
             await run_in_threadpool(shutil.rmtree, self.artifact_path)
 
-    async def is_successful(self, event: EventData) -> bool:
+    async def _is_done_running(self, event: EventData) -> bool:
         """Checks whether the WMS job is finished or not based on the result of
         a bps-report or similar. Returns a True value if the batch is done and
         good, a False value if it is still running. Raises an exception in any
@@ -247,4 +247,11 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
                 return False
         ```
         """
+        # TODO implementation of is_done_running for a group (or really any
+        # node whose "launched" script is not its product, e.g., a bps-runner)
+        # differs from a meta/step node because it's not the launcher result
+        # we're interested in. Instead, the launcher result (i.e., did we
+        # as far as we know successfully execute the script that calls bps?)
+        # is a condition of successfully *entering* the running state, not
+        # *exiting* it.
         return True
