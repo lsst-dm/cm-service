@@ -41,7 +41,9 @@ def patched_config(monkeypatch_module: pytest.MonkeyPatch, tmp_path_factory: pyt
     )
     monkeypatch_module.setattr(target=config.db, name="echo", value=False)
     monkeypatch_module.setattr(
-        target=config.features, name="enabled", value=Features.API_V2 | Features.DAEMON_V2
+        target=config.features,
+        name="enabled",
+        value=Features.API_V2 | Features.DAEMON_V2 | Features.STORE_FSM,
     )
 
 
