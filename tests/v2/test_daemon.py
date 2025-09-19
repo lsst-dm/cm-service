@@ -10,6 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from lsst.cmservice.common.daemon_v2 import consider_campaigns, consider_nodes
 from lsst.cmservice.common.enums import StatusEnum
+from lsst.cmservice.common.launchers import LauncherCheckResponse
 from lsst.cmservice.db.campaigns_v2 import Campaign, Node, Task
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
@@ -106,7 +107,10 @@ async def test_daemon_campaign(
 # be able to mock in a test launcher class here that implements this behavior
 # (such as adding a job id to metadata during the launch method!)
 @patch("lsst.cmservice.machines.nodes.mixin.HTCondorLaunchMixin.launch", return_value=None)
-@patch("lsst.cmservice.machines.nodes.mixin.HTCondorLaunchMixin.check", return_value=True)
+@patch(
+    "lsst.cmservice.machines.nodes.mixin.HTCondorLaunchMixin.check",
+    return_value=LauncherCheckResponse(success=True),
+)
 async def test_daemon_node(
     mock_check: Mock,
     mock_launch: Mock,

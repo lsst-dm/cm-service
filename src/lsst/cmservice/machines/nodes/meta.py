@@ -18,6 +18,7 @@ from transitions.extensions.asyncio import AsyncEvent, AsyncMachine
 from ...common import timestamp
 from ...common.enums import ManifestKind, StatusEnum
 from ...common.flags import Features
+from ...common.launchers import LauncherCheckResponse
 from ...common.logging import LOGGER
 from ...config import config
 from ...db.campaigns_v2 import ActivityLog, Campaign, Machine, Node
@@ -162,7 +163,7 @@ class NodeMachine(StatefulModel):
         if (insp := inspect(self.db_model)) is not None:
             if insp.transient:
                 make_transient_to_detached(self.db_model)
-        self.db_model = await self.session.merge(self.db_model, load=False)
+        self.db_model = await self.session.merge(self.db_model, load=True)
         self.db_model.status = self.state
         self.db_model.metadata_ = new_metadata
         await self.session.commit()
@@ -225,14 +226,6 @@ class NodeMachine(StatefulModel):
         """
         return True
 
-    async def launch(self, event: EventData) -> None:
-        # Overriden by LaunchMixin, no-op otherwise
-        return None
-
-    async def check(self, event: EventData) -> bool:
-        # Overriden by LaunchMixin, no-op otherwise
-        return True
-
     async def do_start(self, event: EventData) -> None:
         """Action method invoked when executing the "start" transition.
 
@@ -249,7 +242,8 @@ class NodeMachine(StatefulModel):
             # TODO reconstitute the necessary parts of the configuration chain
             #      to affect a start trigger
             ...
-        await self.launch(event)
+        if hasattr(self, "launch"):
+            await self.launch(event)  # pyright: ignore[reportAttributeAccessIssue]
         return None
 
     async def is_done_running(self, event: EventData) -> bool:
@@ -261,8 +255,19 @@ class NodeMachine(StatefulModel):
             id=str(self.db_model.id),
             campaign=str(self.db_model.namespace),
         )
-        done = await self.check(event)
-        return done
+        if hasattr(self, "check"):
+            done = await self.check(event)  # pyright: ignore[reportAttributeAccessIssue]
+        else:
+            done = LauncherCheckResponse(success=True)
+
+        launcher_metadata = {
+            "timestamp": int(done.timestamp.timestamp()),
+            "job_id": done.job_id,
+            **done.metadata_,
+        }
+
+        self.db_model.metadata_["launcher"] = launcher_metadata
+        return done.success
 
 
 class StartMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchMixin):

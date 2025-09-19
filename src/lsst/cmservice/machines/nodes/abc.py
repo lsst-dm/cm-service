@@ -8,6 +8,7 @@ from collections import ChainMap
 from anyio import Path
 from transitions import EventData
 
+from ...common.launchers import LauncherCheckResponse
 from ...common.types import AsyncSession
 from ..abc import AnyStatefulObject
 
@@ -64,4 +65,4 @@ class LaunchMixIn(MixIn, ABC):
     async def launch(self, event: EventData) -> None: ...
 
     @abstractmethod
-    async def check(self, event: EventData) -> bool: ...
+    async def check(self, event: EventData) -> LauncherCheckResponse: ...
