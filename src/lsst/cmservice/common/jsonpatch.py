@@ -86,7 +86,8 @@ def apply_json_patch[T: MutableMapping](op: JSONPatch, o: T) -> T:
     try:
         op_target: AnyMutable = reduce(operator.getitem, op_path, o)
     except KeyError:
-        raise JSONPatchError(f"Path {op.path} not found in object")
+        msg = f"Path {op.path} not found in object"
+        raise JSONPatchError(msg)
 
     match op:
         case JSONPatch(op="add", value=new_value):
@@ -108,12 +109,14 @@ def apply_json_patch[T: MutableMapping](op: JSONPatch, o: T) -> T:
                 try:
                     assert reference_token in op_target.keys()
                 except AssertionError:
-                    raise JSONPatchError(f"Cannot replace missing key {reference_token} in object")
+                    msg = f"Cannot replace missing key {reference_token} in object"
+                    raise JSONPatchError(msg)
             elif isinstance(reference_token, int) and isinstance(op_target, MutableSequence):
                 try:
                     assert reference_token < len(op_target)
                 except AssertionError:
-                    raise JSONPatchError(f"Cannot replace missing index {reference_token} in object")
+                    msg = f"Cannot replace missing index {reference_token} in object"
+                    raise JSONPatchError(msg)
 
             if TYPE_CHECKING:
                 assert isinstance(op_target, MutableMapping)
@@ -154,7 +157,8 @@ def apply_json_patch[T: MutableMapping](op: JSONPatch, o: T) -> T:
                 from_object = reduce(operator.getitem, from_path, o)
                 value = from_object[from_target]
             except (KeyError, IndexError):
-                raise JSONPatchError(f"Path {from_location} not found in object")
+                msg = f"Path {from_location} not found in object"
+                raise JSONPatchError(msg)
 
             # add the value to the new location
             op_target[reference_token] = value  # type: ignore[index]
@@ -181,7 +185,8 @@ def apply_json_patch[T: MutableMapping](op: JSONPatch, o: T) -> T:
                 from_object = reduce(operator.getitem, from_path, o)
                 value = from_object[from_target]
             except (KeyError, IndexError):
-                raise JSONPatchError(f"Path {from_location} not found in object")
+                msg = f"Path {from_location} not found in object"
+                raise JSONPatchError(msg)
 
             # add the value to the new location
             op_target[reference_token] = value  # type: ignore[index]
@@ -196,30 +201,30 @@ def apply_json_patch[T: MutableMapping](op: JSONPatch, o: T) -> T:
                 try:
                     assert reference_token in op_target.keys()
                 except AssertionError:
-                    raise JSONPatchError(
-                        f"Test operation assertion failed: Key {reference_token} does not exist at {op.path}"
-                    )
+                    msg = "Test operation assertion failed: Key {reference_token} does not exist at {op.path}"
+                    raise JSONPatchError(msg)
             elif isinstance(reference_token, int) and isinstance(op_target, MutableSequence):
                 try:
                     assert reference_token < len(op_target)
                 except AssertionError:
-                    raise JSONPatchError(
+                    msg = (
                         f"Test operation assertion failed: "
                         f"Index {reference_token} does not exist at {op.path}"
                     )
+                    raise JSONPatchError(msg)
 
             if TYPE_CHECKING:
                 assert isinstance(op_target, MutableMapping)
             try:
                 assert op_target[reference_token] == assert_value
             except AssertionError:
-                raise JSONPatchError(
-                    f"Test operation assertion failed: {op.path} does not match value {assert_value}"
-                )
+                msg = f"Test operation assertion failed: {op.path} does not match value {assert_value}"
+                raise JSONPatchError(msg)
 
         case _:
             # Model validation should prevent this from ever happening
-            raise JSONPatchError(f"Unknown JSON Patch operation: {op.op}")
+            msg = "Unknown JSON Patch operation: %s" % {op.op}
+            raise JSONPatchError(msg)
 
     return o
 
