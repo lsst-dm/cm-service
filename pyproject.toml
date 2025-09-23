@@ -22,7 +22,7 @@ dynamic = ["version"]
 
 dependencies = [
     "alembic==1.16.*",
-    "anyio==4.7.*",
+    "anyio==4.10.*",
     "asyncpg==0.30.*",
     "click==8.1.*",
     "fastapi==0.115.*",
