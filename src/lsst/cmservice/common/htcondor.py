@@ -477,6 +477,9 @@ class HTCondorManager(LaunchManager):
         # be found. We should check its existence first, although the eventlog
         # is meant to be "touched" by the schedd as soon as the submit goes
         # through (i.e., a 0-byte file should be present).
+        logger.debug(
+            "Checking HTCondor Log for Launch Events", cluster_id=cluster_id, job_event_log=str(condor_log)
+        )
         job_event_log = self._htcondor.JobEventLog(str(condor_log))
 
         for event in job_event_log.events(stop_after=0):
@@ -492,11 +495,13 @@ class HTCondorManager(LaunchManager):
 
                     if normal_termination and return_value == 0:
                         # Job succeeded
+                        msg = "Job Normally Terminated"
+                        logger.debug(msg, cluster_id=cluster_id, return_value=return_value)
                         response.success = True
                     elif normal_termination:
                         # Job failed successfully
-                        msg = f"Job ended with return value {return_value}"
-                        logger.debug(msg, cluster_id=cluster_id)
+                        msg = "Job Abnormally Terminated"
+                        logger.debug(msg, cluster_id=cluster_id, return_value=return_value)
                         raise RuntimeError(msg)
                     else:
                         # Job failed unsuccessfully
@@ -506,15 +511,18 @@ class HTCondorManager(LaunchManager):
                         raise RuntimeError(msg)
                 case self._htcondor.JobEventType.JOB_ABORTED:
                     msg = "Job was aborted"
+                    logger.error(msg, cluster_id=cluster_id)
                     raise RuntimeError(msg)
                 case self._htcondor.JobEventType.JOB_HELD:
                     # TODO raise an exception the Node Machine can recognize as
                     # requiring a transition to the blocked state instead of
                     # failed.
                     msg = "Job has been held"
+                    logger.error(msg, cluster_id=cluster_id)
                     raise RuntimeError(msg)
                 case self._htcondor.JobEventType.CLUSTER_REMOVE:
                     msg = "Job has been removed"
+                    logger.error(msg, cluster_id=cluster_id)
                     raise RuntimeError(msg)
                 case self._htcondor.JobEventType.EXECUTE:
                     host = event.get("ExecuteHost", "Unknown")
@@ -528,8 +536,17 @@ class HTCondorManager(LaunchManager):
                     continue
                 case _:
                     # Proceed past any non-terminal event in the log
-                    logger.debug("HTCondor jobs seems to be still running or is idle", cluster_id=cluster_id)
+                    logger.debug(
+                        "Skipping non-terminal event in event log",
+                        cluster_id=cluster_id,
+                        event_type=event.type,
+                    )
                     continue
+        logger.debug(
+            "Finished reading HTCondor Launcher Event Log",
+            cluster_id=cluster_id,
+            outcome=response.model_dump_json(),
+        )
         return response
 
     async def launch(self, submission_spec: Path | dict | str) -> int:

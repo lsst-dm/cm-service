@@ -174,6 +174,17 @@ class NodeMachine(StatefulModel):
         indicates that change has occurred, it is written to the db and the
         machine is serialized to the Machines table for later use.
         """
+        # ensure the orm instance is in the session and make sure any changes
+        # to mutable mappings are captured.
+        try:
+            logger.debug("Updating the Node after transition", id=str(self.db_model.id))
+            await self.repatriate_node(event)
+            self.db_model.metadata_ = self.db_model.metadata_.copy()
+            await self.session.commit()
+        except Exception:
+            logger.exception()
+            await self.session.rollback()
+
         # The activity log entry is added to the db. For failed transitions it
         # may include error detail. For other transitions it is not necessary
         # to log every attempt.
@@ -265,8 +276,9 @@ class NodeMachine(StatefulModel):
             "job_id": done.job_id,
             **done.metadata_,
         }
-
-        self.db_model.metadata_["launcher"] = launcher_metadata
+        new_metadata = self.db_model.metadata_.copy()
+        new_metadata["launcher"] = launcher_metadata
+        self.db_model.metadata_ = new_metadata
         return done.success
 
 

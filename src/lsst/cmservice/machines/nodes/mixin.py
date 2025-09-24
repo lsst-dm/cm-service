@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
 from os.path import expandvars
 from typing import TYPE_CHECKING, Any
 
 import yaml
-from anyio import Path
+from anyio import Path, TemporaryDirectory
 from jinja2 import Environment, PackageLoader, Template
 from sqlalchemy.exc import NoResultFound
 from sqlmodel import desc, or_, select
@@ -196,6 +197,19 @@ class FilesystemActionMixin(ActionMixIn):
         """Wrapper method for Action node preparation."""
         await self.assemble_config_chain(event)
         await self.get_artifact_path(event)
+
+    async def get_artifact(self, event: EventData, artifact: Path | str) -> AsyncGenerator[Path]:
+        """Copy an artifact from the provided path to a local temporary
+        directory and return the Path to it.
+        """
+        remote_artifact = Path(artifact)
+        if not await remote_artifact.exists():
+            return
+        async with TemporaryDirectory() as temp_dir:
+            remote_bytes = await remote_artifact.read_bytes()
+            local_artifact = Path(temp_dir) / remote_artifact.name
+            await local_artifact.write_bytes(remote_bytes)
+            yield local_artifact
 
 
 class HTCondorLaunchMixin(LaunchMixIn):

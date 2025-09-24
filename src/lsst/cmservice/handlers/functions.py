@@ -665,12 +665,6 @@ def status_from_bps_report(
     wms_run_report: WmsRunReport,
         bps report return object
 
-    campaign: str | None
-        The name of the campaign to which the bps report is relevant
-
-    job: str | None
-        The name of the job to which the bps report is relevant
-
     Returns
     -------
     status: StatusEnum
