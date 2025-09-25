@@ -23,6 +23,7 @@ class Features(IntFlag):
     STORE_FSM = auto()
     ALLOW_TASK_UPSERT = auto()
     MOCK_BUTLER = auto()
+    MOCK_BPS = auto()
 
 
 class EnabledFeatures(BaseSettings):

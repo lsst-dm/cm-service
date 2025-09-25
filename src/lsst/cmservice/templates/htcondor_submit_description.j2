@@ -3,9 +3,9 @@ executable = {{wms.wms_executable_path}}
 arguments = {{wms.wms_executable_arguments}}
 {%- endif %}
 {# BLANK LINE #}
-output = {{wms.wms_submission_log_path}}
-error = {{wms.wms_log_path}}
-log = {{wms.wms_log_path}}
+log = {{wms.wms_event_log_path}}
+output = {{wms.wms_output_log_path}}
+error = {{wms.wms_output_log_path}}
 {# BLANK LINE #}
 initialdir = {{wms.working_directory}}
 {%- if wms.batch_name %}
