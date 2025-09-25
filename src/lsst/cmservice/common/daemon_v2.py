@@ -109,11 +109,9 @@ async def consider_nodes(session: AsyncSession) -> None:
                 logger.error("Node status out of sync with Machine", id=str(node.id))
                 continue
 
-            # Expunge the node from *this* session because it will be added to
-            # whatever session the node_machine acquires during its transition
+            # Expunge the node from *this* session and make it transient to
+            # support cross-session transfers with modifications
             session.expunge(node)
-            # Make the node transient to support cross-session transfers with
-            # modifications
             make_transient(node)
 
             node_machine: NodeMachine

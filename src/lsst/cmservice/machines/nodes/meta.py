@@ -140,6 +140,18 @@ class NodeMachine(StatefulModel):
             metadata_={},
         )
 
+    async def repatriate_node(self, event: EventData) -> None:
+        """Ensures the ORM model of the Node associated with this machine is
+        integrated with the current database session.
+        """
+        # Repatriate the transient node object and add it to the session, along
+        # with any modifications made during the machine transition functions
+        if (insp := inspect(self.db_model)) is not None:
+            if insp.transient:
+                make_transient_to_detached(self.db_model)
+        if self.db_model not in self.session:
+            self.db_model = await self.session.merge(self.db_model, load=True)
+
     async def update_persistent_status(self, event: EventData) -> None:
         """Callback method invoked by the Machine after every state-change."""
         # Update activity log entry with new state and timestamp
@@ -151,19 +163,12 @@ class NodeMachine(StatefulModel):
 
         # Workaround to issue with sqlalchemy tracking changes to mutable types
         # Update the node mtime and reapply the entire metadata dict
-        # FIXME it could also be possible to, instead of making the object
-        # transient before creating the machine (see daemon), just allow the
-        # load=True default when merging and nevermind the premature optim-
-        # ization of avoiding the select it generates.
         new_metadata = self.db_model.metadata_.copy()
         new_metadata["mtime"] = timestamp.element_time()
 
         # Repatriate the transient node object and add it to the session, along
         # with any modifications made during the machine transition functions
-        if (insp := inspect(self.db_model)) is not None:
-            if insp.transient:
-                make_transient_to_detached(self.db_model)
-        self.db_model = await self.session.merge(self.db_model, load=True)
+        await self.repatriate_node(event)
         self.db_model.status = self.state
         self.db_model.metadata_ = new_metadata
         await self.session.commit()
@@ -195,9 +200,10 @@ class NodeMachine(StatefulModel):
 
         logger.debug("Finalizing the machine after transition.", id=str(self.db_model.id))
 
-        # ensure the orm instance is in the session
-        if self.db_model not in self.session:
-            self.db_model = await self.session.merge(self.db_model, load=False)
+        # ensure the orm instance is in the session and make sure any changes
+        # to mutable mappings are captured.
+        await self.repatriate_node(event)
+        self.db_model.metadata_ = self.db_model.metadata_.copy()
 
         # flush the activity log entry to the db
         try:
