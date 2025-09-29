@@ -286,20 +286,19 @@ class BaseScriptHandler(Handler):
 
         valid_states = [StatusEnum.waiting, StatusEnum.ready, StatusEnum.prepared]
         if to_status not in valid_states:
-            raise CMBadStateTransitionError(
-                f"script.reset to_status should be in {valid_states}, not: {to_status}",
-            )
+            msg = f"script.reset to_status should be in {valid_states}, not: {to_status}"
+            raise CMBadStateTransitionError(msg)
 
         if to_status.value >= node.status.value and not node.status.is_bad():
-            raise CMBadStateTransitionError(
-                f"Current status of {node.status} is less advanced than {to_status}",
-            )
+            msg = f"Current status of {node.status} is less advanced than {to_status}"
+            raise CMBadStateTransitionError(msg)
 
         if node.status.value >= StatusEnum.running.value:
-            raise CMBadStateTransitionError(
+            msg = (
                 f"Can not use script.reset on script in {node.status}.  "
-                "Use script.rollback or script.retry instead",
+                f"Use script.rollback or script.retry instead"
             )
+            raise CMBadStateTransitionError(msg)
 
         update_fields = await self._reset_script(session, node, to_status, fake_reset=fake_reset)
         await node.update_values(session, **update_fields)
@@ -314,7 +313,8 @@ class BaseScriptHandler(Handler):
         *,
         fake_reset: bool = False,
     ) -> dict[str, Any]:
-        raise NotImplementedError(f"{type(self)}._reset_script()")
+        msg = f"{type(self)}._reset_script()"
+        raise NotImplementedError(msg)
 
     async def _purge_products(
         self,
@@ -483,7 +483,8 @@ class ScriptHandler(BaseScriptHandler):
             case ScriptMethodEnum.htcondor:
                 status = await self._write_script(session, script, parent, setup_stack=True, **kwargs)
             case _:
-                raise CMBadExecutionMethodError(f"Bad script method {script_method}")
+                msg = f"Bad script method {script_method}"
+                raise CMBadExecutionMethodError(msg)
         await script.update_values(session, status=status)
         return status
 
@@ -498,16 +499,19 @@ class ScriptHandler(BaseScriptHandler):
         if script_method is ScriptMethodEnum.default:
             script_method = self.default_method
         if not script.script_url:  # pragma: no cover
-            raise CMMissingNodeUrlError(f"script_url is not set for {script}")
+            msg = f"script_url is not set for {script}"
+            raise CMMissingNodeUrlError(msg)
         if not script.log_url:  # pragma: no cover
-            raise CMMissingNodeUrlError(f"log_url is not set for {script}")
+            msg = f"log_url is not set for {script}"
+            raise CMMissingNodeUrlError(msg)
 
         match script_method:
             case ScriptMethodEnum.no_script:  # pragma: no cover
                 raise CMBadExecutionMethodError("ScriptMethodEnum.no_script can not be set for ScriptHandler")
             case ScriptMethodEnum.bash:
                 if not script.stamp_url:  # pragma: no cover
-                    raise CMMissingNodeUrlError(f"stamp_url is not set for {script}")
+                    msg = f"stamp_url is not set for {script}"
+                    raise CMMissingNodeUrlError(msg)
                 await run_bash_job(script.script_url, script.log_url, script.stamp_url, **kwargs)
                 status = StatusEnum.running
                 await script.update_values(session, status=status)
@@ -532,7 +536,8 @@ class ScriptHandler(BaseScriptHandler):
                 status = StatusEnum.running
                 await script.update_values(session, stamp_url=str(htcondor_log), status=status)
             case _:
-                raise CMBadExecutionMethodError(f"Method {script_method} not valid for {script}")
+                msg = f"Method {script_method} not valid for {script}"
+                raise CMBadExecutionMethodError(msg)
         await script.update_values(session, status=status)
         return status
 
@@ -558,7 +563,8 @@ class ScriptHandler(BaseScriptHandler):
             case ScriptMethodEnum.no_script:
                 raise CMBadExecutionMethodError("ScriptMethodEnum.no_script can not be set for ScriptHandler")
             case _:
-                raise CMBadExecutionMethodError(f"Bad script method {script_method}")
+                msg = f"Bad script method {script_method}"
+                raise CMBadExecutionMethodError(msg)
 
         if fake_status is not None:
             status = fake_status
@@ -567,7 +573,8 @@ class ScriptHandler(BaseScriptHandler):
             logger.error("Handling failure case for script", script_name=script.fullname)
             if not script.log_url:
                 if fake_status is None:  # pragma: no cover
-                    raise CMMissingNodeUrlError(f"log_url is not set for {script}")
+                    msg = f"log_url is not set for {script}"
+                    raise CMMissingNodeUrlError(msg)
                 diagnostic_message = "Fake failure"
             else:  # pragma: no cover
                 diagnostic_message = await get_diagnostic_message(script.log_url)
@@ -607,7 +614,8 @@ class ScriptHandler(BaseScriptHandler):
         status : StatusEnum
             The status of the processing
         """
-        raise NotImplementedError(f"{type(self)}.write_script()")
+        msg = f"{type(self)}.write_script()"
+        raise NotImplementedError(msg)
 
     async def _set_script_files(
         self,
@@ -661,7 +669,8 @@ class FunctionHandler(BaseScriptHandler):
         if script_method is ScriptMethodEnum.default:
             script_method = self.default_method
         if script_method is not ScriptMethodEnum.no_script:  # pragma: no cover
-            raise CMBadExecutionMethodError(f"ScriptMethodEnum.no_script must be set for {type(self)}")
+            msg = f"ScriptMethodEnum.no_script must be set for {type(self)}"
+            raise CMBadExecutionMethodError(msg)
         status = await self._do_prepare(session, script, parent, **kwargs)
         if status is not script.status:
             await script.update_values(session, status=status)
@@ -680,7 +689,8 @@ class FunctionHandler(BaseScriptHandler):
             script_method = self.default_method
 
         if script_method is not ScriptMethodEnum.no_script:  # pragma: no cover
-            raise CMBadExecutionMethodError(f"ScriptMethodEnum.no_script must be set for {type(self)}")
+            msg = f"ScriptMethodEnum.no_script must be set for {type(self)}"
+            raise CMBadExecutionMethodError(msg)
         status = await self._do_run(session, script, parent, **kwargs)
         if status is not script.status:
             await script.update_values(session, status=status)
@@ -699,7 +709,8 @@ class FunctionHandler(BaseScriptHandler):
             script_method = self.default_method
 
         if script_method is not ScriptMethodEnum.no_script:  # pragma: no cover
-            raise CMBadExecutionMethodError(f"ScriptMethodEnum.no_script must be set for {type(self)}")
+            msg = f"ScriptMethodEnum.no_script must be set for {type(self)}"
+            raise CMBadExecutionMethodError(msg)
         status = await self._do_check(session, script, parent, **kwargs)
         await script.update_values(session, status=status)
         return status

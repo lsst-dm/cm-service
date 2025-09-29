@@ -59,7 +59,7 @@ async def daemon_iteration(session: AnyAsyncSession) -> None:
             #       by the node
             time_next_check = iteration_start + timedelta(seconds=sleep_time)
             queue_entry.time_next_check = time_next_check
-            logger.info(f"Next check for {queued_node.fullname} at {time_next_check}")
+            logger.info("Next check for node scheduled", node=queued_node.fullname, at=time_next_check)
 
             await check_due_date(session, queued_node, time_next_check)
 

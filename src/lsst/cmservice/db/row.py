@@ -129,7 +129,8 @@ class RowMixin:
         """
         result = await session.get(cls, row_id)
         if result is None:
-            raise CMMissingIDError(f"{cls} {row_id} not found")
+            msg = f"{cls} {row_id} not found"
+            raise CMMissingIDError(msg)
         return result
 
     @classmethod
@@ -157,7 +158,8 @@ class RowMixin:
         rows = await session.scalars(query)
         row = rows.first()
         if row is None:
-            raise CMMissingFullnameError(f"{cls} {name} not found")
+            msg = f"{cls} {name} not found"
+            raise CMMissingFullnameError(msg)
         return row
 
     @classmethod
@@ -185,7 +187,8 @@ class RowMixin:
         rows = await session.scalars(query)
         row = rows.first()
         if row is None:
-            raise CMMissingFullnameError(f"{cls} {fullname} not found")
+            msg = f"{cls} {fullname} not found"
+            raise CMMissingFullnameError(msg)
         return row
 
     @classmethod
@@ -210,13 +213,15 @@ class RowMixin:
         """
         row = await session.get(cls, row_id)
         if row is None:
-            raise CMMissingIDError(f"{cls} {row_id} not found")
+            msg = f"{cls} {row_id} not found"
+            raise CMMissingIDError(msg)
         # Parentless rows are deletable irrespective of status
         if not hasattr(row, "parent_id"):
             pass
         elif hasattr(row, "status") and row.status not in DELETABLE_STATES:
+            msg = f"Can not delete a row because it is in use {row.fullname} {row.status}"
             raise CMBadStateTransitionError(
-                f"Can not delete a row because it is in use {row.fullname} {row.status}",
+                msg,
             )
         try:
             await session.delete(row)
@@ -244,7 +249,7 @@ class RowMixin:
 
         """
         # This may be implemented by child classes.
-        logger.warning(f"Delete hook not implemented by {cls}")
+        logger.warning("Delete hook not implemented by class", cls=cls)
         return
 
     @classmethod
@@ -284,7 +289,8 @@ class RowMixin:
             raise CMIDMismatchError("ID mismatch between URL and body")
         row = await session.get(cls, row_id)
         if row is None:
-            raise CMMissingIDError(f"{cls} {row_id} not found")
+            msg = f"{cls} {row_id} not found"
+            raise CMMissingIDError(msg)
         async with session.begin_nested():
             try:
                 for var, value in kwargs.items():

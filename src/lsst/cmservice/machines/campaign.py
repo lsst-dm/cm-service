@@ -151,7 +151,9 @@ class CampaignMachine(NodeMachine):
         fully evolved by an executor.
         """
         end_node = await self.session.get_one(Node, uuid5(self.db_model.id, "END.1"))
-        logger.info(f"Checking whether campaign {self.db_model.name} is finished.", end_node=end_node.status)
+        logger.info(
+            "Checking whether campaign is finished", campaign=self.db_model.name, end_node=end_node.status
+        )
         return end_node.status is StatusEnum.accepted
 
     async def has_valid_graph(self, event: EventData) -> bool:

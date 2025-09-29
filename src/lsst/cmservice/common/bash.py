@@ -97,8 +97,9 @@ async def run_bash_job(
         return
     try:
         await submit_file_to_run_in_bash(script_url, log_url)
-    except Exception as msg:
-        raise CMBashSubmitError(f"Bad bash submit: {msg}") from msg
+    except Exception as e:
+        msg = f"Bad bash submit: {e}"
+        raise CMBashSubmitError(msg) from e
     fields = dict(status=StatusEnum.accepted.name)
     yaml_output = yaml.dump(fields)
     await Path(stamp_url).write_text(yaml_output)
@@ -120,7 +121,8 @@ async def submit_file_to_run_in_bash(script_url: str | Path, log_url: str | path
     if await script_path.exists():
         await script_path.chmod(0o755)
     else:
-        raise CMBashSubmitError(f"No script at path {script_url}")
+        msg = f"No script at path {script_url}"
+        raise CMBashSubmitError(msg)
 
     script_command = await script_path.resolve()
 
@@ -224,6 +226,7 @@ async def write_bash_script(
         bash_output = bash_template.render(template_values)
         await Path(script_path).write_text(bash_output)
     except Exception as e:
-        raise RuntimeError(f"Error writing a script to run BPS job {script_url}; threw {e}")
+        msg = f"Error writing a script to run BPS job {script_url}; threw {e}"
+        raise RuntimeError(msg)
 
     return script_path

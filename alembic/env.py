@@ -101,8 +101,8 @@ def run_migrations_online() -> None:
     )
     alembic_schema = context.get_x_argument(as_dictionary=True).get("alembic_schema") or target_schema
 
-    logger.info(f"Using schema {alembic_schema} for alembic revision table")
-    logger.info(f"Using schema {target_schema} for database revisions")
+    logger.info("Using schema %s for alembic revision table", alembic_schema)
+    logger.info("Using schema %s for database revisions", target_schema)
 
     with connectable.connect() as connection:
         if connection.dialect.name == "postgresql":

@@ -59,6 +59,7 @@ def parse_element_fullname(fullname: str) -> Fullname:
     )
 
     if (match := re.match(fullname_r, fullname)) is None:
-        raise CMBadFullnameError(f"Fullname {fullname} is not parseable")
+        msg = f"Fullname {fullname} is not parseable"
+        raise CMBadFullnameError(msg)
 
     return Fullname(**match.groupdict())

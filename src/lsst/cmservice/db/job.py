@@ -200,7 +200,8 @@ class Job(Base, ElementMixin):
             name = kwargs["name"]
             spec_block_name = kwargs["spec_block_name"]
         except KeyError as e:
-            raise CMMissingRowCreateInputError(f"Missing input to create Job: {e}") from e
+            msg = f"Missing input to create Job: {e}"
+            raise CMMissingRowCreateInputError(msg) from e
         attempt = kwargs.get("attempt", 0)
         parent = await Group.get_row_by_fullname(session, parent_name)
         spec_aliases = await parent.get_spec_aliases(session)

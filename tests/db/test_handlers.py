@@ -75,7 +75,8 @@ async def check_script(
     _changed, status = await script.process(session, fake_status=StatusEnum.reviewable)
     if status != StatusEnum.reviewable:
         errors = await script.get_script_errors(session)
-        raise ValueError(f"{str(errors)}")
+        msg = f"{str(errors)}"
+        raise ValueError(msg)
 
     await script.reject(session)
 

@@ -41,6 +41,7 @@ class NodeTypeEnum(enum.Enum):
 
     element = 1
     script = 5
+    other = 9
 
 
 class LevelEnum(enum.Enum):
