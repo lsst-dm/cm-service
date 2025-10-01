@@ -687,6 +687,13 @@ def status_from_bps_report(
     for blocked_job in filter(lambda x: x.state in [WmsStates.HELD], wms_run_report.jobs):
         return StatusEnum.blocked
 
+    # If pipetaskInit has failed, return failed
+    for pipetask_init in filter(lambda x: x.name == "pipetaskInit", wms_run_report.jobs):
+        if pipetask_init.state == WmsStates.FAILED:
+            return StatusEnum.failed
+        # There should only ever be one pipetaskInit but to prevent weird loops
+        break
+
     if the_state == WmsStates.RUNNING:
         return StatusEnum.running
     elif the_state == WmsStates.SUCCEEDED:
