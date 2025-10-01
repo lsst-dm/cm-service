@@ -18,13 +18,11 @@ def pickled_bps_report(request: pytest.FixtureRequest) -> Generator[WmsRunReport
         yield run_reports[0]
 
 
-@pytest.mark.skip(reason="Breaking change in ctrl-bps requires new fixtures")
 @pytest.mark.parametrize(
     "pickled_bps_report,expected_status",
     [
-        ("bps_report_fails", StatusEnum.accepted),
-        ("bps_report_success", StatusEnum.accepted),
-        ("bps_report_unready", StatusEnum.running),
+        ("bps_report_RUNNING", StatusEnum.running),
+        ("bps_report_FAILED", StatusEnum.failed),
     ],
     indirect=["pickled_bps_report"],
 )
