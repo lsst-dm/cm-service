@@ -78,6 +78,14 @@ dev = [
     "testcontainers[postgres]==4.10.*",
 ]
 
+[project.optional-dependencies]
+web = [
+    "lsst-cmservice-web",
+]
+cli = [
+    "lsst-cmservice-commandline",
+]
+
 [project.scripts]
 cm-service = "lsst.cmservice.cli.server:server"
 cm-client = "lsst.cmservice.cli.client:client_top"
@@ -88,6 +96,14 @@ Source = "https://github.com/lsst-dm/cm-service"
 
 [tool.uv]
 default-groups = "all"
+
+[tool.uv.sources]
+lsst-cm-service = { workspace = true }
+lsst-cmservice-web = { workspace = true }
+lsst-cmservice-commandline = { workspace = true }
+
+[tool.uv.workspace]
+members = ["packages/*"]
 
 [build-system]
 requires = ["hatchling"]

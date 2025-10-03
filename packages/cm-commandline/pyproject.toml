@@ -1,0 +1,31 @@
+[project]
+name = "lsst-cmservice-commandline"
+dynamic = ["version"]
+description = "CM Service Command Line Interface"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.9",
+    "pyyaml>=6.0.2",
+    "rich>=13.0.0",
+    "typer>=0.17.0",
+    "lsst-utils>=29.2025.2900",
+    "lsst-cm-service",
+]
+
+[project.scripts]
+cm = "lsst.cmservice.commandline.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.sdist]
+ignore-vcs = true
+
+[tool.hatch.build.targets.wheel]
+ignore-vcs = true
+packages = ["src/lsst"]
+
+[tool.hatch.version]
+path = "src/lsst/cmservice/commandline/__init__.py"
