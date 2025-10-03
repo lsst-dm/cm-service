@@ -1,5 +1,6 @@
 """tests for the v2 daemon"""
 
+from unittest.mock import Mock, patch
 from urllib.parse import urlparse
 from uuid import uuid5
 
@@ -9,6 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from lsst.cmservice.common.daemon_v2 import consider_campaigns, consider_nodes
 from lsst.cmservice.common.enums import StatusEnum
+from lsst.cmservice.common.launchers import LauncherCheckResponse
 from lsst.cmservice.db.campaigns_v2 import Campaign, Node, Task
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
@@ -99,8 +101,22 @@ async def test_daemon_campaign(
     await session.commit()
 
 
+# TODO it is important to test the case that a modification is made to a JSONB
+# column (e.g., metadata) between detaching the node (from the daemon) and
+# merging into the new session (in the machine's "update_..." callback). Should
+# be able to mock in a test launcher class here that implements this behavior
+# (such as adding a job id to metadata during the launch method!)
+@patch("lsst.cmservice.machines.nodes.mixin.HTCondorLaunchMixin.launch", return_value=None)
+@patch(
+    "lsst.cmservice.machines.nodes.mixin.HTCondorLaunchMixin.check",
+    return_value=LauncherCheckResponse(success=True),
+)
 async def test_daemon_node(
-    caplog: pytest.LogCaptureFixture, test_campaign: str, session: AsyncSession
+    mock_check: Mock,
+    mock_launch: Mock,
+    caplog: pytest.LogCaptureFixture,
+    test_campaign: str,
+    session: AsyncSession,
 ) -> None:
     # set the campaign to running (without involving a campaign machine)
     campaign_id = urlparse(url=test_campaign).path.split("/")[-2:][0]
@@ -112,8 +128,6 @@ async def test_daemon_node(
     # Node will be on the task list with a transition from waiting->ready.
     await consider_campaigns(session)
     await consider_nodes(session)
-
-    ...
 
     # As we continue to iterate the daemon over the campaign's 5 nodes
     # (including its START and END), each node in the graph is evolved.
@@ -136,10 +150,8 @@ async def test_daemon_node(
         if not i:
             raise RuntimeError("Node evolution took too long")
 
-    ...
 
-
-def test_dynamic_node_machine() -> None:
+async def test_dynamic_node_machine() -> None:
     """Test the dynamic resolution of a ``NodeMachine`` class based on a Node's
     ``kind`` attribute.
     """

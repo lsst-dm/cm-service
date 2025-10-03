@@ -10,15 +10,20 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi.concurrency import run_in_threadpool
+from sqlalchemy import inspect
+from sqlalchemy.orm import make_transient_to_detached
+from sqlmodel import select
 from transitions import EventData
 from transitions.extensions.asyncio import AsyncEvent, AsyncMachine
 
 from ...common import timestamp
 from ...common.enums import ManifestKind, StatusEnum
 from ...common.flags import Features
+from ...common.graph import graph_from_edge_list_v2
+from ...common.launchers import LauncherCheckResponse
 from ...common.logging import LOGGER
 from ...config import config
-from ...db.campaigns_v2 import ActivityLog, Campaign, Machine, Node
+from ...db.campaigns_v2 import ActivityLog, Campaign, Edge, Machine, Node
 from ...db.session import db_session_dependency
 from ...models.manifest import ButlerManifest
 from ..abc import StatefulModel
@@ -70,9 +75,33 @@ class NodeMachine(StatefulModel):
         state = self.__dict__.copy()
         del state["db_model"]
         del state["activity_log_entry"]
+        if "launch_manager" in state.keys():
+            del state["launch_manager"]
         if "session" in state.keys():
             del state["session"]
         return state
+
+    def get_activity_log(self, event: EventData) -> ActivityLog:
+        """Constructs and returns an activity log database entry for ad-hoc
+        use. The entry is not part of any session.
+
+        Both "from" and "to" states are set to the same value, making the log
+        entry initially useful as a "milestone" entry since it does not
+        represent a complete transition
+        """
+        from_state = StatusEnum[event.transition.source] if event.transition else self.state
+        to_state = from_state
+
+        activity_log_entry = ActivityLog(
+            namespace=self.db_model.namespace,
+            node=self.db_model.id,
+            operator="daemon",
+            from_status=from_state,
+            to_status=to_state,
+            detail={},
+            metadata_={},
+        )
+        return activity_log_entry
 
     async def error_handler(self, event: EventData) -> None:
         """Error handler function for the Stateful Model, called by the Machine
@@ -119,21 +148,19 @@ class NodeMachine(StatefulModel):
             return None
 
         logger.debug("Preparing activity log for transition", id=str(self.db_model.id))
+        self.activity_log_entry = self.get_activity_log(event)
 
-        from_state = StatusEnum[event.transition.source] if event.transition else self.state
-        to_state = (
-            StatusEnum[event.transition.dest] if event.transition and event.transition.dest else self.state
-        )
-
-        self.activity_log_entry = ActivityLog(
-            namespace=self.db_model.namespace,
-            node=self.db_model.id,
-            operator="daemon",
-            from_status=from_state,
-            to_status=to_state,
-            detail={},
-            metadata_={},
-        )
+    async def repatriate_node(self, event: EventData) -> None:
+        """Ensures the ORM model of the Node associated with this machine is
+        integrated with the current database session.
+        """
+        # Repatriate the transient node object and add it to the session, along
+        # with any modifications made during the machine transition functions
+        if (insp := inspect(self.db_model)) is not None:
+            if insp.transient:
+                make_transient_to_detached(self.db_model)
+        if self.db_model not in self.session:
+            self.db_model = await self.session.merge(self.db_model, load=True)
 
     async def update_persistent_status(self, event: EventData) -> None:
         """Callback method invoked by the Machine after every state-change."""
@@ -144,10 +171,16 @@ class NodeMachine(StatefulModel):
             self.activity_log_entry.to_status = self.state
             self.activity_log_entry.finished_at = timestamp.now_utc()
 
-        # Ensure database record for transitioned object is updated
-        self.db_model = await self.session.merge(self.db_model, load=False)
+        # Workaround to issue with sqlalchemy tracking changes to mutable types
+        # Update the node mtime and reapply the entire metadata dict
+        new_metadata = self.db_model.metadata_.copy()
+        new_metadata["mtime"] = timestamp.element_time()
+
+        # Repatriate the transient node object and add it to the session, along
+        # with any modifications made during the machine transition functions
+        await self.repatriate_node(event)
         self.db_model.status = self.state
-        self.db_model.metadata_["mtime"] = timestamp.element_time()
+        self.db_model.metadata_ = new_metadata
         await self.session.commit()
 
     async def finalize(self, event: EventData) -> None:
@@ -156,6 +189,21 @@ class NodeMachine(StatefulModel):
         indicates that change has occurred, it is written to the db and the
         machine is serialized to the Machines table for later use.
         """
+        # ensure the orm instance is in the session and make sure any changes
+        # to mutable mappings are captured.
+        if not hasattr(self, "session"):
+            logger.warning("Machine has no session, skipping finalize callback", node=str(self.db_model.id))
+            return
+
+        try:
+            logger.debug("Repatriating and updating Node after transition", id=str(self.db_model.id))
+            await self.repatriate_node(event)
+            self.db_model.metadata_ = self.db_model.metadata_.copy()
+            await self.session.commit()
+        except Exception:
+            logger.exception()
+            await self.session.rollback()
+
         # The activity log entry is added to the db. For failed transitions it
         # may include error detail. For other transitions it is not necessary
         # to log every attempt.
@@ -164,9 +212,10 @@ class NodeMachine(StatefulModel):
         elif self.activity_log_entry.finished_at is None:
             return
 
-        # ensure the orm instance is in the session
-        if self.db_model not in self.session:
-            self.db_model = await self.session.merge(self.db_model, load=False)
+        logger.debug("Finalizing the machine after transition.", id=str(self.db_model.id))
+
+        # make sure any changes to mutable mappings are captured.
+        self.db_model.metadata_ = self.db_model.metadata_.copy()
 
         # flush the activity log entry to the db
         try:
@@ -187,14 +236,15 @@ class NodeMachine(StatefulModel):
             )
             try:
                 logger.debug("Serializing the state machine after transition.", id=str(self.db_model.id))
-                await self.session.merge(new_machine)
+                new_machine = await self.session.merge(new_machine)
                 self.db_model.machine = new_machine.id
                 await self.session.commit()
             except Exception:
                 logger.exception()
                 await self.session.rollback()
             finally:
-                self.session.expunge(new_machine)
+                if new_machine in self.session:
+                    self.session.expunge(new_machine)
 
         await self.session.close()
         del self.session
@@ -205,11 +255,49 @@ class NodeMachine(StatefulModel):
         """
         return True
 
+    async def do_start(self, event: EventData) -> None:
+        """Action method invoked when executing the "start" transition.
+
+        For a Start node to enter the started state, it must call the "launch"
+        method provided by its ``LaunchMixin``.
+        """
+        logger.debug(
+            "Starting Node for Campaign", id=str(self.db_model.id), campaign=str(self.db_model.namespace)
+        )
+
+        if not hasattr(self, "configuration_chain"):
+            # this can happen if the Node FSM was not pickled between trans-
+            # itions (see `Features.STORE_FSM`).
+            # TODO reconstitute the necessary parts of the configuration chain
+            #      to affect a start trigger
+            ...
+        if hasattr(self, "launch"):
+            await self.launch(event)  # pyright: ignore[reportAttributeAccessIssue]
+        return None
+
     async def is_done_running(self, event: EventData) -> bool:
         """Conditional method called to check whether a ``finish`` trigger may
         be called.
         """
-        return True
+        logger.debug(
+            "Checking whether Node is done running",
+            id=str(self.db_model.id),
+            campaign=str(self.db_model.namespace),
+        )
+        if hasattr(self, "check"):
+            done = await self.check(event)  # pyright: ignore[reportAttributeAccessIssue]
+        else:
+            done = LauncherCheckResponse(success=True)
+
+        launcher_metadata = {
+            "timestamp": int(done.timestamp.timestamp()),
+            "job_id": done.job_id,
+            **done.metadata_,
+        }
+        new_metadata = self.db_model.metadata_.copy()
+        new_metadata["launcher"] = launcher_metadata
+        self.db_model.metadata_ = new_metadata
+        return done.success
 
 
 class StartMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchMixin):
@@ -258,7 +346,9 @@ class StartMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunch
         # which includes additional collection information beyond what's spec-
         # ified in the Node's reference Butler manifest.
         butler_config: dict[str, Any] = {}
-        butler_config["exe_bin"] = config.butler.butler_bin
+        butler_config["exe_bin"] = (
+            "true" if Features.MOCK_BUTLER in config.features.enabled else config.butler.butler_bin
+        )
         butler_config["collections"] = self.butler.spec.collections.model_copy(
             update={
                 "tagged_input": f"{self.butler.spec.collections.campaign_public_output}/tagged",
@@ -291,16 +381,11 @@ class StartMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunch
         if await self.artifact_path.exists():
             await run_in_threadpool(shutil.rmtree, self.artifact_path)
 
-    async def do_start(self, event: EventData) -> None:
-        """Callback invoked when entering the "running" state."""
-        logger.debug("Starting START Node for Campaign", id=str(self.db_model.id))
-        return None
-
     async def do_reset(self, event: EventData) -> None:
         logger.error("Resetting node")
 
 
-class EndMachine(NodeMachine, NodeMixIn):
+class EndMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchMixin):
     """Specific state model for a Node of kind End.
 
     The End Node is responsible for wrapping-up the successful completion of a
@@ -313,7 +398,67 @@ class EndMachine(NodeMachine, NodeMixIn):
         """Post init, set class-specific callback triggers."""
         # Wrap up campaign butler collections
         # update parent campaign status
+        self.machine.before_prepare("do_prepare")
+        self.machine.before_start("do_start")
         self.machine.before_finish("do_finish")
+        self.templates = [
+            ("wms_submit_sh.j2", f"{self.db_model.name}.sh"),
+        ]
+
+    async def butler_prepare(self, event: EventData) -> None:
+        """Prepares Butler collections for the end of the campaign."""
+        self.butler = await self.get_manifest(ManifestKind.butler, ButlerManifest)
+
+        self.command_templates = [
+            (
+                "{{butler.exe_bin}} collection-chain {{butler.repo}} {{butler.collections.campaign_output}}"
+                "{% for collection in butler.collections.step_collections %} {{collection}}{% endfor %} "
+            ),
+            (
+                "{{butler.exe_bin}} collection-chain {{butler.repo}} "
+                "{{butler.collections.campaign_public_output}} {{butler.collections.campaign_output}}"
+            ),
+        ]
+
+        butler_config: dict[str, Any] = {}
+        butler_config["exe_bin"] = (
+            "true" if Features.MOCK_BUTLER in config.features.enabled else config.butler.butler_bin
+        )
+        butler_config["collections"] = self.butler.spec.collections.model_copy(
+            update={
+                "step_collections": self.collections,
+            },
+        )
+
+        self.configuration_chain["butler"] = self.configuration_chain["butler"].new_child(butler_config)
+
+    async def do_prepare(self, event: EventData) -> None:
+        """Determine the set of step output collections to chain together for
+        the campaign's output collection.
+        """
+        # For every node in the campaign graph of kind collect_groups, discover
+        # its output collection.
+        s = select(Edge).where(Edge.namespace == self.db_model.namespace)
+        edges = (await self.session.exec(s)).all()
+        graph = await graph_from_edge_list_v2(edges, self.session)
+
+        collect_steps = [
+            node[1]["model"]
+            for node in graph.nodes.data()
+            if node[1]["model"].kind is ManifestKind.collect_groups
+        ]
+        self.collections = [
+            collect_step.configuration["butler"]["collections"]["step_output"]
+            for collect_step in collect_steps
+        ]
+
+        # perform specific preparations
+        await self.action_prepare(event)
+        await self.launch_prepare(event)
+        await self.butler_prepare(event)
+
+        # Render executable artifacts
+        await self.render_action_templates(event)
 
     async def do_finish(self, event: EventData) -> None:
         """When transitioning to a terminal positive state, also set the same

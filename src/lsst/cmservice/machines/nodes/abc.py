@@ -4,10 +4,13 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections import ChainMap
+from collections.abc import AsyncGenerator
+from typing import TYPE_CHECKING
 
 from anyio import Path
 from transitions import EventData
 
+from ...common.launchers import LauncherCheckResponse
 from ...common.types import AsyncSession
 from ..abc import AnyStatefulObject
 
@@ -38,6 +41,14 @@ class ActionMixIn(MixIn, ABC):
     @abstractmethod
     async def render_action_templates(self, event: EventData) -> None: ...
 
+    @abstractmethod
+    async def get_artifact(self, event: EventData, artifact: Path | str) -> AsyncGenerator[Path, None]:
+        if TYPE_CHECKING:
+            # mypy does not consider this a generator method without a yield
+            # statement, even though it is abstract
+            yield Path()
+        ...
+
 
 class LaunchMixIn(MixIn, ABC):
     """ABC for a Launch Mixin.
@@ -62,3 +73,6 @@ class LaunchMixIn(MixIn, ABC):
 
     @abstractmethod
     async def launch(self, event: EventData) -> None: ...
+
+    @abstractmethod
+    async def check(self, event: EventData) -> LauncherCheckResponse: ...

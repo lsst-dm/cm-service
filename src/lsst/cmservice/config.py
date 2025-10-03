@@ -1,5 +1,6 @@
+import logging
 from datetime import UTC, datetime
-from typing import Self
+from typing import Annotated, Self
 from urllib.parse import urlparse
 from warnings import warn
 
@@ -7,6 +8,7 @@ from dotenv import load_dotenv
 from pydantic import (
     AliasChoices,
     BaseModel,
+    BeforeValidator,
     Field,
     SecretStr,
     computed_field,
@@ -67,6 +69,10 @@ class BpsConfiguration(BaseModel):
         description="Filesystem path location for writing artifacts (`prod_area`)",
         default="/prod_area",
     )
+
+    log_level: Annotated[
+        int, BeforeValidator(lambda v: getattr(logging, v.upper()) if isinstance(v, str) else v)
+    ] = Field(default=logging.ERROR, title="BPS Log level", description="Logging level for the bps packages.")
 
 
 class ButlerConfiguration(BaseModel):
@@ -415,8 +421,20 @@ class SlurmConfiguration(BaseModel):
     )
 
     duration: str = Field(
-        description="Expected Duration for a cmservice script that needs to be scheduled.",
+        description=(
+            "Expected Duration for a cmservice script that needs to be scheduled (maximum wall-clock time)."
+        ),
         default="0-1:0:0",
+    )
+
+    idle_timeout: int = Field(
+        description="glide-in inactivity shutdown time in seconds",
+        default=240,
+    )
+
+    node_count: int = Field(
+        description="number of glideins to submit; these are chunks of a node, size the number of cores/cpus",
+        default=50,
     )
 
     # FIXME should be an enum if this sticks around

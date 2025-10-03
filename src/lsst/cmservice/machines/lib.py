@@ -3,12 +3,15 @@
 from collections import ChainMap
 from functools import reduce
 from typing import Any
+from uuid import uuid5
 
+from sqlalchemy.dialects.postgresql import insert
 from sqlmodel import col, select
 
 from ..common.enums import DEFAULT_NAMESPACE, ManifestKind
+from ..common.timestamp import now_utc
 from ..common.types import AsyncSession
-from ..db.campaigns_v2 import Campaign, Manifest, Node
+from ..db.campaigns_v2 import ActivityLog, Campaign, Manifest, Node
 
 
 async def assemble_config_chain(
@@ -96,3 +99,37 @@ def flatten_chainmap(chain: ChainMap) -> dict:
         The flattened accumulator dictionary.
     """
     return reduce(lambda a, d: a.update(d) or a, reversed(chain.maps), {})
+
+
+async def materialize_activity_log(
+    session: AsyncSession,
+    activity_log_entry: ActivityLog,
+    milestone: str,
+    detail: dict | None = None,
+    metadata: dict | None = None,
+) -> None:
+    """Given an ad-hoc, activity log entry, finalize it and materialize it.
+
+    The provided activity log entry should not already be in the session but it
+    must have a Node ID defined.
+    """
+    if activity_log_entry in session or activity_log_entry.node is None:
+        return
+    if detail is not None:
+        activity_log_entry.detail = detail
+
+    metadata = metadata or {}
+    metadata["milestone"] = milestone
+    activity_log_entry.metadata_ = metadata
+
+    # A deterministic but unique ID for the log entry is formed from the event
+    # "milestone" within the Node's ID namespace.
+    activity_log_entry.id = uuid5(activity_log_entry.node, milestone)
+    activity_log_entry.finished_at = now_utc()
+    statement = (
+        insert(activity_log_entry.__table__)  # type: ignore[attr-defined]
+        .values(**activity_log_entry.model_dump(by_alias=True))
+        .on_conflict_do_nothing()
+    )
+    await session.exec(statement)  # type: ignore[call-overload]
+    await session.commit()
