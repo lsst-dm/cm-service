@@ -8,6 +8,20 @@ This CLI may be run locally on a developer or pilot's laptop whenever the CM Ser
 
 The CLI package can be installed explicitly with `uv sync --all-packages`.
 
+### Alternate Tool Installation
+The CLI package may also be installed as a `uv`-managed tool without necessarily cloning and setting up the entire `cm-service` repository:
+
+`uv tool install -p 3.12 git+https://github.com/lsst-dm/cm-service#subdirectory=packages/cm-commandline`
+
+(You can target a specific branch for the installation by including `@<branchname>` just prior to `#subdirectory`.)
+
+To subsequently upgrade or uninstall the tool, use its package name:
+
+```
+> uv tool upgrade lsst-cmservice-commandline
+> uv tool uninstall lsst-cmservice-commandline
+```
+
 ## Configuration
 The `lsst.cmservice.commandline.settings` module defines the available configuration settings for the CLI.
 The most important of these are the `CM_ENDPOINT` and `CM_TOKEN` environment variables.
