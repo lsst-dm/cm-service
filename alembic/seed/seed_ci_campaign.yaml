@@ -1,0 +1,214 @@
+# This example YAML implements a small CI campaign
+---
+# The campaign creates a namespace for other objects, note that the campaign
+# metadata.name should match the metadata.namespace of all additional manifests
+# The campaign can be also set for the `cm` commandline tool via either the
+# `CM_CAMPAIGN` environment variable or positional argument when loading
+apiVersion: "io.lsst.cmservice/v1"
+kind: "campaign"
+metadata:
+  name: example_v2_ci
+# It is usually not appropriate to set config parameters at the campaign level
+# because the campaign is not versioned the way other manifests are, so changes
+# to this configuration (spec) is not tracked the same way. It is ok to set static
+# information parameters for a specific manifest type here, but the campaign
+# comes last in the configuration lookup hierarchy!
+spec:
+  butlerSelector:
+    instrument: lsstcam
+    embargo: "false"
+  lsstSelector:
+    track: weekly
+  wmsSelector:
+    wms: htcondor
+---
+# The Butler manifest includes configuration about what Butler repo to use,
+# what query predicates should be globally applied to data queries, and campaign-
+# level collection details, like the list of input collections and the final
+# output collection.
+apiVersion: "io.lsst.cmservice/v1"
+kind: "butler"
+metadata:
+  name: "repo-main"
+  namespace: example_v2_ci
+  # When implemented, labels can be used when matching manifests via a Selector
+  # (see the campaign manifest above for a reference example).
+  labels:
+    instrument: lsstcam
+    embargo: "false"
+spec:
+  repo: "/repo/main"
+  # All data query predicates are AND-ed together along with any new predicates
+  # generated for groups. These predicates are not validated except at runtime
+  # by the butler tool.
+  predicates:
+    - "instrument='LSSTCam'"
+    - "skymap='lsst_cells_v1'"
+    - "exposure > 2025072300398"
+    - "exposure < 2025072300400"
+    - "exposure.observation_type IN ('science')"
+    - "detector < 189"
+    - "detector NOT IN (120, 121, 122, 78, 79, 80)"
+  # A complete campaign will involve many collections for steps, groups, etc.
+  # but this configuration directs how the final products will be collected;
+  # the "campaign_output" collection includes all direct products of step node
+  # processing, and the "campaign_public_output" collection adds postflight
+  # collections (e.g., resource usage)
+  # NOTE the use of an environment variable in these definitions -- this is not
+  # magic and has to refer to an actual environment variable (see LSST manifest)
+  # below.
+  collections:
+    campaign_input:
+      - LSSTCam/defaults
+    campaign_public_output: u/lsstsvc1/dev/ci/${CAMPAIGN_NAME}
+    campaign_output: u/lsstsvc1/dev/ci/${CAMPAIGN_NAME}/out
+---
+# The LSST manifest includes configuration about the Stack and BPS submit details
+# and provides a configuration source for multiple steps or groups
+apiVersion: "io.lsst.cmservice/v1"
+kind: "lsst"
+metadata:
+  name: "continuous-integration"
+  namespace: example_v2_ci
+  labels:
+    track: weekly
+spec:
+  lsst_version: w_latest
+  lsst_distrib_dir: "/sdf/group/rubin/sw"
+  # Every node that launches a command to affect an outcome, e.g., `butler` or
+  # `bps`, uses a shell script wrapper for that command; the "prepend" and
+  # "append" provide an opportunity to add commands to this script that bookend
+  # the command action.
+  # In this case, Environment variables are defined before the command is invoked,
+  # and a friendly message is added afterward.
+  prepend: |-
+    export CAMPAIGN_NAME=example_v2_ci_20251002B
+    export LSST_S3_USE_THREADS=False
+  append: |-
+    echo "All done!"
+---
+# The BPS manifest includes configuration BPS submit details
+# and provides a configuration source for multiple steps or groups
+apiVersion: "io.lsst.cmservice/v1"
+kind: "bps"
+metadata:
+  name: "continuous-integration"
+  namespace: example_v2_ci
+# The "spec" of a bps manifest is primarily concerned with providing values to
+# use when rendering a bps workflow YAML. The structure of the yaml is fixed
+# (see `src/lsst/cmservice/templates/bps_submit_yaml.j2`) and pulls from multiple
+# manifests when rendering.
+# NOTE that the use of bps `{variables}` and `${environment}` variables here
+# follow the expected rules of bps usage.
+spec:
+  variables:
+    subDirTemplate: "{label}/{detector}"
+    OWNER: lsstsvc1
+  environment:
+    LSST_S3_USE_THREADS: "False"
+    LSST_RESOURCES_EXECUTOR: "process"
+  extra_run_quantum_options: >-
+    --no-raise-on-partial-outputs
+  # Multiple manifests can provide include_files; these are blended together
+  # when the YAML template is rendered; e.g., Site-specific includes can be set on
+  # a site manifest; wms-specific includes on a wms manifest.
+  include_files:
+    - "${DRP_PIPE_DIR}/bps/clustering/LSSTCam/DRP-clustering.yaml"
+    - "${DRP_PIPE_DIR}/bps/resources/LSSTCam/DRP.yaml"
+---
+# The wms manifest defines a configuration used to control the behavior of a WMS
+# or batch system.
+apiVersion: "io.lsst.cmservice/v1"
+kind: wms
+metadata:
+  name: htcondor
+  namespace: example_v2_ci
+  labels:
+    wms: htcondor
+    site: usdf
+spec:
+  batch_system: htcondor
+  service_class: lsst.ctrl.bps.htcondor.HTCondorService
+  batch_name: cm-service-ci
+---
+apiVersion: "io.lsst.cmservice/v1"
+kind: site
+metadata:
+  name: usdf
+  namespace: example_v2_ci
+  labels:
+    site: usdf
+spec:
+  include_files:
+    - "${DRP_PIPE_DIR}/bps/caching/LSSTCam/usdf/DRP-caching.yaml"
+---
+apiVersion: "io.lsst.cmservice/v1"
+kind: node # all executable parts of a campaign graphs are "nodes"...
+metadata:
+  name: step1a
+  namespace: example_v2_ci
+  kind: step # and "nodes" can be of different kinds; this is a step that will break out into groups
+  wmsSelector:
+    site: usdf
+# The "spec" for any node can specify manifest-specific configuration that will apply
+# only that node (and its groups!), not globally. The most important configuration
+# element for a step is the pipeline yaml used for its bps workflow, but any kind of
+# manifest overrides can be set at the node level too.
+spec:
+  bps:
+    pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam/nightly-validation.yaml#step1a-single-visit-detectors"
+    literals:
+      numberOfRetries: 3
+      retryUnlessExit:
+        - 2
+  # Steps can also have a group configuration. A Step with no group configuration is
+  # processed as a single group.
+  groups: null
+# ---
+# apiVersion: "io.lsst.cmservice/v1"
+# kind: "node"
+# metadata:
+#   name: step1b
+#   namespace: example_v2_ci
+#   kind: step
+# spec:
+#   pipeline_yaml: "${DRP_PIPE_DIR}pipelines/LSSTCam/nightly-validation.yaml#step1b-single-visit-visits"
+#   bps:
+#     literals:
+#       numberOfRetries: 3
+#       retryUnlessExit:
+#         - 2
+# ---
+# apiVersion: io.lsst.cmservice/v1
+# kind: edge
+# metadata:
+#     name: step1a-b
+#     namespace: example_v2_nv
+# spec:
+#     source: step1a
+#     target: step1b
+---
+# Not every node defined in a campaign namespace has to be in the campaign's graph.
+# Edges are used to define the shape and order of the graph.
+# NOTE that every campaign automatically has special START and END nodes, which
+# are immutable meta-nodes that define the origin and destination of the campaign's
+# directed graph.
+apiVersion: io.lsst.cmservice/v1
+kind: edge
+metadata:
+  name: start-step1a
+  namespace: example_v2_nv
+# Any valid campaign needs an edge from START to another node...
+spec:
+  source: START
+  target: step1a
+---
+apiVersion: io.lsst.cmservice/v1
+kind: edge
+metadata:
+  name: step1a-end
+  namespace: example_v2_nv
+# ...and from some node to END
+spec:
+  source: step1a
+  target: END
