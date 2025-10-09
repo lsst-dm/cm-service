@@ -8,4 +8,5 @@ import annotations` line, as this may interfere with certain runtime type
 resolution mechanisms in NiceGUI and/or FastAPI.
 """
 from .campaign_detail import campaign_detail as campaign_detail
+from .campaign_overview import campaign_overview as campaign_overview
 from .node_detail import node_detail as node_detail

@@ -1100,6 +1100,7 @@ source = { editable = "packages/cm-commandline" }
 dependencies = [
     { name = "httpx" },
     { name = "lsst-cm-service" },
+    { name = "lsst-utils" },
     { name = "pydantic-settings" },
     { name = "pyyaml" },
     { name = "rich" },
@@ -1110,6 +1111,7 @@ dependencies = [
 requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "lsst-cm-service", editable = "." },
+    { name = "lsst-utils", specifier = ">=29.2025.2900" },
     { name = "pydantic-settings", specifier = ">=2.9" },
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "rich", specifier = ">=13.0.0" },
@@ -1135,7 +1137,7 @@ requires-dist = [
     { name = "deepdiff", specifier = ">=8.6.1" },
     { name = "lsst-cm-service", editable = "." },
     { name = "networkx", specifier = ">=3.5" },
-    { name = "nicegui", specifier = ">=2.21.1" },
+    { name = "nicegui", specifier = ">=3.0.0" },
     { name = "pydantic", specifier = ">=2.11.7" },
     { name = "pydantic-extra-types", specifier = ">=2.10.5" },
     { name = "pydantic-settings", specifier = ">=2.9.1" },
@@ -1470,7 +1472,7 @@ wheels = [
 
 [[package]]
 name = "nicegui"
-version = "2.24.0"
+version = "3.0.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiofiles" },
@@ -1495,9 +1497,9 @@ dependencies = [
     { name = "vbuild" },
     { name = "watchfiles" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/21/bf/25553371d0cfeef03bb4ef43ea07db0c8f6e7f3b812aea40f11ad3ba7722/nicegui-2.24.0.tar.gz", hash = "sha256:139314d786344965ec2b24691f74055292f5dc458b575d12c4607b7c3ebda8cf", size = 13108968, upload-time = "2025-09-05T12:40:44.549Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4c/01/da7808283ce437338982aab3aa2b4940ddb63d921a8cf9b1c42d8aac383e/nicegui-3.0.3.tar.gz", hash = "sha256:01ac5e29c7f9b8ef9661d684f2172ff0005fc501004fadb04343e1fb7c9c8891", size = 20101621, upload-time = "2025-10-06T15:14:25.595Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0d/40/189cc8ac422f44eddd8b0c46314f95a81e6f39e334902cd89e7830efbc76/nicegui-2.24.0-py3-none-any.whl", hash = "sha256:76cd72f87b2775537fbc96d97925a8b41a09c166bf67ba9f1999c16f73e0698e", size = 13496415, upload-time = "2025-09-05T12:40:41.569Z" },
+    { url = "https://files.pythonhosted.org/packages/7e/49/bad16f65f3f933059b6eb52505c6efcc7c97d66e25681a8ecab2e1240c86/nicegui-3.0.3-py3-none-any.whl", hash = "sha256:f40c37866cedf91d75e8bdfc2730348a007dec69baf8080dfadc0ab3381ab2ab", size = 20749450, upload-time = "2025-10-06T15:14:22.858Z" },
 ]
 
 [[package]]

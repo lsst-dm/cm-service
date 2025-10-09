@@ -2,8 +2,8 @@ from pathlib import Path
 
 from nicegui import app, ui
 
+from .. import pages as pages
 from ..lib.logging import LOGGER
-from ..pages.campaign_overview import campaign_overview
 from ..settings import settings
 
 logger = LOGGER.bind(module=__name__)
@@ -11,7 +11,7 @@ logger = LOGGER.bind(module=__name__)
 static_path = Path(__file__).parent.parent / "static"
 
 app.add_static_files("/static", static_path)
-ui.link("Campaign Management", campaign_overview)
+
 ui.run(
     title="Campaign Management",
     port=settings.server_port,
