@@ -1,0 +1,108 @@
+# Default Seeds for CM V2 Library Manifests
+# Library Manifests reside in the default namespace and are always version 0
+---
+apiVersion: io.lsst.cmservice/v1
+kind: lsst
+metadata:
+  name: usdf_w_latest_dev
+  namespace: dda54a0c-6878-5c95-ac4f-007f6808049e
+  version: 0
+  labels:
+    site: usdf
+    environment: dev
+    track: weekly
+spec:
+  artifact_path: /sdf/group/rubin/shared/campaigns/users/usdf-cm-dev
+  lsst_version: w_latest
+  lsst_distrib_dir: /sdf/group/rubin/sw
+# ---
+# apiVersion: io.lsst.cmservice/v1
+# kind: lsst
+# metadata:
+#   name: usdf_w_latest
+#   namespace: dda54a0c-6878-5c95-ac4f-007f6808049e
+#   version: 0
+#   labels:
+#     site: usdf
+#     environment: prod
+#     track: weekly
+# spec:
+#   artifact_path: /sdf/group/rubin/shared/campaigns/users/usdf-cm
+#   lsst_version: w_latest
+#   lsst_distrib_dir: /sdf/group/rubin/sw
+---
+apiVersion: io.lsst.cmservice/v1
+kind: butler
+metadata:
+  name: repo_main_lsstcam_defaults
+  namespace: dda54a0c-6878-5c95-ac4f-007f6808049e
+  version: 0
+  labels:
+    site: usdf
+    instrument: lsstcam
+    embargo: "false"
+spec:
+  repo: "/repo/main"
+  predicates:
+    - instrument='LSSTCam'
+    - skymap='lsst_cells_v1'
+  collections:
+    campaign_input:
+      - LSSTCam/defaults
+    campaign_public_output: "u/{operator}/{campaign}"
+    campaign_output: "u/{operator}/{campaign}/out"
+---
+apiVersion: io.lsst.cmservice/v1
+kind: wms
+metadata:
+  name: usdf_htcondor
+  namespace: dda54a0c-6878-5c95-ac4f-007f6808049e
+  version: 0
+  labels:
+    wms: htcondor
+    site: usdf
+spec:
+  batch_system: "htcondor"
+  service_class: "lsst.ctrl.bps.htcondor.HTCondorService"
+  batch_name: "usdf-cm-dev"
+  request_cpus: "1"
+  request_mem: "1024M"
+  request_disk: "10240K"
+# ---
+# apiVersion: io.lsst.cmservice/v1
+# kind: wms
+# metadata:
+#   name: usdf_panda
+#   namespace: dda54a0c-6878-5c95-ac4f-007f6808049e
+#   version: 0
+#   labels:
+#     wms: panda
+#     site: usdf
+# spec:
+#   batch_system: "panda"
+#   service_class: "lsst.ctrl.bps.panda.PanDAService"
+---
+apiVersion: io.lsst.cmservice/v1
+kind: site
+metadata:
+  name: usdf_lsstcam
+  namespace: dda54a0c-6878-5c95-ac4f-007f6808049e
+  version: 0
+  labels:
+    site: usdf
+    instrument: lsstcam
+spec:
+  facility: USDF
+  include_files:
+    - "${DRP_PIPE_DIR}/bps/caching/LSSTCam/usdf/DRP-caching.yaml"
+---
+apiVersion: io.lsst.cmservice/v1
+kind: bps
+metadata:
+  name: bps_usdf
+  namespace: dda54a0c-6878-5c95-ac4f-007f6808049e
+  version: 0
+  labels:
+    site: usdf
+spec:
+  operator: lsstsvc1

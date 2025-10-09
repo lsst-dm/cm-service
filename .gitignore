@@ -235,3 +235,4 @@ bruno/
 
 # Local Allows
 !**/*.log
+!**/src/**/lib
