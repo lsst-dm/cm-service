@@ -70,7 +70,7 @@ async def consider_campaigns(session: AsyncSession) -> None:
                 )
             else:
                 statement = statement.on_conflict_do_nothing()
-            await session.exec(statement)  # type: ignore[call-overload]
+            await session.exec(statement)
 
     await session.commit()
 
