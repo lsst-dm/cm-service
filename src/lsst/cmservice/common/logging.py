@@ -123,6 +123,13 @@ def configure_logging(log_level: int) -> None:
         logging.getLogger(logger).handlers.clear()
         logging.getLogger(logger).propagate = propagate
 
+    # set the BPS logging level
+    for logger in [
+        "lsst.ctrl.bps",
+        "lsst.ctrl.bps.htcondor.htcondor_service",
+    ]:
+        logging.getLogger(logger).setLevel(logging.ERROR)
+
 
 class LoggingMiddleware(BaseHTTPMiddleware):
     """Middleware to ensure correct logging from FastAPI application."""

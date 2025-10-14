@@ -1,19 +1,20 @@
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
 from os.path import expandvars
 from typing import TYPE_CHECKING, Any
 
 import yaml
-from anyio import Path, open_process
-from anyio.streams.text import TextReceiveStream
+from anyio import Path, TemporaryDirectory
 from jinja2 import Environment, PackageLoader, Template
 from sqlalchemy.exc import NoResultFound
 from sqlmodel import desc, or_, select
 from transitions import EventData
 
-from ...common.enums import DEFAULT_NAMESPACE, ManifestKind
-from ...common.errors import CMHTCondorSubmitError, CMNoSuchManifestError
-from ...common.htcondor import build_htcondor_submit_environment
+from ...common.enums import DEFAULT_NAMESPACE, ManifestKind, StatusEnum
+from ...common.errors import CMNoSuchManifestError
+from ...common.htcondor import HTCondorManager
+from ...common.launchers import LauncherCheckResponse
 from ...common.logging import LOGGER
 from ...config import config
 from ...db.campaigns_v2 import Manifest, Node
@@ -29,6 +30,8 @@ class NodeMixIn(MixIn):
     campaign graph.
     """
 
+    # TODO if no more functionality is added in this mixin, just promote this
+    # method into the NodeMachine class.
     async def get_manifest[T: LibraryManifest](
         self, manifest_kind: ManifestKind, manifest_type: type[T]
     ) -> T:
@@ -197,6 +200,19 @@ class FilesystemActionMixin(ActionMixIn):
         await self.assemble_config_chain(event)
         await self.get_artifact_path(event)
 
+    async def get_artifact(self, event: EventData, artifact: Path | str) -> AsyncGenerator[Path]:
+        """Copy an artifact from the provided path to a local temporary
+        directory and return the Path to it.
+        """
+        remote_artifact = Path(artifact)
+        if not await remote_artifact.exists():
+            return
+        async with TemporaryDirectory() as temp_dir:
+            remote_bytes = await remote_artifact.read_bytes()
+            local_artifact = Path(temp_dir) / remote_artifact.name
+            await local_artifact.write_bytes(remote_bytes)
+            yield local_artifact
+
 
 class HTCondorLaunchMixin(LaunchMixIn):
     """Mixin class providing methods relating to Launch actions a Node may
@@ -207,17 +223,17 @@ class HTCondorLaunchMixin(LaunchMixIn):
     -----
     The mapping of variables referencing specific file types to attributes is
 
-    htcondor_script_path -> wms_submission_path: The path to the file contain-
-    ing WMS submission instructions, e.g., a HTCondor Submit Description File.
+    wms_submission_path: The path to the file containing WMS submission
+    instructions, e.g., a HTCondor Submit Description File.
 
-    htcondor_log -> wms_log_path: The path to the file containing WMS execution
-    logs, e.g., an HTCondor Job Event Log.
+    wms_event_log_path: The path to the file containing WMS execution logs,
+    e.g., an HTCondor Job Event Log.
 
-    htcondor_sublog -> wms_submission_log_path: The path to the file to which
-    the WMS should write its submission output and error logs.
+    wms_output_log_path: The path to the file to which the WMS should write the
+    job's stdout and stderr.
 
-    script_url -> wms_executable_path: The path to the actual (usually Bash)
-    script file to be executed on a WMS.
+    wms_executable_path: The path to the actual (usually Bash) script file to
+    be executed by the launcher.
     """
 
     async def lsst_prepare(self, event: EventData) -> None:
@@ -260,9 +276,9 @@ class HTCondorLaunchMixin(LaunchMixIn):
         launch_config: dict[str, Any] = {}
         launch_config["working_directory"] = self.artifact_path
         launch_config["wms_executable_path"] = launch_executable_path
-        launch_config["wms_log_path"] = launch_executable_path.with_suffix(".condorlog")
+        launch_config["wms_event_log_path"] = launch_executable_path.with_suffix(".condorlog")
         launch_config["wms_submission_path"] = launch_executable_path.with_suffix(".sub")
-        launch_config["wms_submission_log_path"] = launch_executable_path.with_stem(
+        launch_config["wms_output_log_path"] = launch_executable_path.with_stem(
             f"{launch_executable_path.stem}_condorsub"
         ).with_suffix(".log")
         self.configuration_chain["wms"] = self.configuration_chain["wms"].new_child(launch_config)
@@ -272,11 +288,6 @@ class HTCondorLaunchMixin(LaunchMixIn):
     async def launch(self, event: EventData) -> None:
         """Dispatch a launch event to the launch method associated with the
         node's WMS.
-        """
-        await self.submit_htcondor_job(event)
-
-    async def submit_htcondor_job(self, event: EventData) -> None:
-        """Submit a  `Script` to htcondor.
 
         If the ``config.mock_status`` parameter is set, this becomes a no-op
         dry-run.
@@ -284,22 +295,37 @@ class HTCondorLaunchMixin(LaunchMixIn):
         if config.mock_status is not None:
             return
 
-        try:
-            wms_submission_path = self.configuration_chain["wms"].get("wms_submission_path")
-            assert wms_submission_path is not None
+        self.launch_manager = HTCondorManager()
 
-            async with await open_process(
-                [config.htcondor.condor_submit_bin, "-file", wms_submission_path],
-                env=build_htcondor_submit_environment(),
-            ) as condor_submit:
-                if await condor_submit.wait() != 0:  # pragma: no cover
-                    assert condor_submit.stderr
-                    stderr_msg = ""
-                    async for text in TextReceiveStream(condor_submit.stderr):
-                        stderr_msg += text
-                    msg = f"Bad htcondor submit: f{stderr_msg}"
-                    raise CMHTCondorSubmitError(msg)
+        # The wms_submission_path must be set in the configuration chain
+        # by the `launch_prepare` method.
+        wms_submission_path = self.configuration_chain["wms"].get("wms_submission_path")
+        if wms_submission_path is None:
+            msg = "No HTCondor submit description file known to node."
+            raise RuntimeError(msg)
 
-        except Exception as e:
-            msg = f"Bad htcondor submit: {e}"
-            raise CMHTCondorSubmitError(msg) from e
+        # TODO the node should consider its own "weight" and determine
+        # whether the job can be sent to the local universe for immediate
+        # processing on a schedd or if it should go to the vanilla universe
+        # for regular scheduling (which may involve needing to allocate nodes)
+        cluster_id = await self.launch_manager.launch(submission_spec=wms_submission_path)
+        self.db_model.metadata_["wms_job"] = cluster_id
+
+    async def check(self, event: EventData) -> LauncherCheckResponse:
+        """Calls the check method of the launch manager."""
+        if config.mock_status is not None:
+            return LauncherCheckResponse(success=(config.mock_status is StatusEnum.accepted))
+
+        self.launch_manager = HTCondorManager()
+
+        # The wms_event_log_path must be set in the configuration chain
+        # by the `launch_prepare` method.
+        wms_event_log_path = self.configuration_chain["wms"].get("wms_event_log_path")
+        if wms_event_log_path is None:
+            msg = "No HTCondor event log file known to node."
+            raise RuntimeError(msg)
+
+        # TODO reduce duplication & get this from "launcher.job_id" metadata
+        cluster_id = self.db_model.metadata_.get("wms_job", 0)
+        logger.debug("Checking HTCondor Job", id=str(self.db_model.id), cluster_id=cluster_id)
+        return await self.launch_manager.check(cluster_id, wms_event_log_path)

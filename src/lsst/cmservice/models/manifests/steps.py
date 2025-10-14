@@ -26,15 +26,6 @@ class GroupedStepGroupsSpec(ManifestSpec):
 class GroupedStepSpec(ManifestSpec):
     """Spec model for a Node of kind GroupedStep."""
 
-    pipeline_yaml: Annotated[
-        str,
-        Field(
-            description="The absolute path to a Pipeline YAML specification file with optional anchor.",
-            examples=[
-                "${DRP_PIPE_DIR}/pipelines/LSSTCam/nightly-validation.yaml#step1a-single-visit-detectors"
-            ],
-        ),
-    ]
     predicates: Annotated[
         MutableSequence[str], PlainSerializer(lambda x: " AND ".join(x), return_type=str)
     ] = Field(serialization_alias="data_query")

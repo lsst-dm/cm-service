@@ -9,6 +9,7 @@ from sqlmodel import select
 from transitions import EventData
 
 from ...common.enums import ManifestKind, StatusEnum
+from ...common.flags import Features
 from ...common.graph import (
     NodeData,
     append_node_to_graph,
@@ -250,6 +251,9 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
             update={
                 "collections": self.butler.spec.collections.model_copy(
                     update={
+                        "step_input": (
+                            f"{self.butler.spec.collections.campaign_public_output}/{self.db_model.name}/input"
+                        ),
                         "step_output": (
                             f"{self.butler.spec.collections.campaign_public_output}/{self.db_model.name}_output"
                         ),
@@ -343,7 +347,9 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
         # which includes additional collection information beyond what's spec-
         # ified in the Node's reference Butler manifest.
         butler_config: dict[str, Any] = {}
-        butler_config["exe_bin"] = config.butler.butler_bin
+        butler_config["exe_bin"] = (
+            "true" if Features.MOCK_BUTLER in config.features.enabled else config.butler.butler_bin
+        )
         butler_config["collections"] = self.butler.spec.collections.model_copy(
             update={
                 "intermediates": intermediate_collections,
@@ -465,10 +471,6 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
                 f"{self.db_model.name} was rolled back via '{event.event.name}'"
             )
 
-    async def do_start(self, event: EventData) -> None:
-        """Start should create butler collections for the step."""
-        ...
-
     async def do_finish(self, event: EventData) -> None:
         """Finish should assert as a condition that the step's butler
         collections exist and that the campaign graph is valid.
@@ -523,6 +525,7 @@ class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin
         ]
         self.machine.before_prepare("do_prepare")
         self.machine.before_unprepare("do_unprepare")
+        self.machine.before_start("do_start")
 
     async def do_prepare(self, event: EventData) -> None:
         """Determine the set of group output collections to chain together for
@@ -593,7 +596,9 @@ class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin
         ]
         # Prepare a Butler runtime config to add to the Node's config chain
         butler_config: dict[str, Any] = {}
-        butler_config["exe_bin"] = config.butler.butler_bin
+        butler_config["exe_bin"] = (
+            "true" if Features.MOCK_BUTLER in config.features.enabled else config.butler.butler_bin
+        )
         # FIXME this should follow the same grammar as other butler runtime
         # configs used in other nodes, but it doesn't really matter as long
         # as the variable is found at render time.

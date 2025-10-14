@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING
+from uuid import UUID
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
@@ -35,6 +36,10 @@ class WmsTaskReport(Base, RowMixin):
 
     job_: Mapped["Job"] = relationship("Job", viewonly=True)
 
+    # V2 reference columns, not defined as FK in this model
+    namespace: Mapped[UUID] = mapped_column(default=None, nullable=True)
+    node: Mapped[UUID] = mapped_column(default=None, nullable=True)
+
     col_names_for_table = [
         "id",
         "fullname",
@@ -49,4 +54,6 @@ class WmsTaskReport(Base, RowMixin):
         "n_succeeded",
         "n_failed",
         "n_pruned",
+        "namespace",
+        "node",
     ]

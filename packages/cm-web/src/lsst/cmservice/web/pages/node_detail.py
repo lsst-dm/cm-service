@@ -26,6 +26,7 @@ async def configuration_history(id: str) -> list[dict]:
 
 
 async def node_activity_logs(id: str) -> list[dict]:
+    # FIXME this API needs to be sorted by `finished_at`
     async with CLIENT_FACTORY.aclient() as session:
         r = await session.get(f"/logs?node={id}")
         r.raise_for_status()
@@ -60,10 +61,14 @@ async def node_activity_timeline(node: dict) -> None:
     id = node["id"]
     name = node["name"]
     with ui.timeline(side="right").classes("w-full"):
+        entry_milestone = ""
         for entry in await node_activity_logs(id):
             if entry_body := entry["detail"].get("error", ""):
                 entry_title = f"{name} failed to {entry['detail']['trigger']}"
                 entry_color = "negative"
+            elif entry_milestone := entry["metadata"].get("milestone", ""):
+                entry_title = f"Milestone {entry_milestone} Reached"
+                entry_color = "secondary"
             else:
                 entry_body = entry["detail"].get("message", "")
                 entry_title = f"{name} became {entry['to_status']}"
@@ -80,13 +85,16 @@ async def node_activity_timeline(node: dict) -> None:
                     case _:
                         ...
 
-            ui.timeline_entry(
+            with ui.timeline_entry(
                 body=entry_body,
                 title=entry_title,
                 subtitle=entry["finished_at"],
                 icon=StatusDecorators[entry["to_status"]].emoji,
                 color=entry_color,
-            )
+            ):
+                if entry_milestone:
+                    ui.code(dump(entry["detail"]), language="yaml")
+
         ui.timeline_entry(
             "",
             title=f"{name} Created",

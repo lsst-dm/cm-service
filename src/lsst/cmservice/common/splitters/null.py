@@ -15,4 +15,4 @@ class NullSplitter(Splitter):
         """Split method that performs no split logic, and yields a single
         truthy predicate.
         """
-        yield "1"
+        yield "(1=1)"
