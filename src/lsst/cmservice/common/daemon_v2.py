@@ -23,6 +23,53 @@ from .logging import LOGGER
 logger = LOGGER.bind(module=__name__)
 
 
+async def daemon_process_node(session: AsyncSession, node: Node) -> None:
+    """Processes a single state transition for a single Node by constructing
+    a ``Task`` record for the next "desired" status along the Node's "happy
+    path".
+
+    This function is usually called by the `consider_campaigns` phase of a
+    daemon iteration for each "processable" node in a campaign graph, but can
+    be also called manually for a specific Node, as in an RPC API.
+    """
+    logger.info("Daemon considering node", id=str(node.id))
+    desired_state = node.status.next_status()
+    node_task = Task(
+        id=uuid5(node.id, desired_state.name),
+        namespace=node.namespace,
+        node=node.id,
+        status=desired_state,
+        previous_status=node.status,
+    )
+    statement = insert(node_task.__table__).values(**node_task.model_dump())  # type: ignore[attr-defined]
+
+    # When testing or developing, allow the daemon to upsert tasks
+    # that already exist by unsetting their submitted_at/finished_at
+    if Features.ALLOW_TASK_UPSERT in config.features.enabled:
+        statement = statement.on_conflict_do_update(
+            index_elements=[col.name for col in node_task.__table__.primary_key],  # type: ignore[attr-defined]
+            set_={col(Task.finished_at): None, col(Task.submitted_at): None},
+        )
+    else:
+        statement = statement.on_conflict_do_nothing()
+    await session.exec(statement)
+
+
+async def daemon_consider_campaign(session: AsyncSession, campaign_id: UUID) -> None:
+    """Considers a single campaign for graph evolution. This is "phase one"
+    of the daemon loop.
+    """
+    logger.info("Daemon considering campaign", id=campaign_id)
+
+    # Fetch the Edges for the campaign
+    e_statement = select(Edge).filter_by(namespace=campaign_id)
+    edges = (await session.exec(e_statement)).all()
+    campaign_graph = await graph.graph_from_edge_list_v2(edges=edges, session=session)
+
+    for node in graph.processable_graph_nodes(campaign_graph):
+        await daemon_process_node(session, node)
+
+
 async def consider_campaigns(session: AsyncSession) -> None:
     """In Phase One, the daemon considers campaigns. Campaigns subject to
     consideration have a non-terminal prepared status (ready or running), and
@@ -42,35 +89,7 @@ async def consider_campaigns(session: AsyncSession) -> None:
     campaigns = (await session.exec(c_statement)).all()
 
     for campaign_id in campaigns:
-        logger.info("Daemon considering campaign", id=campaign_id)
-
-        # Fetch the Edges for the campaign
-        e_statement = select(Edge).filter_by(namespace=campaign_id)
-        edges = (await session.exec(e_statement)).all()
-        campaign_graph = await graph.graph_from_edge_list_v2(edges=edges, session=session)
-
-        for node in graph.processable_graph_nodes(campaign_graph):
-            logger.info("Daemon considering node", id=str(node.id))
-            desired_state = node.status.next_status()
-            node_task = Task(
-                id=uuid5(node.id, desired_state.name),
-                namespace=campaign_id,
-                node=node.id,
-                status=desired_state,
-                previous_status=node.status,
-            )
-            statement = insert(node_task.__table__).values(**node_task.model_dump())  # type: ignore[attr-defined]
-
-            # When testing or developing, allow the daemon to upsert tasks
-            # that already exist by unsetting their submitted_at/finished_at
-            if Features.ALLOW_TASK_UPSERT in config.features.enabled:
-                statement = statement.on_conflict_do_update(
-                    constraint="tasks_v2_pkey",  # FIXME discover this constraint programatically
-                    set_={col(Task.finished_at): None, col(Task.submitted_at): None},
-                )
-            else:
-                statement = statement.on_conflict_do_nothing()
-            await session.exec(statement)
+        await daemon_consider_campaign(session, campaign_id)
 
     await session.commit()
 
@@ -100,6 +119,7 @@ async def consider_nodes(session: AsyncSession) -> None:
     async with TaskGroup() as tg:
         for cm_task in cm_tasks:
             node = await session.get_one(Node, cm_task.node)
+            logger.info("Daemon evolving node", id=str(node.id), task=str(cm_task.id))
 
             # the task's status field is the target status for the node, so the
             # daemon intends to evolve the node machine to that state.

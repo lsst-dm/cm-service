@@ -6,6 +6,7 @@ from . import (
     edges,
     manifests,
     nodes,
+    rpc,
 )
 
 router = APIRouter(
@@ -17,3 +18,4 @@ router.include_router(campaigns.router)
 router.include_router(edges.router)
 router.include_router(manifests.router)
 router.include_router(nodes.router)
+router.include_router(rpc.router)

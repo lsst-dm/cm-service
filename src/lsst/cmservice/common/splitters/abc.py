@@ -17,5 +17,5 @@ class Splitter(ABC):
     @abstractmethod
     async def split(self) -> AsyncGenerator[str, Any]:
         """An abstract split method that yields predicate strings."""
-        if False:
-            yield "TRUE"  # type: ignore[unreachable]
+        raise NotImplementedError
+        yield ""  # type: ignore[unreachable]
