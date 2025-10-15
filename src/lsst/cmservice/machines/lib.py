@@ -131,5 +131,5 @@ async def materialize_activity_log(
         .values(**activity_log_entry.model_dump(by_alias=True))
         .on_conflict_do_nothing()
     )
-    await session.exec(statement)  # type: ignore[call-overload]
+    await session.exec(statement)
     await session.commit()
