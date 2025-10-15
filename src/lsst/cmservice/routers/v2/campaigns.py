@@ -275,7 +275,7 @@ async def update_campaign_resource(
         raise HTTPException(status_code=404, detail="No such campaign")
 
     # update the campaign with the patch data as a Merge operation
-    update_data = patch_data.model_dump(exclude={"status"}, exclude_unset=True)
+    update_data = patch_data.model_dump(exclude={"status", "force"}, exclude_unset=True)
     campaign.sqlmodel_update(update_data)
     await session.commit()
     session.expunge(campaign)
@@ -285,7 +285,9 @@ async def update_campaign_resource(
     if patch_data.status is not None:
         if (request_id := correlation_id.get()) is None:
             raise HTTPException(status_code=500, detail="Cannot patch resource without a X-Request-Id")
-        background_tasks.add_task(change_campaign_state, campaign, patch_data.status, request_id)
+        background_tasks.add_task(
+            change_campaign_state, campaign, patch_data.status, request_id, force=patch_data.force
+        )
         # FIXME does this URL need to be campaign-scoped or does a general
         #       activity log URL make sense?
         response.headers["StatusUpdate"] = (
@@ -521,9 +523,13 @@ async def create_campaign_resource(
         dict(
             name=manifest.metadata_.name,
             metadata_=manifest.metadata_.model_dump(),
+            configuration=manifest.spec.model_dump(),
             # owner = ...  # TODO Get username from gafaelfawr # noqa: ERA001
         )
     )
+
+    if not campaign.configuration.get("auto_transition", True):
+        campaign.status = StatusEnum.paused
 
     # A new campaign comes with a START and END node
     start_node = Node.model_validate(

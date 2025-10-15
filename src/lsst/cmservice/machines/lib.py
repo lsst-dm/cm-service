@@ -1,6 +1,7 @@
 """Library functions supporting State Machines"""
 
 from collections import ChainMap
+from collections.abc import Generator
 from functools import reduce
 from typing import Any
 from uuid import uuid5
@@ -133,3 +134,11 @@ async def materialize_activity_log(
     )
     await session.exec(statement)
     await session.commit()
+
+
+def ordinal_group_nonce() -> Generator[str]:
+    """Generator that yields a 0-padded ordinal number as a group nonce"""
+    n = 1
+    while True:
+        yield f"{n:03d}"
+        n += 1

@@ -14,7 +14,7 @@ metadata:
 spec:
   artifact_path: /sdf/group/rubin/shared/campaigns/users/usdf-cm-dev
   lsst_version: w_latest
-  lsst_distrib_dir: /sdf/group/rubin/sw
+  lsst_distrib_dir: /sdf/group/rubin/sw/w_latest
 # ---
 # apiVersion: io.lsst.cmservice/v1
 # kind: lsst
@@ -29,7 +29,7 @@ spec:
 # spec:
 #   artifact_path: /sdf/group/rubin/shared/campaigns/users/usdf-cm
 #   lsst_version: w_latest
-#   lsst_distrib_dir: /sdf/group/rubin/sw
+#   lsst_distrib_dir: /sdf/group/rubin/sw/w_latest
 ---
 apiVersion: io.lsst.cmservice/v1
 kind: butler

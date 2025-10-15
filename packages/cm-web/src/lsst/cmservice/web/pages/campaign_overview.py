@@ -3,16 +3,17 @@ from typing import Annotated
 
 from fastapi import Depends
 from httpx import AsyncClient
-from nicegui import run, ui
+from nicegui import app, run, ui
 
 from ..api.campaigns import get_campaign_summary, toggle_campaign_state
 from ..components import dicebear
 from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.enum import Palette, StatusDecorators
+from ..settings import settings
 from .common import cm_frame
 
 
-@ui.page("/")
+@ui.page("/", response_timeout=settings.timeout)
 async def campaign_overview(client_: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)]) -> None:
     campaigns = await run.io_bound(get_campaign_summary, client=client_)
 
@@ -21,6 +22,9 @@ async def campaign_overview(client_: Annotated[AsyncClient, Depends(CLIENT_FACTO
             async for campaign in campaigns:
                 campaign_id = campaign["id"]
                 node_times: list[str] = []
+                if app.storage.user.get(campaign_id) is None:
+                    app.storage.user[campaign_id] = {}
+                app.storage.user[campaign_id]["status"] = campaign["status"]
 
                 with ui.card():
                     with ui.row():
@@ -52,7 +56,7 @@ async def campaign_overview(client_: Annotated[AsyncClient, Depends(CLIENT_FACTO
                     with ui.card_actions().props("align=right").classes("items-center text-sm w-full"):
                         campaign_toggle = partial(toggle_campaign_state, campaign=campaign)
                         campaign_running: bool = campaign["status"] == "running"
-                        campaign_terminal: bool = campaign["status"] in ("accepted", "failed")
+                        campaign_terminal: bool = campaign["status"] in ("accepted", "failed", "rejected")
                         campaign_switch = ui.switch(
                             value=campaign_running, on_change=campaign_toggle
                         ).bind_text_from(campaign, target_name="status")

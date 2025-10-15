@@ -14,6 +14,7 @@ from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.configdiff import patch_resource
 from ..lib.enum import StatusDecorators
 from ..lib.timestamp import timestamp
+from ..settings import settings
 from .common import cm_frame
 
 
@@ -56,7 +57,7 @@ async def configuration_edit(manifest_id: str, namespace: str) -> None:
         await patch_resource(manifest_url, current_configuration, result)
 
 
-@ui.page("/campaign/{campaign_id}")
+@ui.page("/campaign/{campaign_id}", response_timeout=settings.timeout)
 async def campaign_detail(
     campaign_id: str, client_: Annotated[httpx.AsyncClient, Depends(CLIENT_FACTORY.get_aclient)]
 ) -> None:
@@ -93,8 +94,10 @@ async def campaign_detail(
                 ui.icon(campaign_status.emoji, size=element_size, color="primary")
                 with ui.row():
                     campaign_running = campaign["status"] == "running"
+                    campaign_terminal: bool = campaign["status"] in ("accepted", "failed", "rejected")
                     campaign_toggle = partial(toggle_campaign_state, campaign=campaign)
-                    ui.switch(on_change=campaign_toggle, value=campaign_running)
+                    campaign_switch = ui.switch(on_change=campaign_toggle, value=campaign_running)
+                    campaign_switch.enabled = not campaign_terminal
             with ui.card():
                 ui.label("Nodes")
                 with ui.row():

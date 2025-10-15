@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Generator, Sequence
 from itertools import chain
 from typing import Any
 from uuid import UUID, uuid5
@@ -31,6 +31,7 @@ from ...models.manifest import (
     LsstManifest,
     WmsManifest,
 )
+from ..lib import ordinal_group_nonce
 from .meta import NodeMachine
 from .mixin import FilesystemActionMixin, HTCondorLaunchMixin, NodeMixIn
 
@@ -96,8 +97,15 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
         """Determines the collection of data query predicates relevant to the
         group by joining the Campaign's predicates (as known from the Butler
         Library manifest) and the Step's predicates.
+
+        Note
+        ----
+        The predicates may be placed in either a top-level "predicates" key in
+        the Node config, or nested in a "butler.predicates" key.
         """
         step_predicates: list[str] = self.db_model.configuration.get("predicates", [])
+        step_predicates.extend(self.db_model.configuration.get("butler", {}).get("predicates", []))
+
         return tuple(chain(self.butler.spec.predicates, step_predicates))
 
     async def get_splitter(self) -> Splitter:
@@ -120,7 +128,7 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
 
         return splitter_type(**splitter_config)
 
-    async def make_group(self, with_predicates: Sequence[str]) -> None:
+    async def make_group(self, with_predicates: Sequence[str], with_nonce: Generator | None) -> None:
         """Creates a Step-Group Node in the campaign graph adjacent to self.
 
         Parameters
@@ -138,10 +146,12 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
         group_id = uuid5(self.db_model.id, hash(with_predicates).to_bytes(8, signed=True))
 
         # The group's name isn't very interesting or important, so we make sure
-        # it's identifiably a group member of its parent step while including
-        # a random component.
-        # TODO Make the nonce a more ordinal or communicable name
-        group_nonce = group_id.hex[:8]
+        # it's identifiably a group member of its parent step
+        if with_nonce is None:
+            group_nonce = group_id.hex[:8]
+        else:
+            group_nonce = next(with_nonce)
+
         group_name = f"{self.db_model.name}_group_{group_nonce}"
 
         # FIXME this might not be the first attempt at group-splitting, so do
@@ -403,6 +413,11 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
         predicates = await self.get_predicates()
         splitter = await self.get_splitter()
 
+        if self.db_model.configuration.get("group_nonce", "ordinal") == "ordinal":
+            nonce = ordinal_group_nonce()
+        else:
+            nonce = None
+
         # Call Prepare methods associated with mixins
         # TODO this should follow an event-dispatch or observer pattern
         await self.action_prepare(event)
@@ -412,7 +427,7 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
         await self.make_collect_step()
 
         async for predicate in splitter.split():
-            await self.make_group(with_predicates=(predicates + (predicate,)))
+            await self.make_group(with_predicates=(predicates + (predicate,)), with_nonce=nonce)
 
         await self.session.commit()
 

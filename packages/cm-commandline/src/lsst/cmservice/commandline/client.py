@@ -2,6 +2,7 @@
 
 from collections.abc import Generator
 from contextlib import contextmanager
+from uuid import uuid4
 
 import typer
 from httpx import Client, HTTPStatusError, HTTPTransport
@@ -26,6 +27,7 @@ def http_client(ctx: typer.Context) -> Generator[Client]:
         transport=transport,
         headers={
             "Authorization": f"Bearer {auth_token}",
+            "X-Request-Id": f"{uuid4()}",
         },
     ) as session:
         try:
