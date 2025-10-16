@@ -12,10 +12,13 @@ from pydantic import TypeAdapter, ValidationError
 from .. import db, models
 from ..common import timestamp
 from ..common.errors import test_type_and_raise
+from ..common.logging import LOGGER
 from . import wrappers
 
 if TYPE_CHECKING:
     from .client import CMClient
+
+logger = LOGGER.bind(module_name=__name__)
 
 # Template specialization
 # Specify the pydantic model for Group
@@ -125,16 +128,16 @@ class CMQueueClient:
             delta_t = timedelta(seconds=wait_time)
             next_check = queue.time_updated + delta_t
         except Exception as msg:
-            print(f"failed to compute next_check time, making best guess: {msg}")
+            logger.error("failed to compute next_check time, making best guess: %s", msg)
             sleep_time = 300
             wait_time = 300
             delta_t = timedelta(seconds=sleep_time)
             next_check = now + delta_t
-        print(now, sleep_time, wait_time, delta_t, next_check)
+        logger.debug("%s / %s / %s / %s / %s", now, sleep_time, wait_time, delta_t, next_check)
         if now < next_check:  # pragma: no cover
             # In unit tests we set queue.interval to zero
             # so don't ever get to these lines
-            print("pausing")
+            logger.info("pausing")
             sleep(sleep_time)
 
     def daemon(
@@ -154,11 +157,11 @@ class CMQueueClient:
             try:
                 can_continue = self.process(row_id)
             except Exception as msg:
-                print(f"Caught exception in process: {msg}, continuing")
+                logger.error("Caught exception in process: %s, continuing", msg)
                 try:
                     self.update(row_id, time_updated=timestamp.now_utc())
                 except Exception as msg2:
-                    print(f"Failed to modify time_updated: {msg2}, continuing")
+                    logger.error("Failed to modify time_updated: %s, continuing", msg2)
                 can_continue = True
 
     def pause(
@@ -171,7 +174,7 @@ class CMQueueClient:
             if queue.active:
                 _ = self._client.patch(f"{router_string}/pause/{row_id}")
         except Exception:
-            print("Failed to pause the queue")
+            logger.error("Failed to pause the queue")
 
     def start(
         self,
@@ -183,4 +186,4 @@ class CMQueueClient:
             if not queue.active:
                 _ = self._client.patch(f"{router_string}/pause/{row_id}")
         except Exception:
-            print("Failed to start the queue")
+            logger.error("Failed to start the queue")
