@@ -81,9 +81,15 @@ async def campaign_detail(
 
         ui.separator()
 
+        # Library manifests
+        with ui.expansion("Library Manifests", icon="extension").classes("w-full"):
+            await api.compile_campaign_manifests()
+
+        ui.separator()
+
         # Current campaign manifests
         with ui.expansion("Campaign Manifests", icon="extension").classes("w-full"):
-            await api.compile_campaign_manifests(id=campaign["id"], manifests=data["manifests"])
+            await api.compile_campaign_manifests(campaign_id=campaign["id"], manifests=data["manifests"])
 
         ui.separator()
 

@@ -60,10 +60,21 @@ async def describe_one_campaign(id: str, client: AsyncClient) -> dict:
     return campaign_detail
 
 
-async def compile_campaign_manifests(id: str, manifests: list[dict]) -> None:
+async def compile_campaign_manifests(campaign_id: str | None = None, manifests: list[dict] = []) -> None:
     """Renders a row or table of campaign manifest cards, substituting library
     manifests for any mandatory manifests not present in the campaign.
+
+    If called without arguments, this function will compile a row of Library
+    manifests.
     """
+    # FIXME the configuration chain lookup does not substitute a campaign
+    # manifest for a library manifest; the library manifest is always in the
+    # chain map if it exists, so it's not correct to "hide" library manifests
+    # from the user in the campaign detail.
+    # FIXME in future label selection of manifests will complicate the "view"
+    # of a set of manifests relevant to the campaign, since the selectors will
+    # differ at the node level.
+
     # -- if the campaign does not have these kinds, then we will pull the
     #    version 0 of that kind from the library (default namespace)
     mandatory_kinds = ["lsst", "bps", "butler", "wms", "site"]
@@ -91,10 +102,16 @@ async def compile_campaign_manifests(id: str, manifests: list[dict]) -> None:
                         icon="content_paste_go",
                         color="dark",
                     ).props("style: flat").tooltip("Apply Manifest")
+
                     ui.button(
                         icon="edit",
                         color="dark",
-                        on_click=partial(configuration_edit, manifest_id=manifest["id"], namespace=id),
+                        on_click=partial(
+                            configuration_edit,
+                            manifest_id=manifest["id"],
+                            namespace=manifest["namespace"],
+                            readonly=(campaign_id is None),
+                        ),
                     ).props("style: flat").tooltip("Edit Manifest Configuration")
 
 

@@ -12,7 +12,7 @@ async def get_data(editor: ui.json_editor, dialog: ui.dialog) -> None:
     dialog.submit(data)
 
 
-async def configuration_edit(manifest_id: str, namespace: str) -> None:
+async def configuration_edit(manifest_id: str, namespace: str, *, readonly: bool = False) -> None:
     """Produces a JSON Editor dialog for a given manifest, allowing content
     to be revied or changes made.
 
@@ -34,8 +34,9 @@ async def configuration_edit(manifest_id: str, namespace: str) -> None:
             {"content": {"json": current_configuration}},
         ).classes("w-full h-full")
         with ui.card_actions():
-            get_data_partial = partial(get_data, dialog=dialog, editor=editor)
-            ui.button("Done", color="positive", on_click=get_data_partial).props("style: flat")
+            if not readonly:
+                get_data_partial = partial(get_data, dialog=dialog, editor=editor)
+                ui.button("Done", color="positive", on_click=get_data_partial).props("style: flat")
             ui.button("Cancel", color="negative", on_click=lambda: dialog.submit(None)).props("style: flat")
 
     result = await dialog
