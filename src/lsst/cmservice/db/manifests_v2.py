@@ -64,6 +64,18 @@ class ManifestSpec(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
+class CampaignSpec(ManifestSpec):
+    """Spec model for a Campaign."""
+
+    auto_transition: bool = Field(
+        default=True,
+        description=(
+            "Whether to automatically transition Nodes using the CM daemon. "
+            "If false, the campaign may remain in a 'paused' state."
+        ),
+    )
+
+
 class VersionedMetadata(BaseModel):
     """Metadata model for versioned Manifests with timestamps."""
 
@@ -108,7 +120,7 @@ class ManifestModel(Manifest[ManifestModelMetadata, ManifestSpec]):
         return self
 
 
-class CampaignManifest(Manifest[ManifestModelMetadata, ManifestSpec]):
+class CampaignManifest(Manifest[ManifestModelMetadata, CampaignSpec]):
     """Validating model for a Campaign Manifest"""
 
     @model_validator(mode="after")

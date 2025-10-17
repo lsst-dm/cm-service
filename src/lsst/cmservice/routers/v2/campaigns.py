@@ -521,9 +521,13 @@ async def create_campaign_resource(
         dict(
             name=manifest.metadata_.name,
             metadata_=manifest.metadata_.model_dump(),
+            configuration=manifest.spec.model_dump(),
             # owner = ...  # TODO Get username from gafaelfawr # noqa: ERA001
         )
     )
+
+    if not campaign.configuration.get("auto_transition", True):
+        campaign.status = StatusEnum.paused
 
     # A new campaign comes with a START and END node
     start_node = Node.model_validate(
