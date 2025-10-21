@@ -23,7 +23,7 @@ app = typer.Typer()
 console = Console()
 
 
-@app.command()
+@app.command(name="list")
 def list(ctx: typer.Context) -> None:
     """list all campaigns"""
     output_format = formatters.Formatters[ctx.obj.get("output_format")]
@@ -37,7 +37,9 @@ def list(ctx: typer.Context) -> None:
 
     match output_format:
         case formatters.Formatters.table:
-            t = formatters.as_table(r.json())
+            t = formatters.table_builder(
+                r.json(), {"Name": "name", "Status": "status", "Owner": "owner", "ID": "id"}
+            )
             Console().print(t)
         case formatters.Formatters.json:
             pretty = JSONHighlighter()
@@ -77,7 +79,9 @@ def new_campaign(
 
     match output_format:
         case formatters.Formatters.table:
-            t = formatters.as_table(r.json())
+            t = formatters.table_builder(
+                r.json(), {"Name": "name", "Status": "status", "Owner": "owner", "id": "id"}
+            )
             Console().print(t)
         case formatters.Formatters.json:
             pretty = JSONHighlighter()
@@ -181,7 +185,6 @@ def start_campaign(ctx: typer.Context, campaign: arguments.campaign_id) -> None:
     ) as progress:
         result_text = Text("Campaign started")
         progress.add_task(description="Starting Campaign...", total=None)
-        sleep(5.0)
         with http_client(ctx) as session:
             while True:
                 r = session.get(status_update_url)
@@ -277,13 +280,16 @@ def advance_campaign(ctx: typer.Context, campaign: arguments.campaign_id) -> Non
         )
         r.raise_for_status()
 
+        # FIXME The daemon task created by the process RPC tracks only the
+        # initial Request ID, so multiple calls to `process` for the same step-
+        # advance will never "complete" since the new request ID is never
+        # associated with any task or activity log.
         status_update_url = r.headers["StatusUpdate"]
 
     if not status_update_url:
         return
     else:
         console.print(status_update_url)
-        return
 
     with Progress(
         SpinnerColumn(),
@@ -297,8 +303,7 @@ def advance_campaign(ctx: typer.Context, campaign: arguments.campaign_id) -> Non
             while True:
                 r = session.get(status_update_url)
                 if not len(r.json()):
-                    sleep(10.0)
-                    progress.add_task(description="Advancing Campaign...", total=None)
+                    sleep(5.0)
                 else:
                     break
             activity = r.json()[0]
@@ -313,3 +318,73 @@ def advance_campaign(ctx: typer.Context, campaign: arguments.campaign_id) -> Non
                 )
 
         console.print(result_text)
+
+
+@app.command(name="tasks")
+def list_campaign_tasks(ctx: typer.Context, campaign: arguments.campaign_id) -> None:
+    """Lists Daemon Tasks associated with the Campaign."""
+    output_format = formatters.Formatters[ctx.obj.get("output_format")]
+    with http_client(ctx) as session:
+        try:
+            r = session.get("/tasks", params={"campaign_id": campaign})
+            r.raise_for_status()
+        except Exception as e:
+            print(e)
+            sys.exit(1)
+
+    match output_format:
+        case formatters.Formatters.table:
+            t = formatters.table_builder(
+                r.json(),
+                {
+                    "Node": "node",
+                    "From": "previous_status",
+                    "To": "status",
+                    "Submitted": "submitted_at",
+                    "Finished": "finished_at",
+                },
+            )
+            Console().print(t)
+        case formatters.Formatters.json:
+            pretty = JSONHighlighter()
+            Console().print(pretty(r.text))
+        case formatters.Formatters.yaml:
+            print(r.text)
+
+
+@app.command(name="logs")
+def list_campaign_logs(ctx: typer.Context, campaign: arguments.campaign_id) -> None:
+    """Lists Activity Log Entries associated with the Campaign."""
+    output_format = formatters.Formatters[ctx.obj.get("output_format")]
+    with http_client(ctx) as session:
+        try:
+            r = session.get("/logs", params={"campaign": campaign})
+            r.raise_for_status()
+        except Exception as e:
+            print(e)
+            sys.exit(1)
+
+    log_output = r.json()
+    for log in log_output:
+        log["error"] = log["detail"].get("error", None)
+
+    match output_format:
+        case formatters.Formatters.table:
+            t = formatters.table_builder(
+                log_output,
+                {
+                    "Node": "node",
+                    "From": "from_status",
+                    "To": "to_status",
+                    "Pilot": "operator",
+                    "Created": "created_at",
+                    "Finished": "finished_at",
+                    "Error": "error",
+                },
+            )
+            Console().print(t)
+        case formatters.Formatters.json:
+            pretty = JSONHighlighter()
+            Console().print(pretty(r.text))
+        case formatters.Formatters.yaml:
+            print(r.text)

@@ -7,6 +7,7 @@ from . import (
     manifests,
     nodes,
     rpc,
+    tasks,
 )
 
 router = APIRouter(
@@ -19,3 +20,4 @@ router.include_router(edges.router)
 router.include_router(manifests.router)
 router.include_router(nodes.router)
 router.include_router(rpc.router)
+router.include_router(tasks.router)
