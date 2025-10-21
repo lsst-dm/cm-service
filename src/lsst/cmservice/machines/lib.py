@@ -1,5 +1,6 @@
 """Library functions supporting State Machines"""
 
+import re
 from collections import ChainMap
 from collections.abc import Generator
 from functools import reduce
@@ -142,3 +143,44 @@ def ordinal_group_nonce() -> Generator[str]:
     while True:
         yield f"{n:03d}"
         n += 1
+
+
+async def select_manifest_by_label(
+    session: AsyncSession, kind: ManifestKind, selectors: dict[str, str]
+) -> Manifest | None:
+    """Locate and return a single manifest of the given kind by using the
+    selectors to match labels. Except when "version" is one of the selectors,
+    the latest version is returned when there are multiple matches.
+
+    The ``selectors`` parameter is a mapping of a label name to its value, such
+    that ``{"versionSelector": 5}`` would match a manifest with
+    ``{"version": 5}``.
+
+    Because "labelSelectors" are always camelCase, the selector name is split
+    such that the lower-case string part is the desired label. This is achieved
+    by splitting the "labelSelector" at lower-to-upper-case transitions, so
+    labels themselves could be camelCased, e.g., "availableCoresSelector" would
+    select an "availableCores" label.
+
+    Notes
+    -----
+    All provided selectors must match labels; there is no "close enough" or
+    "best effort" Manifest returned if the given selectors cannot be satisfied.
+    In this case the function returns a None and the caller should react in a
+    sensible manner.
+    """
+    labels: list[tuple[str, str]] = []
+    for selector, value in selectors.items():
+        _label = re.findall(r"[A-Z][a-z]*|[a-z]+", selector)
+        labels.append(("".join(_label[:-1]), value))
+
+    # If the selectors are not valid
+    if not len(labels):
+        return None
+
+    # Build a select statement for locating manifests with metadata labels
+    # matching the selectors
+    s = select(Manifest)
+    for label in labels:
+        s = s.where(Manifest.metadata_["labels"] == "")
+    return None
