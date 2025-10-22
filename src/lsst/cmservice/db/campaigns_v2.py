@@ -258,6 +258,7 @@ class Task(BaseSQLModel, table=True):
             "previous_status", Enum(StatusEnum, length=20, native_enum=False, create_constraint=False)
         ),
     )
+    metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])
 
 
 class ActivityLogBase(BaseSQLModel):
