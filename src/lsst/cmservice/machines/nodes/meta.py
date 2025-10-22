@@ -95,11 +95,11 @@ class NodeMachine(StatefulModel):
         activity_log_entry = ActivityLog(
             namespace=self.db_model.namespace,
             node=self.db_model.id,
-            operator="daemon",
+            operator=event.kwargs.get("operator", "daemon"),
             from_status=from_state,
             to_status=to_state,
             detail={},
-            metadata_={},
+            metadata_={"request_id": event.kwargs.get("request_id")},
         )
         return activity_log_entry
 

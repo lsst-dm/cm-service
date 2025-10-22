@@ -3,6 +3,7 @@
 from typing import Annotated
 from uuid import UUID
 
+from asgi_correlation_id import correlation_id
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import UUID5, BaseModel, Field
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -83,26 +84,35 @@ async def rpc_process_campaign_or_node(
     by creating Task records. These Task records are still collected and acted
     upon by the daemon, so using this API is not a replacement for a Daemon.
     """
+    if (request_id := correlation_id.get()) is None:
+        raise HTTPException(status_code=500, detail="Cannot process resource without a X-Request-Id")
     match target:
         case ProcessTarget() if target.node_id is not None:
             # TODO when the RPC targets a Node, it should disallow the
             # operation if the associated campaign is not paused.
             node = await fetch_by_id(session, Node, target.node_id)
+            campaign_id = node.namespace
             if node.status.is_terminal_script():
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail="Node in a terminal state may not be processed.",
                 )
-            await daemon_process_node(session, node)
+            await daemon_process_node(session, node, request_id)
         case ProcessTarget() if target.campaign_id is not None:
             campaign = await fetch_by_id(session, Campaign, target.campaign_id)
+            campaign_id = campaign.id
             if campaign.status not in [StatusEnum.waiting, StatusEnum.ready, StatusEnum.paused]:
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail="Campaign must be in either a waiting, ready or paused state to be processed.",
                 )
-            await daemon_consider_campaign(session, campaign.id)
+            await daemon_consider_campaign(session, campaign.id, request_id)
         case _:
             raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Not yet implemented.")
 
     await session.commit()
+
+    response.headers["StatusUpdate"] = (
+        f"""{request.url_for("read_campaign_activity_log", campaign_name=campaign_id)}"""
+        f"""?request-id={request_id}"""
+    ).strip()

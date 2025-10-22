@@ -23,7 +23,7 @@ from .logging import LOGGER
 logger = LOGGER.bind(module=__name__)
 
 
-async def daemon_process_node(session: AsyncSession, node: Node) -> None:
+async def daemon_process_node(session: AsyncSession, node: Node, request_id: str | None = None) -> None:
     """Processes a single state transition for a single Node by constructing
     a ``Task`` record for the next "desired" status along the Node's "happy
     path".
@@ -41,7 +41,9 @@ async def daemon_process_node(session: AsyncSession, node: Node) -> None:
         status=desired_state,
         previous_status=node.status,
     )
-    statement = insert(node_task.__table__).values(**node_task.model_dump())  # type: ignore[attr-defined]
+    if request_id is not None:
+        node_task.metadata_["request_id"] = request_id
+    statement = insert(node_task.__table__).values(**node_task.model_dump(by_alias=True))  # type: ignore[attr-defined]
 
     # When testing or developing, allow the daemon to upsert tasks
     # that already exist by unsetting their submitted_at/finished_at
@@ -55,7 +57,9 @@ async def daemon_process_node(session: AsyncSession, node: Node) -> None:
     await session.exec(statement)
 
 
-async def daemon_consider_campaign(session: AsyncSession, campaign_id: UUID) -> None:
+async def daemon_consider_campaign(
+    session: AsyncSession, campaign_id: UUID, request_id: str | None = None
+) -> None:
     """Considers a single campaign for graph evolution. This is "phase one"
     of the daemon loop.
     """
@@ -67,7 +71,7 @@ async def daemon_consider_campaign(session: AsyncSession, campaign_id: UUID) -> 
     campaign_graph = await graph.graph_from_edge_list_v2(edges=edges, session=session)
 
     for node in graph.processable_graph_nodes(campaign_graph):
-        await daemon_process_node(session, node)
+        await daemon_process_node(session, node, request_id=request_id)
 
 
 async def consider_campaigns(session: AsyncSession) -> None:
@@ -119,7 +123,8 @@ async def consider_nodes(session: AsyncSession) -> None:
     async with TaskGroup() as tg:
         for cm_task in cm_tasks:
             node = await session.get_one(Node, cm_task.node)
-            logger.info("Daemon evolving node", id=str(node.id), task=str(cm_task.id))
+            request_id = cm_task.metadata_.get("request_id")
+            logger.info("Daemon evolving node", id=str(node.id), task=str(cm_task.id), request_id=request_id)
 
             # the task's status field is the target status for the node, so the
             # daemon intends to evolve the node machine to that state.
@@ -164,7 +169,7 @@ async def consider_nodes(session: AsyncSession) -> None:
                 continue
 
             # Add the node transition trigger method to the task group
-            task = tg.create_task(node_machine.trigger(trigger), name=str(cm_task.id))
+            task = tg.create_task(node_machine.trigger(trigger, request_id=request_id), name=str(cm_task.id))
             task.add_done_callback(task_runner_callback)
 
             # wrap up - update the task and commit
