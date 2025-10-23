@@ -84,3 +84,29 @@ async def test_rpc_process_node(
     x = await aclient.get(f"/cm-service/v2/nodes/{node_id}")
     assert x.is_success
     assert x.json()["status"] == "accepted"
+
+
+async def test_rpc_process_wrong_node(
+    test_campaign: str,
+    aclient: AsyncClient,
+) -> None:
+    """Tests the manual step-through of a campaign node using the "process" RPC
+    API.
+    """
+    campaign_id = urlparse(url=test_campaign).path.split("/")[-2:][0]
+    node_id = uuid5(UUID(campaign_id), "END.1")
+
+    async def process_once() -> Response:
+        r = await aclient.post(
+            "/cm-service/v2/rpc/process",
+            json={
+                "node_id": str(node_id),
+                "campaign_id": campaign_id,
+            },
+        )
+        return r
+
+    x = await process_once()
+    assert not x.is_success
+    assert x.status_code == 422
+    assert "not processable" in x.text

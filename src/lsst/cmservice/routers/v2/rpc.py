@@ -3,13 +3,15 @@
 from typing import Annotated
 from uuid import UUID
 
+from anyio import to_thread
 from asgi_correlation_id import correlation_id
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import UUID5, BaseModel, Field
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from ...common.daemon_v2 import daemon_consider_campaign, daemon_process_node
+from ...common.daemon_v2 import assemble_campaign_graph, daemon_consider_campaign, daemon_process_node
 from ...common.enums import StatusEnum
+from ...common.graph import processable_graph_nodes
 from ...common.logging import LOGGER
 from ...db.campaigns_v2 import Campaign, Node
 from ...db.session import db_session_dependency
@@ -96,6 +98,14 @@ async def rpc_process_campaign_or_node(
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail="Node in a terminal state may not be processed.",
+                )
+            campaign_graph = await assemble_campaign_graph(session, campaign_id)
+            # ensure the target node is "processable".
+            processable_nodes = await to_thread.run_sync(processable_graph_nodes, campaign_graph)
+            if node not in processable_nodes:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Node is not processable in the current campaign graph state.",
                 )
             await daemon_process_node(session, node, request_id)
         case ProcessTarget() if target.campaign_id is not None:

@@ -5,6 +5,7 @@ from collections.abc import Awaitable, Mapping
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid5
 
+import networkx as nx
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import make_transient
 from sqlmodel import col, select
@@ -57,6 +58,17 @@ async def daemon_process_node(session: AsyncSession, node: Node, request_id: str
     await session.exec(statement)
 
 
+async def assemble_campaign_graph(session: AsyncSession, campaign_id: UUID) -> nx.DiGraph:
+    """Assembles a campaign graph for the purpose of identifying processable
+    nodes for a campaign.
+    """
+    # Fetch the Edges for the campaign
+    e_statement = select(Edge).filter_by(namespace=campaign_id)
+    edges = (await session.exec(e_statement)).all()
+    campaign_graph = await graph.graph_from_edge_list_v2(edges=edges, session=session)
+    return campaign_graph
+
+
 async def daemon_consider_campaign(
     session: AsyncSession, campaign_id: UUID, request_id: str | None = None
 ) -> None:
@@ -65,10 +77,7 @@ async def daemon_consider_campaign(
     """
     logger.info("Daemon considering campaign", id=campaign_id)
 
-    # Fetch the Edges for the campaign
-    e_statement = select(Edge).filter_by(namespace=campaign_id)
-    edges = (await session.exec(e_statement)).all()
-    campaign_graph = await graph.graph_from_edge_list_v2(edges=edges, session=session)
+    campaign_graph = await assemble_campaign_graph(session, campaign_id)
 
     for node in graph.processable_graph_nodes(campaign_graph):
         await daemon_process_node(session, node, request_id=request_id)
