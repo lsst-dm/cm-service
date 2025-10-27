@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pickle
 import shutil
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from fastapi.concurrency import run_in_threadpool
@@ -23,7 +23,7 @@ from ...common.graph import graph_from_edge_list_v2
 from ...common.launchers import LauncherCheckResponse
 from ...common.logging import LOGGER
 from ...config import config
-from ...db.campaigns_v2 import ActivityLog, Campaign, Edge, Machine, Node
+from ...db.campaigns_v2 import ActivityLog, Edge, Machine, Node
 from ...db.session import db_session_dependency
 from ...models.manifest import ButlerManifest
 from ..abc import StatefulModel
@@ -464,13 +464,14 @@ class EndMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchMi
         """When transitioning to a terminal positive state, also set the same
         status on the Campaign.
         """
+        if TYPE_CHECKING:
+            assert isinstance(self.db_model, Node)
         # Set the campaign status to accepted.
-        # TODO optionally, we could hydrate a Campaign FSM instance and call
-        #      its trigger.
-        parent_campaign = await self.session.get_one(Campaign, self.db_model.namespace, with_for_update=True)
-        parent_campaign.status = StatusEnum.accepted
-        parent_campaign.metadata_["mtime"] = timestamp.element_time()
-        await self.session.commit()
+        # NOTE: Neither the node nor its related campaign object are not part
+        # of the session at this point, so these changes are not materialized
+        # by a commit in this method (see `update_persistent_status`)
+        self.db_model.campaign.status = StatusEnum.accepted
+        self.db_model.campaign.metadata_["mtime"] = timestamp.element_time()
 
 
 class BreakPointMachine(NodeMachine):

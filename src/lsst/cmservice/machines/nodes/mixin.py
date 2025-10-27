@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 import yaml
 from anyio import Path, TemporaryDirectory
 from jinja2 import Environment, PackageLoader, Template
-from sqlalchemy.exc import NoResultFound
+from sqlalchemy.exc import MissingGreenlet, NoResultFound
 from sqlmodel import desc, or_, select
 from transitions import EventData
 
@@ -129,7 +129,17 @@ class FilesystemActionMixin(ActionMixIn):
         # If the node's metadata has an artifact path specified, we use that
         # as a parent path, otherwise we use the campaign path
         lsst_artifact_path = self.configuration_chain["lsst"]["artifact_path"]
-        campaign_artifact_path = await (Path(lsst_artifact_path) / str(self.db_model.namespace)).resolve()
+
+        # Use the name of the node's related campaign if it is available,
+        # otherwise fall back to the campaign's id. The MissingGreenlet is for
+        # cases where a lazy relationship lookup is invalid because it's
+        # attempted outside an async session context (some tests may invoke
+        # this case depending on how the Node was initially loaded)
+        try:
+            campaign_name = self.db_model.campaign.name
+        except (AttributeError, MissingGreenlet):
+            campaign_name = str(self.db_model.namespace)
+        campaign_artifact_path = await (Path(lsst_artifact_path) / campaign_name).resolve()
         parent_path = Path(
             self.db_model.metadata_.get(
                 "artifact_path",

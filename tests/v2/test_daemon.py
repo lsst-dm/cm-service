@@ -150,6 +150,10 @@ async def test_daemon_node(
         if not i:
             raise RuntimeError("Node evolution took too long")
 
+    # The campaign status is expected to be set by the "finish" trigger call-
+    # back of the END node.
+    assert campaign.status == StatusEnum.accepted
+
 
 async def test_dynamic_node_machine() -> None:
     """Test the dynamic resolution of a ``NodeMachine`` class based on a Node's
