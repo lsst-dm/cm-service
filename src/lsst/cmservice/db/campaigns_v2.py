@@ -8,7 +8,7 @@ from pydantic import AliasChoices, AwareDatetime, ValidationInfo, model_validato
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.types import PickleType
-from sqlmodel import Column, DateTime, Enum, Field, MetaData, SQLModel, String
+from sqlmodel import Column, DateTime, Enum, Field, MetaData, Relationship, SQLModel, String
 
 from ..common.enums import ManifestKind, StatusEnum
 from ..common.timestamp import now_utc
@@ -89,6 +89,8 @@ class Campaign(CampaignBase, table=True):
 
     __tablename__: str = "campaigns_v2"  # type: ignore[misc]
 
+    nodes: list["Node"] = Relationship(back_populates="campaign")
+
 
 class CampaignUpdate(BaseSQLModel):
     """Model representing updatable fields for a PATCH operation on a Campaign
@@ -124,7 +126,7 @@ class NodeBase(BaseSQLModel):
 
     id: UUID = Field(primary_key=True)
     name: str
-    namespace: UUID
+    namespace: UUID = Field(foreign_key="campaigns_v2.id")
     version: int
     kind: KindField = Field(
         default=ManifestKind.other,
@@ -158,6 +160,11 @@ class NodeBase(BaseSQLModel):
 
 class Node(NodeBase, table=True):
     __tablename__: str = "nodes_v2"  # type: ignore[misc]
+
+    campaign: Campaign = Relationship(
+        back_populates="nodes",
+        sa_relationship_kwargs={"lazy": "joined", "innerjoin": True, "uselist": False},
+    )
 
 
 class EdgeBase(BaseSQLModel):
@@ -259,6 +266,7 @@ class Task(BaseSQLModel, table=True):
         ),
     )
     metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])
+    node_orm: Node = Relationship(sa_relationship_kwargs={"uselist": False})
 
 
 class ActivityLogBase(BaseSQLModel):

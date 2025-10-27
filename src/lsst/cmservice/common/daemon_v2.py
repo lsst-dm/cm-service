@@ -2,12 +2,13 @@ import pickle
 from asyncio import Task as AsyncTask
 from asyncio import TaskGroup, create_task
 from collections.abc import Awaitable, Mapping
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 from uuid import UUID, uuid5
 
 import networkx as nx
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import make_transient
+from sqlalchemy.orm import make_transient, selectinload
+from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from transitions import Event
@@ -120,7 +121,11 @@ async def consider_nodes(session: AsyncSession) -> None:
     new values as necessary. The Task is not returned to the Task table.
     """
     # Select and lock unsubmitted tasks
-    statement = select(Task).where(col(Task.submitted_at).is_(None))
+    statement = (
+        select(Task)
+        .where(col(Task.submitted_at).is_(None))
+        .options(selectinload(cast(InstrumentedAttribute, Task.node_orm)))
+    )
     # TODO add filter criteria for priority and site affinity
     statement = statement.with_for_update(skip_locked=True)
 
@@ -131,8 +136,8 @@ async def consider_nodes(session: AsyncSession) -> None:
     # being considered in the current iteration.
     async with TaskGroup() as tg:
         for cm_task in cm_tasks:
-            node = await session.get_one(Node, cm_task.node)
-            request_id = cm_task.metadata_.get("request_id")
+            node = cm_task.node_orm
+            request_id = node.metadata_.get("request_id")
             logger.info("Daemon evolving node", id=str(node.id), task=str(cm_task.id), request_id=request_id)
 
             # the task's status field is the target status for the node, so the
