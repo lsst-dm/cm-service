@@ -80,6 +80,7 @@ async def daemon_consider_campaign(
 
     campaign_graph = await assemble_campaign_graph(session, campaign_id)
 
+    # Create or update tasks for each Processable Node in a campaign's graph
     for node in graph.processable_graph_nodes(campaign_graph):
         await daemon_process_node(session, node, request_id=request_id)
 
@@ -105,6 +106,17 @@ async def consider_campaigns(session: AsyncSession) -> None:
     for campaign_id in campaigns:
         await daemon_consider_campaign(session, campaign_id)
 
+    # For campaigns in paused state, we want to make sure any RUNNING nodes in
+    # those campaigns are checked.
+    n_statement = (
+        select(Node)
+        .join(Campaign)
+        .where(Campaign.status == StatusEnum.paused)
+        .where(Node.status == StatusEnum.running)
+    )
+    nodes = (await session.exec(n_statement)).all()
+    for node in nodes:
+        await daemon_process_node(session, node)
     await session.commit()
 
 
