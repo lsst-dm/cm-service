@@ -275,7 +275,7 @@ async def update_campaign_resource(
         raise HTTPException(status_code=404, detail="No such campaign")
 
     # update the campaign with the patch data as a Merge operation
-    update_data = patch_data.model_dump(exclude={"status"}, exclude_unset=True)
+    update_data = patch_data.model_dump(exclude={"status", "force"}, exclude_unset=True)
     campaign.sqlmodel_update(update_data)
     await session.commit()
     session.expunge(campaign)
@@ -285,7 +285,9 @@ async def update_campaign_resource(
     if patch_data.status is not None:
         if (request_id := correlation_id.get()) is None:
             raise HTTPException(status_code=500, detail="Cannot patch resource without a X-Request-Id")
-        background_tasks.add_task(change_campaign_state, campaign, patch_data.status, request_id)
+        background_tasks.add_task(
+            change_campaign_state, campaign, patch_data.status, request_id, force=patch_data.force
+        )
         # FIXME does this URL need to be campaign-scoped or does a general
         #       activity log URL make sense?
         response.headers["StatusUpdate"] = (
