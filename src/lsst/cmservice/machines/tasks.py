@@ -33,6 +33,10 @@ async def change_campaign_state(campaign: Campaign, desired_state: StatusEnum, r
             trigger = "pause"
         case (StatusEnum.paused, StatusEnum.running):
             trigger = "resume"
+        case (_, StatusEnum.rejected):
+            trigger = "reject"
+        case (_, StatusEnum.accepted):
+            trigger = "finish"
         case _:
             logger.warning(
                 "Invalid campaign transition requested",
