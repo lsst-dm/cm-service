@@ -14,6 +14,8 @@ metadata:
 # information parameters for a specific manifest type here, but the campaign
 # comes last in the configuration lookup hierarchy!
 spec:
+  # set the initial state of the campaign to "paused" so it can be step-advanced
+  auto_transition: false
   butlerSelector:
     instrument: lsstcam
     embargo: "false"
@@ -82,7 +84,7 @@ spec:
   # In this case, Environment variables are defined before the command is invoked,
   # and a friendly message is added afterward.
   prepend: |-
-    export CAMPAIGN_NAME=example_v2_ci_20251002B
+    export CAMPAIGN_NAME=example_v2_ci_20251028A
     export LSST_S3_USE_THREADS=False
   append: |-
     echo "All done!"
@@ -183,7 +185,7 @@ spec:
 # kind: edge
 # metadata:
 #     name: step1a-b
-#     namespace: example_v2_nv
+#     namespace: example_v2_ci
 # spec:
 #     source: step1a
 #     target: step1b
@@ -197,7 +199,7 @@ apiVersion: io.lsst.cmservice/v1
 kind: edge
 metadata:
   name: start-step1a
-  namespace: example_v2_nv
+  namespace: example_v2_ci
 # Any valid campaign needs an edge from START to another node...
 spec:
   source: START
@@ -207,7 +209,7 @@ apiVersion: io.lsst.cmservice/v1
 kind: edge
 metadata:
   name: step1a-end
-  namespace: example_v2_nv
+  namespace: example_v2_ci
 # ...and from some node to END
 spec:
   source: step1a

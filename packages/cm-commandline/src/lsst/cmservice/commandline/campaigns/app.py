@@ -1,7 +1,7 @@
 # ruff: noqa: ERA001
 import sys
 from time import sleep
-from uuid import uuid5
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -16,7 +16,6 @@ from lsst.cmservice.db.campaigns_v2 import CampaignSummary
 
 from .. import arguments, formatters
 from ..client import http_client
-from ..settings import settings
 
 app = typer.Typer()
 console = Console()
@@ -46,8 +45,19 @@ def list(ctx: typer.Context) -> None:
 
 
 @app.command(name="new")
-def new_campaign(ctx: typer.Context, campaign: arguments.campaign_name) -> None:
-    """create a new campaign"""
+def new_campaign(
+    ctx: typer.Context,
+    campaign: arguments.campaign_name,
+    *,
+    auto_transition: Annotated[
+        bool,
+        typer.Option(
+            "--auto-transition/--no-auto-transition",
+            help="Whether the new campaign should be handled by the Daemon or created in a paused state.",
+        ),
+    ] = True,
+) -> None:
+    """create a new empty campaign"""
     output_format = formatters.Formatters[ctx.obj.get("output_format")]
     data = {
         "apiVersion": "io.lsst.cmservice/v1",
@@ -55,7 +65,9 @@ def new_campaign(ctx: typer.Context, campaign: arguments.campaign_name) -> None:
         "metadata_": {
             "name": campaign,
         },
-        "spec": {},
+        "spec": {
+            "auto_transition": auto_transition,
+        },
     }
     with http_client(ctx) as session:
         r = session.post("/campaigns", json=data)
@@ -75,10 +87,9 @@ def new_campaign(ctx: typer.Context, campaign: arguments.campaign_name) -> None:
 @app.command(name="describe")
 def describe_campaign(
     ctx: typer.Context,
-    campaign_name: arguments.campaign_name,
+    campaign: arguments.campaign_id,
 ) -> None:
     """describe a specific campaign"""
-    campaign = uuid5(settings.default_namespace, campaign_name)
     with http_client(ctx) as session:
         r = session.get(f"/campaigns/{campaign}/summary")
         r.raise_for_status()
@@ -179,6 +190,118 @@ def start_campaign(ctx: typer.Context, campaign: arguments.campaign_id) -> None:
             activity = r.json()[0]
             if (error := activity.get("detail", {}).get("error")) is not None:
                 result_text = Text("Campaign not started")
+                result_text.stylize("red")
+                pprint(
+                    {
+                        "error": error,
+                        "url": status_update_url,
+                    }
+                )
+
+        console.print(result_text)
+
+
+@app.command(name="set")
+def set_campaign_status(
+    ctx: typer.Context,
+    campaign: arguments.campaign_id,
+    desired_state: arguments.campaign_status,
+    *,
+    force: Annotated[
+        bool,
+        typer.Option(
+            "--force",
+            help="Request unconditonal status update",
+        ),
+    ] = False,
+) -> None:
+    """Change a campaign's status"""
+    data = {"status": desired_state, "force": force}
+    status_update_url = None
+
+    with http_client(ctx) as session:
+        r = session.patch(
+            f"/campaigns/{campaign}",
+            json=data,
+            headers={"Content-Type": "application/merge-patch+json"},
+        )
+        r.raise_for_status()
+
+        status_update_url = r.headers["StatusUpdate"]
+
+    if not status_update_url:
+        return
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        transient=True,
+        console=console,
+    ) as progress:
+        result_text = Text("Campaign updated")
+        progress.add_task(description="Updating Campaign...", total=None)
+        with http_client(ctx) as session:
+            while True:
+                r = session.get(status_update_url)
+                if not len(r.json()):
+                    sleep(5.0)
+                else:
+                    break
+            activity = r.json()[0]
+            if (error := activity.get("detail", {}).get("error")) is not None:
+                result_text = Text("Campaign not updated")
+                result_text.stylize("red")
+                pprint(
+                    {
+                        "error": error,
+                        "url": status_update_url,
+                    }
+                )
+
+        console.print(result_text)
+
+
+@app.command(name="advance")
+def advance_campaign(ctx: typer.Context, campaign: arguments.campaign_id) -> None:
+    """advances a paused campaign"""
+
+    status_update_url = None
+
+    with http_client(ctx) as session:
+        r = session.post(
+            "/rpc/process",
+            json={"campaign_id": campaign},
+            headers={},
+        )
+        r.raise_for_status()
+
+        status_update_url = r.headers["StatusUpdate"]
+
+    if not status_update_url:
+        return
+    else:
+        console.print(status_update_url)
+        return
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        transient=True,
+        console=console,
+    ) as progress:
+        result_text = Text("Campaign advanced")
+        progress.add_task(description="Advancing Campaign...", total=None)
+        with http_client(ctx) as session:
+            while True:
+                r = session.get(status_update_url)
+                if not len(r.json()):
+                    sleep(10.0)
+                    progress.add_task(description="Advancing Campaign...", total=None)
+                else:
+                    break
+            activity = r.json()[0]
+            if (error := activity.get("detail", {}).get("error")) is not None:
+                result_text = Text("Campaign not advanced")
                 result_text.stylize("red")
                 pprint(
                     {

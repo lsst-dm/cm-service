@@ -93,8 +93,10 @@ async def campaign_detail(
                 ui.icon(campaign_status.emoji, size=element_size, color="primary")
                 with ui.row():
                     campaign_running = campaign["status"] == "running"
+                    campaign_terminal: bool = campaign["status"] in ("accepted", "failed", "rejected")
                     campaign_toggle = partial(toggle_campaign_state, campaign=campaign)
-                    ui.switch(on_change=campaign_toggle, value=campaign_running)
+                    campaign_switch = ui.switch(on_change=campaign_toggle, value=campaign_running)
+                    campaign_switch.enabled = not campaign_terminal
             with ui.card():
                 ui.label("Nodes")
                 with ui.row():
