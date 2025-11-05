@@ -76,7 +76,7 @@ metadata:
     track: weekly
 spec:
   lsst_version: w_latest
-  lsst_distrib_dir: "/sdf/group/rubin/sw"
+  lsst_distrib_dir: "/sdf/group/rubin/sw/w_latest"
   # Every node that launches a command to affect an outcome, e.g., `butler` or
   # `bps`, uses a shell script wrapper for that command; the "prepend" and
   # "append" provide an opportunity to add commands to this script that bookend

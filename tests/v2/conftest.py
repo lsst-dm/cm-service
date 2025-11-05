@@ -364,7 +364,7 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
             "metadata": {"name": "w_latest", "namespace": campaign["id"]},
             "spec": {
                 "lsst_version": "w_latest",
-                "lsst_distrib_dir": "/path/to/lsst/distrib",
+                "lsst_distrib_dir": "/path/to/lsst/distrib/w_latest",
                 "ticket": "DM-ZZZZZ",
                 "campaign": "test_campaign_with_groups",
                 "project": "integration-testing",
