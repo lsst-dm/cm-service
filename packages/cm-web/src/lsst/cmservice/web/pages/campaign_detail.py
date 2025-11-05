@@ -14,6 +14,7 @@ from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.configdiff import patch_resource
 from ..lib.enum import StatusDecorators
 from ..lib.timestamp import timestamp
+from ..settings import settings
 from .common import cm_frame
 
 
@@ -56,7 +57,7 @@ async def configuration_edit(manifest_id: str, namespace: str) -> None:
         await patch_resource(manifest_url, current_configuration, result)
 
 
-@ui.page("/campaign/{campaign_id}")
+@ui.page("/campaign/{campaign_id}", response_timeout=settings.timeout)
 async def campaign_detail(
     campaign_id: str, client_: Annotated[httpx.AsyncClient, Depends(CLIENT_FACTORY.get_aclient)]
 ) -> None:

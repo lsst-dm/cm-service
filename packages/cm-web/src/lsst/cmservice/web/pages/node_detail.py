@@ -9,6 +9,7 @@ from .. import api
 from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.enum import StatusDecorators
 from ..lib.timestamp import iso_timestamp
+from ..settings import settings
 from .common import cm_frame
 
 
@@ -137,7 +138,7 @@ async def node_advance_chip(node: dict) -> None:
     )
 
 
-@ui.page("/node/{id}")
+@ui.page("/node/{id}", response_timeout=settings.timeout)
 async def node_detail(id: str) -> None:
     """Builds a Node Detail ui page."""
     if app.storage.user.get(id) is None:

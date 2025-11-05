@@ -9,10 +9,11 @@ from ..api.campaigns import get_campaign_summary, toggle_campaign_state
 from ..components import dicebear
 from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.enum import Palette, StatusDecorators
+from ..settings import settings
 from .common import cm_frame
 
 
-@ui.page("/")
+@ui.page("/", response_timeout=settings.timeout)
 async def campaign_overview(client_: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)]) -> None:
     campaigns = await run.io_bound(get_campaign_summary, client=client_)
 
