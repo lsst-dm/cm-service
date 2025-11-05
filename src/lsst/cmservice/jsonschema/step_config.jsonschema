@@ -15,6 +15,11 @@
       "type": "array",
       "items": {"type": "string"}
     },
+    "group_nonce": {
+      "description": "The method used to name group nodes for this step. If 'ordinal', groups will be named with a three-digit zero-padded number, e.g., '*_001'; if 'random' then a portion of the group's hexadecimal id is used in the name.",
+      "enum": ["ordinal", "random"],
+      "default": "ordinal"
+    },
     "groups": {
       "description": "An object describing the manner in which groups are formed for this node. A `null` value is the same as specifying a single group with no additional query predicates.",
       "type": [
