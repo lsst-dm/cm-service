@@ -146,8 +146,23 @@ class FilesystemActionMixin(ActionMixIn):
                 campaign_artifact_path,
             )
         )
-        self.artifact_path = parent_path / self.db_model.kind.name / self.db_model.name
-        await self.artifact_path.mkdir(parents=True, exist_ok=False)
+
+        # if the node's name is already in the path, then this node is probably
+        # a new version of another node.
+        if self.db_model.name in str(parent_path):
+            self.artifact_path = parent_path.parent / f"{self.db_model.name}.v{self.db_model.version}"
+        else:
+            self.artifact_path = (
+                parent_path / self.db_model.kind.name / f"{self.db_model.name}.v{self.db_model.version}"
+            )
+
+        try:
+            await self.artifact_path.mkdir(parents=True, exist_ok=False)
+            # Update the metadata model for the node after the path has been
+            # successfully created
+            self.db_model.metadata_["artifact_path"] = str(self.artifact_path)
+        except FileExistsError:
+            raise
 
     async def assemble_config_chain(self, event: EventData) -> None:
         """Constructs and sets the `configuration_chain` instance attribute."""
