@@ -281,7 +281,8 @@ async def update_node_resource(
         new_manifest["configuration"] += Delta(patch_data)
 
     # create Manifest from new_manifest, add to session, and commit
-    new_manifest["metadata"] = {"crtime": element_time()}
+    new_manifest["metadata"]["crtime"] = element_time()
+    new_manifest["metadata"].pop("mtime", None)
     new_manifest_db = Node.model_validate(new_manifest)
     new_manifest_db.status = StatusEnum.waiting
     session.add(new_manifest_db)
