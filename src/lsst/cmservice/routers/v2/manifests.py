@@ -147,8 +147,8 @@ async def create_one_or_more_manifests(
                 raise HTTPException(status_code=422, detail="Requested namespace does not exist.")
             _namespace_uuid = _campaign_id
 
-        # A manifest must be a new version if name+namespace already exists
-        # check db for manifest as name+namespace, get version and increment
+        # A manifest must be a new version if name+kind+namespace exists
+        # check db for manifest as name+kind+namespace & increment version
         # Library manifests that target the default namespace are always
         # version 0
         if _namespace_uuid != DEFAULT_NAMESPACE:
@@ -156,6 +156,7 @@ async def create_one_or_more_manifests(
                 select(Manifest)
                 .where(Manifest.name == _name)
                 .where(Manifest.namespace == _namespace_uuid)
+                .where(Manifest.kind == manifest.kind)
                 .order_by(col(Manifest.version).desc())
                 .limit(1)
             )
@@ -166,9 +167,12 @@ async def create_one_or_more_manifests(
         else:
             _version = 0
 
+        # Create the new manifest ORM object from the incoming spec
+        _id = uuid5(_namespace_uuid, f"{manifest.kind}")
+        _id = uuid5(_id, f"{_name}.{_version}")
         _manifest = Manifest(
-            id=uuid5(_namespace_uuid, f"{_name}.{_version}"),
-            name=manifest.metadata_.name,
+            id=_id,
+            name=_name,
             namespace=_namespace_uuid,
             kind=manifest.kind,
             version=_version,

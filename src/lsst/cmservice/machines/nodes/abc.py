@@ -23,7 +23,15 @@ class MixIn(ABC):
     configuration_chain: dict[str, ChainMap]
     db_model: AnyStatefulObject
     session: AsyncSession
-    templates: list[tuple[str, ...]] | None = None
+    templates: set[tuple[str, ...]] | None = None
+
+    async def _prepare_restart(self, event: EventData) -> None:
+        """Method called when preparing a node for a "restart" trigger. Any
+        MixIn with specific "restart" logic should implement it here. There is
+        no guarantee of the order in which this method is called on multiple
+        mixins. Every mixin should end this method with a ``super()`` call.
+        """
+        pass
 
 
 class ActionMixIn(MixIn, ABC):
@@ -31,6 +39,12 @@ class ActionMixIn(MixIn, ABC):
 
     @abstractmethod
     async def action_prepare(self, event: EventData) -> None: ...
+
+    @abstractmethod
+    async def action_unprepare(self, event: EventData) -> None: ...
+
+    @abstractmethod
+    async def action_reset(self, event: EventData) -> None: ...
 
     @abstractmethod
     async def assemble_config_chain(self, event: EventData) -> None: ...

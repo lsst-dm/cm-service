@@ -8,9 +8,11 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Annotated
 from uuid import UUID, uuid5
 
+from asgi_correlation_id import correlation_id
 from deepdiff import Delta
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query, Request, Response
 from pydantic import UUID5
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -18,9 +20,10 @@ from ...common.enums import StatusEnum
 from ...common.jsonpatch import JSONPatch, JSONPatchError, apply_json_patch
 from ...common.logging import LOGGER
 from ...common.timestamp import element_time
-from ...db.campaigns_v2 import Campaign, Node
+from ...db.campaigns_v2 import Campaign, CampaignUpdate, Node
 from ...db.manifests_v2 import NodeManifest
 from ...db.session import db_session_dependency
+from ...machines.tasks import change_node_state
 
 # TODO should probably bind a logger to the fastapi app or something
 logger = LOGGER.bind(module=__name__)
@@ -202,16 +205,17 @@ async def create_node_resource(
 
 
 @router.patch(
-    "/{node_name_or_id}",
+    "/{node_id}",
     summary="Update node detail",
     status_code=202,
 )
 async def update_node_resource(
     request: Request,
     response: Response,
+    background_tasks: BackgroundTasks,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
-    node_name_or_id: str,
-    patch_data: Annotated[bytes, Body()] | Sequence[JSONPatch],
+    node_id: UUID5,
+    patch_data: Annotated[bytes, Body()] | Sequence[JSONPatch] | CampaignUpdate,
 ) -> Node:
     """Partial update method for nodes.
 
@@ -223,7 +227,8 @@ async def update_node_resource(
     A Node's name, id, kind, or namespace may not be modified by this
     method, and attempts to do so will produce a 4XX client error.
 
-    This PATCH endpoint supports RFC6902 json-patch requests.
+    This PATCH endpoint supports RFC6902 json-patch requests. For status change
+    only, RFC7396 json-merge-patch is used.
 
     Notes
     -----
@@ -234,31 +239,47 @@ async def update_node_resource(
       against any previous version without having to consider branches.
     """
     use_rfc6902 = False
+    use_rfc7396 = False
     use_deepdiff = False
+    mutable_fields = []
+
+    if (request_id := correlation_id.get()) is None:
+        raise HTTPException(status_code=500, detail="Cannot patch resource without a X-Request-Id")
+
     if request.headers["Content-Type"] == "application/json-patch+json":
         use_rfc6902 = True
     elif request.headers["Content-Type"] == "application/octet-stream":
         use_deepdiff = True
+    elif request.headers["Content-Type"] == "application/merge-patch+json":
+        use_rfc7396 = True
+        mutable_fields.extend(["status"])
     else:
         raise HTTPException(status_code=406, detail="Unsupported Content-Type")
 
-    s = select(Node).with_for_update()
-    # The input could be a UUID or it could be a literal name.
-    try:
-        if _id := UUID(node_name_or_id):
-            s = s.where(Node.id == _id)
-    except ValueError:
-        s = s.where(Node.name == node_name_or_id)
-
-    # we want to order and sort by version, in descending order, so we always
-    # fetch only the most recent version of manifest
-    # FIXME this implies that when a node ID is provided, it should be an
-    # error if it is not the most recent version.
-    s = s.order_by(col(Node.version).desc()).limit(1)
+    # TODO it will be an IntegrityError if the targeted node is not the most
+    # recent version, it may be nicer to check this and exit early.
+    s = select(Node).with_for_update().where(Node.id == node_id)
 
     old_manifest = (await session.exec(s)).one_or_none()
     if old_manifest is None:
         raise HTTPException(status_code=404, detail="No such node")
+
+    if use_rfc7396:
+        if TYPE_CHECKING:
+            assert isinstance(patch_data, CampaignUpdate)
+        if patch_data.status is None:
+            raise HTTPException(status_code=422, detail="When using RFC7396, a status must be supplied")
+        # Lazy-load the Node's Machine pickle
+        if (await old_manifest.awaitable_attrs.fsm) is None:
+            raise HTTPException(status_code=422, detail="No state machine found for node")
+        background_tasks.add_task(
+            change_node_state, old_manifest, patch_data.status, request_id, force=patch_data.force
+        )
+        response.headers["StatusUpdate"] = (
+            f"""{request.url_for("read_campaign_activity_log", campaign_name=old_manifest.namespace)}"""
+            f"""?request-id={request_id}"""
+        ).strip()
+        return old_manifest
 
     new_manifest = old_manifest.model_dump(by_alias=True)
     new_manifest["version"] += 1
@@ -285,8 +306,15 @@ async def update_node_resource(
     new_manifest["metadata"].pop("mtime", None)
     new_manifest_db = Node.model_validate(new_manifest)
     new_manifest_db.status = StatusEnum.waiting
-    session.add(new_manifest_db)
-    await session.commit()
+
+    try:
+        session.add(new_manifest_db)
+        await session.commit()
+    except IntegrityError as e:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Integrity Error: {e}",
+        )
 
     response.headers["Self"] = request.url_for("read_node_resource", node_name=new_manifest_db.id).__str__()
     response.headers["Campaign"] = request.url_for(

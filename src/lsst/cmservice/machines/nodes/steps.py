@@ -81,9 +81,9 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
     def post_init(self) -> None:
         """Post init, set class-specific callback triggers."""
 
-        self.templates = [
+        self.templates = {
             ("wms_submit_sh.j2", f"{self.db_model.name}.sh"),
-        ]
+        }
         self.anchor_group: UUID | None = None
         self.collect_group: UUID | None = None
         self.machine.before_prepare("do_prepare")
@@ -535,12 +535,14 @@ class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin
 
     def post_init(self) -> None:
         """Post init, set class-specific callback triggers."""
-        self.templates = [
+        self.templates = {
             ("wms_submit_sh.j2", f"{self.db_model.name}.sh"),
-        ]
+        }
         self.machine.before_prepare("do_prepare")
         self.machine.before_unprepare("do_unprepare")
         self.machine.before_start("do_start")
+        self.machine.before_retry("do_retry")
+        self.machine.before_reset("do_reset")
 
     async def do_prepare(self, event: EventData) -> None:
         """Determine the set of group output collections to chain together for
@@ -600,11 +602,12 @@ class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin
         """
         self.command_templates = [
             (
-                "{{butler.exe_bin}} collection-chain {{butler.repo}} {{butler.collections.step_output}}"
+                "{{butler.exe_bin}} collection-chain {{butler.repo}} --mode={{butler.mode}} "
+                "{{butler.collections.step_output}}"
                 "{% for collection in butler.input_collections %} {{collection}}{% endfor %} "
             ),
             (
-                "{{butler.exe_bin}} collection-chain {{butler.repo}} "
+                "{{butler.exe_bin}} collection-chain {{butler.repo}} --mode={{butler.mode}} "
                 "{{butler.collections.step_public_output}} {{butler.collections.step_output}} "
                 "{{butler.collections.step_input}}"
             ),
@@ -614,6 +617,7 @@ class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin
         butler_config["exe_bin"] = (
             "true" if Features.MOCK_BUTLER in config.features.enabled else config.butler.butler_bin
         )
+        butler_config["mode"] = "redefine"
         # FIXME this should follow the same grammar as other butler runtime
         # configs used in other nodes, but it doesn't really matter as long
         # as the variable is found at render time.
@@ -621,4 +625,45 @@ class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin
 
         self.configuration_chain["butler"] = self.configuration_chain["butler"].new_child(butler_config)
 
-    async def do_unprepare(self, event: EventData) -> None: ...
+    async def do_unprepare(self, event: EventData) -> None:
+        """Callback rolls the node back to a "waiting" state so the config
+        and artifacts may be re-rendered.
+        """
+        del self.collections
+        del self.command_templates
+
+    async def do_retry(self, event: EventData) -> None:
+        """Callback rolls the node back to a "ready" state so the payload can
+        be tried again in case of failure.
+
+        This operation does not create a new version of the node, nor does it
+        change any configuration. Artifacts are not re-rendered.
+        """
+        # Because the collect step's main payload is a pair of Butler commands/
+        # operations, simply retrying the operation may not be successful if
+        # the butler command results in an error (e.g., "collection already
+        # exists"). The default mode for the butler chain command is "redefine"
+        # which should be idempotent enough for CM's purposes here. For clarity
+        # the mode is restated in the butler command, but in some cases the
+        # campaign designer may use a butler manifest that specifies a diff-
+        # erent mode.
+        match self.configuration_chain["butler"]["mode"]:
+            case "redefine":
+                # the redefine case is effectively idempotent
+                pass
+            case _:
+                ...
+
+        # increment the number of retries tracked by the node
+        self.db_model.metadata_["retries"] = self.db_model.metadata_.get("retries", 0) + 1
+
+    async def do_reset(self, event: EventData) -> None:
+        """Callback rolls the node back to a "waiting" state."""
+        # Any artifacts created by the node are removed, and the previous
+        # artifacts are not preserved.
+        await self.launch_reset(event)
+        await self.action_reset(event)
+        await self.do_unprepare(event)
+
+        if hasattr(self, "configuration_chain"):
+            del self.configuration_chain

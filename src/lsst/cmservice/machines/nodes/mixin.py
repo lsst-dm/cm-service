@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import shutil
+from collections import ChainMap
 from collections.abc import AsyncGenerator
 from os.path import expandvars
 from typing import TYPE_CHECKING, Any
 
 import yaml
 from anyio import Path, TemporaryDirectory
+from fastapi.concurrency import run_in_threadpool
 from jinja2 import Environment, PackageLoader, Template
 from sqlalchemy.exc import MissingGreenlet, NoResultFound
 from sqlmodel import desc, or_, select
@@ -93,8 +96,8 @@ class FilesystemActionMixin(ActionMixIn):
         referenced within templates to specify the path component of emergent
         objects like log files.
 
-    templates: list[tuple[str, ...]]
-        A list of Jinja templates that are available in the ``lsst.cmservice``
+    templates: set[tuple[str, ...]]
+        A set of Jinja templates that are available in the ``lsst.cmservice``
         package. Each template is specified as a tuple of the template name and
         the name of the target file to which the template will be rendered.
 
@@ -209,12 +212,17 @@ class FilesystemActionMixin(ActionMixIn):
         # Each template is rendered in two passes. This supports the use of
         # *template strings* in variable values that may be rendered to a final
         # form in the second pass.
+        # FIXME this assumes that the output destination is always a filesystem
+        # location accessible by the the execution environment. This should be
+        # refactored to render artifacts to a temporary directory and then hand
+        # off the rendered artifacts to the Action mixin for final disposition.
         for template, filename in self.templates:
             output_path = self.artifact_path / filename
             action_template = action_template_environment.get_template(template)
             try:
                 intermediate_output = action_template.render(self.configuration_chain)
                 rendered_output: str = Template(intermediate_output).render(self.configuration_chain)
+                # NOTE: write_text behavior is to *overwrite* existing files
                 await output_path.write_text(rendered_output)
             except yaml.YAMLError as yaml_error:
                 msg = f"Error rendering YAML template; threw {yaml_error}"
@@ -237,6 +245,30 @@ class FilesystemActionMixin(ActionMixIn):
             local_artifact = Path(temp_dir) / remote_artifact.name
             await local_artifact.write_bytes(remote_bytes)
             yield local_artifact
+
+    async def action_unprepare(self, event: EventData) -> None:
+        """Action method invoked when executing the "unprepare" transition.
+
+        When calling multiple unprepare callbacks from different mixins, the
+        action mixin should be called last.
+        """
+        logger.info("Unpreparing Node", id=str(self.db_model.id))
+
+        # Remove any group-specific working directory from the campaign's
+        # artifact path.
+        if hasattr(self, "artifact_path") and await self.artifact_path.exists():
+            await run_in_threadpool(shutil.rmtree, self.artifact_path)
+
+        # Remove the group's configuration chain
+        del self.configuration_chain
+
+    async def action_reset(self, event: EventData) -> None:
+        """Perform a reset operation on an action mixin.
+
+        This should be called when the associated Node executes a callback for
+        a reset trigger.
+        """
+        await self.action_unprepare(event)
 
 
 class HTCondorLaunchMixin(LaunchMixIn):
@@ -293,9 +325,10 @@ class HTCondorLaunchMixin(LaunchMixIn):
             raise RuntimeError("No WMS executable template known to Node.")
 
         # Add the HTcondor submission description template
-        self.templates.append(
+        self.launch_templates = {
             ("htcondor_submit_description.j2", f"{self.db_model.name}.sub"),
-        )
+        }
+        self.templates.update(self.launch_templates)
 
         # Prepare a Launch runtime config to add to the Node's config chain
         launch_config: dict[str, Any] = {}
@@ -309,6 +342,44 @@ class HTCondorLaunchMixin(LaunchMixIn):
         self.configuration_chain["wms"] = self.configuration_chain["wms"].new_child(launch_config)
 
         await self.lsst_prepare(event)
+
+    async def _prepare_restart(self, event: EventData) -> None:
+        """Method to perform any actions the Mixin needs to prepare for a
+        restart.
+        """
+        if TYPE_CHECKING:
+            assert self.templates is not None
+
+        # Remove runtime log files from any previous launch attempt
+        if (
+            wms_event_log := self.configuration_chain.get("wms", ChainMap()).get("wms_event_log_path")
+        ) is not None:
+            await Path(wms_event_log).unlink(missing_ok=True)
+
+        if (
+            wms_output_log := self.configuration_chain.get("wms", ChainMap()).get("wms_output_log_path")
+        ) is not None:
+            await Path(wms_output_log).unlink(missing_ok=True)
+
+        # Update launch config to put restart script into htcondor sub exec'ble
+        launch_executable_path = Path(self.configuration_chain["wms"]["wms_executable_path"])
+        launch_executable_path = launch_executable_path.with_stem(f"{launch_executable_path.stem}_restart")
+        launch_config: dict[str, Any] = {}
+        launch_config["wms_executable_path"] = launch_executable_path
+        self.configuration_chain["wms"] = self.configuration_chain["wms"].new_child(launch_config)
+
+        # Make sure the htcondor sub template is still in play
+        self.templates.update(self.launch_templates)
+
+        try:
+            await super()._prepare_restart(event)
+        except AttributeError:
+            pass
+
+    async def launch_unprepare(self, event: EventData) -> None:
+        """Unconfigures the preparation made by a LaunchMixin."""
+        if self.templates is not None:
+            self.templates.difference_update(self.launch_templates)
 
     async def launch(self, event: EventData) -> None:
         """Dispatch a launch event to the launch method associated with the
@@ -354,3 +425,11 @@ class HTCondorLaunchMixin(LaunchMixIn):
         cluster_id = self.db_model.metadata_.get("wms_job", 0)
         logger.debug("Checking HTCondor Job", id=str(self.db_model.id), cluster_id=cluster_id)
         return await self.launch_manager.check(cluster_id, wms_event_log_path)
+
+    async def launch_reset(self, event: EventData) -> None:
+        """Perform a reset operation on an launch mixin.
+
+        This should be called when the associated Node executes a callback for
+        a reset trigger.
+        """
+        await self.launch_unprepare(event)

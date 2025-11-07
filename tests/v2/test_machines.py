@@ -2,14 +2,18 @@
 
 import pickle
 import random
+from asyncio import sleep
 from pathlib import Path
+from textwrap import dedent
+from typing import cast
 from unittest.mock import Mock, patch
 from urllib.parse import urlparse
 from uuid import UUID, uuid4, uuid5
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.orm import make_transient
+from sqlalchemy.orm import make_transient, selectinload
+from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -418,7 +422,9 @@ async def test_group_prepare_replace(
         .where(Node.name == "lambert_group_001")
         .where(Node.namespace == campaign_id)
         .where(Node.version == 2)
+        .options(selectinload(cast(InstrumentedAttribute, Node.fsm)))
     )
+
     group = (await session.exec(s)).one()
     group_machine = GroupMachine(o=group)
     await group_machine.trigger("prepare")
@@ -428,3 +434,308 @@ async def test_group_prepare_replace(
     group_path = group.metadata_.get("artifact_path")
     assert group_path is not None
     assert Path(group_path).exists()
+
+
+async def test_group_fail_retry(
+    test_campaign_groups: str, session: AsyncSession, aclient: AsyncClient
+) -> None:
+    """Tests the retry/rollback behavior of a group node after a failure."""
+    campaign_id = urlparse(url=test_campaign_groups).path.split("/")[-2:][0]
+
+    # Fetch and prepare a step
+    node_id = uuid5(UUID(campaign_id), "lambert.1")
+    node = await session.get_one(Node, node_id)
+    node_machine = StepMachine(o=node)
+    await node_machine.trigger("prepare")
+
+    # Fetch and prepare a group
+    s = (
+        select(Node)
+        .where(Node.name == "lambert_group_001")
+        .where(Node.namespace == campaign_id)
+        .where(Node.version == 1)
+    )
+
+    group = (await session.exec(s)).one()
+    group_machine = GroupMachine(o=group, initial_state=group.status)
+    await session.commit()
+
+    await group_machine.trigger("prepare")
+    with patch(
+        "lsst.cmservice.machines.node.GroupMachine.do_start",
+        side_effect=RuntimeError("Error: unknown error"),
+    ):
+        await group_machine.trigger("start")
+
+    await session.refresh(group, ["status", "metadata_", "machine"])
+
+    # assert node failed
+    x = await aclient.get(f"/cm-service/v2/nodes/{group.id}")
+    assert x.is_success
+    assert x.json()["status"] == "failed"
+
+    # - trigger 'retry' by setting the status to ready
+    x = await aclient.patch(
+        f"/cm-service/v2/nodes/{group.id}",
+        json={"status": "ready"},
+        headers={"Content-Type": "application/merge-patch+json"},
+    )
+    assert x.is_success
+    await session.refresh(group, ["status", "metadata_", "machine"])
+    group_status = group.status
+    assert group_status is StatusEnum.ready
+    assert group.metadata_["retries"] == 1
+
+    group_machine_pickle = await session.get_one(Machine, group.machine)
+    group_machine = (pickle.loads(group_machine_pickle.state)).model
+    group_machine.db_model = group
+
+    with patch(
+        "lsst.cmservice.machines.node.GroupMachine.do_start",
+        return_value=True,
+    ):
+        await group_machine.trigger("start")
+
+    await session.refresh(group, ["status"])
+    group_status = group.status
+    assert group_status is StatusEnum.running
+
+    group_artifact_path = group.metadata_.get("artifact_path")
+    assert group_artifact_path is not None
+
+    # Cause the running group to fail
+    with patch(
+        "lsst.cmservice.machines.node.GroupMachine.is_done_running",
+        side_effect=RuntimeError("Error: unknown error"),
+    ):
+        await group_machine.trigger("finish")
+
+    # The artifact path should exist
+    assert Path(group_artifact_path).exists()
+
+    await session.refresh(group, ["status"])
+    group_status = group.status
+    assert group_status is StatusEnum.failed
+
+    # trigger 'reset' by setting the status to waiting with force set
+    x = await aclient.patch(
+        f"/cm-service/v2/nodes/{group.id}",
+        json={"status": "waiting"},
+        headers={"Content-Type": "application/merge-patch+json"},
+    )
+    assert x.is_success
+
+    # wait for and assert background task is successful
+    for i in range(5):
+        x = await aclient.get(
+            x.headers["StatusUpdate"],
+        )
+        result = x.json()
+        if len(result):
+            assert not result[0]["detail"]
+            break
+        else:
+            await sleep(1.0)
+
+    await session.refresh(group, ["status", "metadata_"])
+    group_status = group.status
+    assert group_status is StatusEnum.waiting
+
+    # The artifact path should not exist
+    assert not Path(group_artifact_path).exists()
+
+
+@pytest.mark.parametrize(
+    "restartable,expected_detail",
+    [
+        (False, "not eligible for restart"),
+        (True, ""),
+    ],
+)
+async def test_group_restart(
+    *,
+    restartable: bool,
+    expected_detail: str,
+    test_campaign_groups: str,
+    session: AsyncSession,
+    aclient: AsyncClient,
+) -> None:
+    """Tests the restart behavior of a group node after a failure.
+
+    Tests both the "not restartable" and "restartable" cases for a group.
+    """
+    campaign_id = urlparse(url=test_campaign_groups).path.split("/")[-2:][0]
+
+    # Fetch and prepare a step
+    node_id = uuid5(UUID(campaign_id), "lambert.1")
+    node = await session.get_one(Node, node_id)
+    node_machine = StepMachine(o=node)
+    await node_machine.trigger("prepare")
+
+    # Fetch and prepare a group
+    s = (
+        select(Node)
+        .where(Node.name == "lambert_group_001")
+        .where(Node.namespace == campaign_id)
+        .where(Node.version == 1)
+    )
+
+    group = (await session.exec(s)).one()
+    group_machine = GroupMachine(o=group, initial_state=group.status)
+    await session.commit()
+
+    # Prepare and start the group
+    await group_machine.trigger("prepare")
+    with patch(
+        "lsst.cmservice.machines.node.GroupMachine.do_start",
+        return_value=True,
+    ):
+        await group_machine.trigger("start")
+
+    await session.refresh(group, ["status"])
+    await session.commit()
+    group_status = group.status
+    assert group_status is StatusEnum.running
+
+    group_artifact_path = group.metadata_.get("artifact_path")
+    assert group_artifact_path is not None
+
+    # Create mock BPS runtime artifacts
+    mock_bps_submit_path = Path(group_artifact_path) / "submit" / "20251111T111100Z"
+    mock_bps_submit_path.mkdir(parents=True, exist_ok=False)
+    mock_bps_run_name = "u_cmservice_test_group_restart_lambert_001_version_1"
+
+    # Mock BPS stdout log
+    p = Path(group_artifact_path) / group_machine.configuration_chain["bps"]["stdout_log"]
+    p.write_text(
+        dedent(f"""\
+        Submit dir: {mock_bps_submit_path}
+        Run Id: 27169228.0
+        Run Name: {mock_bps_run_name}
+        """)
+    )
+
+    # Mock BPS QG file
+    if restartable:
+        p = (mock_bps_submit_path / mock_bps_run_name).with_suffix(".qg")
+        p.touch()
+
+    with (
+        patch(
+            "lsst.cmservice.machines.nodes.group.NodeMachine.is_done_running",
+            return_value=True,
+        ) as mock_a,
+        patch(
+            "lsst.cmservice.machines.nodes.group.GroupMachine.check_bps_report",
+            side_effect=RuntimeError("WMS Job is Failed"),
+        ) as mock_b,
+    ):
+        await group_machine.trigger("finish")
+        assert mock_a.called
+        assert mock_b.called
+
+    await session.refresh(group, ["status"])
+    group_status = group.status
+    assert group_status is StatusEnum.failed
+
+    # trigger 'restart' by setting the status to ready
+    x = await aclient.patch(
+        f"/cm-service/v2/nodes/{group.id}",
+        json={"status": "ready", "force": "true"},
+        headers={"Content-Type": "application/merge-patch+json"},
+    )
+    assert x.is_success
+
+    # wait for and assert background task is successful
+    update_url = x.headers["StatusUpdate"]
+    for i in range(5):
+        x = await aclient.get(update_url)
+        result = x.json()
+        if len(result):
+            if not (detail := result[0]["detail"]):
+                assert not detail
+            else:
+                assert expected_detail in detail["error"]
+                return
+            break
+        else:
+            await sleep(1.0)
+
+    await session.refresh(group, ["status", "metadata_"])
+    group_status = group.status
+    assert group_status is StatusEnum.ready
+    assert group.metadata_["restarts"] == 1
+
+    # assert new and changed artifacts
+    assert (Path(group_artifact_path) / "lambert_group_001_restart.sh").exists()
+    assert (Path(group_artifact_path) / "lambert_group_001.sub").exists()
+
+    # make sure the new restart script is the payload for the htcondor sub file
+    lines = (Path(group_artifact_path) / "lambert_group_001.sub").read_text().splitlines()
+    assert f"""executable = {Path(group_artifact_path) / "lambert_group_001_restart.sh"}""" in lines
+
+    await session.refresh(group, ["status"])
+    group_status = group.status
+    assert group_status is StatusEnum.ready
+
+
+@pytest.mark.parametrize(
+    "acceptable,expected_status",
+    [
+        (True, StatusEnum.accepted),
+        (False, StatusEnum.failed),
+    ],
+)
+async def test_group_force_accept(
+    *,
+    acceptable: bool,
+    expected_status: StatusEnum,
+    test_campaign_groups: str,
+    session: AsyncSession,
+    aclient: AsyncClient,
+) -> None:
+    """Tests the unconditional acceptance of a failed group."""
+    campaign_id = urlparse(url=test_campaign_groups).path.split("/")[-2:][0]
+
+    # Fetch and prepare a step
+    node_id = uuid5(UUID(campaign_id), "lambert.1")
+    node = await session.get_one(Node, node_id)
+    node_machine = StepMachine(o=node)
+    await node_machine.trigger("prepare")
+
+    # Fetch and prepare a group
+    s = (
+        select(Node)
+        .where(Node.name == "lambert_group_001")
+        .where(Node.namespace == campaign_id)
+        .where(Node.version == 1)
+    )
+
+    group = (await session.exec(s)).one()
+    group_machine = GroupMachine(o=group, initial_state=group.status)
+    await session.commit()
+
+    await group_machine.trigger("prepare")
+    with patch(
+        "lsst.cmservice.machines.node.GroupMachine.do_start",
+        side_effect=RuntimeError("Error: unknown error"),
+    ):
+        await group_machine.trigger("start")
+
+    await session.refresh(group, ["status", "metadata_", "machine"])
+
+    # assert node failed
+    x = await aclient.get(f"/cm-service/v2/nodes/{group.id}")
+    assert x.is_success
+    assert x.json()["status"] == "failed"
+
+    # - trigger 'force' by setting the status to accepted
+    x = await aclient.patch(
+        f"/cm-service/v2/nodes/{group.id}",
+        json={"status": "accepted", "force": acceptable},
+        headers={"Content-Type": "application/merge-patch+json"},
+    )
+    assert x.is_success
+    await session.refresh(group, ["status", "metadata_", "machine"])
+    group_status = group.status
+    assert group_status is expected_status
