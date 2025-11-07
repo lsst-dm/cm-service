@@ -84,6 +84,7 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         self.machine.before_prepare("do_prepare")
         self.machine.before_unprepare("do_unprepare")
         self.machine.before_start("do_start")
+        self.machine.before_retry("do_retry")
 
         self.templates = [
             ("bps_submit_yaml.j2", f"{self.db_model.name}_bps_config.yaml"),
@@ -430,16 +431,26 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
                 return False
 
     async def do_retry(self, event: EventData) -> None:
-        """Reverts the running status of a Group node to Ready.
+        """Reverts the running status of a Group node from Failed to Ready.
 
         Basic options for retry are (1) retry from scratch (new bps submit) or
         retry with recovery (bps restart). Additional options based on emergent
         failure scenarios can be modeled here as well.
         """
-        # TODO a group under retry (transition from failed->ready) may manip-
-        # ulate the artifacts for the Node by changing, e.g., bps submit to
-        # bps restart if a quantum graph file is present.
+        # The core behavior of retry is to purge the previous runtime metadata
+        # from the node. Without a change to the version of the Node, there is
+        # no expectation that differences in artifacts require them to be re-
+        # rendered.
 
-        # Potentially, a pilot could place a YAML file in the group's directory
-        # with some flags related to how to retry the group
-        ...
+        # remove the BPS runtime metadata
+        self.db_model.metadata_.pop("bps", None)
+
+        # increment the number of retries tracked by the node
+        self.db_model.metadata_["retries"] = self.db_model.metadata_.get("retries", 0) + 1
+
+        # TODO a group under retry may manipulate the artifacts for the Node by
+        # changing, e.g., bps submit to bps restart if a quantum graph exists
+
+        # TODO Potentially, a pilot could place a YAML file in the group's
+        # directory with some flags related to how to retry the group, or edit
+        # the group artifacts manually.

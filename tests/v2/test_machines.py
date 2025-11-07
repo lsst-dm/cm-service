@@ -3,13 +3,15 @@
 import pickle
 import random
 from pathlib import Path
+from typing import cast
 from unittest.mock import Mock, patch
 from urllib.parse import urlparse
 from uuid import UUID, uuid4, uuid5
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.orm import make_transient
+from sqlalchemy.orm import make_transient, selectinload
+from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -418,7 +420,9 @@ async def test_group_prepare_replace(
         .where(Node.name == "lambert_group_001")
         .where(Node.namespace == campaign_id)
         .where(Node.version == 2)
+        .options(selectinload(cast(InstrumentedAttribute, Node.fsm)))
     )
+
     group = (await session.exec(s)).one()
     group_machine = GroupMachine(o=group)
     await group_machine.trigger("prepare")
@@ -428,3 +432,69 @@ async def test_group_prepare_replace(
     group_path = group.metadata_.get("artifact_path")
     assert group_path is not None
     assert Path(group_path).exists()
+
+
+async def test_group_fail_retry(
+    test_campaign_groups: str, session: AsyncSession, aclient: AsyncClient
+) -> None:
+    """Tests the retry/rollback behavior of a group node after a failure."""
+    campaign_id = urlparse(url=test_campaign_groups).path.split("/")[-2:][0]
+
+    # Fetch and prepare a step
+    node_id = uuid5(UUID(campaign_id), "lambert.1")
+    node = await session.get_one(Node, node_id)
+    node_machine = StepMachine(o=node)
+    await node_machine.trigger("prepare")
+
+    # Fetch and prepare a group
+    s = (
+        select(Node)
+        .where(Node.name == "lambert_group_001")
+        .where(Node.namespace == campaign_id)
+        .where(Node.version == 1)
+    )
+
+    group = (await session.exec(s)).one()
+    group_machine = GroupMachine(o=group, initial_state=group.status)
+    await group_machine.trigger("prepare")
+
+    await session.commit()
+
+    with patch(
+        "lsst.cmservice.machines.node.GroupMachine.do_start",
+        side_effect=RuntimeError("Error: unknown error"),
+    ):
+        await group_machine.trigger("start")
+
+    # assert node failed
+    x = await aclient.get(f"/cm-service/v2/nodes/{group.id}")
+    assert x.is_success
+    assert x.json()["status"] == "failed"
+
+    # - trigger 'retry' by setting the status to ready
+    x = await aclient.patch(
+        f"/cm-service/v2/nodes/{group.id}",
+        json={"status": "ready"},
+        headers={"Content-Type": "application/merge-patch+json"},
+    )
+    assert x.is_success
+    await session.refresh(group, ["status", "metadata_"])
+    group_status = group.status
+    assert group_status is StatusEnum.ready
+    assert group.metadata_["retries"] == 1
+
+    x = await aclient.get(
+        x.headers["StatusUpdate"],
+    )
+
+    group_machine = GroupMachine(o=group, initial_state=group.status)
+
+    with patch(
+        "lsst.cmservice.machines.node.GroupMachine.do_start",
+        return_value=True,
+    ):
+        await group_machine.trigger("start")
+
+    await session.refresh(group, ["status"])
+    group_status = group.status
+    assert group_status is StatusEnum.running
