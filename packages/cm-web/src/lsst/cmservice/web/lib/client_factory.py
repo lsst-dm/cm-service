@@ -44,6 +44,7 @@ class ClientFactory:
                 "max_keepalive_connections": 20,
                 "keepalive_expiry": 30.0,
             },
+            "timeout": settings.timeout,
         }
 
     async def get_aclient(self) -> httpx.AsyncClient:

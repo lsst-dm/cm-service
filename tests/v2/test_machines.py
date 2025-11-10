@@ -2,6 +2,7 @@
 
 import pickle
 import random
+from pathlib import Path
 from unittest.mock import Mock, patch
 from urllib.parse import urlparse
 from uuid import UUID, uuid4, uuid5
@@ -321,3 +322,109 @@ async def test_action_node_htcondor(test_campaign_groups: str, session: AsyncSes
     collect_machine = StepCollectMachine(o=collect)
     await collect_machine.trigger("prepare")
     assert len(await get_activity_log_errors(session, campaign_id)) == 0
+
+
+async def test_group_config_chain(test_campaign_groups: str, session: AsyncSession) -> None:
+    """Tests that a prepared group has the correct config chain lookup"""
+    campaign_id = urlparse(url=test_campaign_groups).path.split("/")[-2:][0]
+
+    # Fetch a step
+    node_id = uuid5(UUID(campaign_id), "lambert.1")
+    node = await session.get_one(Node, node_id)
+
+    # Add step-specific configuration
+    node.configuration["butler"] = {}
+    node.configuration["butler"]["predicates"] = [
+        "exposure >= 1234567890",
+        "exposure < 2345678901",
+    ]
+    await session.commit()
+
+    # Prepare the step
+    node_machine = StepMachine(o=node)
+    await node_machine.trigger("prepare")
+
+    # Fetch the group
+    s = select(Node).where(Node.name == "lambert_group_001").where(Node.namespace == campaign_id)
+    group = (await session.exec(s)).one()
+
+    # Check group's configuration
+    predicates = group.configuration.get("butler", {}).get("predicates", [])
+
+    # campaign-level predicates
+    assert "instrument='NOSTROMO'" in predicates
+
+    # step-specific predicates
+    assert "exposure >= 1234567890" in predicates
+    assert "exposure < 2345678901" in predicates
+
+    # group-specific predicate
+    assert "(1=1)" in predicates
+
+
+async def test_group_prepare_replace(
+    test_campaign_groups: str, session: AsyncSession, aclient: AsyncClient
+) -> None:
+    """Tests the replacement of a node after its preparation and that group
+    artifact paths do not interfere with each other.
+    """
+    campaign_id = urlparse(url=test_campaign_groups).path.split("/")[-2:][0]
+
+    # Fetch and prepare a step
+    node_id = uuid5(UUID(campaign_id), "lambert.1")
+    node = await session.get_one(Node, node_id)
+    node_machine = StepMachine(o=node)
+    await node_machine.trigger("prepare")
+
+    # Fetch and prepare a group
+    s = (
+        select(Node)
+        .where(Node.name == "lambert_group_001")
+        .where(Node.namespace == campaign_id)
+        .where(Node.version == 1)
+    )
+
+    group = (await session.exec(s)).one()
+    group_machine = GroupMachine(o=group)
+    await group_machine.trigger("prepare")
+
+    # Assert the artifact path exists
+    group_path = group.metadata_.get("artifact_path")
+    assert group_path is not None
+    assert Path(group_path).exists()
+
+    # Replace the group with a new version
+    x = await aclient.patch(
+        f"/cm-service/v2/nodes/{group.id}",
+        headers={"Content-Type": "application/json-patch+json"},
+        json=[
+            {
+                "op": "add",
+                "path": "/configuration/butler/predicates/-",
+                "value": "exposure != 1324567890",
+            },
+        ],
+    )
+    assert x.is_success
+    new_group = x.json()
+    x = await aclient.put(
+        f"/cm-service/v2/campaigns/{campaign_id}/graph/nodes/{group.id}?with-node={new_group['id']}",
+    )
+    assert x.is_success
+
+    # Prepare the new group node
+    s = (
+        select(Node)
+        .where(Node.name == "lambert_group_001")
+        .where(Node.namespace == campaign_id)
+        .where(Node.version == 2)
+    )
+    group = (await session.exec(s)).one()
+    group_machine = GroupMachine(o=group)
+    await group_machine.trigger("prepare")
+
+    # Assert that the new group's artifact path exists and that the previous
+    # group's path does not interfere
+    group_path = group.metadata_.get("artifact_path")
+    assert group_path is not None
+    assert Path(group_path).exists()

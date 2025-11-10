@@ -42,7 +42,7 @@ class BpsConfiguration(BaseModel):
 
     lsst_distrib_dir: str = Field(
         description="Default distribution directory from which to setup lsst",
-        default="/sdf/group/rubin/sw",
+        default="/sdf/group/rubin/sw/w_latest",
     )
 
     bps_bin: str = Field(

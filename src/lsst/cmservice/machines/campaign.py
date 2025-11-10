@@ -43,6 +43,7 @@ TRANSITIONS = [
     },
     # User-initiated transitions
     {"trigger": "pause", "source": StatusEnum.running, "dest": StatusEnum.paused},
+    {"trigger": "reject", "source": "*", "dest": StatusEnum.rejected},
     {
         "trigger": "resume",
         "source": StatusEnum.paused,

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 import yaml
 from anyio import Path, TemporaryDirectory
 from jinja2 import Environment, PackageLoader, Template
-from sqlalchemy.exc import NoResultFound
+from sqlalchemy.exc import MissingGreenlet, NoResultFound
 from sqlmodel import desc, or_, select
 from transitions import EventData
 
@@ -129,15 +129,40 @@ class FilesystemActionMixin(ActionMixIn):
         # If the node's metadata has an artifact path specified, we use that
         # as a parent path, otherwise we use the campaign path
         lsst_artifact_path = self.configuration_chain["lsst"]["artifact_path"]
-        campaign_artifact_path = await (Path(lsst_artifact_path) / str(self.db_model.namespace)).resolve()
+
+        # Use the name of the node's related campaign if it is available,
+        # otherwise fall back to the campaign's id. The MissingGreenlet is for
+        # cases where a lazy relationship lookup is invalid because it's
+        # attempted outside an async session context (some tests may invoke
+        # this case depending on how the Node was initially loaded)
+        try:
+            campaign_name = self.db_model.campaign.name
+        except (AttributeError, MissingGreenlet):
+            campaign_name = str(self.db_model.namespace)
+        campaign_artifact_path = await (Path(lsst_artifact_path) / campaign_name).resolve()
         parent_path = Path(
             self.db_model.metadata_.get(
                 "artifact_path",
                 campaign_artifact_path,
             )
         )
-        self.artifact_path = parent_path / self.db_model.kind.name / self.db_model.name
-        await self.artifact_path.mkdir(parents=True, exist_ok=False)
+
+        # if the node's name is already in the path, then this node is probably
+        # a new version of another node.
+        if self.db_model.name in str(parent_path):
+            self.artifact_path = parent_path.parent / f"{self.db_model.name}.v{self.db_model.version}"
+        else:
+            self.artifact_path = (
+                parent_path / self.db_model.kind.name / f"{self.db_model.name}.v{self.db_model.version}"
+            )
+
+        try:
+            await self.artifact_path.mkdir(parents=True, exist_ok=False)
+            # Update the metadata model for the node after the path has been
+            # successfully created
+            self.db_model.metadata_["artifact_path"] = str(self.artifact_path)
+        except FileExistsError:
+            raise
 
     async def assemble_config_chain(self, event: EventData) -> None:
         """Constructs and sets the `configuration_chain` instance attribute."""
@@ -245,8 +270,8 @@ class HTCondorLaunchMixin(LaunchMixIn):
         lsst_config["launcher"].append(
             """export LSST_DISTRIB_DIR="{{ lsst.lsst_distrib_dir.rstrip("/") }}" """
         )
-        lsst_config["launcher"].append("""source ${LSST_DISTRIB_DIR}/${LSST_VERSION}/loadLSST.bash""")
-        lsst_config["launcher"].append("""setup lsst_distrib""")
+        lsst_config["launcher"].append("""source ${LSST_DISTRIB_DIR}/loadLSST.bash""")
+        lsst_config["launcher"].append("""setup -t ${LSST_VERSION} lsst_distrib""")
         self.configuration_chain["lsst"] = self.configuration_chain["lsst"].new_child(lsst_config)
 
     async def launch_prepare(self, event: EventData) -> None:

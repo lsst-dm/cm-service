@@ -127,6 +127,31 @@ async def test_create_campaign(aclient: AsyncClient) -> None:
     assert len(edges) == 0
 
 
+@pytest.mark.parametrize("spec_state,expected_state", [(True, "waiting"), (False, "paused")])
+async def test_create_campaign_with_spec(
+    *, spec_state: bool, expected_state: str, aclient: AsyncClient
+) -> None:
+    """Tests the campaign creation API"""
+    campaign_name = uuid4().hex[-8:]
+
+    # Test successful campaign creation
+    x = await aclient.post(
+        "/cm-service/v2/campaigns",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "campaign",
+            "metadata": {"name": campaign_name},
+            "spec": {
+                "auto_transition": spec_state,
+            },
+        },
+    )
+    assert x.is_success
+
+    campaign = x.json()
+    assert campaign["status"] == expected_state
+
+
 async def test_patch_campaign(aclient: AsyncClient, caplog: pytest.LogCaptureFixture) -> None:
     """Tests the campaign update API"""
     # Create a new campaign with spec data

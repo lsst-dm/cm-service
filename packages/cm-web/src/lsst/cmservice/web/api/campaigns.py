@@ -3,7 +3,7 @@ from collections.abc import AsyncGenerator, Sequence
 from functools import partial
 
 from httpx import AsyncClient
-from nicegui import ui
+from nicegui import app, ui
 from nicegui.events import ValueChangeEventArguments
 
 from lsst.cmservice.common.enums import DEFAULT_NAMESPACE
@@ -106,20 +106,17 @@ async def toggle_campaign_state(e: ValueChangeEventArguments, campaign: dict) ->
     campaign_id = campaign["id"]
     n = ui.notification(timeout=None)
 
-    patch_data: dict[str, str]
     if e.value:
-        toggle_action = "start"
         n.message = f"Starting campaign {campaign_name}"
-        patch_data = {"status": "running"}
+        new_status = "running"
     else:
-        toggle_action = "pause"
         n.message = f"Pausing campaign {campaign_name}"
-        patch_data = {"status": "paused"}
+        new_status = "paused"
 
     async with CLIENT_FACTORY.aclient() as aclient:
         r = await aclient.patch(
             f"/campaigns/{campaign_id}",
-            json=patch_data,
+            json={"status": new_status},
             headers={"Content-Type": "application/merge-patch+json"},
         )
         r.raise_for_status()
@@ -139,10 +136,11 @@ async def toggle_campaign_state(e: ValueChangeEventArguments, campaign: dict) ->
     n.spinner = False
     if error:
         n.color = "negative"
-        message = f"Failed to {toggle_action} {campaign_name}: {error}"
+        message = f"Failed to set {campaign_name} to {new_status}: {error}"
         n.message = message
         n.close_button = True
     else:
+        app.storage.user[campaign_id]["status"] = new_status
         n.color = "positive"
-        n.message = f"{toggle_action} {campaign_name}"
+        n.message = f"{campaign_name} is now {new_status}"
         n.timeout = 3.0

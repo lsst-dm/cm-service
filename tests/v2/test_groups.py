@@ -155,6 +155,7 @@ async def test_bps_stdout_parsing(session: AsyncSession) -> None:
     event = MagicMock()
     event.transition.source = "running"
     event.transition.dest = "running"
+    event.kwargs = {}
 
     # Test the successful case
     bps = {"stdout_log": str(Path(__file__).parent.parent / "fixtures/bps/bps_stdout.log")}

@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-from nicegui import ui
+from functools import partial
+
+from nicegui import app, ui
 from yaml import dump
 
 from .. import api
 from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.enum import StatusDecorators
 from ..lib.timestamp import iso_timestamp
+from ..settings import settings
 from .common import cm_frame
 
 
@@ -111,21 +114,48 @@ async def node_metadata_display(node: dict) -> None:
     ui.code(content=node_metadata, language="yaml").classes("w-full")
 
 
-@ui.page("/node/{id}")
+@ui.refreshable
+async def node_status_chip(node: dict) -> None:
+    node_status = StatusDecorators[node["status"]]
+    status, set_status = ui.state(node["status"])
+    icon, set_icon = ui.state(node_status.emoji)
+    color, set_color = ui.state(node_status.hex)
+
+    ui.chip(status, icon=icon, color=color).tooltip("Node Status")
+
+
+async def node_advance_chip(node: dict) -> None:
+    """Adds a chip as a state-advance button for the Node."""
+    node_id = node["id"]
+    campaign_id = node["namespace"]
+    icon = app.storage.user[node_id]["icon"] = app.storage.user[node_id].get("icon", "fast_forward")
+    label = app.storage.user[node_id]["label"] = app.storage.user[node_id].get("label", "")
+    fast_forward = partial(api.fast_forward_node, n0=node_id)
+    ui.chip(label, icon=icon, color="white", on_click=fast_forward).tooltip("Step Forward").bind_icon_from(
+        app.storage.user[node_id], "icon"
+    ).bind_text_from(app.storage.user[node_id], "label").bind_visibility_from(
+        app.storage.user[campaign_id], target_name="status", value="paused"
+    )
+
+
+@ui.page("/node/{id}", response_timeout=settings.timeout)
 async def node_detail(id: str) -> None:
     """Builds a Node Detail ui page."""
+    if app.storage.user.get(id) is None:
+        app.storage.user[id] = {}
     data = await api.describe_one_node(id=id)
     node = data["node"]
-    node_status = StatusDecorators[node["status"]]
     with cm_frame("Node Detail", [node["name"]], footers=[node["id"]]):
         with ui.row():
             with ui.link(target=f"/campaign/{node['namespace']}"):
                 ui.chip("Campaign", icon="shape_line", color="white").tooltip(node["namespace"])
             ui.chip(node["kind"], icon="fingerprint", color="white").tooltip("Node Kind")
             ui.chip(node["version"], icon="commit", color="white").tooltip("Node Version")
-            ui.chip(node["status"], icon=node_status.emoji, color=node_status.hex).tooltip("Node Status")
+            await node_status_chip(node)
             if node["status"] == "failed":
                 ui.chip("retry", icon="restart_alt", color="accent").tooltip("Retry a Failed Node")
+            # if campaign is paused, then show transport (step) control
+            await node_advance_chip(node)
         ui.separator()
 
         with ui.tabs().classes("items-center w-full") as tabs:

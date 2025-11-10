@@ -2,11 +2,13 @@ import pickle
 from asyncio import Task as AsyncTask
 from asyncio import TaskGroup, create_task
 from collections.abc import Awaitable, Mapping
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 from uuid import UUID, uuid5
 
+import networkx as nx
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import make_transient
+from sqlalchemy.orm import make_transient, selectinload
+from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from transitions import Event
@@ -21,6 +23,66 @@ from ..machines.node import NodeMachine, node_machine_factory
 from .logging import LOGGER
 
 logger = LOGGER.bind(module=__name__)
+
+
+async def daemon_process_node(session: AsyncSession, node: Node, request_id: str | None = None) -> None:
+    """Processes a single state transition for a single Node by constructing
+    a ``Task`` record for the next "desired" status along the Node's "happy
+    path".
+
+    This function is usually called by the `consider_campaigns` phase of a
+    daemon iteration for each "processable" node in a campaign graph, but can
+    be also called manually for a specific Node, as in an RPC API.
+    """
+    logger.info("Daemon considering node", id=str(node.id))
+    desired_state = node.status.next_status()
+    node_task = Task(
+        id=uuid5(node.id, desired_state.name),
+        namespace=node.namespace,
+        node=node.id,
+        status=desired_state,
+        previous_status=node.status,
+    )
+    if request_id is not None:
+        node_task.metadata_["request_id"] = request_id
+    statement = insert(node_task.__table__).values(**node_task.model_dump(by_alias=True))  # type: ignore[attr-defined]
+
+    # When testing or developing, allow the daemon to upsert tasks
+    # that already exist by unsetting their submitted_at/finished_at
+    if Features.ALLOW_TASK_UPSERT in config.features.enabled:
+        statement = statement.on_conflict_do_update(
+            index_elements=[col.name for col in node_task.__table__.primary_key],  # type: ignore[attr-defined]
+            set_={col(Task.finished_at): None, col(Task.submitted_at): None},
+        )
+    else:
+        statement = statement.on_conflict_do_nothing()
+    await session.exec(statement)
+
+
+async def assemble_campaign_graph(session: AsyncSession, campaign_id: UUID) -> nx.DiGraph:
+    """Assembles a campaign graph for the purpose of identifying processable
+    nodes for a campaign.
+    """
+    # Fetch the Edges for the campaign
+    e_statement = select(Edge).filter_by(namespace=campaign_id)
+    edges = (await session.exec(e_statement)).all()
+    campaign_graph = await graph.graph_from_edge_list_v2(edges=edges, session=session)
+    return campaign_graph
+
+
+async def daemon_consider_campaign(
+    session: AsyncSession, campaign_id: UUID, request_id: str | None = None
+) -> None:
+    """Considers a single campaign for graph evolution. This is "phase one"
+    of the daemon loop.
+    """
+    logger.info("Daemon considering campaign", id=campaign_id)
+
+    campaign_graph = await assemble_campaign_graph(session, campaign_id)
+
+    # Create or update tasks for each Processable Node in a campaign's graph
+    for node in graph.processable_graph_nodes(campaign_graph):
+        await daemon_process_node(session, node, request_id=request_id)
 
 
 async def consider_campaigns(session: AsyncSession) -> None:
@@ -42,36 +104,19 @@ async def consider_campaigns(session: AsyncSession) -> None:
     campaigns = (await session.exec(c_statement)).all()
 
     for campaign_id in campaigns:
-        logger.info("Daemon considering campaign", id=campaign_id)
+        await daemon_consider_campaign(session, campaign_id)
 
-        # Fetch the Edges for the campaign
-        e_statement = select(Edge).filter_by(namespace=campaign_id)
-        edges = (await session.exec(e_statement)).all()
-        campaign_graph = await graph.graph_from_edge_list_v2(edges=edges, session=session)
-
-        for node in graph.processable_graph_nodes(campaign_graph):
-            logger.info("Daemon considering node", id=str(node.id))
-            desired_state = node.status.next_status()
-            node_task = Task(
-                id=uuid5(node.id, desired_state.name),
-                namespace=campaign_id,
-                node=node.id,
-                status=desired_state,
-                previous_status=node.status,
-            )
-            statement = insert(node_task.__table__).values(**node_task.model_dump())  # type: ignore[attr-defined]
-
-            # When testing or developing, allow the daemon to upsert tasks
-            # that already exist by unsetting their submitted_at/finished_at
-            if Features.ALLOW_TASK_UPSERT in config.features.enabled:
-                statement = statement.on_conflict_do_update(
-                    constraint="tasks_v2_pkey",  # FIXME discover this constraint programatically
-                    set_={col(Task.finished_at): None, col(Task.submitted_at): None},
-                )
-            else:
-                statement = statement.on_conflict_do_nothing()
-            await session.exec(statement)
-
+    # For campaigns in paused state, we want to make sure any RUNNING nodes in
+    # those campaigns are checked.
+    n_statement = (
+        select(Node)
+        .join(Campaign)
+        .where(Campaign.status == StatusEnum.paused)
+        .where(Node.status == StatusEnum.running)
+    )
+    nodes = (await session.exec(n_statement)).all()
+    for node in nodes:
+        await daemon_process_node(session, node)
     await session.commit()
 
 
@@ -88,7 +133,11 @@ async def consider_nodes(session: AsyncSession) -> None:
     new values as necessary. The Task is not returned to the Task table.
     """
     # Select and lock unsubmitted tasks
-    statement = select(Task).where(col(Task.submitted_at).is_(None))
+    statement = (
+        select(Task)
+        .where(col(Task.submitted_at).is_(None))
+        .options(selectinload(cast(InstrumentedAttribute, Task.node_orm)))
+    )
     # TODO add filter criteria for priority and site affinity
     statement = statement.with_for_update(skip_locked=True)
 
@@ -99,7 +148,9 @@ async def consider_nodes(session: AsyncSession) -> None:
     # being considered in the current iteration.
     async with TaskGroup() as tg:
         for cm_task in cm_tasks:
-            node = await session.get_one(Node, cm_task.node)
+            node = cm_task.node_orm
+            request_id = node.metadata_.get("request_id")
+            logger.info("Daemon evolving node", id=str(node.id), task=str(cm_task.id), request_id=request_id)
 
             # the task's status field is the target status for the node, so the
             # daemon intends to evolve the node machine to that state.
@@ -144,7 +195,7 @@ async def consider_nodes(session: AsyncSession) -> None:
                 continue
 
             # Add the node transition trigger method to the task group
-            task = tg.create_task(node_machine.trigger(trigger), name=str(cm_task.id))
+            task = tg.create_task(node_machine.trigger(trigger, request_id=request_id), name=str(cm_task.id))
             task.add_done_callback(task_runner_callback)
 
             # wrap up - update the task and commit

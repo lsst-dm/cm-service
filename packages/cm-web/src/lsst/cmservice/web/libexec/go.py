@@ -16,4 +16,5 @@ ui.run(
     title="Campaign Management",
     port=settings.server_port,
     favicon=static_path / "favicon.png",
+    storage_secret="justbetweenyouandme",
 )
