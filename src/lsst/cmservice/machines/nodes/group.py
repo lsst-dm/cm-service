@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import shutil
 from collections import ChainMap
 from os.path import expandvars
 from types import ModuleType
 from typing import Any
 
 from anyio import Path
-from fastapi.concurrency import run_in_threadpool
 from transitions import EventData
 
 from lsst.ctrl.bps import WmsRunReport, WmsStates
@@ -85,11 +83,26 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         self.machine.before_unprepare("do_unprepare")
         self.machine.before_start("do_start")
         self.machine.before_retry("do_retry")
+        self.machine.before_reset("do_reset")
 
         self.templates = [
             ("bps_submit_yaml.j2", f"{self.db_model.name}_bps_config.yaml"),
             ("wms_submit_sh.j2", f"{self.db_model.name}.sh"),
         ]
+
+    async def do_prepare(self, event: EventData) -> None:
+        """Callback invoked when executing the "prepare" transition."""
+
+        # A Mixin should implement a action_prepare
+        await self.action_prepare(event)
+
+        await self.bps_prepare(event)
+
+        # A Mixin should implement a launch_prepare
+        await self.launch_prepare(event)
+
+        # Render output artifacts
+        await self.render_action_templates(event)
 
     async def render_bps_includes(self, event: EventData) -> list[str]:
         """BPS Include files get special treatment here for legacy and pract-
@@ -213,30 +226,6 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         # Prepare BPS Include Files
         bps_config["include_files"] = await self.render_bps_includes(event)
         self.configuration_chain["bps"] = self.configuration_chain["bps"].new_child(bps_config)
-
-    async def do_prepare(self, event: EventData) -> None:
-        """Action method invoked when executing the "prepare" transition."""
-
-        # A Mixin should implement a action_prepare
-        await self.action_prepare(event)
-
-        await self.bps_prepare(event)
-
-        # A Mixin should implement a launch_prepare
-        await self.launch_prepare(event)
-
-        # Render output artifacts
-        await self.render_action_templates(event)
-
-    async def do_unprepare(self, event: EventData) -> None:
-        """Action method invoked when executing the "unprepare" transition."""
-        logger.info("Unpreparing Node", id=str(self.db_model.id))
-        await self.get_artifact_path(event)
-
-        # Remove any group-specific working directory from the campaign's
-        # artifact path.
-        if await self.artifact_path.exists():
-            await run_in_threadpool(shutil.rmtree, self.artifact_path)
 
     async def check_start(self, event: EventData) -> None:
         """Callback invoked after the machine has entered the Start state but
@@ -454,3 +443,14 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         # TODO Potentially, a pilot could place a YAML file in the group's
         # directory with some flags related to how to retry the group, or edit
         # the group artifacts manually.
+
+    async def do_reset(self, event: EventData) -> None:
+        """Revers the status of a Group node from Failed to Waiting."""
+
+        # remove the BPS runtime metadata
+        self.db_model.metadata_.pop("bps", None)
+
+        # Additionally, any artifacts created by the node should be removed,
+        # and because this is not a new version of the Node, the previous
+        # artifacts are not preserved.
+        await self.action_reset(event)

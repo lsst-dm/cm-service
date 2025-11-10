@@ -456,15 +456,16 @@ async def test_group_fail_retry(
 
     group = (await session.exec(s)).one()
     group_machine = GroupMachine(o=group, initial_state=group.status)
-    await group_machine.trigger("prepare")
-
     await session.commit()
 
+    await group_machine.trigger("prepare")
     with patch(
         "lsst.cmservice.machines.node.GroupMachine.do_start",
         side_effect=RuntimeError("Error: unknown error"),
     ):
         await group_machine.trigger("start")
+
+    await session.refresh(group, ["status", "metadata_", "machine"])
 
     # assert node failed
     x = await aclient.get(f"/cm-service/v2/nodes/{group.id}")
@@ -478,7 +479,7 @@ async def test_group_fail_retry(
         headers={"Content-Type": "application/merge-patch+json"},
     )
     assert x.is_success
-    await session.refresh(group, ["status", "metadata_"])
+    await session.refresh(group, ["status", "metadata_", "machine"])
     group_status = group.status
     assert group_status is StatusEnum.ready
     assert group.metadata_["retries"] == 1
@@ -487,7 +488,9 @@ async def test_group_fail_retry(
         x.headers["StatusUpdate"],
     )
 
-    group_machine = GroupMachine(o=group, initial_state=group.status)
+    group_machine_pickle = await session.get_one(Machine, group.machine)
+    group_machine = (pickle.loads(group_machine_pickle.state)).model
+    group_machine.db_model = group
 
     with patch(
         "lsst.cmservice.machines.node.GroupMachine.do_start",
@@ -498,3 +501,34 @@ async def test_group_fail_retry(
     await session.refresh(group, ["status"])
     group_status = group.status
     assert group_status is StatusEnum.running
+
+    group_artifact_path = group.metadata_.get("artifact_path")
+    assert group_artifact_path is not None
+
+    # Cause the running group to fail
+    with patch(
+        "lsst.cmservice.machines.node.GroupMachine.is_done_running",
+        side_effect=RuntimeError("Error: unknown error"),
+    ):
+        await group_machine.trigger("finish")
+
+    # The artifact path should exist
+    assert Path(group_artifact_path).exists()
+
+    await session.refresh(group, ["status"])
+    group_status = group.status
+    assert group_status is StatusEnum.failed
+
+    # - trigger 'reset' by setting the status to waiting
+    x = await aclient.patch(
+        f"/cm-service/v2/nodes/{group.id}",
+        json={"status": "waiting"},
+        headers={"Content-Type": "application/merge-patch+json"},
+    )
+    assert x.is_success
+    await session.refresh(group, ["status", "metadata_"])
+    group_status = group.status
+    assert group_status is StatusEnum.waiting
+
+    # The artifact path should not exist
+    assert not Path(group_artifact_path).exists()

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import shutil
 from collections.abc import AsyncGenerator
 from os.path import expandvars
 from typing import TYPE_CHECKING, Any
 
 import yaml
 from anyio import Path, TemporaryDirectory
+from fastapi.concurrency import run_in_threadpool
 from jinja2 import Environment, PackageLoader, Template
 from sqlalchemy.exc import MissingGreenlet, NoResultFound
 from sqlmodel import desc, or_, select
@@ -209,6 +211,10 @@ class FilesystemActionMixin(ActionMixIn):
         # Each template is rendered in two passes. This supports the use of
         # *template strings* in variable values that may be rendered to a final
         # form in the second pass.
+        # FIXME this assumes that the output destination is always a filesystem
+        # location accessible by the the execution environment. This should be
+        # refactored to render artifacts to a temporary directory and then hand
+        # off the rendered artifacts to the Action mixin for final disposition.
         for template, filename in self.templates:
             output_path = self.artifact_path / filename
             action_template = action_template_environment.get_template(template)
@@ -237,6 +243,26 @@ class FilesystemActionMixin(ActionMixIn):
             local_artifact = Path(temp_dir) / remote_artifact.name
             await local_artifact.write_bytes(remote_bytes)
             yield local_artifact
+
+    async def action_reset(self, event: EventData) -> None:
+        """Perform a reset operation on an action mixin.
+
+        This should be called when the associated Node executes a callback for
+        a reset trigger.
+        """
+        await self.action_unprepare(event)
+
+    async def action_unprepare(self, event: EventData) -> None:
+        """Action method invoked when executing the "unprepare" transition."""
+        logger.info("Unpreparing Node", id=str(self.db_model.id))
+
+        # Remove any group-specific working directory from the campaign's
+        # artifact path.
+        if hasattr(self, "artifact_path") and await self.artifact_path.exists():
+            await run_in_threadpool(shutil.rmtree, self.artifact_path)
+
+        # Remove the group's configuration chain
+        del self.configuration_chain
 
 
 class HTCondorLaunchMixin(LaunchMixIn):
