@@ -105,5 +105,6 @@ async def change_node_state(
             return None
 
     # If the requested trigger is valid, perform the action
-    if await getattr(node_machine, f"may_{trigger}")():
+    # NOTE we include the request_id for every callback we may invoke
+    if await getattr(node_machine, f"may_{trigger}")(request_id=request_id):
         await node_machine.trigger(trigger, request_id=request_id, force=force)
