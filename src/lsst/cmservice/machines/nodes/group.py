@@ -85,10 +85,10 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         self.machine.before_retry("do_retry")
         self.machine.before_reset("do_reset")
 
-        self.templates = [
+        self.templates = {
             ("bps_submit_yaml.j2", f"{self.db_model.name}_bps_config.yaml"),
             ("wms_submit_sh.j2", f"{self.db_model.name}.sh"),
-        ]
+        }
 
     async def do_prepare(self, event: EventData) -> None:
         """Callback invoked when executing the "prepare" transition."""
@@ -445,7 +445,7 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         # the group artifacts manually.
 
     async def do_reset(self, event: EventData) -> None:
-        """Revers the status of a Group node from Failed to Waiting."""
+        """Reverts the status of a Group node from Failed to Waiting."""
 
         # remove the BPS runtime metadata
         self.db_model.metadata_.pop("bps", None)

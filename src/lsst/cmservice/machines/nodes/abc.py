@@ -23,7 +23,7 @@ class MixIn(ABC):
     configuration_chain: dict[str, ChainMap]
     db_model: AnyStatefulObject
     session: AsyncSession
-    templates: list[tuple[str, ...]] | None = None
+    templates: set[tuple[str, ...]] | None = None
 
 
 class ActionMixIn(MixIn, ABC):

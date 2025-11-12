@@ -95,8 +95,8 @@ class FilesystemActionMixin(ActionMixIn):
         referenced within templates to specify the path component of emergent
         objects like log files.
 
-    templates: list[tuple[str, ...]]
-        A list of Jinja templates that are available in the ``lsst.cmservice``
+    templates: set[tuple[str, ...]]
+        A set of Jinja templates that are available in the ``lsst.cmservice``
         package. Each template is specified as a tuple of the template name and
         the name of the target file to which the template will be rendered.
 
@@ -319,9 +319,10 @@ class HTCondorLaunchMixin(LaunchMixIn):
             raise RuntimeError("No WMS executable template known to Node.")
 
         # Add the HTcondor submission description template
-        self.templates.append(
+        self.launch_templates = {
             ("htcondor_submit_description.j2", f"{self.db_model.name}.sub"),
-        )
+        }
+        self.templates.update(self.launch_templates)
 
         # Prepare a Launch runtime config to add to the Node's config chain
         launch_config: dict[str, Any] = {}

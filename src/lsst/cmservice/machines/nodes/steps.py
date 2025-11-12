@@ -81,9 +81,9 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
     def post_init(self) -> None:
         """Post init, set class-specific callback triggers."""
 
-        self.templates = [
+        self.templates = {
             ("wms_submit_sh.j2", f"{self.db_model.name}.sh"),
-        ]
+        }
         self.anchor_group: UUID | None = None
         self.collect_group: UUID | None = None
         self.machine.before_prepare("do_prepare")
@@ -535,9 +535,9 @@ class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin
 
     def post_init(self) -> None:
         """Post init, set class-specific callback triggers."""
-        self.templates = [
+        self.templates = {
             ("wms_submit_sh.j2", f"{self.db_model.name}.sh"),
-        ]
+        }
         self.machine.before_prepare("do_prepare")
         self.machine.before_unprepare("do_unprepare")
         self.machine.before_start("do_start")

@@ -316,9 +316,9 @@ class StartMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunch
         self.machine.before_unprepare("do_unprepare")
         self.machine.before_start("do_start")
         self.machine.before_reset("do_reset")
-        self.templates = [
+        self.templates = {
             ("wms_submit_sh.j2", f"{self.db_model.name}.sh"),
-        ]
+        }
 
     async def butler_prepare(self, event: EventData) -> None:
         """Prepares Butler collections for the campaign."""
@@ -401,9 +401,9 @@ class EndMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchMi
         self.machine.before_prepare("do_prepare")
         self.machine.before_start("do_start")
         self.machine.before_finish("do_finish")
-        self.templates = [
+        self.templates = {
             ("wms_submit_sh.j2", f"{self.db_model.name}.sh"),
-        ]
+        }
 
     async def butler_prepare(self, event: EventData) -> None:
         """Prepares Butler collections for the end of the campaign."""
