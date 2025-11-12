@@ -244,16 +244,12 @@ class FilesystemActionMixin(ActionMixIn):
             await local_artifact.write_bytes(remote_bytes)
             yield local_artifact
 
-    async def action_reset(self, event: EventData) -> None:
-        """Perform a reset operation on an action mixin.
-
-        This should be called when the associated Node executes a callback for
-        a reset trigger.
-        """
-        await self.action_unprepare(event)
-
     async def action_unprepare(self, event: EventData) -> None:
-        """Action method invoked when executing the "unprepare" transition."""
+        """Action method invoked when executing the "unprepare" transition.
+
+        When calling multiple unprepare callbacks from different mixins, the
+        action mixin should be called last.
+        """
         logger.info("Unpreparing Node", id=str(self.db_model.id))
 
         # Remove any group-specific working directory from the campaign's
@@ -263,6 +259,14 @@ class FilesystemActionMixin(ActionMixIn):
 
         # Remove the group's configuration chain
         del self.configuration_chain
+
+    async def action_reset(self, event: EventData) -> None:
+        """Perform a reset operation on an action mixin.
+
+        This should be called when the associated Node executes a callback for
+        a reset trigger.
+        """
+        await self.action_unprepare(event)
 
 
 class HTCondorLaunchMixin(LaunchMixIn):
@@ -337,6 +341,11 @@ class HTCondorLaunchMixin(LaunchMixIn):
 
         await self.lsst_prepare(event)
 
+    async def launch_unprepare(self, event: EventData) -> None:
+        """Unconfigures the preparation made by a LaunchMixin."""
+        if self.templates is not None:
+            self.templates.difference_update(self.launch_templates)
+
     async def launch(self, event: EventData) -> None:
         """Dispatch a launch event to the launch method associated with the
         node's WMS.
@@ -381,3 +390,11 @@ class HTCondorLaunchMixin(LaunchMixIn):
         cluster_id = self.db_model.metadata_.get("wms_job", 0)
         logger.debug("Checking HTCondor Job", id=str(self.db_model.id), cluster_id=cluster_id)
         return await self.launch_manager.check(cluster_id, wms_event_log_path)
+
+    async def launch_reset(self, event: EventData) -> None:
+        """Perform a reset operation on an launch mixin.
+
+        This should be called when the associated Node executes a callback for
+        a reset trigger.
+        """
+        await self.launch_unprepare(event)
