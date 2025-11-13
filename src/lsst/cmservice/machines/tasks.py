@@ -66,7 +66,10 @@ async def change_node_state(
     state changes, as by PATCHing a node using the REST API.
 
     The ``force`` argument is meant to make the state change unconditional, but
-    this is implementation-dependent within the FSM trigger callback.
+    this is implementation-dependent within the FSM trigger callback. The
+    ``force`` argument may also be used to disambiguate between "soft" and
+    "hard" transitions between the same states, such as "failed->ready" which
+    may be performed as a soft "retry" or a hard "restart".
     """
 
     logger.info(
@@ -84,7 +87,7 @@ async def change_node_state(
     trigger: str
     match (node.status, desired_state):
         case (StatusEnum.failed, StatusEnum.ready):
-            trigger = "retry"
+            trigger = "restart" if force else "retry"
         case (StatusEnum.failed, StatusEnum.waiting):
             trigger = "reset"
         case (StatusEnum.running, StatusEnum.paused):

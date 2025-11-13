@@ -25,6 +25,14 @@ class MixIn(ABC):
     session: AsyncSession
     templates: set[tuple[str, ...]] | None = None
 
+    async def _prepare_restart(self, event: EventData) -> None:
+        """Method called when preparing a node for a "restart" trigger. Any
+        MixIn with specific "restart" logic should implement it here. There is
+        no guarantee of the order in which this method is called on multiple
+        mixins. Every mixin should end this method with a ``super()`` call.
+        """
+        pass
+
 
 class ActionMixIn(MixIn, ABC):
     """ABC for an Action Mixin."""

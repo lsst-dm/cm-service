@@ -95,7 +95,7 @@ class Campaign(CampaignBase, table=True):
 
 class CampaignUpdate(BaseSQLModel):
     """Model representing updatable fields for a PATCH operation on a Campaign
-    using RFC7396.
+    or Node using RFC7396.
     """
 
     owner: str | None = None

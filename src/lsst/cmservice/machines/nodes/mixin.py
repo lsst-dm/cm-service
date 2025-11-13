@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+from collections import ChainMap
 from collections.abc import AsyncGenerator
 from os.path import expandvars
 from typing import TYPE_CHECKING, Any
@@ -221,6 +222,7 @@ class FilesystemActionMixin(ActionMixIn):
             try:
                 intermediate_output = action_template.render(self.configuration_chain)
                 rendered_output: str = Template(intermediate_output).render(self.configuration_chain)
+                # NOTE: write_text behavior is to *overwrite* existing files
                 await output_path.write_text(rendered_output)
             except yaml.YAMLError as yaml_error:
                 msg = f"Error rendering YAML template; threw {yaml_error}"
@@ -340,6 +342,39 @@ class HTCondorLaunchMixin(LaunchMixIn):
         self.configuration_chain["wms"] = self.configuration_chain["wms"].new_child(launch_config)
 
         await self.lsst_prepare(event)
+
+    async def _prepare_restart(self, event: EventData) -> None:
+        """Method to perform any actions the Mixin needs to prepare for a
+        restart.
+        """
+        if TYPE_CHECKING:
+            assert self.templates is not None
+
+        # Remove runtime log files from any previous launch attempt
+        if (
+            wms_event_log := self.configuration_chain.get("wms", ChainMap()).get("wms_event_log_path")
+        ) is not None:
+            await Path(wms_event_log).unlink(missing_ok=True)
+
+        if (
+            wms_output_log := self.configuration_chain.get("wms", ChainMap()).get("wms_output_log_path")
+        ) is not None:
+            await Path(wms_output_log).unlink(missing_ok=True)
+
+        # Update launch config to put restart script into htcondor sub exec'ble
+        launch_executable_path = Path(self.configuration_chain["wms"]["wms_executable_path"])
+        launch_executable_path = launch_executable_path.with_stem(f"{launch_executable_path.stem}_restart")
+        launch_config: dict[str, Any] = {}
+        launch_config["wms_executable_path"] = launch_executable_path
+        self.configuration_chain["wms"] = self.configuration_chain["wms"].new_child(launch_config)
+
+        # Make sure the htcondor sub template is still in play
+        self.templates.update(self.launch_templates)
+
+        try:
+            await super()._prepare_restart(event)
+        except AttributeError:
+            pass
 
     async def launch_unprepare(self, event: EventData) -> None:
         """Unconfigures the preparation made by a LaunchMixin."""

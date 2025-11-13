@@ -2,7 +2,9 @@
 
 import pickle
 import random
+from asyncio import sleep
 from pathlib import Path
+from textwrap import dedent
 from typing import cast
 from unittest.mock import Mock, patch
 from urllib.parse import urlparse
@@ -484,10 +486,6 @@ async def test_group_fail_retry(
     assert group_status is StatusEnum.ready
     assert group.metadata_["retries"] == 1
 
-    x = await aclient.get(
-        x.headers["StatusUpdate"],
-    )
-
     group_machine_pickle = await session.get_one(Machine, group.machine)
     group_machine = (pickle.loads(group_machine_pickle.state)).model
     group_machine.db_model = group
@@ -519,16 +517,142 @@ async def test_group_fail_retry(
     group_status = group.status
     assert group_status is StatusEnum.failed
 
-    # - trigger 'reset' by setting the status to waiting
+    # trigger 'reset' by setting the status to waiting with force set
     x = await aclient.patch(
         f"/cm-service/v2/nodes/{group.id}",
         json={"status": "waiting"},
         headers={"Content-Type": "application/merge-patch+json"},
     )
     assert x.is_success
+
+    # wait for and assert background task is successful
+    for i in range(5):
+        x = await aclient.get(
+            x.headers["StatusUpdate"],
+        )
+        result = x.json()
+        if len(result):
+            assert not result[0]["detail"]
+            break
+        else:
+            await sleep(1.0)
+
     await session.refresh(group, ["status", "metadata_"])
     group_status = group.status
     assert group_status is StatusEnum.waiting
 
     # The artifact path should not exist
     assert not Path(group_artifact_path).exists()
+
+
+async def test_group_restart(test_campaign_groups: str, session: AsyncSession, aclient: AsyncClient) -> None:
+    """Tests the restart behavior of a group node after a failure."""
+    campaign_id = urlparse(url=test_campaign_groups).path.split("/")[-2:][0]
+
+    # Fetch and prepare a step
+    node_id = uuid5(UUID(campaign_id), "lambert.1")
+    node = await session.get_one(Node, node_id)
+    node_machine = StepMachine(o=node)
+    await node_machine.trigger("prepare")
+
+    # Fetch and prepare a group
+    s = (
+        select(Node)
+        .where(Node.name == "lambert_group_001")
+        .where(Node.namespace == campaign_id)
+        .where(Node.version == 1)
+    )
+
+    group = (await session.exec(s)).one()
+    group_machine = GroupMachine(o=group, initial_state=group.status)
+    await session.commit()
+
+    # Prepare and start the group
+    await group_machine.trigger("prepare")
+    with patch(
+        "lsst.cmservice.machines.node.GroupMachine.do_start",
+        return_value=True,
+    ):
+        await group_machine.trigger("start")
+
+    await session.refresh(group, ["status"])
+    await session.commit()
+    group_status = group.status
+    assert group_status is StatusEnum.running
+
+    group_artifact_path = group.metadata_.get("artifact_path")
+    assert group_artifact_path is not None
+
+    # Create mock BPS runtime artifacts
+    mock_bps_submit_path = Path(group_artifact_path) / "submit" / "20251111T111100Z"
+    mock_bps_submit_path.mkdir(parents=True, exist_ok=False)
+    mock_bps_run_name = "u_cmservice_test_group_restart_lambert_001_version_1"
+
+    # Mock BPS stdout log
+    p = Path(group_artifact_path) / group_machine.configuration_chain["bps"]["stdout_log"]
+    p.write_text(
+        dedent(f"""\
+        Submit dir: {mock_bps_submit_path}
+        Run Id: 27169228.0
+        Run Name: {mock_bps_run_name}
+        """)
+    )
+
+    # Mock BPS QG file
+    p = (mock_bps_submit_path / mock_bps_run_name).with_suffix(".qg")
+    p.touch()
+
+    with (
+        patch(
+            "lsst.cmservice.machines.nodes.group.NodeMachine.is_done_running",
+            return_value=True,
+        ) as mock_a,
+        patch(
+            "lsst.cmservice.machines.nodes.group.GroupMachine.check_bps_report",
+            side_effect=RuntimeError("WMS Job is Failed"),
+        ) as mock_b,
+    ):
+        await group_machine.trigger("finish")
+        assert mock_a.called
+        assert mock_b.called
+
+    await session.refresh(group, ["status"])
+    group_status = group.status
+    assert group_status is StatusEnum.failed
+
+    # trigger 'restart' by setting the status to waiting
+    x = await aclient.patch(
+        f"/cm-service/v2/nodes/{group.id}",
+        json={"status": "ready", "force": "true"},
+        headers={"Content-Type": "application/merge-patch+json"},
+    )
+    assert x.is_success
+
+    # wait for and assert background task is successful
+    for i in range(5):
+        x = await aclient.get(
+            x.headers["StatusUpdate"],
+        )
+        result = x.json()
+        if len(result):
+            assert not result[0]["detail"]
+            break
+        else:
+            await sleep(1.0)
+
+    await session.refresh(group, ["status", "metadata_"])
+    group_status = group.status
+    assert group_status is StatusEnum.ready
+    assert group.metadata_["restarts"] == 1
+
+    # assert new and changed artifacts
+    assert (Path(group_artifact_path) / "lambert_group_001_restart.sh").exists()
+    assert (Path(group_artifact_path) / "lambert_group_001.sub").exists()
+
+    # make sure the new restart script is the payload for the htcondor sub file
+    lines = (Path(group_artifact_path) / "lambert_group_001.sub").read_text().splitlines()
+    assert f"""executable = {Path(group_artifact_path) / "lambert_group_001_restart.sh"}""" in lines
+
+    await session.refresh(group, ["status"])
+    group_status = group.status
+    assert group_status is StatusEnum.ready

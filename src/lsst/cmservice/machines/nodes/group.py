@@ -73,7 +73,7 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
     """
 
     __kind__ = [ManifestKind.group]
-    configuration_chain: dict[str, ChainMap]
+    configuration_chain: dict[str, ChainMap[str, Any]]
     artifact_path: Path
 
     def post_init(self) -> None:
@@ -84,6 +84,7 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         self.machine.before_start("do_start")
         self.machine.before_retry("do_retry")
         self.machine.before_reset("do_reset")
+        self.machine.before_restart("do_restart")
 
         self.templates = {
             ("bps_submit_yaml.j2", f"{self.db_model.name}_bps_config.yaml"),
@@ -270,6 +271,30 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         # Phase 3B: Full BPS Report
         return await self.check_bps_report(event)
 
+    async def is_restartable(self, event: EventData) -> bool:
+        """Determine whether a Group is in a restartable state.
+
+        A Group may be restarted via BPS if the node's metadata refers to a
+        bps submit directory and if a qgraph file exists in that directory.
+        These metadata will be available to the Node if a bps submit has prev-
+        iously been successful (see `capture_bps_stdout()`).
+        """
+        submit_dir_exists = False
+        qgraph_exists = False
+
+        # the group must have a known bps submit directory and this directory
+        # must still exist
+        if (bps_submit_dir := self.db_model.metadata_.get("bps", {}).get("Submit dir", None)) is not None:
+            submit_dir_exists = await Path(bps_submit_dir).exists()
+
+        # the group must have a qg file in the submit directory matching the
+        # bps run name
+        if (bps_name := self.db_model.metadata_.get("bps", {}).get("Run Name", None)) is not None:
+            qg_file = (Path(bps_submit_dir) / bps_name).with_suffix(".qg")
+            qgraph_exists = await qg_file.exists()
+
+        return all([submit_dir_exists, qgraph_exists])
+
     async def capture_bps_stdout(self, event: EventData) -> None:
         """Read the BPS stdout log file indicated by the node's configuration.
 
@@ -431,21 +456,71 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         # no expectation that differences in artifacts require them to be re-
         # rendered.
 
+        # remove the BPS runtime logs
+        if (exe_log := self.configuration_chain.get("bps", ChainMap()).get("exe_log")) is not None:
+            await Path(exe_log).unlink(missing_ok=True)
+
+        if (stdout_log := self.configuration_chain.get("bps", ChainMap()).get("stdout_log")) is not None:
+            await Path(stdout_log).unlink(missing_ok=True)
+
         # remove the BPS runtime metadata
         self.db_model.metadata_.pop("bps", None)
 
         # increment the number of retries tracked by the node
         self.db_model.metadata_["retries"] = self.db_model.metadata_.get("retries", 0) + 1
 
-        # TODO a group under retry may manipulate the artifacts for the Node by
-        # changing, e.g., bps submit to bps restart if a quantum graph exists
+    async def do_restart(self, event: EventData) -> None:
+        """Restart a Group by manipulating the rendered artifacts to affect a
+        `bps restart`.
 
+        A group may be restarted if the `is_restartable` conditional returns
+        True.
+        """
         # TODO Potentially, a pilot could place a YAML file in the group's
         # directory with some flags related to how to retry the group, or edit
         # the group artifacts manually.
 
+        # this callback needs to repeat / replace the "bps_prepare" callback
+        # with a bps restart command
+        self.command_templates = [
+            (
+                "{{bps.exe_bin}} --log-file {{bps.restart_exe_log}} "
+                "--no-log-tty restart --id {{bps.run_id}} > {{bps.restart_stdout_log}}"
+            )
+        ]
+
+        self.templates = {
+            ("wms_submit_sh.j2", f"{self.db_model.name}_restart.sh"),
+        }
+
+        # Prepare a BPS restart configuration to add to the Node's config chain
+        bps_submit_path = await (self.artifact_path / self.db_model.name).resolve()
+        bps_config: dict[str, Any] = {}
+        bps_config["restart_exe_log"] = bps_submit_path.with_stem(
+            f"{self.db_model.name}_restart_log"
+        ).with_suffix(".json")
+        bps_config["restart_stdout_log"] = bps_submit_path.with_stem(
+            f"{self.db_model.name}_restart"
+        ).with_suffix(".log")
+        bps_config["run_id"] = self.db_model.metadata_["bps"]["Submit dir"]
+        self.configuration_chain["bps"] = self.configuration_chain["bps"].new_child(bps_config)
+
+        # If any mixins in the MRO have a `_prepare_restart` method, call it
+        await self._prepare_restart(event)
+
+        # Render output artifacts
+        await self.render_action_templates(event)
+
+        # increment the number of restarts tracked by the node
+        self.db_model.metadata_["restarts"] = self.db_model.metadata_.get("restarts", 0) + 1
+
     async def do_reset(self, event: EventData) -> None:
-        """Reverts the status of a Group node from Failed to Waiting."""
+        """Reverts the status of a Group node from Failed to Waiting.
+
+        There are no configuration changes and the node version has not changed
+        but we destroy and regenerate all our artifacts before submitting the
+        work again.
+        """
 
         # remove the BPS runtime metadata
         self.db_model.metadata_.pop("bps", None)
@@ -454,3 +529,10 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         # and because this is not a new version of the Node, the previous
         # artifacts are not preserved.
         await self.action_reset(event)
+
+        # Re-execute the node's post-init callback to reset any attribute to
+        # their pre-runtime default
+        self.post_init()
+
+        # increment the number of restarts tracked by the node
+        self.db_model.metadata_["reset"] = self.db_model.metadata_.get("resets", 0) + 1
