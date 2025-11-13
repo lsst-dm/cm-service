@@ -35,6 +35,7 @@ TRANSITIONS = [
     {"trigger": "unprepare", "source": StatusEnum.ready, "dest": StatusEnum.waiting},
     {"trigger": "stop", "source": StatusEnum.paused, "dest": StatusEnum.ready},
     {"trigger": "retry", "source": StatusEnum.failed, "dest": StatusEnum.ready},
+    {"trigger": "restart", "source": StatusEnum.failed, "dest": StatusEnum.ready, "conditions": "is_restartable"},
     {"trigger": "reset", "source": StatusEnum.failed, "dest": StatusEnum.waiting},
 ]
 """Transitions available to a Node, expressed as source-destination pairs

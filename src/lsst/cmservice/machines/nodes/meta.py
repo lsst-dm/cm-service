@@ -255,6 +255,14 @@ class NodeMachine(StatefulModel):
         """
         return True
 
+    async def is_restartable(self, event: EventData) -> bool:
+        """Conditional method called to check whether a ``restart`` trigger may
+        be called.
+        """
+        # Only machines with an explicit restart mechanism should implement
+        # this callback.
+        return False
+
     async def do_start(self, event: EventData) -> None:
         """Action method invoked when executing the "start" transition.
 

@@ -63,6 +63,9 @@ class StatefulModel(ABC):
     async def is_startable(self, event: EventData) -> bool: ...
 
     @abstractmethod
+    async def is_restartable(self, event: EventData) -> bool: ...
+
+    @abstractmethod
     async def is_done_running(self, event: EventData) -> bool: ...
 
     async def may_trigger(self, trigger_name: str) -> bool:
