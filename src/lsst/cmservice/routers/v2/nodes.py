@@ -12,6 +12,7 @@ from asgi_correlation_id import correlation_id
 from deepdiff import Delta
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query, Request, Response
 from pydantic import UUID5
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -204,7 +205,7 @@ async def create_node_resource(
 
 
 @router.patch(
-    "/{node_name_or_id}",
+    "/{node_id}",
     summary="Update node detail",
     status_code=202,
 )
@@ -213,7 +214,7 @@ async def update_node_resource(
     response: Response,
     background_tasks: BackgroundTasks,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
-    node_name_or_id: str,
+    node_id: UUID5,
     patch_data: Annotated[bytes, Body()] | Sequence[JSONPatch] | CampaignUpdate,
 ) -> Node:
     """Partial update method for nodes.
@@ -255,20 +256,9 @@ async def update_node_resource(
     else:
         raise HTTPException(status_code=406, detail="Unsupported Content-Type")
 
-    s = select(Node).with_for_update()
-    # The input could be a UUID or it could be a literal name.
-    # TODO disallow the use of names because there is no unique constraint
-    try:
-        if _id := UUID(node_name_or_id):
-            s = s.where(Node.id == _id)
-    except ValueError:
-        s = s.where(Node.name == node_name_or_id)
-
-    # we want to order and sort by version, in descending order, so we always
-    # fetch only the most recent version of manifest
-    # FIXME this implies that when a node ID is provided, it should be an
-    # error if it is not the most recent version.
-    s = s.order_by(col(Node.version).desc()).limit(1)
+    # TODO it will be an IntegrityError if the targeted node is not the most
+    # recent version, it may be nicer to check this and exit early.
+    s = select(Node).with_for_update().where(Node.id == node_id)
 
     old_manifest = (await session.exec(s)).one_or_none()
     if old_manifest is None:
@@ -316,8 +306,15 @@ async def update_node_resource(
     new_manifest["metadata"].pop("mtime", None)
     new_manifest_db = Node.model_validate(new_manifest)
     new_manifest_db.status = StatusEnum.waiting
-    session.add(new_manifest_db)
-    await session.commit()
+
+    try:
+        session.add(new_manifest_db)
+        await session.commit()
+    except IntegrityError as e:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Integrity Error: {e}",
+        )
 
     response.headers["Self"] = request.url_for("read_node_resource", node_name=new_manifest_db.id).__str__()
     response.headers["Campaign"] = request.url_for(
