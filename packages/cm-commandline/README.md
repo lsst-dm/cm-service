@@ -11,7 +11,7 @@ The CLI package can be installed explicitly with `uv sync --all-packages`.
 ### Alternate Tool Installation
 The CLI package may also be installed as a `uv`-managed tool without necessarily cloning and setting up the entire `cm-service` repository:
 
-`uv tool install -p 3.12 git+https://github.com/lsst-dm/cm-service#subdirectory=packages/cm-commandline`
+`uv tool install -p 3.13 git+https://github.com/lsst-dm/cm-service#subdirectory=packages/cm-commandline`
 
 (You can target a specific branch for the installation by including `@<branchname>` just prior to `#subdirectory`.)
 

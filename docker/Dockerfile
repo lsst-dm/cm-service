@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
-ARG PYTHON_VERSION="3.12"
-ARG UV_VERSION="0.7"
+ARG PYTHON_VERSION="3.13"
+ARG UV_VERSION="0.9"
 ARG ASGI_PORT="8080"
 
 #==============================================================================

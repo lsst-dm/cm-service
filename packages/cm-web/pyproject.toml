@@ -2,7 +2,7 @@
 name = "lsst-cmservice-web"
 dynamic = ["version"]
 description = "CM Service Web App"
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.12,<3.14"
 dependencies = [
     "deepdiff>=8.6.1",
     "networkx>=3.5",
