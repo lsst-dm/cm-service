@@ -6,6 +6,7 @@ from nicegui import app, ui
 from yaml import dump
 
 from .. import api
+from ..components import dialog, strings
 from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.enum import StatusDecorators
 from ..lib.timestamp import iso_timestamp
@@ -138,6 +139,7 @@ async def node_advance_chip(node: dict) -> None:
     )
 
 
+@ui.refreshable
 @ui.page("/node/{id}", response_timeout=settings.timeout)
 async def node_detail(id: str) -> None:
     """Builds a Node Detail ui page."""
@@ -153,7 +155,11 @@ async def node_detail(id: str) -> None:
             ui.chip(node["version"], icon="commit", color="white").tooltip("Node Version")
             await node_status_chip(node)
             if node["status"] == "failed":
-                ui.chip("retry", icon="restart_alt", color="accent").tooltip("Retry a Failed Node")
+                ui.chip("recover", icon="healing", color="accent").tooltip(
+                    strings.NODE_RECOVERY_DIALOG_LABEL
+                ).props("clickable").on(
+                    "click", lambda e: dialog.NodeRecoveryPopup.click(e, node, node_detail)
+                )
             # if campaign is paused, then show transport (step) control
             await node_advance_chip(node)
         ui.separator()

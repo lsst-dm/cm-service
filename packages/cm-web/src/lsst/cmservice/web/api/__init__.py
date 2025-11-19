@@ -6,7 +6,7 @@ from .campaigns import (
     toggle_campaign_state,
 )
 from .manifests import get_one_manifest, put_one_manifest
-from .nodes import describe_one_node, fast_forward_node, get_one_node
+from .nodes import describe_one_node, fast_forward_node, get_one_node, retry_restart_node
 
 
 __all__ = [
@@ -18,6 +18,7 @@ __all__ = [
     "get_one_manifest",
     "get_one_node",
     "put_one_manifest",
+    "retry_restart_node",
     "toggle_campaign_state",
     "wait_for_activity_to_complete",
 ]

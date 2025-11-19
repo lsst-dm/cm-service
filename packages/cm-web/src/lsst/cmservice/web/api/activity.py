@@ -5,7 +5,7 @@ from nicegui import ui
 from ..lib.client_factory import CLIENT_FACTORY
 
 
-async def wait_for_activity_to_complete(url: str) -> None:
+async def wait_for_activity_to_complete(url: str, n: ui.notification) -> None:
     """Given a URL to an activity log API, wait for the activity to report a
     complete state.
     """
@@ -18,6 +18,11 @@ async def wait_for_activity_to_complete(url: str) -> None:
                 break
         activity = r.json()[0]
         if (error := activity.get("detail", {}).get("error")) is not None:
-            ui.notify(error, type="negative")
-
+            n.type = "negative"
+            n.message = error
+        else:
+            n.type = "positive"
+            n.message = "Node Recovered"
+        n.spinner = False
+        n.timeout = 5.0
     return None
