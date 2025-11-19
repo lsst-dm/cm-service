@@ -545,8 +545,25 @@ async def test_group_fail_retry(
     assert not Path(group_artifact_path).exists()
 
 
-async def test_group_restart(test_campaign_groups: str, session: AsyncSession, aclient: AsyncClient) -> None:
-    """Tests the restart behavior of a group node after a failure."""
+@pytest.mark.parametrize(
+    "restartable,expected_detail",
+    [
+        (False, "not eligible for restart"),
+        (True, ""),
+    ],
+)
+async def test_group_restart(
+    *,
+    restartable: bool,
+    expected_detail: str,
+    test_campaign_groups: str,
+    session: AsyncSession,
+    aclient: AsyncClient,
+) -> None:
+    """Tests the restart behavior of a group node after a failure.
+
+    Tests both the "not restartable" and "restartable" cases for a group.
+    """
     campaign_id = urlparse(url=test_campaign_groups).path.split("/")[-2:][0]
 
     # Fetch and prepare a step
@@ -599,8 +616,9 @@ async def test_group_restart(test_campaign_groups: str, session: AsyncSession, a
     )
 
     # Mock BPS QG file
-    p = (mock_bps_submit_path / mock_bps_run_name).with_suffix(".qg")
-    p.touch()
+    if restartable:
+        p = (mock_bps_submit_path / mock_bps_run_name).with_suffix(".qg")
+        p.touch()
 
     with (
         patch(
@@ -620,7 +638,7 @@ async def test_group_restart(test_campaign_groups: str, session: AsyncSession, a
     group_status = group.status
     assert group_status is StatusEnum.failed
 
-    # trigger 'restart' by setting the status to waiting
+    # trigger 'restart' by setting the status to ready
     x = await aclient.patch(
         f"/cm-service/v2/nodes/{group.id}",
         json={"status": "ready", "force": "true"},
@@ -629,13 +647,16 @@ async def test_group_restart(test_campaign_groups: str, session: AsyncSession, a
     assert x.is_success
 
     # wait for and assert background task is successful
+    update_url = x.headers["StatusUpdate"]
     for i in range(5):
-        x = await aclient.get(
-            x.headers["StatusUpdate"],
-        )
+        x = await aclient.get(update_url)
         result = x.json()
         if len(result):
-            assert not result[0]["detail"]
+            if not (detail := result[0]["detail"]):
+                assert not detail
+            else:
+                assert expected_detail in detail["error"]
+                return
             break
         else:
             await sleep(1.0)

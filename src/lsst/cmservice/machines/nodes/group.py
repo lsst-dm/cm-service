@@ -293,7 +293,10 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
             qg_file = (Path(bps_submit_dir) / bps_name).with_suffix(".qg")
             qgraph_exists = await qg_file.exists()
 
-        return all([submit_dir_exists, qgraph_exists])
+        may_restart = all([submit_dir_exists, qgraph_exists])
+        if not may_restart and event.kwargs.get("request_id") is not None:
+            raise RuntimeError("Node not eligible for restart")
+        return may_restart
 
     async def capture_bps_stdout(self, event: EventData) -> None:
         """Read the BPS stdout log file indicated by the node's configuration.
