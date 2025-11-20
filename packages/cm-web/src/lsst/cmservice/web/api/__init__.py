@@ -8,7 +8,6 @@ from .campaigns import (
 from .manifests import get_one_manifest, put_one_manifest
 from .nodes import describe_one_node, fast_forward_node, get_one_node, retry_restart_node
 
-
 __all__ = [
     "compile_campaign_manifests",
     "describe_one_campaign",

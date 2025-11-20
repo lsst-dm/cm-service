@@ -140,9 +140,6 @@ exclude_lines = [
 ]
 
 [tool.ruff]
-exclude = [
-    "__init__.py",
-]
 line-length = 110
 target-version = "py313"
 
