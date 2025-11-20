@@ -677,3 +677,65 @@ async def test_group_restart(
     await session.refresh(group, ["status"])
     group_status = group.status
     assert group_status is StatusEnum.ready
+
+
+@pytest.mark.parametrize(
+    "acceptable,expected_status",
+    [
+        (True, StatusEnum.accepted),
+        (False, StatusEnum.failed),
+    ],
+)
+async def test_group_force_accept(
+    *,
+    acceptable: bool,
+    expected_status: StatusEnum,
+    test_campaign_groups: str,
+    session: AsyncSession,
+    aclient: AsyncClient,
+) -> None:
+    """Tests the unconditional acceptance of a failed group."""
+    campaign_id = urlparse(url=test_campaign_groups).path.split("/")[-2:][0]
+
+    # Fetch and prepare a step
+    node_id = uuid5(UUID(campaign_id), "lambert.1")
+    node = await session.get_one(Node, node_id)
+    node_machine = StepMachine(o=node)
+    await node_machine.trigger("prepare")
+
+    # Fetch and prepare a group
+    s = (
+        select(Node)
+        .where(Node.name == "lambert_group_001")
+        .where(Node.namespace == campaign_id)
+        .where(Node.version == 1)
+    )
+
+    group = (await session.exec(s)).one()
+    group_machine = GroupMachine(o=group, initial_state=group.status)
+    await session.commit()
+
+    await group_machine.trigger("prepare")
+    with patch(
+        "lsst.cmservice.machines.node.GroupMachine.do_start",
+        side_effect=RuntimeError("Error: unknown error"),
+    ):
+        await group_machine.trigger("start")
+
+    await session.refresh(group, ["status", "metadata_", "machine"])
+
+    # assert node failed
+    x = await aclient.get(f"/cm-service/v2/nodes/{group.id}")
+    assert x.is_success
+    assert x.json()["status"] == "failed"
+
+    # - trigger 'force' by setting the status to accepted
+    x = await aclient.patch(
+        f"/cm-service/v2/nodes/{group.id}",
+        json={"status": "accepted", "force": acceptable},
+        headers={"Content-Type": "application/merge-patch+json"},
+    )
+    assert x.is_success
+    await session.refresh(group, ["status", "metadata_", "machine"])
+    group_status = group.status
+    assert group_status is expected_status

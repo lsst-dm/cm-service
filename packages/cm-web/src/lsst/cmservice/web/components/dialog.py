@@ -20,6 +20,7 @@ class NodeRecoverAction(Enum):
     restart = auto()
     retry = auto()
     reset = auto()
+    force = auto()
 
 
 class NodeAllowedActions(IntFlag):
@@ -31,6 +32,7 @@ class NodeAllowedActions(IntFlag):
     restart = auto()
     retry = auto()
     reset = auto()
+    force = auto()
 
     @classmethod
     def all(cls) -> Self:
@@ -69,6 +71,13 @@ class NodeRecoveryPopup(ui.dialog):
                         color="negative",
                         on_click=lambda: self.submit(NodeRecoverAction.reset),
                     ).tooltip(strings.NODE_RESET_TOOLTIP)
+                if NodeAllowedActions.force in allowed_actions:
+                    ui.chip(
+                        "accept",
+                        icon="auto_fix_high",
+                        color="warning",
+                        on_click=lambda: self.submit(NodeRecoverAction.force),
+                    ).tooltip(strings.NODE_FORCE_TOOLTIP)
                 ui.chip(
                     "cancel",
                     icon="cancel",
@@ -95,7 +104,9 @@ class NodeRecoveryPopup(ui.dialog):
             case NodeRecoverAction.retry:
                 await api.retry_restart_node(n0=node["id"], force=False)
             case NodeRecoverAction.reset:
-                ui.notify("Resetting node")
+                await api.retry_restart_node(n0=node["id"], force=True, reset=True)
+            case NodeRecoverAction.force:
+                await api.retry_restart_node(n0=node["id"], force=True, accept=True)
             case _:
                 # including the cancel case
                 ...

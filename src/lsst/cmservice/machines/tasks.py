@@ -97,7 +97,7 @@ async def change_node_state(
         case (_, StatusEnum.rejected):
             trigger = "reject"
         case (_, StatusEnum.accepted):
-            trigger = "finish"
+            trigger = "force" if force else "finish"
         case _:
             logger.warning(
                 "Invalid node transition requested",
