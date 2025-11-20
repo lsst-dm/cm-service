@@ -9,7 +9,7 @@ dependencies = [
     "pyyaml>=6.0.2",
     "rich>=13.0.0",
     "typer>=0.17.0",
-    "lsst-utils>=29.2025.2900",
+    "lsst-utils>=29.2025.4700",
     "lsst-cm-service",
 ]
 
