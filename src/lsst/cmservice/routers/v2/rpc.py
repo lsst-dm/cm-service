@@ -90,14 +90,17 @@ async def rpc_process_campaign_or_node(
         raise HTTPException(status_code=500, detail="Cannot process resource without a X-Request-Id")
     match target:
         case ProcessTarget() if target.node_id is not None:
-            # TODO when the RPC targets a Node, it should disallow the
-            # operation if the associated campaign is not paused.
             node = await fetch_by_id(session, Node, target.node_id)
             campaign_id = node.namespace
             if node.status.is_terminal_script():
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail="Node in a terminal state may not be processed.",
+                )
+            elif node.campaign.status not in [StatusEnum.waiting, StatusEnum.paused]:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Node must be associated with a paused campaign.",
                 )
             campaign_graph = await assemble_campaign_graph(session, campaign_id)
             # ensure the target node is "processable".
