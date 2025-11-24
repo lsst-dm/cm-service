@@ -261,6 +261,7 @@ async def update_node_resource(
     s = select(Node).with_for_update().where(Node.id == node_id)
 
     old_manifest = (await session.exec(s)).one_or_none()
+
     if old_manifest is None:
         raise HTTPException(status_code=404, detail="No such node")
 
@@ -272,6 +273,10 @@ async def update_node_resource(
         # Lazy-load the Node's Machine pickle
         if (await old_manifest.awaitable_attrs.fsm) is None:
             raise HTTPException(status_code=422, detail="No state machine found for node")
+        # Eagerly clear any transaction/locks on the objects before spawning a
+        # background task
+        await session.commit()
+        session.expunge(old_manifest)
         background_tasks.add_task(
             change_node_state, old_manifest, patch_data.status, request_id, force=patch_data.force
         )
