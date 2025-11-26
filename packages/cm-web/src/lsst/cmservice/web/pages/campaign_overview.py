@@ -6,15 +6,21 @@ from httpx import AsyncClient
 from nicegui import app, run, ui
 
 from ..api.campaigns import get_campaign_summary, toggle_campaign_state
-from ..components import dicebear
+from ..components import button, dicebear, storage
 from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.enum import Palette, StatusDecorators
 from ..settings import settings
 from .common import cm_frame
 
 
+# TODO the root page should focus on client session setup and then load the
+# overview as a subpage.
 @ui.page("/", response_timeout=settings.timeout)
 async def campaign_overview(client_: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)]) -> None:
+    await ui.context.client.connected()
+    storage.initialize_client_storage()
+
+    client_state: storage.ClientStorageModel = app.storage.client["state"]
     campaigns = await run.io_bound(get_campaign_summary, client=client_)
 
     with cm_frame("Campaign Overview"):
@@ -22,9 +28,9 @@ async def campaign_overview(client_: Annotated[AsyncClient, Depends(CLIENT_FACTO
             async for campaign in campaigns:
                 campaign_id = campaign["id"]
                 node_times: list[str] = []
-                if app.storage.user.get(campaign_id) is None:
-                    app.storage.user[campaign_id] = {}
-                app.storage.user[campaign_id]["status"] = campaign["status"]
+                if client_state.campaigns.get(campaign_id) is None:
+                    client_state.campaigns[campaign_id] = {}
+                client_state.campaigns[campaign_id]["status"] = campaign["status"]
 
                 with ui.card():
                     with ui.row():
@@ -62,11 +68,14 @@ async def campaign_overview(client_: Annotated[AsyncClient, Depends(CLIENT_FACTO
                         ).bind_text_from(campaign, target_name="status")
                         campaign_switch.enabled = not campaign_terminal
                         ui.space()
-                        ui.label(campaign_id).classes("italic text-gray-75 font-thin")
-                        ui.space()
-                        ui.chip(
-                            "Favorite",
-                            selectable=True,
-                            icon="bookmark",
-                            color=Palette.ORANGE.light,
-                        )
+                        button.FavoriteButton(id=campaign_id)
+                        with ui.fab("save_as", direction="up"):
+                            ui.fab_action(
+                                "ios_share", label="export", on_click=lambda: ui.notify("Export Campaign...")
+                            )
+                            ui.fab_action(
+                                "copy_all", label="clone", on_click=lambda: ui.notify("Clone Campaign...")
+                            )
+                    ui.label(campaign_id).classes("italic text-gray-75 font-thin")
+        with ui.page_sticky(position="bottom-right", x_offset=20, y_offset=20):
+            ui.button(icon="add", on_click=lambda: ui.notify("New Campaign...")).props("fab")
