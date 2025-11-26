@@ -157,7 +157,7 @@ async def toggle_campaign_state(e: ValueChangeEventArguments, campaign: dict) ->
         n.message = message
         n.close_button = True
     else:
-        app.storage.user[campaign_id]["status"] = new_status
+        app.storage.client["state"].campaigns[campaign_id]["status"] = new_status
         n.color = "positive"
         n.message = f"{campaign_name} is now {new_status}"
         n.timeout = 3.0

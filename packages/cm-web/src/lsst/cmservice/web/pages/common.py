@@ -6,6 +6,7 @@ from typing import Any
 
 from nicegui import ui
 
+from ..components import storage
 from ..lib.enum import Palette
 
 
@@ -15,6 +16,8 @@ def cm_frame(navigation_title: str, breadcrumbs: list[str] = [], footers: list[s
     ing of a header and footer. The generator yields to the caller when page
     content is ready to be added.
     """
+    storage.initialize_client_storage()
+
     ui.colors(
         primary=Palette.BLUE.dark,
         secondary=Palette.INDIGO.dark,

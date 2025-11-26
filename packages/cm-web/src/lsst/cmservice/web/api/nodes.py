@@ -39,6 +39,15 @@ async def describe_one_node(id: str) -> dict:
             data["logs"] = r.json()
         except HTTPStatusError:
             raise
+
+    # cache node and campaign
+    campaign_id = data["node"]["namespace"]
+    if app.storage.client["state"].nodes.get(id) is None:
+        app.storage.client["state"].nodes[id] = {}
+    if app.storage.client["state"].campaigns.get(campaign_id) is None:
+        app.storage.client["state"].campaigns[campaign_id] = {
+            "status": "unknown",
+        }
     return data
 
 
@@ -75,12 +84,13 @@ async def fast_forward_node(n0: str) -> None:
                 case _:
                     raise
         status_update_url = r.headers["StatusUpdate"]
-        app.storage.user[n0]["label"] = "Advancing..."
-        app.storage.user[n0]["icon"] = "hourglass_empty"
+        node_cache: dict = app.storage.client["state"].nodes
+        node_cache[n0]["label"] = "Advancing..."
+        node_cache[n0]["icon"] = "hourglass_empty"
         ui.notify(status_update_url, close_button="OK", timeout=5000, spinner=True)
         # . await wait_for_activity_to_complete(status_update_url)
-        app.storage.user[n0]["label"] = ""
-        app.storage.user[n0]["icon"] = "fast_forward"
+        node_cache[n0]["label"] = ""
+        node_cache[n0]["icon"] = "fast_forward"
 
 
 async def retry_restart_node(
