@@ -138,6 +138,10 @@ async def test_node_lifecycle(aclient: AsyncClient) -> None:
 
 
 async def test_node_double_update(aclient: AsyncClient) -> None:
+    """Tests that a node cannot be updated/patched twice, i.e., branching
+    configurations for versioned nodes are not allowed. Only the most recent
+    version of a node supports a patch operation.
+    """
     campaign_name = uuid4().hex[:8]
     node_name = uuid4().hex[:8]
 
@@ -190,7 +194,7 @@ async def test_node_double_update(aclient: AsyncClient) -> None:
     node = x.json()
     assert node["version"] == 2
 
-    # Update the SAME campaign node with a patch
+    # Update the SAME campaign node (version 1) with a patch, which must fail
     x = await aclient.patch(
         node_url,
         headers={"Content-Type": "application/json-patch+json"},

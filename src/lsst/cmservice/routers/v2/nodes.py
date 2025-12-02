@@ -268,7 +268,7 @@ async def update_node_resource(
         if TYPE_CHECKING:
             assert isinstance(patch_data, CampaignUpdate)
         if patch_data.status is None:
-            raise HTTPException(status_code=500, detail="Can only update Node status with RFC7396")
+            raise HTTPException(status_code=422, detail="When using RFC7396, a status must be supplied")
         # Lazy-load the Node's Machine pickle
         if (await old_manifest.awaitable_attrs.fsm) is None:
             raise HTTPException(status_code=422, detail="No state machine found for node")

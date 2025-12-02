@@ -473,7 +473,7 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         self.db_model.metadata_["retries"] = self.db_model.metadata_.get("retries", 0) + 1
 
     async def do_restart(self, event: EventData) -> None:
-        """Restart a Group by manipulating the rendered artifacts to affect a
+        """Restart a Group by manipulating the rendered artifacts to effect a
         `bps restart`.
 
         A group may be restarted if the `is_restartable` conditional returns
