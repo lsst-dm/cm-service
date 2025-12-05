@@ -272,7 +272,8 @@ async def update_node_resource(
             raise HTTPException(status_code=422, detail="When using RFC7396, a status must be supplied")
         # Lazy-load the Node's Machine pickle
         if (await old_manifest.awaitable_attrs.fsm) is None:
-            raise HTTPException(status_code=422, detail="No state machine found for node")
+            logger.warning("No state machine found for node", node_id=node_id)
+
         # Eagerly clear any transaction/locks on the objects before spawning a
         # background task
         await session.commit()
