@@ -8,7 +8,7 @@ from ..common.enums import StatusEnum
 from ..common.logging import LOGGER
 from ..db.campaigns_v2 import Campaign, Node
 from .campaign import CampaignMachine
-from .node import NodeMachine
+from .node import NodeMachine, node_machine_factory
 
 logger = LOGGER.bind(module=__name__)
 
@@ -80,12 +80,19 @@ async def change_node_state(
         force=force,
     )
 
-    # We require a pickled machine for this operation.
-    node_machine: NodeMachine = (pickle.loads(node.fsm.state)).model
-    node_machine.db_model = node
+    if node.fsm is not None:
+        node_machine: NodeMachine = (pickle.loads(node.fsm.state)).model
+        node_machine.db_model = node
+    elif node.status is StatusEnum.waiting:
+        # create a new machine for the node
+        node_machine = node_machine_factory(node.kind)(o=node, initial_state=node.status)
+    else:
+        raise RuntimeError("Cannot change node state without a pickled machine except from waiting")
 
     trigger: str
     match (node.status, desired_state):
+        case (StatusEnum.waiting, StatusEnum.ready):
+            trigger = "prepare"
         case (StatusEnum.failed, StatusEnum.ready):
             trigger = "restart" if force else "retry"
         case (StatusEnum.failed, StatusEnum.waiting):
