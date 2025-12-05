@@ -561,3 +561,33 @@ async def delete_node_from_graph(
 
     if commit:
         await session.commit()
+
+
+async def contract_step_nodes(graph: nx.DiGraph) -> nx.DiGraph:
+    """Manipulates a graph with prepared steps by contracting the dynamic
+    second-tier elements into the parent step. The contracted elements are not
+    preserved in the graph.
+
+    Parameters
+    ----------
+    graph : networkx.DiGraph
+        A graph object where each node is a full Node Model.
+    """
+    # contract any group nodes in the graph into their step
+    g2 = graph.copy()
+    for node in graph:
+        model: Node = graph.nodes(data="model")[node]
+        if model.kind is not ManifestKind.group:
+            continue
+        step = list(graph.predecessors(node)).pop()
+        g2 = nx.contracted_nodes(g2, step, node, self_loops=False, store_contraction_as=None)
+
+    # repeat for the collect steps
+    g3 = g2.copy()
+    for node in g2:
+        model = graph.nodes(data="model")[node]
+        if model.kind is not ManifestKind.collect_groups:
+            continue
+        step = list(g2.predecessors(node)).pop()
+        g3 = nx.contracted_nodes(g3, step, node, self_loops=False, store_contraction_as=None)
+    return g3
