@@ -17,7 +17,6 @@ loaders: reading yaml files an loading objects into the database
 queries: getting objects from the database
 """
 
-
 from .actions import CMActionClient
 from .campaigns import CMCampaignClient
 from .client import CMClient

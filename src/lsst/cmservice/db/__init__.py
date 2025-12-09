@@ -1,6 +1,6 @@
 """Database table definitions and utility functions"""
 
-from . import campaigns_v2
+from . import campaigns_v2 as campaigns_v2
 from .base import Base
 from .campaign import Campaign
 from .element import ElementMixin

@@ -110,7 +110,7 @@ class QuerySplitter(Splitter):
             dimension_dtype = np.dtypes.StringDType()
         return np.fromiter({ref.dataId[self.dimension] for ref in refs}, dtype=dimension_dtype)
 
-    async def split(self) -> AsyncGenerator[str, None]:
+    async def split(self) -> AsyncGenerator[str]:
         """Produces group predicates by first querying a Butler for a set of
         relevant data ids, then organizing them into groups according to the
         node configuration.

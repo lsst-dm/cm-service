@@ -11,7 +11,7 @@ class NullSplitter(Splitter):
 
     __kind__ = SplitterEnum.NULL
 
-    async def split(self) -> AsyncGenerator[str, None]:
+    async def split(self) -> AsyncGenerator[str]:
         """Split method that performs no split logic, and yields a single
         truthy predicate.
         """

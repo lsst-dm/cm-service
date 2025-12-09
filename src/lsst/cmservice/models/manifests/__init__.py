@@ -1,8 +1,9 @@
-from pydantic import BaseModel, Field, AliasChoices
+from pydantic import AliasChoices, BaseModel, Field
 
 from ...common.enums import ManifestKind
-from ...db.manifests_v2 import VersionedMetadata, ManifestSpec as ManifestSpec
 from ...common.types import KindField
+from ...db.manifests_v2 import ManifestSpec as ManifestSpec
+from ...db.manifests_v2 import VersionedMetadata
 
 
 class LibraryManifest[SpecT](BaseModel):

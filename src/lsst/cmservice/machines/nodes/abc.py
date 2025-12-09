@@ -56,7 +56,7 @@ class ActionMixIn(MixIn, ABC):
     async def render_action_templates(self, event: EventData) -> None: ...
 
     @abstractmethod
-    async def get_artifact(self, event: EventData, artifact: Path | str) -> AsyncGenerator[Path, None]:
+    async def get_artifact(self, event: EventData, artifact: Path | str) -> AsyncGenerator[Path]:
         if TYPE_CHECKING:
             # mypy does not consider this a generator method without a yield
             # statement, even though it is abstract
