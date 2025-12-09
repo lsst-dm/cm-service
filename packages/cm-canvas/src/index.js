@@ -18,15 +18,13 @@ export function initializeFlow(containerId, options = {}) {
     props: {
       nodes: options.nodes,
       edges: options.edges,
-      onExport: options.onExport
-    }
+      onExport: options.onExport,
+      onClick: options.onClick,
+    },
   });
 
   return {
-    exportGraph: () => {
-      return app.exportGraph?.() || null;
-    },
-    app
+    app,
   };
 }
 

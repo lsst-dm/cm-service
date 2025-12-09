@@ -1,0 +1,6 @@
+{
+  "bracketSameLine": false,
+  "bracketSpacing": true,
+  "singleQuote": false,
+  "plugins": ["prettier-plugin-svelte"]
+}

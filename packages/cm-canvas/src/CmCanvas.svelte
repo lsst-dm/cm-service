@@ -1,5 +1,6 @@
 <script lang="ts">
-import {
+  import Dagre from "@dagrejs/dagre";
+  import {
     Background,
     BackgroundVariant,
     Controls,
@@ -11,127 +12,223 @@ import {
     type Node,
     type NodeTypes,
     type OnConnectEnd,
-} from "@xyflow/svelte";
-import "@xyflow/svelte/dist/style.css";
+  } from "@xyflow/svelte";
+  import "@xyflow/svelte/dist/style.css";
 
-import StartNode from "./StartNode.svelte";
-import EndNode from "./EndNode.svelte";
-import StepNode from "./StepNode.svelte";
+  import StartNode from "./StartNode.svelte";
+  import EndNode from "./EndNode.svelte";
+  import StepNode from "./StepNode.svelte";
+  import { MarkerType, Position } from "@xyflow/system";
+  import { onMount, tick } from "svelte";
 
+  type CanvasProps = {
+    nodes?: Node[];
+    edges?: Edge[];
+    onClick?: (nodeId: string) => void;
+    onExport?: any;
+  }
 
-// A mapping of custom node names to their implementation
-const nodeTypes = {
-    startNode: StartNode,
-    endNode: EndNode,
-    stepNode: StepNode,
-} as any as NodeTypes;
+  /* A mapping of custom node names to their implementation. The names used in
+     mapping mirror the ManifestKind enum names used in the CM application.
+  */
+  const nodeTypes = {
+    start: StartNode,
+    end: EndNode,
+    step: StepNode,
+  } as any as NodeTypes;
 
-
-/* the $props rune defines the inputs to the component, which can be used as
-arguments or attributes when the component is initialized.
-*/
-let {
-    nodes = [],
-    edges = [],
+  /* the $props rune defines the inputs to the component, which can be used as
+     arguments or attributes when the component is initialized.
+  */
+  let {
+    nodes,
+    edges,
+    onClick = null,
     onExport = null,
-} = $props();
+  }: CanvasProps = $props();
 
-let id = 1;
+  let id = $derived(nodes.length + 1);
 
-// functions provided by the Svelte-Flow
-const { screenToFlowPosition, toObject } = useSvelteFlow();
+  // functions provided by the Svelte-Flow
+  const { screenToFlowPosition, fitView } = useSvelteFlow();
 
-const getId = () => `${id++}`;
+  const getId = () => `${id++}`;
 
-const handleConnectEnd: OnConnectEnd = (event, connectionState) => {
+  const handleConnectEnd: OnConnectEnd = (event, connectionState) => {
     if (connectionState.isValid) return;
 
+    const targetHandle =
+      connectionState.fromPosition == "bottom" ? "top" : "left";
+    const sourceHandle = connectionState.fromHandle?.position;
     const sourceNodeId = connectionState.fromNode?.id ?? "1";
     const id = getId();
-    const { clientX, clientY } = "changedTouches" in event ? event.changedTouches[0] : event;
+    const { clientX, clientY } =
+      "changedTouches" in event ? event.changedTouches[0] : event;
 
     const newNode: Node = {
-        type: "stepNode",
-        id,
-        data: { label: `Step ${id}` },
-        position: screenToFlowPosition({x: clientX, y: clientY}),
-        origin: [0.5, 0.0]
+      type: "step",
+      id,
+      data: { name: `step_${id}`, handleClick: onClick },
+      position: screenToFlowPosition({ x: clientX, y: clientY }),
     };
 
     nodes = [...nodes, newNode];
     edges = [
-        ...edges,
-        {
-            source: sourceNodeId,
-            target: id,
-            id: `${sourceNodeId}--${id}`,
+      ...edges,
+      {
+        source: sourceNodeId,
+        target: id,
+        id: `${sourceNodeId}--${id}`,
+        sourceHandle: sourceHandle,
+        targetHandle: targetHandle,
+        type: "smoothstep",
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
         },
+      },
     ];
-};
+  };
 
-// svelte-ignore non_reactive_update
-const handleExport = () => {
-    const graphData = toObject();
+  // export handler, called from python with `canvasExport` event, listener
+  // expecting "return" event `canvasExported`
+  window.addEventListener("canvasExport", () => {
+    console.log("Canvas received canvasExport event");
+    const serializedCanvas = {
+      nodes: JSON.parse(JSON.stringify(nodes)),
+      edges: JSON.parse(JSON.stringify(edges)),
+    };
+    window.dispatchEvent(
+      new CustomEvent("canvasExported", {
+        detail: { data: serializedCanvas },
+      }),
+    );
+    console.log("Canvas dispatched canvasExported event");
+  });
 
-    if (onExport) {
-        onExport(graphData);
-    } else {
-        console.log("Export clicked:", graphData)
-    }
+  // Auto-layout function using Dagre, basically copy-pasted from svelte-flow
+  // layouting documentation example
+  async function getLayoutedElements(nodes, edges, options) {
+    const isHorizontal = options.direction === "LR";
+    const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
+    g.setGraph({ rankdir: options.direction });
 
-    return graphData;
-}
+    edges.forEach((edge) => g.setEdge(edge.source, edge.target));
+    nodes.forEach((node) => g.setNode(node.id, { width: 172, height: 60 }));
 
+    Dagre.layout(g);
 
-export { handleExport };
+    return {
+      nodes: nodes.map((node) => {
+        const positionedNode = g.node(node.id);
+        return {
+          ...node,
+          position: {
+            x: positionedNode.x - 172 / 2,
+            y: positionedNode.y - 60 / 2,
+          },
+          sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
+          targetPosition: isHorizontal ? Position.Left : Position.Top,
+        };
+      }),
+      edges: edges.map((edge) => {
+        return {
+          ...edge,
+          sourceHandle: isHorizontal ? "right" : "bottom",
+          targetHandle: isHorizontal ? "left" : "top",
+          type: "smoothstep",
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+          },
+        };
+      }),
+    };
+  }
+
+  async function onLayout(direction) {
+    const layouted = await getLayoutedElements(nodes, edges, { direction });
+    nodes = [...layouted.nodes];
+    edges = [...layouted.edges];
+    await tick();
+    // Only if we need some extra sleep after tick
+    // await new Promise(resolve => setTimeout(resolve, 100));
+    fitView({ padding: 0.2 });
+  }
+
+  onMount(async () => {
+    onLayout("LR");
+    await tick();
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    fitView({ padding: 0.2 });
+  });
 </script>
 
-<div class="canvas">
-    <SvelteFlow
-        bind:nodes
-        bind:edges
-        { nodeTypes }
-        { onExport }
-        fitView
-        onconnectend={handleConnectEnd}
-        style="position: absolute;"
+<SvelteFlow
+  bind:nodes
+  bind:edges
+  {nodeTypes}
+  {onClick}
+  fitView
+  onconnectend={handleConnectEnd}
+  proOptions={{ hideAttribution: true }}
+  nodeOrigin={[0.5, 0.5]}
+>
+  <Controls />
+  <Background variant={BackgroundVariant.Dots} />
+  <MiniMap nodeStrokeWidth={3} />
+  <Panel position="top-right">
+    <button class="panel-btn" onclick={() => onLayout("TB")}
+      >Vertical Layout</button
     >
-        <Controls />
-        <Background bgColor="#f5f5f5" variant={BackgroundVariant.Dots} />
-        <MiniMap nodeStrokeWidth={3} />
-        <Panel position="top-right">
-            <button onclick={handleExport} class="panel-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#1f1f1f"><path d="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"/></svg>
-                Export
-            </button>
-            <button onclick={handleExport} class="panel-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#1f1f1f"><path d="M440-320v-326L336-542l-56-58 200-200 200 200-56 58-104-104v326h-80ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"/></svg>
-                Upload
-            </button>
-        </Panel>
-    </SvelteFlow>
-</div>
+    <button class="panel-btn" onclick={() => onLayout("LR")}
+      >Horizontal Layout</button
+    >
+  </Panel>
+</SvelteFlow>
 
 <style>
-    .canvas {
-        align-items: center;
-        display: flex;
-        width: 100%;
-        height: 100%;
-        justify-content: center;
-    }
+  :global(.svelte-flow__handle) {
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
 
-    .panel-btn {
-        padding: 8px 16px;
-        background: #f5f5f5;
-        border: 1px solid #6a6e6e;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 14px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
+  :global(.svelte-flow__handle.valid) {
+    opacity: 1;
+    background: var(--rubin-color-green-dark);
+  }
 
-    .panel-btn:hover {
-        background: #dce0e3;
-    }
+  :global(.svelte-flow__node:hover .svelte-flow__handle) {
+    opacity: 0.5;
+  }
+
+  :global(
+    .svelte-flow__edge:hover,
+    .svelte-flow__edge.selectable:hover path.svelte-flow__edge-path,
+    .svelte-flow__edge.selectable.selected path.svelte-flow__edge-path
+  ) {
+    stroke: var(--rubin-color-orange-light);
+    stroke-width: 2;
+    transition: fill 0.2s;
+  }
+
+  :global(.svelte-flow__node) {
+    border: 2px solid rgba(0, 0, 0, 0);
+  }
+
+  :global(.svelte-flow__node.selected) {
+    border: 2px solid var(--rubin-color-violet-light);
+  }
+
+  .panel-btn {
+    padding: 8px 16px;
+    background: var(--rubin-color-white-light);
+    border: 1px solid var(--rubin-color-grey-light);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .panel-btn:hover {
+    background: var(--rubin-color-white-dark);
+  }
 </style>

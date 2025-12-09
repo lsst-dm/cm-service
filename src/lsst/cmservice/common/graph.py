@@ -1,8 +1,10 @@
 from collections.abc import Iterable, Mapping, MutableSet, Sequence
 from typing import TYPE_CHECKING, Literal, TypedDict
 from uuid import UUID, uuid4, uuid5
+from warnings import deprecated
 
 import networkx as nx
+from networkx.exception import NodeNotFound
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -28,6 +30,19 @@ class NodeData(TypedDict):
     model: Node
 
 
+class SimpleNode(TypedDict):
+    """A type describing the dictionary representation of a digraph's Node data
+    when a 'simple' view is employed.
+    """
+
+    uuid: str
+    name: str
+    status: str
+    kind: str
+    version: str
+
+
+@deprecated("This function is used for CM v1, use graph_from_edge_list_v2 instead")
 async def graph_from_edge_list(
     edges: Sequence[AnyGraphEdge],
     node_type: type[AnyGraphNode],
@@ -109,7 +124,7 @@ async def graph_from_edge_list_v2(
     return g
 
 
-def subgraph_between_nodes(g: nx.DiGraph, source: UUID, sink: UUID) -> nx.DiGraph:
+def subgraph_between_nodes(g: nx.Graph, source: UUID, sink: UUID) -> nx.Graph:
     """Determine subgraph of graph ``g`` based on an arbitrary source and sink
     node in the graph. If no such subgraph exists, returns an empty graph.
     """
@@ -211,7 +226,7 @@ def validate_graph(g: nx.DiGraph, source_name: str = "START", sink_name: str = "
         g_degree_view: Iterable = nx.degree(g, (n for n in g.nodes if n not in [source, sink]))
         is_valid = min([d[1] for d in g_degree_view]) > 1
         assert is_valid
-    except (nx.exception.NodeNotFound, AssertionError):
+    except (NodeNotFound, AssertionError):
         return False
     return True
 
@@ -561,3 +576,63 @@ async def delete_node_from_graph(
 
     if commit:
         await session.commit()
+
+
+async def contract_step_nodes(graph: nx.DiGraph) -> nx.DiGraph:
+    """Manipulates a graph with prepared steps by contracting the dynamic
+    second-tier elements into the parent step. The contracted elements are not
+    preserved in the graph.
+
+    Parameters
+    ----------
+    graph : networkx.DiGraph
+        A graph object where each node is a full Node Model.
+    """
+    # contract any group nodes in the graph into their step
+    g2 = graph.copy()
+    for node in graph:
+        model: Node = graph.nodes(data="model")[node]
+        if model.kind is not ManifestKind.group:
+            continue
+        step = list(graph.predecessors(node)).pop()
+        g2 = nx.contracted_nodes(g2, step, node, self_loops=False, store_contraction_as=None)
+
+    # repeat for the collect steps
+    g3 = g2.copy()
+    for node in g2:
+        model = graph.nodes(data="model")[node]
+        if model.kind is not ManifestKind.collect_groups:
+            continue
+        step = list(g2.predecessors(node)).pop()
+        g3 = nx.contracted_nodes(g3, step, node, self_loops=False, store_contraction_as=None)
+    return g3
+
+
+async def contract_simple_step_nodes(graph: nx.DiGraph) -> nx.DiGraph:
+    """Manipulates a graph with prepared steps by contracting the dynamic
+    second-tier elements into the parent step. The contracted elements are not
+    preserved in the graph.
+
+    Parameters
+    ----------
+    graph : networkx.DiGraph
+        A graph object where each node is a simple model.
+    """
+    # contract any group nodes in the graph into their step
+    g2 = graph.copy()
+    for node in graph:
+        model: SimpleNode = graph.nodes(data=True)[node]
+        if ManifestKind[model["kind"]] is not ManifestKind.group:
+            continue
+        step = list(graph.predecessors(node)).pop()
+        g2 = nx.contracted_nodes(g2, step, node, self_loops=False, store_contraction_as=None)
+
+    # repeat for the collect steps
+    g3 = g2.copy()
+    for node in g2:
+        model = graph.nodes(data=True)[node]
+        if ManifestKind[model["kind"]] is not ManifestKind.collect_groups:
+            continue
+        step = list(g2.predecessors(node)).pop()
+        g3 = nx.contracted_nodes(g3, step, node, self_loops=False, store_contraction_as=None)
+    return g3

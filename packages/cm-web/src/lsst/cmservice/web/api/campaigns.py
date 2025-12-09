@@ -10,6 +10,7 @@ from lsst.cmservice.common.enums import DEFAULT_NAMESPACE
 
 from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.configedit import configuration_edit
+from ..lib.enum import MANIFEST_KIND_ICONS
 from .manifests import get_one_manifest
 
 
@@ -60,6 +61,29 @@ async def describe_one_campaign(id: str, client: AsyncClient) -> dict:
     return campaign_detail
 
 
+async def get_campaign_manifests(id: str | None = None, manifests: list[dict] = []) -> list[dict]:
+    """API helper for fetching a collection of campaign or library manifests.
+    Parameters
+    ----------
+    id : str | None
+        The ID of a campaign whose manifests to fetch. If the `id` is `None`,
+        then the library manifests will be fetched instead.
+    """
+    # -- if the campaign does not have these kinds, then we will pull the
+    #    version 0 of that kind from the library (default namespace)
+    mandatory_kinds = ["lsst", "bps", "butler", "wms", "site"]
+
+    for kind in mandatory_kinds:
+        if not list(filter(lambda m: m["kind"] == kind, manifests)):
+            manifest_ = await get_one_manifest(
+                namespace=str(DEFAULT_NAMESPACE), kind=kind, name=None, version=None
+            )
+            if manifest_ is not None:
+                manifests.append(manifest_.json())
+
+    return manifests
+
+
 async def compile_campaign_manifests(campaign_id: str | None = None, manifests: list[dict] = []) -> None:
     """Renders a row or table of campaign manifest cards, substituting library
     manifests for any mandatory manifests not present in the campaign.
@@ -75,34 +99,22 @@ async def compile_campaign_manifests(campaign_id: str | None = None, manifests: 
     # of a set of manifests relevant to the campaign, since the selectors will
     # differ at the node level.
 
-    # -- if the campaign does not have these kinds, then we will pull the
-    #    version 0 of that kind from the library (default namespace)
-    mandatory_kinds = ["lsst", "bps", "butler", "wms", "site"]
+    manifests = await get_campaign_manifests(campaign_id, manifests)
 
-    for kind in mandatory_kinds:
-        if not list(filter(lambda m: m["kind"] == kind, manifests)):
-            manifest_ = await get_one_manifest(
-                namespace=str(DEFAULT_NAMESPACE), kind=kind, name=None, version=None
-            )
-            if manifest_ is not None:
-                manifests.append(manifest_.json())
     with ui.row():
         for manifest in manifests:
             with ui.card():
                 with ui.card_section():
-                    ui.label(manifest["kind"].upper()).classes("text-subtitle1")
                     ui.label(manifest["name"]).classes("text-subtitle2")
                 with ui.card_actions().props("align=right").classes("items-center text-sm w-full"):
+                    ui.chip(text=manifest["kind"].upper(), color="accent").classes("text-xs").props(
+                        "outline square"
+                    ).bind_icon_from(MANIFEST_KIND_ICONS, manifest["kind"])
                     ui.chip(
                         manifest["version"],
                         icon="commit",
                         color="white",
                     ).tooltip("Manifest Version")
-                    ui.button(
-                        icon="content_paste_go",
-                        color="dark",
-                    ).props("style: flat").tooltip("Apply Manifest")
-
                     ui.button(
                         icon="edit",
                         color="dark",

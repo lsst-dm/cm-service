@@ -9,7 +9,7 @@ https://cm-service.lsst.io.
 
 ## Developer Quick Start
 
-You can build and run `cm-service` on any system which has Python 3.12 or greater, `uv`, `make`, and Docker w/ the
+You can build and run `cm-service` on any system which has Python 3.13 or greater, `uv`, `make`, and Docker w/ the
 Docker Compose V2 CLI plugin (this includes, in particular, recent MacOS with Docker Desktop).  Proceed as
 follows:
 
