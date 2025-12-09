@@ -137,6 +137,14 @@ async def campaign_detail(
                 ):
                     await campaign_detail_node_card(node, node_versions, graph)
 
+        # Campaign FAB
+        with ui.page_sticky(position="bottom-right", x_offset=20, y_offset=20):
+            with ui.fab("save_as", direction="up"):
+                clone_navigator = partial(ui.navigate.to, f"/clone/{campaign_id}")
+                export_navigator = partial(ui.notify, f"Export Campaign {campaign_id}...")
+                ui.fab_action("ios_share", label="export", on_click=export_navigator).disable()
+                ui.fab_action("copy_all", label="clone", on_click=clone_navigator)
+
 
 async def campaign_detail_node_card(node: dict, node_versions: list, graph: nx.DiGraph) -> None:
     """Builds a card ui element with Node details, as used for nodes active in

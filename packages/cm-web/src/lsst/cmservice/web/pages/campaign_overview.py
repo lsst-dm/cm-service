@@ -70,12 +70,10 @@ async def campaign_overview(client_: Annotated[AsyncClient, Depends(CLIENT_FACTO
                         ui.space()
                         button.FavoriteButton(id=campaign_id)
                         with ui.fab("save_as", direction="up"):
-                            ui.fab_action(
-                                "ios_share", label="export", on_click=lambda: ui.notify("Export Campaign...")
-                            )
-                            ui.fab_action(
-                                "copy_all", label="clone", on_click=lambda: ui.notify("Clone Campaign...")
-                            )
+                            clone_navigator = partial(ui.navigate.to, f"/clone/{campaign_id}")
+                            export_navigator = partial(ui.notify, f"Export Campaign {campaign_id}...")
+                            ui.fab_action("ios_share", label="export", on_click=export_navigator).disable()
+                            ui.fab_action("copy_all", label="clone", on_click=clone_navigator)
                     ui.label(campaign_id).classes("italic text-gray-75 font-thin")
         with ui.page_sticky(position="bottom-right", x_offset=20, y_offset=20):
-            ui.button(icon="add", on_click=lambda: ui.notify("New Campaign...")).props("fab")
+            ui.button(icon="add", on_click=lambda: ui.navigate.to("/new_campaign")).props("fab color=accent")

@@ -35,7 +35,7 @@ class UserStorageWrapper:
     key: str = "user"
     model_class: type[StorageModel] = UserStorageModel
 
-    def __init__(self):
+    def __init__(self) -> None:
         if self.key not in app.storage.user:
             app.storage.user[self.key] = {}
 
@@ -56,7 +56,7 @@ class UserStorageWrapper:
         self._update(data)
 
 
-def initialize_client_storage():
+def initialize_client_storage() -> None:
     """Function initializes server-side in-memory client storage.
 
     This schema is constructed for each client connection and is ephemeral. It

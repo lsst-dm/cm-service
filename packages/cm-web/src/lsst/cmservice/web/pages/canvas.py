@@ -1,17 +1,18 @@
+from typing import Any
+
 from nicegui import ui
 
 from .common import cm_frame
 
 
-def handle_export(e):
+def handle_export(e: Any) -> None:
     """Handles the export of graph data from the Svelte-Flow canvas."""
     graph_data = e.args
     ui.notify(f"""Exported {len(graph_data["nodes"])} nodes""")
-    ...
 
 
 @ui.page("/canvas")
-def canvas():
+def canvas() -> None:
     ui.add_head_html("""<script src="/static/cm-canvas-bundle.iife.js"></script>""")
 
     with cm_frame("Campaign Canvas"):
