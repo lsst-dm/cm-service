@@ -12,12 +12,13 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Intended Audience :: Developers",
     "Natural Language :: English",
     "Operating System :: POSIX",
     "Typing :: Typed",
 ]
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.13,<3.14"
 dynamic = ["version"]
 
 dependencies = [
@@ -25,7 +26,7 @@ dependencies = [
     "anyio==4.10.*",
     "asyncpg==0.30.*",
     "click==8.1.*",
-    "fastapi==0.115.*",
+    "fastapi==0.121.*",
     "greenlet==3.1.*",
     "htcondor==24.0.*; sys_platform == 'linux'",
     "jinja2==3.1.*",
@@ -50,12 +51,12 @@ dependencies = [
 
 [dependency-groups]
 lsst = [
-    "lsst-ctrl-bps>=29.2025.2900",
-    "lsst-ctrl-bps-htcondor>=29.2025.2400; sys_platform == 'linux'",
-    "lsst-ctrl-bps-panda>=29.2025.2900",
-    "lsst-daf-butler>=29.2025.2900",
-    "lsst-pipe-base>=29.2025.2900",
-    "lsst-utils>=29.2025.2900",
+    "lsst-ctrl-bps>=29.2025.4700",
+    "lsst-ctrl-bps-htcondor>=29.2025.4700; sys_platform == 'linux'",
+    "lsst-ctrl-bps-panda>=29.2025.4700",
+    "lsst-daf-butler>=29.2025.4700",
+    "lsst-pipe-base>=29.2025.4700",
+    "lsst-utils>=29.2025.4700",
 ]
 
 dev = [
@@ -139,11 +140,8 @@ exclude_lines = [
 ]
 
 [tool.ruff]
-exclude = [
-    "__init__.py",
-]
 line-length = 110
-target-version = "py312"
+target-version = "py313"
 
 [tool.ruff.lint]
 ignore = [
@@ -173,6 +171,8 @@ select = [
     "PERF", # perflint
     "EM102", # f-string-in-exception
     "G004", # logging-f-string
+    "T20", # flake8-print
+    "LOG", # flake8-logging
 ]
 extend-select = [
     "RUF100", # Warn about unused noqa

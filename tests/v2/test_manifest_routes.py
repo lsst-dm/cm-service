@@ -309,3 +309,81 @@ async def test_copy_manifest_resource(
         original_url, headers={"Namespace-Copy-Target": str(uuid5(DEFAULT_NAMESPACE, "random_campaign"))}
     )
     assert x.is_client_error
+
+
+async def test_new_manifest_version(aclient: AsyncClient, test_campaign: str) -> None:
+    """Tests the creation of new manifest versions"""
+    campaign_id = urlparse(url=test_campaign).path.split("/")[-2:][0]
+
+    # A new manifest is created with version 1
+    x = await aclient.post(
+        "/cm-service/v2/manifests",
+        json=[
+            {
+                "apiversion": "io.lsst.cmservice/v1",
+                "kind": "other",
+                "metadata": {
+                    "name": "campaign_manifest_a",
+                    "namespace": campaign_id,
+                },
+                "spec": {
+                    "one": 1,
+                },
+            },
+        ],
+    )
+    assert x.is_success
+
+    x = await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}/manifest/other/campaign_manifest_a")
+    assert x.is_success
+    assert x.json()["version"] == 1
+
+    # A manifest of the same name but a different kind is also version 1
+    x = await aclient.post(
+        "/cm-service/v2/manifests",
+        json=[
+            {
+                "apiversion": "io.lsst.cmservice/v1",
+                "kind": "dummy",
+                "metadata": {
+                    "name": "campaign_manifest_a",
+                    "namespace": campaign_id,
+                },
+                "spec": {
+                    "one": 1,
+                },
+            },
+        ],
+    )
+    assert x.is_success
+
+    x = await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}/manifest/dummy/campaign_manifest_a")
+    assert x.is_success
+    assert x.json()["version"] == 1
+
+    # Updating a manifest should result in version 2
+    x = await aclient.post(
+        "/cm-service/v2/manifests",
+        json={
+            "apiversion": "io.lsst.cmservice/v1",
+            "kind": "other",
+            "metadata": {
+                "name": "campaign_manifest_a",
+                "namespace": campaign_id,
+            },
+            "spec": {
+                "one": 1,
+                "two": 2,
+            },
+        },
+    )
+    assert x.is_success
+
+    x = await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}/manifest/other/campaign_manifest_a")
+    assert x.is_success
+    assert x.json()["version"] == 2
+
+    # Without disturbing a different kind of manifest with the same name
+    x = await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}/manifest/dummy/campaign_manifest_a")
+    assert x.is_success
+    assert x.json()["version"] == 1

@@ -38,7 +38,7 @@ class ValuesSplitter(Splitter):
         self.dimension = dimension
         self.values = values
 
-    async def split(self) -> AsyncGenerator[str, None]:
+    async def split(self) -> AsyncGenerator[str]:
         """Generates group query predicates based on scalar values for
         dimension ranges. Each value can be a scalar, a sequence, or a range.
 

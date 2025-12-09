@@ -71,7 +71,7 @@ async def upsert_spec_block(
     spec_block_result = await session.scalars(spec_block_q)
     spec_block = spec_block_result.first()
     if spec_block and not allow_update:
-        print(f"SpecBlock {key} already defined, leaving it unchanged")
+        logger.warning("SpecBlock %s already defined, leaving it unchanged", key)
         return spec_block
     includes = config_values.get("includes", [])
     block_data = config_values.copy()
@@ -158,7 +158,7 @@ async def upsert_specification(
     spec_result = await session.scalars(spec_q)
     specification = spec_result.first()
     if specification and not allow_update:
-        print(f"Specification {spec_name} already defined, leaving it unchanged")
+        logger.warning("Specification %s already defined, leaving it unchanged", spec_name)
         return specification
     if specification is None:
         return await Specification.create_row(session, **config_values)

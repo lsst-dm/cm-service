@@ -128,7 +128,12 @@ class NodeMachine(StatefulModel):
                 #      e.g., fail vs block, we'd have to inspect the error here
                 await self.trigger("fail")
             case _:
-                ...
+                # If this is a user-initiated trigger or check, the event will
+                # have a request_id attached, and in this case we make sure we
+                # commit the activity log entry even if we are not otherwise
+                # triggering a transition
+                if event.kwargs.get("request_id") is not None:
+                    await self.flush_activity_log(event)
 
     async def prepare_session(self, event: EventData) -> None:
         """Prepares the machine by acquiring a database session."""
@@ -183,6 +188,20 @@ class NodeMachine(StatefulModel):
         self.db_model.metadata_ = new_metadata
         await self.session.commit()
 
+    async def flush_activity_log(self, event: EventData) -> None:
+        """Ensures the activity log entry is written to the database."""
+        # flush the activity log entry to the db
+        try:
+            logger.debug("Finalizing the activity log after transition.", id=str(self.db_model.id))
+            self.session.add(self.activity_log_entry)
+            await self.session.commit()
+        except Exception:
+            logger.exception()
+            await self.session.rollback()
+        finally:
+            self.session.expunge(self.activity_log_entry)
+            self.activity_log_entry = None
+
     async def finalize(self, event: EventData) -> None:
         """Callback method invoked by the Machine unconditionally at the end
         of every callback chain. During this callback, if the activity log
@@ -218,16 +237,7 @@ class NodeMachine(StatefulModel):
         self.db_model.metadata_ = self.db_model.metadata_.copy()
 
         # flush the activity log entry to the db
-        try:
-            logger.debug("Finalizing the activity log after transition.", id=str(self.db_model.id))
-            self.session.add(self.activity_log_entry)
-            await self.session.commit()
-        except Exception:
-            logger.exception()
-            await self.session.rollback()
-        finally:
-            self.session.expunge(self.activity_log_entry)
-            self.activity_log_entry = None
+        await self.flush_activity_log(event)
 
         # create or update a machine entry in the db
         if Features.STORE_FSM in config.features.enabled:
@@ -254,6 +264,14 @@ class NodeMachine(StatefulModel):
         be called.
         """
         return True
+
+    async def is_restartable(self, event: EventData) -> bool:
+        """Conditional method called to check whether a ``restart`` trigger may
+        be called.
+        """
+        # Only machines with an explicit restart mechanism should implement
+        # this callback.
+        return False
 
     async def do_start(self, event: EventData) -> None:
         """Action method invoked when executing the "start" transition.
@@ -316,9 +334,9 @@ class StartMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunch
         self.machine.before_unprepare("do_unprepare")
         self.machine.before_start("do_start")
         self.machine.before_reset("do_reset")
-        self.templates = [
+        self.templates = {
             ("wms_submit_sh.j2", f"{self.db_model.name}.sh"),
-        ]
+        }
 
     async def butler_prepare(self, event: EventData) -> None:
         """Prepares Butler collections for the campaign."""
@@ -401,9 +419,9 @@ class EndMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchMi
         self.machine.before_prepare("do_prepare")
         self.machine.before_start("do_start")
         self.machine.before_finish("do_finish")
-        self.templates = [
+        self.templates = {
             ("wms_submit_sh.j2", f"{self.db_model.name}.sh"),
-        ]
+        }
 
     async def butler_prepare(self, event: EventData) -> None:
         """Prepares Butler collections for the end of the campaign."""

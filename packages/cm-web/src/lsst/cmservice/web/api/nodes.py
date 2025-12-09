@@ -1,7 +1,12 @@
+"""Module containing classes, methods, and functions related to API actions
+targeting Node resources.
+"""
+
 from httpx import HTTPStatusError, Response
 from nicegui import app, ui
 
 from ..lib.client_factory import CLIENT_FACTORY
+from .activity import wait_for_activity_to_complete
 
 
 async def get_one_node(id: str, namespace: str | None) -> Response:
@@ -76,3 +81,64 @@ async def fast_forward_node(n0: str) -> None:
         # . await wait_for_activity_to_complete(status_update_url)
         app.storage.user[n0]["label"] = ""
         app.storage.user[n0]["icon"] = "fast_forward"
+
+
+async def retry_restart_node(
+    n0: str, *, force: bool = False, reset: bool = False, accept: bool = False
+) -> None:
+    """A group node in a failed state can be "restarted" if the BPS milestone
+    is reached, i.e., a submit directory has been discovered and a qg file
+    exists in that submit directory. Otherwise, a node can be "retried" if the
+    BPS milestone has not been reached.
+
+    The CM API server decides whether a node can be restarted or not. A client
+    may PATCH the node's status to "ready" with a ``force`` option to affect a
+    restart.
+
+    Parameters
+    ----------
+    force : bool
+        If True, the retry is a restart instead.
+
+    reset : bool
+        If True, the operation is a reset (the desired state is ``waiting``).
+        If False (default), the operation is a retry/restart (the desired state
+        if ``ready``).
+
+    accept : bool
+        If True, the node is unconditionally accepted, but ``force`` must also
+        be set.
+    """
+    url = f"/nodes/{n0}"
+    retry_or_restart = "Restarting" if force else "Retrying"
+    retry_or_restart = "Resetting" if reset else retry_or_restart
+    retry_or_restart = "Accepting" if all([force, accept]) else retry_or_restart
+    target_state = "waiting" if reset else "ready"
+    target_state = "accepted" if all([force, accept]) else target_state
+
+    async with CLIENT_FACTORY.aclient() as client:
+        n = ui.notification(timeout=None)
+        try:
+            r = await client.patch(
+                url,
+                headers={"Content-Type": "application/merge-patch+json"},
+                json={"status": target_state, "force": force},
+            )
+            r.raise_for_status()
+            n.spinner = True
+            n.type = "ongoing"
+            n.message = f"{retry_or_restart} node..."
+        except HTTPStatusError as e:
+            n.type = "negative"
+            n.timeout = 5.0
+            match e.response:
+                case Response(status_code=422):
+                    n.message = r.text
+                case Response(status_code=500):
+                    n.message = "Attempt failed with a Server Error"
+                case _:
+                    raise
+            return None
+
+        status_update_url = r.headers["StatusUpdate"]
+        await wait_for_activity_to_complete(status_update_url, n)

@@ -7,7 +7,10 @@ from uuid import uuid4
 import typer
 from httpx import Client, HTTPStatusError, HTTPTransport
 
+from .logging import LOGGER
 from .settings import settings
+
+logger = LOGGER.bind(module=__name__)
 
 
 @contextmanager
@@ -33,6 +36,6 @@ def http_client(ctx: typer.Context) -> Generator[Client]:
         try:
             yield session
         except HTTPStatusError as e:
-            print(e)
+            logger.error(e)
         except Exception as e:
-            print(e)
+            logger.error(e)

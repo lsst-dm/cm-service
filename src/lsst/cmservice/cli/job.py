@@ -1,6 +1,7 @@
 """CLI to manage Job table"""
 
 import click
+import rich
 from pydantic import BaseModel
 
 from .. import db
@@ -168,4 +169,4 @@ def accept(
     if isinstance(result, BaseModel):
         wrappers.output_pydantic_object(result, output, db.Job.col_names_for_table)
     else:
-        print(result)
+        rich.print(result)

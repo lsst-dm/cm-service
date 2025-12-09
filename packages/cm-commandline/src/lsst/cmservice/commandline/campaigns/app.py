@@ -1,9 +1,11 @@
 # ruff: noqa: ERA001
+
 import sys
 from time import sleep
 from typing import Annotated
 
 import typer
+from rich import print
 from rich.console import Console
 from rich.highlighter import JSONHighlighter
 from rich.pretty import pprint

@@ -33,6 +33,18 @@
         "duration": {
             "description": "An estimate, in seconds, of how long the element should take to complete",
             "type": "integer"
+        },
+        "retries": {
+            "description": "The number of times the element has been retried, not counting the initial attempt",
+            "type": "integer"
+        },
+        "restarts": {
+            "description": "The number of times the element has been restarted, not counting the initial attempt",
+            "type": "integer"
+        },
+        "resets": {
+            "description": "The number of times the element has been reset, not counting the initial attempt",
+            "type": "integer"
         }
     }
 }

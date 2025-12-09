@@ -2,6 +2,7 @@ import sys
 from typing import Any
 
 import click
+import rich
 
 from .. import db
 from ..client.client import CMClient
@@ -35,10 +36,10 @@ def specification(
 
     do_print = output not in [options.OutputEnum.json, options.OutputEnum.yaml]
     if do_print:
-        print("Specifications: -----")
+        rich.print("Specifications: -----")
         output_pydantic_list(specifications, output, db.Specification.col_names_for_table)
     if do_print:
-        print("SpecBlocks: -----")
+        rich.print("SpecBlocks: -----")
         output_pydantic_list(spec_blocks, output, db.SpecBlock.col_names_for_table)
 
 

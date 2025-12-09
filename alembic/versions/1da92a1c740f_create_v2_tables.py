@@ -166,7 +166,7 @@ def upgrade() -> None:
             server_default=sa.text("'{}'::json"),
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("name", "version", "namespace"),
+        sa.UniqueConstraint("name", "version", "namespace", name="manifests_v2_name_version_namespace_key"),
         if_not_exists=True,
     )
 

@@ -19,26 +19,64 @@ queries: getting objects from the database
 """
 
 from . import (
-    actions,
-    campaigns,
-    groups,
-    index,
-    jobs,
-    loaders,
-    pipetask_error_types,
-    pipetask_errors,
-    product_sets,
-    queues,
-    script_dependencies,
-    script_errors,
-    scripts,
-    spec_blocks,
-    specifications,
-    step_dependencies,
-    steps,
-    task_sets,
-    wms_task_reports,
-    wrappers,
+    actions as actions,
+)
+from . import (
+    campaigns as campaigns,
+)
+from . import (
+    groups as groups,
+)
+from . import (
+    index as index,
+)
+from . import (
+    jobs as jobs,
+)
+from . import (
+    loaders as loaders,
+)
+from . import (
+    pipetask_error_types as pipetask_error_types,
+)
+from . import (
+    pipetask_errors as pipetask_errors,
+)
+from . import (
+    product_sets as product_sets,
+)
+from . import (
+    queues as queues,
+)
+from . import (
+    script_dependencies as script_dependencies,
+)
+from . import (
+    script_errors as script_errors,
+)
+from . import (
+    scripts as scripts,
+)
+from . import (
+    spec_blocks as spec_blocks,
+)
+from . import (
+    specifications as specifications,
+)
+from . import (
+    step_dependencies as step_dependencies,
+)
+from . import (
+    steps as steps,
+)
+from . import (
+    task_sets as task_sets,
+)
+from . import (
+    wms_task_reports as wms_task_reports,
+)
+from . import (
+    wrappers as wrappers,
 )
 
 tags_metadata = [

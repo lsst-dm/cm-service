@@ -6,6 +6,7 @@ from uuid import NAMESPACE_DNS, UUID, uuid4, uuid5
 
 from pydantic import AliasChoices, AwareDatetime, ValidationInfo, model_validator
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.types import PickleType
 from sqlmodel import Column, DateTime, Enum, Field, MetaData, Relationship, SQLModel, String
@@ -46,7 +47,7 @@ def jsonb_column(name: str, aliases: list[str] | None = None) -> Any:
     )
 
 
-class BaseSQLModel(SQLModel):
+class BaseSQLModel(AsyncAttrs, SQLModel):
     """Shared base SQL model for all tables."""
 
     __table_args__ = {"schema": config.db.table_schema}
@@ -94,7 +95,7 @@ class Campaign(CampaignBase, table=True):
 
 class CampaignUpdate(BaseSQLModel):
     """Model representing updatable fields for a PATCH operation on a Campaign
-    using RFC7396.
+    or Node using RFC7396.
     """
 
     owner: str | None = None
@@ -123,7 +124,7 @@ class NodeBase(BaseSQLModel):
         """A Node is hashable according to its unique ID, so it can be used in
         sets and other places hashable types are required.
         """
-        return self.id.int
+        return self.id.int  # pyright: ignore[reportReturnType]
 
     id: UUID = Field(primary_key=True)
     name: str
@@ -166,6 +167,8 @@ class Node(NodeBase, table=True):
         back_populates="nodes",
         sa_relationship_kwargs={"lazy": "joined", "innerjoin": True, "uselist": False},
     )
+
+    fsm: "Machine" = Relationship(sa_relationship_kwargs={"uselist": False})
 
 
 class EdgeBase(BaseSQLModel):

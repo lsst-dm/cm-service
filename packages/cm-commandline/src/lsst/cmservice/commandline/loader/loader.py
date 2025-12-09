@@ -4,6 +4,7 @@ from typing import Any
 import typer
 import yaml
 from httpx import Headers, HTTPStatusError
+from rich import print
 
 from ..client import http_client
 

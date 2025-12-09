@@ -135,3 +135,72 @@ async def test_node_lifecycle(aclient: AsyncClient) -> None:
     assert node["configuration"]["split"]["maxInFlight"] == 4
     assert node["configuration"]["query"][-1]["dimension"] == "fact"
     assert node["version"] == 2
+
+
+async def test_node_double_update(aclient: AsyncClient) -> None:
+    """Tests that a node cannot be updated/patched twice, i.e., branching
+    configurations for versioned nodes are not allowed. Only the most recent
+    version of a node supports a patch operation.
+    """
+    campaign_name = uuid4().hex[:8]
+    node_name = uuid4().hex[:8]
+
+    # Create a campaign
+    x = await aclient.post(
+        "/cm-service/v2/campaigns",
+        json={
+            "kind": "campaign",
+            "metadata": {"name": campaign_name},
+            "spec": {},
+        },
+    )
+    assert x.is_success
+    campaign_id = x.json()["id"]
+
+    # Create a new campaign node
+    x = await aclient.post(
+        "/cm-service/v2/nodes",
+        json={
+            "kind": "node",
+            "metadata": {"name": node_name, "namespace": campaign_id},
+            "spec": {
+                "handler": "lsst.cmservice.handlers.element_handler.ElementHandler",
+                "pipeline_yaml": "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step1",
+                "query": [{"instrument": "HSC"}, {"skymap": "hsc_rings_v1"}],
+                "split": {
+                    "dataset": "raw",
+                    "field": "exposure",
+                    "method": "query",
+                    "minGroups": 3,
+                    "maxInFlight": 3,
+                },
+            },
+        },
+    )
+    assert x.is_success
+    node = x.json()
+    assert node["version"] == 1
+    node_url = x.headers["Self"]
+
+    # Update the campaign node with a patch
+    x = await aclient.patch(
+        node_url,
+        headers={"Content-Type": "application/json-patch+json"},
+        json=[
+            {"op": "replace", "path": "/configuration/split/maxInFlight", "value": 4},
+        ],
+    )
+    assert x.is_success
+    node = x.json()
+    assert node["version"] == 2
+
+    # Update the SAME campaign node (version 1) with a patch, which must fail
+    x = await aclient.patch(
+        node_url,
+        headers={"Content-Type": "application/json-patch+json"},
+        json=[
+            {"op": "replace", "path": "/configuration/split/maxInFlight", "value": 4},
+        ],
+    )
+    assert not x.is_success
+    assert x.status_code == 422

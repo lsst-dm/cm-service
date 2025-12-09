@@ -2,14 +2,14 @@
 name = "lsst-cmservice-commandline"
 dynamic = ["version"]
 description = "CM Service Command Line Interface"
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.12,<3.14"
 dependencies = [
     "httpx>=0.28.1",
     "pydantic-settings>=2.9",
     "pyyaml>=6.0.2",
     "rich>=13.0.0",
     "typer>=0.17.0",
-    "lsst-utils>=29.2025.2900",
+    "lsst-utils>=29.2025.4700",
     "lsst-cm-service",
 ]
 
