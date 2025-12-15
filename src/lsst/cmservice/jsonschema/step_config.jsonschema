@@ -13,7 +13,7 @@
     "predicates": {
       "description": "A Butler query string that when ANDed with any additonal `base_query` defined on the Campaign's ``butler`` manifest forms the complete Butler query used for the step. Any group-specific predicates are AND'ed with this base query in each group.",
       "type": "array",
-      "items": {"type": "string"}
+      "items": { "type": "string" }
     },
     "group_nonce": {
       "description": "The method used to name group nodes for this step. If 'ordinal', groups will be named with a three-digit zero-padded number, e.g., '*_001'; if 'random' then a portion of the group's hexadecimal id is used in the name.",
@@ -22,18 +22,12 @@
     },
     "groups": {
       "description": "An object describing the manner in which groups are formed for this node. A `null` value is the same as specifying a single group with no additional query predicates.",
-      "type": [
-        "object",
-        "null"
-      ],
+      "type": ["object", "null"],
       "properties": {
         "split_by": {
           "description": "The method by which groups are assembled. Values-based groups are set up with a single value predicate for each group. Query-based groups try to algorithmically fit the available data elements into groups.",
           "type": "string",
-          "enum": [
-            "values",
-            "query"
-          ]
+          "enum": ["values", "query"]
         }
       },
       "allOf": [
@@ -52,14 +46,24 @@
                 "type": "array",
                 "items": {
                   "oneOf": [
-                    {"type": "string"},
-                    {"type": "integer"},
-                    {"type": "array", items: {"type": "integer"}},
-                    {"type": "object",
+                    { "type": "string" },
+                    { "type": "integer" },
+                    { "type": "array", "items": { "type": "integer" } },
+                    {
+                      "type": "object",
                       "properties": {
-                        "min": {"type": "integer", "description": "Minimum dimension value for a range"},
-                        "max": {"type": "integer", "description": "Maximum dimension value for a range"},
-                        "endpoint": {"type": "boolean", "description": "Whether the range is right-open or right-closed"}
+                        "min": {
+                          "type": "integer",
+                          "description": "Minimum dimension value for a range"
+                        },
+                        "max": {
+                          "type": "integer",
+                          "description": "Maximum dimension value for a range"
+                        },
+                        "endpoint": {
+                          "type": "boolean",
+                          "description": "Whether the range is right-open or right-closed"
+                        }
                       },
                       "additionalProperties": false,
                       "required": ["min", "max"]
@@ -72,13 +76,9 @@
                 "type": "string"
               }
             },
-            "required": [
-              "values", "dimension"
-            ]
+            "required": ["values", "dimension"]
           },
-          "required": [
-            "split_by"
-          ]
+          "required": ["split_by"]
         },
         {
           "if": {
@@ -107,20 +107,12 @@
                 "default": 100000000
               }
             },
-            "required": [
-              "dataset", "dimension"
-            ]
+            "required": ["dataset", "dimension"]
           },
-          "required": [
-            "split_by"
-          ]
+          "required": ["split_by"]
         }
       ]
     }
   },
-  "required": [
-    "predicates",
-    "groups",
-    "pipeline_yaml"
-  ]
+  "required": ["predicates", "groups", "pipeline_yaml"]
 }
