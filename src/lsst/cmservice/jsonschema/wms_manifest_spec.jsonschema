@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lsst-dm/cm-service",
+  "title": "WMS Manifest Specification",
+  "description": "Specification for a WMS Manifest, which configures details specific to a batch or workflow management system.",
+  "type": "object",
+  "properties": {
+    "batch_name": {
+      "description": "A categorical variable name to be included to mark any jobs submitted to this WMS",
+      "type": "string"
+    },
+    "batch_system": {
+      "description": "A shorthand name of a WMS batch system.",
+      "type": "string",
+      "examples": ["htcondor", "panda"]
+    },
+    "include_files": {
+      "description": "A list of YAML files that should be included in a BPS configuration when this Manifest is used. This list will be combined with the list of include files from other relevant manifests, including the Step itself.",
+      "type": "array",
+      "items": { "type": "string" },
+      "default": [],
+      "examples": [
+        "/absolute/path/to/file.yaml",
+        "${ENV_VAR}/path/to/file.yaml",
+        "${ENV_VAR}path/to/{special_file_name}"
+      ]
+    },
+    "service_class": {
+      "description": "The fully qualified name of a ctrl-bps class to use with the WMS.",
+      "type": "string",
+      "pattern": "^lsst\\.ctrl\\.bps\\..*$",
+      "examples": [
+        "lsst.ctrl.bps.htcondor.HTCondorService",
+        "lsst.ctrl.bps.panda.PanDAService"
+      ]
+    },
+    "service_class_config": {
+      "description": "A mapping of configuration key-value pairs specific to the service class.",
+      "type": "object",
+      "properties": {},
+      "additionalProperties": true
+    },
+    "request_cpus": {
+      "description": "The number of physical Cores requested for each WMS job.",
+      "type": "string",
+      "pattern": "^[0-9]+$"
+    },
+    "request_mem": {
+      "description": "The size of physical RAM requested for each WMS job.",
+      "type": "string",
+      "pattern": "^[0-9]+(g|G|k|K|m|M)",
+      "examples": ["1024M", "128G"]
+    },
+    "request_disk": {
+      "description": "The size of physical disk requested for each WMS job.",
+      "type": "string",
+      "pattern": "^[0-9]+(g|G|k|K|m|M)",
+      "examples": ["10240K", "1G"]
+    }
+  },
+  "required": ["service_class"],
+  "additionalProperties": false
+}

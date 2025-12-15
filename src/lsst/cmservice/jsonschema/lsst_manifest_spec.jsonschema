@@ -8,23 +8,23 @@
     "lsst_version": {
       "description": "The version of an LSST stack, which must be compatible with the conda env set up by the lsst_distrib_dir.",
       "type": "string",
-      "default": "w_latest",
+      "default": "w_latest"
     },
     "lsst_distrib_dir": {
       "description": "The filesystem directory containing an `loadLSST.bash` script which will set up a conda env",
       "type": "string"
     },
     "prepend": {
-        "description": "A `\n`-delimited string of optional commands to be added to any Bash script that sets up the LSST Stack, to be executed verbatim *before* Conda activation and EUPS setup.",
-        "type": "string"
+      "description": "A `\n`-delimited string of optional commands to be added to any Bash script that sets up the LSST Stack, to be executed verbatim *before* Conda activation and EUPS setup.",
+      "type": "string"
     },
     "append": {
-        "description": "A `\n`-delimited string of optional commands to be added to any Bash script that setup up the LSST Stack, to be executed verbatim *after* the payload command of the script executes.",
-        "type": "string"
+      "description": "A `\n`-delimited string of optional commands to be added to any Bash script that setup up the LSST Stack, to be executed verbatim *after* the payload command of the script executes.",
+      "type": "string"
     },
     "custom_lsst_setup": {
-        "description": "A `\n`-delimited string of optional commands to be added to any Bash script that set ups the LSST Stack, to be executed verbatim *after* EUPS setup but *before* the payload command. Can be used to customize the Stack with EUPS, for example.",
-        "type": "string"
+      "description": "A `\n`-delimited string of optional commands to be added to any Bash script that set ups the LSST Stack, to be executed verbatim *after* EUPS setup but *before* the payload command. Can be used to customize the Stack with EUPS, for example.",
+      "type": "string"
     }
   },
   "required": ["lsst_distrib_dir"],
