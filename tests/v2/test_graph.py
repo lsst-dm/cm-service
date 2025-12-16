@@ -1,6 +1,7 @@
 """Tests graph operations using v2 objects"""
 
 import random
+from asyncio import sleep
 from urllib.parse import urlparse
 from uuid import UUID, uuid4
 
@@ -9,7 +10,7 @@ import pytest
 from httpx import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from lsst.cmservice.common.enums import StatusEnum
+from lsst.cmservice.common.enums import ManifestKind, StatusEnum
 from lsst.cmservice.common.graph import (
     delete_node_from_graph,
     graph_from_edge_list_v2,
@@ -17,7 +18,7 @@ from lsst.cmservice.common.graph import (
     validate_graph,
 )
 from lsst.cmservice.common.types import AnyAsyncSession
-from lsst.cmservice.db.campaigns_v2 import Edge
+from lsst.cmservice.db.campaigns_v2 import Edge, Node
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""
@@ -318,3 +319,55 @@ async def test_delete_node_from_graph(
         commit=True,
     )
     ...
+
+
+async def test_graph_contraction(
+    aclient: AsyncClient, session: AsyncSession, test_campaign_groups: str
+) -> None:
+    """Tests the stepwise contraction of a graph."""
+    edge_list = [Edge.model_validate(edge) for edge in (await aclient.get(test_campaign_groups)).json()]
+    graph = await graph_from_edge_list_v2(edge_list, session, node_view="model")
+
+    # "prepare" all the "step" nodes in the graph
+    for node in graph:
+        model: Node = graph.nodes(data="model")[node]
+        if model.kind is not ManifestKind.step:
+            continue
+        x = await aclient.patch(
+            f"/cm-service/v2/nodes/{model.id}",
+            headers={"Content-Type": "application/merge-patch+json"},
+            json={"status": "ready"},
+        )
+        assert x.is_success
+        while not len((await aclient.get(x.headers["StatusUpdate"])).json()):  # noqa: ASYNC110
+            await sleep(1.0)
+
+    # get a fresh copy of the graph
+    edge_list = [Edge.model_validate(edge) for edge in (await aclient.get(test_campaign_groups)).json()]
+    graph = await graph_from_edge_list_v2(edge_list, session, node_view="model")
+
+    # Use the node contraction function to manipulate the graph by removing
+    # node_a by contraction into start_node
+
+    # second-tier graph nodes will be of type "group" or "collect_groups" but
+    # in the "simple" graph view we won't have access to the metadata that
+    # includes the node's "parent" step.
+    # Instead, we focus on "group" nodes first, as a middle-out contraction.
+    # - by definition, the predecessor node for a group is that group's step
+    g2 = graph.copy()
+    for node in graph:
+        model = graph.nodes(data="model")[node]
+        if model.kind is not ManifestKind.group:
+            continue
+        step = list(graph.predecessors(node)).pop()
+        g2 = nx.contracted_nodes(g2, step, node, self_loops=False, store_contraction_as=None)
+
+    # repeat for the collect steps
+    g3 = g2.copy()
+    for node in g2:
+        model = graph.nodes(data="model")[node]
+        if model.kind is not ManifestKind.collect_groups:
+            continue
+        step = list(g2.predecessors(node)).pop()
+        g3 = nx.contracted_nodes(g3, step, node, self_loops=False, store_contraction_as=None)
+    assert validate_graph(g3)

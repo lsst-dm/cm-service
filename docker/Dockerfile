@@ -53,6 +53,20 @@ EXPOSE ${ASGI_PORT}
 
 
 #==============================================================================
+# NODEJS BUILDER IMAGE
+FROM node:lts-alpine AS node-builder
+
+WORKDIR /home/node
+COPY packages/ ./packages/
+RUN <<ENDRUN
+  set -e
+  apk add --no-cache make
+  cd packages/cm-canvas
+  make rebuild
+ENDRUN
+
+
+#==============================================================================
 # BUILDER IMAGE
 FROM base-image AS build-image
 
@@ -81,7 +95,7 @@ COPY . .
 # Install project production dependency graph in /opt/venv
 RUN --mount=type=cache,target=/root/.cache/uv <<ENDRUN
     set -e
-    /bin/uv sync --no-group dev --no-install-project --no-editable
+    /bin/uv sync --no-group dev --no-install-project --no-editable --all-packages
 ENDRUN
 
 
@@ -121,3 +135,11 @@ COPY --from=htcondor /opt/htcondor /opt/htcondor
 
 USER lsstsvc1
 CMD ["lsst.cmservice.daemon"]
+
+
+#==============================================================================
+# RUNTIME IMAGE - Web
+FROM cmservice AS cmweb
+
+# COPY --from=node-builder packages/cm-canvas/dist
+CMD ["lsst.cmservice.web.libexec.go"]

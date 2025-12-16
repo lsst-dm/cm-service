@@ -5,8 +5,10 @@ from uuid import uuid4, uuid5
 
 import pytest
 from httpx import AsyncClient
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-from lsst.cmservice.common.enums import DEFAULT_NAMESPACE
+from lsst.cmservice.common.enums import DEFAULT_NAMESPACE, ManifestKind
+from lsst.cmservice.machines.lib import select_manifest_by_label
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""
@@ -387,3 +389,62 @@ async def test_new_manifest_version(aclient: AsyncClient, test_campaign: str) ->
     x = await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}/manifest/dummy/campaign_manifest_a")
     assert x.is_success
     assert x.json()["version"] == 1
+
+
+async def test_manifest_by_label(aclient: AsyncClient, session: AsyncSession, test_campaign: str) -> None:
+    campaign_id = urlparse(url=test_campaign).path.split("/")[-2:][0]
+
+    # Create manifests with specific labels
+    x = await aclient.post(
+        "/cm-service/v2/manifests",
+        json=[
+            {
+                "apiversion": "io.lsst.cmservice/v1",
+                "kind": "other",
+                "metadata": {
+                    "name": "moon_test_stable",
+                    "namespace": campaign_id,
+                    "labels": {
+                        "site": "moon",
+                        "environment": "test",
+                        "track": "stable",
+                    },
+                },
+                "spec": {
+                    "two": 2,
+                },
+            },
+        ],
+    )
+    assert x.is_success
+
+    x = await aclient.post(
+        "/cm-service/v2/manifests",
+        json=[
+            {
+                "apiversion": "io.lsst.cmservice/v1",
+                "kind": "other",
+                "metadata": {
+                    "name": "mars_test_stable",
+                    "namespace": campaign_id,
+                    "labels": {
+                        "site": "mars",
+                        "environment": "test",
+                        "track": "stable",
+                    },
+                },
+                "spec": {
+                    "one": 1,
+                },
+            },
+        ],
+    )
+    assert x.is_success
+
+    # There is no manifest for `venus_test_stable`
+    m = await select_manifest_by_label(
+        session,
+        ManifestKind.other,
+        {"siteLocator": "venus", "environmentLocator": "test", "trackLocator": "stable"},
+    )
+    assert m is None

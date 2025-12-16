@@ -12,14 +12,18 @@ class Formatters(Enum):
     yaml = auto()
 
 
-def as_table(o: Sequence) -> Table:
+def table_builder(o: Sequence[dict], columns: dict[str, str]) -> Table:
+    """Outputs a rich table from the `o` sequence of objects, where the spec-
+    ified columns (as a mapping of column name, object property) are included.
+    """
     table = Table(title="CM Output")
-    table.add_column("Name")
-    table.add_column("Status")
-    table.add_column("Owner")
 
+    for column in columns:
+        table.add_column(column)
     for row in o:
-        table.add_row(row["name"], row["status"], row["owner"])
+        column_values = [row.get(v) for _, v in columns.items()]
+        table.add_row(*column_values)
+
     return table
 
 

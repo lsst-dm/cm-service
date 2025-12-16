@@ -8,3 +8,7 @@
 !src/lsst/
 !examples/
 !alembic/
+!packages/
+!LICENSE
+!README.md
+!Makefile

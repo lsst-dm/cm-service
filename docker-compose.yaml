@@ -69,6 +69,26 @@ services:
       migratedb:
         condition: service_completed_successfully
 
+  cmweb:
+    profiles:
+      - full
+      - client
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: cmweb
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      CM_ENDPOINT: http://cmservice:8080/cm-service
+      CM_API_VERSION: v2
+    networks:
+      - cmservice
+    depends_on:
+      cmservice:
+        condition: service_healthy
+
   postgresql:
     image: "postgres:16"
     hostname: "postgresql"

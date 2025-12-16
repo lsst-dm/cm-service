@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lsst-dm/cm-service",
+  "title": "Site Manifest Specification",
+  "description": "Specification for a Site Manifest, which configures details specific to a site or facility.",
+  "type": "object",
+  "properties": {
+    "include_files": {
+      "description": "A list of YAML files that should be included in a BPS configuration when this Manifest is used. This list will be combined with the list of include files from other relevant manifests, including the Step itself.",
+      "type": "array",
+      "items": { "type": "string" },
+      "default": [],
+      "examples": [
+        "/absolute/path/to/file.yaml",
+        "${ENV_VAR}/path/to/file.yaml",
+        "${ENV_VAR}path/to/{special_file_name}"
+      ]
+    }
+  }
+}

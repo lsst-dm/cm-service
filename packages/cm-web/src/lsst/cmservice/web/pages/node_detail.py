@@ -6,7 +6,7 @@ from nicegui import app, ui
 from yaml import dump
 
 from .. import api
-from ..components import dialog, strings
+from ..components import dialog, storage, strings
 from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.enum import StatusDecorators
 from ..lib.timestamp import iso_timestamp
@@ -127,15 +127,16 @@ async def node_status_chip(node: dict) -> None:
 
 async def node_advance_chip(node: dict) -> None:
     """Adds a chip as a state-advance button for the Node."""
+    node_cache: dict = app.storage.client["state"].nodes
     node_id = node["id"]
     campaign_id = node["namespace"]
-    icon = app.storage.user[node_id]["icon"] = app.storage.user[node_id].get("icon", "fast_forward")
-    label = app.storage.user[node_id]["label"] = app.storage.user[node_id].get("label", "")
+    icon = node_cache[node_id]["icon"] = node_cache[node_id].get("icon", "fast_forward")
+    label = node_cache[node_id]["label"] = node_cache[node_id].get("label", "")
     fast_forward = partial(api.fast_forward_node, n0=node_id)
     ui.chip(label, icon=icon, color="white", on_click=fast_forward).tooltip("Step Forward").bind_icon_from(
-        app.storage.user[node_id], "icon"
-    ).bind_text_from(app.storage.user[node_id], "label").bind_visibility_from(
-        app.storage.user[campaign_id], target_name="status", value="paused"
+        node_cache[node_id], "icon"
+    ).bind_text_from(node_cache[node_id], "label").bind_visibility_from(
+        app.storage.client["state"].campaigns[campaign_id], target_name="status", value="paused"
     )
 
 
@@ -143,8 +144,9 @@ async def node_advance_chip(node: dict) -> None:
 @ui.page("/node/{id}", response_timeout=settings.timeout)
 async def node_detail(id: str) -> None:
     """Builds a Node Detail ui page."""
-    if app.storage.user.get(id) is None:
-        app.storage.user[id] = {}
+    await ui.context.client.connected()
+    storage.initialize_client_storage()
+
     data = await api.describe_one_node(id=id)
     node = data["node"]
     with cm_frame("Node Detail", [node["name"]], footers=[node["id"]]):

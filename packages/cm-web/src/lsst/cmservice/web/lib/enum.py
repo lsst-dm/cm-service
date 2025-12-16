@@ -58,3 +58,13 @@ class StatusDecorators(StatusDecorator, enum.Enum):
     reviewable = ("running_with_errors", Palette.RED.light)
     accepted = ("verified", Palette.GREEN.dark)
     rescued = ("check_circle", Palette.GREEN.dark)
+
+
+MANIFEST_KIND_ICONS: dict[str, str] = {
+    "lsst": "code",
+    "butler": "folder",
+    "bps": "settings",
+    "site": "location_city",
+    "wms": "lan",
+}
+"""A mapping of manifest kind to a display icon."""

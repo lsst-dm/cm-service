@@ -105,6 +105,7 @@ lsst-cmservice-commandline = { workspace = true }
 
 [tool.uv.workspace]
 members = ["packages/*"]
+exclude = ["packages/cm-canvas"]
 
 [build-system]
 requires = ["hatchling"]
