@@ -31,7 +31,7 @@ async def configuration_edit(manifest_id: str, namespace: str, *, readonly: bool
         ui.label("Editing Configuration")
         name_edit = ui.input(placeholder=manifest_name)
         editor = ui.json_editor(
-            {"content": {"json": current_configuration}},
+            {"content": {"json": current_configuration}, "mode": "text"},
         ).classes("w-full h-full")
         with ui.card_actions():
             if not readonly:

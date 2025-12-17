@@ -116,7 +116,7 @@ async def compile_campaign_manifests(campaign_id: str | None = None, manifests: 
                         color="white",
                     ).tooltip("Manifest Version")
                     ui.button(
-                        icon="edit",
+                        icon="preview" if campaign_id is None else "edit",
                         color="dark",
                         on_click=partial(
                             configuration_edit,

@@ -4,11 +4,11 @@ from typing import Annotated
 import httpx
 import networkx as nx
 from fastapi import Depends
-from nicegui import run, ui
+from nicegui import app, run, ui
 
 from .. import api
 from ..api.campaigns import toggle_campaign_state
-from ..components import dicebear
+from ..components import dicebear, storage
 from ..components.graph import nx_to_mermaid
 from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.configdiff import patch_resource
@@ -44,7 +44,7 @@ async def configuration_edit(manifest_id: str, namespace: str) -> None:
     with ui.dialog().props("full-height") as dialog, ui.card().style("width: 75vw"):
         ui.label("Editing Node Configuration")
         editor = ui.json_editor(
-            {"content": {"json": current_configuration}},
+            {"content": {"json": current_configuration}, "mode": "text"},
         ).classes("w-full h-full")
         with ui.card_actions():
             get_data_partial = partial(get_data, dialog=dialog, editor=editor)
@@ -62,6 +62,7 @@ async def campaign_detail(
     campaign_id: str, client_: Annotated[httpx.AsyncClient, Depends(CLIENT_FACTORY.get_aclient)]
 ) -> None:
     """Builds a campaign detail page"""
+    storage.initialize_client_storage()
     data = await api.describe_one_campaign(client=client_, id=campaign_id)
     graph: nx.DiGraph = await run.cpu_bound(
         nx.node_link_graph,
@@ -72,6 +73,9 @@ async def campaign_detail(
     campaign = data["campaign"]
     nodes = data["nodes"]  # all campaign nodes
     campaign_status = StatusDecorators[campaign["status"]]
+    if campaign_id not in app.storage.client["state"].campaigns:
+        app.storage.client["state"].campaigns[campaign_id] = {}
+    app.storage.client["state"].campaigns[campaign_id]["status"] = campaign["status"]
 
     with cm_frame(campaign["name"], footers=[campaign["id"]]):
         # Mermaid graph diagram

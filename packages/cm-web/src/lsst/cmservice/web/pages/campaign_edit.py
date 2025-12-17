@@ -82,13 +82,14 @@ class CampaignEditPage(CMPage):
             for manifest_id, manifest in self.model["manifests"].items():
                 with ui.card().classes("m-1 p-1 shrink-1"):
                     with ui.card_section():
-                        ui.input(label="Manifest Name").bind_value(
-                            self.model["manifests"][manifest_id]["metadata"], "name"
-                        ).classes("text-sm")
+                        with ui.column():
+                            ui.chip(text=manifest["kind"].upper(), color="accent").classes("text-xs").props(
+                                "outline square"
+                            ).bind_icon_from(MANIFEST_KIND_ICONS, manifest["kind"])
+                            ui.input(label="Manifest Name").bind_value(
+                                self.model["manifests"][manifest_id]["metadata"], "name"
+                            ).classes("text-sm")
                     with ui.card_actions().props("align=right").classes("items-center text-sm w-full"):
-                        ui.chip(text=manifest["kind"].upper(), color="accent").classes("text-xs").props(
-                            "outline square"
-                        ).bind_icon_from(MANIFEST_KIND_ICONS, manifest["kind"])
                         ui.space()
                         ToggleButton(color="dark").props("style: flat").tooltip(
                             "Set as default manifest for campaign"
@@ -499,6 +500,7 @@ class CampaignClonePage(CampaignEditPage):
 @ui.page("/new_campaign")
 async def campaign_edit() -> None:
     if page := await CampaignEditPage(title="Edit Mode").setup():
+        await ui.context.client.connected()
         page.render()
 
 
