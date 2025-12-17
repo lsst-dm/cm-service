@@ -29,6 +29,10 @@ class UserStorageModel(StorageModel):
         default_factory=set,
         description="A set of IDs that have been marked as user favorites",
     )
+    active_filters: Annotated[set, PlainSerializer(lambda x: list(x), return_type=list)] = Field(
+        default_factory=set,
+        description="A set of active filter names or ids",
+    )
 
 
 class UserStorageWrapper:
