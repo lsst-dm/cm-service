@@ -21,3 +21,11 @@ def get_loader() -> type[yaml.SafeLoader]:
     loader = yaml.SafeLoader
     loader.add_constructor("tag:yaml.org,2002:str", resolved_string_constructor)
     return loader
+
+
+def str_representer(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
+    str_tag = "tag:yaml.org,2002:str"
+    if "\n" in data:
+        return dumper.represent_scalar(str_tag, data, style="|")
+    else:
+        return dumper.represent_scalar(str_tag, data)

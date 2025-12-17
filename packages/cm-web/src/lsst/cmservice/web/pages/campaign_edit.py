@@ -1,6 +1,5 @@
 """Page and supporting functions for a Campaign's Edit Mode."""
 
-import asyncio
 import json
 from functools import partial
 from typing import Any, TypedDict
@@ -11,12 +10,17 @@ import yaml
 from nicegui import run, ui
 from nicegui.events import ClickEventArguments, GenericEventArguments, ValueChangeEventArguments
 
+from lsst.cmservice.common.yaml import str_representer
+
 from .. import api
 from ..components.button import ToggleButton
 from ..lib.canvas import nx_to_flow
 from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.enum import MANIFEST_KIND_ICONS
 from .common import CMPage
+
+yaml.add_representer(str, str_representer)
+
 
 STEP_SPEC_TEMPLATE: dict[str, Any] = {
     "bps": {
@@ -99,7 +103,6 @@ class CampaignEditPage(CMPage):
         """A section containing a Canvas component for editing a campaign
         graph.
         """
-        ui.add_head_html("""<script src="/static/cm-canvas-bundle.iife.js"></script>""")
         with (
             ui.element("div")
             .props("id=canvas-container")
@@ -118,7 +121,6 @@ class CampaignEditPage(CMPage):
         """The primary content-rendering method for the page, called by render
         within the column element between page header and footer.
         """
-        self.namespace = UUID("dda54a0c-6878-5c95-ac4f-007f6808049e")
         self.edit_campaign_name()
         # A behind-the-scenes editor dialog for editing manifests
         self.create_step_editor()
@@ -166,6 +168,8 @@ class CampaignEditPage(CMPage):
             self.editor = ui.json_editor(
                 {
                     "content": {"json": {}},
+                    "mode": "text",
+                    "modes": ["text", "tree"],
                 }
             ).classes("h-full w-full")
 
@@ -179,7 +183,7 @@ class CampaignEditPage(CMPage):
             ui.label("Editing Manifest Configuration").classes("text-subtitle1")
 
             self.manifest_editor = ui.codemirror(
-                value="placeholder", language="YAML", highlight_whitespace=False
+                value="# placeholder", language="YAML", highlight_whitespace=False
             ).classes("h-full w-full")
             with ui.card_actions():
                 ui.button("Done", color="positive", on_click=self.save_manifest_edit).props("flat")
@@ -212,9 +216,8 @@ class CampaignEditPage(CMPage):
         current_yaml = yaml.dump(current_configuration)
         self.current_editor_manifest_id = manifest_id
         self.manifest_edit_dialog.open()
-        # FIXME replace sleep with a callback for "open"
-        await asyncio.sleep(0.1)
         self.manifest_editor.set_value(current_yaml)
+        self.manifest_editor.update()
 
     async def save_node_edit(self) -> None:
         """Callback invoked by the "done" button on an editor dialog. Fetches
@@ -282,7 +285,6 @@ class CampaignEditPage(CMPage):
         # current state, make changes to it, and "set" it back, then "patch"
         # the editor to make it look like it's updated.
         current_configuration = await self.editor.run_editor_method("get")
-        # FIXME need to check for json/text here
         current_configuration["json"]["groups"] = group_config
 
         # The set method updates the state but not the UI
@@ -346,7 +348,7 @@ class CampaignEditPage(CMPage):
         in response to a "canvasExport" event.
         """
 
-        # Update the campaign manifest with the current name
+        # the campaign manifest with the current name
         self.model["campaign"]["metadata"]["name"] = self.campaign_name
 
         canvas_data = data.args.get("data", {})
@@ -391,6 +393,8 @@ class CampaignEditPage(CMPage):
         """Async method called at page creation. Subpages can override this
         method to perform data loading/prep, etc., before calling render().
         """
+        self.namespace = UUID("dda54a0c-6878-5c95-ac4f-007f6808049e")
+        ui.add_head_html("""<script src="/static/cm-canvas-bundle.iife.js"></script>""")
         self.model: CampaignPageModel = {
             "nodes": [],
             "edges": [],
@@ -431,9 +435,15 @@ class CampaignClonePage(CampaignEditPage):
         """Async method called at page creation. Subpages can override this
         method to perform data loading/prep, etc., before calling render().
         """
+        self.namespace = UUID("dda54a0c-6878-5c95-ac4f-007f6808049e")
+
+        # Add IIFE script for cm-canvas component
+        ui.add_head_html("""<script src="/static/cm-canvas-bundle.iife.js"></script>""")
+
         async with CLIENT_FACTORY.aclient() as client:
             data = await api.describe_one_campaign(client=client, id=clone_campaign_model_from)
 
+        self.campaign_name = data["campaign"]["name"]
         graph: nx.DiGraph = await run.cpu_bound(
             nx.node_link_graph,
             data["graph"],
@@ -483,9 +493,6 @@ class CampaignClonePage(CampaignEditPage):
         for kind in mandatory_manifests:
             ...
 
-        # Update the campaign_name input with data["campaign"]["name"]
-        self.campaign_name = data["campaign"]["name"]
-
         return self
 
 
@@ -498,4 +505,5 @@ async def campaign_edit() -> None:
 @ui.page("/clone/{campaign_id}")
 async def campaign_clone(campaign_id: str) -> None:
     if page := await CampaignClonePage(title="Edit Mode").setup(clone_campaign_model_from=campaign_id):
+        await ui.context.client.connected()
         page.render()
