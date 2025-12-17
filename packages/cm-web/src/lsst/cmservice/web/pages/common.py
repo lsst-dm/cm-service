@@ -100,19 +100,23 @@ class CMPage:
             dark_page=Palette.BLACK.dark,
         )
 
+    @ui.refreshable_method
+    def create_header(self) -> None:
+        with ui.link(target="/").classes("text-white !no-underline"):
+            ui.label("Campaign Management").classes("text-h4")
+        ui.space()
+        ui.label(self.page_title).classes("text-h5")
+        ui.space()
+        for crumb in self.breadcrumbs:
+            ui.label(crumb).classes("text-h6")
+            ui.space()
+        ui.space()
+        ui.button(icon="menu", on_click=lambda: self.toggle_drawer()).props("flat color=white")
+
     def page_layout(self) -> None:
         self.create_drawer()
         with ui.header(elevated=True).classes("shrink-0") as self.header:
-            with ui.link(target="/").classes("text-white !no-underline"):
-                ui.label("Campaign Management").classes("text-h4")
-            ui.space()
-            ui.label(self.page_title).classes("text-h4")
-            ui.space()
-            for crumb in self.breadcrumbs:
-                ui.label(crumb).classes("text-h6")
-                ui.space()
-            ui.space()
-            ui.button(icon="menu", on_click=lambda: self.toggle_drawer()).props("flat color=white")
+            self.create_header()
 
         with (
             ui.column()
