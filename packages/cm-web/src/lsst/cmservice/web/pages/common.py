@@ -118,14 +118,8 @@ class CMPage:
         with ui.header(elevated=True).classes("shrink-0") as self.header:
             self.create_header()
 
-        with (
-            ui.column()
-            .classes("flex flex-col p-0 m-0 w-full")
-            .style("""
-            height: calc(100vh - 72px - 66px);
-        """) as self.content
-        ):
-            ...
+        with ui.column().classes("flex flex-col p-0 m-0 w-full") as self.content:
+            pass
 
         with ui.footer(bordered=True, elevated=True).classes("shrink-0") as self.footer:
             for footer in self.footers:

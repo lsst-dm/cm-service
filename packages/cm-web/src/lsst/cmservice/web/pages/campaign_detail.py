@@ -9,7 +9,7 @@ from nicegui import app, run, ui
 
 from .. import api
 from ..api.campaigns import toggle_campaign_state
-from ..components import dicebear, storage
+from ..components import dicebear, storage, strings
 from ..components.graph import nx_to_mermaid
 from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.configdiff import patch_resource
@@ -66,95 +66,18 @@ async def configuration_edit(manifest_id: str, namespace: str) -> None:
         await patch_resource(manifest_url, current_configuration, result)
 
 
-@ui.page("/Xcampaign/{campaign_id}", response_timeout=settings.timeout)
-async def campaign_detail(
-    campaign_id: str, client_: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)]
-) -> None:
-    """Builds a campaign detail page"""
-    storage.initialize_client_storage()
-    campaign = {"name": "hello", "id": "world"}
-    if campaign_id not in app.storage.client["state"].campaigns:
-        app.storage.client["state"].campaigns[campaign_id] = {}
-    app.storage.client["state"].campaigns[campaign_id]["status"] = campaign["status"]
-
-    with cm_frame(campaign["name"], footers=[campaign["id"]]):
-        ...
-        # Library manifests
-        # with ui.expansion("Library Manifests", icon="extension").classes("w-full"):
-        #     await api.compile_campaign_manifests()
-
-        # ui.separator()
-
-        # Current campaign manifests
-        # with ui.expansion("Campaign Manifests", icon="extension").classes("w-full"):
-        #     await api.compile_campaign_manifests(campaign_id=campaign["id"], manifests=data["manifests"])
-
-        # Campaign Nodes
-        # with ui.row(align_items="stretch").classes("w-full flex-center"):
-        #     for node in sorted(nodes, key=lambda x: x["metadata"].get("mtime", 0), reverse=True):
-        #         node_graph_name = f"""{node["name"]}.{node["version"]}"""
-        #         node_versions = list(
-        #             filter(
-        #                 lambda n: n["name"] == node["name"] and n["version"] != node["version"],
-        #                 nodes,
-        #             )
-        #         )
-        #         if (
-        #             node_graph_name in graph.nodes
-        #             and node["version"] == graph.nodes[node_graph_name]["version"]
-        #         ):
-        #             campaign_detail_node_card(node, node_versions, graph)
-
-
 class CampaignDetailPage(CMPage):
-    async def render(self) -> None:
-        """Method to create main content for page.
-
-        Subclasses should use the `create_content()` method, which is called
-        from within the content column's context manager.
-        """
-        with self.content:
-            await self.create_content()
-
-    async def minimal_node_card(self, node: dict) -> None:
-        with ui.card():
-            ui.label(node["name"])
-            with ui.row():
-                with ui.card_section():
-                    ui.label(node["status"])
-                with ui.card_section():
-                    ui.label(node["status"])
-
-            with ui.card_actions().props("align=right").classes("items-center text-sm w-full"):
-                if node_created_at := node["metadata"].get("crtime"):
-                    ui.chip(
-                        timestamp(node_created_at, "%-d-%b %H:%M:%S UTC"),
-                        # icon="edit",
-                        color="transparent",
-                    ).tooltip("Created at")
-                if node_updated_at := node["metadata"].get("mtime"):
-                    ui.chip(
-                        timestamp(node_updated_at, "%-d-%b %H:%M:%S UTC"),
-                        # icon="design_services",
-                        color="transparent",
-                    ).tooltip("Updated at")
-
-                ui.button(
-                    icon="edit",
-                    color="dark",
-                    on_click=partial(
-                        configuration_edit,
-                        manifest_id=node["id"],
-                        namespace=node["namespace"],
-                    ),
-                ).props("style: flat").tooltip("Edit Node Configuration")
-
-    async def campaign_detail_node_card(self, node: dict) -> None:
+    def create_node_card(self, node: dict) -> None:
         """Builds a card ui element with Node details, as used for nodes active
         in a campaign's graph.
         """
         if TYPE_CHECKING:
             assert self.model["graph"] is not None
+
+        node_graph_name = f"""{node["name"]}.{node["version"]}"""
+        # Do not include the node card if the node is not in the graph
+        if node_graph_name not in self.model["graph"].nodes:
+            return None
 
         # a list of alternate versions for the same node
         node_versions = list(
@@ -163,76 +86,77 @@ class CampaignDetailPage(CMPage):
                 self.model["nodes"],
             )
         )
-        node_graph_name = f"""{node["name"]}.{node["version"]}"""
         node_status = StatusDecorators[node["status"]]
-        with ui.card():
+        with ui.card().tight():
             with ui.row():
-                # with ui.card_section():
-                #     with ui.link(target=f"/node/{node['id']}"):
-                #         ui.avatar(square=True, color="accent").tooltip(node["id"])
-                # with ui.avatar(square=True, color=None):
-                #     ui.tooltip(node["id"])
-                #     dicebear.identicon_icon(node["id"], color=node_status.hex)
+                # with ui.card_section().classes("grid grid-cols-[8rem_1fr] grid-rows-2 gap-2 min-w-0"):
+                with ui.column().classes("items-center gap-2"):
+                    # Large hero avatar link
+                    with ui.link(target=f"/node/{node['id']}"):
+                        ui.tooltip(node["id"])
+                        with ui.avatar(square=True, color=None).classes("w-16 h-16"):
+                            dicebear.identicon_icon(node["id"], color=node_status.hex)
+                    ui.chip(
+                        node["status"],
+                        icon=node_status.emoji,
+                        color=node_status.hex,
+                    ).tooltip(node["status"])
 
-                with ui.card_section():
+                with ui.column().classes("gap-2 flex-grow min-w-0"):
                     with ui.row().classes("items-center"):
-                        ui.label(node["name"]).classes("bold text-lg font-black").tooltip(node["name"])
-                        ui.chip(
-                            node["status"],
-                            # icon=node_status.emoji,
-                            color=node_status.hex,
-                        ).tooltip(node["status"])
-                    with ui.row().classes("items-center"):
+                        ui.label(node["name"]).tooltip(node["name"]).classes("font-black text-lg")
+
                         ui.chip(
                             node["kind"],
-                            # icon="fingerprint",
+                            icon="fingerprint",
                             color="white",
                         ).tooltip("Node Kind")
+
                         node_version_chip = ui.chip(
                             node["version"],
                             icon="commit",
                             color="white",
                         ).tooltip("Node Version")
-                        ui.chip(
-                            self.model["graph"].in_degree(node_graph_name),  # pyright: ignore[reportArgumentType]
-                            # icon="input",
-                            color="white",
-                        ).tooltip("Incoming Nodes")
-                        ui.chip(
-                            self.model["graph"].out_degree(node_graph_name),  # pyright: ignore[reportArgumentType]
-                            # icon="output",
-                            color="white",
-                        ).tooltip("Downstream Nodes")
 
-                        newer_node_badge = (
-                            ui.badge("!").classes("text-white bg-info").tooltip("New Version Available")
-                        )
-                        newer_node_badge.set_visibility(
-                            len(
-                                list(
-                                    filter(
-                                        lambda n: n["version"] > node["version"],
-                                        node_versions,
-                                    )
+                    # ui.chip(
+                    #     str(self.model["graph"].in_degree(node_graph_name)),  # pyright: ignore[reportArgumentType]
+                    #     icon="input",
+                    #     color="white",
+                    # ).tooltip("Incoming Nodes")
+                    # ui.chip(
+                    #     str(self.model["graph"].out_degree(node_graph_name)),  # pyright: ignore[reportArgumentType]
+                    #     icon="output",
+                    #     color="white",
+                    # ).tooltip("Downstream Nodes")
+
+                    with ui.badge("!").classes("text-white bg-info") as newer_node_badge:
+                        ui.tooltip("New Version Available").props("anchor='top middle' self='bottom middle'")
+                    newer_node_badge.set_visibility(
+                        len(
+                            list(
+                                filter(
+                                    lambda n: n["version"] > node["version"],
+                                    node_versions,
                                 )
                             )
-                            > 0
                         )
-                        newer_node_badge.move(node_version_chip)
+                        > 0
+                    )
+                    newer_node_badge.move(node_version_chip)
 
-            with ui.card_actions().props("align=right").classes("items-center text-sm w-full"):
+            with ui.card_actions().props("align=right"):
                 if node_created_at := node["metadata"].get("crtime"):
                     ui.chip(
                         timestamp(node_created_at, "%-d-%b %H:%M:%S UTC"),
-                        # icon="construction",
+                        icon="construction",
                         color="transparent",
-                    ).tooltip("Created at")
+                    ).tooltip("Created at").classes("text-sm")
                 if node_updated_at := node["metadata"].get("mtime"):
                     ui.chip(
                         timestamp(node_updated_at, "%-d-%b %H:%M:%S UTC"),
-                        # icon="design_services",
+                        icon="design_services",
                         color="transparent",
-                    ).tooltip("Updated at")
+                    ).tooltip("Updated at").classes("text-sm")
 
                 ui.button(
                     icon="edit",
@@ -285,12 +209,15 @@ class CampaignDetailPage(CMPage):
         self.model["campaign"] = data["campaign"]
         self.model["nodes"] = data["nodes"]
         self.breadcrumbs.append(data["campaign"]["name"])
+        if campaign_id not in app.storage.client["state"].campaigns:
+            app.storage.client["state"].campaigns[campaign_id] = {}
+        app.storage.client["state"].campaigns[campaign_id]["status"] = self.model["campaign"]["status"]
         self.create_header.refresh()
 
         return self
 
     @ui.refreshable_method
-    async def create_content(self) -> None:
+    def create_content(self) -> None:
         """The primary content-rendering method for the page, called by render
         within the column element between page header and footer.
         """
@@ -301,20 +228,22 @@ class CampaignDetailPage(CMPage):
         ui.separator()
         self.create_gauges()
         ui.separator()
-        ui.label("Campaign and Library Manifests")
-        # TODO manifests
+        with ui.expansion(
+            "Library Manifests", caption=strings.LIBRARY_MANIFEST_TOOLIP, icon="extension"
+        ).classes("w-full"):
+            ui.label("Library Manifests")
+        ui.separator()
+        with ui.expansion(
+            "Campaign Manifests", caption=strings.CAMPAIGN_MANIFEST_TOOLTIP, icon="extension"
+        ).classes("w-full"):
+            ui.label("Library Manifests")
         ui.separator()
         # Campaign Nodes
-        with ui.row(align_items="stretch").classes("w-full flex-center") as self.nodes_row:
+        with ui.row().classes("flex flex-wrap justify-center gap-2") as self.nodes_row:
             for node in sorted(
                 self.model["nodes"], key=lambda x: x["metadata"].get("mtime", 0), reverse=True
             ):
-                node_graph_name = f"""{node["name"]}.{node["version"]}"""
-                if (
-                    node_graph_name in self.model["graph"].nodes
-                    and node["version"] == self.model["graph"].nodes[node_graph_name]["version"]
-                ):
-                    await self.campaign_detail_node_card(node)
+                self.create_node_card(node)
 
         # Campaign FAB
         with ui.page_sticky(position="bottom-right", x_offset=20, y_offset=20):
@@ -331,7 +260,10 @@ class CampaignDetailPage(CMPage):
 
     @ui.refreshable_method
     def create_graph_viz(self) -> None:
-        with ui.expansion("Campaign Graph", icon="shape_line").classes("w-full"):
+        if TYPE_CHECKING:
+            assert self.model["graph"] is not None
+
+        with ui.expansion("Campaign Graph", icon="shape_line").classes("w-full") as self.graph_viz:
             ui.mermaid(nx_to_mermaid(self.model["graph"]), config={"securityLevel": "loose"}).classes(
                 "w-full"
             )
@@ -340,7 +272,7 @@ class CampaignDetailPage(CMPage):
     @ui.refreshable_method
     def create_gauges(self) -> None:
         # Dashboard gauges
-        with ui.row(align_items="center"):
+        with ui.row(align_items="center") as self.gauges_row:
             with ui.card().classes("items-center"):
                 self.campaign_status_decorator()
                 with ui.row():
@@ -368,10 +300,14 @@ class CampaignDetailPage(CMPage):
                 with ui.row():
                     ui.circular_progress(value=0, max=100, color="negative", size="xl")
 
-    @ui.refreshable_method
     def campaign_status_decorator(self) -> None:
-        current_decorator = StatusDecorators[self.model["campaign"]["status"]]
-        ui.icon(current_decorator.emoji, size="xl", color="primary")
+        """An icon representing the campaign state."""
+        ui.icon("", size="xl", color="primary").bind_name_from(
+            app.storage.client["state"].campaigns[self.campaign_id],
+            "status",
+            backward=lambda s: StatusDecorators[s].emoji,
+            strict=False,
+        )
 
 
 @ui.page("/campaign/{campaign_id}", response_timeout=settings.timeout)
@@ -379,6 +315,6 @@ async def campaign_detail_page(
     campaign_id: str, client_: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)]
 ) -> None:
     """Builds a campaign detail page"""
-    await ui.context.client.connected()
     if page := await CampaignDetailPage(title="Campaign Detail").setup(client_, campaign_id):
-        await page.render()
+        await ui.context.client.connected()
+        page.render()

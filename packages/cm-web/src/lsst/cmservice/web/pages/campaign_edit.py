@@ -122,11 +122,17 @@ class CampaignEditPage(CMPage):
         """The primary content-rendering method for the page, called by render
         within the column element between page header and footer.
         """
-        self.edit_campaign_name()
-        # A behind-the-scenes editor dialog for editing manifests
-        self.create_step_editor()
-        self.create_manifest_editor()
-        self.create_campaign_canvas()
+        # The canvas component requires a container with a specific height.
+        # This div with a calculated height supplies that requirement.
+        with (
+            ui.element("div")
+            .classes("flex flex-col p-0 m-0 w-full")
+            .style("height: calc(100vh - 72px - 66px);")
+        ):
+            self.edit_campaign_name()
+            self.create_step_editor()
+            self.create_manifest_editor()
+            self.create_campaign_canvas()
 
         # setup listeners
         ui.on("canvasExported", self.handle_exported_canvas)
