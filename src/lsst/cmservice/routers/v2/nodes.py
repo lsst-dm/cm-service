@@ -9,8 +9,9 @@ from typing import TYPE_CHECKING, Annotated
 from uuid import UUID, uuid5
 
 from asgi_correlation_id import correlation_id
+from asyncpg.exceptions import IntegrityConstraintViolationError
 from deepdiff import Delta
-from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query, Request, Response, status
 from pydantic import UUID5
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, select
@@ -76,7 +77,7 @@ async def read_nodes_collection(
         return nodes.all()
     except Exception as msg:
         logger.exception()
-        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"{str(msg)}") from msg
 
 
 @router.get("/{node_name}", response_model=Node, summary="Get single node detail")
@@ -104,7 +105,8 @@ async def read_node_resource(
         # namespace or raise an error.
         if namespace is None:
             raise HTTPException(
-                status_code=400, detail="Cannot locate Node by name alone. Try including `?campaign-id=...`"
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot locate Node by name alone. Try including `?campaign-id=...`",
             )
         s = s.where(Node.name == node_name).where(Node.namespace == namespace)
 
@@ -115,7 +117,7 @@ async def read_node_resource(
 
     node = (await session.exec(s.limit(1))).one_or_none()
     if node is None:
-        raise HTTPException(status_code=404)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     response.headers["Self"] = request.url_for("read_node_resource", node_name=node.id).__str__()
     response.headers["Version"] = str(node.version)
     response.headers["Campaign"] = request.url_for(
@@ -163,7 +165,9 @@ async def create_node_resource(
     # it is an error if the provided namespace (campaign) does not exist
     # FIXME but this could also be handled by FK constraints
     if node_namespace_uuid is None:
-        raise HTTPException(status_code=404, detail="Requested campaign namespace does not exist.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Requested campaign namespace does not exist."
+        )
 
     # A node must be a new version if name+namespace already exists
     # - check db for node as name+namespace, get current version and increment
@@ -207,7 +211,7 @@ async def create_node_resource(
 @router.patch(
     "/{node_id}",
     summary="Update node detail",
-    status_code=202,
+    status_code=status.HTTP_202_ACCEPTED,
 )
 async def update_node_resource(
     request: Request,
@@ -244,7 +248,10 @@ async def update_node_resource(
     mutable_fields = []
 
     if (request_id := correlation_id.get()) is None:
-        raise HTTPException(status_code=500, detail="Cannot patch resource without a X-Request-Id")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Cannot patch resource without a X-Request-Id",
+        )
 
     if request.headers["Content-Type"] == "application/json-patch+json":
         use_rfc6902 = True
@@ -254,7 +261,7 @@ async def update_node_resource(
         use_rfc7396 = True
         mutable_fields.extend(["status"])
     else:
-        raise HTTPException(status_code=406, detail="Unsupported Content-Type")
+        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Unsupported Content-Type")
 
     # TODO it will be an IntegrityError if the targeted node is not the most
     # recent version, it may be nicer to check this and exit early.
@@ -263,7 +270,7 @@ async def update_node_resource(
     old_manifest = (await session.exec(s)).one_or_none()
 
     if old_manifest is None:
-        raise HTTPException(status_code=404, detail="No such node")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No such node")
 
     if use_rfc7396:
         if TYPE_CHECKING:
@@ -299,7 +306,7 @@ async def update_node_resource(
                 apply_json_patch(patch, new_manifest)
             except JSONPatchError as e:
                 raise HTTPException(
-                    status_code=422,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail=f"Unable to process one or more patch operations: {e}",
                 )
     elif use_deepdiff:
@@ -316,9 +323,9 @@ async def update_node_resource(
     try:
         session.add(new_manifest_db)
         await session.commit()
-    except IntegrityError as e:
+    except (IntegrityError, IntegrityConstraintViolationError) as e:
         raise HTTPException(
-            status_code=422,
+            status_code=status.HTTP_409_CONFLICT,
             detail=f"Integrity Error: {e}",
         )
 
