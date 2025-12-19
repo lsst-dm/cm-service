@@ -2,6 +2,7 @@
 
 import json
 from functools import partial
+from operator import itemgetter
 from typing import Any, TypedDict
 from uuid import UUID, uuid5
 
@@ -479,10 +480,17 @@ class CampaignClonePage(CampaignEditPage):
         }
 
         mandatory_manifests = {"bps", "lsst", "butler", "wms", "site"}
-        for manifest in data["manifests"]:
-            # Manifests for the cloned campaign are reset to version 0 and add-
+        for manifest in sorted(data["manifests"], key=itemgetter("version"), reverse=True):
+            # Manifests for the cloned campaign are reset to version 1 and add-
             # ed to the page's model. The original manifest ID is kept to track
             # it but is not used for eventual serialization of a new object.
+            #
+            # Only the newest version of any manifest kind available in the
+            # original campaign is kept in the new one.
+            try:
+                mandatory_manifests.remove(manifest["kind"])
+            except KeyError:
+                continue
             self.model["manifests"][manifest["id"]] = {
                 "apiVersion": "io.lsst.cmservice/v1",
                 "kind": manifest["kind"],
@@ -493,10 +501,7 @@ class CampaignClonePage(CampaignEditPage):
                 "spec": manifest["spec"],
             }
 
-            mandatory_manifests.remove(manifest["kind"])
-
-        # Any "missing" manifests are fetched from the library and left at
-        # version 0
+        # Any "missing" manifests could be fetched from the library
         for kind in mandatory_manifests:
             ...
 
