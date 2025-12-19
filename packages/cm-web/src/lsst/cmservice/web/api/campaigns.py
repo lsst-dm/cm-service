@@ -98,6 +98,7 @@ async def compile_campaign_manifests(campaign_id: str | None = None, manifests: 
     # FIXME in future label selection of manifests will complicate the "view"
     # of a set of manifests relevant to the campaign, since the selectors will
     # differ at the node level.
+    # FIXME this is a bad pattern because it mixes ui elements with data ops
 
     manifests = await get_campaign_manifests(campaign_id, manifests)
 

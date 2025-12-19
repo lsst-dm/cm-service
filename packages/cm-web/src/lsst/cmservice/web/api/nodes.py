@@ -2,7 +2,7 @@
 targeting Node resources.
 """
 
-from httpx import HTTPStatusError, Response
+from httpx import HTTPStatusError, Response, codes
 from nicegui import app, ui
 
 from ..lib.client_factory import CLIENT_FACTORY
@@ -10,6 +10,7 @@ from .activity import wait_for_activity_to_complete
 
 
 async def get_one_node(id: str, namespace: str | None) -> Response:
+    """Get a single Node by its id or name+namespace."""
     # TODO get nodes and fallback to manifests on 404?
     url = f"/nodes/{id}"
     if namespace is not None:
@@ -20,7 +21,7 @@ async def get_one_node(id: str, namespace: str | None) -> Response:
             r.raise_for_status()
         except HTTPStatusError as e:
             match e.response:
-                case Response(status_code=409):
+                case Response(status_code=codes.CONFLICT):
                     ui.notify("Campaign must be paused before modification", type="negative")
                 case _:
                     raise
@@ -28,6 +29,13 @@ async def get_one_node(id: str, namespace: str | None) -> Response:
 
 
 async def describe_one_node(id: str) -> dict:
+    """Describes a single node by its id.
+
+    The "description" of a node includes its manifest and any activity logs
+    associated with it. As a side effect, this function updates the client
+    storage with the status of the node, which may propogate to bound elements
+    and trigger updates.
+    """
     data = {}
     async with CLIENT_FACTORY.aclient() as client:
         try:
@@ -44,10 +52,11 @@ async def describe_one_node(id: str) -> dict:
     campaign_id = data["node"]["namespace"]
     if app.storage.client["state"].nodes.get(id) is None:
         app.storage.client["state"].nodes[id] = {}
+    else:
+        app.storage.client["state"].nodes[id]["status"] = data["node"]["status"]
+
     if app.storage.client["state"].campaigns.get(campaign_id) is None:
-        app.storage.client["state"].campaigns[campaign_id] = {
-            "status": "unknown",
-        }
+        app.storage.client["state"].campaigns[campaign_id] = {}
     return data
 
 
@@ -59,7 +68,7 @@ async def replace_node(n0: str, n1: str, namespace: str) -> Response:
             ui.notify("Node replaced.")
         except HTTPStatusError as e:
             match e.response:
-                case Response(status_code=409):
+                case Response(status_code=codes.CONFLICT):
                     ui.notify("Campaign must be paused before modification", type="negative")
                 case _:
                     raise
@@ -77,9 +86,9 @@ async def fast_forward_node(n0: str) -> None:
             r.raise_for_status()
         except HTTPStatusError as e:
             match e.response:
-                case Response(status_code=422):
+                case Response(status_code=codes.UNPROCESSABLE_ENTITY):
                     ui.notify(r.text, type="negative")
-                case Response(status_code=500):
+                case Response(status_code=codes.INTERNAL_SERVER_ERROR):
                     ui.notify("Attempt failed with a Server Error", type="negative")
                 case _:
                     raise
@@ -142,9 +151,9 @@ async def retry_restart_node(
             n.type = "negative"
             n.timeout = 5.0
             match e.response:
-                case Response(status_code=422):
+                case Response(status_code=codes.UNPROCESSABLE_ENTITY):
                     n.message = r.text
-                case Response(status_code=500):
+                case Response(status_code=codes.INTERNAL_SERVER_ERROR):
                     n.message = "Attempt failed with a Server Error"
                 case _:
                     raise

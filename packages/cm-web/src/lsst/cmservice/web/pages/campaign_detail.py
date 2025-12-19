@@ -12,8 +12,8 @@ from ..api.campaigns import toggle_campaign_state
 from ..components import dicebear, storage, strings
 from ..components.graph import nx_to_mermaid
 from ..lib.client_factory import CLIENT_FACTORY
-from ..lib.configdiff import patch_resource
-from ..lib.enum import StatusDecorators
+from ..lib.configedit import configuration_edit
+from ..lib.enum import MANIFEST_KIND_ICONS, StatusDecorators
 from ..lib.timestamp import timestamp
 from ..settings import settings
 from .common import CMPage, cm_frame
@@ -27,45 +27,6 @@ class CampaignDetailPageModel(TypedDict):
     graph: nx.DiGraph | None
 
 
-async def get_data(editor: ui.json_editor, dialog: ui.dialog) -> None:
-    """Gets current data from a specified editor and submits it as a return
-    value through the specified dialog.
-    """
-    data = await editor.run_editor_method("get")
-    dialog.submit(data)
-
-
-async def configuration_edit(manifest_id: str, namespace: str) -> None:
-    """Display a Dialog with a JSON Editor component, loaded with the current
-    configuration of the specified Manifest object. Data from the editor is
-    returned when a "Done" button is pressed, otherwise any changes are
-    discarded and the Dialog is dismissed with a None.
-
-    If data is returned from the dialog, it is used to patch the Manifest
-    resource.
-    """
-    # get current configuration of manifest/node from db
-    manifest_response = await api.get_one_node(id=manifest_id, namespace=namespace)
-    manifest_url = manifest_response.headers["Self"]
-    manifest = manifest_response.json()
-
-    current_configuration = manifest.get("configuration", {})
-    with ui.dialog().props("full-height") as dialog, ui.card().style("width: 75vw"):
-        ui.label("Editing Node Configuration")
-        editor = ui.json_editor(
-            {"content": {"json": current_configuration}, "mode": "text"},
-        ).classes("w-full h-full")
-        with ui.card_actions():
-            get_data_partial = partial(get_data, dialog=dialog, editor=editor)
-            ui.button("Done", color="positive", on_click=get_data_partial).props("style: flat")
-            ui.button("Cancel", color="negative", on_click=lambda: dialog.submit(None)).props("style: flat")
-
-    result = await dialog
-    if result is not None:
-        # TODO run.io_bound
-        await patch_resource(manifest_url, current_configuration, result)
-
-
 class CampaignDetailPage(CMPage):
     def create_node_card(self, node: dict) -> None:
         """Builds a card ui element with Node details, as used for nodes active
@@ -73,6 +34,9 @@ class CampaignDetailPage(CMPage):
         """
         if TYPE_CHECKING:
             assert self.model["graph"] is not None
+
+        # Node is readonly if it is not the latest version of a node
+        readonly = False
 
         node_graph_name = f"""{node["name"]}.{node["version"]}"""
         # Do not include the node card if the node is not in the graph
@@ -143,6 +107,7 @@ class CampaignDetailPage(CMPage):
                         > 0
                     )
                     newer_node_badge.move(node_version_chip)
+                    readonly = newer_node_badge.visible
 
             with ui.card_actions().props("align=right"):
                 if node_created_at := node["metadata"].get("crtime"):
@@ -158,15 +123,24 @@ class CampaignDetailPage(CMPage):
                         color="transparent",
                     ).tooltip("Updated at").classes("text-sm")
 
+                # FIXME after editing, the page model's version of the node is
+                # not updated so will be out of sync, but these models are only
+                # used for initial page `setup()` so it may not matter. We may
+                # build a callback method for the configuration_edit() in order
+                # to sync the page model with the new version.
                 ui.button(
-                    icon="edit",
+                    icon="preview",
                     color="dark",
                     on_click=partial(
                         configuration_edit,
                         manifest_id=node["id"],
                         namespace=node["namespace"],
+                        readonly=readonly,
+                        # callback=partial(sync_page_model, node["id"]),
                     ),
-                ).props("style: flat").tooltip("Edit Node Configuration")
+                ).props("style: flat").tooltip("View/Edit Node Configuration").bind_icon_from(
+                    newer_node_badge, "visible", backward=lambda v: "preview" if v else "edit"
+                )
 
             if len(node_versions):
                 with ui.expansion("Other Versions").classes("w-full"):
@@ -193,25 +167,28 @@ class CampaignDetailPage(CMPage):
         """
         self.show_spinner()
         storage.initialize_client_storage()
+        # the describe_one_campaign api helper builds a rich model of campaign
+        # components, but it does not include library manifests.
+        data = await api.describe_one_campaign(client=client_, id=campaign_id)
+
         self.campaign_id = campaign_id
+        if campaign_id not in app.storage.client["state"].campaigns:
+            app.storage.client["state"].campaigns[campaign_id] = {}
+
         self.model: CampaignDetailPageModel = {
-            "campaign": {},
-            "nodes": [],
-            "manifests": {},
+            "campaign": data["campaign"],
+            "nodes": data["nodes"],
+            "manifests": {m["id"]: m for m in data["manifests"]},
             "graph": None,
         }
-        data = await api.describe_one_campaign(client=client_, id=campaign_id)
         self.model["graph"] = await run.cpu_bound(
             nx.node_link_graph,
             data["graph"],
             edges="edges",  # pyright: ignore[reportCallIssue]
         )
-        self.model["campaign"] = data["campaign"]
-        self.model["nodes"] = data["nodes"]
-        self.breadcrumbs.append(data["campaign"]["name"])
-        if campaign_id not in app.storage.client["state"].campaigns:
-            app.storage.client["state"].campaigns[campaign_id] = {}
         app.storage.client["state"].campaigns[campaign_id]["status"] = self.model["campaign"]["status"]
+
+        self.breadcrumbs.append(data["campaign"]["name"])
         self.create_header.refresh()
 
         return self
@@ -228,15 +205,22 @@ class CampaignDetailPage(CMPage):
         ui.separator()
         self.create_gauges()
         ui.separator()
-        with ui.expansion(
-            "Library Manifests", caption=strings.LIBRARY_MANIFEST_TOOLIP, icon="extension"
-        ).classes("w-full"):
-            ui.label("Library Manifests")
-        ui.separator()
+
+        # with ui.expansion(
+        #     "Library Manifests", caption=strings.LIBRARY_MANIFEST_TOOLIP, icon="extension"
+        # ).classes("w-full"):
+        #     ui.label("Library Manifests")
+        #     # a row of 5 skeleton cards
+        #     # this row should be scrollable <-> but not grow in height
+        #     with ui.row().classes("w-full"):
+        #         ...
+        # ui.separator()
+
         with ui.expansion(
             "Campaign Manifests", caption=strings.CAMPAIGN_MANIFEST_TOOLTIP, icon="extension"
         ).classes("w-full"):
-            ui.label("Library Manifests")
+            self.manifest_row()
+
         ui.separator()
         # Campaign Nodes
         with ui.row().classes("flex flex-wrap justify-center gap-2") as self.nodes_row:
@@ -308,6 +292,40 @@ class CampaignDetailPage(CMPage):
             backward=lambda s: StatusDecorators[s].emoji,
             strict=False,
         )
+
+    def manifest_row(self, *, library: bool = False) -> None:
+        """Produces a row of cards for Manifests. Each card displays the name,
+        kind, and version of the manifest and has either a preview or an edit
+        button. Library manifests are read-only.
+        """
+        with ui.row():
+            for manifest in self.model["manifests"].values():
+                readonly = manifest["version"] == 0
+                if library and not readonly:
+                    continue
+                with ui.card():
+                    with ui.column():
+                        ui.chip(text=manifest["kind"].upper(), color="accent").classes("text-xs").props(
+                            "outline square"
+                        ).bind_icon_from(MANIFEST_KIND_ICONS, manifest["kind"])
+                        ui.label(manifest["name"]).classes("text-subtitle2")
+                    with ui.card_actions().props("align=right").classes("items-center text-sm w-full"):
+                        ui.chip(
+                            manifest["version"],
+                            icon="commit",
+                            color="white",
+                        ).tooltip("Manifest Version")
+                        ui.button(
+                            icon="preview" if readonly else "edit",
+                            color="dark",
+                            on_click=partial(
+                                configuration_edit,
+                                manifest_id=manifest["id"],
+                                namespace=manifest["namespace"],
+                                kind=manifest["kind"],
+                                readonly=readonly,
+                            ),
+                        ).props("style: flat").tooltip("Edit Manifest Configuration")
 
 
 @ui.page("/campaign/{campaign_id}", response_timeout=settings.timeout)
