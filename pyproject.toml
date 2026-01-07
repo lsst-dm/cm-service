@@ -213,6 +213,19 @@ warn_redundant_casts = true
 warn_unreachable = true
 warn_unused_ignores = true
 plugins = ["sqlalchemy.ext.mypy.plugin", "pydantic.mypy"]
+files = [
+    "src/lsst/cmservice",
+    "tests",
+    "packages/cm-commandline/src/lsst/cmservice/commandline",
+    "packages/cm-web/src/lsst/cmservice/web"
+]
+mypy_path = [
+    "src",
+    "packages/cm-web/src",
+    "packages/cm-commandline/src"
+]
+explicit_package_bases = true
+namespace_packages = true
 
 [tool.pydocstyle]
 convention = "numpy"

@@ -161,10 +161,13 @@ class CampaignDetailPage(CMPage):
 
     def drawer_contents(self) -> None: ...
 
-    async def setup(self, client_: AsyncClient, campaign_id: str) -> Self:
+    async def setup(self, client_: AsyncClient | None = None, *, campaign_id: str = "") -> Self:
         """Async method called at page creation. Subpages can override this
         method to perform data loading/prep, etc., before calling render().
         """
+        if client_ is None:
+            raise RuntimeError("Campaign Detail page setup requires an httpx client")
+
         self.show_spinner()
         storage.initialize_client_storage()
         # the describe_one_campaign api helper builds a rich model of campaign
@@ -333,6 +336,6 @@ async def campaign_detail_page(
     campaign_id: str, client_: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)]
 ) -> None:
     """Builds a campaign detail page"""
-    if page := await CampaignDetailPage(title="Campaign Detail").setup(client_, campaign_id):
+    if page := await CampaignDetailPage(title="Campaign Detail").setup(client_, campaign_id=campaign_id):
         await ui.context.client.connected()
         page.render()

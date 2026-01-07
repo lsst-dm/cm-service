@@ -9,22 +9,17 @@ from ..lib.client_factory import CLIENT_FACTORY
 from .activity import wait_for_activity_to_complete
 
 
-async def get_one_node(id: str, namespace: str | None) -> Response:
+async def get_one_node(id: str, namespace: str | None) -> Response | None:
     """Get a single Node by its id or name+namespace."""
     # TODO get nodes and fallback to manifests on 404?
     url = f"/nodes/{id}"
     if namespace is not None:
         url += f"?campaign-id={namespace}"
     async with CLIENT_FACTORY.aclient() as client:
-        try:
-            r = await client.get(url)
-            r.raise_for_status()
-        except HTTPStatusError as e:
-            match e.response:
-                case Response(status_code=codes.CONFLICT):
-                    ui.notify("Campaign must be paused before modification", type="negative")
-                case _:
-                    raise
+        r = await client.get(url)
+        if r.status_code == codes.NOT_FOUND:
+            return None
+        r.raise_for_status()
         return r
 
 

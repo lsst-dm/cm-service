@@ -3,7 +3,7 @@ import networkx as nx
 from lsst.cmservice.common.graph import contract_simple_step_nodes
 
 
-async def nx_to_flow(g: nx.DiGraph, *, contract=True) -> dict[str, list]:
+async def nx_to_flow(g: nx.DiGraph, *, contract: bool = True) -> dict[str, list]:
     """Converts a networkx graph to a collection of nodes and edges that can be
     used with a Svelte Flow canvas.
 

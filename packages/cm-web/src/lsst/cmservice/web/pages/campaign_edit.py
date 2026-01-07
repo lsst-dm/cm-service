@@ -8,6 +8,7 @@ from uuid import UUID, uuid5
 
 import networkx as nx
 import yaml
+from httpx import AsyncClient
 from nicegui import run, ui
 from nicegui.events import ClickEventArguments, GenericEventArguments, ValueChangeEventArguments
 
@@ -397,10 +398,13 @@ class CampaignEditPage(CMPage):
             for edge in canvas_data.get("edges", {})
         ]
 
-    async def setup(self) -> Any:
+    async def setup(self, client_: AsyncClient | None = None) -> Any:
         """Async method called at page creation. Subpages can override this
         method to perform data loading/prep, etc., before calling render().
         """
+        if client_ is None:
+            raise RuntimeError("Campaign Edit page setup requires an httpx client")
+
         self.namespace = UUID("dda54a0c-6878-5c95-ac4f-007f6808049e")
         ui.add_head_html("""<script src="/static/cm-canvas-bundle.iife.js"></script>""")
         self.model: CampaignPageModel = {
@@ -415,8 +419,8 @@ class CampaignEditPage(CMPage):
             },
             "manifests": {},
         }
-        self.initial_flow_nodes = []
-        self.initial_flow_edges = []
+        self.initial_flow_nodes: list[dict] = []
+        self.initial_flow_edges: list[dict] = []
 
         for manifest in await api.get_campaign_manifests():
             self.model["manifests"][manifest["id"]] = {
@@ -439,7 +443,7 @@ class CampaignClonePage(CampaignEditPage):
     creating one from scratch.
     """
 
-    async def setup(self, clone_campaign_model_from: str) -> Any:
+    async def setup(self, client_: AsyncClient | None = None, *, clone_campaign_model_from: str = "") -> Any:
         """Async method called at page creation. Subpages can override this
         method to perform data loading/prep, etc., before calling render().
         """

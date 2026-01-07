@@ -1,5 +1,7 @@
 """Module for building UI buttons."""
 
+from typing import Any
+
 from nicegui import app, ui
 
 from ..lib.enum import Palette
@@ -54,7 +56,7 @@ class FavoriteButton(ui.button):
 class ToggleButton(ui.button):
     """Custom button for representing a toggleable state."""
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._state = False
         self._state_icons = {
             True: kwargs.pop("on_icon", "check_box"),

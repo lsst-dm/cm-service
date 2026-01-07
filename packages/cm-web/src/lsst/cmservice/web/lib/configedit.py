@@ -14,6 +14,7 @@ async def validate_name(name: str) -> bool:
     Generally forces these names to be lower-case snake_case.
     """
     ...
+    return True
 
 
 async def handle_name_change(name: str) -> None:
@@ -21,6 +22,7 @@ async def handle_name_change(name: str) -> None:
     Forces the name to be lower-case snake_case.
     """
     ...
+    return None
 
 
 async def get_data(editor: ui.json_editor, dialog: ui.dialog) -> None:

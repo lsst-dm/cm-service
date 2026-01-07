@@ -33,14 +33,17 @@ class CampaignOverviewPage(CMPage):
 
         return display_campaign
 
-    async def setup(self, client_: AsyncClient) -> Self:
+    async def setup(self, client_: AsyncClient | None = None) -> Self:
         """Async method called at page creation. Subpages can override this
         method to perform data loading/prep, etc., before calling render().
         """
+        if client_ is None:
+            raise RuntimeError("Campaign Overview page setup requires an httpx client")
+
         self.show_spinner()
         storage.initialize_client_storage()
         client_state: storage.ClientStorageModel = app.storage.client["state"]
-        self.model = {
+        self.model: dict = {
             "campaigns": {},
         }
 
@@ -53,7 +56,7 @@ class CampaignOverviewPage(CMPage):
             client_state.campaigns[campaign_id]["status"] = campaign["status"]
         return self
 
-    def campaign_card(self, campaign_id) -> None:
+    def campaign_card(self, campaign_id: str) -> None:
         """method to generate an overview card for a campaign"""
         if not self.filter_campaign_card(campaign_id):
             return None
@@ -143,7 +146,7 @@ class CampaignOverviewPage(CMPage):
         # TODO input field for filter by name
         ...
 
-    async def toggle_favorites_filter(self, e: ValueChangeEventArguments):
+    async def toggle_favorites_filter(self, e: ValueChangeEventArguments) -> None:
         """Callback when favorites switch is changed."""
         if TYPE_CHECKING:
             assert isinstance(e.sender, ui.switch)
@@ -161,7 +164,9 @@ class CampaignOverviewPage(CMPage):
 
 
 @ui.page("/", response_timeout=settings.timeout)
-async def campaign_overview_page(client_: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)]):
+async def campaign_overview_page(
+    client_: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)],
+) -> None:
     await ui.context.client.connected()
     if page := await CampaignOverviewPage(title="Campaign Overview").setup(client_):
         page.render()

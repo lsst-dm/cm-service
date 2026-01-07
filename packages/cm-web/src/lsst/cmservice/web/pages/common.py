@@ -4,6 +4,7 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any
 
+from httpx import AsyncClient
 from nicegui import ui
 
 from ..components import storage
@@ -127,7 +128,7 @@ class CMPage:
 
         self.overlay_div = ui.element("div").classes("hidden")
 
-    async def setup(self) -> Any:
+    async def setup(self, client_: AsyncClient | None = None) -> Any:
         """Async method called at page creation. Subpages can override this
         method to perform data loading/prep, etc., before calling render().
         """
@@ -156,7 +157,7 @@ class CMPage:
     def toggle_drawer(self) -> None:
         self.drawer_open = not self.drawer_open
 
-    def show_spinner(self, message="Loading..."):
+    def show_spinner(self, message: str = "Loading...") -> None:
         self.drawer_open = False
         overlay_classes = "fixed inset-0 bg-white bg-opacity-90 z-50 flex items-center justify-center"
         self.overlay_div.clear()
@@ -166,7 +167,7 @@ class CMPage:
                 ui.spinner(size="xl")
                 ui.label(message).classes("text-xl mt-4")
 
-    def hide_spinner(self):
+    def hide_spinner(self) -> None:
         overlay_classes = "fixed inset-0 bg-white bg-opacity-90 z-50 flex items-center justify-center"
         self.overlay_div.classes(remove=overlay_classes, add="hidden")
         self.overlay_div.clear()
