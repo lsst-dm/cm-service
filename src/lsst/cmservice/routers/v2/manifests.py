@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Annotated
 from uuid import UUID, uuid5
 
 from deepdiff import Delta
-from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query, Request, Response, status
 from pydantic import UUID5
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import make_transient
@@ -229,12 +229,15 @@ async def update_manifest_resource(
         raise HTTPException(status_code=406, detail="Unsupported Content-Type")
 
     s = select(Manifest).with_for_update()
-    # The input could be a UUID or it could be a literal name.
+
     try:
         if _id := UUID(manifest_name_or_id):
             s = s.where(Manifest.id == _id)
     except ValueError:
-        s = s.where(Manifest.name == manifest_name_or_id)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Manifests cannot be patched by name, use a valid ID",
+        )
 
     # we want to order and sort by version, in descending order, so we always
     # fetch only the most recent version of manifest
@@ -248,7 +251,9 @@ async def update_manifest_resource(
 
     new_manifest = old_manifest.model_dump(by_alias=True)
     new_manifest["version"] += 1
-    new_manifest["id"] = uuid5(new_manifest["namespace"], f"{new_manifest['name']}.{new_manifest['version']}")
+    new_manifest["id"] = uuid5(
+        new_manifest["namespace"], f"{new_manifest['kind']}.{new_manifest['name']}.{new_manifest['version']}"
+    )
 
     if use_rfc6902:
         for patch in patch_data:
