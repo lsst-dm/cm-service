@@ -156,3 +156,11 @@ async def retry_restart_node(
 
         status_update_url = r.headers["StatusUpdate"]
         await wait_for_activity_to_complete(status_update_url, n)
+
+
+async def node_activity_logs(id: str) -> list[dict]:
+    # FIXME this API needs to be sorted by `finished_at`
+    async with CLIENT_FACTORY.aclient() as session:
+        r = await session.get(f"/logs?node={id}")
+        r.raise_for_status()
+    return r.json()

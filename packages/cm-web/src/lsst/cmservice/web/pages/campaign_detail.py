@@ -1,9 +1,8 @@
 # ruff: noqa
 from functools import partial
-from typing import TYPE_CHECKING, Annotated, Any, Self, TypedDict
+from typing import TYPE_CHECKING, Any, Self, TypedDict
 
 import networkx as nx
-from fastapi import Depends
 from httpx import AsyncClient
 from nicegui import app, run, ui
 
@@ -15,8 +14,7 @@ from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.configedit import configuration_edit
 from ..lib.enum import MANIFEST_KIND_ICONS, StatusDecorators
 from ..lib.timestamp import timestamp
-from ..settings import settings
-from .common import CMPage, cm_frame
+from .common import CMPage
 
 
 # TODO replace with a pydantic model
@@ -25,6 +23,7 @@ class CampaignDetailPageModel(TypedDict):
     nodes: list[dict[str, Any]]
     manifests: dict[str, Any]
     graph: nx.DiGraph | None
+    logs: list[dict[str, Any]]
 
 
 class CampaignDetailPage(CMPage):
@@ -184,6 +183,7 @@ class CampaignDetailPage(CMPage):
             "nodes": data["nodes"],
             "manifests": {m["id"]: m for m in data["manifests"]},
             "graph": None,
+            "logs": data["logs"],
         }
         self.model["graph"] = await run.cpu_bound(
             nx.node_link_graph,
@@ -198,7 +198,7 @@ class CampaignDetailPage(CMPage):
         return self
 
     @ui.refreshable_method
-    def create_content(self) -> None:
+    async def create_content(self) -> None:
         """The primary content-rendering method for the page, called by render
         within the column element between page header and footer.
         """
@@ -223,7 +223,7 @@ class CampaignDetailPage(CMPage):
         with ui.expansion(
             "Campaign Manifests", caption=strings.CAMPAIGN_MANIFEST_TOOLTIP, icon="extension"
         ).classes("w-full"):
-            self.manifest_row()
+            await self.manifest_row()
 
         ui.separator()
         # Campaign Nodes
@@ -286,7 +286,9 @@ class CampaignDetailPage(CMPage):
             with ui.card():
                 ui.label("Errors")
                 with ui.row():
-                    ui.circular_progress(value=0, max=100, color="negative", size="xl")
+                    log_count = len(self.model["logs"])
+                    error_count = len([l for l in self.model["logs"] if l["detail"].get("error", None)])
+                    ui.circular_progress(value=error_count, max=log_count, color="negative", size="xl")
 
     def campaign_status_decorator(self) -> None:
         """An icon representing the campaign state."""
@@ -297,7 +299,8 @@ class CampaignDetailPage(CMPage):
             strict=False,
         )
 
-    def manifest_row(self, *, library: bool = False) -> None:
+    @ui.refreshable_method
+    async def manifest_row(self, *, library: bool = False) -> None:
         """Produces a row of cards for Manifests. Each card displays the name,
         kind, and version of the manifest and has either a preview or an edit
         button. Library manifests are read-only.
@@ -328,15 +331,16 @@ class CampaignDetailPage(CMPage):
                                 namespace=manifest["namespace"],
                                 kind=manifest["kind"],
                                 readonly=readonly,
+                                callback=self.refresh_manifest_row,
                             ),
                         ).props("style: flat").tooltip("Edit Manifest Configuration")
 
-
-@ui.page("/campaign/{campaign_id}", response_timeout=settings.timeout)
-async def campaign_detail_page(
-    campaign_id: str, client_: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)]
-) -> None:
-    """Builds a campaign detail page"""
-    if page := await CampaignDetailPage(title="Campaign Detail").setup(client_, campaign_id=campaign_id):
-        await ui.context.client.connected()
-        page.render()
+    async def refresh_manifest_row(self, *args: Any, **kwargs: Any) -> None:
+        """Wraps the refreshable manifest row with an IO call to update the
+        page model first.
+        """
+        # TODO provide an api wrapper that specifically targets the manifests
+        async with CLIENT_FACTORY.aclient() as client_:
+            data = await api.describe_one_campaign(client=client_, id=self.campaign_id)
+        self.model["manifests"] = {m["id"]: m for m in data["manifests"]}
+        self.manifest_row.refresh()

@@ -120,7 +120,7 @@ class CampaignEditPage(CMPage):
             """)
             ui.on("edit", self.handle_node_edit)
 
-    def create_content(self) -> None:
+    async def create_content(self) -> None:
         """The primary content-rendering method for the page, called by render
         within the column element between page header and footer.
         """
@@ -402,9 +402,6 @@ class CampaignEditPage(CMPage):
         """Async method called at page creation. Subpages can override this
         method to perform data loading/prep, etc., before calling render().
         """
-        if client_ is None:
-            raise RuntimeError("Campaign Edit page setup requires an httpx client")
-
         self.namespace = UUID("dda54a0c-6878-5c95-ac4f-007f6808049e")
         ui.add_head_html("""<script src="/static/cm-canvas-bundle.iife.js"></script>""")
         self.model: CampaignPageModel = {
@@ -510,17 +507,3 @@ class CampaignClonePage(CampaignEditPage):
             ...
 
         return self
-
-
-@ui.page("/new_campaign")
-async def campaign_edit() -> None:
-    if page := await CampaignEditPage(title="Edit Mode").setup():
-        await ui.context.client.connected()
-        page.render()
-
-
-@ui.page("/clone/{campaign_id}")
-async def campaign_clone(campaign_id: str) -> None:
-    if page := await CampaignClonePage(title="Edit Mode").setup(clone_campaign_model_from=campaign_id):
-        await ui.context.client.connected()
-        page.render()

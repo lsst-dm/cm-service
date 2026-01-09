@@ -1,51 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Generator
-from contextlib import contextmanager
-from typing import Any
+from typing import Any, Self
 
 from httpx import AsyncClient
 from nicegui import ui
 
 from ..components import storage
 from ..lib.enum import Palette
-
-
-@contextmanager
-def cm_frame(navigation_title: str, breadcrumbs: list[str] = [], footers: list[str] = []) -> Generator:
-    """Generates a consistent page frame and color palette assignment consist-
-    ing of a header and footer. The generator yields to the caller when page
-    content is ready to be added.
-    """
-    storage.initialize_client_storage()
-
-    ui.colors(
-        primary=Palette.BLUE.dark,
-        secondary=Palette.INDIGO.dark,
-        accent=Palette.VIOLET.light,
-        positive=Palette.GREEN.light,
-        negative=Palette.RED.light,
-        info=Palette.ORANGE.light,
-        warning=Palette.ORANGE.dark,
-        white=Palette.WHITE.light,
-        dark=Palette.BLACK.light,
-        dark_page=Palette.BLACK.dark,
-    )
-    with ui.header(elevated=True):
-        with ui.link(target="/").classes("text-white !no-underline"):
-            ui.label("Campaign Management").classes("text-h4")
-        ui.space()
-        ui.label(navigation_title).classes("text-h4")
-        ui.space()
-        for crumb in breadcrumbs:
-            ui.label(crumb).classes("text-h6")
-            ui.space()
-
-    yield
-
-    with ui.footer(bordered=True, elevated=True):
-        for footer in footers:
-            ui.label(footer).classes("text-xs")
 
 
 class CMPage:
@@ -128,27 +89,27 @@ class CMPage:
 
         self.overlay_div = ui.element("div").classes("hidden")
 
-    async def setup(self, client_: AsyncClient | None = None) -> Any:
+    async def setup(self, client_: AsyncClient | None = None) -> Self:
         """Async method called at page creation. Subpages can override this
         method to perform data loading/prep, etc., before calling render().
         """
         return self
 
-    def render(self) -> None:
+    async def render(self) -> None:
         """Method to create main content for page.
 
         Subclasses should use the `create_content()` method, which is called
         from within the content column's context manager.
         """
         with self.content:
-            self.create_content()
+            await self.create_content()
 
     def create_drawer(self) -> None:
         with ui.right_drawer(value=None, bordered=True, elevated=True).bind_value_from(self, "drawer_open"):
             with ui.column():
                 self.drawer_contents()
 
-    def create_content(self) -> None:
+    async def create_content(self) -> None:
         raise NotImplementedError("Pages must override this function")
 
     def drawer_contents(self) -> None:

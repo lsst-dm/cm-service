@@ -94,6 +94,7 @@ class NodeRecoveryPopup(ui.dialog):
             assert hasattr(refreshable, "refresh")
 
         allowed_actions = NodeAllowedActions.all()
+        call_refreshable = True
         if node["kind"] != "group":
             allowed_actions &= ~NodeAllowedActions.restart
         result = await cls(allowed_actions)
@@ -109,6 +110,7 @@ class NodeRecoveryPopup(ui.dialog):
                 await api.retry_restart_node(n0=node["id"], force=True, accept=True)
             case _:
                 # including the cancel case
-                ...
+                call_refreshable = False
 
-        refreshable.refresh()
+        if call_refreshable:
+            refreshable.refresh()

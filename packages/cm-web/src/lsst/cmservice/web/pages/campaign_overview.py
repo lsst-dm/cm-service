@@ -1,16 +1,13 @@
 from functools import partial
-from typing import TYPE_CHECKING, Annotated, Self
+from typing import TYPE_CHECKING, Self
 
-from fastapi import Depends
 from httpx import AsyncClient
 from nicegui import app, run, ui
 from nicegui.events import ValueChangeEventArguments
 
 from ..api.campaigns import get_campaign_summary, toggle_campaign_state
 from ..components import button, dicebear, storage
-from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.enum import Palette, StatusDecorators
-from ..settings import settings
 from .common import CMPage
 
 
@@ -118,7 +115,7 @@ class CampaignOverviewPage(CMPage):
                 self.campaign_card(campaign)
 
     @ui.refreshable_method
-    def create_content(self) -> None:
+    async def create_content(self) -> None:
         """The primary content-rendering method for the page, called by render
         within the column element between page header and footer.
         """
@@ -161,12 +158,3 @@ class CampaignOverviewPage(CMPage):
             pass
         app.storage.client["state"].user.active_filters = active_filters
         await self.create_campaign_grid.refresh()
-
-
-@ui.page("/", response_timeout=settings.timeout)
-async def campaign_overview_page(
-    client_: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)],
-) -> None:
-    await ui.context.client.connected()
-    if page := await CampaignOverviewPage(title="Campaign Overview").setup(client_):
-        page.render()
