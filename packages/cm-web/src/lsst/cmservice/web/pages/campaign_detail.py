@@ -68,7 +68,8 @@ class CampaignDetailPage(CMPage):
 
                 with ui.column().classes("gap-2 flex-grow min-w-0"):
                     with ui.row().classes("items-center"):
-                        ui.label(node["name"]).tooltip(node["name"]).classes("font-black text-lg")
+                        with ui.link(target=f"/node/{node['id']}").classes("text-black !no-underline"):
+                            ui.label(node["name"]).tooltip(node["name"]).classes("font-black text-lg")
 
                         ui.chip(
                             node["kind"],
@@ -311,7 +312,7 @@ class CampaignDetailPage(CMPage):
                         ui.chip(text=manifest["kind"].upper(), color="accent").classes("text-xs").props(
                             "outline square"
                         ).bind_icon_from(MANIFEST_KIND_ICONS, manifest["kind"])
-                        ui.label(manifest["name"]).classes("text-subtitle2")
+                        ui.label(manifest["name"]).classes("text-subtitle2").tooltip(manifest["id"])
                     with ui.card_actions().props("align=right").classes("items-center text-sm w-full"):
                         ui.chip(
                             manifest["version"],

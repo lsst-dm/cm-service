@@ -40,7 +40,7 @@ async def configuration_edit(
     callback: Callback | None = None,
 ) -> None:
     """Produces a JSON Editor dialog for a given manifest, allowing content
-    to be revied or changes made.
+    to be revised or changes made.
 
     On submit, changes are used to issue a PATCH to the manifest API.
 
