@@ -175,10 +175,11 @@ async def test_patch_manifest(aclient: AsyncClient) -> None:
             },
         },
     )
+    manifest_url = x.headers["self"]
 
     # "Correct" the spec of the loaded manifest
     x = await aclient.patch(
-        f"/cm-service/v2/manifests/{manifest_name}",
+        manifest_url,
         headers={"Content-Type": "application/json-patch+json"},
         json=[
             {
@@ -213,8 +214,9 @@ async def test_patch_manifest(aclient: AsyncClient) -> None:
 
     # In the previous test we added the "owner" to the wrong path, so now we
     # want to <move> it from spec->metadata
+    manifest_url = x.headers["self"]
     x = await aclient.patch(
-        f"/cm-service/v2/manifests/{manifest_name}",
+        manifest_url,
         headers={"Content-Type": "application/json-patch+json"},
         json=[
             {
@@ -232,8 +234,9 @@ async def test_patch_manifest(aclient: AsyncClient) -> None:
 
     # Using the "test" operator as a gating function, try but fail to update
     # the previously moved owner field
+    manifest_url = x.headers["self"]
     x = await aclient.patch(
-        f"/cm-service/v2/manifests/{manifest_name}",
+        manifest_url,
         headers={"Content-Type": "application/json-patch+json"},
         json=[
             {
