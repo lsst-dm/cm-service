@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Self
+from typing import Any, Self, TypedDict, cast
 
 from httpx import AsyncClient
 from nicegui import ui
@@ -9,7 +9,10 @@ from ..components import storage
 from ..lib.enum import Palette
 
 
-class CMPage:
+class CMPageModel(TypedDict): ...
+
+
+class CMPage[PageModelT: CMPageModel]:
     """Campaign Management Page
 
     Lifecycle
@@ -35,6 +38,8 @@ class CMPage:
     ```
 
     """
+
+    model: PageModelT
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.apply_style()
@@ -93,6 +98,7 @@ class CMPage:
         """Async method called at page creation. Subpages can override this
         method to perform data loading/prep, etc., before calling render().
         """
+        self.model = cast(PageModelT, {})
         return self
 
     async def render(self) -> None:
@@ -106,7 +112,7 @@ class CMPage:
 
     def create_drawer(self) -> None:
         with ui.right_drawer(value=None, bordered=True, elevated=True).bind_value_from(self, "drawer_open"):
-            with ui.column():
+            with ui.column().classes("w-full"):
                 self.drawer_contents()
 
     async def create_content(self) -> None:

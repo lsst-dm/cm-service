@@ -36,7 +36,7 @@ class NodeDetailPageModel(TypedDict):
     logs: list
 
 
-class NodeDetailPage(CMPage):
+class NodeDetailPage(CMPage[NodeDetailPageModel]):
     """..."""
 
     def drawer_contents(self) -> None: ...

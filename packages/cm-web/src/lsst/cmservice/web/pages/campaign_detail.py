@@ -1,24 +1,26 @@
-# ruff: noqa
+from copy import deepcopy
 from functools import partial
-from typing import TYPE_CHECKING, Any, Self, TypedDict
+from typing import TYPE_CHECKING, Any, Self
 
 import networkx as nx
 from httpx import AsyncClient
 from nicegui import app, run, ui
+from nicegui.events import ClickEventArguments
 
 from .. import api
-from ..api.campaigns import toggle_campaign_state
 from ..components import dicebear, storage, strings
+from ..components.dialog import AddStepEditorDialog, EditorContext, NewManifestEditorDialog, StepEditorDialog
 from ..components.graph import nx_to_mermaid
 from ..lib.client_factory import CLIENT_FACTORY
-from ..lib.configedit import configuration_edit
+from ..lib.configdiff import patch_resource
 from ..lib.enum import MANIFEST_KIND_ICONS, StatusDecorators
+from ..lib.models import STEP_MANIFEST_TEMPLATE
 from ..lib.timestamp import timestamp
-from .common import CMPage
+from .common import CMPage, CMPageModel
 
 
 # TODO replace with a pydantic model
-class CampaignDetailPageModel(TypedDict):
+class CampaignDetailPageModel(CMPageModel):
     campaign: dict[str, Any]
     nodes: list[dict[str, Any]]
     manifests: dict[str, Any]
@@ -26,7 +28,7 @@ class CampaignDetailPageModel(TypedDict):
     logs: list[dict[str, Any]]
 
 
-class CampaignDetailPage(CMPage):
+class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
     def create_node_card(self, node: dict) -> None:
         """Builds a card ui element with Node details, as used for nodes active
         in a campaign's graph.
@@ -52,7 +54,6 @@ class CampaignDetailPage(CMPage):
         node_status = StatusDecorators[node["status"]]
         with ui.card().tight():
             with ui.row():
-                # with ui.card_section().classes("grid grid-cols-[8rem_1fr] grid-rows-2 gap-2 min-w-0"):
                 with ui.column().classes("items-center gap-2"):
                     # Large hero avatar link
                     with ui.link(target=f"/node/{node['id']}"):
@@ -82,17 +83,6 @@ class CampaignDetailPage(CMPage):
                             color="white",
                         ).tooltip("Node Version")
 
-                    # ui.chip(
-                    #     str(self.model["graph"].in_degree(node_graph_name)),  # pyright: ignore[reportArgumentType]
-                    #     icon="input",
-                    #     color="white",
-                    # ).tooltip("Incoming Nodes")
-                    # ui.chip(
-                    #     str(self.model["graph"].out_degree(node_graph_name)),  # pyright: ignore[reportArgumentType]
-                    #     icon="output",
-                    #     color="white",
-                    # ).tooltip("Downstream Nodes")
-
                     with ui.badge("!").classes("text-white bg-info") as newer_node_badge:
                         ui.tooltip("New Version Available").props("anchor='top middle' self='bottom middle'")
                     newer_node_badge.set_visibility(
@@ -107,7 +97,6 @@ class CampaignDetailPage(CMPage):
                         > 0
                     )
                     newer_node_badge.move(node_version_chip)
-                    readonly = newer_node_badge.visible
 
             with ui.card_actions().props("align=right"):
                 if node_created_at := node["metadata"].get("crtime"):
@@ -128,19 +117,22 @@ class CampaignDetailPage(CMPage):
                 # used for initial page `setup()` so it may not matter. We may
                 # build a callback method for the configuration_edit() in order
                 # to sync the page model with the new version.
-                ui.button(
-                    icon="preview",
-                    color="dark",
-                    on_click=partial(
-                        configuration_edit,
-                        manifest_id=node["id"],
-                        namespace=node["namespace"],
-                        readonly=readonly,
-                        # callback=partial(sync_page_model, node["id"]),
-                    ),
-                ).props("style: flat").tooltip("View/Edit Node Configuration").bind_icon_from(
-                    newer_node_badge, "visible", backward=lambda v: "preview" if v else "edit"
+                node_edit_button = (
+                    ui.button(
+                        icon="preview",
+                        color="dark",
+                        on_click=self.handle_node_edit,
+                    )
+                    .props(f"flat round size=sm id={node['id']}")
+                    .tooltip("View/Edit Node Configuration")
+                    .bind_icon_from(
+                        newer_node_badge, "visible", backward=lambda v: "preview" if v else "edit"
+                    )
                 )
+                if (node["kind"] in ["breakpoint", "start", "end"]) or readonly:
+                    node_edit_button.disable()
+                    node_edit_button.icon = "edit_off"
+                    node_edit_button.props(add="readonly")
 
             if len(node_versions):
                 with ui.expansion("Other Versions").classes("w-full"):
@@ -159,7 +151,22 @@ class CampaignDetailPage(CMPage):
                                 on_click=node_replacement_callback,
                             ).tooltip(version["status"])
 
-    def drawer_contents(self) -> None: ...
+    def drawer_contents(self) -> None:
+        ui.button(
+            "New Step",
+            icon="add",
+            color="accent",
+            on_click=lambda e: AddStepEditorDialog.click(
+                e,
+                EditorContext(
+                    namespace=self.campaign_id,
+                    page=self,
+                    name_validators=["validate_step_name"],
+                    callback=self.apply_new_step,
+                ),
+                title="Add New Step",
+            ),
+        ).classes("w-full")
 
     async def setup(self, client_: AsyncClient | None = None, *, campaign_id: str = "") -> Self:
         """Async method called at page creation. Subpages can override this
@@ -210,16 +217,6 @@ class CampaignDetailPage(CMPage):
         self.create_gauges()
         ui.separator()
 
-        # with ui.expansion(
-        #     "Library Manifests", caption=strings.LIBRARY_MANIFEST_TOOLIP, icon="extension"
-        # ).classes("w-full"):
-        #     ui.label("Library Manifests")
-        #     # a row of 5 skeleton cards
-        #     # this row should be scrollable <-> but not grow in height
-        #     with ui.row().classes("w-full"):
-        #         ...
-        # ui.separator()
-
         with ui.expansion(
             "Campaign Manifests", caption=strings.CAMPAIGN_MANIFEST_TOOLTIP, icon="extension"
         ).classes("w-full"):
@@ -261,7 +258,7 @@ class CampaignDetailPage(CMPage):
     def create_gauges(self) -> None:
         # Dashboard gauges
         with ui.row(align_items="center") as self.gauges_row:
-            with ui.card().classes("items-center"):
+            with ui.card().classes("w-24 h-32 items-center"):
                 self.campaign_status_decorator()
                 with ui.row():
                     campaign_running = self.model["campaign"]["status"] == "running"
@@ -270,10 +267,10 @@ class CampaignDetailPage(CMPage):
                         "failed",
                         "rejected",
                     )
-                    campaign_toggle = partial(toggle_campaign_state, campaign=self.model["campaign"])
+                    campaign_toggle = partial(api.toggle_campaign_state, campaign=self.model["campaign"])
                     campaign_switch = ui.switch(on_change=campaign_toggle, value=campaign_running)
                     campaign_switch.enabled = not campaign_terminal
-            with ui.card():
+            with ui.card().classes("w-24 h-32 items-center"):
                 ui.label("Nodes")
                 with ui.row():
                     ui.circular_progress(
@@ -283,11 +280,11 @@ class CampaignDetailPage(CMPage):
                         size="xl",
                     )
 
-            with ui.card():
+            with ui.card().classes("w-24 h-32 items-center"):
                 ui.label("Errors")
                 with ui.row():
                     log_count = len(self.model["logs"])
-                    error_count = len([l for l in self.model["logs"] if l["detail"].get("error", None)])
+                    error_count = len([log for log in self.model["logs"] if log["detail"].get("error", None)])
                     ui.circular_progress(value=error_count, max=log_count, color="negative", size="xl")
 
     def campaign_status_decorator(self) -> None:
@@ -322,18 +319,18 @@ class CampaignDetailPage(CMPage):
                             icon="commit",
                             color="white",
                         ).tooltip("Manifest Version")
-                        ui.button(
-                            icon="preview" if readonly else "edit",
-                            color="dark",
-                            on_click=partial(
-                                configuration_edit,
-                                manifest_id=manifest["id"],
-                                namespace=manifest["namespace"],
-                                kind=manifest["kind"],
-                                readonly=readonly,
-                                callback=self.refresh_manifest_row,
-                            ),
-                        ).props("style: flat").tooltip("Edit Manifest Configuration")
+                        edit_button = (
+                            ui.button(
+                                icon="preview" if readonly else "edit",
+                                color="dark",
+                                on_click=self.handle_manifest_edit,
+                            )
+                            .props(f"flat round size=sm id={manifest['id']}")
+                            .tooltip("Edit Manifest Configuration")
+                        )
+
+                        if readonly:
+                            edit_button.props(add="readonly")
 
     async def refresh_manifest_row(self, *args: Any, **kwargs: Any) -> None:
         """Wraps the refreshable manifest row with an IO call to update the
@@ -344,3 +341,157 @@ class CampaignDetailPage(CMPage):
             data = await api.describe_one_campaign(client=client_, id=self.campaign_id)
         self.model["manifests"] = {m["id"]: m for m in data["manifests"]}
         self.manifest_row.refresh()
+
+    async def validate_step_name(self, data: str | None, ctx: EditorContext) -> str | None:
+        """Method to validate the name of a new step, used as a validation
+        callback for the new step editor dialog.
+        """
+        if data in [n["name"] for n in self.model["nodes"]]:
+            return "Name must be unique in the Campaign"
+        return None
+
+    async def apply_new_step(self, manifest: dict) -> dict:
+        """Callback for applying a new step for a campaign via the new step
+        dialog.
+        """
+        self.show_spinner()
+        # This method trusts that the editor delivers a valid manifest for a
+        # new step in the current campaign.
+        ancestor_id = manifest["metadata"].pop("ancestor", None)
+
+        # clean up the manifest in a step-specific way
+        _ = manifest.get("metadata", {}).pop("uuid", None)
+
+        if ancestor_id is None:
+            ui.notify("No valid ancestor selected for step", type="negative")
+            return manifest
+
+        try:
+            # 1. create the Node object in the campaign
+            if not await api.put_manifest_list([manifest]):
+                raise RuntimeError("An error occurred creating the new step")
+
+            # 1.5 get the node we just created
+            r = await api.get_one_node(
+                manifest["metadata"]["name"], namespace=manifest["metadata"]["namespace"]
+            )
+            if r is not None:
+                r.raise_for_status()
+                new_step = r.json()
+            else:
+                raise RuntimeError("An error occurred fetching the new step")
+
+            # 2. call the insert operation with the new node
+            if not await api.insert_or_append_node(
+                n0=ancestor_id,
+                n1=new_step["id"],
+                namespace=manifest["metadata"]["namespace"],
+                operation="insert",
+            ):
+                raise RuntimeError("An error occurred adding the new step to the graph")
+
+        except Exception as e:
+            ui.notify(e, type="negative")
+        finally:
+            self.hide_spinner()
+            return manifest
+
+    async def handle_node_edit(self, data: ClickEventArguments) -> None:
+        """Callback for edit button on Node cards"""
+        # Data input should include the node id, and we could defer dialog
+        # behaviors to this callback to simplify the logic in the Node card
+        target_node = data.sender.props.get("id", None)
+        if (
+            target_node is None
+            or (node_response := await api.get_one_node(target_node, self.campaign_id)) is None
+        ):
+            return None
+        node_url = node_response.headers["Self"]
+        node = node_response.json()
+        node_name = node["name"]
+        readonly_editor = any(
+            [
+                (node.get("status", "") != "waiting"),
+                ("readonly" in data.sender.props),
+                (data.sender.props["icon"] == "preview"),
+            ]
+        )
+
+        node_manifest = deepcopy(STEP_MANIFEST_TEMPLATE) | {
+            "metadata": {
+                "kind": node["kind"],
+                "name": node["name"],
+                "namespace": node["namespace"],
+                "status": node["status"],
+            },
+            "spec": deepcopy(node["configuration"]),
+        }
+        ctx = EditorContext(
+            page=self,
+            namespace=str(self.campaign_id),
+            name=node_name,
+            kind=node["kind"],
+            allow_name_change=False,
+            allow_kind_change=False,
+            readonly=readonly_editor,
+        )
+        dialog = StepEditorDialog(
+            ctx,
+            title=f"Editing Step {node_name}",
+            initial_model=node_manifest,
+        )
+        result: dict[str, Any] = await dialog
+        dialog.clear()
+
+        if result is None or ctx.readonly:
+            return None
+
+        await patch_resource(node_url, node["configuration"], result["spec"])
+
+    async def handle_manifest_edit(self, data: ClickEventArguments) -> None:
+        """Callback for edit button on Manifest cards"""
+        target_node = data.sender._props.get("id", None)
+        if (
+            target_node is None
+            or (node_response := await api.get_one_manifest(namespace=self.campaign_id, id=target_node))
+            is None
+        ):
+            ui.notify("Could not load manifest to edit", type="negative")
+            return None
+        node_url = node_response.headers["Self"]
+        node = node_response.json()
+        node_name = node["name"]
+        readonly_editor = any(
+            [
+                ("readonly" in data.sender.props),
+                (data.sender.props["icon"] == "preview"),
+            ]
+        )
+
+        node_manifest = deepcopy(STEP_MANIFEST_TEMPLATE) | {
+            "kind": node["kind"],
+            "metadata": {"name": node["name"], "namespace": node["namespace"]},
+            "spec": deepcopy(node["spec"]),
+        }
+        ctx = EditorContext(
+            page=self,
+            namespace=str(self.campaign_id),
+            name=node_name,
+            kind=node["kind"],
+            allow_name_change=False,
+            allow_kind_change=False,
+            readonly=readonly_editor,
+        )
+        dialog = NewManifestEditorDialog(
+            ctx,
+            title=f"Editing Manifest {node_name}",
+            initial_model=node_manifest,
+        )
+        result: dict[str, Any] = await dialog
+        dialog.clear()
+
+        if result is None or ctx.readonly:
+            return None
+
+        await patch_resource(node_url, node["spec"], result["spec"])
+        await self.refresh_manifest_row()

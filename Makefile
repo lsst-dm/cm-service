@@ -142,12 +142,16 @@ run-worker: run-compose
 	alembic upgrade head
 	python3 -m lsst.cmservice.daemon
 
+.PHONY: docs
+docs:
+	uv run script/render_jsonschema.py --clean --html
+
 .PHONY: packages
 packages:
 	$(MAKE) -C packages/cm-canvas rebuild
 
 .PHONY: run-web
-run-web: $(PY_VENV) packages
+run-web: $(PY_VENV) docs packages
 	uv run web
 
 .PHONY: migrate

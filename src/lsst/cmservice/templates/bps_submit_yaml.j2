@@ -76,7 +76,7 @@ extraUpdateQgraphOptions: {{ bps.extra_update_qgraph_options | replace("\n", " "
 ########################################
 # CLUSTERING CONFIGURATION
 ########################################
-clustering:
+cluster:
   {{ bps.clustering | toyaml | indent(2) -}}
 {# BLANK LINE #}
 {%- endif%}

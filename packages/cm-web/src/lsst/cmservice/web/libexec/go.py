@@ -13,4 +13,5 @@ ui.run(
     port=settings.server_port,
     favicon=settings.static_dir / "favicon.png",
     storage_secret=settings.storage_secret,
+    reconnect_timeout=999_999,
 )

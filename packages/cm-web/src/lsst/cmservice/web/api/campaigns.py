@@ -1,6 +1,5 @@
 import asyncio
 from collections.abc import AsyncGenerator, Sequence
-from functools import partial
 
 from httpx import AsyncClient
 from nicegui import app, ui
@@ -9,7 +8,6 @@ from nicegui.events import ValueChangeEventArguments
 from lsst.cmservice.common.enums import DEFAULT_NAMESPACE
 
 from ..lib.client_factory import CLIENT_FACTORY
-from ..lib.configedit import configuration_edit
 from ..lib.enum import MANIFEST_KIND_ICONS
 from .manifests import get_one_manifest
 
@@ -119,12 +117,6 @@ async def compile_campaign_manifests(campaign_id: str | None = None, manifests: 
                     ui.button(
                         icon="preview" if campaign_id is None else "edit",
                         color="dark",
-                        on_click=partial(
-                            configuration_edit,
-                            manifest_id=manifest["id"],
-                            namespace=manifest["namespace"],
-                            readonly=(campaign_id is None),
-                        ),
                     ).props("style: flat").tooltip("Edit Manifest Configuration")
 
 
