@@ -12,18 +12,42 @@ from typing import Annotated, Literal
 
 from pydantic import AliasChoices, Field
 
-from . import LibraryManifest, ManifestSpec
+from . import SPEC_CONFIG, LibraryManifest, ManifestSpec
 
 
 class WmsSpec(ManifestSpec):
+    model_config = SPEC_CONFIG
     batch_system: Annotated[
-        str, Literal["htcondor", "panda"], Field(validation_alias=AliasChoices("batch_system", "wms"))
-    ]
-    include_files: list[str] | None = Field(default=None)
+        Literal["htcondor", "panda"],
+        Field(
+            validation_alias=AliasChoices("batch_system", "wms"),
+            description="The well-known name of the batch technology.",
+        ),
+    ] = "htcondor"
+    include_files: list[str] = Field(
+        default_factory=list, description="A list of BPS include files, if any, specific to this WMS."
+    )
     environment: Mapping = Field(
         default_factory=dict, description="A mapping of environment variables to set prior to bps submit."
     )
-    service_class: Annotated[str, Field(description="wmsServiceClass used by the batch system")]
+    service_class: Annotated[
+        str,
+        Field(description="wmsServiceClass used by the batch system"),
+    ] = "lsst.ctrl.bps.htcondor.HTCondorService"
+    request_cpus: Annotated[
+        int, Field(description="The number of CPUs requested of the WMS for a Launch Task")
+    ] = 1
+    request_mem: (
+        Annotated[str, Field(description="The amount of memory requested of the WMS for a Launch Task")]
+        | None
+    ) = None
+    request_disk: (
+        Annotated[str, Field(description="The amount of disk space requested of the WMS for a Launch Task")]
+        | None
+    ) = None
+    batch_name: (
+        Annotated[str, Field(description="An optional name to associate with jobs sent to the WMS")] | None
+    ) = None
 
 
 class WmsManifest(LibraryManifest[WmsSpec]): ...

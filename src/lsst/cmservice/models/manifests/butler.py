@@ -10,16 +10,7 @@ from uuid import uuid4
 
 from pydantic import AliasChoices, BaseModel, Field
 
-from . import LibraryManifest, ManifestSpec
-
-
-class ButlerSpec(ManifestSpec):
-    """Spec model for a Butler Manifest."""
-
-    collections: ButlerCollectionsSpec
-    predicates: Sequence[str] = Field(default_factory=list)
-    repo: str = Field(description="Name of a Butler known to the application's Butler Factory.")
-    include_files: list[str] | None = Field(default=None)
+from . import SPEC_CONFIG, LibraryManifest, ManifestSpec
 
 
 class ButlerCollectionsSpec(BaseModel):
@@ -27,6 +18,7 @@ class ButlerCollectionsSpec(BaseModel):
     a campaign. This model is part of the "spec" of a Butler Library Manifest.
     """
 
+    model_config = SPEC_CONFIG
     campaign_input: list[str] = Field(
         description="The campaign source collection",
         default_factory=list,
@@ -50,6 +42,16 @@ class ButlerCollectionsSpec(BaseModel):
         description="The run collection affected by a Node's execution; {out}/{step}/{group}/{job}",
         validation_alias=AliasChoices("job_run", "run"),
     )
+
+
+class ButlerSpec(ManifestSpec):
+    """Spec model for a Butler Manifest."""
+
+    model_config = SPEC_CONFIG
+    collections: ButlerCollectionsSpec
+    predicates: Sequence[str] = Field(default_factory=list)
+    repo: str = Field(description="Name of a Butler known to the application's Butler Factory.")
+    include_files: list[str] | None = Field(default=None)
 
 
 class ButlerManifest(LibraryManifest[ButlerSpec]): ...

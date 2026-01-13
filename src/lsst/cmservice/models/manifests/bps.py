@@ -8,7 +8,7 @@ from typing import Any
 
 from pydantic import Field
 
-from . import LibraryManifest, ManifestSpec
+from . import SPEC_CONFIG, LibraryManifest, ManifestSpec
 
 
 class BpsSpec(ManifestSpec):
@@ -17,37 +17,34 @@ class BpsSpec(ManifestSpec):
     a campaign template.
     """
 
-    pipeline_yaml: str | None = Field(default=None)
+    model_config = SPEC_CONFIG
+    pipeline_yaml: str = Field(
+        description="The absolute path to a Pipeline YAML specification file with optional anchor. "
+        "The path must begin with a `/` or a `${...}` environment variable.",
+        pattern="^(/|\\$\\{.*\\})(.*)(\\.yaml)(#.*)?$",
+    )
     variables: dict[str, str] | None = Field(
         default=None,
-        description=(
-            "A mapping of name-value string pairs used to define addtional "
-            "top-level BPS substitution variables. Note that the values are quoted in the "
-            "output."
-        ),
+        description="A mapping of name-value string pairs used to define addtional "
+        "top-level BPS substitution variables. Note that the values are quoted in the "
+        "output.",
     )
     include_files: list[str] | None = Field(default=None)
     literals: dict[str, Any] | None = Field(
         default=None,
-        description=(
-            "A mapping of arbitrary top-level mapping sections to be added as additional literal YAML, "
-            "e.g., `finalJob`."
-        ),
+        description="A mapping of arbitrary top-level mapping sections to be added as additional "
+        "literal YAML, e.g., `finalJob`.",
     )
     environment: dict[str, str] | None = Field(
         default=None,
-        description=(
-            "A mapping of name-value string pairs used to defined additional "
-            "values under the `environment` heading."
-        ),
+        description="A mapping of name-value string pairs used to defined additional "
+        "values under the `environment` heading.",
     )
     payload: dict[str, str] | None = Field(
         default=None,
-        description=(
-            "A mapping of name-value string pairs used to define BPS payload "
-            "options. Note that these values are generated from other configuration "
-            "sources at runtime."
-        ),
+        description="A mapping of name-value string pairs used to define BPS payload "
+        "options. Note that these values are generated from other configuration "
+        "sources at runtime.",
     )
     extra_init_options: str | None = Field(
         default=None, description="Options added to the end of pipetaskinit"
@@ -61,9 +58,12 @@ class BpsSpec(ManifestSpec):
     extra_update_qgraph_options: str | None = Field(default=None)
     clustering: dict[str, Any] | None = Field(
         default=None,
-        description=(
-            "A mapping of clustering directives, added as literal YAML under the `clustering` heading."
-        ),
+        description="A mapping of clustering directives, added as literal YAML "
+        "under the `clustering` heading.",
+    )
+    operator: str = Field(
+        default="cmservice",
+        description="The string name of a pilot or operator to reflect in the BPS configuration.",
     )
 
 
