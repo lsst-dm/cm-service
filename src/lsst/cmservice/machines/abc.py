@@ -179,6 +179,9 @@ class StatefulModel(ABC):
     async def to_rejected(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
+    async def may_reject(self) -> bool:
+        raise NotImplementedError("This should be overridden")
+
     async def may_to_rejected(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
