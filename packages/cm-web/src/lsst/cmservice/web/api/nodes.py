@@ -98,7 +98,7 @@ async def fast_forward_node(n0: str) -> None:
 
 
 async def retry_restart_node(
-    n0: str, *, force: bool = False, reset: bool = False, accept: bool = False
+    n0: str, *, force: bool = False, reset: bool = False, accept: bool = False, reject: bool = False
 ) -> None:
     """A group node in a failed state can be "restarted" if the BPS milestone
     is reached, i.e., a submit directory has been discovered and a qg file
@@ -122,13 +122,20 @@ async def retry_restart_node(
     accept : bool
         If True, the node is unconditionally accepted, but ``force`` must also
         be set.
+
+    reject : bool
+        If True, the node is unconditionally failed, but ``force`` must also
+        be set.
     """
+    # TODO refactor these parameters into a FlagEnum
     url = f"/nodes/{n0}"
     retry_or_restart = "Restarting" if force else "Retrying"
     retry_or_restart = "Resetting" if reset else retry_or_restart
     retry_or_restart = "Accepting" if all([force, accept]) else retry_or_restart
+    retry_or_restart = "Rejecting" if all([force, reject]) else retry_or_restart
     target_state = "waiting" if reset else "ready"
     target_state = "accepted" if all([force, accept]) else target_state
+    target_state = "failed" if all([force, reject]) else target_state
 
     async with CLIENT_FACTORY.aclient() as client:
         n = ui.notification(timeout=None)

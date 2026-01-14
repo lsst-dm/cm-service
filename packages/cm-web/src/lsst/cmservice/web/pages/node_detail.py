@@ -94,8 +94,10 @@ class NodeDetailPage(CMPage):
                 ).props("clickable").on(
                     "click", lambda e: dialog.NodeRecoveryPopup.click(e, node, self.create_content)
                 )
-            if node["kind"] == "breakpoint":
+            if all([node["kind"] == "breakpoint", node["status"] != "failed"]):
+                # TODO this could be an expanding FAB
                 await self.breakpoint_accept_chip()
+                await self.breakpoint_reject_chip()
             else:
                 # if campaign is paused, then show transport (step) control
                 await self.node_advance_chip()
@@ -149,7 +151,7 @@ class NodeDetailPage(CMPage):
             ui.chip(status, icon=icon, color=color).tooltip("Node Status").bind_visibility_from(
                 target_object=self.model["node"],
                 target_name="status",
-                value="accepted",
+                backward=lambda v: v in ["accepted", "failed"],
             )
 
     @ui.refreshable_method
@@ -265,4 +267,24 @@ class NodeDetailPage(CMPage):
                 color="positive",
                 on_click=force_method,
             ).tooltip(strings.BREAKPOINT_ACCEPT_TOOLTIP)
+            # TODO refresh element(s) in click callback!
+
+    async def breakpoint_reject_chip(self) -> None:
+        """Adds a chip as an Reject button for a Breakpoint Node.
+
+        This control is only visible if the Node is a breakpoint kind.
+        """
+        if all(
+            [
+                self.model["node"]["kind"] == "breakpoint",
+                self.model["node"]["status"] != "accepted",
+            ]
+        ):
+            force_method = partial(api.retry_restart_node, n0=self.node_id, force=True, reject=True)
+            ui.chip(
+                "reject",
+                icon="thumb_down",
+                color="negative",
+                on_click=force_method,
+            ).tooltip(strings.BREAKPOINT_REJECT_TOOLTIP)
             # TODO refresh element(s) in click callback!
