@@ -13,6 +13,7 @@ from nicegui import run, ui
 from nicegui.events import ClickEventArguments, GenericEventArguments, ValueChangeEventArguments
 
 from lsst.cmservice.common.yaml import str_representer
+from lsst.cmservice.models.manifests.steps import StepSpec
 
 from .. import api
 from ..components.button import ToggleButton
@@ -156,31 +157,50 @@ class CampaignEditPage(CMPage):
 
     def create_step_editor(self) -> None:
         """Creates a Dialog for editing a step or node in the graph canvas."""
-        with ui.dialog().classes("h-dvh w-full") as self.edit_dialog, ui.card().classes("w-full"):
-            ui.label("Editing Step Configuration").classes("text-subtitle1")
+        with (
+            ui.dialog().props("maximized") as self.edit_dialog,
+            ui.card().style("width: 96vw; height: 85vh;"),
+        ):
+            with ui.tabs().classes("w-full") as tabs:
+                editor_tab = ui.tab("Step Configuration", icon="edit")
+                docs_tab = ui.tab("Help", icon="help")
 
-            with ui.row().classes("w-full items-baseline"):
-                with ui.dropdown_button("Grouping", auto_close=True) as self.group_option:
-                    self.group_option.tooltip("Apply a grouping template spec to the Step")
-                    ui.item("No Grouping", on_click=self.set_group_config).props("id=grouping_none")
-                    ui.item("Fixed-Value Grouping", on_click=self.set_group_config).props("id=grouping_fixed")
-                    ui.item("Query Grouping", on_click=self.set_group_config).props("id=grouping_query")
+            with ui.tab_panels(tabs, value=editor_tab).classes("w-full"):
+                with ui.tab_panel(editor_tab):
+                    with ui.row().classes("w-full items-baseline"):
+                        with ui.dropdown_button("Grouping", auto_close=True) as self.group_option:
+                            self.group_option.tooltip("Apply a grouping template spec to the Step")
+                            ui.item("No Grouping", on_click=self.set_group_config).props("id=grouping_none")
+                            ui.item("Fixed-Value Grouping", on_click=self.set_group_config).props(
+                                "id=grouping_fixed"
+                            )
+                            ui.item("Query Grouping", on_click=self.set_group_config).props(
+                                "id=grouping_query"
+                            )
 
-                ui.input_chips(
-                    "Manifest Selectors",
-                    # TODO
-                    # . on_change=self.register_step_label_selectors,
-                    # . validation=self.validate_manifest_label,
-                ).tooltip("A collection of kind:name manifest selectors for the Step.")
+                        ui.input_chips(
+                            "Manifest Selectors",
+                            # TODO
+                            # . on_change=self.register_step_label_selectors,
+                            # . validation=self.validate_manifest_label,
+                        ).tooltip("A collection of kind:name manifest selectors for the Step.")
 
-            # Create an empty editor for reference and reuse
-            self.editor = ui.json_editor(
-                {
-                    "content": {"json": {}},
-                    "mode": "text",
-                    "modes": ["text", "tree"],
-                }
-            ).classes("h-full w-full")
+                    # Create an empty editor for reference and reuse
+                    self.editor = ui.json_editor(
+                        {
+                            "content": {"json": {}},
+                            "mode": "text",
+                            "modes": ["text", "tree"],
+                        },
+                        schema=StepSpec.model_json_schema(),
+                    ).classes("h-full w-full")
+
+                with ui.tab_panel(docs_tab):
+                    ui.html(
+                        """<iframe src="/static/docs/step_spec.html" """
+                        """style="width: 100%; height: 70vh; border: none;"></iframe>""",
+                        sanitize=False,
+                    ).classes("w-full")
 
             with ui.card_actions():
                 ui.button("Done", color="positive", on_click=self.save_node_edit).props("flat")
