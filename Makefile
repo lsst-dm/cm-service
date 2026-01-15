@@ -120,6 +120,9 @@ run: PGPORT=$(shell docker compose port postgresql 5432 | cut -d: -f2)
 run: export DB__URL=postgresql://cm-service@localhost:${PGPORT}/cm-service
 run: export DB__PASSWORD=INSECURE-PASSWORD
 run: export DB__ECHO=true
+run: export FEATURE_API_V2=1
+run: export FEATURE_API_V1=0
+run: export FEATURE_DAEMON_V2=0
 run: run-compose
 	alembic upgrade head
 	python3 -m lsst.cmservice.main
@@ -129,6 +132,12 @@ run-worker: PGPORT=$(shell docker compose port postgresql 5432 | cut -d: -f2)
 run-worker: export DB__URL=postgresql://cm-service@localhost:${PGPORT}/cm-service
 run-worker: export DB__PASSWORD=INSECURE-PASSWORD
 run-worker: export DB__ECHO=true
+run-worker: export FEATURE_API_V2=0
+run-worker: export FEATURE_API_V1=0
+run-worker: export FEATURE_DAEMON_V2=1
+run-worker: export FEATURE_DAEMON_CAMPAIGNS=1
+run-worker: export FEATURE_DAEMON_NODES=1
+run-worker: export FEATURE_ALLOW_TASK_UPSERT=1
 run-worker: run-compose
 	alembic upgrade head
 	python3 -m lsst.cmservice.daemon
