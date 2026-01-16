@@ -2,12 +2,13 @@
   import "@xyflow/svelte/dist/style.css";
   import { SvelteFlowProvider, type Node, type Edge } from "@xyflow/svelte";
   import CmCanvas from "./CmCanvas.svelte";
+  import DragDropProvider from "./DragDropProvider.svelte";
 
   type CanvasProps = {
     nodes?: Node[];
     edges?: Edge[];
     [key: string]: any;
-  }
+  };
 
   /* A set of defaultNodes for an otherwise empty canvas. Because a CM campaign
     always has a definite START and END, these are included. Although this canvas
@@ -42,18 +43,21 @@
   if the node is an editable type like "step"
   */
   let nodes = $derived(
-    (!incomingNodes || incomingNodes.length === 0 ? defaultNodes : incomingNodes).map(node => {
+    (!incomingNodes || incomingNodes.length === 0
+      ? defaultNodes
+      : incomingNodes
+    ).map((node) => {
       if (node.type === "step") {
         return {
           ...node,
           data: {
             ...node.data,
-            handleClick: restProps.onClick
-          }
-        }
+            handleClick: restProps.onClick,
+          },
+        };
       }
       return node;
-    })
+    }),
   );
 
   let edges = $derived(
@@ -62,7 +66,9 @@
 </script>
 
 <SvelteFlowProvider>
-  <CmCanvas {nodes} {edges} {...restProps} />
+  <DragDropProvider>
+    <CmCanvas {nodes} {edges} {...restProps} />
+  </DragDropProvider>
 </SvelteFlowProvider>
 
 <style>
