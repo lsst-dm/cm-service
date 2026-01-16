@@ -372,12 +372,12 @@ class CampaignEditPage(CMPage):
                 "metadata": {
                     "name": node["data"]["name"],
                     "namespace": str(self.campaign_id),
-                    "kind": "step",  # TODO different kinds of nodes on canvas
+                    "kind": node["type"],
                 },
                 "spec": self.model["spec"].get(node["id"], STEP_SPEC_TEMPLATE),
             }
             for node in canvas_data.get("nodes", {})
-            if node["type"] in ["step"]
+            if node["type"] in ["step", "breakpoint"]
         ]
 
         # the exported edges use the node IDs to describe the source and target
