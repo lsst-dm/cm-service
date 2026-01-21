@@ -18,15 +18,17 @@ from lsst.cmservice.db.campaigns_v2 import CampaignSummary
 
 from .. import arguments, formatters
 from ..client import http_client
+from ..loader.app import load_from_yaml
+from ..models import TypedContext
 
 app = typer.Typer()
 console = Console()
 
 
 @app.command()
-def list(ctx: typer.Context) -> None:
+def list(ctx: TypedContext) -> None:
     """list all campaigns"""
-    output_format = formatters.Formatters[ctx.obj.get("output_format")]
+    output_format = formatters.Formatters[ctx.obj.output_format]
     with http_client(ctx) as session:
         try:
             r = session.get("/campaigns")
@@ -48,11 +50,11 @@ def list(ctx: typer.Context) -> None:
 
 @app.command(name="new")
 def new_campaign(
-    ctx: typer.Context,
+    ctx: TypedContext,
     campaign: arguments.campaign_name,
 ) -> None:
-    """create a new empty campaign"""
-    output_format = formatters.Formatters[ctx.obj.get("output_format")]
+    """Create a new empty campaign"""
+    output_format = formatters.Formatters[ctx.obj.output_format]
     data = {
         "apiVersion": "io.lsst.cmservice/v1",
         "kind": "campaign",
@@ -67,7 +69,7 @@ def new_campaign(
 
     match output_format:
         case formatters.Formatters.table:
-            t = formatters.as_table(r.json())
+            t = formatters.as_table([r.json()])
             Console().print(t)
         case formatters.Formatters.json:
             pretty = JSONHighlighter()
@@ -78,12 +80,12 @@ def new_campaign(
 
 @app.command(name="describe")
 def describe_campaign(
-    ctx: typer.Context,
-    campaign: arguments.campaign_id,
+    ctx: TypedContext,
+    campaign: arguments.campaign_name,
 ) -> None:
     """describe a specific campaign"""
     with http_client(ctx) as session:
-        r = session.get(f"/campaigns/{campaign}/summary")
+        r = session.get(f"/campaigns/{ctx.obj.campaign_id}/summary")
         r.raise_for_status()
         # edges_url = r.headers["Edges"]
         # nodes_url = r.headers["Nodes"]
@@ -145,14 +147,14 @@ def describe_campaign(
 
 
 @app.command(name="start")
-def start_campaign(ctx: typer.Context, campaign: arguments.campaign_id) -> None:
+def start_campaign(ctx: TypedContext, campaign: arguments.campaign_name) -> None:
     """start a campaign"""
     data = {"status": "running"}
     status_update_url = None
 
     with http_client(ctx) as session:
         r = session.patch(
-            f"/campaigns/{campaign}",
+            f"/campaigns/{ctx.obj.campaign_id}",
             json=data,
             headers={"Content-Type": "application/merge-patch+json"},
         )
@@ -195,8 +197,8 @@ def start_campaign(ctx: typer.Context, campaign: arguments.campaign_id) -> None:
 
 @app.command(name="set")
 def set_campaign_status(
-    ctx: typer.Context,
-    campaign: arguments.campaign_id,
+    ctx: TypedContext,
+    campaign: arguments.campaign_name,
     desired_state: arguments.campaign_status,
     *,
     force: Annotated[
@@ -213,7 +215,7 @@ def set_campaign_status(
 
     with http_client(ctx) as session:
         r = session.patch(
-            f"/campaigns/{campaign}",
+            f"/campaigns/{ctx.obj.campaign_id}",
             json=data,
             headers={"Content-Type": "application/merge-patch+json"},
         )
@@ -254,7 +256,7 @@ def set_campaign_status(
 
 
 @app.command(name="advance")
-def advance_campaign(ctx: typer.Context, campaign: arguments.campaign_id) -> None:
+def advance_campaign(ctx: TypedContext, campaign: arguments.campaign_name) -> None:
     """advances a paused campaign"""
 
     status_update_url = None
@@ -262,7 +264,7 @@ def advance_campaign(ctx: typer.Context, campaign: arguments.campaign_id) -> Non
     with http_client(ctx) as session:
         r = session.post(
             "/rpc/process",
-            json={"campaign_id": campaign},
+            json={"campaign_id": ctx.obj.campaign_id},
             headers={},
         )
         r.raise_for_status()
@@ -307,3 +309,30 @@ def advance_campaign(ctx: typer.Context, campaign: arguments.campaign_id) -> Non
     #             )
 
     #     console.print(result_text)
+
+
+@app.command(name="load")
+def load_campaign(
+    ctx: TypedContext,
+    filename: Annotated[
+        str,
+        typer.Argument(help="A name or path to a YAML file containing a complete set of campaign manifests"),
+    ],
+    campaign: arguments.campaign_name,
+    *,
+    auto_run: Annotated[
+        bool,
+        typer.Option(
+            "--start",
+            help="Start campaign automatically after loading",
+        ),
+    ] = False,
+) -> None:
+    """Loads a campaign from a YAML file, optionally starting it."""
+
+    ctx.invoke(load_from_yaml, ctx=ctx, filename=filename, campaign=campaign, strict=True)
+
+    # If argument "auto-start" is set, try to set campaign status after loading
+    if auto_run:
+        typer.echo(f"Starting campaign {ctx.obj.campaign_name}")
+        ctx.invoke(start_campaign, ctx=ctx, campaign=campaign)

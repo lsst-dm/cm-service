@@ -8,6 +8,7 @@ from rich.console import Console
 from rich.highlighter import JSONHighlighter
 
 from ..client import http_client
+from ..models import TypedContext
 from . import formatters
 
 app = typer.Typer()
@@ -15,9 +16,9 @@ console = Console()
 
 
 @app.command()
-def list(ctx: typer.Context) -> None:
+def list(ctx: TypedContext) -> None:
     """list all manifests"""
-    output_format = formatters.Formatters[ctx.obj.get("output_format")]
+    output_format = formatters.Formatters[ctx.obj.output_format]
     with http_client(ctx) as session:
         try:
             r = session.get("/manifests")
@@ -38,7 +39,7 @@ def list(ctx: typer.Context) -> None:
 
 
 @app.command(name="describe")
-def describe_manifest(ctx: typer.Context, manifest_id: Annotated[str, typer.Argument(parser=UUID)]) -> None:
+def describe_manifest(ctx: TypedContext, manifest_id: Annotated[str, typer.Argument(parser=UUID)]) -> None:
     """Describes a manifest by listing its versions"""
     with http_client(ctx) as session:
         try:
@@ -48,7 +49,7 @@ def describe_manifest(ctx: typer.Context, manifest_id: Annotated[str, typer.Argu
             print(e)
             sys.exit(1)
 
-    match formatters.Formatters[ctx.obj.get("output_format")]:
+    match formatters.Formatters[ctx.obj.output_format]:
         case formatters.Formatters.table:
             t = formatters.as_table([r.json()])
             Console().print(t)

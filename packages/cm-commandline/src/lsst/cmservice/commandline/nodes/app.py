@@ -3,12 +3,12 @@ from typing import Annotated
 
 import typer
 from rich.console import Console
-from rich.pretty import pprint
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.text import Text
 
 from .. import arguments
 from ..client import http_client
+from ..models import TypedContext
 
 app = typer.Typer()
 console = Console()
@@ -16,7 +16,7 @@ console = Console()
 
 @app.command(name="set")
 def set_node_status(
-    ctx: typer.Context,
+    ctx: TypedContext,
     node: arguments.node_id,
     desired_state: arguments.campaign_status,
     *,
@@ -65,11 +65,12 @@ def set_node_status(
             if (error := activity.get("detail", {}).get("error")) is not None:
                 result_text = Text("Node not updated")
                 result_text.stylize("red")
-                pprint(
+                typer.echo(
                     {
                         "error": error,
                         "url": status_update_url,
-                    }
+                    },
+                    err=True,
                 )
 
         console.print(result_text)

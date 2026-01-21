@@ -4,25 +4,24 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from uuid import uuid4
 
-import typer
 from httpx import Client, HTTPStatusError, HTTPTransport
 
 from .logging import LOGGER
-from .settings import settings
+from .models import TypedContext
 
 logger = LOGGER.bind(module=__name__)
 
 
 @contextmanager
-def http_client(ctx: typer.Context) -> Generator[Client]:
+def http_client(ctx: TypedContext) -> Generator[Client]:
     """Generate a client session for cmclient API operations."""
     transport = HTTPTransport(
         verify=False,
         retries=3,
     )
-    endpoint_url = ctx.obj.get("endpoint_url", settings.endpoint)
-    api_version = ctx.obj.get("api_version", settings.api_version)
-    auth_token = ctx.obj.get("auth_token", settings.token)
+    endpoint_url = ctx.obj.endpoint_url
+    api_version = ctx.obj.api_version
+    auth_token = ctx.obj.auth_token
 
     with Client(
         base_url=f"{endpoint_url}/{api_version}",
