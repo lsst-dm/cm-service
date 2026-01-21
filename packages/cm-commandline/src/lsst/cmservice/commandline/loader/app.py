@@ -5,22 +5,30 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from .loader import load_selected_file
+from .. import arguments
+from ..models import TypedContext
+from .loader import StrictModeViolationError, load_selected_file
 
 app = typer.Typer()
 
 
 @app.command(name="yaml")
 def load_from_yaml(
-    ctx: typer.Context,
+    ctx: TypedContext,
     filename: str,
-    campaign_name: Annotated[str | None, typer.Argument(envvar="CM_CAMPAIGN")] = None,
+    campaign: arguments.campaign_name,
+    *,
+    strict: Annotated[bool, typer.Option("--strict", help="Load YAML in strict mode")],
 ) -> None:
     """Load manifests from a YAML file"""
-    headers = load_selected_file(ctx, Path(filename), campaign_name)
+    try:
+        headers = load_selected_file(ctx, yaml_file=Path(filename), campaign=campaign, strict=strict)
+    except StrictModeViolationError as e:
+        typer.echo(e, err=True)
+        raise typer.Exit(1)
 
     if headers:
-        table = Table(title=campaign_name)
+        table = Table(title=ctx.obj.campaign_name)
         table.add_column("Link Name")
         table.add_column("Link")
 
