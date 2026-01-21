@@ -36,6 +36,7 @@ async def change_campaign_state(
 
     trigger: str
     match (campaign.status, desired_state):
+        # DEPRECATED: campaign waiting/start state/trigger
         case (StatusEnum.waiting, StatusEnum.running):
             trigger = "start"
         case (StatusEnum.running, StatusEnum.paused):
@@ -45,7 +46,7 @@ async def change_campaign_state(
         case (_, StatusEnum.rejected):
             trigger = "reject"
         case (_, StatusEnum.accepted):
-            trigger = "finish"
+            trigger = "force" if force else "finish"
         case _:
             logger.warning(
                 "Invalid campaign transition requested",

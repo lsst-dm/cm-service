@@ -9,7 +9,18 @@ from typing import TYPE_CHECKING, Annotated, Literal, cast
 from uuid import UUID, uuid5
 
 from asgi_correlation_id import correlation_id
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Path, Query, Request, Response
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    Header,
+    HTTPException,
+    Path,
+    Query,
+    Request,
+    Response,
+    status,
+)
 from pydantic import UUID5
 from sqlalchemy.dialects.postgresql import INTEGER
 from sqlalchemy.exc import IntegrityError, NoResultFound
@@ -89,7 +100,7 @@ async def read_campaign_collection(
         return campaigns.all()
     except Exception as msg:
         logger.exception()
-        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"{str(msg)}") from msg
 
 
 @router.get("/{campaign_name_or_id}", response_model=Campaign, summary="Get campaign detail")
@@ -218,7 +229,7 @@ async def read_campaign_summary(
 @router.patch(
     "/{campaign_name}",
     summary="Update campaign detail",
-    status_code=202,
+    status_code=status.HTTP_202_ACCEPTED,
 )
 async def update_campaign_resource(
     request: Request,
@@ -284,7 +295,10 @@ async def update_campaign_resource(
     # directly, but defer it to a background task
     if patch_data.status is not None:
         if (request_id := correlation_id.get()) is None:
-            raise HTTPException(status_code=500, detail="Cannot patch resource without a X-Request-Id")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Cannot patch resource without a X-Request-Id",
+            )
         background_tasks.add_task(
             change_campaign_state, campaign, patch_data.status, request_id, force=patch_data.force
         )
@@ -422,10 +436,10 @@ async def read_campaign_manifest_resource(
                 s.where(Manifest.version == version)
             r = (await session.exec(s)).one_or_none()
         case _:
-            raise HTTPException(status_code=422)
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
 
     if r is None:
-        raise HTTPException(status_code=404, detail="No such manifest could be located")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No such manifest could be located")
 
     response.headers["Self"] = str(request.url_for("read_single_manifest", manifest_name_or_id=r.id))
     return r
@@ -476,7 +490,7 @@ async def read_campaign_edge_collection(
 @router.delete(
     "/{campaign_id}/edges/{edge_name}",
     summary="Delete campaign edge",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_campaign_edge_resource(
     request: Request,
@@ -499,7 +513,7 @@ async def delete_campaign_edge_resource(
         await session.delete(edge_to_delete)
         await session.commit()
     else:
-        raise HTTPException(status_code=404, detail="No such edge.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No such edge.")
     return None
 
 
@@ -528,9 +542,6 @@ async def create_campaign_resource(
         )
     )
 
-    if not campaign.configuration.get("auto_transition", True):
-        campaign.status = StatusEnum.paused
-
     # A new campaign comes with a START and END node
     start_node = Node.model_validate(
         dict(
@@ -553,10 +564,10 @@ async def create_campaign_resource(
         logger.exception()
         await session.rollback()
         campaign = await session.get_one(Campaign, campaign.id)
-        response.status_code = 409
+        response.status_code = status.HTTP_409_CONFLICT
     except Exception as e:
         logger.exception()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
     # set the response headers
     response.headers["Self"] = str(request.url_for("read_campaign_resource", campaign_name_or_id=campaign.id))
@@ -572,7 +583,7 @@ async def create_campaign_resource(
 
 @router.get(
     "/{campaign_name}/graph",
-    status_code=200,
+    status_code=status.HTTP_200_OK,
     summary="Construct and return a Campaign's graph of nodes",
 )
 async def read_campaign_graph(
@@ -595,7 +606,7 @@ async def read_campaign_graph(
         campaign_id = (await session.exec(s)).one_or_none()
 
     if campaign_id is None:
-        raise HTTPException(status_code=404, detail="No such campaign found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No such campaign found.")
 
     # Fetch the Edges for the campaign
     statement = select(Edge).filter_by(namespace=campaign_id)
@@ -611,7 +622,7 @@ async def read_campaign_graph(
 
 @router.get(
     "/{campaign_name}/logs",
-    status_code=200,
+    status_code=status.HTTP_200_OK,
     summary="Obtain a collection of Activity Log records for a Campaign.",
 )
 async def read_campaign_activity_log(
@@ -635,7 +646,7 @@ async def read_campaign_activity_log(
         campaign_id = (await session.exec(s)).one_or_none()
 
     if campaign_id is None:
-        raise HTTPException(status_code=404, detail="No such campaign found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No such campaign found.")
 
     # Fetch the Activity Log entries for the campaign
     statement = select(ActivityLog).where(ActivityLog.namespace == campaign_id)
@@ -648,7 +659,7 @@ async def read_campaign_activity_log(
 
 @router.put(
     "/{campaign_id}/graph/nodes/{node_0_id}",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Replace Node[0] with Node[1] in a Campaign Graph",
 )
 async def replace_node_in_graph(
@@ -661,7 +672,7 @@ async def replace_node_in_graph(
 ) -> None:
     """Replaces Node[0] in Campaign graph with provided Node[1]. The in and out
     edges for Node[0] are replaced with the same edges for Node[1]. The
-    campaign must be in a "waiting" state for this operation to proceed, else
+    campaign must be in a "paused" state for this operation to proceed, else
     a 409/Conflict is raised. A 404/Not Found is returned if any of the
     provided IDs are not found.
 
@@ -681,10 +692,10 @@ async def replace_node_in_graph(
     # Ensure the campaign is in a receptive state and that the subject nodes
     # are in its namespace.
     try:
-        assert campaign.status in [StatusEnum.waiting, StatusEnum.paused]
+        assert campaign.status is StatusEnum.paused
     except AssertionError:
         raise HTTPException(
-            status_code=409,
+            status_code=status.HTTP_409_CONFLICT,
             detail=f"Graph for Campaign in status {campaign.status.name} cannot be modified.",
         )
     try:
@@ -692,7 +703,7 @@ async def replace_node_in_graph(
         assert node_1.namespace == campaign.id
     except AssertionError:
         raise HTTPException(
-            status_code=409,
+            status_code=status.HTTP_409_CONFLICT,
             detail="Alien nodes cannot be added to a campaign graph.",
         )
 
@@ -726,7 +737,7 @@ async def replace_node_in_graph(
 
 @router.patch(
     "/{campaign_id}/graph/nodes/{node_0_id}",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Change Node[0] in a Campaign Graph by inserting or appending Node[1]",
 )
 async def update_node_in_graph(
@@ -758,15 +769,15 @@ async def update_node_in_graph(
         node_0 = await session.get_one(Node, node_0_id)
         node_1 = await session.get_one(Node, node_1_id)
     except NoResultFound:
-        raise HTTPException(status_code=404)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
     # Ensure the campaign is in a receptive state and that the subject nodes
     # are in its namespace.
     try:
-        assert campaign.status in [StatusEnum.waiting, StatusEnum.paused]
+        assert campaign.status is StatusEnum.paused
     except AssertionError:
         raise HTTPException(
-            status_code=409,
+            status_code=status.HTTP_409_CONFLICT,
             detail=f"Graph for Campaign in status {campaign.status.name} cannot be modified.",
         )
     try:
@@ -774,7 +785,7 @@ async def update_node_in_graph(
         assert node_1.namespace == campaign.id
     except AssertionError:
         raise HTTPException(
-            status_code=409,
+            status_code=status.HTTP_409_CONFLICT,
             detail="Alien nodes cannot be added to a campaign graph.",
         )
 
@@ -788,12 +799,14 @@ async def update_node_in_graph(
                 await append_node_to_graph(node_0_id, node_1_id, namespace=campaign_id, session=session)
             except NotImplementedError:
                 # Invalid append operation
-                raise HTTPException(400, detail=f"Nodes of kind {node_0.kind} cannot be APPENDED")
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST, detail=f"Nodes of kind {node_0.kind} cannot be APPENDED"
+                )
         case "insert":
             await insert_node_to_graph(node_0_id, node_1_id, namespace=campaign_id, session=session)
         case _:
             # not possible due to pydantic validation
-            raise HTTPException(422)
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT)
 
     response.headers["Edges"] = str(request.url_for("read_campaign_edge_collection", campaign_id=campaign.id))
     response.headers["Graph"] = str(request.url_for("read_campaign_graph", campaign_name=campaign.id))

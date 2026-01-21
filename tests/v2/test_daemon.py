@@ -39,15 +39,13 @@ async def test_daemon_campaign(
     campaign = await session.get_one(Campaign, campaign_id)
     assert campaign.status is not None
     x = campaign.status
-    assert x is StatusEnum.waiting
+    assert x is StatusEnum.paused
 
-    # check the next state in the happy path and set the campaign status
-    # (i.e., without using the Campaign FSM)
-    assert campaign.status.next_status() is StatusEnum.ready
-    campaign.status = campaign.status.next_status()
+    # Set the campaign to running (without using the FSM trigger)
+    campaign.status = StatusEnum.running
     await session.commit()
 
-    # now the daemon should consider the prepared campaign
+    # now the daemon should consider the running campaign
     caplog.clear()
     await consider_campaigns(session)
     found_log_messages = 0

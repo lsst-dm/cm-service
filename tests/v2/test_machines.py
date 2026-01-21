@@ -238,7 +238,7 @@ async def test_change_campaign_state(
     await session.commit()
 
     x = (await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}")).json()
-    assert x["status"] == "waiting"
+    assert x["status"] == "paused"
 
     await change_campaign_state(campaign, StatusEnum.running, str(uuid4()))
     await session.refresh(campaign, attribute_names=["status"])

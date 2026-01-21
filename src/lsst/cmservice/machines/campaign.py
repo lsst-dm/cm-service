@@ -50,9 +50,14 @@ TRANSITIONS = [
         "dest": StatusEnum.running,
         "conditions": "has_valid_graph",
     },
+    {"trigger": "force", "source": "*", "dest": StatusEnum.accepted},
 ]
 """Transitions available to a Campaign, expressed as source-destination pairs
 with a named trigger-verb.
+
+.. deprecated:: 0.7.0
+    The `waiting` state and `start` trigger is deprecated for Campaigns in
+    favor of using the `paused` and `resume` state/trigger exclusively.
 """
 
 
@@ -64,7 +69,7 @@ class CampaignMachine(NodeMachine):
     __kind__ = [ManifestKind.campaign]
 
     def __init__(
-        self, *args: Any, o: Campaign, initial_state: StatusEnum = StatusEnum.waiting, **kwargs: Any
+        self, *args: Any, o: Campaign, initial_state: StatusEnum = StatusEnum.paused, **kwargs: Any
     ) -> None:
         self.db_model = o
         self.machine = AsyncMachine(
@@ -87,6 +92,14 @@ class CampaignMachine(NodeMachine):
         """
         if event.error is None:
             return
+
+        # In some error cases, the error is thrown before transition callbacks
+        # are invoked, so in that case we want to call them anyway.
+        if event.transition is None:
+            if not hasattr(self, "session"):
+                await self.prepare_session(event)
+        if self.activity_log_entry is None:
+            await self.prepare_activity_log(event)
 
         logger.exception(event.error, id=str(self.db_model.id), exc=event.error.__class__.__qualname__)
         if self.activity_log_entry is not None:
