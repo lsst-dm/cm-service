@@ -94,12 +94,12 @@ async def rpc_process_campaign_or_node(
             campaign_id = node.namespace
             if node.status.is_terminal_script():
                 raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail="Node in a terminal state may not be processed.",
                 )
-            elif node.campaign.status not in [StatusEnum.waiting, StatusEnum.paused]:
+            elif node.campaign.status is not StatusEnum.paused:
                 raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail="Node must be associated with a paused campaign.",
                 )
             campaign_graph = await assemble_campaign_graph(session, campaign_id)
@@ -107,17 +107,17 @@ async def rpc_process_campaign_or_node(
             processable_nodes = await to_thread.run_sync(processable_graph_nodes, campaign_graph)
             if node not in processable_nodes:
                 raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail="Node is not processable in the current campaign graph state.",
                 )
             await daemon_process_node(session, node, request_id)
         case ProcessTarget() if target.campaign_id is not None:
             campaign = await fetch_by_id(session, Campaign, target.campaign_id)
             campaign_id = campaign.id
-            if campaign.status not in [StatusEnum.waiting, StatusEnum.ready, StatusEnum.paused]:
+            if campaign.status is not StatusEnum.paused:
                 raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail="Campaign must be in either a waiting, ready or paused state to be processed.",
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    detail="Campaign must be in a paused state to be processed.",
                 )
             await daemon_consider_campaign(session, campaign.id, request_id)
         case _:

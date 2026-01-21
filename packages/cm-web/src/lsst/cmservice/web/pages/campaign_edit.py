@@ -412,7 +412,7 @@ class CampaignEditPage(CMPage):
                 "apiVersion": "io.lsst.cmservice/v1",
                 "kind": "campaign",
                 "metadata": {"name": ""},
-                "spec": {"auto_transition": False},
+                "spec": {},
             },
             "manifests": {},
         }
@@ -475,7 +475,7 @@ class CampaignClonePage(CampaignEditPage):
                 "apiVersion": "io.lsst.cmservice/v1",
                 "kind": "campaign",
                 "metadata": {"name": ""},
-                "spec": {"auto_transition": False},
+                "spec": {},
             },
             "manifests": {},
         }

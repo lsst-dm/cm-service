@@ -50,14 +50,6 @@ def list(ctx: typer.Context) -> None:
 def new_campaign(
     ctx: typer.Context,
     campaign: arguments.campaign_name,
-    *,
-    auto_transition: Annotated[
-        bool,
-        typer.Option(
-            "--auto-transition/--no-auto-transition",
-            help="Whether the new campaign should be handled by the Daemon or created in a paused state.",
-        ),
-    ] = True,
 ) -> None:
     """create a new empty campaign"""
     output_format = formatters.Formatters[ctx.obj.get("output_format")]
@@ -67,9 +59,7 @@ def new_campaign(
         "metadata_": {
             "name": campaign,
         },
-        "spec": {
-            "auto_transition": auto_transition,
-        },
+        "spec": {},
     }
     with http_client(ctx) as session:
         r = session.post("/campaigns", json=data)

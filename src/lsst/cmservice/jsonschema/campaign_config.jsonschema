@@ -4,11 +4,5 @@
   "title": "Campaign Configuration",
   "description": "Configuration for a campaign's Spec field.",
   "type": "object",
-  "properties": {
-    "auto_transition": {
-      "type": "boolean",
-      "default": true,
-      "description": "Whether to automatically transition Nodes using the CM daemon. If false, the campaign may remain in a 'paused' state."
-    }
-  }
+  "properties": {}
 }

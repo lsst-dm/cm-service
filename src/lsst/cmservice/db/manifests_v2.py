@@ -67,13 +67,7 @@ class ManifestSpec(BaseModel):
 class CampaignSpec(ManifestSpec):
     """Spec model for a Campaign."""
 
-    auto_transition: bool = Field(
-        default=True,
-        description=(
-            "Whether to automatically transition Nodes using the CM daemon. "
-            "If false, the campaign may remain in a 'paused' state."
-        ),
-    )
+    ...
 
 
 class VersionedMetadata(BaseModel):
