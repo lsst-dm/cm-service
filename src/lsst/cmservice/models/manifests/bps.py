@@ -17,7 +17,15 @@ class BpsSpec(ManifestSpec):
     a campaign template.
     """
 
-    pipeline_yaml: str | None = Field(default=None)
+    model_config = SPEC_CONFIG
+    # FIXME the pipeline yaml should be optional in a library or campaign
+    # manifest but mandatory in a step.
+    pipeline_yaml: str | None = Field(
+        default=None,
+        description="The absolute path to a Pipeline YAML specification file with optional anchor. "
+        "The path must begin with a `/` or a `${...}` environment variable.",
+        pattern="^(/|\\$\\{.*\\})(.*)(\\.yaml)(#.*)?$",
+    )
     variables: dict[str, str] | None = Field(
         default=None,
         description=(

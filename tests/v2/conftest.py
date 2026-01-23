@@ -173,6 +173,10 @@ async def async_client_fixture(
 async def test_campaign(aclient: AsyncClient, manifest_fixtures: None) -> AsyncGenerator[str]:
     """Fixture managing a test campaign with three (additional) nodes, which
     yields the URL for the campaign's edges endpoint.
+
+    The steps in this campaign fixture, as well as the campaign itself, are
+    named randomly, making it appropriate for strategic unit and integration
+    tests.
     """
     campaign_name = uuid4().hex[-8:]
     node_ids = []
@@ -321,6 +325,10 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
     """Fixture managing a test campaign with steps featuring groups, which
     yields the URL for the campaign's edges endpoint.
 
+    In contrast to the `test_campaign` fixture, this campaign has statically-
+    named steps, making it appropriate for tactical unit and integration-style
+    tests.
+
     The "bishop" step has a null-group config; the "ripley" step as a values-
     based group config; the "hicks" step has a query-based group config.
     """
@@ -401,6 +409,7 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
             "kind": "bps",
             "metadata": {"name": "bps", "namespace": campaign["id"]},
             "spec": {
+                "pipeline_yaml": None,
                 "environment": {
                     "LSST_S3_USE_THREADS": "False",
                     "DAF_BUTLER_CACHE_EXPIRATION_MODE": "disabled",
