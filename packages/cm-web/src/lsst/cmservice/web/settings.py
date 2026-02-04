@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
@@ -55,6 +56,16 @@ class ClientConfiguration(BaseSettings):
     timeout: float = Field(
         default=30.0,
         validation_alias="CM_TIMEOUT",
+    )
+
+    static_dir: Path = Field(
+        default=Path(__file__).parent / "static",
+        validation_alias="CM_STATIC_CONTENT_DIR",
+    )
+
+    storage_secret: str = Field(
+        default="justbetweenyouandme",
+        validation_alias="CM_STORAGE_SECRET_KEY",
     )
 
     @field_validator("cookies", mode="before", check_fields=True)

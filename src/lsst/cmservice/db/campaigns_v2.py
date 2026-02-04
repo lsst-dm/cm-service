@@ -1,7 +1,7 @@
 """ORM Models for v2 tables and objects."""
 
 from collections.abc import MutableSequence
-from typing import Any
+from typing import Any, Optional
 from uuid import NAMESPACE_DNS, UUID, uuid4, uuid5
 
 from pydantic import AliasChoices, AwareDatetime, ValidationInfo, model_validator
@@ -168,7 +168,7 @@ class Node(NodeBase, table=True):
         sa_relationship_kwargs={"lazy": "joined", "innerjoin": True, "uselist": False},
     )
 
-    fsm: "Machine" = Relationship(sa_relationship_kwargs={"uselist": False})
+    fsm: Optional["Machine"] = Relationship(sa_relationship_kwargs={"uselist": False})
 
 
 class EdgeBase(BaseSQLModel):

@@ -2,6 +2,8 @@ SHELL := /bin/bash
 GIT_BRANCH := $(shell git branch --show-current)
 PY_VENV := .venv/
 UV_LOCKFILE := uv.lock
+WEB_CANVAS_STEM := cm-canvas-bundle
+WEB_PACKAGE_ROOT := packages/cm-web/
 
 #------------------------------------------------------------------------------
 # Default help target (thanks ChatGPT)
@@ -84,7 +86,7 @@ lint:
 
 .PHONY: typing
 typing:
-	mypy src tests
+	mypy
 
 
 #------------------------------------------------------------------------------
@@ -131,8 +133,12 @@ run-worker: run-compose
 	alembic upgrade head
 	python3 -m lsst.cmservice.daemon
 
+.PHONY: packages
+packages:
+	$(MAKE) -C packages/cm-canvas rebuild
+
 .PHONY: run-web
-run-web: $(PY_VENV)
+run-web: $(PY_VENV) packages
 	uv run web
 
 .PHONY: migrate

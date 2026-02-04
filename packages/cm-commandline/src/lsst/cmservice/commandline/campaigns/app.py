@@ -285,31 +285,35 @@ def advance_campaign(ctx: typer.Context, campaign: arguments.campaign_id) -> Non
         console.print(status_update_url)
         return
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        transient=True,
-        console=console,
-    ) as progress:
-        result_text = Text("Campaign advanced")
-        progress.add_task(description="Advancing Campaign...", total=None)
-        with http_client(ctx) as session:
-            while True:
-                r = session.get(status_update_url)
-                if not len(r.json()):
-                    sleep(10.0)
-                    progress.add_task(description="Advancing Campaign...", total=None)
-                else:
-                    break
-            activity = r.json()[0]
-            if (error := activity.get("detail", {}).get("error")) is not None:
-                result_text = Text("Campaign not advanced")
-                result_text.stylize("red")
-                pprint(
-                    {
-                        "error": error,
-                        "url": status_update_url,
-                    }
-                )
+    # with Progress(
+    #     SpinnerColumn(),
+    #     TextColumn("[progress.description]{task.description}"),
+    #     transient=True,
+    #     console=console,
+    # ) as progress:
+    #     result_text = Text("Campaign advanced")
+    #     progress.add_task(description="Advancing Campaign...", total=None)
+    #     with http_client(ctx) as session:
+    #         while True:
+    #             r = session.get(status_update_url)
+    #             if not len(r.json()):
+    #                 sleep(10.0)
+    #                 progress.add_task(
+    #                   description="Advancing Campaign...",
+    #                   total=None)
+    #             else:
+    #                 break
+    #         activity = r.json()[0]
+    #         if (
+    #             error := activity.get("detail", {}).get("error")
+    #         ) is not None:
+    #             result_text = Text("Campaign not advanced")
+    #             result_text.stylize("red")
+    #             pprint(
+    #                 {
+    #                     "error": error,
+    #                     "url": status_update_url,
+    #                 }
+    #             )
 
-        console.print(result_text)
+    #     console.print(result_text)

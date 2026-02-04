@@ -2,32 +2,35 @@
 targeting Node resources.
 """
 
-from httpx import HTTPStatusError, Response
+from httpx import HTTPStatusError, Response, codes
 from nicegui import app, ui
 
 from ..lib.client_factory import CLIENT_FACTORY
 from .activity import wait_for_activity_to_complete
 
 
-async def get_one_node(id: str, namespace: str | None) -> Response:
+async def get_one_node(id: str, namespace: str | None) -> Response | None:
+    """Get a single Node by its id or name+namespace."""
     # TODO get nodes and fallback to manifests on 404?
     url = f"/nodes/{id}"
     if namespace is not None:
         url += f"?campaign-id={namespace}"
     async with CLIENT_FACTORY.aclient() as client:
-        try:
-            r = await client.get(url)
-            r.raise_for_status()
-        except HTTPStatusError as e:
-            match e.response:
-                case Response(status_code=409):
-                    ui.notify("Campaign must be paused before modification", type="negative")
-                case _:
-                    raise
+        r = await client.get(url)
+        if r.status_code == codes.NOT_FOUND:
+            return None
+        r.raise_for_status()
         return r
 
 
 async def describe_one_node(id: str) -> dict:
+    """Describes a single node by its id.
+
+    The "description" of a node includes its manifest and any activity logs
+    associated with it. As a side effect, this function updates the client
+    storage with the status of the node, which may propogate to bound elements
+    and trigger updates.
+    """
     data = {}
     async with CLIENT_FACTORY.aclient() as client:
         try:
@@ -39,6 +42,16 @@ async def describe_one_node(id: str) -> dict:
             data["logs"] = r.json()
         except HTTPStatusError:
             raise
+
+    # cache node and campaign
+    campaign_id = data["node"]["namespace"]
+    if app.storage.client["state"].nodes.get(id) is None:
+        app.storage.client["state"].nodes[id] = {}
+    else:
+        app.storage.client["state"].nodes[id]["status"] = data["node"]["status"]
+
+    if app.storage.client["state"].campaigns.get(campaign_id) is None:
+        app.storage.client["state"].campaigns[campaign_id] = {}
     return data
 
 
@@ -50,7 +63,7 @@ async def replace_node(n0: str, n1: str, namespace: str) -> Response:
             ui.notify("Node replaced.")
         except HTTPStatusError as e:
             match e.response:
-                case Response(status_code=409):
+                case Response(status_code=codes.CONFLICT):
                     ui.notify("Campaign must be paused before modification", type="negative")
                 case _:
                     raise
@@ -68,19 +81,20 @@ async def fast_forward_node(n0: str) -> None:
             r.raise_for_status()
         except HTTPStatusError as e:
             match e.response:
-                case Response(status_code=422):
+                case Response(status_code=codes.UNPROCESSABLE_ENTITY):
                     ui.notify(r.text, type="negative")
-                case Response(status_code=500):
+                case Response(status_code=codes.INTERNAL_SERVER_ERROR):
                     ui.notify("Attempt failed with a Server Error", type="negative")
                 case _:
                     raise
         status_update_url = r.headers["StatusUpdate"]
-        app.storage.user[n0]["label"] = "Advancing..."
-        app.storage.user[n0]["icon"] = "hourglass_empty"
+        node_cache: dict = app.storage.client["state"].nodes
+        node_cache[n0]["label"] = "Advancing..."
+        node_cache[n0]["icon"] = "hourglass_empty"
         ui.notify(status_update_url, close_button="OK", timeout=5000, spinner=True)
         # . await wait_for_activity_to_complete(status_update_url)
-        app.storage.user[n0]["label"] = ""
-        app.storage.user[n0]["icon"] = "fast_forward"
+        node_cache[n0]["label"] = ""
+        node_cache[n0]["icon"] = "fast_forward"
 
 
 async def retry_restart_node(
@@ -132,9 +146,9 @@ async def retry_restart_node(
             n.type = "negative"
             n.timeout = 5.0
             match e.response:
-                case Response(status_code=422):
+                case Response(status_code=codes.UNPROCESSABLE_ENTITY):
                     n.message = r.text
-                case Response(status_code=500):
+                case Response(status_code=codes.INTERNAL_SERVER_ERROR):
                     n.message = "Attempt failed with a Server Error"
                 case _:
                     raise
@@ -142,3 +156,11 @@ async def retry_restart_node(
 
         status_update_url = r.headers["StatusUpdate"]
         await wait_for_activity_to_complete(status_update_url, n)
+
+
+async def node_activity_logs(id: str) -> list[dict]:
+    # FIXME this API needs to be sorted by `finished_at`
+    async with CLIENT_FACTORY.aclient() as session:
+        r = await session.get(f"/logs?node={id}")
+        r.raise_for_status()
+    return r.json()

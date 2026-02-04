@@ -739,3 +739,52 @@ async def test_group_force_accept(
     await session.refresh(group, ["status", "metadata_", "machine"])
     group_status = group.status
     assert group_status is expected_status
+
+
+async def test_step_fail_reset(
+    *,
+    test_campaign_groups: str,
+    session: AsyncSession,
+    aclient: AsyncClient,
+) -> None:
+    """Tests that a failed Step is recoverable with the reset trigger"""
+    campaign_id = urlparse(url=test_campaign_groups).path.split("/")[-2:][0]
+
+    # Fetch and FAIL to prepare a step, as a broken manifest may cause
+    step_id = uuid5(UUID(campaign_id), "lambert.1")
+    step = await session.get_one(Node, step_id)
+    step_machine = StepMachine(o=step)
+    with patch(
+        "lsst.cmservice.machines.node.StepMachine.do_prepare",
+        side_effect=RuntimeError("Step failed to prepare"),
+    ):
+        await step_machine.trigger("prepare")
+
+    await session.refresh(step, ["status"])
+    await session.commit()
+    step_status = step.status
+    assert step_status is StatusEnum.failed
+
+    # trigger 'RESET' by setting the status to waiting
+    x = await aclient.patch(
+        f"/cm-service/v2/nodes/{step.id}",
+        json={"status": "waiting", "force": "true"},
+        headers={"Content-Type": "application/merge-patch+json"},
+    )
+    assert x.is_success
+
+    # wait for and assert background task is successful
+    update_url = x.headers["StatusUpdate"]
+    for _ in range(5):
+        x = await aclient.get(update_url)
+        result = x.json()
+        if len(result):
+            activity_log_message = result[0]["detail"]["message"]
+            assert "rolled back" in activity_log_message
+            break
+        else:
+            await sleep(1.0)
+
+    await session.refresh(step, ["status", "metadata_"])
+    step_status = step.status
+    assert step_status is StatusEnum.waiting

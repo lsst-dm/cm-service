@@ -495,9 +495,9 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
     async def do_reset(self, event: EventData) -> None:
         """Transition method between "failed" and "waiting"."""
         # trigger retry to transition to ready
-        await self.trigger("retry")
+        await self.do_retry(event)
         # trigger unprepare to transition to waiting
-        await self.trigger("unprepare")
+        await self.do_unprepare(event)
 
     async def do_retry(self, event: EventData) -> None:
         """Transition method between "failed" and "ready"."""

@@ -18,11 +18,37 @@ class BpsSpec(ManifestSpec):
     """
 
     pipeline_yaml: str | None = Field(default=None)
-    variables: dict[str, str] | None = Field(default=None)
+    variables: dict[str, str] | None = Field(
+        default=None,
+        description=(
+            "A mapping of name-value string pairs used to define addtional "
+            "top-level BPS substitution variables. Note that the values are quoted in the "
+            "output."
+        ),
+    )
     include_files: list[str] | None = Field(default=None)
-    literals: dict[str, str] | None = Field(default=None)
-    environment: dict[str, str] | None = Field(default=None)
-    payload: dict[str, str] | None = Field(default=None)
+    literals: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "A mapping of arbitrary top-level mapping sections to be added as additional literal YAML, "
+            "e.g., `finalJob`."
+        ),
+    )
+    environment: dict[str, str] | None = Field(
+        default=None,
+        description=(
+            "A mapping of name-value string pairs used to defined additional "
+            "values under the `environment` heading."
+        ),
+    )
+    payload: dict[str, str] | None = Field(
+        default=None,
+        description=(
+            "A mapping of name-value string pairs used to define BPS payload "
+            "options. Note that these values are generated from other configuration "
+            "sources at runtime."
+        ),
+    )
     extra_init_options: str | None = Field(
         default=None, description="Options added to the end of pipetaskinit"
     )
@@ -33,7 +59,12 @@ class BpsSpec(ManifestSpec):
         default=None, description="Options added to the end of pipetask command to run a quantum"
     )
     extra_update_qgraph_options: str | None = Field(default=None)
-    clustering: dict[str, Any] | None = Field(default=None)
+    clustering: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "A mapping of clustering directives, added as literal YAML under the `clustering` heading."
+        ),
+    )
 
 
 class BpsManifest(LibraryManifest[BpsSpec]): ...

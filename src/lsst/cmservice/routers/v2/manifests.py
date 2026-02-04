@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Annotated
 from uuid import UUID, uuid5
 
 from deepdiff import Delta
-from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query, Request, Response, status
 from pydantic import UUID5
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import make_transient
@@ -67,7 +67,7 @@ async def read_manifest_collection(
         return nodes.all()
     except Exception as msg:
         logger.exception()
-        raise HTTPException(status_code=500, detail=f"{str(msg)}") from msg
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"{str(msg)}") from msg
 
 
 @router.get("/{manifest_name_or_id}", response_model=Manifest, summary="Get manifest detail")
@@ -101,7 +101,7 @@ async def read_single_manifest(
     manifest = (await session.exec(s)).one_or_none()
 
     if manifest is None:
-        raise HTTPException(status_code=404)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
     response.headers["Self"] = str(request.url_for("read_single_manifest", manifest_name_or_id=manifest.id))
     if request.method == "HEAD":
@@ -113,7 +113,7 @@ async def read_single_manifest(
 @router.post(
     "/",
     summary="Add a manifest resource",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
 )
 async def create_one_or_more_manifests(
     request: Request,
@@ -144,7 +144,10 @@ async def create_one_or_more_manifests(
                     await session.exec(select(Campaign.id).where(Campaign.name == _namespace))
                 ).one_or_none()
             ) is None:
-                raise HTTPException(status_code=422, detail="Requested namespace does not exist.")
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    detail="Requested namespace does not exist.",
+                )
             _namespace_uuid = _campaign_id
 
         # A manifest must be a new version if name+kind+namespace exists
@@ -184,13 +187,15 @@ async def create_one_or_more_manifests(
         session.add(_manifest)
 
     await session.commit()
+
+    response.headers["Self"] = str(request.url_for("read_single_manifest", manifest_name_or_id=_id))
     return None
 
 
 @router.patch(
     "/{manifest_name_or_id}",
     summary="Update manifest detail",
-    status_code=202,
+    status_code=status.HTTP_202_ACCEPTED,
 )
 async def update_manifest_resource(
     request: Request,
@@ -229,12 +234,15 @@ async def update_manifest_resource(
         raise HTTPException(status_code=406, detail="Unsupported Content-Type")
 
     s = select(Manifest).with_for_update()
-    # The input could be a UUID or it could be a literal name.
+
     try:
         if _id := UUID(manifest_name_or_id):
             s = s.where(Manifest.id == _id)
     except ValueError:
-        s = s.where(Manifest.name == manifest_name_or_id)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Manifests cannot be patched by name, use a valid ID",
+        )
 
     # we want to order and sort by version, in descending order, so we always
     # fetch only the most recent version of manifest
@@ -248,7 +256,9 @@ async def update_manifest_resource(
 
     new_manifest = old_manifest.model_dump(by_alias=True)
     new_manifest["version"] += 1
-    new_manifest["id"] = uuid5(new_manifest["namespace"], f"{new_manifest['name']}.{new_manifest['version']}")
+    new_manifest["id"] = uuid5(
+        new_manifest["namespace"], f"{new_manifest['kind']}.{new_manifest['name']}.{new_manifest['version']}"
+    )
 
     if use_rfc6902:
         for patch in patch_data:
@@ -258,7 +268,7 @@ async def update_manifest_resource(
                 apply_json_patch(patch, new_manifest)
             except JSONPatchError as e:
                 raise HTTPException(
-                    status_code=422,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail=f"Unable to process one or more patch operations: {e}",
                 )
     elif use_deepdiff:
@@ -281,7 +291,7 @@ async def update_manifest_resource(
 @router.put(
     "/{manifest_id}",
     summary="Copies a manifest to a new namespace specified in the request header",
-    status_code=202,
+    status_code=status.HTTP_202_ACCEPTED,
 )
 async def copy_manifest_resource(
     request: Request,
@@ -298,7 +308,7 @@ async def copy_manifest_resource(
     """
     manifest = await session.get(Manifest, manifest_id)
     if manifest is None:
-        raise HTTPException(status_code=404)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
     make_transient(manifest)
     manifest.namespace = namespace_copy_target
@@ -311,7 +321,9 @@ async def copy_manifest_resource(
         await session.commit()
     except IntegrityError:
         # A nonexistent target namespace will raise a FK violation error
-        raise HTTPException(status_code=404, detail="Target campaign or namespace not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Target campaign or namespace not found"
+        )
 
     response.headers["Self"] = str(request.url_for("read_single_manifest", manifest_name_or_id=manifest.id))
     return manifest

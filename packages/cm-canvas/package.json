@@ -1,0 +1,20 @@
+{
+  "name": "cm-canvas-bundle",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^6.2.1",
+    "prettier-plugin-svelte": "^3.4.0",
+    "svelte": "^5.45.2",
+    "vite": "^7.2.6",
+    "vite-plugin-css-injected-by-js": "^3.5.2"
+  },
+  "dependencies": {
+    "@dagrejs/dagre": "^1.1.8",
+    "@xyflow/svelte": "^1.4.2"
+  }
+}

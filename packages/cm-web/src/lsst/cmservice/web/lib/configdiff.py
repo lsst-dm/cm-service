@@ -1,6 +1,8 @@
 import json
 
 from deepdiff import DeepDiff, Delta
+from httpx import HTTPStatusError, Response, codes
+from nicegui import ui
 
 from .client_factory import CLIENT_FACTORY
 
@@ -23,9 +25,23 @@ async def patch_resource(manifest_url: str, t1: dict, t2: dict) -> None:
     delta = Delta(diff)
 
     async with CLIENT_FACTORY.aclient() as session:
-        r = await session.patch(
-            headers={"Content-Type": "application/octet-stream"},
-            url=manifest_url,
-            content=delta.dumps(),
-        )
-        r.raise_for_status()
+        try:
+            r = await session.patch(
+                headers={"Content-Type": "application/octet-stream"},
+                url=manifest_url,
+                content=delta.dumps(),
+            )
+            r.raise_for_status()
+            ui.notify("Update successful", type="positive")
+        except HTTPStatusError as e:
+            match e.response:
+                case Response(status_code=codes.CONFLICT):
+                    ui.notify(
+                        (
+                            "Update failed - Conflict detected - Are you editing "
+                            "the most recent version of this element?"
+                        ),
+                        type="negative",
+                    )
+                case _:
+                    ui.notify(e, type="negative")

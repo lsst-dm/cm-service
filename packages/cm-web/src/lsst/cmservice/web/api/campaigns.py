@@ -10,6 +10,7 @@ from lsst.cmservice.common.enums import DEFAULT_NAMESPACE
 
 from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.configedit import configuration_edit
+from ..lib.enum import MANIFEST_KIND_ICONS
 from .manifests import get_one_manifest
 
 
@@ -60,9 +61,13 @@ async def describe_one_campaign(id: str, client: AsyncClient) -> dict:
     return campaign_detail
 
 
-async def compile_campaign_manifests(id: str, manifests: list[dict]) -> None:
-    """Renders a row or table of campaign manifest cards, substituting library
-    manifests for any mandatory manifests not present in the campaign.
+async def get_campaign_manifests(id: str | None = None, manifests: list[dict] = []) -> list[dict]:
+    """API helper for fetching a collection of campaign or library manifests.
+    Parameters
+    ----------
+    id : str | None
+        The ID of a campaign whose manifests to fetch. If the `id` is `None`,
+        then the library manifests will be fetched instead.
     """
     # -- if the campaign does not have these kinds, then we will pull the
     #    version 0 of that kind from the library (default namespace)
@@ -75,26 +80,51 @@ async def compile_campaign_manifests(id: str, manifests: list[dict]) -> None:
             )
             if manifest_ is not None:
                 manifests.append(manifest_.json())
+
+    return manifests
+
+
+async def compile_campaign_manifests(campaign_id: str | None = None, manifests: list[dict] = []) -> None:
+    """Renders a row or table of campaign manifest cards, substituting library
+    manifests for any mandatory manifests not present in the campaign.
+
+    If called without arguments, this function will compile a row of Library
+    manifests.
+    """
+    # FIXME the configuration chain lookup does not substitute a campaign
+    # manifest for a library manifest; the library manifest is always in the
+    # chain map if it exists, so it's not correct to "hide" library manifests
+    # from the user in the campaign detail.
+    # FIXME in future label selection of manifests will complicate the "view"
+    # of a set of manifests relevant to the campaign, since the selectors will
+    # differ at the node level.
+    # FIXME this is a bad pattern because it mixes ui elements with data ops
+
+    manifests = await get_campaign_manifests(campaign_id, manifests)
+
     with ui.row():
         for manifest in manifests:
             with ui.card():
                 with ui.card_section():
-                    ui.label(manifest["kind"].upper()).classes("text-subtitle1")
                     ui.label(manifest["name"]).classes("text-subtitle2")
                 with ui.card_actions().props("align=right").classes("items-center text-sm w-full"):
+                    ui.chip(text=manifest["kind"].upper(), color="accent").classes("text-xs").props(
+                        "outline square"
+                    ).bind_icon_from(MANIFEST_KIND_ICONS, manifest["kind"])
                     ui.chip(
                         manifest["version"],
                         icon="commit",
                         color="white",
                     ).tooltip("Manifest Version")
                     ui.button(
-                        icon="content_paste_go",
+                        icon="preview" if campaign_id is None else "edit",
                         color="dark",
-                    ).props("style: flat").tooltip("Apply Manifest")
-                    ui.button(
-                        icon="edit",
-                        color="dark",
-                        on_click=partial(configuration_edit, manifest_id=manifest["id"], namespace=id),
+                        on_click=partial(
+                            configuration_edit,
+                            manifest_id=manifest["id"],
+                            namespace=manifest["namespace"],
+                            readonly=(campaign_id is None),
+                        ),
                     ).props("style: flat").tooltip("Edit Manifest Configuration")
 
 
@@ -140,7 +170,7 @@ async def toggle_campaign_state(e: ValueChangeEventArguments, campaign: dict) ->
         n.message = message
         n.close_button = True
     else:
-        app.storage.user[campaign_id]["status"] = new_status
+        app.storage.client["state"].campaigns[campaign_id]["status"] = new_status
         n.color = "positive"
         n.message = f"{campaign_name} is now {new_status}"
         n.timeout = 3.0

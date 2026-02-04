@@ -3,7 +3,7 @@
 from uuid import uuid4
 
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, codes
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""
@@ -16,11 +16,11 @@ async def test_list_delete_no_nodes(aclient: AsyncClient) -> None:
     assert len(x.json()) == 0
 
     x = await aclient.get(f"/cm-service/v2/nodes/{uuid4()}")
-    assert x.status_code == 404
+    assert x.status_code == codes.NOT_FOUND
 
     # there is no delete api for nodes
     x = await aclient.delete(f"/cm-service/v2/nodes/{uuid4()}")
-    assert x.status_code == 405
+    assert x.status_code == codes.METHOD_NOT_ALLOWED
 
 
 async def test_node_negative(aclient: AsyncClient) -> None:
@@ -203,4 +203,4 @@ async def test_node_double_update(aclient: AsyncClient) -> None:
         ],
     )
     assert not x.is_success
-    assert x.status_code == 422
+    assert x.status_code == codes.CONFLICT
