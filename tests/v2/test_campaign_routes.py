@@ -3,7 +3,7 @@
 from uuid import NAMESPACE_DNS, UUID, uuid4, uuid5
 
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, codes
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""
@@ -27,7 +27,7 @@ async def test_list_campaign(aclient: AsyncClient) -> None:
     x = await aclient.get(
         f"/cm-service/v2/campaigns/{campaign_name}",
     )
-    assert x.status_code == 404
+    assert x.status_code == codes.NOT_FOUND
 
     x = await aclient.post(
         "/cm-service/v2/campaigns",
@@ -105,7 +105,7 @@ async def test_create_campaign(aclient: AsyncClient) -> None:
     # - the returned campaign's ID should be the name of the campaign within
     #   the namespace of the default campaign
     assert campaign["id"] == str(uuid5(uuid5(NAMESPACE_DNS, "io.lsst.cmservice"), campaign_name))
-    assert campaign["status"] == "waiting"
+    assert campaign["status"] == "paused"
 
     # - the response headers should have pointers to other API endpoints for
     #   the campaign
@@ -127,6 +127,7 @@ async def test_create_campaign(aclient: AsyncClient) -> None:
     assert len(edges) == 0
 
 
+@pytest.mark.skip(reason="Deprecated distinction between waiting and paused campaign states")
 @pytest.mark.parametrize("spec_state,expected_state", [(True, "waiting"), (False, "paused")])
 async def test_create_campaign_with_spec(
     *, spec_state: bool, expected_state: str, aclient: AsyncClient
@@ -176,20 +177,20 @@ async def test_patch_campaign(aclient: AsyncClient, caplog: pytest.LogCaptureFix
     # Try an unsupported content-type for patch
     y = await aclient.patch(
         campaign_url,
-        json={"status": "ready", "owner": "bob_loblaw"},
+        json={"status": "running", "owner": "bob_loblaw"},
         headers={"Content-Type": "application/not-supported+json"},
     )
-    assert y.status_code == 406
+    assert y.status_code == codes.NOT_ACCEPTABLE
 
     # Update the campaign using RFC6902, expecting an error and that the app's
     # middleware has provided a request Id
     y = await aclient.patch(
         campaign_url,
-        json={"status": "ready", "owner": "bob_loblaw"},
+        json={"status": "running", "owner": "bob_loblaw"},
         headers={"Content-Type": "application/json-patch+json"},
     )
     # RFC6902 not implemented
-    assert y.status_code == 501
+    assert y.status_code == codes.NOT_IMPLEMENTED
     assert UUID(y.headers["X-Request-Id"])
 
     # Update the campaign using RFC7396 and campaign id
@@ -211,7 +212,7 @@ async def test_patch_campaign(aclient: AsyncClient, caplog: pytest.LogCaptureFix
     updated_campaign = y.json()
     assert updated_campaign["owner"] == "bob_loblaw"
     # the status update will not be applied
-    assert updated_campaign["status"] == "waiting"
+    assert updated_campaign["status"] == "paused"
 
     # we should see a failed transition in the log
     log_entry_found = False
@@ -232,7 +233,7 @@ async def test_patch_campaign(aclient: AsyncClient, caplog: pytest.LogCaptureFix
     updated_campaign = y.json()
     assert updated_campaign["owner"] == "alice_bob"
     # the previous status update will not be successful
-    assert updated_campaign["status"] == "waiting"
+    assert updated_campaign["status"] == "paused"
 
     # The (failed) attempt to resume a campaign with a broken graph should
     # produce an error detail at the reported location, i.e., at the logs
@@ -240,5 +241,5 @@ async def test_patch_campaign(aclient: AsyncClient, caplog: pytest.LogCaptureFix
     y = await aclient.get(status_update_url)
     assert y.is_success
     activity_log_entry = y.json()[0]
-    assert activity_log_entry["detail"]["trigger"] == "start"
+    assert activity_log_entry["detail"]["trigger"] == "resume"
     assert activity_log_entry["detail"]["exception"] == "InvalidCampaignGraphError"

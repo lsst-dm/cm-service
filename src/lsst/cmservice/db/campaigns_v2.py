@@ -62,7 +62,7 @@ class CampaignBase(BaseSQLModel):
     namespace: UUID
     owner: str | None = Field(default=None)
     status: StatusField = Field(
-        default=StatusEnum.waiting,
+        default=StatusEnum.paused,
         sa_column=Column("status", Enum(StatusEnum, length=20, native_enum=False, create_constraint=False)),
     )
     metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])

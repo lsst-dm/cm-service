@@ -14,8 +14,6 @@ metadata:
 # information parameters for a specific manifest type here, but the campaign
 # comes last in the configuration lookup hierarchy!
 spec:
-  # set the initial state of the campaign to "paused" so it can be step-advanced
-  auto_transition: false
   butlerSelector:
     instrument: lsstcam
     embargo: "false"
