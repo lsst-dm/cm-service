@@ -101,7 +101,7 @@ async def change_node_state(
             trigger = "pause"
         case (StatusEnum.paused, StatusEnum.running):
             trigger = "resume"
-        case (_, StatusEnum.rejected):
+        case (_, StatusEnum.failed):
             trigger = "reject"
         case (_, StatusEnum.accepted):
             trigger = "force" if force else "finish"

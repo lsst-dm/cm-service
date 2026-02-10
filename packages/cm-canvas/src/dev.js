@@ -29,6 +29,12 @@ mount(App, {
         data: { name: "Node D" },
         position: { x: 0, y: 0 },
       },
+      {
+        id: "holdup",
+        type: "breakpoint",
+        data: { name: "Hold Up" },
+        position: { x: 0, y: 0 },
+      },
     ],
     edges: [
       { id: "1--2", source: "1", target: "2" },
@@ -44,7 +50,9 @@ mount(App, {
       console.log("Export callback fired!");
       console.log("Nodes:", data.nodes);
       console.log("Edges:", data.edges);
-      alert(`Exported ${data.nodes.length} nodes and ${data.edges.length} edges`,);
+      alert(
+        `Exported ${data.nodes.length} nodes and ${data.edges.length} edges`,
+      );
     },
   },
 });

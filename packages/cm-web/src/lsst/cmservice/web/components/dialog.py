@@ -95,7 +95,9 @@ class NodeRecoveryPopup(ui.dialog):
 
         allowed_actions = NodeAllowedActions.all()
         call_refreshable = True
-        if node["kind"] != "group":
+        if node["kind"] == "breakpoint":
+            allowed_actions = NodeAllowedActions.force
+        elif node["kind"] != "group":
             allowed_actions &= ~NodeAllowedActions.restart
         result = await cls(allowed_actions)
 

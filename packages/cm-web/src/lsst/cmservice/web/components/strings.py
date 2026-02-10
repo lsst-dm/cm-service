@@ -9,3 +9,5 @@ LIBRARY_MANIFEST_TOOLIP = (
     """Library manifests are read-only global configuration documents that provide defaults for campaigns"""
 )
 CAMPAIGN_MANIFEST_TOOLTIP = """Campaign manifests are versioned configuration documents for a campaign"""
+BREAKPOINT_ACCEPT_TOOLTIP = """Accept the campaign at the breakpoint and continue processing"""
+BREAKPOINT_REJECT_TOOLTIP = """Reject the campaign at the breakpoint and stop processing"""

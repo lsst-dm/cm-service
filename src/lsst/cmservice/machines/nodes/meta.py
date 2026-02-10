@@ -498,7 +498,28 @@ class BreakPointMachine(NodeMachine):
     The BreakPoint Node is responsible for interrupting a campaign's graph
     until it is put into an accepted state by intentional manual action.
 
-    The CM Daemon will refuse to evolve a Node of this kind.
+    A Breakpoint Node will never signal that it is "done running", meaning that
+    after it enters a `running` state, it will remain in that state. Only
+    intentional manual action (e.g., by using a force-accept action) will
+    advance the node, and subsequently the campaign.
+
+    Unlike most nodes, a Breakpoint Node may be put into the accepted state
+    from any state using the "force" trigger.
     """
 
     __kind__ = [ManifestKind.breakpoint]
+
+    def post_init(self) -> None:
+        """Post init, set class-specific callback triggers."""
+        # The breakpoint node does not have any specific callback triggers, as
+        # it does not prepare artifacts or interact with additional systems.
+        # the breakpoint node does have a special transition that allows the
+        # `force` or `reject` trigger from *any* state.
+        self.machine.add_transition("force", "*", "accepted")
+        self.machine.add_transition("reject", "*", "failed")
+
+    async def is_done_running(self, event: EventData) -> bool:
+        """A Breakpoint Node always returns a False signal to the done-running
+        check.
+        """
+        return False

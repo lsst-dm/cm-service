@@ -110,3 +110,89 @@ async def test_rpc_process_wrong_node(
     assert not x.is_success
     assert x.status_code == 422
     assert "not processable" in x.text
+
+
+@patch("lsst.cmservice.machines.nodes.mixin.HTCondorLaunchMixin.launch", return_value=None)
+@patch(
+    "lsst.cmservice.machines.nodes.mixin.HTCondorLaunchMixin.check",
+    return_value=LauncherCheckResponse(success=True),
+)
+async def test_rpc_with_breakpoint_node(
+    mock_check: Mock,
+    mock_launch: Mock,
+    test_campaign: str,
+    aclient: AsyncClient,
+    session: AsyncSession,
+) -> None:
+    """Tests the addition of a Breakpoint node in a campaign, and that process-
+    ing the campaign does not proceed past the breakpoint until it is applied
+    the "force" transition.
+    """
+    campaign_id = urlparse(url=test_campaign).path.split("/")[-2:][0]
+    start_id = uuid5(UUID(campaign_id), "START.1")
+
+    async def process_once() -> Response:
+        r = await aclient.post(
+            "/cm-service/v2/rpc/process",
+            json={
+                "campaign_id": campaign_id,
+            },
+        )
+        return r
+
+    # Add a breakpoint node after the START node
+    # create a new Node in the campaign
+    r = await aclient.post(
+        "/cm-service/v2/nodes",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "node",
+            "metadata": {"name": "holdup", "namespace": campaign_id, "kind": "breakpoint"},
+            "spec": {},
+        },
+    )
+    assert r.is_success
+    breakpoint_id = r.json()["id"]
+    breakpoint_url = r.headers["self"]
+
+    # INSERT the new node in the campaign downstream of Start
+    r = await aclient.patch(
+        f"/cm-service/v2/campaigns/{campaign_id}/graph/nodes/{start_id}?add-node={breakpoint_id}&operation=insert",
+    )
+    assert r.is_success
+
+    # use RPC to process the campaign until the breakpoint node is running
+    # FIXME if there are timing issues here, we can introduce sleeps or try to
+    # use wait-for-activity-log logic assuming request_ids are working
+    for _ in range(5):
+        x = await process_once()
+        assert x.is_success
+        await consider_nodes(session)
+
+    # confirm that the breakpoint node does not advance from "running"
+    r = await aclient.get(breakpoint_url)
+    assert r.json()["status"] == "running"
+
+    x = await process_once()
+    assert x.is_success
+    await consider_nodes(session)
+
+    r = await aclient.get(breakpoint_url)
+    assert r.json()["status"] == "running"
+
+    # manually force the breakpoint node
+    # - trigger 'force' by setting the status to accepted
+    x = await aclient.patch(
+        breakpoint_url,
+        json={"status": "accepted", "force": True},
+        headers={"Content-Type": "application/merge-patch+json"},
+    )
+    assert x.is_success
+
+    r = await aclient.get(breakpoint_url)
+    assert r.json()["status"] == "accepted"
+
+    # confirm that the rpc proceeds to the next node
+    x = await process_once()
+    assert x.is_success
+    await consider_nodes(session)

@@ -20,5 +20,7 @@ campaign_name = Annotated[str, typer.Argument()]
 campaign_id = Annotated[str, typer.Argument(envvar="CM_CAMPAIGN", callback=preprocess_campaign_name)]
 
 campaign_status = Annotated[
-    Literal["paused", "rejected", "accepted"], typer.Argument(help="Campaign status name")
+    Literal["paused", "rejected", "accepted", "failed"], typer.Argument(help="Campaign status name")
 ]
+
+node_id = Annotated[str, typer.Argument()]

@@ -94,8 +94,13 @@ class NodeDetailPage(CMPage):
                 ).props("clickable").on(
                     "click", lambda e: dialog.NodeRecoveryPopup.click(e, node, self.create_content)
                 )
-            # if campaign is paused, then show transport (step) control
-            await self.node_advance_chip()
+            if all([node["kind"] == "breakpoint", node["status"] != "failed"]):
+                # TODO this could be an expanding FAB
+                await self.breakpoint_accept_chip()
+                await self.breakpoint_reject_chip()
+            else:
+                # if campaign is paused, then show transport (step) control
+                await self.node_advance_chip()
 
     async def node_tab_bar(self) -> None:
         """Renders a tab bar for the node detail page.
@@ -139,7 +144,15 @@ class NodeDetailPage(CMPage):
         icon, _ = ui.state(node_status.emoji)
         color, _ = ui.state(node_status.hex)
 
-        ui.chip(status, icon=icon, color=color).tooltip("Node Status")
+        # For a breakpoint node, we will show the chip only if it is accepted
+        if self.model["node"]["kind"] != "breakpoint":
+            ui.chip(status, icon=icon, color=color).tooltip("Node Status")
+        else:
+            ui.chip(status, icon=icon, color=color).tooltip("Node Status").bind_visibility_from(
+                target_object=self.model["node"],
+                target_name="status",
+                backward=lambda v: v in ["accepted", "failed"],
+            )
 
     @ui.refreshable_method
     async def node_activity_timeline(self) -> None:
@@ -235,3 +248,43 @@ class NodeDetailPage(CMPage):
         ).bind_icon_from(node, "icon").bind_text_from(node, "label").bind_visibility_from(
             app.storage.client["state"].campaigns[campaign_id], target_name="status", value="paused"
         ).bind_enabled_from(node, target_name="status", backward=lambda x: x not in ("failed", "accepted"))
+
+    async def breakpoint_accept_chip(self) -> None:
+        """Adds a chip as an Accept button for a Breakpoint Node.
+
+        This control is only visible if the Node is a breakpoint kind.
+        """
+        if all(
+            [
+                self.model["node"]["kind"] == "breakpoint",
+                self.model["node"]["status"] != "accepted",
+            ]
+        ):
+            force_method = partial(api.retry_restart_node, n0=self.node_id, force=True, accept=True)
+            ui.chip(
+                "accept",
+                icon="recommend",
+                color="positive",
+                on_click=force_method,
+            ).tooltip(strings.BREAKPOINT_ACCEPT_TOOLTIP)
+            # TODO refresh element(s) in click callback!
+
+    async def breakpoint_reject_chip(self) -> None:
+        """Adds a chip as an Reject button for a Breakpoint Node.
+
+        This control is only visible if the Node is a breakpoint kind.
+        """
+        if all(
+            [
+                self.model["node"]["kind"] == "breakpoint",
+                self.model["node"]["status"] != "accepted",
+            ]
+        ):
+            force_method = partial(api.retry_restart_node, n0=self.node_id, force=True, reject=True)
+            ui.chip(
+                "reject",
+                icon="thumb_down",
+                color="negative",
+                on_click=force_method,
+            ).tooltip(strings.BREAKPOINT_REJECT_TOOLTIP)
+            # TODO refresh element(s) in click callback!

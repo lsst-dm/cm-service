@@ -39,7 +39,7 @@
       id="name"
       name="name"
       type="input"
-      value="{data.name}"
+      value={data.name}
       oninput={(e) => {
         updateNodeData(id, { name: e.target.value });
       }}
@@ -65,7 +65,7 @@
 
 <style>
   .step-node-form-group {
-    font-family: "roboto", sans-serif;
+    font-family: "Source Sans Pro", "Roboto", sans-serif;
     font-size: 1rem;
     display: inline-block;
     position: relative;
