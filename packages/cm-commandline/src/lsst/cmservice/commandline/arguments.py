@@ -18,9 +18,10 @@ def preprocess_campaign_name(ctx: TypedContext, campaign: str) -> str:
     """Preprocesses a campaign NAME by translating it to a campaign ID and
     storing the result in the application context
     """
-    ctx.obj.campaign_name = campaign
-    ctx.obj.campaign_id = str(uuid5(settings.default_namespace, campaign))
-    return campaign
+    sanitized_campaign_name = as_snake_case(campaign)
+    ctx.obj.campaign_name = sanitized_campaign_name
+    ctx.obj.campaign_id = str(uuid5(settings.default_namespace, sanitized_campaign_name))
+    return sanitized_campaign_name
 
 
 campaign_name = Annotated[

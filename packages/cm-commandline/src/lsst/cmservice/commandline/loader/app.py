@@ -18,7 +18,9 @@ def load_from_yaml(
     filename: str,
     campaign: arguments.campaign_name,
     *,
-    strict: Annotated[bool, typer.Option("--strict", help="Load YAML in strict mode")],
+    strict: Annotated[
+        bool, typer.Option(help="Load YAML in strict mode (file must have only a single campaign)")
+    ] = False,
 ) -> None:
     """Load manifests from a YAML file"""
     try:
