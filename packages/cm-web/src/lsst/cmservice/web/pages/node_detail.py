@@ -5,7 +5,7 @@ from typing import Any, Self, TypedDict
 
 from httpx import AsyncClient
 from nicegui import app, ui
-from yaml import dump
+from yaml import safe_dump
 
 from .. import api
 from ..components import dialog, storage, strings
@@ -37,13 +37,20 @@ class NodeDetailPageModel(TypedDict):
 
 
 class NodeDetailPage(CMPage[NodeDetailPageModel]):
-    """..."""
+    """A page detailing a single Node in a Campaign. This page includes a
+    timeline of Node events, including milestone and error feedback, a config-
+    uration carousel, and transport and/or recovery tools.
+    """
 
     def drawer_contents(self) -> None: ...
 
+    async def footer_contents(self) -> None:
+        ui.label().classes("text-xs").bind_text_from(self, "node_id", strict=False)
+
     async def setup(self, client_: AsyncClient | None = None, *, node_id: str = "") -> Self:
-        """Async method called at page creation. Subpages can override this
-        method to perform data loading/prep, etc., before calling render().
+        """Data intensive setup method that fetches the full node description
+        from CM API. Run at page setup to populate the page `model` with the
+        current Node's details.
         """
         if client_ is None:
             raise RuntimeError("Node Detail page setup requires an httpx client")
@@ -58,21 +65,9 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
             "logs": data["logs"],
         }
 
-        with self.footer:
-            ui.label().classes("text-xs").bind_text_from(self, "node_id", strict=False)
-
         self.breadcrumbs.append(data["node"]["name"])
         self.create_header.refresh()
         return self
-
-    async def render(self) -> None:
-        """Method to create main content for page.
-
-        Subclasses should use the `create_content()` method, which is called
-        from within the content column's context manager.
-        """
-        with self.content:
-            await self.create_content()
 
     async def node_detail_ribbon(self) -> None:
         """Renders a Node Detail ribbon.
@@ -82,7 +77,7 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
         and step-advance buttons if available.
         """
         node = self.model["node"]
-        with ui.row():
+        with ui.row().classes("shrink-0 gap-2 w-full"):
             with ui.link(target=f"/campaign/{node['namespace']}"):
                 ui.chip("Campaign", icon="shape_line", color="white").tooltip(node["namespace"])
             ui.chip(node["kind"], icon="fingerprint", color="white").tooltip("Node Kind")
@@ -107,18 +102,20 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
 
         The tab bar and the tabs are created as page instance attributes.
         """
-        with ui.tabs().classes("items-center w-full") as self.tabs:
+        with ui.tabs().classes("w-full shrink-0") as self.tabs:
             self.timeline_tab = ui.tab("Timeline")
             self.config_tab = ui.tab("Configuration")
             self.metadata_tab = ui.tab("Metadata")
 
     async def node_tab_panels(self) -> None:
-        with ui.tab_panels(self.tabs, value=self.timeline_tab).classes("w-full"):
-            with ui.tab_panel(self.timeline_tab):
+        with ui.tab_panels(self.tabs, value=self.timeline_tab).classes("w-full flex-1 overflow-hidden"):
+            # Try to ensure the timeline is scrollable within the tabbed area
+            # without clipping the timeline entries.
+            with ui.tab_panel(self.timeline_tab).classes("h-full overflow-auto"):
                 await self.node_activity_timeline()
-            with ui.tab_panel(self.config_tab):
+            with ui.tab_panel(self.config_tab).classes("h-full"):
                 await self.node_config_history_carousel()
-            with ui.tab_panel(self.metadata_tab):
+            with ui.tab_panel(self.metadata_tab).classes("h-full"):
                 await self.node_metadata_display()
 
     @ui.refreshable_method
@@ -129,8 +126,9 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
         self.show_spinner()
         await self.node_detail_ribbon()
         ui.separator()
-        await self.node_tab_bar()
-        await self.node_tab_panels()
+        with ui.column().classes("w-full h-full gap-0 overflow-hidden"):
+            await self.node_tab_bar()
+            await self.node_tab_panels()
 
         self.hide_spinner()
 
@@ -162,7 +160,7 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
         id = self.model["node"]["id"]
         name = self.model["node"]["name"]
         metadata = self.model["node"]["metadata"]
-        with ui.timeline(side="right").classes("w-full"):
+        with ui.timeline(side="right").classes("w-full h-full"):
             entry_milestone = ""
             for entry in await api.node_activity_logs(id):
                 if entry_body := entry["detail"].get("error", ""):
@@ -195,7 +193,7 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
                     color=entry_color,
                 ):
                     if entry_milestone:
-                        ui.code(dump(entry["detail"]), language="yaml")
+                        ui.code(safe_dump(entry["detail"]), language="yaml")
 
             ui.timeline_entry(
                 "",
@@ -210,26 +208,29 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
         configuration versions.
         """
         id = self.model["node"]["id"]
-        with ui.row().classes("w-full justify-center"):
-            with (
-                ui.carousel(animated=True, arrows=True, navigation=False)
-                .classes("justify-center")
-                .props("control-color=black")
-            ):
-                for i, config in enumerate(await configuration_history(id)):
-                    with ui.carousel_slide().classes("w-full justify-center"):
-                        with ui.card().classes("justify-center"):
-                            ui.label(f"Configuration Version {i + 1}").classes("text-subtitle1")
-                            code = ui.code(dump(config), language="yaml")
-                            code.copy_button.delete()
+        with (
+            ui.carousel(animated=True, arrows=True, navigation=False)
+            .classes("w-full h-full")
+            .props("control-color=black")
+        ):
+            for i, config in enumerate(await configuration_history(id)):
+                with ui.carousel_slide().classes("w-full h-full flex items-center justify-center"):
+                    with ui.card().classes("max-h-full justify-center"):
+                        ui.label(f"Configuration Version {i + 1}").classes("text-subtitle1")
+                        code = ui.code(safe_dump(config), language="yaml").classes("overflow-auto")
+                        code.copy_button.delete()
 
     @ui.refreshable_method
     async def node_metadata_display(self) -> None:
         """Displays a Node's metadata dictionary as a YAML document in a
         syntax-highlighted Code widget.
         """
-        node_metadata = dump(self.model["node"]["metadata"])
-        ui.code(content=node_metadata, language="yaml").classes("w-full")
+        node_metadata = safe_dump(self.model["node"]["metadata"])
+
+        with ui.element("div").classes("w-full h-full"):
+            with ui.card().classes("w-full justify-center"):
+                code = ui.code(content=node_metadata, language="yaml").classes("w-full overflow-auto")
+                code.copy_button.delete()
 
     async def node_advance_chip(self) -> None:
         """Adds a chip as a state-advance button for the Node.

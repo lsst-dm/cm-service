@@ -100,7 +100,8 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
         with (
             ui.element("div")
             .props("id=canvas-container")
-            .classes("flex-1 min-h-0 w-full border-1 border-black")
+            # .classes("flex-1 min-h-0 w-full h-full border-1 border-black")
+            .classes("flex-1 w-full border-1 border-black")
             .style("isolation: isolate; contain: layout style paint;")
         ):
             ui.run_javascript(f"""
@@ -115,16 +116,9 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
         """The primary content-rendering method for the page, called by render
         within the column element between page header and footer.
         """
-        # The canvas component requires a container with a specific height.
-        # This div with a calculated height supplies that requirement.
-        with (
-            ui.element("div")
-            .classes("flex flex-col p-0 m-0 w-full")
-            .style("height: calc(100vh - 72px - 66px);")
-        ):
-            await self.edit_campaign_name()
-            await self.edit_campaign_manifests()
-            await self.create_campaign_canvas()
+        await self.edit_campaign_name()
+        await self.edit_campaign_manifests()
+        await self.create_campaign_canvas()
 
         # setup listeners
         ui.on("canvasExported", self.handle_exported_canvas)
@@ -136,14 +130,14 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
             });
         """)
 
-        with self.footer:
-            ui.label().classes("text-xs").bind_text_from(self, "campaign_id", strict=False)
-
     def drawer_contents(self) -> None:
         """Right-side menu drawer contents rendered in a ui.column."""
         ui.button("Save", icon="save", on_click=self.handle_upload).classes("w-50")
         ui.button("Export", icon="save_alt", on_click=self.handle_export).classes("w-50")
         ui.button("Import", icon="file_upload").classes("w-50").disable()
+
+    async def footer_contents(self) -> None:
+        ui.label().classes("text-xs").bind_text_from(self, "campaign_id", strict=False)
 
     async def handle_node_edit(self, data: GenericEventArguments) -> None:
         """Callback target for "edit" events emitted by nodes on the canvas."""

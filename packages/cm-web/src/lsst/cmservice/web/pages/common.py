@@ -6,7 +6,7 @@ from httpx import AsyncClient
 from nicegui import ui
 
 from ..components import storage
-from ..lib.enum import Palette
+from ..lib.enum import Palette, StatusDecorators
 
 
 class CMPageModel(TypedDict): ...
@@ -65,6 +65,23 @@ class CMPage[PageModelT: CMPageModel]:
             white=Palette.WHITE.light,
             dark=Palette.BLACK.light,
             dark_page=Palette.BLACK.dark,
+            # Custom, Alt, and Deep Colors
+            red=Palette.RED.light,
+            deepred=Palette.RED.dark,
+            orange=Palette.ORANGE.light,
+            deeporange=Palette.ORANGE.dark,
+            yellow=Palette.YELLOW.light,
+            deepyellow=Palette.YELLOW.dark,
+            green=Palette.GREEN.light,
+            deepgreen=Palette.GREEN.dark,
+            blue=Palette.BLUE.light,
+            deepblue=Palette.BLUE.dark,
+            indigo=Palette.INDIGO.light,
+            deepindigo=Palette.INDIGO.dark,
+            violet=Palette.VIOLET.light,
+            deepviolet=Palette.VIOLET.dark,
+            # Custom Colors for Statuses
+            **{status.name: status.hex for status in StatusDecorators},
         )
 
     @ui.refreshable_method
@@ -80,17 +97,27 @@ class CMPage[PageModelT: CMPageModel]:
         ui.space()
         ui.button(icon="menu", on_click=lambda: self.toggle_drawer()).props("flat color=white")
 
+    async def footer_contents(self) -> None:
+        """Hook method for subclasses to implement their own footer objects"""
+        pass
+
     def page_layout(self) -> None:
         self.create_drawer()
-        with ui.header(elevated=True).classes("shrink-0") as self.header:
+        with ui.header(elevated=True).classes(
+            "h-[4rem] min-h-[4rem] items-center justify-between px-4 p-0"
+        ) as self.header:
             self.create_header()
 
-        with ui.column().classes("flex flex-col p-0 m-0 w-full") as self.content:
+        # NOTE the height of this content column ==
+        #      (100vh - (header + footer) - ~1.5(--nicegui-default-padding))
+        with ui.column().classes(
+            "h-[calc(100vh-7.5rem)] min-h-[4rem] overflow-hidden p-0 m-0 w-full"
+        ) as self.content:
             pass
 
-        with ui.footer(bordered=True, elevated=True).classes("shrink-0") as self.footer:
-            for footer in self.footers:
-                ui.label(footer).classes("text-xs")
+        self.footer = ui.footer(bordered=False, elevated=True).classes(
+            "h-[2rem] min-h-[2rem] items-center justify-between px-4 p-0"
+        )
 
         self.overlay_div = ui.element("div").classes("hidden")
 
@@ -107,6 +134,17 @@ class CMPage[PageModelT: CMPageModel]:
         Subclasses should use the `create_content()` method, which is called
         from within the content column's context manager.
         """
+        with self.footer:
+            with ui.row().classes("items-center gap-2"):
+                for footer in self.footers:
+                    ui.label(footer).classes("text-xs m-0")
+                await self.footer_contents()
+
+            with ui.row().classes("items-center gap-2"):
+                ui.button(icon="help_outline", on_click=lambda: ui.navigate.to("/help")).classes(
+                    "text-white bg-info m-0"
+                ).props("flat round size=sm")
+
         with self.content:
             await self.create_content()
 

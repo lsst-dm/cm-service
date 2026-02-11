@@ -25,7 +25,7 @@ class LauncherCheckResponse(BaseModel):
         description="The time at which the check occurred or its status was reported",
         default_factory=element_time,
         validate_default=True,
-    )  # type: ignore[assignment]
+    )
     metadata_: dict = Field(
         description=(
             "A mapping of arbitrary data relevant to the launcher check, to be added to the Node's state"

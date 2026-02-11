@@ -98,7 +98,7 @@ class ButlerSpec(ManifestSpec):
     model_config = SPEC_CONFIG
     collections: ButlerCollectionsSpec = Field(
         description="A butler configuration used to specify collections for "
-        "various campaign operations. Of particular interest for a Butler"
+        "various campaign operations. Of particular interest for a Butler "
         "manifest are `campaign_input` and `campaign_output`",
         examples=[
             {
@@ -110,9 +110,8 @@ class ButlerSpec(ManifestSpec):
     )
     predicates: Sequence[str] = Field(
         default_factory=list,
-        description="A set of data query predicates shared with all users of"
-        "this manifest. All predicate sets are `AND`-ed together for a final "
-        "data query",
+        description="A set of data query predicates shared with all users of this manifest. "
+        "All predicate sets are `AND`-ed together for a final data query",
         examples=[
             ["instrument='LSSTCam'", "skymap='lsst_cells_v2'"],
         ],
