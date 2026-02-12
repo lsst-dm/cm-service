@@ -1,6 +1,6 @@
 from copy import deepcopy
 from functools import partial
-from typing import TYPE_CHECKING, Any, Literal, Self
+from typing import TYPE_CHECKING, Any, Literal, Self, assert_never
 
 import networkx as nx
 from httpx import AsyncClient
@@ -536,8 +536,8 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
                 target_node = data.args
             case ClickEventArguments():
                 target_node = data.sender.props.get("id", None)
-            case _:
-                target_node = None  # type: ignore[unreachable]
+            case _ as unreachable:
+                assert_never(unreachable)
         if (
             target_node is None
             or (node_response := await api.get_one_node(target_node, self.campaign_id)) is None
