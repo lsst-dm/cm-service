@@ -1,5 +1,5 @@
 from functools import partial
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Any, Self
 
 from httpx import AsyncClient
 from nicegui import app, run, ui
@@ -8,10 +8,14 @@ from nicegui.events import ValueChangeEventArguments
 from ..api.campaigns import get_campaign_summary, toggle_campaign_state
 from ..components import button, dicebear, storage
 from ..lib.enum import Palette, StatusDecorators
-from .common import CMPage
+from .common import CMPage, CMPageModel
 
 
-class CampaignOverviewPage(CMPage):
+class CampaignOverviewPageModel(CMPageModel):
+    campaigns: dict[str, Any]
+
+
+class CampaignOverviewPage(CMPage[CampaignOverviewPageModel]):
     def filter_campaign_card(self, campaign_id: str) -> bool:
         """Checks campaign against active overview client filters to determine
         whether it should be visible.
@@ -28,6 +32,10 @@ class CampaignOverviewPage(CMPage):
             if campaign_id not in app.storage.client["state"].user.favorites:
                 return False
 
+        if not self.ignore_switch.value:
+            if campaign_id in app.storage.client["state"].user.ignore_list:
+                return False
+
         return display_campaign
 
     async def setup(self, client_: AsyncClient | None = None) -> Self:
@@ -38,11 +46,15 @@ class CampaignOverviewPage(CMPage):
             raise RuntimeError("Campaign Overview page setup requires an httpx client")
 
         self.show_spinner()
-        storage.initialize_client_storage()
-        client_state: storage.ClientStorageModel = app.storage.client["state"]
-        self.model: dict = {
+        self.model: CampaignOverviewPageModel = {
             "campaigns": {},
         }
+        storage.initialize_client_storage()
+        client_state: storage.ClientStorageModel = app.storage.client["state"]
+        # Default filters
+        active_filters = app.storage.client["state"].user.active_filters
+        active_filters.add("ignored")
+        app.storage.client["state"].user.active_filters = active_filters
 
         async for campaign in await run.io_bound(get_campaign_summary, client=client_):
             # TODO check favorites / filters
@@ -97,15 +109,18 @@ class CampaignOverviewPage(CMPage):
                 )
                 campaign_switch.enabled = not campaign_terminal
                 ui.space()
-                button.FavoriteButton(id=campaign_id)
-                with ui.fab("save_as", direction="up"):
+                with ui.fab("save_as", direction="up").props("padding=sm"):
                     clone_navigator = partial(ui.navigate.to, f"/clone/{campaign_id}")
                     export_navigator = partial(ui.notify, f"Export Campaign {campaign_id}...")
                     ui.fab_action("ios_share", label="export", on_click=export_navigator).disable()
                     ui.fab_action("copy_all", label="clone", on_click=clone_navigator)
 
             # card footer
-            ui.label(campaign_id).classes("italic text-gray-75 font-thin")
+            with ui.row().classes("w-full items-center"):
+                ui.label(campaign_id).classes("italic text-gray-75 font-thin")
+                ui.space()
+                button.FavoriteButton(id=campaign_id)
+                button.TrashButton(id=campaign_id, refreshable=self.create_campaign_grid)
 
     @ui.refreshable_method
     def create_campaign_grid(self) -> None:
@@ -129,19 +144,45 @@ class CampaignOverviewPage(CMPage):
     def drawer_contents(self) -> None:
         # TODO bind to content refresh
         favorites_active = "favorites" in app.storage.client["state"].user.active_filters
+        ignored_active = "ignored" not in app.storage.client["state"].user.active_filters
+
         self.favorites_switch = ui.switch(
             "Favorites", value=favorites_active, on_change=self.toggle_favorites_filter
         )
 
-        # FIXME label doesn't show when no status filters applied
-        self.status_filters = ui.select(
-            ["waiting", "paused", "running", "failed", "accepted", "rejected"],
-            multiple=True,
-            label="Filter by Status",
-        ).props("use-chips")
+        self.status_filters = (
+            ui.select(
+                ["waiting", "paused", "running", "failed", "accepted", "rejected"],
+                multiple=True,
+                label="Filter by Status",
+            )
+            .classes("w-full")
+            .props("use-chips")
+        )
+        self.status_filters.disable()
 
-        # TODO input field for filter by name
-        ...
+        self.name_filter = ui.select(
+            options=[],  # TODO needs to be a list of all available campaigns
+            with_input=True,
+            label="Filter by Name",
+        ).classes("w-full")
+        self.name_filter.disable()
+
+        self.owner_filter = (
+            ui.select(
+                options=["daemon"],  # TODO needs to be a list of all available owners
+                with_input=True,
+                multiple=True,
+                label="Filter by Owner",
+            )
+            .classes("w-full")
+            .props("use-chips")
+        )
+        self.owner_filter.disable()
+
+        self.ignore_switch = ui.switch(
+            "Show Hidden", value=ignored_active, on_change=self.toggle_ignored_filter
+        )
 
     async def toggle_favorites_filter(self, e: ValueChangeEventArguments) -> None:
         """Callback when favorites switch is changed."""
@@ -154,6 +195,22 @@ class CampaignOverviewPage(CMPage):
                 active_filters.add("favorites")
             else:
                 active_filters.remove("favorites")
+        except KeyError:
+            pass
+        app.storage.client["state"].user.active_filters = active_filters
+        await self.create_campaign_grid.refresh()
+
+    async def toggle_ignored_filter(self, e: ValueChangeEventArguments) -> None:
+        """Callback when hidden switch is changed."""
+        if TYPE_CHECKING:
+            assert isinstance(e.sender, ui.switch)
+
+        active_filters = app.storage.client["state"].user.active_filters
+        try:
+            if e.sender.value:
+                active_filters.add("ignored")
+            else:
+                active_filters.remove("ignored")
         except KeyError:
             pass
         app.storage.client["state"].user.active_filters = active_filters

@@ -13,7 +13,7 @@
   // svelte-ignore non_reactive_update
   const handleClick = () => {
     if (data.handleClick) {
-      data.handleClick(id);
+      data.handleClick([id, data.name]);
     } else {
       alert(`Default click handler: ${id}`);
     }

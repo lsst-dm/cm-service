@@ -8,32 +8,37 @@ from ..lib.enum import Palette
 
 
 class FavoriteButton(ui.button):
-    def __init__(self, *, id: str, icon: str = "bookmark", **kwargs: dict):
+    def __init__(self, *, icon: str = "bookmark", **kwargs: Any):
         self.selected = False
-        self.campaign_id = id
+        self.object_id = kwargs.get("id")
         self.storage_key = "favorites"
         super().__init__(icon=icon, color=Palette.ORANGE.light, on_click=self.click)
-        self.props("fab")
+        self.props("flat round size=sm")
         self.load_from_storage()
+        self.refreshable: ui.refreshable | None = kwargs.get("refreshable")
 
     def load_from_storage(self) -> None:
         favorites = self.get_favorites_set()
-        if self.campaign_id in favorites:
+        if self.object_id in favorites:
             self.selected = True
-            self.toggle_icon()
+        self.toggle_icon()
 
-    def click(self) -> None:
+    async def click(self) -> None:
         self.selected = not self.selected
         if self.selected:
             self.favorite()
         else:
             self.unfavorite()
+        if self.refreshable is not None:
+            await self.refreshable.refresh()
 
     def toggle_icon(self) -> None:
         if self.selected:
             self.icon = "check"
+            self.tooltip("Un-Favorite campaign")
         else:
             self.icon = "bookmark"
+            self.tooltip("Favorite campaign")
 
     def get_favorites_set(self) -> set[str]:
         return app.storage.client["state"].user.favorites
@@ -41,14 +46,14 @@ class FavoriteButton(ui.button):
     def favorite(self) -> None:
         self.selected = True
         favorites = app.storage.client["state"].user.favorites
-        favorites.add(self.campaign_id)
+        favorites.add(self.object_id)
         app.storage.client["state"].user.favorites = favorites
         self.toggle_icon()
 
     def unfavorite(self) -> None:
         self.selected = False
         favorites = app.storage.client["state"].user.favorites
-        favorites.remove(self.campaign_id)
+        favorites.remove(self.object_id)
         app.storage.client["state"].user.favorites = favorites
         self.toggle_icon()
 
@@ -78,3 +83,55 @@ class ToggleButton(ui.button):
             else:
                 ...
         super().update()
+
+
+class TrashButton(ui.button):
+    def __init__(self, *, icon: str = "delete", **kwargs: Any):
+        self.selected = False
+        self.object_id = kwargs.get("id")
+        self.refreshable: ui.refreshable | None = kwargs.get("refreshable")
+        self.storage_key = "ignore_list"
+        super().__init__(icon=icon, color=Palette.WHITE.light, on_click=self.click)
+        self.props("flat round size=sm")
+        self.classes("text-xs")
+        self.load_from_storage()
+
+    def load_from_storage(self) -> None:
+        favorites = self.get_favorites_set()
+        if self.object_id in favorites:
+            self.selected = True
+            self.toggle_icon()
+
+    async def click(self) -> None:
+        self.selected = not self.selected
+        if self.selected:
+            self.favorite()
+        else:
+            self.unfavorite()
+        if self.refreshable is not None:
+            await self.refreshable.refresh()
+
+    def toggle_icon(self) -> None:
+        if self.selected:
+            self.icon = "visibility_off"
+            self.tooltip("Show campaign")
+        else:
+            self.icon = "delete"
+            self.tooltip("Hide campaign")
+
+    def get_favorites_set(self) -> set[str]:
+        return app.storage.client["state"].user.ignore_list
+
+    def unfavorite(self) -> None:
+        """Remove the id from the user storage key set"""
+        favorites = app.storage.client["state"].user.ignore_list
+        favorites.remove(self.object_id)
+        app.storage.client["state"].user.ignore_list = favorites
+        self.toggle_icon()
+
+    def favorite(self) -> None:
+        """Add the id to the user storage key set"""
+        favorites = app.storage.client["state"].user.ignore_list
+        favorites.add(self.object_id)
+        app.storage.client["state"].user.ignore_list = favorites
+        self.toggle_icon()
