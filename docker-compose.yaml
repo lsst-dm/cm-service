@@ -8,6 +8,7 @@ services:
       - full
       - server
       - daemon
+      - client
     build:
       context: .
       dockerfile: docker/Dockerfile
@@ -43,6 +44,8 @@ services:
         required: false
     environment:
       <<: *cmenv
+      BPS__ARTIFACT_PATH: /home/lsstsvc1/output
+      ASGI__ROUTE_PREFIX: /cm-service
       FEATURE_API_V2: 1
       FEATURE_API_V1: 0
       FEATURE_DAEMON_V2: 0
@@ -68,6 +71,7 @@ services:
         required: false
     environment:
       <<: *cmenv
+      BPS__ARTIFACT_PATH: /home/lsstsvc1/output
       FEATURE_API_V2: 0
       FEATURE_API_V1: 0
       FEATURE_WEBAPP_V1: 0
@@ -75,8 +79,9 @@ services:
       FEATURE_DAEMON_CAMPAIGNS: 1
       FEATURE_DAEMON_NODES: 1
       FEATURE_ALLOW_TASK_UPSERT: 1
+      FEATURE_STORE_FSM: 1
     volumes:
-      - "./prod_area:/prod_area"
+      - artifacts:/home/lsstsvc1/output
     networks:
       - cmservice
     depends_on:
@@ -100,6 +105,8 @@ services:
       CM_API_VERSION: v2
     ports:
       - "18080:18080"
+    volumes:
+      - nicegui:/home/nonroot/storage
     networks:
       - cmservice
     depends_on:
@@ -130,6 +137,8 @@ services:
 
 volumes:
   pgsql:
+  nicegui:
+  artifacts:
 
 networks:
   cmservice:

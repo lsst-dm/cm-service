@@ -12,7 +12,7 @@ FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
 
 #==============================================================================
 # NODE.js SOURCE IMAGE
-FROM node:${NODE_VERSION} AS nodejs
+FROM node:${NODE_VERSION}-slim AS nodejs
 
 
 #==============================================================================
@@ -63,7 +63,6 @@ EXPOSE ${ASGI_PORT}
 FROM base-image AS build-image
 
 # Install and Configure UV
-COPY --from=uv /uv /bin/uv
 ENV UV_PYTHON_PREFERENCE=system
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
 ENV UV_FROZEN=1
@@ -85,7 +84,7 @@ WORKDIR /workdir
 COPY . .
 
 # Install project production dependency graph in /opt/venv
-RUN --mount=type=cache,target=/root/.cache/uv <<ENDRUN
+RUN --mount=type=cache,target=/root/.cache/uv --mount=from=uv,source=/uv,target=/bin/uv <<ENDRUN
     set -e
     /bin/uv sync --no-group dev --no-install-project --no-editable
 ENDRUN
@@ -94,6 +93,11 @@ ENDRUN
 #==============================================================================
 # BUILDER IMAGE - Web
 FROM build-image AS web-builder
+ARG PYTHON_VERSION
+ENV UV_PYTHON_INSTALL_DIR=/opt/python/dist
+ENV UV_PROJECT_ENVIRONMENT=/opt/python/venv
+ENV UV_PYTHON_PREFERENCE=only-managed
+ENV UV_PYTHON=cpython@${PYTHON_VERSION}
 
 # Build distribution for IIFE canvas component
 RUN --mount=from=nodejs,source=/usr/local,target=/usr/local <<ENDRUN
@@ -115,13 +119,12 @@ RUN --mount=type=cache,target=/root/.cache/uv --mount=from=uv,source=/uv,target=
     /bin/uv run script/render_jsonschema.py --clean --html --output docs
 ENDRUN
 
+# Create Nicegui Storage Path
+RUN mkdir -p /opt/storage
 
 #==============================================================================
 # RUNTIME IMAGE - CM-Service
 FROM base-image AS cmservice
-
-# Make sure frontend output won't go into the layer store
-VOLUME /output
 
 # Copy the production virtual environment
 COPY --from=build-image /opt/venv /opt/venv
@@ -156,14 +159,20 @@ CMD ["lsst.cmservice.daemon"]
 
 #==============================================================================
 # RUNTIME IMAGE - Web
-FROM base-image AS cmweb
+FROM gcr.io/distroless/cc-debian13:debug AS cmweb
 
-# Copy the application and static content
+ENV PATH="/opt/python/venv/bin:$PATH"
+ENV NICEGUI_STORAGE_PATH=/home/nonroot/storage
+ENTRYPOINT ["/opt/python/venv/bin/python3", "-m"]
+
+WORKDIR /opt/python
+COPY --from=web-builder /opt/python .
+
+WORKDIR /home/nonroot
+USER nonroot
 COPY packages/cm-web/src/lsst ./lsst
-COPY --from=web-builder /opt/venv /opt/venv
 COPY --from=web-builder /workdir/packages/cm-canvas/dist/*.iife.js ./lsst/cmservice/web/static/
 COPY --from=web-builder /workdir/docs ./lsst/cmservice/web/static/docs
-ENV PATH="/opt/venv/bin:$PATH"
+COPY --from=web-builder --chown=nonroot:nonroot /opt/storage ./storage
 
-ENTRYPOINT ["/opt/venv/bin/python3", "-m"]
 CMD ["lsst.cmservice.web.libexec.go"]

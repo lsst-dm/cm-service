@@ -38,7 +38,7 @@ follows:
   * You may choose to (re)build the service container with `docker compose build [--no-cache] cmservice` to build, but not
     start, the service container (with `--no-cache` invalidating the build cache if needed).
 
-* Access the monitoring web application at http://localhost:8080/web_app/campaigns/
+* Access the web application at http://localhost:18080/
 
 * Exit your debug instance with `^C`.  The subsidiary Postgres container launched under Docker Compose will
   remain active, and will be re-used on any subsequent `make run`.
