@@ -8,3 +8,15 @@
 !src/lsst/
 !examples/
 !alembic/
+!/packages/cm-web/
+!/packages/cm-commandline/
+!/packages/cm-canvas/package*.json
+!/packages/cm-canvas/*config.js
+!/packages/cm-canvas/src/
+!/script/render_jsonschema.py
+!/LICENSE
+!/README.md
+
+# Reignore any cache or test directories
+*/**/__pycache__/
+/packages/**/*_tests/

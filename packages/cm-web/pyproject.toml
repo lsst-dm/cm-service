@@ -12,6 +12,12 @@ dependencies = [
     "pydantic-settings>=2.12",
     "structlog>=24.4.0",
     "lsst-cm-service",
+    "lsst-utils",
+]
+
+[dependency-groups]
+dev = [
+    "json-schema-for-humans",
 ]
 
 [project.scripts]

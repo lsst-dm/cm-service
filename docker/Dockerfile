@@ -2,11 +2,17 @@
 
 ARG PYTHON_VERSION="3.13"
 ARG UV_VERSION="0.9"
+ARG NODE_VERSION="lts"
 ARG ASGI_PORT="8080"
 
 #==============================================================================
 # UV SOURCE IMAGE
 FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
+
+
+#==============================================================================
+# NODE.js SOURCE IMAGE
+FROM node:${NODE_VERSION} AS nodejs
 
 
 #==============================================================================
@@ -86,6 +92,31 @@ ENDRUN
 
 
 #==============================================================================
+# BUILDER IMAGE - Web
+FROM build-image AS web-builder
+
+# Build distribution for IIFE canvas component
+RUN --mount=from=nodejs,source=/usr/local,target=/usr/local <<ENDRUN
+    set -e
+    cd packages/cm-canvas
+    npm install
+    npm run build
+ENDRUN
+
+# Install web package dependency graph in /opt/venv
+RUN --mount=type=cache,target=/root/.cache/uv --mount=from=uv,source=/uv,target=/bin/uv <<ENDRUN
+    set -e
+    /bin/uv sync --package lsst-cmservice-web --no-group dev --no-install-project --no-editable
+ENDRUN
+
+# Build static web content
+RUN --mount=type=cache,target=/root/.cache/uv --mount=from=uv,source=/uv,target=/bin/uv <<ENDRUN
+    set -e
+    /bin/uv run script/render_jsonschema.py --clean --html --output docs
+ENDRUN
+
+
+#==============================================================================
 # RUNTIME IMAGE - CM-Service
 FROM base-image AS cmservice
 
@@ -121,3 +152,18 @@ COPY --from=htcondor /opt/htcondor /opt/htcondor
 
 USER lsstsvc1
 CMD ["lsst.cmservice.daemon"]
+
+
+#==============================================================================
+# RUNTIME IMAGE - Web
+FROM base-image AS cmweb
+
+# Copy the application and static content
+COPY packages/cm-web/src/lsst ./lsst
+COPY --from=web-builder /opt/venv /opt/venv
+COPY --from=web-builder /workdir/packages/cm-canvas/dist/*.iife.js ./lsst/cmservice/web/static/
+COPY --from=web-builder /workdir/docs ./lsst/cmservice/web/static/docs
+ENV PATH="/opt/venv/bin:$PATH"
+
+ENTRYPOINT ["/opt/venv/bin/python3", "-m"]
+CMD ["lsst.cmservice.web.libexec.go"]
