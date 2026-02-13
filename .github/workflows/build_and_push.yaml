@@ -23,6 +23,8 @@ jobs:
             image: ${{ github.repository_owner }}/cm-service
           - target: cmworker
             image: ${{ github.repository_owner }}/cm-worker
+          - target: cmweb
+            image: ${{ github.repository_owner }}/cm-web
     timeout-minutes: 20
 
     steps:
