@@ -813,11 +813,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/a1/7b/4b5d38f4774477a1a
 
 [[package]]
 name = "htcondor"
-version = "24.0.14"
+version = "24.0.17"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e9/43/8037b2b5ac2d5b20361653776d74eb2e2d6a202b27245f8588efa493536f/htcondor-24.0.14-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:711e5eab46f05f4f16e5601af8ccd27b6350d52a1836dddc6b43e6edbf4cf231", size = 59170635, upload-time = "2025-11-03T13:09:03.936Z" },
-    { url = "https://files.pythonhosted.org/packages/56/39/38ff97e8597016023e4fab0e986d9de04de2e56c9aa8862dc229b7a5f739/htcondor-24.0.14-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:312a928d1c9486f398bcf1147890156895e8de61d58ef7ed0339289324944906", size = 60669760, upload-time = "2025-11-03T13:09:06.92Z" },
+    { url = "https://files.pythonhosted.org/packages/58/42/13cc830d1c13695e9b0c5ba4633913fcbeb183a25040b2789eda28fc3b1c/htcondor-24.0.17-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:a150a612c3c34ed6ee11e92657289f2e2febb74f028e656042ba3715313ece41", size = 59178910, upload-time = "2026-02-12T22:44:54.575Z" },
+    { url = "https://files.pythonhosted.org/packages/48/e3/f9b7f2b34dd80cab2337d4d51d889557f517c0bd4ea65ab4d5e37496750e/htcondor-24.0.17-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:521ca8e52ea56f38d6c95701710f88488d0315186a735c2daee144919a2ea9c6", size = 60684065, upload-time = "2026-02-12T22:44:57.816Z" },
 ]
 
 [[package]]
@@ -1206,6 +1206,7 @@ source = { editable = "packages/cm-web" }
 dependencies = [
     { name = "deepdiff" },
     { name = "lsst-cm-service" },
+    { name = "lsst-utils" },
     { name = "networkx" },
     { name = "nicegui" },
     { name = "pydantic" },
@@ -1214,10 +1215,16 @@ dependencies = [
     { name = "structlog" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "json-schema-for-humans" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "deepdiff", specifier = ">=8.6.1" },
     { name = "lsst-cm-service", editable = "." },
+    { name = "lsst-utils" },
     { name = "networkx", specifier = ">=3.5" },
     { name = "nicegui", specifier = ">=3.7.0" },
     { name = "pydantic", specifier = ">=2.12" },
@@ -1225,6 +1232,9 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.12" },
     { name = "structlog", specifier = ">=24.4.0" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "json-schema-for-humans" }]
 
 [[package]]
 name = "lsst-ctrl-bps"

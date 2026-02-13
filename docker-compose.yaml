@@ -33,6 +33,7 @@ services:
     profiles:
       - full
       - server
+      - client
     build:
       context: .
       dockerfile: docker/Dockerfile
@@ -40,7 +41,11 @@ services:
     env_file:
       - path: .env
         required: false
-    environment: *cmenv
+    environment:
+      <<: *cmenv
+      FEATURE_API_V2: 1
+      FEATURE_API_V1: 0
+      FEATURE_DAEMON_V2: 0
     ports:
       - "8080:8080"
     networks:
@@ -60,7 +65,14 @@ services:
     env_file:
       - path: .env
         required: false
-    environment: *cmenv
+    environment:
+      <<: *cmenv
+      FEATURE_API_V2: 0
+      FEATURE_API_V1: 0
+      FEATURE_DAEMON_V2: 1
+      FEATURE_DAEMON_CAMPAIGNS: 1
+      FEATURE_DAEMON_NODES: 1
+      FEATURE_ALLOW_TASK_UPSERT: 1
     volumes:
       - "./prod_area:/prod_area"
     networks:
@@ -68,6 +80,29 @@ services:
     depends_on:
       migratedb:
         condition: service_completed_successfully
+
+  cmweb:
+    profiles:
+      - full
+      - server
+      - client
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: cmweb
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      CM_ENDPOINT: http://cmservice:8080/cm-service
+      CM_API_VERSION: v2
+    ports:
+      - "18080:18080"
+    networks:
+      - cmservice
+    depends_on:
+      cmservice:
+        condition: service_started
 
   postgresql:
     image: "postgres:16"
