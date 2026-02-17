@@ -56,6 +56,7 @@ class ClientConfiguration(BaseSettings):
     timeout: float = Field(
         default=30.0,
         validation_alias="CM_TIMEOUT",
+        description="Page response timeout",
     )
 
     static_dir: Path = Field(
@@ -66,6 +67,13 @@ class ClientConfiguration(BaseSettings):
     storage_secret: str = Field(
         default="justbetweenyouandme",
         validation_alias="CM_STORAGE_SECRET_KEY",
+    )
+
+    reconnect_timeout: float = Field(
+        default=30.0,
+        validation_alias="CM_RECONNECT_TIMEOUT",
+        description="Websocket reconnection timeout. Set higher for networks with high latency or when "
+        "debugging clients.",
     )
 
     @field_validator("cookies", mode="before", check_fields=True)
