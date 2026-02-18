@@ -1,18 +1,20 @@
 # syntax=docker/dockerfile:1
 
 ARG PYTHON_VERSION="3.13"
-ARG UV_VERSION="0.9"
-ARG NODE_VERSION="lts"
+ARG DEBIAN_VERSION="trixie"
+ARG UV_VERSION="0.10"
+ARG NODE_VERSION="24-dev"
 ARG ASGI_PORT="8080"
 
 #==============================================================================
 # UV SOURCE IMAGE
-FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
+# - The DHI version of uv is in /usr/local/bin
+FROM dhi.io/uv:${UV_VERSION} AS uv
 
 
 #==============================================================================
-# NODE.js SOURCE IMAGE
-FROM node:${NODE_VERSION}-slim AS nodejs
+# BUN SOURCE IMAGE
+FROM dhi.io/bun:1-dev AS bun
 
 
 #==============================================================================
@@ -28,7 +30,7 @@ RUN conda create -p /opt/htcondor -c conda-forge htcondor-utils --no-default-pac
 # - The base image is an updated debian python container with a nonroot user
 #   created. This can be extended into include any *runtime* system dependencies
 #   during the apt-get step.
-FROM python:${PYTHON_VERSION}-slim-bookworm AS base-image
+FROM python:${PYTHON_VERSION}-slim-${DEBIAN_VERSION} AS base-image
 ARG ASGI_PORT
 
 # Upgrade base packages
@@ -84,9 +86,9 @@ WORKDIR /workdir
 COPY . .
 
 # Install project production dependency graph in /opt/venv
-RUN --mount=type=cache,target=/root/.cache/uv --mount=from=uv,source=/uv,target=/bin/uv <<ENDRUN
+RUN --mount=type=cache,target=/root/.cache/uv --mount=from=uv,source=/usr/local/bin/uv,target=/usr/local/bin/uv <<ENDRUN
     set -e
-    /bin/uv sync --no-group dev --no-install-project --no-editable
+    /usr/local/bin/uv sync --no-group dev --no-install-project --no-editable
 ENDRUN
 
 
@@ -99,24 +101,23 @@ ENV UV_PROJECT_ENVIRONMENT=/opt/python/venv
 ENV UV_PYTHON_PREFERENCE=only-managed
 ENV UV_PYTHON=cpython@${PYTHON_VERSION}
 
-# Build distribution for IIFE canvas component
-RUN --mount=from=nodejs,source=/usr/local,target=/usr/local <<ENDRUN
+RUN --mount=from=bun,source=/usr/local/bin/bun,target=/usr/local/bin/bun <<ENDRUN
     set -e
     cd packages/cm-canvas
-    npm install
-    npm run build
+    /usr/local/bin/bun install
+    /usr/local/bin/bun run build
 ENDRUN
 
 # Install web package dependency graph in /opt/venv
-RUN --mount=type=cache,target=/root/.cache/uv --mount=from=uv,source=/uv,target=/bin/uv <<ENDRUN
+RUN --mount=type=cache,target=/root/.cache/uv --mount=from=uv,source=/usr/local/bin/uv,target=/usr/local/bin/uv <<ENDRUN
     set -e
-    /bin/uv sync --package lsst-cmservice-web --no-group dev --no-install-project --no-editable
+    /usr/local/bin/uv sync --package lsst-cmservice-web --no-group dev --no-install-project --no-editable
 ENDRUN
 
 # Build static web content
-RUN --mount=type=cache,target=/root/.cache/uv --mount=from=uv,source=/uv,target=/bin/uv <<ENDRUN
+RUN --mount=type=cache,target=/root/.cache/uv --mount=from=uv,source=/usr/local/bin/uv,target=/usr/local/bin/uv <<ENDRUN
     set -e
-    /bin/uv run script/render_jsonschema.py --clean --html --output docs
+    /usr/local/bin/uv run script/render_jsonschema.py --clean --html --output docs
 ENDRUN
 
 # Create Nicegui Storage Path
@@ -159,7 +160,7 @@ CMD ["lsst.cmservice.daemon"]
 
 #==============================================================================
 # RUNTIME IMAGE - Web
-FROM gcr.io/distroless/cc-debian13:debug AS cmweb
+FROM gcr.io/distroless/cc-debian13:latest AS cmweb
 
 ENV PATH="/opt/python/venv/bin:$PATH"
 ENV NICEGUI_STORAGE_PATH=/home/nonroot/storage

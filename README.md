@@ -28,17 +28,18 @@ follows:
 
   - `source .venv/bin/activate`
 
-* Spin up a debug instance of the service running in the foreground of the current shell with `make run`. This
-  will launch a subsidiary Postgres instance locally in a Docker container via Docker Compose. The foreground
-  debug service instance will log to stdout and will dynamically reload as you edit and save source files.
+* Spin up a debug instance of the service running in the foreground of the current shell with `make run`.
+  This will launch a subsidiary Postgres instance locally in a Docker container via Docker Compose.
+  The foreground debug service instance will log to stdout and will dynamically reload as you edit and save source files.
 
-  * You may also choose to run both the service/worker and the database in Docker by running `docker compose --profile full up`;
-    in particular this will exercise the Docker build process.
+  * You may choose to run both the service/worker and the database in Docker by running `docker compose --profile full up`.
+    This will exercise the Docker build process.
 
-  * You may choose to (re)build the service container with `docker compose build [--no-cache] cmservice` to build, but not
-    start, the service container (with `--no-cache` invalidating the build cache if needed).
+  * You may choose to (re)build the service container with `docker compose build [--no-cache] cmservice` to build, but not start, the service container (with `--no-cache` invalidating the build cache if needed).
 
-* Access the web application at http://localhost:18080/
+  * Note: You must be logged into the registry `dhi.io`, and you may optionally be logged into Docker Hub in order to build the container images for this project.
+
+* Access the web gui at http://localhost:18080/
 
 * Exit your debug instance with `^C`.  The subsidiary Postgres container launched under Docker Compose will
   remain active, and will be re-used on any subsequent `make run`.
