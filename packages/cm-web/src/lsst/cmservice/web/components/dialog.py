@@ -17,6 +17,7 @@ from .. import api
 from ..lib.models import KIND_TO_SPEC, STEP_MANIFEST_TEMPLATE
 from ..lib.parsers import as_snake_case
 from ..pages.common import CMPage
+from ..settings import settings
 from . import strings
 
 
@@ -293,9 +294,9 @@ class EditorDialog(ui.dialog):
             if self.context.kind is None:
                 ui.label("No help available.")
                 return None
-            ui.element("iframe").props(f"src='/static/docs/{self.context.kind}_spec.html'").classes(
-                "w-full h-full"
-            )
+            ui.element("iframe").props(
+                f"src='{settings.root_path}{settings.static_endpoint}/docs/{self.context.kind}_spec.html'"
+            ).classes("w-full h-full")
 
     @ui.refreshable_method
     def action_section(self) -> None:

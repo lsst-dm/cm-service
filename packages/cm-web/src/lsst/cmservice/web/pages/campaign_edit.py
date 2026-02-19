@@ -23,6 +23,7 @@ from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.enum import MANIFEST_KIND_ICONS
 from ..lib.models import STEP_MANIFEST_TEMPLATE
 from ..lib.parsers import as_snake_case
+from ..settings import settings
 from .common import CMPage, CMPageModel
 
 yaml.add_representer(str, str_representer)
@@ -343,7 +344,10 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
         method to perform data loading/prep, etc., before calling render().
         """
         self.namespace = DEFAULT_NAMESPACE
-        ui.add_head_html("""<script src="/static/cm-canvas-bundle.iife.js"></script>""")
+        ui.add_head_html(
+            f"""<script src="{settings.root_path}{settings.static_endpoint}/cm-canvas-bundle.iife.js">"""
+            f"""</script>"""
+        )
         self.model: CampaignPageModel = {
             "nodes": [],
             "edges": [],
@@ -389,7 +393,10 @@ class CampaignClonePage(CampaignEditPage):
         self.namespace = DEFAULT_NAMESPACE
 
         # Add IIFE script for cm-canvas component
-        ui.add_head_html("""<script src="/static/cm-canvas-bundle.iife.js"></script>""")
+        ui.add_head_html(
+            f"""<script src="{settings.root_path}{settings.static_endpoint}/cm-canvas-bundle.iife.js">"""
+            f"""</script>"""
+        )
 
         async with CLIENT_FACTORY.aclient() as client:
             data = await api.describe_one_campaign(client=client, id=clone_campaign_model_from)
