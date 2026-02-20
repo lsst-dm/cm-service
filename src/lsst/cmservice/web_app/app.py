@@ -1,9 +1,10 @@
 import traceback
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from pathlib import Path
+from pathlib import Path as SyncPath
 from typing import Annotated
 
+from anyio import Path
 from fastapi import APIRouter, Depends, FastAPI, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -52,9 +53,9 @@ async def lifespan(_: FastAPI) -> AsyncGenerator:
 
 web_app = FastAPI(lifespan=lifespan, title="Campaign Management Tool")
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = SyncPath(__file__).resolve().parent
 
-templates = Jinja2Templates(directory=str(Path(BASE_DIR, "templates")))
+templates = Jinja2Templates(directory=(BASE_DIR / "templates"))
 
 router = APIRouter(
     prefix="/web_app",
@@ -64,7 +65,7 @@ router = APIRouter(
 
 logger = LOGGER.bind(module=__name__)
 
-web_app.mount("/static", StaticFiles(directory=str(Path(BASE_DIR, "static"))), name="static")
+web_app.mount("/static", StaticFiles(directory=(BASE_DIR / "static")), name="static")
 
 logger.info("Starting web app...")
 
@@ -310,12 +311,12 @@ async def read_script_log(request: ReadScriptLogRequest) -> dict[str, str]:
     file_path = Path(request.log_path)
 
     # Check if the file exists
-    if not file_path.is_file():
+    if not await file_path.is_file():
         raise HTTPException(status_code=404, detail=f"File not found: \n{file_path}")
 
     try:
         # Read the content of the file
-        content = file_path.read_text()
+        content = await file_path.read_text()
         return {"content": content}
     except Exception as e:
         traceback.print_tb(e.__traceback__)

@@ -3,7 +3,6 @@
 import pickle
 import random
 from asyncio import sleep
-from pathlib import Path
 from textwrap import dedent
 from typing import cast
 from unittest.mock import Mock, patch
@@ -11,6 +10,7 @@ from urllib.parse import urlparse
 from uuid import UUID, uuid4, uuid5
 
 import pytest
+from anyio import Path
 from httpx import AsyncClient
 from sqlalchemy.orm import make_transient, selectinload
 from sqlalchemy.orm.attributes import InstrumentedAttribute
@@ -542,7 +542,7 @@ async def test_group_fail_retry(
     assert group_status is StatusEnum.waiting
 
     # The artifact path should not exist
-    assert not Path(group_artifact_path).exists()
+    assert not await Path(group_artifact_path).exists()
 
 
 @pytest.mark.parametrize(
@@ -602,12 +602,12 @@ async def test_group_restart(
 
     # Create mock BPS runtime artifacts
     mock_bps_submit_path = Path(group_artifact_path) / "submit" / "20251111T111100Z"
-    mock_bps_submit_path.mkdir(parents=True, exist_ok=False)
+    await mock_bps_submit_path.mkdir(parents=True, exist_ok=False)
     mock_bps_run_name = "u_cmservice_test_group_restart_lambert_001_version_1"
 
     # Mock BPS stdout log
     p = Path(group_artifact_path) / group_machine.configuration_chain["bps"]["stdout_log"]
-    p.write_text(
+    await p.write_text(
         dedent(f"""\
         Submit dir: {mock_bps_submit_path}
         Run Id: 27169228.0
@@ -618,7 +618,7 @@ async def test_group_restart(
     # Mock BPS QG file
     if restartable:
         p = (mock_bps_submit_path / mock_bps_run_name).with_suffix(".qg")
-        p.touch()
+        await p.touch()
 
     with (
         patch(
@@ -667,11 +667,11 @@ async def test_group_restart(
     assert group.metadata_["restarts"] == 1
 
     # assert new and changed artifacts
-    assert (Path(group_artifact_path) / "lambert_group_001_restart.sh").exists()
-    assert (Path(group_artifact_path) / "lambert_group_001.sub").exists()
+    assert await (Path(group_artifact_path) / "lambert_group_001_restart.sh").exists()
+    assert await (Path(group_artifact_path) / "lambert_group_001.sub").exists()
 
     # make sure the new restart script is the payload for the htcondor sub file
-    lines = (Path(group_artifact_path) / "lambert_group_001.sub").read_text().splitlines()
+    lines = (await (Path(group_artifact_path) / "lambert_group_001.sub").read_text()).splitlines()
     assert f"""executable = {Path(group_artifact_path) / "lambert_group_001_restart.sh"}""" in lines
 
     await session.refresh(group, ["status"])

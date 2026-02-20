@@ -684,7 +684,7 @@ def status_from_bps_report(
 
     # If any of the jobs are in a HELD state, this requires intervention
     # and a notification should be sent and A BLOCKED status returned
-    for blocked_job in filter(lambda x: x.state in [WmsStates.HELD], wms_run_report.jobs):
+    for blocked_job in filter(lambda x: x.state is WmsStates.HELD, wms_run_report.jobs):
         return StatusEnum.blocked
 
     # If pipetaskInit has failed, return failed
