@@ -62,7 +62,7 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
             )
         )
         node_status = StatusDecorators[node["status"]]
-        with ui.card().classes("pt-0 pb-0 pl-0 pr-2"):
+        with ui.card().classes("p-2"):
             with ui.row():
                 with ui.column().classes("items-center gap-2"):
                     # Large hero avatar link
@@ -108,7 +108,7 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
                     )
                     newer_node_badge.move(node_version_chip)
 
-            with ui.card_actions().classes("w-full"):
+            with ui.card_actions().classes("w-full p-0"):
                 show_node_created_at = False
                 if show_node_created_at and (node_created_at := node["metadata"].get("crtime")):
                     ui.chip(

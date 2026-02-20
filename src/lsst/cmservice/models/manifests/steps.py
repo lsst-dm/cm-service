@@ -36,7 +36,7 @@ class StepGroupsQuerySpec(ManifestSpec):
     dimension: str = Field(
         description="The name of a Butler dimension to associate with each "
         "grouping `value` to form a query predicate.",
-        examples=["tract", "raw"],
+        examples=["tract", "visit"],
     )
     field: str | None = Field(default=None, description="TBD")
     min_groups: int = Field(

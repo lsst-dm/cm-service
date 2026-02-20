@@ -125,9 +125,10 @@ class CampaignOverviewPage(CMPage[CampaignOverviewPageModel]):
     @ui.refreshable_method
     def create_campaign_grid(self) -> None:
         """Renders a grid of campaign cards."""
-        with ui.grid(columns="auto 4fr"):
-            for campaign in self.model["campaigns"]:
-                self.campaign_card(campaign)
+        with ui.element("div").classes("w-full h-full overflow-y-auto p-4"):
+            with ui.element("div").classes("grid grid-cols-2 gap-4"):
+                for campaign in self.model["campaigns"]:
+                    self.campaign_card(campaign)
 
     @ui.refreshable_method
     async def create_content(self) -> None:
