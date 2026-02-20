@@ -10,7 +10,6 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
-from safir.dependencies.http_client import http_client_dependency
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from lsst.cmservice.common.enums import LevelEnum
@@ -48,7 +47,6 @@ async def lifespan(_: FastAPI) -> AsyncGenerator:
 
     # Dependency cleanups after app is finished
     await db_session_dependency.aclose()
-    await http_client_dependency.aclose()
 
 
 web_app = FastAPI(lifespan=lifespan, title="Campaign Management Tool")

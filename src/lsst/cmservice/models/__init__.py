@@ -4,7 +4,6 @@ from .campaign import Campaign, CampaignCreate, CampaignUpdate
 from .dependency import Dependency, DependencyCreate
 from .element import Element, ElementMixin
 from .group import Group, GroupCreate, GroupUpdate
-from .index import Index
 from .interface import (
     AddSteps,
     FullnameQuery,
@@ -43,7 +42,6 @@ from .task_set import TaskSet, TaskSetCreate, TaskSetUpdate
 from .wms_task_report import WmsTaskReport, WmsTaskReportCreate, WmsTaskReportUpdate
 
 __all__ = [
-    "Index",
     "Campaign",
     "CampaignCreate",
     "CampaignUpdate",

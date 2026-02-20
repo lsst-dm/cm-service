@@ -6,8 +6,7 @@ import uvicorn
 from asgi_correlation_id import CorrelationIdMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from safir.dependencies.http_client import http_client_dependency
-from safir.middleware.x_forwarded import XForwardedMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from . import __version__
 from .common.flags import Features
@@ -32,7 +31,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
 
     # Dependency cleanups after app is finished
     await db_session_dependency.aclose()
-    await http_client_dependency.aclose()
 
 
 app = FastAPI(
@@ -54,7 +52,7 @@ app.add_middleware(
     allow_headers=["X-Requested-With", "X-Request-ID"],
     expose_headers=["X-Request-ID"],
 )
-app.add_middleware(XForwardedMiddleware)
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"])
 
 app.include_router(healthz.health_router, prefix="")
 
@@ -83,4 +81,5 @@ if __name__ == "__main__":
         reload=config.asgi.reload,
         log_config=None,
         root_path=config.asgi.root_path,
+        proxy_headers=True,
     )

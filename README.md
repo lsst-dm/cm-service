@@ -3,9 +3,9 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 
-This is the Rubin Observatory data processing campaign management ReST service. `cm-service` is developed with
-[FastAPI](https://fastapi.tiangolo.com) and [Safir](https://safir.lsst.io). Learn more at
-https://cm-service.lsst.io.
+This is the Rubin Observatory data processing campaign management ReST service.
+`cm-service` is developed with [FastAPI](https://fastapi.tiangolo.com).
+Learn more at https://cm-service.lsst.io.
 
 ## Developer Quick Start
 
