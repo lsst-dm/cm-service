@@ -1,5 +1,0 @@
-namespace: cm-service
-resources:
-- namespace.yaml
-- postgres.yaml
-- postgres-lb.yaml
