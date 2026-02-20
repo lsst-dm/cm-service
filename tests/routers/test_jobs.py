@@ -31,7 +31,7 @@ async def test_job_routes(client: AsyncClient, api_version: str) -> None:
     # intialize a tree down to one level lower
     await create_tree(client, api_version, LevelEnum.job, uuid_int)
 
-    response = await client.get(f"{config.asgi.prefix}/{api_version}/job/list")
+    response = await client.get(f"{config.asgi.route_prefix}/{api_version}/job/list")
     jobs = check_and_parse_response(response, list[models.Job])
     entry = [job for job in jobs if job.name == f"job_{uuid_int}"][0]
 
@@ -49,18 +49,18 @@ async def test_job_routes(client: AsyncClient, api_version: str) -> None:
 
     # test some job-specific stuff
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/job/get/{entry.id}/parent",
+        f"{config.asgi.route_prefix}/{api_version}/job/get/{entry.id}/parent",
     )
     parent = check_and_parse_response(response, models.Group)
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/job/get/{entry.id}/errors",
+        f"{config.asgi.route_prefix}/{api_version}/job/get/{entry.id}/errors",
     )
     check_errors = check_and_parse_response(response, list[models.PipetaskError])
     assert len(check_errors) == 0
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/job/get/-1/errors",
+        f"{config.asgi.route_prefix}/{api_version}/job/get/-1/errors",
     )
     expect_failed_response(response, 404)
 
@@ -69,67 +69,68 @@ async def test_job_routes(client: AsyncClient, api_version: str) -> None:
         status=StatusEnum.rescuable,
     )
     response = await client.put(
-        f"{config.asgi.prefix}/{api_version}/job/update/{entry.id}",
+        f"{config.asgi.route_prefix}/{api_version}/job/update/{entry.id}",
         content=update_model.model_dump_json(),
     )
 
     response = await client.put(
-        f"{config.asgi.prefix}/{api_version}/job/update/-1",
+        f"{config.asgi.route_prefix}/{api_version}/job/update/-1",
         content=update_model.model_dump_json(),
     )
     expect_failed_response(response, 404)
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/group/action/{parent.id}/rescue_job",
+        f"{config.asgi.route_prefix}/{api_version}/group/action/{parent.id}/rescue_job",
     )
     rescue_job = check_and_parse_response(response, models.Job)
     assert rescue_job.attempt == 1
 
     response = await client.put(
-        f"{config.asgi.prefix}/{api_version}/job/update/{rescue_job.id}",
+        f"{config.asgi.route_prefix}/{api_version}/job/update/{rescue_job.id}",
         content=update_model.model_dump_json(),
     )
 
     rescue_node_model = models.NodeQuery(fullname=parent.fullname)
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/actions/rescue_job", content=rescue_node_model.model_dump_json()
+        f"{config.asgi.route_prefix}/{api_version}/actions/rescue_job",
+        content=rescue_node_model.model_dump_json(),
     )
     rescue_job = check_and_parse_response(response, models.Job)
     assert rescue_job.attempt == 2
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/group/get/{parent.id}/jobs",
+        f"{config.asgi.route_prefix}/{api_version}/group/get/{parent.id}/jobs",
     )
     check_jobs = check_and_parse_response(response, list[models.Job])
     assert len(check_jobs) == 3
     new_job = check_jobs[-1]
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/group/get/-1/jobs",
+        f"{config.asgi.route_prefix}/{api_version}/group/get/-1/jobs",
     )
     expect_failed_response(response, 404)
 
     update_model.status = StatusEnum.accepted
     response = await client.put(
-        f"{config.asgi.prefix}/{api_version}/job/update/{new_job.id}",
+        f"{config.asgi.route_prefix}/{api_version}/job/update/{new_job.id}",
         content=update_model.model_dump_json(),
     )
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/group/action/{parent.id}/mark_rescued",
+        f"{config.asgi.route_prefix}/{api_version}/group/action/{parent.id}/mark_rescued",
     )
     check_jobs = check_and_parse_response(response, list[models.Job])
     assert len(check_jobs) == 2
 
     update_model.status = StatusEnum.rescuable
     response = await client.put(
-        f"{config.asgi.prefix}/{api_version}/job/update/{entry.id}",
+        f"{config.asgi.route_prefix}/{api_version}/job/update/{entry.id}",
         content=update_model.model_dump_json(),
     )
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/actions/mark_job_rescued",
+        f"{config.asgi.route_prefix}/{api_version}/actions/mark_job_rescued",
         content=rescue_node_model.model_dump_json(),
     )
     check_jobs = check_and_parse_response(response, list[models.Job])

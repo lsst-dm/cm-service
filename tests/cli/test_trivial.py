@@ -22,7 +22,7 @@ from .util_functions import (
 @pytest.mark.parametrize("api_version", ["v1"])
 async def test_cli_trivial_campaign(monkeypatch: Any, uvicorn: UvicornProcess, api_version: str) -> None:
     """Test fake end to end run using example_trivial.yaml seed"""
-    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}/{api_version}"
+    client_config.service_url = f"{uvicorn.url}{config.asgi.route_prefix}/{api_version}"
     runner = CliRunner()
     fixtures = Path(__file__).parent.parent / "fixtures" / "seeds"
     monkeypatch.setenv("FIXTURES", str(fixtures))

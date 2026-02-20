@@ -13,7 +13,7 @@ from .util_functions import cleanup
 
 @pytest.fixture(scope="function", params=["v1"])
 def runner(uvicorn: UvicornProcess, request: pytest.FixtureRequest) -> Generator[CliRunner]:
-    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}/{request.param}"
+    client_config.service_url = f"{uvicorn.url}{config.asgi.route_prefix}/{request.param}"
     runner = CliRunner()
     yield runner
     # delete everything we just made in the session

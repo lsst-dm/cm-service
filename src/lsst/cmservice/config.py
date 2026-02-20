@@ -472,14 +472,31 @@ class AsgiConfiguration(BaseModel):
         default=8080,
     )
 
-    prefix: str = Field(
-        description="The URL prefix for the cm-service API",
-        default="/cm-service",
+    route_prefix: str = Field(
+        description="The URL prefix used for API routers, i.e., a permanent subpath "
+        "onto which the API routers are mounted. This should include a leading slash and no trailing slash.",
+        default="",
+        deprecated=True,
+        examples=["cm-service"],
+    )
+
+    root_path: str = Field(
+        description="The URL root path used with the ASGI server (i.e., for "
+        "link generation and reverse proxy or ingress deployment.",
+        default="",
     )
 
     frontend_prefix: str = Field(
-        description="The URL prefix for the frontend web app",
+        description="The URL prefix for the frontend web app. This path will be relative "
+        "to the asgi root path when it is in use.",
         default="/web_app",
+    )
+
+    docs_prefix: str = Field(
+        description="The URL prefix for the Swagger API docs. If not set, the docs "
+        "will be mounted at a subpath relative to the asgi root_path in the usual way.",
+        default="",
+        examples=["/docs", "/apidocs"],
     )
 
     reload: bool = Field(
