@@ -6,7 +6,7 @@ requires-python = ">=3.12,<3.14"
 dependencies = [
     "deepdiff>=8.6.1",
     "networkx>=3.5",
-    "nicegui>=3.7.0",
+    "nicegui>=3.8.0",
     "pydantic>=2.12",
     "pydantic-extra-types>=2.10.5",
     "pydantic-settings>=2.12",

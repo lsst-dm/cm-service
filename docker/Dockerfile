@@ -3,7 +3,6 @@
 ARG PYTHON_VERSION="3.13"
 ARG DEBIAN_VERSION="trixie"
 ARG UV_VERSION="0.10"
-ARG NODE_VERSION="24-dev"
 ARG ASGI_PORT="8080"
 
 #==============================================================================
@@ -14,6 +13,7 @@ FROM dhi.io/uv:${UV_VERSION} AS uv
 
 #==============================================================================
 # BUN SOURCE IMAGE
+# - Bun is used in place of Node.js to build artifacts for the web gui.
 FROM dhi.io/bun:1-dev AS bun
 
 
@@ -88,7 +88,7 @@ COPY . .
 # Install project production dependency graph in /opt/venv
 RUN --mount=type=cache,target=/root/.cache/uv --mount=from=uv,source=/usr/local/bin/uv,target=/usr/local/bin/uv <<ENDRUN
     set -e
-    /usr/local/bin/uv sync --no-group dev --no-install-project --no-editable
+    /usr/local/bin/uv sync --extra wms --no-dev --no-install-project --no-editable
 ENDRUN
 
 
@@ -111,7 +111,7 @@ ENDRUN
 # Install web package dependency graph in /opt/venv
 RUN --mount=type=cache,target=/root/.cache/uv --mount=from=uv,source=/usr/local/bin/uv,target=/usr/local/bin/uv <<ENDRUN
     set -e
-    /usr/local/bin/uv sync --package lsst-cmservice-web --no-group dev --no-install-project --no-editable
+    /usr/local/bin/uv sync --package lsst-cmservice-web --no-dev --no-install-project --no-editable
 ENDRUN
 
 # Build static web content
@@ -162,10 +162,6 @@ CMD ["lsst.cmservice.daemon"]
 # RUNTIME IMAGE - Web
 FROM gcr.io/distroless/cc-debian13:latest AS cmweb
 
-ENV PATH="/opt/python/venv/bin:$PATH"
-ENV NICEGUI_STORAGE_PATH=/home/nonroot/storage
-ENTRYPOINT ["/opt/python/venv/bin/python3", "-m"]
-
 WORKDIR /opt/python
 COPY --from=web-builder /opt/python .
 
@@ -176,4 +172,7 @@ COPY --from=web-builder /workdir/packages/cm-canvas/dist/*.iife.js ./lsst/cmserv
 COPY --from=web-builder /workdir/docs ./lsst/cmservice/web/static/docs
 COPY --from=web-builder --chown=nonroot:nonroot /opt/storage ./storage
 
+ENV PATH="/opt/python/venv/bin:$PATH"
+ENV NICEGUI_STORAGE_PATH=/home/nonroot/storage
+ENTRYPOINT ["/opt/python/venv/bin/python3", "-m"]
 CMD ["lsst.cmservice.web.libexec.go"]
