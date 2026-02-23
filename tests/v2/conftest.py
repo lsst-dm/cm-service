@@ -36,6 +36,7 @@ def monkeypatch_module() -> Generator[pytest.MonkeyPatch]:
 @pytest.fixture(scope="module", autouse=True)
 def patched_config(monkeypatch_module: pytest.MonkeyPatch, tmp_path_factory: pytest.TempPathFactory) -> None:
     """Fixture which monkeypatches configuration settings"""
+    monkeypatch_module.setattr(target=config.asgi, name="route_prefix", value="/cm-service")
     monkeypatch_module.setattr(
         target=config.bps, name="artifact_path", value=tmp_path_factory.mktemp("output")
     )
@@ -153,7 +154,7 @@ async def session_fixture(session_factory: Callable) -> AsyncGenerator[AnyAsyncS
 
 @pytest_asyncio.fixture(name="aclient", scope="module", loop_scope="module")
 async def async_client_fixture(
-    session_factory: Callable, testdb: DatabaseManager
+    session_factory: Callable, testdb: DatabaseManager, patched_config: pytest.FixtureRequest
 ) -> AsyncGenerator[AsyncClient]:
     """Test fixture for an HTTPX async test client backed by a FastAPI app with
     its dependency injections overriden by factory fixtures.
@@ -163,7 +164,7 @@ async def async_client_fixture(
     app.dependency_overrides[db_session_dependency] = session_factory
 
     async with AsyncClient(
-        follow_redirects=True, transport=ASGITransport(app), base_url="http://test"
+        follow_redirects=True, transport=ASGITransport(app), base_url=f"http://test{config.asgi.route_prefix}"
     ) as aclient:
         yield aclient
     app.dependency_overrides.clear()
@@ -182,7 +183,7 @@ async def test_campaign(aclient: AsyncClient, manifest_fixtures: None) -> AsyncG
     node_ids = []
 
     x = await aclient.post(
-        "/cm-service/v2/campaigns",
+        "/v2/campaigns",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "campaign",
@@ -196,7 +197,7 @@ async def test_campaign(aclient: AsyncClient, manifest_fixtures: None) -> AsyncG
     # create a trio of nodes for the campaign
     for _ in range(3):
         x = await aclient.post(
-            "/cm-service/v2/nodes",
+            "/v2/nodes",
             json={
                 "apiVersion": "io.lsst.cmservice/v1",
                 "kind": "node",
@@ -209,7 +210,7 @@ async def test_campaign(aclient: AsyncClient, manifest_fixtures: None) -> AsyncG
 
     # Create edges between each campaign node with parallelization
     _ = await aclient.post(
-        "/cm-service/v2/edges",
+        "/v2/edges",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "edge",
@@ -221,7 +222,7 @@ async def test_campaign(aclient: AsyncClient, manifest_fixtures: None) -> AsyncG
         },
     )
     _ = await aclient.post(
-        "/cm-service/v2/edges",
+        "/v2/edges",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "edge",
@@ -233,7 +234,7 @@ async def test_campaign(aclient: AsyncClient, manifest_fixtures: None) -> AsyncG
         },
     )
     _ = await aclient.post(
-        "/cm-service/v2/edges",
+        "/v2/edges",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "edge",
@@ -245,7 +246,7 @@ async def test_campaign(aclient: AsyncClient, manifest_fixtures: None) -> AsyncG
         },
     )
     _ = await aclient.post(
-        "/cm-service/v2/edges",
+        "/v2/edges",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "edge",
@@ -257,7 +258,7 @@ async def test_campaign(aclient: AsyncClient, manifest_fixtures: None) -> AsyncG
         },
     )
     _ = await aclient.post(
-        "/cm-service/v2/edges",
+        "/v2/edges",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "edge",
@@ -276,7 +277,7 @@ async def manifest_fixtures(aclient: AsyncClient) -> None:
     """Fixture seeding a test campaign with additional library manifests."""
     default_namespace = str(DEFAULT_NAMESPACE)
     _ = await aclient.post(
-        "/cm-service/v2/manifests",
+        "/v2/manifests",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "lsst",
@@ -286,7 +287,7 @@ async def manifest_fixtures(aclient: AsyncClient) -> None:
     )
 
     _ = await aclient.post(
-        "/cm-service/v2/manifests",
+        "/v2/manifests",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "butler",
@@ -300,7 +301,7 @@ async def manifest_fixtures(aclient: AsyncClient) -> None:
     )
 
     _ = await aclient.post(
-        "/cm-service/v2/manifests",
+        "/v2/manifests",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "wms",
@@ -310,7 +311,7 @@ async def manifest_fixtures(aclient: AsyncClient) -> None:
     )
 
     _ = await aclient.post(
-        "/cm-service/v2/manifests",
+        "/v2/manifests",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "site",
@@ -335,7 +336,7 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
     campaign_name = uuid4().hex[-8:]
 
     x = await aclient.post(
-        "/cm-service/v2/campaigns",
+        "/v2/campaigns",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "campaign",
@@ -348,7 +349,7 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
 
     # Create library manifests for the campaign
     x = await aclient.post(
-        "/cm-service/v2/manifests",
+        "/v2/manifests",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "butler",
@@ -365,7 +366,7 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
         },
     )
     x = await aclient.post(
-        "/cm-service/v2/manifests",
+        "/v2/manifests",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "lsst",
@@ -383,7 +384,7 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
         },
     )
     x = await aclient.post(
-        "/cm-service/v2/manifests",
+        "/v2/manifests",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "wms",
@@ -403,7 +404,7 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
         },
     )
     x = await aclient.post(
-        "/cm-service/v2/manifests",
+        "/v2/manifests",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "bps",
@@ -431,7 +432,7 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
         },
     )
     x = await aclient.post(
-        "/cm-service/v2/manifests",
+        "/v2/manifests",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "site",
@@ -444,7 +445,7 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
 
     # Make a step node with null groups
     x = await aclient.post(
-        "/cm-service/v2/nodes",
+        "/v2/nodes",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "node",
@@ -466,7 +467,7 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
 
     # Make a step node with values-based groups
     x = await aclient.post(
-        "/cm-service/v2/nodes",
+        "/v2/nodes",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "node",
@@ -493,7 +494,7 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
 
     # Make a step node with query-based groups
     x = await aclient.post(
-        "/cm-service/v2/nodes",
+        "/v2/nodes",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "node",
@@ -517,7 +518,7 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
 
     # Create edges between each campaign node
     _ = await aclient.post(
-        "/cm-service/v2/edges",
+        "/v2/edges",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "edge",
@@ -529,7 +530,7 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
         },
     )
     _ = await aclient.post(
-        "/cm-service/v2/edges",
+        "/v2/edges",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "edge",
@@ -541,7 +542,7 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
         },
     )
     _ = await aclient.post(
-        "/cm-service/v2/edges",
+        "/v2/edges",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "edge",
@@ -553,7 +554,7 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
         },
     )
     _ = await aclient.post(
-        "/cm-service/v2/edges",
+        "/v2/edges",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "edge",

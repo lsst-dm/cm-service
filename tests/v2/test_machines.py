@@ -237,34 +237,34 @@ async def test_change_campaign_state(
     campaign = await session.get_one(Campaign, campaign_id)
     await session.commit()
 
-    x = (await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}")).json()
+    x = (await aclient.get(f"/v2/campaigns/{campaign_id}")).json()
     assert x["status"] == "paused"
 
     await change_campaign_state(campaign, StatusEnum.running, str(uuid4()))
     await session.refresh(campaign, attribute_names=["status"])
     await session.commit()
 
-    x = (await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}")).json()
+    x = (await aclient.get(f"/v2/campaigns/{campaign_id}")).json()
     assert x["status"] == "running"
 
     await change_campaign_state(campaign, StatusEnum.paused, str(uuid4()))
     await session.refresh(campaign, attribute_names=["status"])
     await session.commit()
 
-    x = (await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}")).json()
+    x = (await aclient.get(f"/v2/campaigns/{campaign_id}")).json()
     assert x["status"] == "paused"
 
     # Break the graph by removing an edge from the campaign, and try to enter
     # the running state
     edge_to_remove = random.choice(edge_list)["id"]
-    x = await aclient.delete(f"/cm-service/v2/edges/{edge_to_remove}")
+    x = await aclient.delete(f"/v2/edges/{edge_to_remove}")
 
     caplog.clear()
     await change_campaign_state(campaign, StatusEnum.running, str(uuid4()))
     await session.refresh(campaign, attribute_names=["status"])
     await session.commit()
 
-    x = (await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}")).json()
+    x = (await aclient.get(f"/v2/campaigns/{campaign_id}")).json()
     assert x["status"] == "paused"
 
     # Check log messages
@@ -399,7 +399,7 @@ async def test_group_prepare_replace(
 
     # Replace the group with a new version
     x = await aclient.patch(
-        f"/cm-service/v2/nodes/{group.id}",
+        f"/v2/nodes/{group.id}",
         headers={"Content-Type": "application/json-patch+json"},
         json=[
             {
@@ -412,7 +412,7 @@ async def test_group_prepare_replace(
     assert x.is_success
     new_group = x.json()
     x = await aclient.put(
-        f"/cm-service/v2/campaigns/{campaign_id}/graph/nodes/{group.id}?with-node={new_group['id']}",
+        f"/v2/campaigns/{campaign_id}/graph/nodes/{group.id}?with-node={new_group['id']}",
     )
     assert x.is_success
 
@@ -470,13 +470,13 @@ async def test_group_fail_retry(
     await session.refresh(group, ["status", "metadata_", "machine"])
 
     # assert node failed
-    x = await aclient.get(f"/cm-service/v2/nodes/{group.id}")
+    x = await aclient.get(f"/v2/nodes/{group.id}")
     assert x.is_success
     assert x.json()["status"] == "failed"
 
     # - trigger 'retry' by setting the status to ready
     x = await aclient.patch(
-        f"/cm-service/v2/nodes/{group.id}",
+        f"/v2/nodes/{group.id}",
         json={"status": "ready"},
         headers={"Content-Type": "application/merge-patch+json"},
     )
@@ -519,7 +519,7 @@ async def test_group_fail_retry(
 
     # trigger 'reset' by setting the status to waiting with force set
     x = await aclient.patch(
-        f"/cm-service/v2/nodes/{group.id}",
+        f"/v2/nodes/{group.id}",
         json={"status": "waiting"},
         headers={"Content-Type": "application/merge-patch+json"},
     )
@@ -640,7 +640,7 @@ async def test_group_restart(
 
     # trigger 'restart' by setting the status to ready
     x = await aclient.patch(
-        f"/cm-service/v2/nodes/{group.id}",
+        f"/v2/nodes/{group.id}",
         json={"status": "ready", "force": "true"},
         headers={"Content-Type": "application/merge-patch+json"},
     )
@@ -725,13 +725,13 @@ async def test_group_force_accept(
     await session.refresh(group, ["status", "metadata_", "machine"])
 
     # assert node failed
-    x = await aclient.get(f"/cm-service/v2/nodes/{group.id}")
+    x = await aclient.get(f"/v2/nodes/{group.id}")
     assert x.is_success
     assert x.json()["status"] == "failed"
 
     # - trigger 'force' by setting the status to accepted
     x = await aclient.patch(
-        f"/cm-service/v2/nodes/{group.id}",
+        f"/v2/nodes/{group.id}",
         json={"status": "accepted", "force": acceptable},
         headers={"Content-Type": "application/merge-patch+json"},
     )
@@ -767,7 +767,7 @@ async def test_step_fail_reset(
 
     # trigger 'RESET' by setting the status to waiting
     x = await aclient.patch(
-        f"/cm-service/v2/nodes/{step.id}",
+        f"/v2/nodes/{step.id}",
         json={"status": "waiting", "force": "true"},
         headers={"Content-Type": "application/merge-patch+json"},
     )

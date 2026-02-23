@@ -13,10 +13,10 @@ async def test_list_campaigns(aclient: AsyncClient) -> None:
     """Tests listing the set of all campaigns."""
     # initially, only the default campaign should be available, which is hidden
     # from view via this api
-    x = await aclient.get("/cm-service/v2/campaigns")
+    x = await aclient.get("/v2/campaigns")
     assert len(x.json()) == 0
 
-    x = await aclient.get("/cm-service/v2/campaigns", headers={"CM-Admin-View": "true"})
+    x = await aclient.get("/v2/campaigns", headers={"CM-Admin-View": "true"})
     assert len(x.json()) == 1
 
 
@@ -25,12 +25,12 @@ async def test_list_campaign(aclient: AsyncClient) -> None:
     campaign_name = uuid4().hex[-8:]
 
     x = await aclient.get(
-        f"/cm-service/v2/campaigns/{campaign_name}",
+        f"/v2/campaigns/{campaign_name}",
     )
     assert x.status_code == codes.NOT_FOUND
 
     x = await aclient.post(
-        "/cm-service/v2/campaigns",
+        "/v2/campaigns",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "campaign",
@@ -42,12 +42,12 @@ async def test_list_campaign(aclient: AsyncClient) -> None:
     campaign_id = x.json()["id"]
 
     x = await aclient.get(
-        f"/cm-service/v2/campaigns/{campaign_name}",
+        f"/v2/campaigns/{campaign_name}",
     )
     assert x.is_success
 
     x = await aclient.get(
-        f"/cm-service/v2/campaigns/{campaign_id}",
+        f"/v2/campaigns/{campaign_id}",
     )
     assert x.is_success
 
@@ -58,7 +58,7 @@ async def test_negative_campaign(aclient: AsyncClient) -> None:
     campaign_name = uuid4().hex[-8:]
 
     x = await aclient.post(
-        "/cm-service/v2/campaigns",
+        "/v2/campaigns",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "node",
@@ -72,7 +72,7 @@ async def test_negative_campaign(aclient: AsyncClient) -> None:
 
     # Test failure to create campaign with incomplete manifest (missing name)
     x = await aclient.post(
-        "/cm-service/v2/campaigns",
+        "/v2/campaigns",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "campaign",
@@ -89,7 +89,7 @@ async def test_create_campaign(aclient: AsyncClient) -> None:
 
     # Test successful campaign creation
     x = await aclient.post(
-        "/cm-service/v2/campaigns",
+        "/v2/campaigns",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "campaign",
@@ -137,7 +137,7 @@ async def test_create_campaign_with_spec(
 
     # Test successful campaign creation
     x = await aclient.post(
-        "/cm-service/v2/campaigns",
+        "/v2/campaigns",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "campaign",
@@ -158,7 +158,7 @@ async def test_patch_campaign(aclient: AsyncClient, caplog: pytest.LogCaptureFix
     # Create a new campaign with spec data
     campaign_name = uuid4().hex[-8:]
     x = await aclient.post(
-        "/cm-service/v2/campaigns",
+        "/v2/campaigns",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "campaign",
@@ -225,7 +225,7 @@ async def test_patch_campaign(aclient: AsyncClient, caplog: pytest.LogCaptureFix
     # Update the campaign again using RFC7396, ensuring only a single field
     # is patched, using campaign name
     y = await aclient.patch(
-        f"/cm-service/v2/campaigns/{campaign_name}",
+        f"/v2/campaigns/{campaign_name}",
         json={"owner": "alice_bob"},
         headers={"Content-Type": "application/merge-patch+json"},
     )
