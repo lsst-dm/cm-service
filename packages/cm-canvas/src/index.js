@@ -13,7 +13,7 @@ export function initializeFlow(containerId, options = {}) {
     return null;
   }
 
-  app = mount(App, {
+  const canvas = mount(App, {
     target: container,
     props: {
       nodes: options.nodes,
@@ -24,7 +24,7 @@ export function initializeFlow(containerId, options = {}) {
   });
 
   return {
-    app,
+    canvas,
   };
 }
 

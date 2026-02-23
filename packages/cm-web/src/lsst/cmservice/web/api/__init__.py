@@ -7,9 +7,17 @@ from .campaigns import (
     toggle_campaign_state,
 )
 from .manifests import get_one_manifest, put_manifest_list, put_one_manifest
-from .nodes import describe_one_node, fast_forward_node, get_one_node, node_activity_logs, retry_restart_node
+from .nodes import (
+    describe_one_node,
+    fast_forward_node,
+    get_one_node,
+    insert_or_append_node,
+    node_activity_logs,
+    retry_restart_node,
+)
 
 __all__ = [
+    "insert_or_append_node",
     "compile_campaign_manifests",
     "describe_one_campaign",
     "describe_one_node",

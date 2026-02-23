@@ -20,6 +20,7 @@ from .campaign_detail import CampaignDetailPage
 from .campaign_edit import CampaignClonePage, CampaignEditPage
 from .campaign_overview import CampaignOverviewPage
 from .canvas import CanvasScratchPage
+from .help import HelpPage
 from .node_detail import NodeDetailPage
 
 
@@ -29,6 +30,16 @@ async def campaign_overview_page(
 ) -> None:
     await ui.context.client.connected()
     if page := await CampaignOverviewPage(title="Campaign Overview").setup(client_):
+        await page.render()
+
+
+@ui.page("/help", response_timeout=settings.timeout)
+@ui.page("/help/{_:path}", response_timeout=settings.timeout)
+async def cm_help_page(
+    client_: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)],
+) -> None:
+    await ui.context.client.connected()
+    if page := await HelpPage(title="CM Service Help").setup(client_):
         await page.render()
 
 

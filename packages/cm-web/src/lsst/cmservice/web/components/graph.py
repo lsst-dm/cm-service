@@ -5,12 +5,14 @@ from ..lib import enum, logging
 logger = logging.LOGGER.bind(module=__name__)
 
 
-def nx_to_mermaid(graph: DiGraph) -> str:
+def nx_to_mermaid(graph: DiGraph, *, constrain: bool = True) -> str:
     """Generates a minimally interactive mermaid flowchart diagram based on a
-    campaign graph (in simple view mode as from the graph API).
+    campaign graph (in simple view mode as from the graph API). If `constrain`
+    is set, then the diagram will not be forced to fit its container.
     """
     nodes = graph.nodes.data()
-    mmd = "graph LR; "
+    mmd = "%%{init: {'flowchart': {'useMaxWidth': false}}}%%" if not constrain else ""
+    mmd += "graph LR; "
     for edge in graph.edges:
         mmd += f"{edge[0]} --> {edge[1]}; "
     for node in nodes:

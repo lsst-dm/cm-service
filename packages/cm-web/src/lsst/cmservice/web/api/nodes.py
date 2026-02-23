@@ -2,6 +2,8 @@
 targeting Node resources.
 """
 
+from typing import Literal
+
 from httpx import HTTPStatusError, Response, codes
 from nicegui import app, ui
 
@@ -56,6 +58,9 @@ async def describe_one_node(id: str) -> dict:
 
 
 async def replace_node(n0: str, n1: str, namespace: str) -> Response:
+    """Supports the node PUT api to replace a node in a graph with a different
+    one.
+    """
     async with CLIENT_FACTORY.aclient() as client:
         try:
             r = await client.put(f"/campaigns/{namespace}/graph/nodes/{n0}?with-node={n1}")
@@ -70,10 +75,32 @@ async def replace_node(n0: str, n1: str, namespace: str) -> Response:
         return r
 
 
+async def insert_or_append_node(
+    n0: str, n1: str, namespace: str, operation: Literal["append", "insert"]
+) -> Response:
+    """Supports the node PATCH api to insert a new node in an existing campaign
+    graph.
+    """
+    async with CLIENT_FACTORY.aclient() as client:
+        try:
+            r = await client.patch(
+                f"/campaigns/{namespace}/graph/nodes/{n0}?add-node={n1}&operation={operation}"
+            )
+            r.raise_for_status()
+            ui.notify("Node replaced.")
+        except HTTPStatusError as e:
+            match e.response:
+                case Response(status_code=codes.CONFLICT):
+                    ui.notify("Campaign must be paused before modification", type="negative")
+                case _:
+                    raise
+        return r
+
+
 async def fast_forward_node(n0: str) -> None:
     """Callback function for manually advancing a single Node's state machine
     using the CM RPC "process" api. A Node in a paused campaign may have trans-
-    port controls present (e.g., a next/advance/forward button).
+    port controls present (e.g., a forward button).
     """
     async with CLIENT_FACTORY.aclient() as client:
         try:

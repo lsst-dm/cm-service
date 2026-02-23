@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import TypeAlias
 
 import yaml
-from click import BaseCommand
+from click import Command
 from click.testing import CliRunner, Result
 from pydantic import TypeAdapter
 
@@ -34,7 +34,7 @@ def expect_failed_result(
 
 def add_scripts(
     runner: CliRunner,
-    client_top: BaseCommand,
+    client_top: Command,
     element: AnyCampaignElement,
     namespace: uuid.UUID,
 ) -> tuple[list[models.Script], models.Dependency | None]:
@@ -70,7 +70,7 @@ def add_scripts(
 
 def create_tree(
     runner: CliRunner,
-    client_top: BaseCommand,
+    client_top: Command,
     level: LevelEnum,
     namespace: uuid.UUID,
 ) -> None:
@@ -169,7 +169,7 @@ def create_tree(
 
 def delete_all_rows(
     runner: CliRunner,
-    client_top: BaseCommand,
+    client_top: Command,
     entry_class_name: str,
     entry_class: TypeAlias,
 ) -> None:
@@ -185,7 +185,7 @@ def delete_all_rows(
 
 def delete_all_artifacts(
     runner: CliRunner,
-    client_top: BaseCommand,
+    client_top: Command,
     *,
     check_cascade: bool = False,
 ) -> None:
@@ -201,7 +201,7 @@ def delete_all_artifacts(
 
 def delete_all_spec_stuff(
     runner: CliRunner,
-    client_top: BaseCommand,
+    client_top: Command,
 ) -> None:
     delete_all_rows(runner, client_top, "specification", models.Specification)
     delete_all_rows(runner, client_top, "spec_block", models.SpecBlock)
@@ -209,14 +209,14 @@ def delete_all_spec_stuff(
 
 def delete_all_queues(
     runner: CliRunner,
-    client_top: BaseCommand,
+    client_top: Command,
 ) -> None:
     delete_all_rows(runner, client_top, "queue", models.Queue)
 
 
 def cleanup(
     runner: CliRunner,
-    client_top: BaseCommand,
+    client_top: Command,
     *,
     check_cascade: bool = False,
 ) -> None:
@@ -227,7 +227,7 @@ def cleanup(
 
 def check_update_methods[E: AnyCampaignElement](
     runner: CliRunner,
-    client_top: BaseCommand,
+    client_top: Command,
     entry: E,
     entry_class_name: str,
     entry_class: type[E],
@@ -340,7 +340,7 @@ def check_update_methods[E: AnyCampaignElement](
 
 def check_scripts(
     runner: CliRunner,
-    client_top: BaseCommand,
+    client_top: Command,
     entry: AnyCampaignElement,
     entry_class_name: str,
 ) -> None:
@@ -418,7 +418,7 @@ def check_scripts(
 
 def check_get_methods(
     runner: CliRunner,
-    client_top: BaseCommand,
+    client_top: Command,
     entry: AnyCampaignElement,
     entry_class_name: str,
     entry_class: type[AnyCampaignElement],
@@ -482,7 +482,7 @@ def check_get_methods(
 
 def check_queue(
     runner: CliRunner,
-    client_top: BaseCommand,
+    client_top: Command,
     entry: AnyCampaignElement,
     *,
     run_daemon: bool = False,
