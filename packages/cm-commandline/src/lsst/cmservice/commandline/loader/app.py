@@ -16,7 +16,7 @@ app = typer.Typer()
 def load_from_yaml(
     ctx: TypedContext,
     filename: str,
-    campaign: arguments.campaign_name,
+    campaign: arguments.CampaignName.Optional = None,
     *,
     strict: Annotated[
         bool, typer.Option(help="Load YAML in strict mode (file must have only a single campaign)")

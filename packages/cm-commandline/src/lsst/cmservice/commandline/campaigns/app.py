@@ -51,7 +51,7 @@ def list(ctx: TypedContext) -> None:
 @app.command(name="new")
 def new_campaign(
     ctx: TypedContext,
-    campaign: arguments.campaign_name,
+    campaign: arguments.CampaignName.Required,
 ) -> None:
     """Create a new empty campaign"""
     output_format = formatters.Formatters[ctx.obj.output_format]
@@ -81,7 +81,7 @@ def new_campaign(
 @app.command(name="describe")
 def describe_campaign(
     ctx: TypedContext,
-    campaign: arguments.campaign_name,
+    campaign: arguments.CampaignName.Required,
 ) -> None:
     """describe a specific campaign"""
     with http_client(ctx) as session:
@@ -147,7 +147,7 @@ def describe_campaign(
 
 
 @app.command(name="start")
-def start_campaign(ctx: TypedContext, campaign: arguments.campaign_name) -> None:
+def start_campaign(ctx: TypedContext, campaign: arguments.CampaignName.Required) -> None:
     """start a campaign"""
     data = {"status": "running"}
     status_update_url = None
@@ -198,7 +198,7 @@ def start_campaign(ctx: TypedContext, campaign: arguments.campaign_name) -> None
 @app.command(name="set")
 def set_campaign_status(
     ctx: TypedContext,
-    campaign: arguments.campaign_name,
+    campaign: arguments.CampaignName.Required,
     desired_state: arguments.campaign_status,
     *,
     force: Annotated[
@@ -256,7 +256,7 @@ def set_campaign_status(
 
 
 @app.command(name="advance")
-def advance_campaign(ctx: TypedContext, campaign: arguments.campaign_name) -> None:
+def advance_campaign(ctx: TypedContext, campaign: arguments.CampaignName.Required) -> None:
     """advances a paused campaign"""
 
     status_update_url = None
@@ -318,7 +318,7 @@ def load_campaign(
         str,
         typer.Argument(help="A name or path to a YAML file containing a complete set of campaign manifests"),
     ],
-    campaign: arguments.campaign_name,
+    campaign: arguments.CampaignName.Required,
     *,
     auto_run: Annotated[
         bool,
