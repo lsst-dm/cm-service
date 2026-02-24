@@ -9,6 +9,7 @@ from lsst.cmservice.common.enums import DEFAULT_NAMESPACE
 
 from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.enum import MANIFEST_KIND_ICONS
+from ..lib.models import KIND_TO_SPEC
 from .manifests import get_one_manifest
 
 
@@ -77,7 +78,13 @@ async def get_campaign_manifests(id: str | None = None, manifests: list[dict] = 
                 namespace=str(DEFAULT_NAMESPACE), kind=kind, name=None, version=None
             )
             if manifest_ is not None:
-                manifests.append(manifest_.json())
+                # Round trip through the pydantic model
+                manifest_spec = manifest_.json()
+                manifest_model = KIND_TO_SPEC[manifest_spec["kind"]].model_validate(
+                    manifest_spec["spec"], extra="ignore"
+                )
+                manifest_spec["spec"] = manifest_model.model_dump(exclude_none=True, exclude_unset=True)
+                manifests.append(manifest_spec)
 
     return manifests
 

@@ -623,7 +623,9 @@ class NewManifestEditorDialog(EditorDialog):
         template = {}
         kind_model = KIND_TO_SPEC[self.context.kind]
         for field_name, field_info in kind_model.model_fields.items():
-            if field_info.examples:
+            if field_info.exclude:
+                continue
+            elif field_info.examples:
                 field_example = field_info.examples[0]
                 if isinstance(field_example, dict):
                     template[field_name] = field_example.get(field_name, field_example)
