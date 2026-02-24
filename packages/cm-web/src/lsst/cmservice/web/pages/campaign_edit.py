@@ -169,6 +169,12 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
         self.model["spec"][step_id] = result
 
     async def handle_manifest_edit(self, manifest_id: str | None = None) -> None:
+        """Callback for editing or creating a campaign manifest.
+
+        New manifests are given a UUID4 identifier for tracking in the page
+        model. Existing manifests retain whatever ID they were assigned when
+        first added to the model.
+        """
         ctx = EditorContext(
             page=self,
             namespace=str(self.namespace),
@@ -207,7 +213,10 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
             return None
 
         if (manifest_id := data["metadata"].pop("uuid", None)) is None:
-            ui.notify("An error occurred saving the manifest", type="negative")
+            ui.notify(
+                "An error occurred saving the manifest: the manifest does not have an ID.",
+                type="negative",
+            )
             return
 
         # reduce the None/nulls from the spec
@@ -351,7 +360,9 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
         self.initial_flow_edges: list[dict] = []
 
         for manifest in await api.get_campaign_manifests():
-            self.model["manifests"][manifest["id"]] = {
+            # Library manifests are reassigned a new UUID for tracking in the
+            # page model
+            self.model["manifests"][str(uuid4())] = {
                 "apiVersion": "io.lsst.cmservice/v1",
                 "kind": manifest["kind"],
                 "metadata": {

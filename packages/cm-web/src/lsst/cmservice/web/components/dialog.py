@@ -178,15 +178,17 @@ class EditorDialog(ui.dialog):
         # FIXME just use the pydantic manifest model
         if initial_model is None:
             self.context.model = deepcopy(STEP_MANIFEST_TEMPLATE)
-            self.context.model["metadata"]["namespace"] = str(ctx.namespace)
-            self.context.model["metadata"]["name"] = ctx.name
-            self.context.model["metadata"]["kind"] = ctx.kind
-            self.context.model["metadata"]["uuid"] = ctx.uuid
             self.context.model["spec"] = {}
         else:
             # We deepcopy this model so we don't leak edits back to any other
             # objects
             self.context.model = deepcopy(initial_model)
+
+        # Update current model with metadata from the incoming context.
+        self.context.model["metadata"]["namespace"] = str(ctx.namespace)
+        self.context.model["metadata"]["name"] = ctx.name
+        self.context.model["metadata"]["kind"] = ctx.kind
+        self.context.model["metadata"]["uuid"] = ctx.uuid
 
         self.dialog_content(title)
 
