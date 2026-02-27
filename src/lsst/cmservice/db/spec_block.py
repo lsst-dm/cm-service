@@ -6,12 +6,12 @@ from sqlalchemy import JSON
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import Base
 from .handler import Handler
+from .legacy_base import Base
 from .row import RowMixin
 
 if TYPE_CHECKING:
-    from ..common.types import AnyAsyncSession
+    from lsst.cmservice.cm_models.types import AnyAsyncSession
 
 
 class SpecBlock(Base, RowMixin):

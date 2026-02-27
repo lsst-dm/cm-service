@@ -5,10 +5,11 @@ from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response
 
+from lsst.cmservice.cm_models.types import AnyAsyncSession
+
 from .. import db, models
 from ..common.errors import CMBadStateTransitionError, CMMissingIDError
 from ..common.logging import LOGGER
-from ..common.types import AnyAsyncSession
 from ..db.session import db_session_dependency
 from ..handlers.functions import force_accept_node
 from . import wrappers

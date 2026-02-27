@@ -8,8 +8,9 @@ from typing import TYPE_CHECKING, Any
 import httpx
 from pydantic import TypeAdapter
 
+from lsst.cmservice.cm_models.enums import StatusEnum
+
 from .. import db, models
-from ..common.enums import StatusEnum
 from . import wrappers
 
 if TYPE_CHECKING:

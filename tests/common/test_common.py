@@ -1,6 +1,7 @@
 import pytest
 from anyio import Path
 
+from lsst.cmservice.cm_models.enums import StatusEnum
 from lsst.cmservice.common.bash import (
     check_stamp_file,
     get_diagnostic_message,
@@ -8,7 +9,7 @@ from lsst.cmservice.common.bash import (
     run_bash_job,
     write_bash_script,
 )
-from lsst.cmservice.common.enums import LevelEnum, StatusEnum, TableEnum
+from lsst.cmservice.common.enums import LevelEnum, TableEnum
 from lsst.cmservice.common.errors import (
     CMHTCondorSubmitError,
     CMSlurmCheckError,

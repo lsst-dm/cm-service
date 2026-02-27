@@ -11,9 +11,10 @@ from safir.database import create_async_session
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from lsst.cmservice import db
-from lsst.cmservice.common.enums import LevelEnum, StatusEnum
+from lsst.cmservice.cm_models.enums import StatusEnum
+from lsst.cmservice.cm_models.types import AnyAsyncSession
+from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.common.flags import Features
-from lsst.cmservice.common.types import AnyAsyncSession
 
 from .util_functions import cleanup, create_tree
 

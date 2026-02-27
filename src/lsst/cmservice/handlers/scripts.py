@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, Any
 
 from anyio import Path
 
+from lsst.cmservice.cm_models.enums import StatusEnum
+
 from ..common.bash import write_bash_script
 from ..common.butler import (
     remove_collection_from_chain,
@@ -13,7 +15,7 @@ from ..common.butler import (
     remove_non_run_collections,
     remove_run_collections,
 )
-from ..common.enums import LevelEnum, StatusEnum
+from ..common.enums import LevelEnum
 from ..common.errors import CMBadExecutionMethodError, CMMissingScriptInputError, test_type_and_raise
 from ..common.logging import LOGGER
 from ..config import config
@@ -23,7 +25,7 @@ from ..db.step import Step
 from .script_handler import ScriptHandler
 
 if TYPE_CHECKING:
-    from ..common.types import AnyAsyncSession
+    from lsst.cmservice.cm_models.types import AnyAsyncSession
 
 
 logger = LOGGER.bind(module=__name__)

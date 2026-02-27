@@ -17,12 +17,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from ...common.enums import StatusEnum
-from ...common.jsonpatch import JSONPatch, JSONPatchError, apply_json_patch
+from lsst.cmservice.cm_models.api.manifests import NodeManifest
+from lsst.cmservice.cm_models.db.campaigns import Campaign, CampaignUpdate, Node
+from lsst.cmservice.cm_models.enums import StatusEnum
+from lsst.cmservice.cm_models.lib.jsonpatch import JSONPatch, JSONPatchError, apply_json_patch
+from lsst.cmservice.cm_models.lib.timestamp import element_time
+
 from ...common.logging import LOGGER
-from ...common.timestamp import element_time
-from ...db.campaigns_v2 import Campaign, CampaignUpdate, Node
-from ...db.manifests_v2 import NodeManifest
 from ...db.session import db_session_dependency
 from ...machines.tasks import change_node_state
 

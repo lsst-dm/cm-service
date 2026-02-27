@@ -3,8 +3,9 @@
 from anyio import Path, open_process
 from anyio.streams.text import TextReceiveStream
 
+from lsst.cmservice.cm_models.enums import StatusEnum
+
 from ..config import config
-from .enums import StatusEnum
 from .errors import CMSlurmCheckError, CMSlurmSubmitError
 
 slurm_status_map = {

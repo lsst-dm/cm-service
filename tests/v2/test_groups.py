@@ -11,9 +11,9 @@ import pytest
 from httpx import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from lsst.cmservice.common.enums import DEFAULT_NAMESPACE, ManifestKind
-from lsst.cmservice.common.graph import validate_graph
-from lsst.cmservice.db.campaigns_v2 import Node
+from lsst.cmservice.cm_models.db.campaigns import Node
+from lsst.cmservice.cm_models.enums import DEFAULT_NAMESPACE, ManifestKind
+from lsst.cmservice.cm_models.lib.graph import validate_graph
 from lsst.cmservice.machines.node import GroupMachine, StepMachine
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")

@@ -13,11 +13,12 @@ from typing import TYPE_CHECKING, Annotated, TypeAlias
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from lsst.cmservice.cm_models.enums import StatusEnum
+from lsst.cmservice.cm_models.types import AnyAsyncSession
+
 from .. import db, models
-from ..common.enums import StatusEnum
 from ..common.errors import CMBadStateTransitionError, CMMissingFullnameError, CMMissingIDError
 from ..common.logging import LOGGER
-from ..common.types import AnyAsyncSession
 from ..db.session import db_session_dependency
 
 logger = LOGGER.bind(module=__name__)

@@ -9,8 +9,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from lsst.cmservice.cm_models.db.campaigns import ActivityLog
+
 from ...common.logging import LOGGER
-from ...db.campaigns_v2 import ActivityLog
 from ...db.session import db_session_dependency
 
 # TODO should probably bind a logger to the fastapi app or something

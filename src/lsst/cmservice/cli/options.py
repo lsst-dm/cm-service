@@ -8,13 +8,14 @@ import click
 from click.decorators import FC
 from httpx import HTTPStatusError
 
+from lsst.cmservice.cm_models.enums import StatusEnum
+
 from ..client.client import CMClient
 from ..common.enums import (
     ErrorActionEnum,
     ErrorFlavorEnum,
     ErrorSourceEnum,
     NodeTypeEnum,
-    StatusEnum,
 )
 from ..common.logging import LOGGER
 

@@ -2,8 +2,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from lsst.cmservice.cm_models.types import AnyAsyncSession
+
 from .. import db, models
-from ..common.types import AnyAsyncSession
 from ..db.session import db_session_dependency
 from ..handlers import functions, interface
 

@@ -6,8 +6,9 @@ from typing import TYPE_CHECKING
 
 import httpx
 
+from lsst.cmservice.cm_models.enums import StatusEnum
+
 from .. import db, models
-from ..common.enums import StatusEnum
 from . import wrappers
 
 if TYPE_CHECKING:

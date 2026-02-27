@@ -17,9 +17,9 @@ from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from lsst.cmservice.common.enums import ManifestKind, StatusEnum
+from lsst.cmservice.cm_models.db.campaigns import Campaign, Machine, Node
+from lsst.cmservice.cm_models.enums import ManifestKind, StatusEnum
 from lsst.cmservice.common.launchers import LauncherCheckResponse
-from lsst.cmservice.db.campaigns_v2 import Campaign, Machine, Node
 from lsst.cmservice.handlers.interface import get_activity_log_errors
 from lsst.cmservice.machines.node import (
     GroupMachine,

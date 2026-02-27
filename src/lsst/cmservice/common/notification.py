@@ -9,9 +9,10 @@ from typing import TYPE_CHECKING
 
 import httpx
 
+from lsst.cmservice.cm_models.enums import StatusEnum
+
 from ..config import config
 from ..parsing.string import parse_element_fullname
-from .enums import StatusEnum
 from .logging import LOGGER
 
 if TYPE_CHECKING:

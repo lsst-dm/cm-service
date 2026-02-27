@@ -8,7 +8,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_serializer
 
-from .timestamp import element_time
+from lsst.cmservice.cm_models.lib.timestamp import element_time
 
 
 class LauncherCheckResponse(BaseModel):

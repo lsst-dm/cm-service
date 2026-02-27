@@ -10,8 +10,9 @@ from typing import TYPE_CHECKING
 from anyio import Path
 from transitions import EventData
 
+from lsst.cmservice.cm_models.types import AsyncSession
+
 from ...common.launchers import LauncherCheckResponse
-from ...common.types import AsyncSession
 from ..abc import AnyStatefulObject
 
 

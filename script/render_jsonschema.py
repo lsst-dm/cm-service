@@ -23,7 +23,7 @@ from json_schema_for_humans.generate import generate_from_file_object
 from json_schema_for_humans.generation_configuration import GenerationConfiguration
 from pydantic import BaseModel
 
-from lsst.cmservice.models.manifests import bps, butler, facility, lsst, steps, wms
+from lsst.cmservice.cm_models.manifests import bps, butler, facility, lsst, steps, wms
 
 GENCONFIG = GenerationConfiguration(
     template_name="js_offline",

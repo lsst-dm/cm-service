@@ -6,7 +6,7 @@ from uuid import uuid4, uuid5
 import pytest
 from httpx import AsyncClient
 
-from lsst.cmservice.common.enums import DEFAULT_NAMESPACE
+from lsst.cmservice.cm_models.enums import DEFAULT_NAMESPACE
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""

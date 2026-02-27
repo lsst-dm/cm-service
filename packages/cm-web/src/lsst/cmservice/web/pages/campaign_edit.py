@@ -12,8 +12,8 @@ from httpx import AsyncClient
 from nicegui import run, ui
 from nicegui.events import ClickEventArguments, GenericEventArguments, ValueChangeEventArguments
 
-from lsst.cmservice.common.enums import DEFAULT_NAMESPACE
-from lsst.cmservice.common.yaml import str_representer
+from lsst.cmservice.cm_models.enums import DEFAULT_NAMESPACE
+from lsst.cmservice.cm_models.lib.yaml import str_representer
 
 from .. import api
 from ..components.button import ToggleButton

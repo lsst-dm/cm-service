@@ -4,7 +4,9 @@ from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 from uuid import UUID, uuid5
 
-from ..common.enums import LevelEnum, StatusEnum
+from lsst.cmservice.cm_models.enums import StatusEnum
+
+from ..common.enums import LevelEnum
 from ..common.errors import CMYamlParseError, test_type_and_raise
 from ..common.notification import send_notification
 from ..config import config
@@ -17,7 +19,7 @@ from ..db.script_dependency import ScriptDependency
 from .functions import render_campaign_steps
 
 if TYPE_CHECKING:
-    from ..common.types import AnyAsyncSession
+    from lsst.cmservice.cm_models.types import AnyAsyncSession
 
 
 class ElementHandler(Handler):

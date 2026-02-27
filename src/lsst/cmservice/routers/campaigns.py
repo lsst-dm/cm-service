@@ -7,12 +7,14 @@ from uuid import uuid5
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy import select
 
+from lsst.cmservice.cm_models.enums import DEFAULT_NAMESPACE
+from lsst.cmservice.cm_models.lib import timestamp
+from lsst.cmservice.cm_models.lib.graph import graph_to_dict
+from lsst.cmservice.cm_models.types import AnyAsyncSession
+
 from .. import db, models
-from ..common import timestamp
-from ..common.enums import DEFAULT_NAMESPACE
-from ..common.graph import graph_from_edge_list, graph_to_dict
+from ..common.legacy_graph import graph_from_edge_list
 from ..common.logging import LOGGER
-from ..common.types import AnyAsyncSession
 from ..db.session import db_session_dependency
 from ..handlers.functions import render_campaign_steps
 from . import wrappers

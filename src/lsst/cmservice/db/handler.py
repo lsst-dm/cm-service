@@ -3,15 +3,16 @@ from __future__ import annotations
 import types
 from typing import TYPE_CHECKING, Any, ClassVar
 
+from lsst.cmservice.cm_models.enums import StatusEnum
 from lsst.utils import doImport
 from lsst.utils.introspection import get_full_type_name
 
-from ..common.enums import StatusEnum
 from ..common.errors import CMBadHandlerTypeError
 from ..common.logging import LOGGER
 
 if TYPE_CHECKING:
-    from ..common.types import AnyAsyncSession
+    from lsst.cmservice.cm_models.types import AnyAsyncSession
+
     from .element import ElementMixin
     from .node import NodeMixin
     from .script import Script

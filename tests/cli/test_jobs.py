@@ -7,7 +7,8 @@ from click.testing import CliRunner
 
 from lsst.cmservice import models
 from lsst.cmservice.cli.client import client_top
-from lsst.cmservice.common.enums import DEFAULT_NAMESPACE, LevelEnum, StatusEnum
+from lsst.cmservice.cm_models.enums import DEFAULT_NAMESPACE, StatusEnum
+from lsst.cmservice.common.enums import LevelEnum
 
 from .util_functions import (
     check_and_parse_result,

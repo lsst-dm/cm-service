@@ -6,8 +6,12 @@ from sqlalchemy import select
 from sqlmodel import col
 from sqlmodel import select as select_
 
+from lsst.cmservice.cm_models.db.campaigns import ActivityLog
+from lsst.cmservice.cm_models.enums import StatusEnum
+from lsst.cmservice.cm_models.types import AnyAsyncSession, AsyncSession
+
 from .. import db
-from ..common.enums import LevelEnum, NodeTypeEnum, StatusEnum, TableEnum
+from ..common.enums import LevelEnum, NodeTypeEnum, TableEnum
 from ..common.errors import (
     CMBadEnumError,
     CMBadExecutionMethodError,
@@ -16,8 +20,6 @@ from ..common.errors import (
     test_type_and_raise,
 )
 from ..common.logging import LOGGER
-from ..common.types import AnyAsyncSession, AsyncSession
-from ..db.campaigns_v2 import ActivityLog
 from . import functions
 
 TABLE_DICT: dict[TableEnum, type[db.RowMixin]] = {

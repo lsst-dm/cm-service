@@ -2,7 +2,7 @@ from typing import Any
 
 from sqlalchemy import select
 
-from lsst.cmservice.common.types import AnyAsyncSession
+from lsst.cmservice.cm_models.types import AnyAsyncSession
 from lsst.cmservice.db import Group, NodeMixin
 from lsst.cmservice.web_app.utils.utils import map_status
 

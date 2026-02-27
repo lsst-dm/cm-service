@@ -2,13 +2,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from ..common.enums import ErrorActionEnum, StatusEnum
+from lsst.cmservice.cm_models.enums import StatusEnum
+from lsst.cmservice.common.enums import ErrorActionEnum
+
 from ..common.errors import CMBadEnumError
 from ..db.element import ElementMixin
 from .element_handler import ElementHandler
 
 if TYPE_CHECKING:
-    from ..common.types import AnyAsyncSession
+    from lsst.cmservice.cm_models.types import AnyAsyncSession
+
     from ..db import Job
 
 

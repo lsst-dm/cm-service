@@ -10,8 +10,9 @@ from anyio import Path, open_file, open_process
 from anyio.streams.text import TextReceiveStream
 from jinja2 import Environment, PackageLoader
 
+from lsst.cmservice.cm_models.enums import StatusEnum
+
 from ..config import config
-from .enums import StatusEnum
 from .errors import CMBashSubmitError
 
 
@@ -203,7 +204,7 @@ async def write_bash_script(
         The path to the newly written script
     """
     # Get the yaml template using package lookup
-    template_environment = Environment(loader=PackageLoader("lsst.cmservice"))
+    template_environment = Environment(loader=PackageLoader("lsst.cmservice.cm_models"))
     bash_template = template_environment.get_template("legacy_wms_submit_sh.j2")
 
     fake = kwargs.get("fake")
