@@ -4,10 +4,11 @@ from typing import TypeAlias
 from httpx import AsyncClient, Response
 from pydantic import TypeAdapter
 
-from lsst.cmservice import models
-from lsst.cmservice.common.enums import LevelEnum, StatusEnum
-from lsst.cmservice.common.types import AnyCampaignElement
+from lsst.cmservice import models_
+from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
+from lsst.cmservice.models.enums import StatusEnum
+from lsst.cmservice.models_.types import AnyCampaignElement
 
 
 def check_and_parse_response[T](
@@ -34,8 +35,8 @@ async def add_scripts(
     client: AsyncClient,
     element: AnyCampaignElement,
     api_version: str,
-) -> tuple[list[models.Script], models.Dependency]:
-    prep_script_model = models.ScriptCreate(
+) -> tuple[list[models_.Script], models_.Dependency]:
+    prep_script_model = models_.ScriptCreate(
         name="prepare",
         parent_name=element.fullname,
         parent_level=element.level.value,
@@ -46,9 +47,9 @@ async def add_scripts(
         f"{config.asgi.route_prefix}/{api_version}/script/create",
         content=prep_script_model.model_dump_json(),
     )
-    prep_script = check_and_parse_response(response, models.Script)
+    prep_script = check_and_parse_response(response, models_.Script)
 
-    collect_script_model = models.ScriptCreate(
+    collect_script_model = models_.ScriptCreate(
         name="collect",
         parent_name=element.fullname,
         parent_level=element.level.value,
@@ -58,9 +59,9 @@ async def add_scripts(
         f"{config.asgi.route_prefix}/{api_version}/script/create",
         content=collect_script_model.model_dump_json(),
     )
-    collect_script = check_and_parse_response(response, models.Script)
+    collect_script = check_and_parse_response(response, models_.Script)
 
-    script_depend_model = models.DependencyCreate(
+    script_depend_model = models_.DependencyCreate(
         prereq_id=prep_script.id,
         depend_id=collect_script.id,
     )
@@ -68,7 +69,7 @@ async def add_scripts(
         f"{config.asgi.route_prefix}/{api_version}/script_dependency/create",
         content=script_depend_model.model_dump_json(),
     )
-    script_depend = check_and_parse_response(response, models.Dependency)
+    script_depend = check_and_parse_response(response, models_.Dependency)
     return ([prep_script, collect_script], script_depend)
 
 
@@ -79,17 +80,17 @@ async def create_tree(
     uuid_int: int,
 ) -> None:
     fixtures = Path(__file__).parent.parent / "fixtures" / "seeds"
-    specification_load_model = models.SpecificationLoad(
+    specification_load_model = models_.SpecificationLoad(
         yaml_file=f"{fixtures}/empty_config.yaml",
     )
     response = await client.post(
         f"{config.asgi.route_prefix}/{api_version}/load/specification",
         content=specification_load_model.model_dump_json(),
     )
-    check_and_parse_response(response, models.Specification)
+    check_and_parse_response(response, models_.Specification)
 
     cname = f"camp0_{uuid_int}"
-    campaign_model = models.CampaignCreate(
+    campaign_model = models_.CampaignCreate(
         name=cname,
         spec_block_assoc_name="base#campaign",
     )
@@ -97,7 +98,7 @@ async def create_tree(
         f"{config.asgi.route_prefix}/{api_version}/campaign/create",
         content=campaign_model.model_dump_json(),
     )
-    camp = check_and_parse_response(response, models.Campaign)
+    camp = check_and_parse_response(response, models_.Campaign)
 
     (_camp_scripts, _camp_script_depend) = await add_scripts(client, camp, api_version)
 
@@ -107,7 +108,7 @@ async def create_tree(
     snames = [f"step{i}_{uuid_int}" for i in range(2)]
     steps = []
     for sname_ in snames:
-        step_model = models.StepCreate(
+        step_model = models_.StepCreate(
             name=sname_,
             spec_block_name="basic_step",
             parent_name=camp.fullname,
@@ -116,13 +117,13 @@ async def create_tree(
             f"{config.asgi.route_prefix}/{api_version}/step/create",
             content=step_model.model_dump_json(),
         )
-        step = check_and_parse_response(response, models.Step)
+        step = check_and_parse_response(response, models_.Step)
         steps.append(step)
 
     for step_ in steps:
         await add_scripts(client, step_, api_version)
 
-    step_depend_model = models.DependencyCreate(
+    step_depend_model = models_.DependencyCreate(
         prereq_id=steps[0].id,
         depend_id=steps[1].id,
     )
@@ -130,7 +131,7 @@ async def create_tree(
         f"{config.asgi.route_prefix}/{api_version}/step_dependency/create",
         content=step_depend_model.model_dump_json(),
     )
-    step_depend = check_and_parse_response(response, models.Dependency)
+    step_depend = check_and_parse_response(response, models_.Dependency)
 
     assert step_depend.prereq_id == steps[0].id
     assert step_depend.depend_id == steps[1].id
@@ -141,7 +142,7 @@ async def create_tree(
     gnames = [f"group{i}_{uuid_int}" for i in range(5)]
     groups = []
     for gname_ in gnames:
-        group_model = models.GroupCreate(
+        group_model = models_.GroupCreate(
             name=gname_,
             spec_block_name="group",
             parent_name=steps[1].fullname,
@@ -150,7 +151,7 @@ async def create_tree(
             f"{config.asgi.route_prefix}/{api_version}/group/create",
             content=group_model.model_dump_json(),
         )
-        group = check_and_parse_response(response, models.Group)
+        group = check_and_parse_response(response, models_.Group)
         groups.append(group)
 
     for group_ in groups:
@@ -161,7 +162,7 @@ async def create_tree(
 
     jobs = []
     for group_ in groups:
-        job_model = models.JobCreate(
+        job_model = models_.JobCreate(
             name=f"job_{uuid_int}",
             spec_block_name="job",
             parent_name=group_.fullname,
@@ -170,7 +171,7 @@ async def create_tree(
             f"{config.asgi.route_prefix}/{api_version}/job/create",
             content=job_model.model_dump_json(),
         )
-        job = check_and_parse_response(response, models.Job)
+        job = check_and_parse_response(response, models_.Job)
         jobs.append(job)
 
     for job_ in jobs:
@@ -203,10 +204,10 @@ async def delete_all_artifacts(
     *,
     check_cascade: bool = False,
 ) -> None:
-    await delete_all_rows(client, api_version, "campaign", models.Campaign)
+    await delete_all_rows(client, api_version, "campaign", models_.Campaign)
     if check_cascade:
         response = await client.get(f"{config.asgi.route_prefix}/{api_version}/campaign/list")
-        n_campaigns = len(check_and_parse_response(response, list[models.Campaign]))
+        n_campaigns = len(check_and_parse_response(response, list[models_.Campaign]))
         assert n_campaigns == 0
 
 
@@ -214,16 +215,16 @@ async def delete_all_spec_stuff(
     client: AsyncClient,
     api_version: str,
 ) -> None:
-    await delete_all_rows(client, api_version, "specification", models.Specification)
-    await delete_all_rows(client, api_version, "spec_block", models.SpecBlock)
-    await delete_all_rows(client, api_version, "pipetask_error_type", models.PipetaskErrorType)
+    await delete_all_rows(client, api_version, "specification", models_.Specification)
+    await delete_all_rows(client, api_version, "spec_block", models_.SpecBlock)
+    await delete_all_rows(client, api_version, "pipetask_error_type", models_.PipetaskErrorType)
 
 
 async def delete_all_queues(
     client: AsyncClient,
     api_version: str,
 ) -> None:
-    await delete_all_rows(client, api_version, "queue", models.Queue)
+    await delete_all_rows(client, api_version, "queue", models_.Queue)
 
 
 async def cleanup(
@@ -240,11 +241,11 @@ async def cleanup(
 async def check_update_methods(
     client: AsyncClient,
     api_version: str,
-    entry: models.ElementMixin,
+    entry: models_.ElementMixin,
     entry_class_name: str,
-    entry_class: type[models.ElementMixin],
+    entry_class: type[models_.ElementMixin],
 ) -> None:
-    update_model = models.UpdateNodeQuery(
+    update_model = models_.UpdateNodeQuery(
         fullname=entry.fullname,
         update_dict=dict(test="dummy"),
     )
@@ -272,7 +273,7 @@ async def check_update_methods(
     )
     expect_failed_response(response, 404)
 
-    update_model = models.UpdateNodeQuery(
+    update_model = models_.UpdateNodeQuery(
         fullname=entry.fullname,
         update_dict=dict(test="dummy"),
     )
@@ -312,7 +313,7 @@ async def check_update_methods(
     )
     expect_failed_response(response, 404)
 
-    update_model = models.UpdateNodeQuery(
+    update_model = models_.UpdateNodeQuery(
         fullname=entry.fullname,
         update_dict=dict(test="dummy"),
     )
@@ -341,7 +342,7 @@ async def check_update_methods(
     )
     expect_failed_response(response, 404)
 
-    update_model = models.UpdateNodeQuery(
+    update_model = models_.UpdateNodeQuery(
         fullname=entry.fullname,
         update_dict=dict(test="dummy"),
     )
@@ -370,7 +371,7 @@ async def check_update_methods(
     )
     expect_failed_response(response, 404)
 
-    update_status_model = models.UpdateStatusQuery(
+    update_status_model = models_.UpdateStatusQuery(
         fullname=entry.fullname,
         status=StatusEnum.reviewable,
     )
@@ -388,7 +389,7 @@ async def check_update_methods(
     check_update = check_and_parse_response(response, entry_class)
     assert check_update.status is StatusEnum.rejected, "reject() failed"
 
-    reset_model = models.ResetQuery(
+    reset_model = models_.ResetQuery(
         fake_reset=True,
     )
 
@@ -424,7 +425,7 @@ async def check_update_methods(
     check_process = check_and_parse_response(response, tuple[bool, StatusEnum])
     assert check_process[1] is StatusEnum.running
 
-    process_query = models.ProcessNodeQuery(
+    process_query = models_.ProcessNodeQuery(
         fullname=entry.fullname,
     )
     response = await client.post(
@@ -494,10 +495,10 @@ async def check_update_methods(
 async def check_scripts(
     client: AsyncClient,
     api_version: str,
-    entry: models.ElementMixin,
+    entry: models_.ElementMixin,
     entry_class_name: str,
 ) -> None:
-    query_model = models.ScriptQuery(
+    query_model = models_.ScriptQuery(
         fullname=entry.fullname,
         script_name=None,
     )
@@ -505,14 +506,14 @@ async def check_scripts(
         f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/{entry.id}/scripts",
         params=query_model.model_dump(),
     )
-    scripts = check_and_parse_response(response, list[models.Script])
+    scripts = check_and_parse_response(response, list[models_.Script])
     assert len(scripts) == 2, f"Expected exactly two scripts for {entry.fullname} got {len(scripts)}"
 
     for script_ in scripts:
         response = await client.get(
             f"{config.asgi.route_prefix}/{api_version}/script/get/{script_.id}/parent",
         )
-        parent_check = check_and_parse_response(response, models.ElementMixin)
+        parent_check = check_and_parse_response(response, models_.ElementMixin)
         assert parent_check.id == entry.id
 
     response = await client.get(
@@ -526,7 +527,7 @@ async def check_scripts(
     )
     expect_failed_response(response, 404)
 
-    query_model = models.ScriptQuery(
+    query_model = models_.ScriptQuery(
         fullname=entry.fullname,
         script_name="bad",
     )
@@ -535,10 +536,10 @@ async def check_scripts(
         params=query_model.model_dump(),
     )
 
-    no_scripts = check_and_parse_response(response, list[models.Script])
+    no_scripts = check_and_parse_response(response, list[models_.Script])
     assert len(no_scripts) == 0, "get_scripts with bad script_name did not return []"
 
-    query_model1 = models.ScriptQuery(
+    query_model1 = models_.ScriptQuery(
         fullname=entry.fullname,
         script_name=None,
     )
@@ -546,7 +547,7 @@ async def check_scripts(
         f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/{entry.id}/all_scripts",
         params=query_model1.model_dump(),
     )
-    all_scripts = check_and_parse_response(response, list[models.Script])
+    all_scripts = check_and_parse_response(response, list[models_.Script])
     assert len(all_scripts) != 0, "get_all_scripts with failed"
 
     response = await client.get(
@@ -579,7 +580,7 @@ async def check_scripts(
     )
     expect_failed_response(response, 404)
 
-    update_status_model = models.UpdateStatusQuery(
+    update_status_model = models_.UpdateStatusQuery(
         fullname=entry.fullname,
         status=StatusEnum.failed,
     )
@@ -588,7 +589,7 @@ async def check_scripts(
         f"{config.asgi.route_prefix}/{api_version}/script/update/{script0.id}/status",
         content=update_status_model.model_dump_json(),
     )
-    update_check = check_and_parse_response(response, models.Script)
+    update_check = check_and_parse_response(response, models_.Script)
     assert update_check.status is StatusEnum.failed
 
     response = await client.post(
@@ -597,7 +598,7 @@ async def check_scripts(
     )
     expect_failed_response(response, 404)
 
-    query_model2 = models.RetryScriptQuery(
+    query_model2 = models_.RetryScriptQuery(
         fullname=entry.fullname,
         script_name="prepare",
         fake_reset=True,
@@ -608,7 +609,7 @@ async def check_scripts(
         f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/action/{entry.id}/retry_script",
         content=query_model2.model_dump_json(),
     )
-    retry_check = check_and_parse_response(response, models.Script)
+    retry_check = check_and_parse_response(response, models_.Script)
     assert retry_check.status is StatusEnum.waiting
 
     response = await client.post(
@@ -621,10 +622,10 @@ async def check_scripts(
         f"{config.asgi.route_prefix}/{api_version}/script/update/{script0.id}/status",
         content=update_status_model.model_dump_json(),
     )
-    update_check = check_and_parse_response(response, models.Script)
+    update_check = check_and_parse_response(response, models_.Script)
     assert update_check.status is StatusEnum.failed
 
-    reset_query = models.ResetQuery(
+    reset_query = models_.ResetQuery(
         status=StatusEnum.waiting,
         fake_reset=True,
     )
@@ -640,10 +641,10 @@ async def check_scripts(
         f"{config.asgi.route_prefix}/{api_version}/script/update/{script0.id}/status",
         content=update_status_model.model_dump_json(),
     )
-    update_check = check_and_parse_response(response, models.Script)
+    update_check = check_and_parse_response(response, models_.Script)
     assert update_check.status is StatusEnum.failed
 
-    script_reset_status_model = models.ResetScriptQuery(
+    script_reset_status_model = models_.ResetScriptQuery(
         fullname=script0.fullname,
         status=StatusEnum.waiting,
     )
@@ -652,7 +653,7 @@ async def check_scripts(
         f"{config.asgi.route_prefix}/{api_version}/actions/reset_script",
         content=script_reset_status_model.model_dump_json(),
     )
-    reset_check = check_and_parse_response(response, models.Script)
+    reset_check = check_and_parse_response(response, models_.Script)
     assert reset_check.status is StatusEnum.waiting
 
     response = await client.post(
@@ -664,7 +665,7 @@ async def check_scripts(
     response = await client.get(
         f"{config.asgi.route_prefix}/{api_version}/script/get/{script0.id}/script_errors",
     )
-    check_errors = check_and_parse_response(response, list[models.ScriptError])
+    check_errors = check_and_parse_response(response, list[models_.ScriptError])
     assert len(check_errors) == 1
 
     response = await client.get(
@@ -691,15 +692,15 @@ async def check_get_methods[E: AnyCampaignElement](
     response = await client.get(f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/-1")
     expect_failed_response(response, 404)
 
-    get_fullname_model = models.FullnameQuery(
+    get_fullname_model = models_.FullnameQuery(
         fullname=entry.fullname,
     )
-    bad_fullname_model = models.FullnameQuery(fullname="bad/bad")
+    bad_fullname_model = models_.FullnameQuery(fullname="bad/bad")
 
-    get_name_model = models.NameQuery(
+    get_name_model = models_.NameQuery(
         name=entry.name,
     )
-    bad_name_model = models.NameQuery(name="bad")
+    bad_name_model = models_.NameQuery(name="bad")
 
     response = await client.get(
         f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get_row_by_fullname",
@@ -730,7 +731,7 @@ async def check_get_methods[E: AnyCampaignElement](
     response = await client.get(
         f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/{entry.id}/spec_block"
     )
-    spec_block_check = check_and_parse_response(response, models.SpecBlock)
+    spec_block_check = check_and_parse_response(response, models_.SpecBlock)
     assert spec_block_check.name
 
     response = await client.get(
@@ -741,7 +742,7 @@ async def check_get_methods[E: AnyCampaignElement](
     response = await client.get(
         f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/{entry.id}/specification",
     )
-    specification_check = check_and_parse_response(response, models.Specification)
+    specification_check = check_and_parse_response(response, models_.Specification)
     assert specification_check.name
 
     response = await client.get(
@@ -752,7 +753,7 @@ async def check_get_methods[E: AnyCampaignElement](
     response = await client.get(
         f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/{entry.id}/tasks",
     )
-    check1 = check_and_parse_response(response, models.MergedTaskSetDict)
+    check1 = check_and_parse_response(response, models_.MergedTaskSetDict)
     assert len(check1.reports) == 0, "length of tasks should be 0"
 
     response = await client.get(f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/-1/tasks")
@@ -761,7 +762,7 @@ async def check_get_methods[E: AnyCampaignElement](
     response = await client.get(
         f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/{entry.id}/wms_task_reports",
     )
-    check2 = check_and_parse_response(response, models.MergedWmsTaskReportDict)
+    check2 = check_and_parse_response(response, models_.MergedWmsTaskReportDict)
 
     assert len(check2.reports) == 0, "length of reports should be 0"
     response = await client.get(
@@ -772,7 +773,7 @@ async def check_get_methods[E: AnyCampaignElement](
     response = await client.get(
         f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/{entry.id}/products",
     )
-    check3 = check_and_parse_response(response, models.MergedProductSetDict)
+    check3 = check_and_parse_response(response, models_.MergedProductSetDict)
     assert len(check3.reports) == 0, "length of products should be 0"
 
     response = await client.get(
@@ -786,11 +787,11 @@ async def check_get_methods[E: AnyCampaignElement](
 async def check_queue(
     client: AsyncClient,
     api_version: str,
-    entry: models.ElementMixin,
+    entry: models_.ElementMixin,
 ) -> None:
     # make and test a queue object
 
-    fullname_model = models.FullnameQuery(
+    fullname_model = models_.FullnameQuery(
         fullname=entry.fullname,
     )
 
@@ -798,7 +799,7 @@ async def check_queue(
         f"{config.asgi.route_prefix}/{api_version}/queue/create",
         content=fullname_model.model_dump_json(),
     )
-    queue = check_and_parse_response(response, models.Queue)
+    queue = check_and_parse_response(response, models_.Queue)
 
     response = await client.get(
         f"{config.asgi.route_prefix}/{api_version}/queue/sleep_time/{queue.id}",

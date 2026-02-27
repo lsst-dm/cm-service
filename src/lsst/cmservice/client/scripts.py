@@ -6,8 +6,9 @@ from typing import TYPE_CHECKING
 
 import httpx
 
-from .. import db, models
-from ..common.enums import StatusEnum
+from lsst.cmservice.models.enums import StatusEnum
+
+from .. import db, models_
 from . import wrappers
 
 if TYPE_CHECKING:
@@ -15,11 +16,11 @@ if TYPE_CHECKING:
 
 # Template specialization
 # Specify the pydantic model for Script
-ResponseModelClass = models.Script
+ResponseModelClass = models_.Script
 # Specify the pydantic model from making new Scripts
-CreateModelClass = models.ScriptCreate
+CreateModelClass = models_.ScriptCreate
 # Specify the pydantic model from updating rows
-UpdateModelClass = models.ScriptUpdate
+UpdateModelClass = models_.ScriptUpdate
 # Specify the associated database table
 DbClass = db.Script
 
@@ -60,19 +61,19 @@ class CMScriptClient:
     delete = wrappers.delete_row_function(f"{router_string}/delete")
 
     get_spec_block = wrappers.get_node_property_function(
-        models.SpecBlock,
+        models_.SpecBlock,
         f"{router_string}/get",
         "spec_block",
     )
 
     get_specification = wrappers.get_node_property_function(
-        models.Specification,
+        models_.Specification,
         f"{router_string}/get",
         "specification",
     )
 
     get_parent = wrappers.get_node_property_function(
-        models.Element,
+        models_.Element,
         f"{router_string}/get",
         "parent",
     )
@@ -92,42 +93,42 @@ class CMScriptClient:
     get_spec_aliases = wrappers.get_node_property_function(dict, f"{router_string}/get", "spec_aliases")
 
     get_script_errors = wrappers.get_node_property_function(
-        list[models.ScriptError],
+        list[models_.ScriptError],
         f"{router_string}/get",
         "script_errors",
     )
 
     update_status = wrappers.get_node_post_query_function(
         ResponseModelClass,
-        models.UpdateStatusQuery,
+        models_.UpdateStatusQuery,
         f"{router_string}/update",
         "status",
     )
 
     update_collections = wrappers.get_node_post_query_function(
         ResponseModelClass,
-        models.UpdateNodeQuery,
+        models_.UpdateNodeQuery,
         f"{router_string}/update",
         "collections",
     )
 
     update_child_config = wrappers.get_node_post_query_function(
         ResponseModelClass,
-        models.UpdateNodeQuery,
+        models_.UpdateNodeQuery,
         f"{router_string}/update",
         "child_config",
     )
 
     update_data_dict = wrappers.get_node_post_query_function(
         ResponseModelClass,
-        models.UpdateNodeQuery,
+        models_.UpdateNodeQuery,
         f"{router_string}/update",
         "data_dict",
     )
 
     update_spec_aliases = wrappers.get_node_post_query_function(
         ResponseModelClass,
-        models.UpdateNodeQuery,
+        models_.UpdateNodeQuery,
         f"{router_string}/update",
         "spec_aliases",
     )
@@ -146,7 +147,7 @@ class CMScriptClient:
 
     reset = wrappers.get_node_post_query_function(
         ResponseModelClass,
-        models.ResetQuery,
+        models_.ResetQuery,
         f"{router_string}/action",
         "reset",
     )
@@ -165,7 +166,7 @@ class CMScriptClient:
 
     reset_script = wrappers.get_node_post_query_function(
         StatusEnum,
-        models.ResetQuery,
+        models_.ResetQuery,
         f"{router_string}/action",
         "reset_script",
     )

@@ -3,7 +3,7 @@ import os
 import pytest
 from httpx import AsyncClient
 
-from lsst.cmservice import models
+from lsst.cmservice import models_
 from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
 
@@ -27,10 +27,10 @@ async def test_report_routes(client: AsyncClient, api_version: str) -> None:
     await create_tree(client, api_version, LevelEnum.job, uuid_int)
 
     response = await client.get(f"{config.asgi.route_prefix}/{api_version}/job/list")
-    jobs = check_and_parse_response(response, list[models.Job])
+    jobs = check_and_parse_response(response, list[models_.Job])
     entry = [job for job in jobs if str(uuid_int) in job.name][0]
 
-    manifest_report_query = models.LoadManifestReport(
+    manifest_report_query = models_.LoadManifestReport(
         fullname=entry.fullname,
         yaml_file="examples/manifest_report_2.yaml",
     )

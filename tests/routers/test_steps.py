@@ -3,7 +3,7 @@ import os
 import pytest
 from httpx import AsyncClient
 
-from lsst.cmservice import models
+from lsst.cmservice import models_
 from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
 
@@ -30,14 +30,14 @@ async def test_step_routes(client: AsyncClient, api_version: str) -> None:
     await create_tree(client, api_version, LevelEnum.group, uuid_int)
 
     response = await client.get(f"{config.asgi.route_prefix}/{api_version}/step/list")
-    steps = check_and_parse_response(response, list[models.Step])
+    steps = check_and_parse_response(response, list[models_.Step])
     entry = [step for step in steps if str(uuid_int) in step.name][0]
 
     # check get methods
-    await check_get_methods(client, api_version, entry, "step", models.Step)
+    await check_get_methods(client, api_version, entry, "step", models_.Step)
 
     # check update methods
-    await check_update_methods(client, api_version, entry, "step", models.Step)
+    await check_update_methods(client, api_version, entry, "step", models_.Step)
 
     # check scripts
     await check_scripts(client, api_version, entry, "step")

@@ -4,10 +4,10 @@ from typing import Any, cast
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, create_model
 from pydantic.alias_generators import to_snake
 
-from ...common.enums import ManifestKind
-from ...common.types import KindField
-from ...db.manifests_v2 import ManifestSpec as ManifestSpec
-from ...db.manifests_v2 import VersionedMetadata
+from ..api.manifests import ManifestSpec as ManifestSpec
+from ..api.manifests import VersionedMetadata
+from ..enums import ManifestKind
+from ..types import KindField
 
 
 class LibraryManifest[SpecT](BaseModel):

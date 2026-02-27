@@ -4,18 +4,19 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
-from .. import db, models
-from ..common.types import AnyAsyncSession
+from lsst.cmservice.models.types import AnyAsyncSession
+
+from .. import db, models_
 from ..db.session import db_session_dependency
 from . import wrappers
 
 # Template specialization
 # Specify the pydantic model for the table
-ResponseModelClass = models.Group
+ResponseModelClass = models_.Group
 # Specify the pydantic model from making new rows
-CreateModelClass = models.GroupCreate
+CreateModelClass = models_.GroupCreate
 # Specify the pydantic model from updating rows
-UpdateModelClass = models.GroupUpdate
+UpdateModelClass = models_.GroupUpdate
 # Specify the associated database table
 DbClass = db.Group
 
@@ -42,7 +43,7 @@ delete_row = wrappers.delete_row_function(router, DbClass)
 update_row = wrappers.put_row_function(router, ResponseModelClass, UpdateModelClass, DbClass)
 get_spec_block = wrappers.get_node_spec_block_function(router, DbClass)
 get_specification = wrappers.get_node_specification_function(router, DbClass)
-get_parent = wrappers.get_node_parent_function(router, models.Step, DbClass)
+get_parent = wrappers.get_node_parent_function(router, models_.Step, DbClass)
 get_resolved_collections = wrappers.get_node_resolved_collections_function(router, DbClass)
 get_collections = wrappers.get_node_collections_function(router, DbClass)
 get_child_config = wrappers.get_node_child_config_function(router, DbClass)
@@ -88,7 +89,7 @@ get_products = wrappers.get_element_products_function(router, DbClass)
 @router.post(
     "/action/{row_id}/rescue_job",
     status_code=201,
-    response_model=models.Job,
+    response_model=models_.Job,
     summary="Rescue a job from this group",
 )
 async def rescue_job(
@@ -103,7 +104,7 @@ async def rescue_job(
 @router.post(
     "/action/{row_id}/mark_rescued",
     status_code=201,
-    response_model=list[models.Job],
+    response_model=list[models_.Job],
     summary="Mark jobs as rescued",
 )
 async def mark_job_rescued(

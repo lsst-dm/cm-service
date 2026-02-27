@@ -7,8 +7,9 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 from anyio import to_thread
 
+from lsst.cmservice.models.enums import StatusEnum
+
 from ..common.butler import BUTLER_FACTORY
-from ..common.enums import StatusEnum
 from ..common.errors import CMMissingScriptInputError, test_type_and_raise
 from ..common.flags import Features
 from ..common.logging import LOGGER
@@ -21,7 +22,7 @@ from ..db.script import Script
 from .script_handler import FunctionHandler
 
 if TYPE_CHECKING:
-    from ..common.types import AnyAsyncSession
+    from lsst.cmservice.models.types import AnyAsyncSession
 
 
 logger = LOGGER.bind(module=__name__)

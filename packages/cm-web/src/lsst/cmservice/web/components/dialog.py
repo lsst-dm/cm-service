@@ -11,7 +11,7 @@ from nicegui import ui
 from nicegui.events import ClickEventArguments, GenericEventArguments, ValueChangeEventArguments
 from pydantic_core import ValidationError
 
-from lsst.cmservice.common.enums import DEFAULT_NAMESPACE
+from lsst.cmservice.models.enums import DEFAULT_NAMESPACE
 
 from .. import api
 from ..lib.models import KIND_TO_SPEC, STEP_MANIFEST_TEMPLATE

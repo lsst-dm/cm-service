@@ -6,9 +6,10 @@ import pickle
 
 from transitions.core import MachineError
 
-from ..common.enums import StatusEnum
+from lsst.cmservice.models.db.campaigns import Campaign, Node
+from lsst.cmservice.models.enums import StatusEnum
+
 from ..common.logging import LOGGER
-from ..db.campaigns_v2 import Campaign, Node
 from .campaign import CampaignMachine
 from .node import NodeMachine, node_machine_factory
 

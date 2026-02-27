@@ -1,4 +1,4 @@
-from ...common.enums import StatusEnum
+from lsst.cmservice.models.enums import StatusEnum
 
 TRANSITIONS = [
     # The critical/happy path of state evolution from waiting to accepted

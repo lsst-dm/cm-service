@@ -9,19 +9,22 @@ from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
-from ..common import timestamp
-from ..common.enums import LevelEnum, StatusEnum
+from lsst.cmservice.models.enums import StatusEnum
+from lsst.cmservice.models.lib import timestamp
+
+from ..common.enums import LevelEnum
 from ..common.errors import CMMissingRowCreateInputError
-from ..models.merged_product_set import MergedProductSetDict
-from ..models.merged_task_set import MergedTaskSetDict
-from ..models.merged_wms_task_report import MergedWmsTaskReportDict
-from .base import Base
+from ..models_.merged_product_set import MergedProductSetDict
+from ..models_.merged_task_set import MergedTaskSetDict
+from ..models_.merged_wms_task_report import MergedWmsTaskReportDict
 from .element import ElementMixin
+from .legacy_base import Base
 from .spec_block import SpecBlock
 from .specification import Specification
 
 if TYPE_CHECKING:
-    from ..common.types import AnyAsyncSession
+    from lsst.cmservice.models.types import AnyAsyncSession
+
     from .job import Job
     from .script import Script
     from .step import Step

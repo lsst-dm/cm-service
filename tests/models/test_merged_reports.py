@@ -1,12 +1,12 @@
 from copy import deepcopy
 
-from lsst.cmservice import models
+from lsst.cmservice import models_
 
 
 def test_merged_product_set() -> None:
     """Tests MergedProductSet pydantic model"""
 
-    set_1_alice = models.MergedProductSet(
+    set_1_alice = models_.MergedProductSet(
         name="alice",
         n_expected=10,
         n_failed=1,
@@ -14,7 +14,7 @@ def test_merged_product_set() -> None:
         n_missing=3,
         n_done=4,
     )
-    set_2_alice = models.MergedProductSet(
+    set_2_alice = models_.MergedProductSet(
         name="alice",
         n_expected=6,
         n_failed=0,
@@ -22,7 +22,7 @@ def test_merged_product_set() -> None:
         n_missing=1,
         n_done=5,
     )
-    set_1_bob = models.MergedProductSet(
+    set_1_bob = models_.MergedProductSet(
         name="bob",
         n_expected=10,
         n_failed=1,
@@ -30,7 +30,7 @@ def test_merged_product_set() -> None:
         n_missing=3,
         n_done=4,
     )
-    set_2_bob = models.MergedProductSet(
+    set_2_bob = models_.MergedProductSet(
         name="bob",
         n_expected=6,
         n_failed=1,
@@ -39,25 +39,25 @@ def test_merged_product_set() -> None:
         n_done=5,
     )
 
-    set_1 = models.MergedProductSetDict(
+    set_1 = models_.MergedProductSetDict(
         reports=dict(
             alice=deepcopy(set_1_alice),
             bob=deepcopy(set_1_bob),
         ),
     )
 
-    set_1_merge = models.MergedProductSetDict(
+    set_1_merge = models_.MergedProductSetDict(
         reports=dict(),
     )
 
-    set_1_iadd = models.MergedProductSetDict(
+    set_1_iadd = models_.MergedProductSetDict(
         reports=dict(),
     )
 
     set_1_merge.merge(set_1)
     set_1_iadd += set_1
 
-    set_2 = models.MergedProductSetDict(
+    set_2 = models_.MergedProductSetDict(
         reports=dict(
             alice=deepcopy(set_2_alice),
             bob=deepcopy(set_2_bob),
@@ -101,28 +101,28 @@ def test_merged_product_set() -> None:
 def test_merged_task_set() -> None:
     """Tests MergedTaskSet pydantic model"""
 
-    set_1_alice = models.MergedTaskSet(
+    set_1_alice = models_.MergedTaskSet(
         name="alice",
         n_expected=10,
         n_failed=1,
         n_failed_upstream=2,
         n_done=7,
     )
-    set_2_alice = models.MergedTaskSet(
+    set_2_alice = models_.MergedTaskSet(
         name="alice",
         n_expected=3,
         n_failed=1,
         n_failed_upstream=0,
         n_done=2,
     )
-    set_1_bob = models.MergedTaskSet(
+    set_1_bob = models_.MergedTaskSet(
         name="bob",
         n_expected=10,
         n_failed=1,
         n_failed_upstream=2,
         n_done=7,
     )
-    set_2_bob = models.MergedTaskSet(
+    set_2_bob = models_.MergedTaskSet(
         name="bob",
         n_expected=3,
         n_failed=0,
@@ -130,24 +130,24 @@ def test_merged_task_set() -> None:
         n_done=2,
     )
 
-    set_1 = models.MergedTaskSetDict(
+    set_1 = models_.MergedTaskSetDict(
         reports=dict(
             alice=deepcopy(set_1_alice),
             bob=deepcopy(set_1_bob),
         ),
     )
 
-    set_1_merge = models.MergedTaskSetDict(
+    set_1_merge = models_.MergedTaskSetDict(
         reports=dict(),
     )
     set_1_merge.merge(set_1)
 
-    set_1_iadd = models.MergedTaskSetDict(
+    set_1_iadd = models_.MergedTaskSetDict(
         reports=dict(),
     )
     set_1_iadd += set_1
 
-    set_2 = models.MergedTaskSetDict(
+    set_2 = models_.MergedTaskSetDict(
         reports=dict(
             alice=deepcopy(set_2_alice),
             bob=deepcopy(set_2_bob),
@@ -186,45 +186,45 @@ def test_merged_task_set() -> None:
 def test_merged_wms_task_report() -> None:
     """Tests MergedWmsTaskReport pydantic model"""
 
-    set_1_alice = models.MergedWmsTaskReport(
+    set_1_alice = models_.MergedWmsTaskReport(
         name="alice",
         n_expected=10,
         n_failed=3,
         n_succeeded=7,
     )
-    set_2_alice = models.MergedWmsTaskReport(
+    set_2_alice = models_.MergedWmsTaskReport(
         name="alice",
         n_expected=3,
         n_failed=1,
         n_succeeded=2,
     )
-    set_1_bob = models.MergedWmsTaskReport(
+    set_1_bob = models_.MergedWmsTaskReport(
         name="bob",
         n_expected=10,
         n_failed=3,
         n_succeeded=7,
     )
-    set_2_bob = models.MergedWmsTaskReport(
+    set_2_bob = models_.MergedWmsTaskReport(
         name="bob",
         n_expected=3,
         n_failed=2,
         n_succeeded=1,
     )
 
-    set_1 = models.MergedWmsTaskReportDict(
+    set_1 = models_.MergedWmsTaskReportDict(
         reports=dict(
             alice=deepcopy(set_1_alice),
             bob=deepcopy(set_1_bob),
         ),
     )
 
-    set_1_iadd = models.MergedWmsTaskReportDict(
+    set_1_iadd = models_.MergedWmsTaskReportDict(
         reports=dict(),
     )
 
     set_1_iadd += set_1
 
-    set_2 = models.MergedWmsTaskReportDict(
+    set_2 = models_.MergedWmsTaskReportDict(
         reports=dict(
             alice=deepcopy(set_2_alice),
             bob=deepcopy(set_2_bob),

@@ -3,16 +3,19 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
-from ..common.enums import LevelEnum, NodeTypeEnum, StatusEnum
+from lsst.cmservice.models.enums import StatusEnum
+
+from ..common.enums import LevelEnum, NodeTypeEnum
 from ..common.errors import CMBadStateTransitionError, CMTooManyActiveScriptsError
 from ..config import config
-from ..models.merged_product_set import MergedProductSetDict
-from ..models.merged_task_set import MergedTaskSetDict
-from ..models.merged_wms_task_report import MergedWmsTaskReportDict
+from ..models_.merged_product_set import MergedProductSetDict
+from ..models_.merged_task_set import MergedTaskSetDict
+from ..models_.merged_wms_task_report import MergedWmsTaskReportDict
 from .node import NodeMixin
 
 if TYPE_CHECKING:
-    from ..common.types import AnyAsyncSession
+    from lsst.cmservice.models.types import AnyAsyncSession
+
     from .job import Job
     from .script import Script
 

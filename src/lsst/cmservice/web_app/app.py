@@ -14,6 +14,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.common.logging import LOGGER
+from lsst.cmservice.models.types import AnyAsyncSession
 from lsst.cmservice.web_app.pages.campaigns import get_all_campaigns, get_campaign_details, search_campaigns
 from lsst.cmservice.web_app.pages.group_details import get_group_by_id
 from lsst.cmservice.web_app.pages.job_details import get_job_by_id
@@ -31,7 +32,6 @@ from lsst.cmservice.web_app.utils.utils import (
     update_data_dict,
 )
 
-from ..common.types import AnyAsyncSession
 from ..db.session import db_session_dependency
 
 

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import httpx
 
-from .. import db, models
+from .. import db, models_
 from . import wrappers
 
 if TYPE_CHECKING:
@@ -14,11 +14,11 @@ if TYPE_CHECKING:
 
 # Template specialization
 # Specify the pydantic model for ScriptError
-ResponseModelClass = models.ScriptError
+ResponseModelClass = models_.ScriptError
 # Specify the pydantic model from making new ScriptErrors
-CreateModelClass = models.ScriptErrorCreate
+CreateModelClass = models_.ScriptErrorCreate
 # Specify the pydantic model from updating rows
-UpdateModelClass = models.ScriptErrorUpdate
+UpdateModelClass = models_.ScriptErrorUpdate
 # Specify the associated database table
 DbClass = db.ScriptError
 

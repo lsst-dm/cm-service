@@ -2,9 +2,10 @@ from typing import Any
 
 import click
 
+from lsst.cmservice.models.enums import StatusEnum
+
 from .. import db
 from ..client.client import CMClient
-from ..common.enums import StatusEnum
 from . import options
 from .wrappers import output_dict, output_pydantic_list, output_pydantic_object
 

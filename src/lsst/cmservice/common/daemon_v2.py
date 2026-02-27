@@ -13,11 +13,12 @@ from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from transitions import Event
 
-from ..common import graph, timestamp
-from ..common.enums import StatusEnum
+from lsst.cmservice.models.db.campaigns import Campaign, Edge, Machine, Node, Task
+from lsst.cmservice.models.enums import StatusEnum
+from lsst.cmservice.models.lib import graph, timestamp
+
 from ..common.flags import Features
 from ..config import config
-from ..db.campaigns_v2 import Campaign, Edge, Machine, Node, Task
 from ..db.session import db_session_dependency
 from ..machines.node import NodeMachine, node_machine_factory
 from .logging import LOGGER
@@ -169,6 +170,9 @@ async def consider_nodes(session: AsyncSession) -> None:
             node_machine_pickle: Machine | None
             if node.machine is None:
                 # create a new machine for the node
+                # FIXME a node stored without serializing the FSM will not have
+                # a prepared configuration chain, so cannot be triggered with
+                # any transition beyond "prepare"
                 node_machine = node_machine_factory(node.kind)(o=node, initial_state=node.status)
                 node_machine_pickle = None
             else:

@@ -4,9 +4,10 @@ import uuid
 import pytest
 from click.testing import CliRunner
 
-from lsst.cmservice import models
+from lsst.cmservice import models_
 from lsst.cmservice.cli.client import client_top
-from lsst.cmservice.common.enums import DEFAULT_NAMESPACE, LevelEnum
+from lsst.cmservice.common.enums import LevelEnum
+from lsst.cmservice.models.enums import DEFAULT_NAMESPACE
 
 from .util_functions import (
     check_and_parse_result,
@@ -27,21 +28,21 @@ async def test_group_cli(runner: CliRunner) -> None:
     os.environ["CM_CONFIGS"] = "examples"
 
     result = runner.invoke(client_top, "group list --output yaml")
-    groups = check_and_parse_result(result, list[models.Group])
+    groups = check_and_parse_result(result, list[models_.Group])
     assert len(groups) == 0, "Group list not empty"
 
     # intialize a tree down to one level lower
     create_tree(runner, client_top, LevelEnum.job, namespace)
 
     result = runner.invoke(client_top, "group list --output yaml")
-    groups = check_and_parse_result(result, list[models.Group])
+    groups = check_and_parse_result(result, list[models_.Group])
     entry = groups[0]
 
     # check get methods
-    check_get_methods(runner, client_top, entry, "group", models.Group)
+    check_get_methods(runner, client_top, entry, "group", models_.Group)
 
     # check update methods
-    check_update_methods(runner, client_top, entry, "group", models.Group)
+    check_update_methods(runner, client_top, entry, "group", models_.Group)
 
     # check scripts
     check_scripts(runner, client_top, entry, "group")

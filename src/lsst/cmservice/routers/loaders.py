@@ -2,8 +2,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from .. import db, models
-from ..common.types import AnyAsyncSession
+from lsst.cmservice.models.types import AnyAsyncSession
+
+from .. import db, models_
 from ..db.session import db_session_dependency
 from ..handlers import functions, interface
 
@@ -16,11 +17,11 @@ router = APIRouter(
 @router.post(
     "/steps",
     status_code=201,
-    response_model=models.Campaign,
+    response_model=models_.Campaign,
     summary="Add Steps to a Campaign",
 )
 async def add_steps(
-    query: models.AddSteps,
+    query: models_.AddSteps,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> db.Campaign:
     """Invoke the interface.add_steps function"""
@@ -35,11 +36,11 @@ async def add_steps(
 @router.post(
     "/specification",
     status_code=201,
-    response_model=models.Specification,
+    response_model=models_.Specification,
     summary="Load a Specification from a yaml file",
 )
 async def load_specification(
-    query: models.SpecificationLoad,
+    query: models_.SpecificationLoad,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> db.Specification:
     """Load a specification object fom a yaml file
@@ -68,11 +69,11 @@ async def load_specification(
 @router.post(
     "/campaign",
     status_code=201,
-    response_model=models.Campaign,
+    response_model=models_.Campaign,
     summary="Load a Specification and use it to create a `Campaign`",
 )
 async def load_and_create_campaign(
-    query: models.LoadAndCreateCampaign,
+    query: models_.LoadAndCreateCampaign,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> db.Campaign:
     """Load a specification and use it to create a `Campaign`
@@ -101,11 +102,11 @@ async def load_and_create_campaign(
 @router.post(
     "/error_types",
     status_code=201,
-    response_model=list[models.PipetaskErrorType],
+    response_model=list[models_.PipetaskErrorType],
     summary="Load a set of `PipetaskErrorType`s from a yaml file",
 )
 async def load_error_types(
-    query: models.YamlFileQuery,
+    query: models_.YamlFileQuery,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> list[db.PipetaskErrorType]:
     """Load a set of PipetaskErrorType object from a yaml file
@@ -134,11 +135,11 @@ async def load_error_types(
 @router.post(
     "/manifest_report",
     status_code=201,
-    response_model=models.Job,
+    response_model=models_.Job,
     summary="Load a manifest report yaml file",
 )
 async def load_manifest_report(
-    query: models.LoadManifestReport,
+    query: models_.LoadManifestReport,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> db.Job:
     """Load a pipetask report and associated it to a Job

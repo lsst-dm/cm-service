@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from ..common.enums import StatusEnum
+from lsst.cmservice.models.enums import StatusEnum
+
 from ..common.errors import (
     CMBadStateTransitionError,
     CMIDMismatchError,
@@ -20,7 +21,7 @@ logger = LOGGER.bind(module=__name__)
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from ..common.types import AnyAsyncSession
+    from lsst.cmservice.models.types import AnyAsyncSession
 
 DELETABLE_STATES = [
     StatusEnum.failed,

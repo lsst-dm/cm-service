@@ -4,10 +4,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from .. import db, models
+from lsst.cmservice.models.types import AnyAsyncSession
+
+from .. import db, models_
 from ..common.errors import CMMissingIDError
 from ..common.logging import LOGGER
-from ..common.types import AnyAsyncSession
 from ..db.session import db_session_dependency
 from . import wrappers
 
@@ -15,11 +16,11 @@ logger = LOGGER.bind(module=__name__)
 
 # Template specialization
 # Specify the pydantic model for the table
-ResponseModelClass = models.Queue
+ResponseModelClass = models_.Queue
 # Specify the pydantic model from making new rows
-CreateModelClass = models.QueueCreate
+CreateModelClass = models_.QueueCreate
 # Specify the pydantic model from updating rows
-UpdateModelClass = models.QueueUpdate
+UpdateModelClass = models_.QueueUpdate
 # Specify the associated database table
 DbClass = db.Queue
 

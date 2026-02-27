@@ -9,20 +9,21 @@ from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
-from ..common import timestamp
+from lsst.cmservice.models.lib import timestamp
+
 from ..common.enums import LevelEnum
 from ..common.errors import CMBadEnumError, CMMissingFullnameError
 from ..common.logging import LOGGER
-from .base import Base
 from .campaign import Campaign
 from .group import Group
 from .job import Job
+from .legacy_base import Base
 from .node import NodeMixin
 from .script import Script
 from .step import Step
 
 if TYPE_CHECKING:
-    from ..common.types import AnyAsyncSession
+    from lsst.cmservice.models.types import AnyAsyncSession
 
 
 logger = LOGGER.bind(module=__name__)

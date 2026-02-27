@@ -11,8 +11,7 @@ dependencies = [
     "pydantic-extra-types>=2.10.5",
     "pydantic-settings>=2.12",
     "structlog>=24.4.0",
-    "lsst-cm-service",
-    "lsst-utils",
+    "lsst-cmservice-models",
 ]
 
 [dependency-groups]
@@ -36,3 +35,6 @@ packages = ["src/lsst"]
 
 [tool.hatch.version]
 path = "src/lsst/cmservice/web/__init__.py"
+
+[tool.uv.sources]
+lsst-cmservice-models = { workspace = true }

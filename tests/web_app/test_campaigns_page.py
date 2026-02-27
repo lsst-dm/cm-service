@@ -7,8 +7,8 @@ from _pytest.monkeypatch import MonkeyPatch
 from playwright.sync_api import expect, sync_playwright
 
 from lsst.cmservice import db
-from lsst.cmservice.common.enums import StatusEnum
 from lsst.cmservice.db import Campaign
+from lsst.cmservice.models.enums import StatusEnum
 from lsst.cmservice.web_app.pages.campaigns import get_campaign_details
 
 

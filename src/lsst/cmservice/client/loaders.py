@@ -11,11 +11,13 @@ import httpx
 import yaml
 from pydantic.v1.utils import deep_update
 
-from .. import models
-from ..common.enums import DEFAULT_NAMESPACE, ErrorActionEnum, ErrorFlavorEnum, ErrorSourceEnum
+from lsst.cmservice.models.enums import DEFAULT_NAMESPACE
+from lsst.cmservice.models.lib.yaml import get_loader
+
+from .. import models_
+from ..common.enums import ErrorActionEnum, ErrorFlavorEnum, ErrorSourceEnum
 from ..common.errors import CMMissingFullnameError, CMYamlParseError
 from ..common.logging import LOGGER
-from ..common.yaml import get_loader
 from . import wrappers
 
 if TYPE_CHECKING:
@@ -35,7 +37,7 @@ class CMLoadClient:
         self._parent = parent
         self._client = parent.client
 
-    steps = wrappers.get_general_post_function(models.AddSteps, models.Campaign, "load/steps")
+    steps = wrappers.get_general_post_function(models_.AddSteps, models_.Campaign, "load/steps")
 
     @property
     def client(self) -> httpx.Client:
@@ -49,7 +51,7 @@ class CMLoadClient:
         *,
         allow_update: bool = False,
         namespace: UUID | None,
-    ) -> models.SpecBlock:
+    ) -> models_.SpecBlock:
         """Upsert and return a SpecBlock
 
         This will create a new SpecBlock, or update an existing one
@@ -155,7 +157,7 @@ class CMLoadClient:
         *,
         namespace: UUID | None,
         allow_update: bool = False,
-    ) -> models.Specification:
+    ) -> models_.Specification:
         """Upsert and return a Specification
 
         This will create a new Specification, or update an existing one
@@ -306,8 +308,8 @@ class CMLoadClient:
         return out_dict
 
     specification = wrappers.get_general_post_function(
-        models.SpecificationLoad,
-        models.Specification,
+        models_.SpecificationLoad,
+        models_.Specification,
         "load/specification",
     )
 
@@ -318,7 +320,7 @@ class CMLoadClient:
         *,
         allow_update: bool = False,
         **kwargs: Any,
-    ) -> models.Campaign:
+    ) -> models_.Campaign:
         """Read a yaml file and create campaign
 
         Parameters
@@ -436,8 +438,8 @@ class CMLoadClient:
         return campaign
 
     campaign = wrappers.get_general_post_function(
-        models.LoadAndCreateCampaign,
-        models.Campaign,
+        models_.LoadAndCreateCampaign,
+        models_.Campaign,
         "load/campaign",
     )
 
@@ -446,7 +448,7 @@ class CMLoadClient:
         config_values: dict,
         *,
         allow_update: bool = False,
-    ) -> models.PipetaskErrorType:
+    ) -> models_.PipetaskErrorType:
         """Upsert and return a PipetaskErrorType
 
         This will create a new PipetaskErrorType, or update an existing one
@@ -484,7 +486,7 @@ class CMLoadClient:
         yaml_file: str,
         *,
         allow_update: bool = False,
-    ) -> list[models.PipetaskErrorType]:
+    ) -> list[models_.PipetaskErrorType]:
         """Read a yaml file and create PipetaskErrorType objects
 
         Parameters
@@ -503,7 +505,7 @@ class CMLoadClient:
         with Path(yaml_file).open(encoding="utf-8") as fin:
             error_types = yaml.safe_load(fin)
 
-        ret_list: list[models.PipetaskErrorType] = []
+        ret_list: list[models_.PipetaskErrorType] = []
         for error_type_ in error_types:
             try:
                 val = error_type_["PipetaskErrorType"]
@@ -521,13 +523,13 @@ class CMLoadClient:
         return ret_list
 
     error_types = wrappers.get_general_post_function(
-        models.YamlFileQuery,
-        list[models.PipetaskErrorType],
+        models_.YamlFileQuery,
+        list[models_.PipetaskErrorType],
         "load/error_types",
     )
 
     manifest_report = wrappers.get_general_post_function(
-        models.LoadManifestReport,
-        models.Job,
+        models_.LoadManifestReport,
+        models_.Job,
         "load/manifest_report",
     )

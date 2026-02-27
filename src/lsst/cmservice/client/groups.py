@@ -6,8 +6,9 @@ from typing import TYPE_CHECKING
 
 import httpx
 
-from .. import db, models
-from ..common.enums import StatusEnum
+from lsst.cmservice.models.enums import StatusEnum
+
+from .. import db, models_
 from . import wrappers
 
 if TYPE_CHECKING:
@@ -15,11 +16,11 @@ if TYPE_CHECKING:
 
 # Template specialization
 # Specify the pydantic model for Group
-ResponseModelClass = models.Group
+ResponseModelClass = models_.Group
 # Specify the pydantic model from making new Groups
-CreateModelClass = models.GroupCreate
+CreateModelClass = models_.GroupCreate
 # Specify the pydantic model from updating rows
-UpdateModelClass = models.GroupUpdate
+UpdateModelClass = models_.GroupUpdate
 # Specify the associated database table
 DbClass = db.Group
 
@@ -68,19 +69,19 @@ class CMGroupClient:
     delete = wrappers.delete_row_function(f"{router_string}/delete")
 
     get_spec_block = wrappers.get_node_property_function(
-        models.SpecBlock,
+        models_.SpecBlock,
         f"{router_string}/get",
         "spec_block",
     )
 
     get_specification = wrappers.get_node_property_function(
-        models.Specification,
+        models_.Specification,
         f"{router_string}/get",
         "specification",
     )
 
     get_parent = wrappers.get_node_property_function(
-        models.Element,
+        models_.Element,
         f"{router_string}/get",
         "parent",
     )
@@ -101,35 +102,35 @@ class CMGroupClient:
 
     update_status = wrappers.get_node_post_query_function(
         ResponseModelClass,
-        models.UpdateStatusQuery,
+        models_.UpdateStatusQuery,
         f"{router_string}/update",
         "status",
     )
 
     update_collections = wrappers.get_node_post_query_function(
         ResponseModelClass,
-        models.UpdateNodeQuery,
+        models_.UpdateNodeQuery,
         f"{router_string}/update",
         "collections",
     )
 
     update_child_config = wrappers.get_node_post_query_function(
         ResponseModelClass,
-        models.UpdateNodeQuery,
+        models_.UpdateNodeQuery,
         f"{router_string}/update",
         "child_config",
     )
 
     update_data_dict = wrappers.get_node_post_query_function(
         ResponseModelClass,
-        models.UpdateNodeQuery,
+        models_.UpdateNodeQuery,
         f"{router_string}/update",
         "data_dict",
     )
 
     update_spec_aliases = wrappers.get_node_post_query_function(
         ResponseModelClass,
-        models.UpdateNodeQuery,
+        models_.UpdateNodeQuery,
         f"{router_string}/update",
         "spec_aliases",
     )
@@ -148,14 +149,14 @@ class CMGroupClient:
 
     reset = wrappers.get_node_post_query_function(
         ResponseModelClass,
-        models.ResetQuery,
+        models_.ResetQuery,
         f"{router_string}/action",
         "reset",
     )
 
     process = wrappers.get_node_post_query_function(
         tuple[bool, StatusEnum],
-        models.ProcessQuery,
+        models_.ProcessQuery,
         f"{router_string}/action",
         "process",
     )
@@ -167,61 +168,61 @@ class CMGroupClient:
     )
 
     get_scripts = wrappers.get_general_query_function(
-        models.ScriptQuery,
-        list[models.Script],
+        models_.ScriptQuery,
+        list[models_.Script],
         f"{router_string}/get",
         "scripts",
     )
 
     get_all_scripts = wrappers.get_general_query_function(
-        models.ScriptQuery,
-        list[models.Script],
+        models_.ScriptQuery,
+        list[models_.Script],
         f"{router_string}/get",
         "all_scripts",
     )
 
     get_jobs = wrappers.get_general_query_function(
-        models.JobQuery,
-        list[models.Job],
+        models_.JobQuery,
+        list[models_.Job],
         f"{router_string}/get",
         "jobs",
     )
 
     retry_script = wrappers.get_node_post_query_function(
-        models.Script,
-        models.RetryScriptQuery,
+        models_.Script,
+        models_.RetryScriptQuery,
         f"{router_string}/action",
         "retry_script",
     )
 
     rescue_job = wrappers.get_node_post_query_function(
-        models.Job,
-        models.NodeQuery,
+        models_.Job,
+        models_.NodeQuery,
         f"{router_string}/action",
         "rescue_job",
     )
 
     mark_rescued = wrappers.get_node_post_query_function(
-        list[models.Job],
-        models.NodeQuery,
+        list[models_.Job],
+        models_.NodeQuery,
         f"{router_string}/action",
         "mark_rescued",
     )
 
     get_wms_task_reports = wrappers.get_node_property_function(
-        models.MergedWmsTaskReportDict,
+        models_.MergedWmsTaskReportDict,
         f"{router_string}/get",
         "wms_task_reports",
     )
 
     get_tasks = wrappers.get_node_property_function(
-        models.MergedTaskSetDict,
+        models_.MergedTaskSetDict,
         f"{router_string}/get",
         "tasks",
     )
 
     get_products = wrappers.get_node_property_function(
-        models.MergedProductSetDict,
+        models_.MergedProductSetDict,
         f"{router_string}/get",
         "products",
     )

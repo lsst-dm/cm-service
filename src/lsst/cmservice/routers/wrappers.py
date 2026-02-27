@@ -13,11 +13,12 @@ from typing import TYPE_CHECKING, Annotated, TypeAlias
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from .. import db, models
-from ..common.enums import StatusEnum
+from lsst.cmservice.models.enums import StatusEnum
+from lsst.cmservice.models.types import AnyAsyncSession
+
+from .. import db, models_
 from ..common.errors import CMBadStateTransitionError, CMMissingFullnameError, CMMissingIDError
 from ..common.logging import LOGGER
-from ..common.types import AnyAsyncSession
 from ..db.session import db_session_dependency
 
 logger = LOGGER.bind(module=__name__)
@@ -434,7 +435,7 @@ def get_node_spec_block_function(
     @router.get(
         "/get/{row_id}/spec_block",
         summary=f"Get the SpecBlock associated to a {db_class.__qualname__}",
-        response_model=models.SpecBlock,
+        response_model=models_.SpecBlock,
     )
     async def get_node_spec_block(
         row_id: int,
@@ -478,7 +479,7 @@ def get_node_specification_function(
     @router.get(
         "/get/{row_id}/specification",
         summary=f"Get the Specification associated to a {db_class.__qualname__}",
-        response_model=models.Specification,
+        response_model=models_.Specification,
     )
     async def get_node_specification(
         row_id: int,
@@ -794,7 +795,7 @@ def update_node_status_function(
     )
     async def update_node_status(
         row_id: int,
-        query: models.UpdateStatusQuery,
+        query: models_.UpdateStatusQuery,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
     ) -> db.NodeMixin:
         try:
@@ -846,7 +847,7 @@ def update_node_collections_function(
     )
     async def update_node_collections(
         row_id: int,
-        query: models.UpdateNodeQuery,
+        query: models_.UpdateNodeQuery,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
     ) -> db.NodeMixin:
         try:
@@ -895,7 +896,7 @@ def update_node_child_config_function(
     )
     async def update_node_child_config(
         row_id: int,
-        query: models.UpdateNodeQuery,
+        query: models_.UpdateNodeQuery,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
     ) -> db.NodeMixin:
         try:
@@ -944,7 +945,7 @@ def update_node_data_dict_function(
     )
     async def update_node_data_dict(
         row_id: int,
-        query: models.UpdateNodeQuery,
+        query: models_.UpdateNodeQuery,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
     ) -> db.NodeMixin:
         try:
@@ -993,7 +994,7 @@ def update_node_spec_aliases_function(
     )
     async def update_node_spec_aliases(
         row_id: int,
-        query: models.UpdateNodeQuery,
+        query: models_.UpdateNodeQuery,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
     ) -> db.NodeMixin:
         try:
@@ -1188,7 +1189,7 @@ def get_node_reset_function(
     )
     async def node_reset(
         row_id: int,
-        query: models.ResetQuery,
+        query: models_.ResetQuery,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
     ) -> db.NodeMixin:
         try:
@@ -1319,7 +1320,7 @@ def get_element_get_scripts_function(
     @router.get(
         "/get/{row_id}/scripts",
         status_code=201,
-        response_model=Sequence[models.Script],
+        response_model=Sequence[models_.Script],
         summary=f"Get the scripts associated to a {db_class.__qualname__}",
     )
     async def element_get_scripts(
@@ -1365,7 +1366,7 @@ def get_element_get_all_scripts_function(
     @router.get(
         "/get/{row_id}/all_scripts",
         status_code=201,
-        response_model=Sequence[models.Script],
+        response_model=Sequence[models_.Script],
         summary=f"Get the all scripts associated to a {db_class.__qualname__}",
     )
     async def element_get_all_scripts(
@@ -1410,7 +1411,7 @@ def get_element_get_jobs_function(
     @router.get(
         "/get/{row_id}/jobs",
         status_code=201,
-        response_model=Sequence[models.Job],
+        response_model=Sequence[models_.Job],
         summary=f"Get the jobs associated to a {db_class.__qualname__}",
     )
     async def element_get_jobs(
@@ -1455,12 +1456,12 @@ def get_element_retry_script_function(
     @router.post(
         "/action/{row_id}/retry_script",
         status_code=201,
-        response_model=models.Script,
+        response_model=models_.Script,
         summary=f"Retry a script associated to a {db_class.__qualname__}",
     )
     async def element_retry_script(
         row_id: int,
-        query: models.RetryScriptQuery,
+        query: models_.RetryScriptQuery,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
     ) -> db.Script:
         if TYPE_CHECKING:
@@ -1506,13 +1507,13 @@ def get_element_wms_task_reports_function(
     @router.get(
         "/get/{row_id}/wms_task_reports",
         status_code=201,
-        response_model=models.MergedWmsTaskReportDict,
+        response_model=models_.MergedWmsTaskReportDict,
         summary=f"Get the WmsTaskReports associated to a {db_class.__qualname__}",
     )
     async def element_get_wms_task_reports(
         row_id: int,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-    ) -> models.MergedWmsTaskReportDict:
+    ) -> models_.MergedWmsTaskReportDict:
         try:
             async with session.begin():
                 the_element = await db_class.get_row(session, row_id)
@@ -1551,13 +1552,13 @@ def get_element_tasks_function(
     @router.get(
         "/get/{row_id}/tasks",
         status_code=201,
-        response_model=models.MergedTaskSetDict,
+        response_model=models_.MergedTaskSetDict,
         summary=f"Get the TaskSets associated to a {db_class.__qualname__}",
     )
     async def element_get_tasks(
         row_id: int,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-    ) -> models.MergedTaskSetDict:
+    ) -> models_.MergedTaskSetDict:
         try:
             async with session.begin():
                 the_element = await db_class.get_row(session, row_id)
@@ -1596,13 +1597,13 @@ def get_element_products_function(
     @router.get(
         "/get/{row_id}/products",
         status_code=201,
-        response_model=models.MergedProductSetDict,
+        response_model=models_.MergedProductSetDict,
         summary=f"Get the ProductSets associated to a {db_class.__qualname__}",
     )
     async def element_get_products(
         row_id: int,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-    ) -> models.MergedProductSetDict:
+    ) -> models_.MergedProductSetDict:
         try:
             async with session.begin():
                 the_element = await db_class.get_row(session, row_id)

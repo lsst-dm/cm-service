@@ -7,9 +7,10 @@ from click import Command
 from click.testing import CliRunner, Result
 from pydantic import TypeAdapter
 
-from lsst.cmservice import models
-from lsst.cmservice.common.enums import LevelEnum, StatusEnum
-from lsst.cmservice.common.types import AnyCampaignElement
+from lsst.cmservice import models_
+from lsst.cmservice.common.enums import LevelEnum
+from lsst.cmservice.models.enums import StatusEnum
+from lsst.cmservice.models_.types import AnyCampaignElement
 
 
 def check_and_parse_result[T](
@@ -37,7 +38,7 @@ def add_scripts(
     client_top: Command,
     element: AnyCampaignElement,
     namespace: uuid.UUID,
-) -> tuple[list[models.Script], models.Dependency | None]:
+) -> tuple[list[models_.Script], models_.Dependency | None]:
     namespaced_spec_block_name = uuid.uuid5(namespace, "null_script")
     result = runner.invoke(
         client_top,
@@ -47,7 +48,7 @@ def add_scripts(
         f"--parent_name {element.fullname} "
         f"--spec_block_name {namespaced_spec_block_name}",
     )
-    prep_script = check_and_parse_result(result, models.Script)
+    prep_script = check_and_parse_result(result, models_.Script)
 
     result = runner.invoke(
         client_top,
@@ -57,7 +58,7 @@ def add_scripts(
         f"--parent_name {element.fullname} "
         f"--spec_block_name {namespaced_spec_block_name}",
     )
-    collect_script = check_and_parse_result(result, models.Script)
+    collect_script = check_and_parse_result(result, models_.Script)
 
     result = runner.invoke(
         client_top,
@@ -86,7 +87,7 @@ def create_tree(
         client_top,
         f"campaign get by_name --output yaml --name {cname}",
     )
-    camp = check_and_parse_result(result, models.Campaign)
+    camp = check_and_parse_result(result, models_.Campaign)
 
     (_camp_scripts, _camp_script_depend) = add_scripts(runner, client_top, camp, namespace)
 
@@ -105,7 +106,7 @@ def create_tree(
             f"--spec_block_name {namespaced_spec_block_name} "
             f"--parent_name {camp.fullname}",
         )
-        step = check_and_parse_result(result, models.Step)
+        step = check_and_parse_result(result, models_.Step)
         steps.append(step)
 
     for step_ in steps:
@@ -118,7 +119,7 @@ def create_tree(
         client_top,
         f"step_dependency create --output yaml --prereq_id {step_0.id} --depend_id {step_1.id}",
     )
-    step_depend = check_and_parse_result(result, models.Dependency)
+    step_depend = check_and_parse_result(result, models_.Dependency)
 
     assert step_depend.prereq_id == steps[0].id
     assert step_depend.depend_id == steps[1].id
@@ -138,7 +139,7 @@ def create_tree(
             f"--spec_block_name {namespaced_group_spec_block} "
             f"--parent_name {step_1.fullname}",
         )
-        group = check_and_parse_result(result, models.Group)
+        group = check_and_parse_result(result, models_.Group)
         groups.append(group)
 
     for group_ in groups:
@@ -158,7 +159,7 @@ def create_tree(
             f"--spec_block_name {namespaced_job_spec_block} "
             f"--parent_name {group_.fullname}",
         )
-        job = check_and_parse_result(result, models.Job)
+        job = check_and_parse_result(result, models_.Job)
         jobs.append(job)
 
     for job_ in jobs:
@@ -189,12 +190,12 @@ def delete_all_artifacts(
     *,
     check_cascade: bool = False,
 ) -> None:
-    delete_all_rows(runner, client_top, "campaign", models.Campaign)
+    delete_all_rows(runner, client_top, "campaign", models_.Campaign)
     if check_cascade:
         result = runner.invoke(client_top, "campaign list --output yaml")
-        n_campaigns = len(check_and_parse_result(result, list[models.Campaign]))
+        n_campaigns = len(check_and_parse_result(result, list[models_.Campaign]))
         result = runner.invoke(client_top, "step list --output yaml")
-        n_steps = len(check_and_parse_result(result, list[models.Step]))
+        n_steps = len(check_and_parse_result(result, list[models_.Step]))
         assert n_campaigns == 0
         assert n_steps == 0
 
@@ -203,15 +204,15 @@ def delete_all_spec_stuff(
     runner: CliRunner,
     client_top: Command,
 ) -> None:
-    delete_all_rows(runner, client_top, "specification", models.Specification)
-    delete_all_rows(runner, client_top, "spec_block", models.SpecBlock)
+    delete_all_rows(runner, client_top, "specification", models_.Specification)
+    delete_all_rows(runner, client_top, "spec_block", models_.SpecBlock)
 
 
 def delete_all_queues(
     runner: CliRunner,
     client_top: Command,
 ) -> None:
-    delete_all_rows(runner, client_top, "queue", models.Queue)
+    delete_all_rows(runner, client_top, "queue", models_.Queue)
 
 
 def cleanup(
@@ -344,12 +345,12 @@ def check_scripts(
     entry: AnyCampaignElement,
     entry_class_name: str,
 ) -> None:
-    models.ScriptQuery(
+    models_.ScriptQuery(
         fullname=entry.fullname,
         script_name=None,
     )
     result = runner.invoke(client_top, f"{entry_class_name} get scripts --output yaml --row_id {entry.id}")
-    scripts = check_and_parse_result(result, list[models.Script])
+    scripts = check_and_parse_result(result, list[models_.Script])
     assert len(scripts) == 2, f"Expected exactly two scripts for {entry.fullname} got {len(scripts)}"
 
     result = runner.invoke(
@@ -357,13 +358,13 @@ def check_scripts(
         f"{entry_class_name} get scripts --output yaml --row_id {entry.id} --script_name bad",
     )
 
-    no_scripts = check_and_parse_result(result, list[models.Script])
+    no_scripts = check_and_parse_result(result, list[models_.Script])
     assert len(no_scripts) == 0, "get_scripts with bad script_name did not return []"
 
     result = runner.invoke(
         client_top, f"{entry_class_name} get all_scripts --output yaml --row_id {entry.id} "
     )
-    all_scripts = check_and_parse_result(result, list[models.Script])
+    all_scripts = check_and_parse_result(result, list[models_.Script])
     assert len(all_scripts) != 0, "get_all_scripts with failed"
 
     script0 = scripts[0]
@@ -378,7 +379,7 @@ def check_scripts(
         client_top,
         f"script action reset --row_id {script0.id} --output yaml",
     )
-    reset_script = check_and_parse_result(result, models.Script)
+    reset_script = check_and_parse_result(result, models_.Script)
     assert reset_script.status is StatusEnum.waiting
 
     result = runner.invoke(
@@ -391,7 +392,7 @@ def check_scripts(
         client_top,
         f"action reset-script --fullname {script0.fullname} --status waiting --output yaml",
     )
-    reset_script = check_and_parse_result(result, models.Script)
+    reset_script = check_and_parse_result(result, models_.Script)
     assert reset_script.status is StatusEnum.waiting
 
     result = runner.invoke(
@@ -405,14 +406,14 @@ def check_scripts(
         f"{entry_class_name} action retry_script "
         f"--row_id {entry.id} --script_name {script0.name} --output yaml",
     )
-    retry_script = check_and_parse_result(result, models.Script)
+    retry_script = check_and_parse_result(result, models_.Script)
     assert retry_script.status is StatusEnum.waiting
 
     result = runner.invoke(
         client_top,
         f"script get script-errors --row_id {script0.id} --output yaml",
     )
-    check_errors = check_and_parse_result(result, list[models.ScriptError])
+    check_errors = check_and_parse_result(result, list[models_.ScriptError])
     assert len(check_errors) == 0
 
 
@@ -443,7 +444,7 @@ def check_get_methods(
     expect_failed_result(result, 1)
 
     result = runner.invoke(client_top, f"{entry_class_name} get spec_block --output yaml --row_id {entry.id}")
-    check_and_parse_result(result, models.SpecBlock)
+    check_and_parse_result(result, models_.SpecBlock)
 
     result = runner.invoke(client_top, f"{entry_class_name} get spec_block --output yaml --row_id -1")
     expect_failed_result(result, 1)
@@ -451,13 +452,13 @@ def check_get_methods(
     result = runner.invoke(
         client_top, f"{entry_class_name} get specification --output yaml --row_id {entry.id}"
     )
-    check_and_parse_result(result, models.Specification)
+    check_and_parse_result(result, models_.Specification)
 
     result = runner.invoke(client_top, f"{entry_class_name} get specification --output yaml --row_id -1")
     expect_failed_result(result, 1)
 
     result = runner.invoke(client_top, f"{entry_class_name} get tasks --output yaml --row_id {entry.id}")
-    check_tasks = check_and_parse_result(result, list[models.MergedTaskSet])
+    check_tasks = check_and_parse_result(result, list[models_.MergedTaskSet])
     assert len(check_tasks) == 0, "length of tasks should be 0"
 
     result = runner.invoke(client_top, f"{entry_class_name} get tasks --output yaml --row_id -1")
@@ -466,14 +467,14 @@ def check_get_methods(
     result = runner.invoke(
         client_top, f"{entry_class_name} get wms_task_reports --output yaml --row_id {entry.id}"
     )
-    check_wms_reports = check_and_parse_result(result, list[models.MergedWmsTaskReport])
+    check_wms_reports = check_and_parse_result(result, list[models_.MergedWmsTaskReport])
     assert len(check_wms_reports) == 0, "length of wms_task_reports should be 0"
 
     result = runner.invoke(client_top, f"{entry_class_name} get wms_task_reports --output yaml --row_id -1")
     expect_failed_result(result, 1)
 
     result = runner.invoke(client_top, f"{entry_class_name} get products --output yaml --row_id {entry.id}")
-    check_products = check_and_parse_result(result, list[models.MergedProductSet])
+    check_products = check_and_parse_result(result, list[models_.MergedProductSet])
     assert len(check_products) == 0, "length of wms_task_reports should be 0"
 
     result = runner.invoke(client_top, f"{entry_class_name} get products --output yaml --row_id -1")
@@ -488,7 +489,7 @@ def check_queue(
     run_daemon: bool = False,
 ) -> None:
     result = runner.invoke(client_top, f"queue create --output yaml --interval 0 --fullname {entry.fullname}")
-    check = check_and_parse_result(result, models.Queue)
+    check = check_and_parse_result(result, models_.Queue)
 
     if run_daemon:
         result = runner.invoke(client_top, f"queue update all --interval 0 --row_id {check.id}")

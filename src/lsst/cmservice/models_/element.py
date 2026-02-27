@@ -6,7 +6,7 @@ These are the things that are shared between
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..common.enums import StatusEnum
+from lsst.cmservice.models.enums import StatusEnum
 
 
 class ElementBase(BaseModel):

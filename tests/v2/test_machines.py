@@ -17,9 +17,7 @@ from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from lsst.cmservice.common.enums import ManifestKind, StatusEnum
 from lsst.cmservice.common.launchers import LauncherCheckResponse
-from lsst.cmservice.db.campaigns_v2 import Campaign, Machine, Node
 from lsst.cmservice.handlers.interface import get_activity_log_errors
 from lsst.cmservice.machines.node import (
     GroupMachine,
@@ -29,6 +27,8 @@ from lsst.cmservice.machines.node import (
     StepMachine,
 )
 from lsst.cmservice.machines.tasks import change_campaign_state
+from lsst.cmservice.models.db.campaigns import Campaign, Machine, Node
+from lsst.cmservice.models.enums import ManifestKind, StatusEnum
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""

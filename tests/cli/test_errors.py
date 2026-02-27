@@ -4,7 +4,7 @@ import pytest
 from click.testing import CliRunner
 from safir.testing.uvicorn import UvicornProcess
 
-from lsst.cmservice import models
+from lsst.cmservice import models_
 from lsst.cmservice.cli.client import client_top
 from lsst.cmservice.client.clientconfig import client_config
 from lsst.cmservice.config import config
@@ -34,10 +34,10 @@ async def test_error_create_cli(uvicorn: UvicornProcess, api_version: str) -> No
         '--diagnostic_message "The error message from a regular pipetask error" --output yaml',
     )
 
-    e1 = check_and_parse_result(result, models.PipetaskErrorType)
+    e1 = check_and_parse_result(result, models_.PipetaskErrorType)
     assert e1.task_name == "skyObjectMean"
 
-    delete_all_rows(runner, client_top, "pipetask_error_type", models.PipetaskErrorType)
+    delete_all_rows(runner, client_top, "pipetask_error_type", models_.PipetaskErrorType)
 
 
 @pytest.mark.asyncio()
@@ -63,4 +63,4 @@ async def test_load_error_types_cli(uvicorn: UvicornProcess, api_version: str) -
     result = runner.invoke(client_top, "action rematch --rematch")
     assert result.exit_code == 0
 
-    delete_all_rows(runner, client_top, "pipetask_error_type", models.PipetaskErrorType)
+    delete_all_rows(runner, client_top, "pipetask_error_type", models_.PipetaskErrorType)

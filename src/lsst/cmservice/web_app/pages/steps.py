@@ -2,9 +2,9 @@ from collections.abc import Sequence
 
 from sqlalchemy import select
 
-from lsst.cmservice.common.enums import StatusEnum
-from lsst.cmservice.common.types import AnyAsyncSession
 from lsst.cmservice.db import Campaign, Step
+from lsst.cmservice.models.enums import StatusEnum
+from lsst.cmservice.models.types import AnyAsyncSession
 from lsst.cmservice.parsing.string import parse_element_fullname
 from lsst.cmservice.web_app.utils.utils import map_status
 

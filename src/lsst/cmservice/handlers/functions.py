@@ -10,13 +10,13 @@ from anyio import Path
 from pydantic.v1.utils import deep_update
 from sqlalchemy import select
 
+from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, StatusEnum
+from lsst.cmservice.models.types import AnyAsyncSession
 from lsst.ctrl.bps.bps_reports import compile_job_summary
 from lsst.ctrl.bps.wms_service import WmsRunReport, WmsStates
 
-from ..common.enums import DEFAULT_NAMESPACE, StatusEnum
 from ..common.errors import CMMissingFullnameError, CMYamlParseError
 from ..common.logging import LOGGER
-from ..common.types import AnyAsyncSession
 from ..config import config
 from ..db.campaign import Campaign
 from ..db.element import ElementMixin

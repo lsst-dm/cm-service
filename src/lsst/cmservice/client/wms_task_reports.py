@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import httpx
 
-from .. import db, models
+from .. import db, models_
 from . import wrappers
 
 if TYPE_CHECKING:
@@ -14,11 +14,11 @@ if TYPE_CHECKING:
 
 # Template specialization
 # Specify the pydantic model for WmsTaskReport
-ResponseModelClass = models.WmsTaskReport
+ResponseModelClass = models_.WmsTaskReport
 # Specify the pydantic model from making new WmsTaskReport
-CreateModelClass = models.WmsTaskReportCreate
+CreateModelClass = models_.WmsTaskReportCreate
 # Specify the pydantic model from updating rows
-UpdateModelClass = models.WmsTaskReportUpdate
+UpdateModelClass = models_.WmsTaskReportUpdate
 # Specify the associated database table
 DbClass = db.WmsTaskReport
 

@@ -3,7 +3,7 @@ import os
 import pytest
 from httpx import AsyncClient
 
-from lsst.cmservice import models
+from lsst.cmservice import models_
 from lsst.cmservice.config import config
 
 from .util_functions import (
@@ -21,7 +21,7 @@ async def test_routers_trivial_campaign(
 
     os.environ["CM_CONFIGS"] = "examples"
 
-    spec_load_model = models.YamlFileQuery(
+    spec_load_model = models_.YamlFileQuery(
         yaml_file="examples/example_trivial.yaml",
     )
 
@@ -29,10 +29,10 @@ async def test_routers_trivial_campaign(
         f"{config.asgi.route_prefix}/{api_version}/load/specification",
         content=spec_load_model.model_dump_json(),
     )
-    specification = check_and_parse_response(response, models.Specification)
+    specification = check_and_parse_response(response, models_.Specification)
     assert specification
 
-    campaign_load_model = models.LoadAndCreateCampaign(
+    campaign_load_model = models_.LoadAndCreateCampaign(
         yaml_file="examples/example_trivial.yaml",
         name="test",
         parent_name="trivial_htcondor",
@@ -43,5 +43,5 @@ async def test_routers_trivial_campaign(
         f"{config.asgi.route_prefix}/{api_version}/load/campaign",
         content=campaign_load_model.model_dump_json(),
     )
-    campaign = check_and_parse_response(response, models.Campaign)
+    campaign = check_and_parse_response(response, models_.Campaign)
     assert campaign.name == "test"

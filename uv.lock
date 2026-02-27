@@ -6,6 +6,7 @@ requires-python = "==3.13.*"
 members = [
     "lsst-cm-service",
     "lsst-cmservice-commandline",
+    "lsst-cmservice-models",
     "lsst-cmservice-web",
 ]
 
@@ -1089,6 +1090,7 @@ dependencies = [
     { name = "greenlet" },
     { name = "httpx" },
     { name = "jinja2" },
+    { name = "lsst-cmservice-models" },
     { name = "networkx" },
     { name = "numpy" },
     { name = "psycopg2-binary" },
@@ -1134,6 +1136,7 @@ dev = [
     { name = "safir", extra = ["db"] },
     { name = "sqlalchemy", extra = ["mypy"] },
     { name = "testcontainers" },
+    { name = "types-networkx" },
     { name = "types-pyyaml" },
     { name = "types-tabulate" },
 ]
@@ -1160,6 +1163,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.27.2" },
     { name = "jinja2", specifier = "==3.1.*" },
     { name = "lsst-cmservice-commandline", marker = "extra == 'cli'", editable = "packages/cm-commandline" },
+    { name = "lsst-cmservice-models", editable = "packages/cm-models" },
     { name = "lsst-cmservice-web", marker = "extra == 'web'", editable = "packages/cm-web" },
     { name = "networkx", specifier = ">=3.5" },
     { name = "numpy", specifier = "==2.1.*" },
@@ -1196,6 +1200,7 @@ dev = [
     { name = "safir", extras = ["db"], specifier = "==7.0.*" },
     { name = "sqlalchemy", extras = ["mypy"], specifier = ">=2.0.36" },
     { name = "testcontainers", extras = ["postgres"], specifier = "==4.10.*" },
+    { name = "types-networkx" },
     { name = "types-pyyaml", specifier = ">=6.0.12.20240917" },
     { name = "types-tabulate", specifier = ">=0.9.0.20240106" },
 ]
@@ -1213,8 +1218,7 @@ name = "lsst-cmservice-commandline"
 source = { editable = "packages/cm-commandline" }
 dependencies = [
     { name = "httpx" },
-    { name = "lsst-cm-service" },
-    { name = "lsst-utils" },
+    { name = "lsst-cmservice-models" },
     { name = "pydantic-settings" },
     { name = "pyyaml" },
     { name = "rich" },
@@ -1224,8 +1228,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
-    { name = "lsst-cm-service", editable = "." },
-    { name = "lsst-utils", specifier = ">=29.2025.4700" },
+    { name = "lsst-cmservice-models", editable = "packages/cm-models" },
     { name = "pydantic-settings", specifier = ">=2.9" },
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "rich", specifier = ">=13.0.0" },
@@ -1233,12 +1236,47 @@ requires-dist = [
 ]
 
 [[package]]
+name = "lsst-cmservice-models"
+source = { editable = "packages/cm-models" }
+dependencies = [
+    { name = "asgi-correlation-id" },
+    { name = "jinja2" },
+    { name = "networkx" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "sqlmodel" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "asgi-correlation-id", specifier = ">=4.3.4" },
+    { name = "jinja2", specifier = "==3.1.*" },
+    { name = "networkx", specifier = ">=3.5" },
+    { name = "pydantic", specifier = "==2.12.*" },
+    { name = "pydantic-settings", specifier = "==2.12.*" },
+    { name = "sqlmodel", specifier = ">=0.0.24" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.3.3" },
+    { name = "pytest-asyncio", specifier = ">=0.24.0" },
+    { name = "pytest-cov", specifier = ">=6.0.0" },
+]
+
+[[package]]
 name = "lsst-cmservice-web"
 source = { editable = "packages/cm-web" }
 dependencies = [
     { name = "deepdiff" },
-    { name = "lsst-cm-service" },
-    { name = "lsst-utils" },
+    { name = "lsst-cmservice-models" },
     { name = "networkx" },
     { name = "nicegui" },
     { name = "pydantic" },
@@ -1255,8 +1293,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "deepdiff", specifier = ">=8.6.1" },
-    { name = "lsst-cm-service", editable = "." },
-    { name = "lsst-utils" },
+    { name = "lsst-cmservice-models", editable = "packages/cm-models" },
     { name = "networkx", specifier = ">=3.5" },
     { name = "nicegui", specifier = ">=3.8.0" },
     { name = "pydantic", specifier = ">=2.12" },
@@ -2707,6 +2744,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/fd/07/b822e1b307d40e263e8253d2384cf98c51aa2368cc7ba9a07e523a1d964b/typer-0.23.1.tar.gz", hash = "sha256:2070374e4d31c83e7b61362fd859aa683576432fd5b026b060ad6b4cd3b86134", size = 120047, upload-time = "2026-02-13T10:04:30.984Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d5/91/9b286ab899c008c2cb05e8be99814807e7fbbd33f0c0c960470826e5ac82/typer-0.23.1-py3-none-any.whl", hash = "sha256:3291ad0d3c701cbf522012faccfbb29352ff16ad262db2139e6b01f15781f14e", size = 56813, upload-time = "2026-02-13T10:04:32.008Z" },
+]
+
+[[package]]
+name = "types-networkx"
+version = "3.6.1.20260210"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/4f/d9/7ddf6afb27246998ae41f7ad19da410d83e24623b4db065b5a46888d327e/types_networkx-3.6.1.20260210.tar.gz", hash = "sha256:9864affb01ed53d6bf41c1042fbced155ac409ae02ca505e0a3fffe48901b6e1", size = 73702, upload-time = "2026-02-10T04:22:17.641Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/55/b0/1c45681a8b8d3ccf25cebaa296b06d5240518bd7a7d861cf14a15bf9dd20/types_networkx-3.6.1.20260210-py3-none-any.whl", hash = "sha256:075ccb9f2e2b370c3a9eae9636f2f38890e7c494e6323cb72a0207f104f8225e", size = 162684, upload-time = "2026-02-10T04:22:16.055Z" },
 ]
 
 [[package]]
