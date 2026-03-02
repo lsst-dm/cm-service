@@ -395,7 +395,7 @@ async def test_group_prepare_replace(
     # Assert the artifact path exists
     group_path = group.metadata_.get("artifact_path")
     assert group_path is not None
-    assert Path(group_path).exists()
+    assert await Path(group_path).exists()
 
     # Replace the group with a new version
     x = await aclient.patch(
@@ -433,7 +433,7 @@ async def test_group_prepare_replace(
     # group's path does not interfere
     group_path = group.metadata_.get("artifact_path")
     assert group_path is not None
-    assert Path(group_path).exists()
+    assert await Path(group_path).exists()
 
 
 async def test_group_fail_retry(
@@ -511,7 +511,7 @@ async def test_group_fail_retry(
         await group_machine.trigger("finish")
 
     # The artifact path should exist
-    assert Path(group_artifact_path).exists()
+    assert await Path(group_artifact_path).exists()
 
     await session.refresh(group, ["status"])
     group_status = group.status
