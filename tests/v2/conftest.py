@@ -281,7 +281,7 @@ async def manifest_fixtures(aclient: AsyncClient) -> None:
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "lsst",
             "metadata": {"name": "w_latest", "namespace": default_namespace},
-            "spec": {"stack": "w_latest"},
+            "spec": {"lsst_version": "w_latest"},
         },
     )
 
@@ -293,8 +293,10 @@ async def manifest_fixtures(aclient: AsyncClient) -> None:
             "metadata": {"name": "muthur", "namespace": default_namespace},
             "spec": {
                 "repo": "/repo/mock",
-                "predicates": [],
-                "collections": {},
+                "predicates": ["instrument='MockCam'"],
+                "collections": {
+                    "campaign_input": ["MockCam/defaults"],
+                },
             },
         },
     )
@@ -358,8 +360,6 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
                 "predicates": ["instrument='NOSTROMO'"],
                 "collections": {
                     "campaign_input": ["NOSTROMO/catalog/ZetaReticuli/Calpamos"],
-                    "campaign_public_output": f"u/adallas/{campaign_name}",
-                    "campaign_output": f"u/adallas/{campaign_name}/out",
                 },
             },
         },
@@ -409,6 +409,7 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
             "kind": "bps",
             "metadata": {"name": "bps", "namespace": campaign["id"]},
             "spec": {
+                "operator": "adallas",
                 "pipeline_yaml": None,
                 "environment": {
                     "LSST_S3_USE_THREADS": "False",

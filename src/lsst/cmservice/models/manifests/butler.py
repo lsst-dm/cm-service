@@ -6,7 +6,6 @@ for a Campaign.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from uuid import uuid4
 
 from pydantic import AliasChoices, BaseModel, Field
 
@@ -34,15 +33,15 @@ class ButlerCollectionsSpec(BaseModel):
         examples=[["refcats", "skymaps"]],
     )
     campaign_public_output: str = Field(
+        default="u/{{bps.operator}}/{{lsst.campaign}}",
         description="The final 'public' campaign *chained* collection; includes the `campaign_output` "
         "collection, the Campaign 'input' collection, and any other incidental collections created during "
         "the campaign (e.g., resource usage)",
-        default_factory=lambda: uuid4().__str__(),
         validation_alias=AliasChoices("campaign_public_output", "out"),
         examples=["u/{operator}/{campaign}"],
     )
-    campaign_output: str | None = Field(
-        default=None,
+    campaign_output: str = Field(
+        default="u/{{bps.operator}}/{{lsst.campaign}}/out",
         description="The 'private' output collection for a campaign; a *chained* collection of "
         "each step-specific *output* collection, which itself is a *chained* collection of each step-group's "
         "`run` collection.",

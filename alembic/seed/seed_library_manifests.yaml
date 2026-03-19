@@ -49,8 +49,6 @@ spec:
   collections:
     campaign_input:
       - LSSTCam/defaults
-    campaign_public_output: "u/{operator}/{campaign}"
-    campaign_output: "u/{operator}/{campaign}/out"
 ---
 apiVersion: io.lsst.cmservice/v1
 kind: wms

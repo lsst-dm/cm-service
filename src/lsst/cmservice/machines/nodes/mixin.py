@@ -172,12 +172,14 @@ class FilesystemActionMixin(ActionMixIn):
         # The fallback configuration is a baked-in set of defaults for some or
         # all configuration manifest kinds. These should be set and used
         # sparingly; runtime defaults are preferred over anything set here.
+        if TYPE_CHECKING:
+            assert isinstance(self.db_model, Node)
         fallback_configuration = {
             "lsst": {
                 "artifact_path": expandvars(config.bps.artifact_path),
                 "lsst_distrib_dir": expandvars(config.bps.lsst_distrib_dir),
                 "lsst_version": expandvars(config.bps.lsst_version),
-                "campaign": self.db_model.namespace.hex,
+                "campaign": self.db_model.campaign.name,
             },
             "bps": {
                 "operator": "lsstsvc1",
@@ -200,13 +202,19 @@ class FilesystemActionMixin(ActionMixIn):
 
         # Get the yaml template using package lookup and wire in any custom
         # template filters
-        action_template_environment = Environment(loader=PackageLoader("lsst.cmservice"))
+        action_template_environment = Environment(
+            loader=PackageLoader("lsst.cmservice"),
+            keep_trailing_newline=True,
+        )
         action_template_environment.filters["toyaml"] = yaml.dump
         action_template_environment.filters["flatten_chainmap"] = lib.flatten_chainmap
 
-        # Add any command_templates to the lsst config chain
+        # Render and Add any command_templates to the lsst config chain
+        rendered_command_templates = [
+            Template(command).render(self.configuration_chain) for command in self.command_templates
+        ]
         self.configuration_chain["lsst"] = self.configuration_chain["lsst"].new_child(
-            {"command": self.command_templates}
+            {"command": rendered_command_templates}
         )
 
         # Each template is rendered in two passes. This supports the use of
