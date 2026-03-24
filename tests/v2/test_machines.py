@@ -788,3 +788,60 @@ async def test_step_fail_reset(
     await session.refresh(step, ["status", "metadata_"])
     step_status = step.status
     assert step_status is StatusEnum.waiting
+
+
+async def test_group_fail_reset(
+    test_campaign_groups: str,
+    session: AsyncSession,
+    aclient: AsyncClient,
+) -> None:
+    """Tests the reset trigger of a failed group."""
+    campaign_id = urlparse(url=test_campaign_groups).path.split("/")[-2:][0]
+
+    # Fetch and prepare a step
+    node_id = uuid5(UUID(campaign_id), "lambert.1")
+    node = await session.get_one(Node, node_id)
+    node_machine = StepMachine(o=node)
+    await node_machine.trigger("prepare")
+
+    # Fetch and prepare a group
+    s = (
+        select(Node)
+        .where(Node.name == "lambert_group_001")
+        .where(Node.namespace == campaign_id)
+        .where(Node.version == 1)
+    )
+
+    group = (await session.exec(s)).one()
+    group_machine = GroupMachine(o=group, initial_state=group.status)
+    await session.commit()
+
+    await group_machine.trigger("prepare")
+    with patch(
+        "lsst.cmservice.machines.node.GroupMachine.do_start",
+        side_effect=RuntimeError("Error: unknown error"),
+    ):
+        await group_machine.trigger("start")
+
+    await session.refresh(group, ["status", "metadata_", "machine"])
+
+    # assert node failed
+    x = await aclient.get(f"/cm-service/v2/nodes/{group.id}")
+    assert x.is_success
+    assert x.json()["status"] == "failed"
+
+    # - trigger 'reset' by setting the status to waiting
+    group_artifact_path = group.metadata_.get("artifact_path", None)
+    x = await aclient.patch(
+        f"/cm-service/v2/nodes/{group.id}",
+        json={"status": "waiting", "force": "true"},
+        headers={"Content-Type": "application/merge-patch+json"},
+    )
+    assert x.is_success
+    await session.refresh(group, ["status", "metadata_", "machine"])
+    group_status = group.status
+    assert group_status is StatusEnum.waiting
+
+    # Assert the artifact directory is deleted
+    assert group_artifact_path is not None
+    assert not (await Path(group_artifact_path).exists())

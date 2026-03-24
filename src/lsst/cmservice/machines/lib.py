@@ -1,18 +1,23 @@
 """Library functions supporting State Machines"""
 
 from collections import ChainMap
-from collections.abc import Generator
-from functools import reduce
+from collections.abc import Callable, Generator
+from functools import partial, reduce
+from shutil import rmtree
 from typing import Any
 from uuid import uuid5
 
+from anyio import Path, to_thread
 from sqlalchemy.dialects.postgresql import insert
 from sqlmodel import col, select
 
 from ..common.enums import DEFAULT_NAMESPACE, ManifestKind
-from ..common.timestamp import now_utc
+from ..common.logging import LOGGER
+from ..common.timestamp import element_time, now_utc
 from ..common.types import AsyncSession
 from ..db.campaigns_v2 import ActivityLog, Campaign, Manifest, Node
+
+logger = LOGGER.bind(module=__name__)
 
 
 async def assemble_config_chain(
@@ -142,3 +147,37 @@ def ordinal_group_nonce() -> Generator[str]:
     while True:
         yield f"{n:03d}"
         n += 1
+
+
+async def deltree(path: Path) -> None:
+    """Async wrapper for the `shutil.rmtree` function with error callback."""
+
+    errors: list[tuple[Path, BaseException]] = []
+
+    def error_cb(func: Callable[..., Any], path: str, e: BaseException) -> None:
+        """Exception handler callback from `shutil.rmtree`."""
+        errors.append((Path(path), e))
+
+    # Ensure that the passed path is actually an anyio.Path
+    _path = Path(path)
+
+    if await _path.exists():
+        _deltree = partial(rmtree, _path, onexc=error_cb)
+        await to_thread.run_sync(_deltree)
+    else:
+        logger.warning("Asked to delete path that doesn't exist.", path=str(path))
+
+    # Check for errors and log them individually.
+    # The last best recovery action if we can't delete the entire tree is to
+    # try to rename it instead.
+    if errors:
+        for e_path, exc in errors:
+            logger.error("Failed to remove file object", path=e_path, exc=exc)
+        try:
+            legacy_dir = _path.with_stem(f".{element_time()}")
+            await _path.replace(legacy_dir)
+            logger.warning("Moved target directory to legacy path", path=path, legacy_dir=str(legacy_dir))
+        except Exception as e:
+            logger.error("Error raised trying to rename directory", path=path, exc=e)
+            # pragma: human intervention required
+            raise

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import shutil
 from collections import ChainMap
 from collections.abc import AsyncGenerator
 from os.path import expandvars
@@ -8,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 from anyio import Path, TemporaryDirectory
-from fastapi.concurrency import run_in_threadpool
 from jinja2 import Environment, PackageLoader, Template
 from sqlalchemy.exc import MissingGreenlet, NoResultFound
 from sqlmodel import desc, or_, select
@@ -19,6 +17,7 @@ from ...common.errors import CMNoSuchManifestError
 from ...common.htcondor import HTCondorManager
 from ...common.launchers import LauncherCheckResponse
 from ...common.logging import LOGGER
+from ...common.timestamp import element_time
 from ...config import config
 from ...db.campaigns_v2 import Manifest, Node
 from ...models.manifest import LibraryManifest
@@ -159,6 +158,19 @@ class FilesystemActionMixin(ActionMixIn):
                 parent_path / self.db_model.kind.name / f"{self.db_model.name}.v{self.db_model.version}"
             )
 
+        # Check for the existence of the target artifact path
+        if await self.artifact_path.exists():
+            # Create a new name for the existing path
+            legacy_path = self.artifact_path.with_suffix(f".{element_time()}")
+            # Rename the existing artifact_path
+            await self.artifact_path.replace(target=legacy_path)
+            logger.warning(
+                "Artifact path for node already exists, making it legacy.",
+                node=self.db_model.name,
+                path=str(self.artifact_path),
+                legacy_path=str(legacy_path),
+            )
+
         try:
             await self.artifact_path.mkdir(parents=True, exist_ok=False)
             # Update the metadata model for the node after the path has been
@@ -264,11 +276,18 @@ class FilesystemActionMixin(ActionMixIn):
 
         # Remove any group-specific working directory from the campaign's
         # artifact path.
-        if hasattr(self, "artifact_path") and await self.artifact_path.exists():
-            await run_in_threadpool(shutil.rmtree, self.artifact_path)
+        if hasattr(self, "artifact_path"):
+            await lib.deltree(self.artifact_path)
+            del self.artifact_path
 
-        # Remove the group's configuration chain
-        del self.configuration_chain
+        # Remove the reference to the artifact path from the orm node too
+        _ = self.db_model.metadata_.pop("artifact_path", None)
+
+        # Remove the group's configuration chain if it has one
+        try:
+            del self.configuration_chain
+        except AttributeError:
+            pass
 
     async def action_reset(self, event: EventData) -> None:
         """Perform a reset operation on an action mixin.
