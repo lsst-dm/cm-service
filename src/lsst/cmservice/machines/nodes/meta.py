@@ -60,7 +60,16 @@ class NodeMachine(StatefulModel):
             send_event=True,
             model_override=True,
         )
+        self.register_callbacks()
         self.post_init()
+
+    def register_callbacks(self) -> None:
+        """Register transition-specific callbacks.
+
+        Note: This method is not idempotent and should only be called once, by
+        the original `__init__` method.
+        """
+        pass
 
     def post_init(self) -> None:
         """Additional initialization method called at the end of ``__init__``,
@@ -328,12 +337,13 @@ class StartMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunch
 
     __kind__ = [ManifestKind.start]
 
-    def post_init(self) -> None:
-        """Post init, set class-specific callback triggers."""
+    def register_callbacks(self) -> None:
         self.machine.before_prepare("do_prepare")
         self.machine.before_unprepare("do_unprepare")
         self.machine.before_start("do_start")
         self.machine.before_reset("do_reset")
+
+    def post_init(self) -> None:
         self.templates = {
             ("wms_submit_sh.j2", f"{self.db_model.name}.sh"),
         }
@@ -412,13 +422,12 @@ class EndMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchMi
 
     __kind__ = [ManifestKind.end]
 
-    def post_init(self) -> None:
-        """Post init, set class-specific callback triggers."""
-        # Wrap up campaign butler collections
-        # update parent campaign status
+    def register_callbacks(self) -> None:
         self.machine.before_prepare("do_prepare")
         self.machine.before_start("do_start")
         self.machine.before_finish("do_finish")
+
+    def post_init(self) -> None:
         self.templates = {
             ("wms_submit_sh.j2", f"{self.db_model.name}.sh"),
         }
@@ -509,8 +518,7 @@ class BreakPointMachine(NodeMachine):
 
     __kind__ = [ManifestKind.breakpoint]
 
-    def post_init(self) -> None:
-        """Post init, set class-specific callback triggers."""
+    def register_callbacks(self) -> None:
         # The breakpoint node does not have any specific callback triggers, as
         # it does not prepare artifacts or interact with additional systems.
         # the breakpoint node does have a special transition that allows the

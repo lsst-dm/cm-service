@@ -4,6 +4,8 @@ API routes.
 
 import pickle
 
+from transitions.core import MachineError
+
 from ..common.enums import StatusEnum
 from ..common.logging import LOGGER
 from ..db.campaigns_v2 import Campaign, Node
@@ -115,7 +117,8 @@ async def change_node_state(
             )
             return None
 
-    # If the requested trigger is valid, perform the action
     # NOTE we include the request_id for every callback we may invoke
-    if await getattr(node_machine, f"may_{trigger}")(request_id=request_id):
+    try:
         await node_machine.trigger(trigger, request_id=request_id, force=force)
+    except MachineError:
+        logger.warning("Node cannot perform requested transition", request_id=request_id)

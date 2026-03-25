@@ -76,9 +76,7 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
     configuration_chain: dict[str, ChainMap[str, Any]]
     artifact_path: Path
 
-    def post_init(self) -> None:
-        """Post init, set class-specific callback triggers."""
-
+    def register_callbacks(self) -> None:
         self.machine.before_prepare("do_prepare")
         self.machine.before_unprepare("do_unprepare")
         self.machine.before_start("do_start")
@@ -86,6 +84,7 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         self.machine.before_reset("do_reset")
         self.machine.before_restart("do_restart")
 
+    def post_init(self) -> None:
         self.templates = {
             ("bps_submit_yaml.j2", f"{self.db_model.name}_bps_config.yaml"),
             ("wms_submit_sh.j2", f"{self.db_model.name}.sh"),
@@ -537,5 +536,5 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         # their pre-runtime default
         self.post_init()
 
-        # increment the number of restarts tracked by the node
-        self.db_model.metadata_["reset"] = self.db_model.metadata_.get("resets", 0) + 1
+        # increment the number of resets tracked by the node
+        self.db_model.metadata_["resets"] = self.db_model.metadata_.get("resets", 0) + 1
