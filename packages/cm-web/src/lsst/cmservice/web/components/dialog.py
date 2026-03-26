@@ -17,6 +17,7 @@ from .. import api
 from ..lib.models import KIND_TO_SPEC, STEP_MANIFEST_TEMPLATE
 from ..lib.parsers import as_snake_case
 from ..pages.common import CMPage
+from ..settings import settings
 from . import strings
 
 
@@ -178,15 +179,17 @@ class EditorDialog(ui.dialog):
         # FIXME just use the pydantic manifest model
         if initial_model is None:
             self.context.model = deepcopy(STEP_MANIFEST_TEMPLATE)
-            self.context.model["metadata"]["namespace"] = str(ctx.namespace)
-            self.context.model["metadata"]["name"] = ctx.name
-            self.context.model["metadata"]["kind"] = ctx.kind
-            self.context.model["metadata"]["uuid"] = ctx.uuid
             self.context.model["spec"] = {}
         else:
             # We deepcopy this model so we don't leak edits back to any other
             # objects
             self.context.model = deepcopy(initial_model)
+
+        # Update current model with metadata from the incoming context.
+        self.context.model["metadata"]["namespace"] = str(ctx.namespace)
+        self.context.model["metadata"]["name"] = ctx.name
+        self.context.model["metadata"]["kind"] = ctx.kind
+        self.context.model["metadata"]["uuid"] = ctx.uuid
 
         self.dialog_content(title)
 
@@ -291,9 +294,9 @@ class EditorDialog(ui.dialog):
             if self.context.kind is None:
                 ui.label("No help available.")
                 return None
-            ui.element("iframe").props(f"src='/static/docs/{self.context.kind}_spec.html'").classes(
-                "w-full h-full"
-            )
+            ui.element("iframe").props(
+                f"src='{settings.root_path}{settings.static_endpoint}/docs/{self.context.kind}_spec.html'"
+            ).classes("w-full h-full")
 
     @ui.refreshable_method
     def action_section(self) -> None:
@@ -621,7 +624,9 @@ class NewManifestEditorDialog(EditorDialog):
         template = {}
         kind_model = KIND_TO_SPEC[self.context.kind]
         for field_name, field_info in kind_model.model_fields.items():
-            if field_info.examples:
+            if field_info.exclude:
+                continue
+            elif field_info.examples:
                 field_example = field_info.examples[0]
                 if isinstance(field_example, dict):
                     template[field_name] = field_example.get(field_name, field_example)

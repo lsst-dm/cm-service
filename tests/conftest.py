@@ -45,6 +45,7 @@ async def app_fixture(monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[FastAPI]
     events are sent during test execution.
     """
     config = importlib.import_module("lsst.cmservice.config")
+    monkeypatch.setattr(target=config.config.asgi, name="route_prefix", value="/cm-service")
     monkeypatch.setattr(
         target=config.config.features,
         name="enabled",

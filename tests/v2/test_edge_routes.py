@@ -11,14 +11,14 @@ pytestmark = pytest.mark.asyncio(loop_scope="module")
 
 async def test_list_delete_no_edges(aclient: AsyncClient) -> None:
     """Tests listing and deleting edges when there are no edges available."""
-    x = await aclient.get("/cm-service/v2/edges")
+    x = await aclient.get("/v2/edges")
     assert x.is_success
     assert len(x.json()) == 0
 
-    x = await aclient.get(f"/cm-service/v2/edges/{uuid4()}")
+    x = await aclient.get(f"/v2/edges/{uuid4()}")
     assert x.status_code == 404
 
-    x = await aclient.delete(f"/cm-service/v2/edges/{uuid4()}")
+    x = await aclient.delete(f"/v2/edges/{uuid4()}")
     assert x.status_code == 404
 
 
@@ -81,7 +81,7 @@ async def test_edge_negative(aclient: AsyncClient) -> None:
 
     # negative: fail to delete an edge using a non-uuid string (like a name)
     x = await aclient.delete(
-        "/cm-service/v2/edges/not_an_edge_id",
+        "/v2/edges/not_an_edge_id",
     )
     assert x.status_code == 422
 
@@ -92,7 +92,7 @@ async def test_edge_lifecycle(aclient: AsyncClient) -> None:
 
     # Create a campaign for edges. Campaigns come with START and END nodes.
     x = await aclient.post(
-        "/cm-service/v2/campaigns",
+        "/v2/campaigns",
         json={
             "kind": "campaign",
             "metadata": {"name": campaign_name},
@@ -104,7 +104,7 @@ async def test_edge_lifecycle(aclient: AsyncClient) -> None:
 
     # Create an edge between START and END
     x = await aclient.post(
-        "/cm-service/v2/edges",
+        "/v2/edges",
         json={
             "kind": "edge",
             "metadata": {
@@ -134,7 +134,7 @@ async def test_edge_lifecycle(aclient: AsyncClient) -> None:
     assert x.is_success
     assert x.json()["name"] == "END"
 
-    x = await aclient.get(f"/cm-service/v2/edges/{edge_name}")
+    x = await aclient.get(f"/v2/edges/{edge_name}")
     assert x.is_success
     edge = x.json()
 

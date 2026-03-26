@@ -123,8 +123,9 @@ def configure_logging(log_level: int) -> None:
         logging.getLogger(logger).handlers.clear()
         logging.getLogger(logger).propagate = propagate
 
-    # set the BPS logging level
+    # Set ERROR level for chatty modules
     for logger in [
+        "asgi_correlation_id",
         "lsst.ctrl.bps",
         "lsst.ctrl.bps.htcondor.htcondor_service",
     ]:
@@ -183,6 +184,7 @@ LOGGER_SETTINGS = LoggingConfiguration()
 
 configure_logging(LOGGER_SETTINGS.level)
 
+# TODO: type annotated with the `wrapper_class` used in `structlog.configure()`
 LOGGER = structlog.get_logger(LOGGER_SETTINGS.handle)
 """Module-level LOGGER object suitable for import in other modules to bind a
 logger.

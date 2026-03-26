@@ -158,7 +158,7 @@ class NodeMixin(RowMixin):
             The handler in question
         """
         spec_block = await self.get_spec_block(session)
-        handler_class = self.handler if self.handler else spec_block.handler
+        handler_class = self.handler or spec_block.handler
         handler_class = test_type_and_raise(handler_class, str, "Node.get_handler handler_class")
         return Handler.get_handler(
             spec_block.id,

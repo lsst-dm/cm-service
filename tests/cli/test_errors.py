@@ -24,7 +24,7 @@ async def test_error_create_cli(uvicorn: UvicornProcess, api_version: str) -> No
     fake error which is not in the database.
     """
 
-    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}/{api_version}"
+    client_config.service_url = f"{uvicorn.url}{config.asgi.route_prefix}/{api_version}"
     runner = CliRunner()
 
     result = runner.invoke(
@@ -46,7 +46,7 @@ async def test_load_error_types_cli(uvicorn: UvicornProcess, api_version: str) -
     """Test `error_type` db table."""
 
     fixtures = Path(__file__).parent.parent / "fixtures" / "seeds"
-    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}/{api_version}"
+    client_config.service_url = f"{uvicorn.url}{config.asgi.route_prefix}/{api_version}"
     runner = CliRunner()
 
     result = runner.invoke(client_top, f"load error-types --yaml_file {fixtures}/error_types.yaml")

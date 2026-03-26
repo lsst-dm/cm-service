@@ -38,7 +38,7 @@ async def test_rpc_process_node(
 
     async def process_once() -> Response:
         r = await aclient.post(
-            "/cm-service/v2/rpc/process",
+            "/v2/rpc/process",
             json={
                 "node_id": str(node_id),
                 "campaign_id": campaign_id,
@@ -63,7 +63,7 @@ async def test_rpc_process_node(
     assert len(tasks) == 1
 
     # The node should now be in the "ready" state
-    x = await aclient.get(f"/cm-service/v2/nodes/{node_id}")
+    x = await aclient.get(f"/v2/nodes/{node_id}")
     assert x.is_success
     assert x.json()["status"] == "ready"
 
@@ -72,7 +72,7 @@ async def test_rpc_process_node(
     assert x.is_success
     await consider_nodes(session)
 
-    x = await aclient.get(f"/cm-service/v2/nodes/{node_id}")
+    x = await aclient.get(f"/v2/nodes/{node_id}")
     assert x.is_success
     assert x.json()["status"] == "running"
 
@@ -81,7 +81,7 @@ async def test_rpc_process_node(
     assert x.is_success
     await consider_nodes(session)
 
-    x = await aclient.get(f"/cm-service/v2/nodes/{node_id}")
+    x = await aclient.get(f"/v2/nodes/{node_id}")
     assert x.is_success
     assert x.json()["status"] == "accepted"
 
@@ -98,7 +98,7 @@ async def test_rpc_process_wrong_node(
 
     async def process_once() -> Response:
         r = await aclient.post(
-            "/cm-service/v2/rpc/process",
+            "/v2/rpc/process",
             json={
                 "node_id": str(node_id),
                 "campaign_id": campaign_id,
@@ -133,7 +133,7 @@ async def test_rpc_with_breakpoint_node(
 
     async def process_once() -> Response:
         r = await aclient.post(
-            "/cm-service/v2/rpc/process",
+            "/v2/rpc/process",
             json={
                 "campaign_id": campaign_id,
             },
@@ -143,7 +143,7 @@ async def test_rpc_with_breakpoint_node(
     # Add a breakpoint node after the START node
     # create a new Node in the campaign
     r = await aclient.post(
-        "/cm-service/v2/nodes",
+        "/v2/nodes",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "node",
@@ -157,7 +157,7 @@ async def test_rpc_with_breakpoint_node(
 
     # INSERT the new node in the campaign downstream of Start
     r = await aclient.patch(
-        f"/cm-service/v2/campaigns/{campaign_id}/graph/nodes/{start_id}?add-node={breakpoint_id}&operation=insert",
+        f"/v2/campaigns/{campaign_id}/graph/nodes/{start_id}?add-node={breakpoint_id}&operation=insert",
     )
     assert r.is_success
 

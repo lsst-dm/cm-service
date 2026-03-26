@@ -78,20 +78,20 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
     anchor_group: UUID | None
     collect_group: UUID | None
 
-    def post_init(self) -> None:
-        """Post init, set class-specific callback triggers."""
-
-        self.templates = {
-            ("wms_submit_sh.j2", f"{self.db_model.name}.sh"),
-        }
-        self.anchor_group: UUID | None = None
-        self.collect_group: UUID | None = None
+    def register_callbacks(self) -> None:
         self.machine.before_prepare("do_prepare")
         self.machine.before_start("do_start")
         self.machine.before_unprepare("do_unprepare")
         self.machine.before_finish("do_finish")
         self.machine.before_reset("do_reset")
         self.machine.before_retry("do_retry")
+
+    def post_init(self) -> None:
+        self.templates = {
+            ("wms_submit_sh.j2", f"{self.db_model.name}.sh"),
+        }
+        self.anchor_group: UUID | None = None
+        self.collect_group: UUID | None = None
 
     async def get_predicates(self) -> tuple[str, ...]:
         """Determines the collection of data query predicates relevant to the
@@ -533,16 +533,17 @@ class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin
     __kind__ = [ManifestKind.collect_groups]
     collections: list[str]
 
-    def post_init(self) -> None:
-        """Post init, set class-specific callback triggers."""
-        self.templates = {
-            ("wms_submit_sh.j2", f"{self.db_model.name}.sh"),
-        }
+    def register_callbacks(self) -> None:
         self.machine.before_prepare("do_prepare")
         self.machine.before_unprepare("do_unprepare")
         self.machine.before_start("do_start")
         self.machine.before_retry("do_retry")
         self.machine.before_reset("do_reset")
+
+    def post_init(self) -> None:
+        self.templates = {
+            ("wms_submit_sh.j2", f"{self.db_model.name}.sh"),
+        }
 
     async def do_prepare(self, event: EventData) -> None:
         """Determine the set of group output collections to chain together for

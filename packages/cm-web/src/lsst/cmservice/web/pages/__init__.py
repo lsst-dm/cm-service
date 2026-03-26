@@ -11,8 +11,9 @@ resolution mechanisms in NiceGUI and/or FastAPI.
 from typing import Annotated
 
 from fastapi import Depends
+from fastapi.responses import JSONResponse
 from httpx import AsyncClient
-from nicegui import ui
+from nicegui import app, ui
 
 from ..lib.client_factory import CLIENT_FACTORY
 from ..settings import settings
@@ -82,3 +83,9 @@ async def canvas_scratch_page() -> None:
     if page := await CanvasScratchPage(title="Canvas Scratch Pad").setup():
         await ui.context.client.connected()
         await page.render()
+
+
+@app.get("/healthz")
+async def health_status_page() -> JSONResponse:
+    """A plain health status page for readiness or liveliness checks."""
+    return JSONResponse({"status": "ok"})

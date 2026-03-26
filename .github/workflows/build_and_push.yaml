@@ -23,12 +23,21 @@ jobs:
             image: ${{ github.repository_owner }}/cm-service
           - target: cmworker
             image: ${{ github.repository_owner }}/cm-worker
+          - target: cmweb
+            image: ${{ github.repository_owner }}/cm-web
     timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Login to DHI
+        uses: docker/login-action@v3
+        with:
+          registry: dhi.io
+          username: ${{ vars.DOCKERHUB_SQREREADONLY_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_SQREREADONLY_TOKEN }}
 
       - uses: lsst-sqre/build-and-push-to-ghcr@v1
         with:

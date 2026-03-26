@@ -125,7 +125,9 @@ class HelpPage(CMPage):
         reference page. This page is generated from pydantic models as
         jsonschema then HTML is generated from that.
         """
-        ui.element("iframe").props(f"src='/static/docs/{kind}_spec.html'").classes("w-full h-full")
+        ui.element("iframe").props(
+            f"src='{settings.root_path}{settings.static_endpoint}/docs/{kind}_spec.html'"
+        ).classes("w-full h-full")
 
     async def markdown_help_section(self, md: str) -> None:
         """Adds a markdown element with the contents of the markdown file

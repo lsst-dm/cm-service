@@ -13,7 +13,7 @@ pytestmark = pytest.mark.asyncio(loop_scope="module")
 
 
 async def test_list_manifests(aclient: AsyncClient) -> None:
-    x = await aclient.get("/cm-service/v2/manifests")
+    x = await aclient.get("/v2/manifests")
     assert x.is_success
     assert len(x.json()) == 0
     assert True
@@ -24,7 +24,7 @@ async def test_load_manifests(aclient: AsyncClient) -> None:
 
     # Try to create a campaign manifest
     x = await aclient.post(
-        "/cm-service/v2/manifests",
+        "/v2/manifests",
         json={
             "apiversion": "io.lsst.cmservice/v1",
             "kind": "campaign",
@@ -36,7 +36,7 @@ async def test_load_manifests(aclient: AsyncClient) -> None:
 
     # Try to create a manifest without a name
     x = await aclient.post(
-        "/cm-service/v2/manifests",
+        "/v2/manifests",
         json={
             "apiversion": "io.lsst.cmservice/v1",
             "kind": "other",
@@ -48,7 +48,7 @@ async def test_load_manifests(aclient: AsyncClient) -> None:
 
     # Try to create a manifest with an unknown namespace
     x = await aclient.post(
-        "/cm-service/v2/manifests",
+        "/v2/manifests",
         json={
             "apiversion": "io.lsst.cmservice/v1",
             "kind": "other",
@@ -63,7 +63,7 @@ async def test_load_manifests(aclient: AsyncClient) -> None:
 
     # Create a manifest in the default namespace
     x = await aclient.post(
-        "/cm-service/v2/manifests",
+        "/v2/manifests",
         json={
             "apiversion": "io.lsst.cmservice/v1",
             "kind": "other",
@@ -81,7 +81,7 @@ async def test_load_manifests(aclient: AsyncClient) -> None:
 
     # Create a campaign for additional manifests
     x = await aclient.post(
-        "/cm-service/v2/campaigns",
+        "/v2/campaigns",
         json={
             "kind": "campaign",
             "metadata": {"name": campaign_name},
@@ -95,7 +95,7 @@ async def test_load_manifests(aclient: AsyncClient) -> None:
     # its id. The first uses the most "proper" manifest field names "metadata"
     # and "spec"; the second uses alternate "metadata_" and "data" aliases.
     x = await aclient.post(
-        "/cm-service/v2/manifests",
+        "/v2/manifests",
         json=[
             {
                 "apiversion": "io.lsst.cmservice/v1",
@@ -128,14 +128,14 @@ async def test_load_manifests(aclient: AsyncClient) -> None:
     assert x.is_success
 
     # Get all the loaded manifests
-    x = await aclient.get("/cm-service/v2/manifests")
+    x = await aclient.get("/v2/manifests")
     assert x.is_success
     manifests = x.json()
     assert len(manifests) == 3
     assert manifests[-1]["spec"]["one"] == 1
 
     # Get all the loaded manifests from the campaign route
-    x = await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}/manifests")
+    x = await aclient.get(f"/v2/campaigns/{campaign_id}/manifests")
     assert x.is_success
     manifests = x.json()
     assert len(manifests) == 2
@@ -149,7 +149,7 @@ async def test_patch_manifest(aclient: AsyncClient) -> None:
 
     # Create a campaign and a manifest
     x = await aclient.post(
-        "/cm-service/v2/campaigns",
+        "/v2/campaigns",
         json={
             "kind": "campaign",
             "metadata": {"name": campaign_name},
@@ -159,7 +159,7 @@ async def test_patch_manifest(aclient: AsyncClient) -> None:
     assert x.is_success
 
     x = await aclient.post(
-        "/cm-service/v2/manifests",
+        "/v2/manifests",
         json={
             "apiversion": "io.lsst.cmservice/v1",
             "kind": "other",
@@ -262,7 +262,7 @@ async def test_patch_manifest(aclient: AsyncClient) -> None:
     # First, make sure when not indicated, the most recent version is returned
     # Note: the previous patch with a failing test op must not have created any
     # new version.
-    x = await aclient.get(f"/cm-service/v2/manifests/{manifest_name}")
+    x = await aclient.get(f"/v2/manifests/{manifest_name}")
     assert x.is_success
     assert x.json()["version"] == 3
 
@@ -272,7 +272,7 @@ async def test_patch_manifest(aclient: AsyncClient) -> None:
     assert "scope" not in x.json().get("metadata")
 
     # Next, get a specific version of the manifest
-    x = await aclient.get(f"/cm-service/v2/manifests/{manifest_name}?version=2")
+    x = await aclient.get(f"/v2/manifests/{manifest_name}?version=2")
     assert x.is_success
     assert x.json()["version"] == 2
 
@@ -283,13 +283,13 @@ async def test_get_manifest_resource(
     """Tests various campaign-manifest acquisition route parameters"""
     default_namespace = str(DEFAULT_NAMESPACE)
 
-    x = await aclient.get(f"/cm-service/v2/campaigns/{default_namespace}/manifest/lsst")
+    x = await aclient.get(f"/v2/campaigns/{default_namespace}/manifest/lsst")
     assert x.is_success
 
-    x = await aclient.get(f"/cm-service/v2/campaigns/{default_namespace}/manifest/butler/main")
+    x = await aclient.get(f"/v2/campaigns/{default_namespace}/manifest/butler/main")
     assert x.is_success
 
-    x = await aclient.get(f"/cm-service/v2/campaigns/{default_namespace}/manifest/site/mars/0")
+    x = await aclient.get(f"/v2/campaigns/{default_namespace}/manifest/site/mars/0")
     assert x.is_success
 
 
@@ -300,12 +300,12 @@ async def test_copy_manifest_resource(
     campaign_id = urlparse(url=test_campaign).path.split("/")[-2:][0]
     default_namespace = str(DEFAULT_NAMESPACE)
 
-    x = await aclient.get(f"/cm-service/v2/campaigns/{default_namespace}/manifest/lsst")
+    x = await aclient.get(f"/v2/campaigns/{default_namespace}/manifest/lsst")
     original_url = x.headers["Self"]
 
     x = await aclient.put(original_url, headers={"Namespace-Copy-Target": campaign_id})
 
-    x = await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}/manifest/lsst")
+    x = await aclient.get(f"/v2/campaigns/{campaign_id}/manifest/lsst")
     assert x.is_success
 
     x = await aclient.put(
@@ -320,7 +320,7 @@ async def test_new_manifest_version(aclient: AsyncClient, test_campaign: str) ->
 
     # A new manifest is created with version 1
     x = await aclient.post(
-        "/cm-service/v2/manifests",
+        "/v2/manifests",
         json=[
             {
                 "apiversion": "io.lsst.cmservice/v1",
@@ -337,13 +337,13 @@ async def test_new_manifest_version(aclient: AsyncClient, test_campaign: str) ->
     )
     assert x.is_success
 
-    x = await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}/manifest/other/campaign_manifest_a")
+    x = await aclient.get(f"/v2/campaigns/{campaign_id}/manifest/other/campaign_manifest_a")
     assert x.is_success
     assert x.json()["version"] == 1
 
     # A manifest of the same name but a different kind is also version 1
     x = await aclient.post(
-        "/cm-service/v2/manifests",
+        "/v2/manifests",
         json=[
             {
                 "apiversion": "io.lsst.cmservice/v1",
@@ -360,13 +360,13 @@ async def test_new_manifest_version(aclient: AsyncClient, test_campaign: str) ->
     )
     assert x.is_success
 
-    x = await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}/manifest/dummy/campaign_manifest_a")
+    x = await aclient.get(f"/v2/campaigns/{campaign_id}/manifest/dummy/campaign_manifest_a")
     assert x.is_success
     assert x.json()["version"] == 1
 
     # Updating a manifest should result in version 2
     x = await aclient.post(
-        "/cm-service/v2/manifests",
+        "/v2/manifests",
         json={
             "apiversion": "io.lsst.cmservice/v1",
             "kind": "other",
@@ -382,11 +382,11 @@ async def test_new_manifest_version(aclient: AsyncClient, test_campaign: str) ->
     )
     assert x.is_success
 
-    x = await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}/manifest/other/campaign_manifest_a")
+    x = await aclient.get(f"/v2/campaigns/{campaign_id}/manifest/other/campaign_manifest_a")
     assert x.is_success
     assert x.json()["version"] == 2
 
     # Without disturbing a different kind of manifest with the same name
-    x = await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}/manifest/dummy/campaign_manifest_a")
+    x = await aclient.get(f"/v2/campaigns/{campaign_id}/manifest/dummy/campaign_manifest_a")
     assert x.is_success
     assert x.json()["version"] == 1

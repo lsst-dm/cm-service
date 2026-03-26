@@ -81,7 +81,7 @@ async def test_append_node_to_prepared_step(
 
     # create a new Node in the campaign
     r = await aclient.post(
-        "/cm-service/v2/nodes",
+        "/v2/nodes",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "node",
@@ -94,7 +94,7 @@ async def test_append_node_to_prepared_step(
 
     # APPEND the new node in the campaign parallel to Node_0
     r = await aclient.patch(
-        f"/cm-service/v2/campaigns/{campaign_id}/graph/nodes/{node_0_id}?add-node={node_1_id}&operation=append",
+        f"/v2/campaigns/{campaign_id}/graph/nodes/{node_0_id}?add-node={node_1_id}&operation=append",
     )
     assert r.is_success
 

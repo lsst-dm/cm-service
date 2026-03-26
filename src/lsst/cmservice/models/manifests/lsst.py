@@ -6,6 +6,7 @@ instructions for a Campaign.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from typing import Annotated
 
 from pydantic import Field
 
@@ -16,6 +17,30 @@ class LsstSpec(ManifestSpec):
     """Spec model for an LSST Manifest."""
 
     model_config = SPEC_CONFIG
+
+    artifact_path: (
+        Annotated[
+            str,
+            Field(
+                title="Artifact Path",
+                examples=["/path/to/writable/shared/location"],
+            ),
+        ]
+        | Annotated[
+            None,
+            Field(
+                title="Null",
+                examples=[None],
+            ),
+        ]
+    ) = Field(
+        default=None,
+        exclude=True,
+        description="The path to a writable shared location where the service "
+        "will create artifacts for the campaign. This is a read-only field that "
+        "should only be set in a library manifest.",
+    )
+
     lsst_version: str = Field(
         default="w_latest",
         title="Stack Version",
