@@ -43,7 +43,7 @@ async def add_scripts(
     )
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/script/create",
+        f"{config.asgi.route_prefix}/{api_version}/script/create",
         content=prep_script_model.model_dump_json(),
     )
     prep_script = check_and_parse_response(response, models.Script)
@@ -55,7 +55,7 @@ async def add_scripts(
         spec_block_name="null_script",
     )
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/script/create",
+        f"{config.asgi.route_prefix}/{api_version}/script/create",
         content=collect_script_model.model_dump_json(),
     )
     collect_script = check_and_parse_response(response, models.Script)
@@ -65,7 +65,7 @@ async def add_scripts(
         depend_id=collect_script.id,
     )
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/script_dependency/create",
+        f"{config.asgi.route_prefix}/{api_version}/script_dependency/create",
         content=script_depend_model.model_dump_json(),
     )
     script_depend = check_and_parse_response(response, models.Dependency)
@@ -83,7 +83,7 @@ async def create_tree(
         yaml_file=f"{fixtures}/empty_config.yaml",
     )
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/load/specification",
+        f"{config.asgi.route_prefix}/{api_version}/load/specification",
         content=specification_load_model.model_dump_json(),
     )
     check_and_parse_response(response, models.Specification)
@@ -94,7 +94,7 @@ async def create_tree(
         spec_block_assoc_name="base#campaign",
     )
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/campaign/create",
+        f"{config.asgi.route_prefix}/{api_version}/campaign/create",
         content=campaign_model.model_dump_json(),
     )
     camp = check_and_parse_response(response, models.Campaign)
@@ -113,7 +113,7 @@ async def create_tree(
             parent_name=camp.fullname,
         )
         response = await client.post(
-            f"{config.asgi.prefix}/{api_version}/step/create",
+            f"{config.asgi.route_prefix}/{api_version}/step/create",
             content=step_model.model_dump_json(),
         )
         step = check_and_parse_response(response, models.Step)
@@ -127,7 +127,7 @@ async def create_tree(
         depend_id=steps[1].id,
     )
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/step_dependency/create",
+        f"{config.asgi.route_prefix}/{api_version}/step_dependency/create",
         content=step_depend_model.model_dump_json(),
     )
     step_depend = check_and_parse_response(response, models.Dependency)
@@ -147,7 +147,7 @@ async def create_tree(
             parent_name=steps[1].fullname,
         )
         response = await client.post(
-            f"{config.asgi.prefix}/{api_version}/group/create",
+            f"{config.asgi.route_prefix}/{api_version}/group/create",
             content=group_model.model_dump_json(),
         )
         group = check_and_parse_response(response, models.Group)
@@ -167,7 +167,7 @@ async def create_tree(
             parent_name=group_.fullname,
         )
         response = await client.post(
-            f"{config.asgi.prefix}/{api_version}/job/create",
+            f"{config.asgi.route_prefix}/{api_version}/job/create",
             content=job_model.model_dump_json(),
         )
         job = check_and_parse_response(response, models.Job)
@@ -185,13 +185,13 @@ async def delete_all_rows(
     entry_class_name: str,
     entry_class: TypeAlias,
 ) -> None:
-    response = await client.get(f"{config.asgi.prefix}/{api_version}/{entry_class_name}/list")
+    response = await client.get(f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/list")
     rows = check_and_parse_response(response, list[entry_class])
 
     for row_ in rows:
-        await client.delete(f"{config.asgi.prefix}/{api_version}/{entry_class_name}/delete/{row_.id}")
+        await client.delete(f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/delete/{row_.id}")
 
-    response = await client.get(f"{config.asgi.prefix}/{api_version}/{entry_class_name}/list")
+    response = await client.get(f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/list")
     rows_check = check_and_parse_response(response, list[entry_class])
 
     assert len(rows_check) == 0, f"Failed to delete all {entry_class_name}"
@@ -205,7 +205,7 @@ async def delete_all_artifacts(
 ) -> None:
     await delete_all_rows(client, api_version, "campaign", models.Campaign)
     if check_cascade:
-        response = await client.get(f"{config.asgi.prefix}/{api_version}/campaign/list")
+        response = await client.get(f"{config.asgi.route_prefix}/{api_version}/campaign/list")
         n_campaigns = len(check_and_parse_response(response, list[models.Campaign]))
         assert n_campaigns == 0
 
@@ -249,26 +249,26 @@ async def check_update_methods(
         update_dict=dict(test="dummy"),
     )
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/update/{entry.id}/data_dict",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/update/{entry.id}/data_dict",
         content=update_model.model_dump_json(),
     )
     check_a = check_and_parse_response(response, entry_class)
     assert check_a.data["test"] == "dummy", "update_data_dict failed"
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/update/-1/data_dict",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/update/-1/data_dict",
         content=update_model.model_dump_json(),
     )
     expect_failed_response(response, 404)
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/{entry.id}/data_dict",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/{entry.id}/data_dict",
     )
     check_b = check_and_parse_response(response, dict)
     assert check_b["test"] == "dummy", "get_data_dict failed"
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/-1/data_dict",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/-1/data_dict",
     )
     expect_failed_response(response, 404)
 
@@ -277,7 +277,7 @@ async def check_update_methods(
         update_dict=dict(test="dummy"),
     )
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/update/{entry.id}/collections",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/update/{entry.id}/collections",
         content=update_model.model_dump_json(),
     )
     check_c = check_and_parse_response(response, entry_class)
@@ -285,30 +285,30 @@ async def check_update_methods(
     assert check_c.collections["test"] == "dummy", "update_collections failed"
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/update/-1/collections",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/update/-1/collections",
         content=update_model.model_dump_json(),
     )
     expect_failed_response(response, 404)
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/{entry.id}/collections",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/{entry.id}/collections",
     )
     check_d = check_and_parse_response(response, dict)
     assert check_d["test"] == "dummy", "get_collections failed"
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/-1/collections",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/-1/collections",
     )
     expect_failed_response(response, 404)
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/{entry.id}/resolved_collections",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/{entry.id}/resolved_collections",
     )
     check_e = check_and_parse_response(response, dict)
     assert check_e["test"] == "dummy", "get_resolved_collections failed"
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/-1/resolved_collections",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/-1/resolved_collections",
     )
     expect_failed_response(response, 404)
 
@@ -317,7 +317,7 @@ async def check_update_methods(
         update_dict=dict(test="dummy"),
     )
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/update/{entry.id}/child_config",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/update/{entry.id}/child_config",
         content=update_model.model_dump_json(),
     )
     check_f = check_and_parse_response(response, entry_class)
@@ -325,19 +325,19 @@ async def check_update_methods(
     assert check_f.child_config["test"] == "dummy", "update_child_config failed"
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/update/-1/child_config",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/update/-1/child_config",
         content=update_model.model_dump_json(),
     )
     expect_failed_response(response, 404)
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/{entry.id}/child_config",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/{entry.id}/child_config",
     )
     check_g = check_and_parse_response(response, dict)
     assert check_g["test"] == "dummy", "get_child_config failed"
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/-1/child_config",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/-1/child_config",
     )
     expect_failed_response(response, 404)
 
@@ -346,7 +346,7 @@ async def check_update_methods(
         update_dict=dict(test="dummy"),
     )
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/update/{entry.id}/spec_aliases",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/update/{entry.id}/spec_aliases",
         content=update_model.model_dump_json(),
     )
     check_h = check_and_parse_response(response, entry_class)
@@ -354,19 +354,19 @@ async def check_update_methods(
     assert check_h.spec_aliases["test"] == "dummy", "update_spec_aliases failed"
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/update/-1/spec_aliases",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/update/-1/spec_aliases",
         content=update_model.model_dump_json(),
     )
     expect_failed_response(response, 404)
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/{entry.id}/spec_aliases",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/{entry.id}/spec_aliases",
     )
     check_i = check_and_parse_response(response, dict)
     assert check_i["test"] == "dummy", "get_spec_aliases failed"
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/-1/spec_aliases",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/-1/spec_aliases",
     )
     expect_failed_response(response, 404)
 
@@ -376,14 +376,14 @@ async def check_update_methods(
     )
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/update/{entry.id}/status",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/update/{entry.id}/status",
         content=update_status_model.model_dump_json(),
     )
     check_update = check_and_parse_response(response, entry_class)
     assert check_update.status is StatusEnum.reviewable
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/{entry.id}/reject",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/action/{entry.id}/reject",
     )
     check_update = check_and_parse_response(response, entry_class)
     assert check_update.status is StatusEnum.rejected, "reject() failed"
@@ -393,33 +393,33 @@ async def check_update_methods(
     )
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/{entry.id}/reset",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/action/{entry.id}/reset",
         content=reset_model.model_dump_json(),
     )
     check_update = check_and_parse_response(response, entry_class)
     assert check_update.status is StatusEnum.waiting, "reset() failed"
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/{entry.id}/accept",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/action/{entry.id}/accept",
     )
     expect_failed_response(response, 422)
 
     update_status_model.status = StatusEnum.running
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/update/{entry.id}/status",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/update/{entry.id}/status",
         content=update_status_model.model_dump_json(),
     )
     check_update = check_and_parse_response(response, entry_class)
     assert check_update.status is StatusEnum.running
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/{entry.id}/run_check",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/action/{entry.id}/run_check",
     )
     check_run_check = check_and_parse_response(response, tuple[bool, StatusEnum])
     assert check_run_check[1] is StatusEnum.running
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/{entry.id}/process",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/action/{entry.id}/process",
     )
     check_process = check_and_parse_response(response, tuple[bool, StatusEnum])
     assert check_process[1] is StatusEnum.running
@@ -428,7 +428,7 @@ async def check_update_methods(
         fullname=entry.fullname,
     )
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/actions/process",
+        f"{config.asgi.route_prefix}/{api_version}/actions/process",
         content=process_query.model_dump_json(),
     )
     check_process = check_and_parse_response(response, tuple[bool, StatusEnum])
@@ -436,57 +436,57 @@ async def check_update_methods(
 
     process_query.fake_status = StatusEnum.running.value
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/actions/process",
+        f"{config.asgi.route_prefix}/{api_version}/actions/process",
         content=process_query.model_dump_json(),
     )
     check_process = check_and_parse_response(response, tuple[bool, StatusEnum])
     assert check_process[1] is StatusEnum.running
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/{entry.id}/accept",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/action/{entry.id}/accept",
     )
     check_update = check_and_parse_response(response, entry_class)
     assert check_update.status is StatusEnum.accepted
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/{entry.id}/reject",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/action/{entry.id}/reject",
     )
     expect_failed_response(response, 422)
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/{entry.id}/reset",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/action/{entry.id}/reset",
         content=reset_model.model_dump_json(),
     )
     expect_failed_response(response, 422)
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/-1/accept",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/action/-1/accept",
     )
     expect_failed_response(response, 404)
 
     response = await client.delete(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/delete/-1",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/delete/-1",
     )
     expect_failed_response(response, 404)
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/-1/reject",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/action/-1/reject",
     )
     expect_failed_response(response, 404)
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/-1/reset",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/action/-1/reset",
         content=reset_model.model_dump_json(),
     )
     expect_failed_response(response, 404)
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/-1/process",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/action/-1/process",
     )
     expect_failed_response(response, 404)
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/-1/run_check",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/action/-1/run_check",
     )
     expect_failed_response(response, 404)
 
@@ -502,7 +502,7 @@ async def check_scripts(
         script_name=None,
     )
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/{entry.id}/scripts",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/{entry.id}/scripts",
         params=query_model.model_dump(),
     )
     scripts = check_and_parse_response(response, list[models.Script])
@@ -510,18 +510,18 @@ async def check_scripts(
 
     for script_ in scripts:
         response = await client.get(
-            f"{config.asgi.prefix}/{api_version}/script/get/{script_.id}/parent",
+            f"{config.asgi.route_prefix}/{api_version}/script/get/{script_.id}/parent",
         )
         parent_check = check_and_parse_response(response, models.ElementMixin)
         assert parent_check.id == entry.id
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/script/get/-1/parent",
+        f"{config.asgi.route_prefix}/{api_version}/script/get/-1/parent",
     )
     expect_failed_response(response, 404)
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/-1/scripts",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/-1/scripts",
         params=query_model.model_dump(),
     )
     expect_failed_response(response, 404)
@@ -531,7 +531,7 @@ async def check_scripts(
         script_name="bad",
     )
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/{entry.id}/scripts",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/{entry.id}/scripts",
         params=query_model.model_dump(),
     )
 
@@ -543,14 +543,14 @@ async def check_scripts(
         script_name=None,
     )
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/{entry.id}/all_scripts",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/{entry.id}/all_scripts",
         params=query_model1.model_dump(),
     )
     all_scripts = check_and_parse_response(response, list[models.Script])
     assert len(all_scripts) != 0, "get_all_scripts with failed"
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/-1/all_scripts",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/-1/all_scripts",
         params=query_model1.model_dump(),
     )
     expect_failed_response(response, 404)
@@ -563,19 +563,19 @@ async def check_scripts(
         script1 = scripts[0]
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/script/get/{script0.id}/check_prerequisites",
+        f"{config.asgi.route_prefix}/{api_version}/script/get/{script0.id}/check_prerequisites",
     )
     script0_prereq = check_and_parse_response(response, bool)
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/script/get/{script1.id}/check_prerequisites",
+        f"{config.asgi.route_prefix}/{api_version}/script/get/{script1.id}/check_prerequisites",
     )
     script1_prereq = check_and_parse_response(response, bool)
     assert script0_prereq
     assert not script1_prereq
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/script/get/-1/check_prerequisites",
+        f"{config.asgi.route_prefix}/{api_version}/script/get/-1/check_prerequisites",
     )
     expect_failed_response(response, 404)
 
@@ -585,14 +585,14 @@ async def check_scripts(
     )
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/script/update/{script0.id}/status",
+        f"{config.asgi.route_prefix}/{api_version}/script/update/{script0.id}/status",
         content=update_status_model.model_dump_json(),
     )
     update_check = check_and_parse_response(response, models.Script)
     assert update_check.status is StatusEnum.failed
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/script/update/-1/status",
+        f"{config.asgi.route_prefix}/{api_version}/script/update/-1/status",
         content=update_status_model.model_dump_json(),
     )
     expect_failed_response(response, 404)
@@ -605,20 +605,20 @@ async def check_scripts(
     )
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/{entry.id}/retry_script",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/action/{entry.id}/retry_script",
         content=query_model2.model_dump_json(),
     )
     retry_check = check_and_parse_response(response, models.Script)
     assert retry_check.status is StatusEnum.waiting
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/action/-1/retry_script",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/action/-1/retry_script",
         content=query_model2.model_dump_json(),
     )
     expect_failed_response(response, 404)
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/script/update/{script0.id}/status",
+        f"{config.asgi.route_prefix}/{api_version}/script/update/{script0.id}/status",
         content=update_status_model.model_dump_json(),
     )
     update_check = check_and_parse_response(response, models.Script)
@@ -630,14 +630,14 @@ async def check_scripts(
     )
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/script/action/{script0.id}/reset_script",
+        f"{config.asgi.route_prefix}/{api_version}/script/action/{script0.id}/reset_script",
         content=reset_query.model_dump_json(),
     )
     status_check = check_and_parse_response(response, StatusEnum)
     assert status_check is StatusEnum.waiting
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/script/update/{script0.id}/status",
+        f"{config.asgi.route_prefix}/{api_version}/script/update/{script0.id}/status",
         content=update_status_model.model_dump_json(),
     )
     update_check = check_and_parse_response(response, models.Script)
@@ -649,26 +649,26 @@ async def check_scripts(
     )
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/actions/reset_script",
+        f"{config.asgi.route_prefix}/{api_version}/actions/reset_script",
         content=script_reset_status_model.model_dump_json(),
     )
     reset_check = check_and_parse_response(response, models.Script)
     assert reset_check.status is StatusEnum.waiting
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/script/action/-1/reset_script",
+        f"{config.asgi.route_prefix}/{api_version}/script/action/-1/reset_script",
         content=update_status_model.model_dump_json(),
     )
     expect_failed_response(response, 404)
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/script/get/{script0.id}/script_errors",
+        f"{config.asgi.route_prefix}/{api_version}/script/get/{script0.id}/script_errors",
     )
     check_errors = check_and_parse_response(response, list[models.ScriptError])
     assert len(check_errors) == 1
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/script/get/-1/script_errors",
+        f"{config.asgi.route_prefix}/{api_version}/script/get/-1/script_errors",
     )
     expect_failed_response(response, 404)
 
@@ -681,14 +681,14 @@ async def check_get_methods[E: AnyCampaignElement](
     entry_class: type[E],
 ) -> None:
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/{entry.id}",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/{entry.id}",
     )
     check_get = check_and_parse_response(response, entry_class)
 
     assert check_get.id == entry.id, "pulled row should be identical"
     assert check_get.level == entry.level, "pulled row db_id should be identical"
 
-    response = await client.get(f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/-1")
+    response = await client.get(f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/-1")
     expect_failed_response(response, 404)
 
     get_fullname_model = models.FullnameQuery(
@@ -702,76 +702,82 @@ async def check_get_methods[E: AnyCampaignElement](
     bad_name_model = models.NameQuery(name="bad")
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get_row_by_fullname",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get_row_by_fullname",
         params=get_fullname_model.model_dump(),
     )
     check_other = check_and_parse_response(response, entry_class)
     assert check_get.id == check_other.id
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get_row_by_fullname",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get_row_by_fullname",
         params=bad_fullname_model.model_dump(),
     )
     expect_failed_response(response, 404)
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get_row_by_name",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get_row_by_name",
         params=get_name_model.model_dump(),
     )
     check_other = check_and_parse_response(response, entry_class)
     assert check_get.id == check_other.id
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get_row_by_name",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get_row_by_name",
         params=bad_name_model.model_dump(),
     )
     expect_failed_response(response, 404)
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/{entry.id}/spec_block"
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/{entry.id}/spec_block"
     )
     spec_block_check = check_and_parse_response(response, models.SpecBlock)
     assert spec_block_check.name
 
-    response = await client.get(f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/-1/spec_block")
+    response = await client.get(
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/-1/spec_block"
+    )
     expect_failed_response(response, 404)
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/{entry.id}/specification",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/{entry.id}/specification",
     )
     specification_check = check_and_parse_response(response, models.Specification)
     assert specification_check.name
 
-    response = await client.get(f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/-1/specification")
+    response = await client.get(
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/-1/specification"
+    )
     expect_failed_response(response, 404)
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/{entry.id}/tasks",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/{entry.id}/tasks",
     )
     check1 = check_and_parse_response(response, models.MergedTaskSetDict)
     assert len(check1.reports) == 0, "length of tasks should be 0"
 
-    response = await client.get(f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/-1/tasks")
+    response = await client.get(f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/-1/tasks")
     expect_failed_response(response, 404)
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/{entry.id}/wms_task_reports",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/{entry.id}/wms_task_reports",
     )
     check2 = check_and_parse_response(response, models.MergedWmsTaskReportDict)
 
     assert len(check2.reports) == 0, "length of reports should be 0"
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/-1/wms_task_reports"
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/-1/wms_task_reports"
     )
     expect_failed_response(response, 404)
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/{entry.id}/products",
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/{entry.id}/products",
     )
     check3 = check_and_parse_response(response, models.MergedProductSetDict)
     assert len(check3.reports) == 0, "length of products should be 0"
 
-    response = await client.get(f"{config.asgi.prefix}/{api_version}/{entry_class_name}/get/-1/products")
+    response = await client.get(
+        f"{config.asgi.route_prefix}/{api_version}/{entry_class_name}/get/-1/products"
+    )
     expect_failed_response(response, 404)
 
     expect_failed_response(response, 404)
@@ -789,30 +795,30 @@ async def check_queue(
     )
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/queue/create",
+        f"{config.asgi.route_prefix}/{api_version}/queue/create",
         content=fullname_model.model_dump_json(),
     )
     queue = check_and_parse_response(response, models.Queue)
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/queue/sleep_time/{queue.id}",
+        f"{config.asgi.route_prefix}/{api_version}/queue/sleep_time/{queue.id}",
     )
     sleep_time = check_and_parse_response(response, int)
     assert sleep_time == 10
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/queue/sleep_time/-1",
+        f"{config.asgi.route_prefix}/{api_version}/queue/sleep_time/-1",
     )
 
     expect_failed_response(response, 404)
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/queue/process/{queue.id}",
+        f"{config.asgi.route_prefix}/{api_version}/queue/process/{queue.id}",
     )
     changed = check_and_parse_response(response, bool)
     assert not changed
 
     response = await client.get(
-        f"{config.asgi.prefix}/{api_version}/queue/process/-1",
+        f"{config.asgi.route_prefix}/{api_version}/queue/process/-1",
     )
     expect_failed_response(response, 404)

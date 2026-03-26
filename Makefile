@@ -22,7 +22,7 @@ $(UV_LOCKFILE):
 	uv lock --build-isolation
 
 $(PY_VENV): $(UV_LOCKFILE)
-	uv sync --frozen --all-packages
+	uv sync --frozen --all-packages --all-extras
 
 .PHONY: clean
 clean:
@@ -31,6 +31,7 @@ clean:
 	rm -rf ./output
 	find src -type d -name '__pycache__' | xargs rm -rf
 	find tests -type d -name '__pycache__' | xargs rm -rf
+	find . -type f -name '.DS_Store' | xargs rm -rf
 
 .PHONY: update-deps
 update-deps:

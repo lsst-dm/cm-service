@@ -11,15 +11,15 @@ pytestmark = pytest.mark.asyncio(loop_scope="module")
 
 async def test_list_delete_no_nodes(aclient: AsyncClient) -> None:
     """Tests listing nodes when there are no nodes available."""
-    x = await aclient.get("/cm-service/v2/nodes")
+    x = await aclient.get("/v2/nodes")
     assert x.is_success
     assert len(x.json()) == 0
 
-    x = await aclient.get(f"/cm-service/v2/nodes/{uuid4()}")
+    x = await aclient.get(f"/v2/nodes/{uuid4()}")
     assert x.status_code == codes.NOT_FOUND
 
     # there is no delete api for nodes
-    x = await aclient.delete(f"/cm-service/v2/nodes/{uuid4()}")
+    x = await aclient.delete(f"/v2/nodes/{uuid4()}")
     assert x.status_code == codes.METHOD_NOT_ALLOWED
 
 
@@ -74,7 +74,7 @@ async def test_node_lifecycle(aclient: AsyncClient) -> None:
 
     # Create a campaign for edges. Campaigns come with START and END nodes.
     x = await aclient.post(
-        "/cm-service/v2/campaigns",
+        "/v2/campaigns",
         json={
             "kind": "campaign",
             "metadata": {"name": campaign_name},
@@ -86,7 +86,7 @@ async def test_node_lifecycle(aclient: AsyncClient) -> None:
 
     # Create a new campaign node
     x = await aclient.post(
-        "/cm-service/v2/nodes",
+        "/v2/nodes",
         json={
             "kind": "node",
             "metadata": {"name": node_name, "namespace": campaign_id},
@@ -110,9 +110,9 @@ async def test_node_lifecycle(aclient: AsyncClient) -> None:
     node_url = x.headers["Self"]
 
     # Get a node using its name (fail) and its name+namespace (succeed)
-    x = await aclient.get("/cm-service/v2/nodes/{node_name}")
+    x = await aclient.get("/v2/nodes/{node_name}")
     assert x.is_client_error
-    x = await aclient.get(f"/cm-service/v2/nodes/{node_name}?campaign-id={campaign_id}")
+    x = await aclient.get(f"/v2/nodes/{node_name}?campaign-id={campaign_id}")
     assert x.is_success
 
     # Edit a Node using RFC6902 json-patch
@@ -147,7 +147,7 @@ async def test_node_double_update(aclient: AsyncClient) -> None:
 
     # Create a campaign
     x = await aclient.post(
-        "/cm-service/v2/campaigns",
+        "/v2/campaigns",
         json={
             "kind": "campaign",
             "metadata": {"name": campaign_name},
@@ -159,7 +159,7 @@ async def test_node_double_update(aclient: AsyncClient) -> None:
 
     # Create a new campaign node
     x = await aclient.post(
-        "/cm-service/v2/nodes",
+        "/v2/nodes",
         json={
             "kind": "node",
             "metadata": {"name": node_name, "namespace": campaign_id},

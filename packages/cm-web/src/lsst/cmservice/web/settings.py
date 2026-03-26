@@ -35,6 +35,11 @@ class ClientConfiguration(BaseSettings):
         validation_alias="CM_ENDPOINT",
     )
 
+    root_path: str = Field(
+        default="",
+        description="Set the ASGI root path when mounted at a subpath.",
+    )
+
     api_version: str = Field(
         default="v2",
         description="Version of the CM Service API",
@@ -56,16 +61,35 @@ class ClientConfiguration(BaseSettings):
     timeout: float = Field(
         default=30.0,
         validation_alias="CM_TIMEOUT",
+        description="Page response timeout",
     )
 
     static_dir: Path = Field(
         default=Path(__file__).parent / "static",
+        description="Filesystem path for static content.",
         validation_alias="CM_STATIC_CONTENT_DIR",
+    )
+
+    static_endpoint: str = Field(
+        default="/static",
+        description="URL endpoint for static files",
+    )
+
+    production: bool = Field(
+        default=False,
+        description="Whether to run the gui in 'production' mode",
     )
 
     storage_secret: str = Field(
         default="justbetweenyouandme",
         validation_alias="CM_STORAGE_SECRET_KEY",
+    )
+
+    reconnect_timeout: float = Field(
+        default=30.0,
+        validation_alias="CM_RECONNECT_TIMEOUT",
+        description="Websocket reconnection timeout. Set higher for networks with high latency or when "
+        "debugging clients.",
     )
 
     @field_validator("cookies", mode="before", check_fields=True)

@@ -10,7 +10,7 @@ from lsst.cmservice.config import config
 @pytest.mark.parametrize("api_version", ["v1"])
 def test_commands_cli(uvicorn: UvicornProcess, api_version: str) -> None:
     """Test miscellaneous CLI commands"""
-    client_config.service_url = f"{uvicorn.url}{config.asgi.prefix}/{api_version}"
+    client_config.service_url = f"{uvicorn.url}{config.asgi.route_prefix}/{api_version}"
     runner = CliRunner()
 
     result = runner.invoke(client_top, "campaign list")

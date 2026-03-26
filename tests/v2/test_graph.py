@@ -168,12 +168,12 @@ async def test_replace_node_in_graph(aclient: AsyncClient, test_campaign: str) -
     campaign_id = urlparse(url=test_campaign).path.split("/")[-2:][0]
 
     # pick a random node from the campaign
-    r = await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}/nodes")
+    r = await aclient.get(f"/v2/campaigns/{campaign_id}/nodes")
     node_0_id = random.choice([n["id"] for n in r.json() if n["name"] not in ("START", "END")])
 
     # create a new Node in the campaign
     r = await aclient.post(
-        "/cm-service/v2/nodes",
+        "/v2/nodes",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "node",
@@ -186,7 +186,7 @@ async def test_replace_node_in_graph(aclient: AsyncClient, test_campaign: str) -
 
     # replace an existing node in the graph with the new one
     r = await aclient.put(
-        f"/cm-service/v2/campaigns/{campaign_id}/graph/nodes/{node_0_id}?with-node={node_1_id}",
+        f"/v2/campaigns/{campaign_id}/graph/nodes/{node_0_id}?with-node={node_1_id}",
     )
     assert r.is_success
 
@@ -206,13 +206,13 @@ async def test_insert_node_in_graph(
     campaign_id = urlparse(url=test_campaign).path.split("/")[-2:][0]
 
     # pick a random node from the campaign
-    r = await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}/nodes")
+    r = await aclient.get(f"/v2/campaigns/{campaign_id}/nodes")
     campaign_nodes = r.json()
     node_0_id = random.choice([n["id"] for n in campaign_nodes if n["name"] not in ("START", "END")])
 
     # create a new Node in the campaign
     r = await aclient.post(
-        "/cm-service/v2/nodes",
+        "/v2/nodes",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "node",
@@ -225,7 +225,7 @@ async def test_insert_node_in_graph(
 
     # INSERT the new node in the campaign downstream of Node_0
     r = await aclient.patch(
-        f"/cm-service/v2/campaigns/{campaign_id}/graph/nodes/{node_0_id}?add-node={node_1_id}&operation=insert",
+        f"/v2/campaigns/{campaign_id}/graph/nodes/{node_0_id}?add-node={node_1_id}&operation=insert",
     )
     assert r.is_success
 
@@ -249,13 +249,13 @@ async def test_append_node_in_graph(
     campaign_id = urlparse(url=test_campaign).path.split("/")[-2:][0]
 
     # pick a random node from the campaign
-    r = await aclient.get(f"/cm-service/v2/campaigns/{campaign_id}/nodes")
+    r = await aclient.get(f"/v2/campaigns/{campaign_id}/nodes")
     campaign_nodes = r.json()
     node_0_id = random.choice([n["id"] for n in campaign_nodes if n["name"] not in ("START", "END")])
 
     # create a new Node in the campaign
     r = await aclient.post(
-        "/cm-service/v2/nodes",
+        "/v2/nodes",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "node",
@@ -268,7 +268,7 @@ async def test_append_node_in_graph(
 
     # APPEND the new node in the campaign parallel to Node_0
     r = await aclient.patch(
-        f"/cm-service/v2/campaigns/{campaign_id}/graph/nodes/{node_0_id}?add-node={node_1_id}&operation=append",
+        f"/v2/campaigns/{campaign_id}/graph/nodes/{node_0_id}?add-node={node_1_id}&operation=append",
     )
     assert r.is_success
 
@@ -289,7 +289,7 @@ async def test_append_node_in_graph(
     meta_node_id = random.choice([n["id"] for n in campaign_nodes if n["name"] in ("START", "END")])
     # Try and fail to APPEND a new node parallel to the start or end
     r = await aclient.patch(
-        f"/cm-service/v2/campaigns/{campaign_id}/graph/nodes/{meta_node_id}?add-node={node_1_id}&operation=append",
+        f"/v2/campaigns/{campaign_id}/graph/nodes/{meta_node_id}?add-node={node_1_id}&operation=append",
     )
     assert r.is_client_error
 

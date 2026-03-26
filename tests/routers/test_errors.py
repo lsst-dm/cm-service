@@ -24,7 +24,7 @@ async def test_load_error_types_routes(client: AsyncClient, api_version: str) ->
     )
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/load/error_types",
+        f"{config.asgi.route_prefix}/{api_version}/load/error_types",
         content=yaml_file_query.model_dump_json(),
     )
     error_types = check_and_parse_response(response, list[models.PipetaskErrorType])
@@ -34,7 +34,7 @@ async def test_load_error_types_routes(client: AsyncClient, api_version: str) ->
         rematch=True,
     )
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/actions/rematch_errors",
+        f"{config.asgi.route_prefix}/{api_version}/actions/rematch_errors",
         content=rematch_query.model_dump_json(),
     )
     matched_errors = check_and_parse_response(response, list[models.PipetaskError])

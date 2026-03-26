@@ -1,12 +1,20 @@
 # syntax=docker/dockerfile:1
 
 ARG PYTHON_VERSION="3.13"
-ARG UV_VERSION="0.9"
+ARG DEBIAN_VERSION="trixie"
+ARG UV_VERSION="0.10"
 ARG ASGI_PORT="8080"
 
 #==============================================================================
 # UV SOURCE IMAGE
-FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
+# - The DHI version of uv is in /usr/local/bin
+FROM dhi.io/uv:${UV_VERSION} AS uv
+
+
+#==============================================================================
+# BUN SOURCE IMAGE
+# - Bun is used in place of Node.js to build artifacts for the web gui.
+FROM dhi.io/bun:1-dev AS bun
 
 
 #==============================================================================
@@ -22,7 +30,7 @@ RUN conda create -p /opt/htcondor -c conda-forge htcondor-utils --no-default-pac
 # - The base image is an updated debian python container with a nonroot user
 #   created. This can be extended into include any *runtime* system dependencies
 #   during the apt-get step.
-FROM python:${PYTHON_VERSION}-slim-bookworm AS base-image
+FROM python:${PYTHON_VERSION}-slim-${DEBIAN_VERSION} AS base-image
 ARG ASGI_PORT
 
 # Upgrade base packages
@@ -57,7 +65,6 @@ EXPOSE ${ASGI_PORT}
 FROM base-image AS build-image
 
 # Install and Configure UV
-COPY --from=uv /uv /bin/uv
 ENV UV_PYTHON_PREFERENCE=system
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
 ENV UV_FROZEN=1
@@ -79,18 +86,46 @@ WORKDIR /workdir
 COPY . .
 
 # Install project production dependency graph in /opt/venv
-RUN --mount=type=cache,target=/root/.cache/uv <<ENDRUN
+RUN --mount=type=cache,target=/root/.cache/uv --mount=from=uv,source=/usr/local/bin/uv,target=/usr/local/bin/uv <<ENDRUN
     set -e
-    /bin/uv sync --no-group dev --no-install-project --no-editable
+    /usr/local/bin/uv sync --extra wms --no-dev --no-install-project --no-editable
 ENDRUN
 
 
 #==============================================================================
+# BUILDER IMAGE - Web
+FROM build-image AS web-builder
+ARG PYTHON_VERSION
+ENV UV_PYTHON_INSTALL_DIR=/opt/python/dist
+ENV UV_PROJECT_ENVIRONMENT=/opt/python/venv
+ENV UV_PYTHON_PREFERENCE=only-managed
+ENV UV_PYTHON=cpython@${PYTHON_VERSION}
+
+RUN --mount=from=bun,source=/usr/local/bin/bun,target=/usr/local/bin/bun <<ENDRUN
+    set -e
+    cd packages/cm-canvas
+    /usr/local/bin/bun install
+    /usr/local/bin/bun run build
+ENDRUN
+
+# Install web package dependency graph in /opt/venv
+RUN --mount=type=cache,target=/root/.cache/uv --mount=from=uv,source=/usr/local/bin/uv,target=/usr/local/bin/uv <<ENDRUN
+    set -e
+    /usr/local/bin/uv sync --package lsst-cmservice-web --no-dev --no-install-project --no-editable
+ENDRUN
+
+# Build static web content
+RUN --mount=type=cache,target=/root/.cache/uv --mount=from=uv,source=/usr/local/bin/uv,target=/usr/local/bin/uv <<ENDRUN
+    set -e
+    /usr/local/bin/uv run script/render_jsonschema.py --clean --html --output docs
+ENDRUN
+
+# Create Nicegui Storage Path
+RUN mkdir -p /opt/storage
+
+#==============================================================================
 # RUNTIME IMAGE - CM-Service
 FROM base-image AS cmservice
-
-# Make sure frontend output won't go into the layer store
-VOLUME /output
 
 # Copy the production virtual environment
 COPY --from=build-image /opt/venv /opt/venv
@@ -121,3 +156,23 @@ COPY --from=htcondor /opt/htcondor /opt/htcondor
 
 USER lsstsvc1
 CMD ["lsst.cmservice.daemon"]
+
+
+#==============================================================================
+# RUNTIME IMAGE - Web
+FROM gcr.io/distroless/cc-debian13:latest AS cmweb
+
+WORKDIR /opt/python
+COPY --from=web-builder /opt/python .
+
+WORKDIR /home/nonroot
+USER nonroot
+COPY packages/cm-web/src/lsst ./lsst
+COPY --from=web-builder /workdir/packages/cm-canvas/dist/*.iife.js ./lsst/cmservice/web/static/
+COPY --from=web-builder /workdir/docs ./lsst/cmservice/web/static/docs
+COPY --from=web-builder --chown=nonroot:nonroot /opt/storage ./storage
+
+ENV PATH="/opt/python/venv/bin:$PATH"
+ENV NICEGUI_STORAGE_PATH=/home/nonroot/storage
+ENTRYPOINT ["/opt/python/venv/bin/python3", "-m"]
+CMD ["lsst.cmservice.web.libexec.go"]

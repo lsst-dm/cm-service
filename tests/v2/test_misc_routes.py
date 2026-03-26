@@ -18,10 +18,10 @@ async def test_activity_log_routes(
     """
     # Test multiple query parameters at once
     y = await aclient.get(
-        f"/cm-service/v2/logs?pilot=bobloblaw&campaign={uuid4()}&node={uuid4()}&since=1989-06-03T12:34:56Z"
+        f"/v2/logs?pilot=bobloblaw&campaign={uuid4()}&node={uuid4()}&since=1989-06-03T12:34:56Z"
     )
     assert y.is_success
 
     # Test a different datetime format
-    y = await aclient.get("/cm-service/v2/logs?pilot=bobloblaw&since=946684800")
+    y = await aclient.get("/v2/logs?pilot=bobloblaw&since=946684800")
     assert y.is_success

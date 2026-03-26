@@ -26,7 +26,7 @@ async def test_routers_trivial_campaign(
     )
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/load/specification",
+        f"{config.asgi.route_prefix}/{api_version}/load/specification",
         content=spec_load_model.model_dump_json(),
     )
     specification = check_and_parse_response(response, models.Specification)
@@ -40,7 +40,7 @@ async def test_routers_trivial_campaign(
     )
 
     response = await client.post(
-        f"{config.asgi.prefix}/{api_version}/load/campaign",
+        f"{config.asgi.route_prefix}/{api_version}/load/campaign",
         content=campaign_load_model.model_dump_json(),
     )
     campaign = check_and_parse_response(response, models.Campaign)
