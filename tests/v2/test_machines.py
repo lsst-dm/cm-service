@@ -826,14 +826,14 @@ async def test_group_fail_reset(
     await session.refresh(group, ["status", "metadata_", "machine"])
 
     # assert node failed
-    x = await aclient.get(f"/cm-service/v2/nodes/{group.id}")
+    x = await aclient.get(f"/v2/nodes/{group.id}")
     assert x.is_success
     assert x.json()["status"] == "failed"
 
     # - trigger 'reset' by setting the status to waiting
     group_artifact_path = group.metadata_.get("artifact_path", None)
     x = await aclient.patch(
-        f"/cm-service/v2/nodes/{group.id}",
+        f"/v2/nodes/{group.id}",
         json={"status": "waiting", "force": "true"},
         headers={"Content-Type": "application/merge-patch+json"},
     )
