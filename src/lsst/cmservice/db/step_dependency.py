@@ -7,12 +7,14 @@ import sqlalchemy.dialects.postgresql as sapg
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
-from ..common.enums import StatusEnum
-from .base import Base
+from lsst.cmservice.cm_models.enums import StatusEnum
+
+from .legacy_base import Base
 from .row import RowMixin
 
 if TYPE_CHECKING:
-    from ..common.types import AnyAsyncSession
+    from lsst.cmservice.cm_models.types import AnyAsyncSession
+
     from .step import Step
 
 

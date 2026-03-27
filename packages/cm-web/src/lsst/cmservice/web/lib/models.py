@@ -1,6 +1,6 @@
 from typing import Any
 
-from lsst.cmservice.models.manifests.manifests import (
+from lsst.cmservice.cm_models.manifests.manifests import (
     BpsSpec,
     ButlerSpec,
     FacilitySpec,

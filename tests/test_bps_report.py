@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from lsst.cmservice.common.enums import StatusEnum
+from lsst.cmservice.cm_models.enums import StatusEnum
 from lsst.cmservice.handlers.functions import status_from_bps_report
 from lsst.ctrl.bps.wms_service import WmsRunReport
 

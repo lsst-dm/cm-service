@@ -8,7 +8,8 @@ from _pytest.monkeypatch import MonkeyPatch
 from safir.database import create_async_session
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from lsst.cmservice.common.enums import ScriptMethodEnum, StatusEnum
+from lsst.cmservice.cm_models.enums import StatusEnum
+from lsst.cmservice.common.enums import ScriptMethodEnum
 from lsst.cmservice.common.flags import Features
 
 from .util_functions import cleanup

@@ -5,8 +5,8 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
-from .base import Base
 from .job import Job
+from .legacy_base import Base
 from .row import RowMixin
 
 if TYPE_CHECKING:

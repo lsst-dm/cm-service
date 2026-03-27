@@ -8,10 +8,10 @@ import pytest
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from lsst.cmservice.cm_models.db.campaigns import Campaign, Node, Task
+from lsst.cmservice.cm_models.enums import StatusEnum
 from lsst.cmservice.common.daemon_v2 import consider_campaigns, consider_nodes
-from lsst.cmservice.common.enums import StatusEnum
 from lsst.cmservice.common.launchers import LauncherCheckResponse
-from lsst.cmservice.db.campaigns_v2 import Campaign, Node, Task
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""
@@ -157,7 +157,7 @@ async def test_dynamic_node_machine() -> None:
     """Test the dynamic resolution of a ``NodeMachine`` class based on a Node's
     ``kind`` attribute.
     """
-    from lsst.cmservice.common.enums import ManifestKind
+    from lsst.cmservice.cm_models.enums import ManifestKind
     from lsst.cmservice.machines.node import GroupMachine, NodeMachine, node_machine_factory
 
     k = ManifestKind.node

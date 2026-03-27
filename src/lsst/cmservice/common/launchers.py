@@ -6,16 +6,15 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
-from .timestamp import element_time
+from lsst.cmservice.cm_models.lib.timestamp import element_time
 
 
 class LauncherCheckResponse(BaseModel):
     """A model describing a response from a Launcher's check method."""
 
-    class Config:
-        validate_assignment = True
+    model_config = ConfigDict(validate_assignment=True)
 
     success: bool = Field(
         description="A boolean describing whether the check returned a successful result", default=False

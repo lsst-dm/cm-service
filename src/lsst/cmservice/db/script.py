@@ -8,15 +8,17 @@ from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
-from ..common import timestamp
-from ..common.enums import LevelEnum, NodeTypeEnum, ScriptMethodEnum, StatusEnum
+from lsst.cmservice.cm_models.enums import StatusEnum
+from lsst.cmservice.cm_models.lib import timestamp
+
+from ..common.enums import LevelEnum, NodeTypeEnum, ScriptMethodEnum
 from ..common.errors import CMBadEnumError, CMMissingRowCreateInputError
 from ..config import config
-from .base import Base
 from .campaign import Campaign
 from .element import ElementMixin
 from .group import Group
 from .job import Job
+from .legacy_base import Base
 from .node import NodeMixin
 from .row import RowMixin
 from .script_dependency import ScriptDependency
@@ -24,7 +26,8 @@ from .spec_block import SpecBlock
 from .step import Step
 
 if TYPE_CHECKING:
-    from ..common.types import AnyAsyncSession
+    from lsst.cmservice.cm_models.types import AnyAsyncSession
+
     from .script_error import ScriptError
 
 

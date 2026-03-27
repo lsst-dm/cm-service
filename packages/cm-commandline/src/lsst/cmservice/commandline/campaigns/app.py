@@ -13,8 +13,8 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 from rich.text import Text
 
-from lsst.cmservice.common.timestamp import iso_timestamp
-from lsst.cmservice.db.campaigns_v2 import CampaignSummary
+from lsst.cmservice.cm_models.db.campaigns import CampaignSummary
+from lsst.cmservice.cm_models.lib.timestamp import iso_timestamp
 
 from .. import arguments, formatters
 from ..client import http_client

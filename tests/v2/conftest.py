@@ -14,11 +14,11 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import CreateSchema, DropSchema
 from testcontainers.postgres import PostgresContainer
 
-from lsst.cmservice.common.enums import DEFAULT_NAMESPACE
+from lsst.cmservice.cm_models.db.campaigns import metadata
+from lsst.cmservice.cm_models.enums import DEFAULT_NAMESPACE
+from lsst.cmservice.cm_models.types import AnyAsyncSession
 from lsst.cmservice.common.flags import Features
-from lsst.cmservice.common.types import AnyAsyncSession
 from lsst.cmservice.config import config
-from lsst.cmservice.db.campaigns_v2 import metadata
 from lsst.cmservice.db.session import DatabaseManager, db_session_dependency
 
 if TYPE_CHECKING:

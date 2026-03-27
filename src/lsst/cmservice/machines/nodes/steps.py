@@ -8,9 +8,9 @@ from uuid import UUID, uuid5
 from sqlmodel import select
 from transitions import EventData
 
-from ...common.enums import ManifestKind, StatusEnum
-from ...common.flags import Features
-from ...common.graph import (
+from lsst.cmservice.cm_models.db.campaigns import Edge, Node
+from lsst.cmservice.cm_models.enums import ManifestKind, StatusEnum
+from lsst.cmservice.cm_models.lib.graph import (
     NodeData,
     append_node_to_graph,
     delete_node_from_graph,
@@ -19,18 +19,19 @@ from ...common.graph import (
     insert_node_to_graph,
     subgraph_between_nodes,
 )
-from ...common.logging import LOGGER
-from ...common.splitter import Splitter, SplitterEnum, SplitterMapping
-from ...common.timestamp import element_time
-from ...config import config
-from ...db.campaigns_v2 import Edge, Node
-from ...models.manifest import (
+from lsst.cmservice.cm_models.lib.timestamp import element_time
+from lsst.cmservice.cm_models.manifest import (
     BpsManifest,
     ButlerManifest,
     FacilityManifest,
     LsstManifest,
     WmsManifest,
 )
+
+from ...common.flags import Features
+from ...common.logging import LOGGER
+from ...common.splitter import Splitter, SplitterEnum, SplitterMapping
+from ...config import config
 from ..lib import ordinal_group_nonce
 from .meta import NodeMachine
 from .mixin import FilesystemActionMixin, HTCondorLaunchMixin, NodeMixIn

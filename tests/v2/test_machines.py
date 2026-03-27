@@ -17,9 +17,9 @@ from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from lsst.cmservice.common.enums import ManifestKind, StatusEnum
+from lsst.cmservice.cm_models.db.campaigns import Campaign, Machine, Node
+from lsst.cmservice.cm_models.enums import ManifestKind, StatusEnum
 from lsst.cmservice.common.launchers import LauncherCheckResponse
-from lsst.cmservice.db.campaigns_v2 import Campaign, Machine, Node
 from lsst.cmservice.handlers.interface import get_activity_log_errors
 from lsst.cmservice.machines.node import (
     GroupMachine,
@@ -395,7 +395,7 @@ async def test_group_prepare_replace(
     # Assert the artifact path exists
     group_path = group.metadata_.get("artifact_path")
     assert group_path is not None
-    assert Path(group_path).exists()
+    assert await Path(group_path).exists()
 
     # Replace the group with a new version
     x = await aclient.patch(
@@ -433,7 +433,7 @@ async def test_group_prepare_replace(
     # group's path does not interfere
     group_path = group.metadata_.get("artifact_path")
     assert group_path is not None
-    assert Path(group_path).exists()
+    assert await Path(group_path).exists()
 
 
 async def test_group_fail_retry(
@@ -511,7 +511,7 @@ async def test_group_fail_retry(
         await group_machine.trigger("finish")
 
     # The artifact path should exist
-    assert Path(group_artifact_path).exists()
+    assert await Path(group_artifact_path).exists()
 
     await session.refresh(group, ["status"])
     group_status = group.status

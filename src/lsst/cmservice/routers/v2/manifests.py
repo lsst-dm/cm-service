@@ -16,12 +16,13 @@ from sqlalchemy.orm import make_transient
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from ...common.enums import DEFAULT_NAMESPACE
-from ...common.jsonpatch import JSONPatch, JSONPatchError, apply_json_patch
+from lsst.cmservice.cm_models.api.manifests import ManifestModel
+from lsst.cmservice.cm_models.db.campaigns import Campaign, Manifest
+from lsst.cmservice.cm_models.enums import DEFAULT_NAMESPACE
+from lsst.cmservice.cm_models.lib.jsonpatch import JSONPatch, JSONPatchError, apply_json_patch
+from lsst.cmservice.cm_models.lib.timestamp import element_time
+
 from ...common.logging import LOGGER
-from ...common.timestamp import element_time
-from ...db.campaigns_v2 import Campaign, Manifest
-from ...db.manifests_v2 import ManifestModel
 from ...db.session import db_session_dependency
 
 # TODO should probably bind a logger to the fastapi app or something

@@ -5,9 +5,10 @@ from typing import TypeAlias
 import pytest
 
 from lsst.cmservice import db
+from lsst.cmservice.cm_models.enums import StatusEnum
+from lsst.cmservice.cm_models.types import AnyAsyncSession
 from lsst.cmservice.common import errors
-from lsst.cmservice.common.enums import LevelEnum, StatusEnum, TableEnum
-from lsst.cmservice.common.types import AnyAsyncSession
+from lsst.cmservice.common.enums import LevelEnum, TableEnum
 
 type AnyElement = db.Group | db.Campaign | db.Step | db.Job
 

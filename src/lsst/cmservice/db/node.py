@@ -7,8 +7,10 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.collections import InstrumentedList
 
-from ..common import timestamp
-from ..common.enums import LevelEnum, StatusEnum
+from lsst.cmservice.cm_models.enums import StatusEnum
+from lsst.cmservice.cm_models.lib import timestamp
+
+from ..common.enums import LevelEnum
 from ..common.errors import (
     CMBadExecutionMethodError,
     CMBadStateTransitionError,
@@ -26,7 +28,8 @@ from .spec_block import SpecBlock
 from .specification import Specification
 
 if TYPE_CHECKING:
-    from ..common.types import AnyAsyncSession
+    from lsst.cmservice.cm_models.types import AnyAsyncSession
+
     from .campaign import Campaign
     from .element import ElementMixin
 

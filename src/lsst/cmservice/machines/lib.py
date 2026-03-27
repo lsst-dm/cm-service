@@ -11,11 +11,11 @@ from anyio import Path, to_thread
 from sqlalchemy.dialects.postgresql import insert
 from sqlmodel import col, select
 
-from ..common.enums import DEFAULT_NAMESPACE, ManifestKind
-from ..common.logging import LOGGER
-from ..common.timestamp import element_time, now_utc
-from ..common.types import AsyncSession
-from ..db.campaigns_v2 import ActivityLog, Campaign, Manifest, Node
+from lsst.cmservice.cm_models.db.campaigns import ActivityLog, Campaign, Manifest, Node
+from lsst.cmservice.cm_models.enums import DEFAULT_NAMESPACE, ManifestKind
+from lsst.cmservice.cm_models.lib.logging import LOGGER
+from lsst.cmservice.cm_models.lib.timestamp import element_time, now_utc
+from lsst.cmservice.cm_models.types import AsyncSession
 
 logger = LOGGER.bind(module=__name__)
 

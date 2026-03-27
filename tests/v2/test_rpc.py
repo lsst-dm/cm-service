@@ -9,9 +9,9 @@ from httpx import AsyncClient, Response
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from lsst.cmservice.cm_models.db.campaigns import Task
 from lsst.cmservice.common.daemon_v2 import consider_nodes
 from lsst.cmservice.common.launchers import LauncherCheckResponse
-from lsst.cmservice.db.campaigns_v2 import Task
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""

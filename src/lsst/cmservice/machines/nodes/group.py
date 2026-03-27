@@ -10,11 +10,11 @@ from typing import Any
 from anyio import Path
 from transitions import EventData
 
+from lsst.cmservice.cm_models.enums import ManifestKind, StatusEnum
 from lsst.ctrl.bps import WmsRunReport, WmsStates
 from lsst.utils import doImport
 
 from ...common.bash import parse_bps_stdout
-from ...common.enums import ManifestKind, StatusEnum
 from ...common.flags import Features
 from ...common.logging import LOGGER
 from ...config import config

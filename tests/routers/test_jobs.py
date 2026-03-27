@@ -4,7 +4,8 @@ import pytest
 from httpx import AsyncClient
 
 from lsst.cmservice import models
-from lsst.cmservice.common.enums import LevelEnum, StatusEnum
+from lsst.cmservice.cm_models.enums import StatusEnum
+from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
 
 from .util_functions import (

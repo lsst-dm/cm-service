@@ -8,7 +8,7 @@ from typing import Any
 
 from pydantic import PlainSerializer, PlainValidator
 
-from ..common.enums import ManifestKind, StatusEnum
+from .enums import ManifestKind, StatusEnum
 
 
 def EnumValidator[T: EnumType](value: Any, enum_: T) -> T:

@@ -10,8 +10,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from lsst.cmservice import db
+from lsst.cmservice.cm_models.enums import StatusEnum
 from lsst.cmservice.common import errors
-from lsst.cmservice.common.enums import LevelEnum, StatusEnum
+from lsst.cmservice.common.enums import LevelEnum
 
 from .util_functions import (
     check_get_methods,

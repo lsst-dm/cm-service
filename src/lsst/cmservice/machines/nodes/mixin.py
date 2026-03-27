@@ -12,15 +12,16 @@ from sqlalchemy.exc import MissingGreenlet, NoResultFound
 from sqlmodel import desc, or_, select
 from transitions import EventData
 
-from ...common.enums import DEFAULT_NAMESPACE, ManifestKind, StatusEnum
+from lsst.cmservice.cm_models.db.campaigns import Manifest, Node
+from lsst.cmservice.cm_models.enums import DEFAULT_NAMESPACE, ManifestKind, StatusEnum
+from lsst.cmservice.cm_models.lib.logging import LOGGER
+from lsst.cmservice.cm_models.lib.timestamp import element_time
+from lsst.cmservice.cm_models.manifest import LibraryManifest
+
 from ...common.errors import CMNoSuchManifestError
 from ...common.htcondor import HTCondorManager
 from ...common.launchers import LauncherCheckResponse
-from ...common.logging import LOGGER
-from ...common.timestamp import element_time
 from ...config import config
-from ...db.campaigns_v2 import Manifest, Node
-from ...models.manifest import LibraryManifest
 from .. import lib
 from .abc import ActionMixIn, LaunchMixIn, MixIn
 
@@ -215,7 +216,7 @@ class FilesystemActionMixin(ActionMixIn):
         # Get the yaml template using package lookup and wire in any custom
         # template filters
         action_template_environment = Environment(
-            loader=PackageLoader("lsst.cmservice"),
+            loader=PackageLoader("lsst.cmservice.cm_models"),
             keep_trailing_newline=True,
         )
         action_template_environment.filters["toyaml"] = yaml.dump

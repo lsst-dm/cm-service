@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from ..common.enums import StatusEnum
+from lsst.cmservice.cm_models.enums import StatusEnum
 
 
 class RematchQuery(BaseModel):

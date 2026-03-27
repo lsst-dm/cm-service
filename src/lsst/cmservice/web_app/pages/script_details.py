@@ -3,7 +3,7 @@ from typing import Any
 import starlette.requests
 from sqlalchemy import select
 
-from lsst.cmservice.common.types import AnyAsyncSession
+from lsst.cmservice.cm_models.types import AnyAsyncSession
 from lsst.cmservice.db import Group, Job, NodeMixin, Script, Step
 from lsst.cmservice.web_app.utils.utils import map_status
 

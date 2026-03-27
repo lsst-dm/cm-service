@@ -11,11 +11,13 @@ import httpx
 import yaml
 from pydantic.v1.utils import deep_update
 
+from lsst.cmservice.cm_models.enums import DEFAULT_NAMESPACE
+from lsst.cmservice.cm_models.lib.yaml import get_loader
+
 from .. import models
-from ..common.enums import DEFAULT_NAMESPACE, ErrorActionEnum, ErrorFlavorEnum, ErrorSourceEnum
+from ..common.enums import ErrorActionEnum, ErrorFlavorEnum, ErrorSourceEnum
 from ..common.errors import CMMissingFullnameError, CMYamlParseError
 from ..common.logging import LOGGER
-from ..common.yaml import get_loader
 from . import wrappers
 
 if TYPE_CHECKING:

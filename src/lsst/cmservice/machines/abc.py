@@ -23,8 +23,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from transitions import EventData, Machine
 from transitions.extensions.asyncio import AsyncMachine
 
-from ..common.enums import ManifestKind, StatusEnum
-from ..db.campaigns_v2 import ActivityLog, Campaign, Node
+from lsst.cmservice.cm_models.db.campaigns import ActivityLog, Campaign, Node
+from lsst.cmservice.cm_models.enums import ManifestKind, StatusEnum
 
 type AnyStatefulObject = Campaign | Node
 type AnyMachine = Machine | AsyncMachine

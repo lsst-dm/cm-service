@@ -1,6 +1,6 @@
 from typing import Any
 
-from lsst.cmservice.common.types import AnyAsyncSession
+from lsst.cmservice.cm_models.types import AnyAsyncSession
 from lsst.cmservice.db import NodeMixin, Step
 from lsst.cmservice.web_app.pages.steps import get_step_details
 from lsst.cmservice.web_app.utils.utils import map_status

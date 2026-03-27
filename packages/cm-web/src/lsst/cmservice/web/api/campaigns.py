@@ -5,7 +5,7 @@ from httpx import AsyncClient
 from nicegui import app, ui
 from nicegui.events import ValueChangeEventArguments
 
-from lsst.cmservice.common.enums import DEFAULT_NAMESPACE
+from lsst.cmservice.cm_models.enums import DEFAULT_NAMESPACE
 
 from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.enum import MANIFEST_KIND_ICONS

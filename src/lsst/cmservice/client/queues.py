@@ -9,8 +9,9 @@ from typing import TYPE_CHECKING
 import httpx
 from pydantic import TypeAdapter, ValidationError
 
+from lsst.cmservice.cm_models.lib import timestamp
+
 from .. import db, models
-from ..common import timestamp
 from ..common.errors import test_type_and_raise
 from ..common.logging import LOGGER
 from . import wrappers

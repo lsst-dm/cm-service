@@ -4,8 +4,10 @@ from typing import TYPE_CHECKING, Any
 
 from anyio import Path
 
+from lsst.cmservice.cm_models.enums import StatusEnum
+
 from ..common.bash import check_stamp_file, get_diagnostic_message, run_bash_job
-from ..common.enums import ErrorSourceEnum, ScriptMethodEnum, StatusEnum
+from ..common.enums import ErrorSourceEnum, ScriptMethodEnum
 from ..common.errors import (
     CMBadExecutionMethodError,
     CMBadStateTransitionError,
@@ -26,7 +28,7 @@ from ..db.script import Script
 from ..db.script_error import ScriptError
 
 if TYPE_CHECKING:
-    from ..common.types import AnyAsyncSession
+    from lsst.cmservice.cm_models.types import AnyAsyncSession
 
 
 logger = LOGGER.bind(module=__name__)

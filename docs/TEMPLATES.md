@@ -1,7 +1,7 @@
 # Templates
 CM Services uses [jinja](https://jinja.palletsprojects.com/en/stable/templates/) templates when writing BPS submit YAML files and submit scripts for various operations. These templates enforce a common structure for these files while allowing some flexibility at the campaign or step level. Generally, the `data` object associated with a campaign element is used to populate the environment used to render these templates.
 
-The template files used by CM Service are in the `src/lsst/cmservice/templates` directory and are part of the CM Service Python package namespace.
+The template files used by CM Service are in the `packages/cm-models/src/lsst/cmservice/cm_models/templates` directory and are part of the CM Service Python package namespace.
 
 ## WMS Submit Script
 The template `wms_submit_sh.j2` is used to render the shell script used, among other things, to call a BPS submit command along with a rendered BPS submit YAML. When the campaign's `script_method` is "htcondor", the execution environment of this script is expected to be an HTCondor interactive node.

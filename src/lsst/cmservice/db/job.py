@@ -10,8 +10,10 @@ from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
-from ..common import timestamp
-from ..common.enums import LevelEnum, StatusEnum
+from lsst.cmservice.cm_models.enums import StatusEnum
+from lsst.cmservice.cm_models.lib import timestamp
+
+from ..common.enums import LevelEnum
 from ..common.errors import (
     CMIntegrityError,
     CMMissingRowCreateInputError,
@@ -20,13 +22,14 @@ from ..common.errors import (
 from ..models.merged_product_set import MergedProductSet, MergedProductSetDict
 from ..models.merged_task_set import MergedTaskSet, MergedTaskSetDict
 from ..models.merged_wms_task_report import MergedWmsTaskReport, MergedWmsTaskReportDict
-from .base import Base
 from .element import ElementMixin
 from .group import Group
+from .legacy_base import Base
 from .step import Step
 
 if TYPE_CHECKING:
-    from ..common.types import AnyAsyncSession
+    from lsst.cmservice.cm_models.types import AnyAsyncSession
+
     from .campaign import Campaign
     from .pipetask_error import PipetaskError
     from .product_set import ProductSet

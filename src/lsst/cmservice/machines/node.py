@@ -8,7 +8,8 @@ import inspect
 import sys
 from functools import cache
 
-from ..common.enums import ManifestKind
+from lsst.cmservice.cm_models.enums import ManifestKind
+
 from ..common.logging import LOGGER
 from .nodes import TRANSITIONS as TRANSITIONS
 from .nodes.group import GroupMachine as GroupMachine

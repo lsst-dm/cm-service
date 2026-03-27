@@ -5,8 +5,9 @@ from httpx import AsyncClient, Response
 from pydantic import TypeAdapter
 
 from lsst.cmservice import models
-from lsst.cmservice.common.enums import LevelEnum, StatusEnum
-from lsst.cmservice.common.types import AnyCampaignElement
+from lsst.cmservice.cm_models.enums import StatusEnum
+from lsst.cmservice.common.enums import LevelEnum
+from lsst.cmservice.common.legacy_types import AnyCampaignElement
 from lsst.cmservice.config import config
 
 

@@ -8,8 +8,11 @@ from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey, UniqueConstraint
 
-from ..common import timestamp
-from ..common.enums import LevelEnum, StatusEnum
+from lsst.cmservice.cm_models.enums import StatusEnum
+from lsst.cmservice.cm_models.lib import timestamp
+from lsst.cmservice.cm_models.types import AnyAsyncSession
+
+from ..common.enums import LevelEnum
 from ..common.errors import (
     CMBadStateTransitionError,
     CMIntegrityError,
@@ -17,12 +20,11 @@ from ..common.errors import (
     CMTooFewAcceptedJobsError,
     CMTooManyActiveScriptsError,
 )
-from ..common.types import AnyAsyncSession
 from ..models.merged_product_set import MergedProductSetDict
 from ..models.merged_task_set import MergedTaskSetDict
 from ..models.merged_wms_task_report import MergedWmsTaskReportDict
-from .base import Base
 from .element import ElementMixin
+from .legacy_base import Base
 from .spec_block import SpecBlock
 from .step import Step
 

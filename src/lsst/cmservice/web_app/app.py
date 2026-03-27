@@ -12,6 +12,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from lsst.cmservice.cm_models.types import AnyAsyncSession
 from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.common.logging import LOGGER
 from lsst.cmservice.web_app.pages.campaigns import get_all_campaigns, get_campaign_details, search_campaigns
@@ -31,7 +32,6 @@ from lsst.cmservice.web_app.utils.utils import (
     update_data_dict,
 )
 
-from ..common.types import AnyAsyncSession
 from ..db.session import db_session_dependency
 
 

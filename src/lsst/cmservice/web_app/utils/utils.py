@@ -1,5 +1,6 @@
-from lsst.cmservice.common.enums import LevelEnum, StatusEnum
-from lsst.cmservice.common.types import AnyAsyncSession
+from lsst.cmservice.cm_models.enums import StatusEnum
+from lsst.cmservice.cm_models.types import AnyAsyncSession
+from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.db import NodeMixin
 
 
