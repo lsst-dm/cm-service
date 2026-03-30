@@ -46,17 +46,18 @@ def upgrade() -> None:
             default=dict,
             server_default=sa.text("'{}'::json"),
         ),
-        sa.Column("enabled", postgresql.BOOLEAN(), default=False, nullable=False),
-        sa.Column("next_run", postgresql.TIMESTAMP(timezone=True), nullable=True),
-        sa.Column("last_run", postgresql.TIMESTAMP(timezone=True), nullable=True),
+        sa.Column("is_enabled", postgresql.BOOLEAN(), default=False, nullable=False),
+        sa.Column("next_run_at", postgresql.TIMESTAMP(timezone=True), nullable=True),
+        sa.Column("last_run_at", postgresql.TIMESTAMP(timezone=True), nullable=True),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("name", name="uq_schedule_name"),
         if_not_exists=True,
     )
 
     op.create_table(
         "templates_v2",
         sa.Column("id", postgresql.UUID(), nullable=False),
-        sa.Column("schedule", postgresql.UUID(), nullable=False),
+        sa.Column("schedule_id", postgresql.UUID(), nullable=False),
         sa.Column("kind", ENUM_COLUMN_AS_VARCHAR, nullable=False),
         sa.Column(
             "manifest",
@@ -65,8 +66,15 @@ def upgrade() -> None:
             default=dict,
             server_default=sa.text("'{}'::json"),
         ),
+        sa.Column(
+            "metadata",
+            postgresql.JSONB(),
+            nullable=False,
+            default=dict,
+            server_default=sa.text("'{}'::json"),
+        ),
         sa.PrimaryKeyConstraint("id"),
-        sa.ForeignKeyConstraint(["schedule"], ["schedules_v2.id"]),
+        sa.ForeignKeyConstraint(["schedule_id"], ["schedules_v2.id"], ondelete="CASCADE"),
         if_not_exists=True,
     )
 

@@ -6,21 +6,17 @@ from uuid import NAMESPACE_DNS, UUID, uuid4, uuid5
 
 from pydantic import AliasChoices, AwareDatetime, ValidationInfo, model_validator
 from sqlalchemy.dialects import postgresql
-from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.types import PickleType
-from sqlmodel import Column, DateTime, Enum, Field, MetaData, Relationship, SQLModel, String
+from sqlmodel import Column, DateTime, Enum, Field, Relationship, String
 
 from ..enums import ManifestKind, StatusEnum
 from ..lib.timestamp import now_utc
 from ..types import KindField, StatusField
-from .settings import settings
+from .base import BaseSQLModel
 
 _default_campaign_namespace = uuid5(namespace=NAMESPACE_DNS, name="io.lsst.cmservice")
 """Default UUID5 namespace for campaigns"""
-
-metadata: MetaData = MetaData(schema=settings.table_schema)
-"""SQLModel metadata for table models"""
 
 
 def jsonb_column(name: str, aliases: list[str] | None = None) -> Any:
@@ -45,13 +41,6 @@ def jsonb_column(name: str, aliases: list[str] | None = None) -> Any:
         default_factory=dict,
         schema_extra=schema_extra,
     )
-
-
-class BaseSQLModel(AsyncAttrs, SQLModel):
-    """Shared base SQL model for all tables."""
-
-    __table_args__ = {"schema": settings.table_schema}
-    metadata = metadata
 
 
 class CampaignBase(BaseSQLModel):
