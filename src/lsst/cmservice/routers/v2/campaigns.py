@@ -532,6 +532,7 @@ async def create_campaign_resource(
     response: Response,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     manifest: CampaignManifest,
+    campaign_owner: Annotated[str, Header(alias="X-Auth-Request-User")] = "root",
 ) -> Campaign:
     """An API to create a Campaign from an appropriate Manifest.
 
@@ -544,7 +545,7 @@ async def create_campaign_resource(
             name=manifest.metadata_.name,
             metadata_=manifest.metadata_.model_dump(),
             configuration=manifest.spec.model_dump(),
-            # owner = ...  # TODO Get username from gafaelfawr # noqa: ERA001
+            owner=campaign_owner,
         )
     )
 
