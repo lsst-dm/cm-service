@@ -15,10 +15,13 @@ from fastapi import (
     Response,
     status,
 )
+from pydantic import UUID4
+from pydantic_extra_types.cron import CronStr
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from lsst.cmservice.models.db.schedules import CreateScheduleModel, ManifestTemplate, Schedule
+from lsst.cmservice.models.api.schedules import ScheduleUpdate
+from lsst.cmservice.models.db.schedules import CreateSchedule, ManifestTemplate, Schedule
 from lsst.cmservice.models.lib.timestamp import element_time
 
 from ...common.logging import LOGGER
@@ -102,6 +105,24 @@ async def read_schedule_resource(
     return schedule
 
 
+@router.get(
+    "/{schedule_id}/templates",
+    summary="Get templates for a specific schedule",
+)
+async def read_schedule_template_resources(
+    *,
+    request: Request,
+    response: Response,
+    session: Annotated[AsyncSession, Depends(db_session_dependency)],
+    schedule_id: Annotated[UUID4, Path()],
+) -> Sequence[ManifestTemplate]:
+    """Get all manifest templates associated with a specific schedule id."""
+
+    statement = select(ManifestTemplate).where(ManifestTemplate.schedule_id == schedule_id)
+
+    return (await session.exec(statement)).all()
+
+
 @router.delete(
     "/{schedule_id}",
     summary="Delete schedule",
@@ -111,24 +132,29 @@ async def delete_schedule_resource(
     request: Request,
     response: Response,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
-    schedule_name_or_id: UUID,
+    schedule_id: UUID,
 ) -> None:
     """Delete a schedule resource. The delete operation should cascade to any
     associated manifest template resources.
     """
-    ...
+
+    schedule = await session.get_one(Schedule, schedule_id)
+    await session.delete(schedule)
+    await session.commit()
+
+    return None
 
 
 @router.post(
     "/",
     summary="Create a new schedule",
-    status_code=status.HTTP_204_NO_CONTENT,
+    status_code=status.HTTP_201_CREATED,
 )
 async def create_schedule_resource(
     request: Request,
     response: Response,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
-    schedule_manifest: CreateScheduleModel,
+    schedule_manifest: CreateSchedule,
     schedule_owner: Annotated[str, Header(alias="X-Auth-Request-User")] = "root",
 ) -> None:
     """Create a schedule resource and its attached manifest templates."""
@@ -162,4 +188,40 @@ async def create_schedule_resource(
     )
 
 
-# TODO: PUT = update a schedule resource (add/remove manifest templates)
+@router.put("/{schedule_id}", summary="Update a schedule")
+@router.patch("/{schedule_id}", summary="Partial update for a schedule")
+async def update_schedule_resource(
+    request: Request,
+    response: Response,
+    session: Annotated[AsyncSession, Depends(db_session_dependency)],
+    schedule_id: Annotated[str, Path()],
+    schedule_update: ScheduleUpdate,
+    schedule_owner: Annotated[str, Header(alias="X-Auth-Request-User")] = "root",
+) -> None:
+    """Completely or partially update an existing schedule resource and/or its
+    attached manifest templates.
+    """
+
+    schedule = await session.get_one(Schedule, schedule_id)
+
+    match request.method:
+        case "PATCH":
+            schedule.sqlmodel_update(schedule_update.model_dump(exclude_unset=True))
+        case _:
+            raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    if session.dirty:
+        schedule.metadata_["mtime"] = element_time()
+        schedule.metadata_["updated_by"] = schedule_owner
+
+    if schedule.is_enabled:
+        # TODO consider a custom validators? Might be overkill for this
+        # The cron string is just a string when it comes back out of the db
+        schedule_cron = CronStr(schedule.cron)
+        schedule.next_run_at = schedule_cron.next_run  # type: ignore[attr-assigned]
+
+    await session.commit()
+
+    response.headers["Self"] = str(
+        request.url_for("read_schedule_resource", schedule_name_or_id=str(schedule.id))
+    )
