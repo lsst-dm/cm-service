@@ -47,6 +47,7 @@ dependencies = [
     "tabulate==0.9.*",
     "uvicorn[standard]==0.34.*",
     "lsst-cmservice-models",
+    "apscheduler>=3.11.2",
 ]
 
 [dependency-groups]

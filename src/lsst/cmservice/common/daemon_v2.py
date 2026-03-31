@@ -2,10 +2,13 @@ import pickle
 from asyncio import Task as AsyncTask
 from asyncio import TaskGroup, create_task
 from collections.abc import Awaitable, Mapping
-from typing import TYPE_CHECKING, cast
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import TYPE_CHECKING, Self, cast
 from uuid import UUID, uuid5
 
 import networkx as nx
+from fastapi import FastAPI
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import make_transient, selectinload
 from sqlalchemy.orm.attributes import InstrumentedAttribute
@@ -14,6 +17,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from transitions import Event
 
 from lsst.cmservice.models.db.campaigns import Campaign, Edge, Machine, Node, Task
+from lsst.cmservice.models.db.schedules import Schedule
 from lsst.cmservice.models.enums import StatusEnum
 from lsst.cmservice.models.lib import graph, timestamp
 
@@ -24,6 +28,25 @@ from ..machines.node import NodeMachine, node_machine_factory
 from .logging import LOGGER
 
 logger = LOGGER.bind(module=__name__)
+
+
+@dataclass
+class DaemonContext:
+    """A context object used within a daemon interation loop."""
+
+    app: FastAPI
+    session: AsyncSession = field(init=False)
+    iteration_start: datetime = field(default_factory=timestamp.now_utc)
+
+    async def __aenter__(self) -> Self:
+        if TYPE_CHECKING:
+            assert db_session_dependency.sessionmaker is not None
+        self.session = db_session_dependency.sessionmaker()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        await self.session.close()
+        return None
 
 
 async def daemon_process_node(session: AsyncSession, node: Node, request_id: str | None = None) -> None:
@@ -86,7 +109,7 @@ async def daemon_consider_campaign(
         await daemon_process_node(session, node, request_id=request_id)
 
 
-async def consider_campaigns(session: AsyncSession) -> None:
+async def consider_campaigns(context: DaemonContext) -> None:
     """In Phase One, the daemon considers campaigns. Campaigns subject to
     consideration have a non-terminal prepared status (ready or running), and
     optionally tagged with a priority value lower than the daemon's own
@@ -97,6 +120,7 @@ async def consider_campaigns(session: AsyncSession) -> None:
     until a Node is found that requires attention. Each Node found is added to
     the Tasks table as a queue item.
     """
+    session = context.session
     c_statement = (
         select(Campaign.id)
         .where(col(Campaign.status).in_((StatusEnum.ready, StatusEnum.running)))
@@ -121,7 +145,7 @@ async def consider_campaigns(session: AsyncSession) -> None:
     await session.commit()
 
 
-async def consider_nodes(session: AsyncSession) -> None:
+async def consider_nodes(context: DaemonContext) -> None:
     """In Phase Two, the daemon considers Nodes. Nodes subject to consideration
     are only those Nodes found on the Tasks table that have a priority lower
     than the daemon's own priority, and share the daemon's site affinity.
@@ -133,6 +157,7 @@ async def consider_nodes(session: AsyncSession) -> None:
     After handling, the Node's FSM is serialized and the Node is updated with
     new values as necessary. The Task is not returned to the Task table.
     """
+    session = context.session
     # Select and lock unsubmitted tasks
     statement = (
         select(Task)
@@ -207,20 +232,54 @@ async def consider_nodes(session: AsyncSession) -> None:
             await session.commit()
 
 
-async def daemon_iteration() -> None:
+async def do_schedule_stuff(schedule_id: UUID) -> None:
+    ...
+    breakpoint()
+    # with daemon context...
+    # fetch the schedule and its templates
+    # set up jinja sandbox with schedule expressions
+    # update the name/namespace for each
+    # run each template through jinja render
+    # send each template to API / loader
+
+
+async def consider_schedules(context: DaemonContext) -> None:
+    """Check the schedules table for enabled schedules and set up scheduler
+    jobs for them.
+    """
+
+    # get schedules from db where is_enabled
+    statement = select(Schedule).where(Schedule.is_enabled)
+    schedules = await context.session.exec(statement)
+    for schedule in schedules:
+        job_id = str(schedule.id)
+        job_trigger = context.app.state.scheduler.trigger(schedule.cron)
+
+        if context.app.state.scheduler.scheduler.get_job(job_id):
+            context.app.state.scheduler.scheduler.reschedule_job(job_id, job_trigger)
+        else:
+            context.app.state.scheduler.scheduler.add_job(
+                do_schedule_stuff,
+                job_trigger,
+                id=job_id,
+                args=[schedule.id],
+            )
+
+    # remove any jobs that are not enabled
+    ...
+
+
+async def daemon_iteration(context: DaemonContext) -> None:
     """A single iteraton of the CM daemon's work loop, which is carried out in
     two phases: Campaigns and Nodes.
     """
-    if TYPE_CHECKING:
-        assert db_session_dependency.sessionmaker is not None
-    session = db_session_dependency.sessionmaker()
-    iteration_start = timestamp.now_utc()
-    logger.debug("Daemon V2 Iteration: %s", iteration_start)
+    logger.debug("Daemon V2 Iteration: %s", context.iteration_start)
     if Features.DAEMON_CAMPAIGNS in config.features.enabled:
-        await consider_campaigns(session)
+        await consider_campaigns(context)
     if Features.DAEMON_NODES in config.features.enabled:
-        await consider_nodes(session)
-    await session.close()
+        await consider_nodes(context)
+    if Features.SCHEDULER in config.features.enabled:
+        await consider_schedules(context)
 
 
 def trigger_for_transition(task: Task, events: Mapping[str, Event]) -> str | None:

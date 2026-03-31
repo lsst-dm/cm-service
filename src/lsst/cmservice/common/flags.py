@@ -20,6 +20,7 @@ class Features(IntFlag):
     DAEMON_V2 = auto()
     DAEMON_ALLOCATE = auto()
     WEBAPP_V1 = auto()
+    SCHEDULER = auto()
     STORE_FSM = auto()
     ALLOW_TASK_UPSERT = auto()
     MOCK_BUTLER = auto()

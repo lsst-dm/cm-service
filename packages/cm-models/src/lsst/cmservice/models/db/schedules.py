@@ -1,10 +1,10 @@
-"""Module for Database model defitions for the CM Service schedules and related
-tables.
+"""Module for Database model definitions for the CM Service schedules and
+related tables.
 """
 
 from uuid import uuid4
 
-from pydantic import UUID4, AwareDatetime, BaseModel, StrictBool
+from pydantic import UUID4, AwareDatetime, StrictBool
 from pydantic_extra_types.cron import CronStr
 from sqlmodel import Column, DateTime, Enum, Field, Relationship
 
@@ -47,27 +47,7 @@ class Schedule(ScheduleBase, table=True):
     )
 
 
-class ManifestTemplateBase(BaseSQLModel):
-    """templates_v2 base model, used to create new manifest template objects"""
-
-    id: UUID4 = Field(default_factory=uuid4, primary_key=True)
-    kind: KindField = Field(
-        sa_column=Column("kind", Enum(ManifestKind, length=20, native_enum=False, create_constraint=False)),
-    )
-
-
-class ManifestTemplate(ManifestTemplateBase, table=True):
-    """Model used for database operations involving templates_v2 table rows"""
-
-    model_config = {"validate_assignment": True}
-    __tablename__: str = "templates_v2"  # type: ignore[misc]
-
-    schedule_id: UUID4 = Field(foreign_key="schedules_v2.id", ondelete="CASCADE")
-    manifest: dict = jsonb_column("manifest", aliases=["spec"])
-    metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])
-
-
-class CreateScheduleModel(ScheduleBase):
+class CreateSchedule(ScheduleBase):
     """A validating model for the new schedule API.
 
     Note: When this model is used to create an ORM object, any overlapping or
@@ -77,11 +57,29 @@ class CreateScheduleModel(ScheduleBase):
     templates: list["CreateManifestTemplate"] = Field(default_factory=list, exclude=True)
 
 
-class CreateManifestTemplate(BaseModel):
+class ManifestTemplateBase(BaseSQLModel):
+    """templates_v2 base model, used to create new manifest template objects"""
+
+    id: UUID4 = Field(default_factory=uuid4, primary_key=True)
+    kind: KindField = Field(
+        sa_column=Column("kind", Enum(ManifestKind, length=20, native_enum=False, create_constraint=False)),
+    )
+    schedule_id: UUID4 = Field(foreign_key="schedules_v2.id", ondelete="CASCADE")
+    manifest: dict = jsonb_column("manifest")
+    metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])
+
+
+class ManifestTemplate(ManifestTemplateBase, table=True):
+    """Model used for database operations involving templates_v2 table rows"""
+
+    model_config = {"validate_assignment": True}
+    __tablename__: str = "templates_v2"  # type: ignore[misc]
+
+
+class CreateManifestTemplate(ManifestTemplateBase):
     """A validating model for manifest templates in the new schedule API."""
 
-    id: UUID4 = Field(default_factory=uuid4)
-    kind: KindField
+    # This model differs from its parent in that the schedule_id is an optional
+    # field instead of a mandatory FK constraint, allowing it to be used to
+    # create new ManifestTemplate objects.
     schedule_id: UUID4 | None = None
-    manifest: dict = Field(default_factory=dict)
-    metadata_: dict = Field(default_factory=dict)

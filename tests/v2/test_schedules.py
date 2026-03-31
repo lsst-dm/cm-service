@@ -84,16 +84,75 @@ async def test_list_no_schedules(aclient: AsyncClient) -> None:
     [
         pytest.param(ScheduleTestCase(post_data={}, expected_code=codes.UNPROCESSABLE_ENTITY), id="bad"),
         pytest.param(
-            ScheduleTestCase(post_data=SCHEDULE_NO_MANIFESTS, expected_code=codes.NO_CONTENT), id="empty"
+            ScheduleTestCase(post_data=SCHEDULE_NO_MANIFESTS, expected_code=codes.CREATED), id="empty"
         ),
         pytest.param(
-            ScheduleTestCase(post_data=SCHEDULE_WITH_MANIFESTS, expected_code=codes.NO_CONTENT), id="full"
+            ScheduleTestCase(post_data=SCHEDULE_WITH_MANIFESTS, expected_code=codes.CREATED), id="full"
         ),
     ],
     indirect=["test_case"],
 )
-async def test_post_new_schedule(aclient: AsyncClient, test_case: ScheduleTestCase) -> None:
+async def test_post_new_schedule(
+    aclient: AsyncClient, test_case: ScheduleTestCase, request: pytest.FixtureRequest
+) -> None:
     """Tests creating a new schedule"""
     x = await aclient.post("/v2/schedules", json=test_case.post_data)
     assert x.status_code == test_case.expected_code
-    ...
+
+    match request.node.callspec.id:
+        case "full":
+            y = await aclient.get(f"{x.headers['Self']}/templates")
+            assert y.status_code == codes.OK
+            assert len(y.json()) > 0
+            y = await aclient.delete(x.headers["Self"])
+            assert y.status_code == codes.NO_CONTENT
+            # it is not an error to GET templates for a nonexistent schedule;
+            # there will be an empty list
+            y = await aclient.get(f"{x.headers['Self']}/templates")
+            assert y.status_code == codes.OK
+            # Ensure the cascade delete has removed the templates when the
+            # schedule was removed.
+            assert len(y.json()) == 0
+        case "empty":
+            y = await aclient.get(f"{x.headers['Self']}/templates")
+            assert y.status_code == codes.OK
+            assert len(y.json()) == 0
+        case "bad":
+            assert "Self" not in x.headers
+            y = await aclient.delete(f"/v2/schedules/{uuid4()}")
+            assert y.status_code == codes.NOT_FOUND
+        case _:
+            pass
+
+
+@pytest.mark.parametrize(
+    "test_case",
+    [
+        pytest.param(
+            ScheduleTestCase(post_data=SCHEDULE_NO_MANIFESTS, expected_code=codes.CREATED), id="empty"
+        ),
+        pytest.param(
+            ScheduleTestCase(post_data=SCHEDULE_WITH_MANIFESTS, expected_code=codes.CREATED), id="full"
+        ),
+    ],
+    indirect=["test_case"],
+)
+async def test_put_patch_schedule(
+    aclient: AsyncClient, test_case: ScheduleTestCase, request: pytest.FixtureRequest
+) -> None:
+    """Tests the schedule update put and patch operations"""
+    x = await aclient.post("/v2/schedules", json=test_case.post_data)
+    assert x.status_code == test_case.expected_code
+
+    match request.node.callspec.id:
+        case "empty":
+            x = await aclient.put(x.headers["Self"], json={})
+            assert x.status_code == codes.METHOD_NOT_ALLOWED
+        case "full":
+            x = await aclient.patch(x.headers["Self"], json={"is_enabled": True})
+            assert x.status_code == codes.OK
+            x = await aclient.get(x.headers["Self"])
+            assert x.status_code == codes.OK
+            new_schedule = x.json()
+            assert new_schedule["is_enabled"]
+            assert new_schedule["next_run_at"] is not None
