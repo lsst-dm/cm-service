@@ -1,5 +1,5 @@
 import os
-from asyncio import create_task
+from asyncio import TaskGroup
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -10,10 +10,12 @@ from fastapi import FastAPI
 from . import __version__
 from .common.butler import BUTLER_FACTORY  # noqa: F401
 from .common.daemon import daemon_iteration
+from .common.daemon_v2 import DaemonContext
 from .common.daemon_v2 import daemon_iteration as daemon_iteration_v2
 from .common.flags import Features
 from .common.logging import LOGGER, LoggingMiddleware
 from .common.panda import get_panda_token
+from .common.scheduler import Scheduler
 from .config import config
 from .db.session import db_session_dependency
 from .routers.healthz import health_router
@@ -33,9 +35,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     # Dependency inits before app starts running
     await db_session_dependency.initialize()
     assert db_session_dependency.engine is not None
-    daemon = create_task(main_loop(app=app), name="daemon")
-    app.state.tasks.add(daemon)
-    yield
+
+    async with TaskGroup() as tg:
+        # Daemon
+        daemon = tg.create_task(main_loop(app=app), name="daemon")
+        app.state.tasks.add(daemon)
+
+        # Scheduler
+        if Features.SCHEDULER in config.features.enabled:
+            scheduler = Scheduler(app=app)
+            scheduler_task = tg.create_task(scheduler.scheduler_task(), name="scheduler")
+            app.state.tasks.add(scheduler_task)
+
+        yield
+        # Tasks are cancelled at the end of the taskgroup
+
     # stop
     await db_session_dependency.aclose()
 
@@ -51,23 +65,21 @@ async def main_loop(app: FastAPI) -> None:
     if db_session_dependency.sessionmaker is None:
         raise RuntimeError("Database SessionMaker is not ready!")
 
-    session = db_session_dependency.sessionmaker()
-
     logger.info("Starting Daemon...")
     _iteration_count = 0
 
     while True:
         _iteration_count += 1
-        logger.info("Daemon starting iteration.")
-        if Features.DAEMON_V1 in config.features.enabled:
-            session = await anext(db_session_dependency())
-            await daemon_iteration(session)
-        if Features.DAEMON_V2 in config.features.enabled:
-            await daemon_iteration_v2()
-        _iteration_time = current_time()
-        logger.info("Daemon completed %s iterations at %s.", _iteration_count, _iteration_time)
-        _next_wakeup = _iteration_time + sleep_time
-        logger.info("Daemon next iteration at %s.", _next_wakeup)
+        async with DaemonContext(app=app) as context:
+            logger.info("Daemon starting iteration %s", _iteration_count)
+            if Features.DAEMON_V1 in config.features.enabled:
+                await daemon_iteration(context.session)
+            if Features.DAEMON_V2 in config.features.enabled:
+                await daemon_iteration_v2(context)
+            _iteration_time = current_time()
+            logger.info("Daemon completed %s iterations at %s.", _iteration_count, _iteration_time)
+            _next_wakeup = _iteration_time + sleep_time
+            logger.info("Daemon next iteration at %s.", _next_wakeup)
         await sleep_until(_next_wakeup)
 
 
