@@ -13,8 +13,8 @@ from sqlmodel import Column, DateTime, Enum, Field, MetaData, Relationship, SQLM
 
 from ..enums import ManifestKind, StatusEnum
 from ..lib.timestamp import now_utc
-from ..settings import settings
 from ..types import KindField, StatusField
+from .settings import settings
 
 _default_campaign_namespace = uuid5(namespace=NAMESPACE_DNS, name="io.lsst.cmservice")
 """Default UUID5 namespace for campaigns"""

@@ -17,10 +17,10 @@ from pydantic import (
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from lsst.cmservice.models.db.settings import DatabaseConfiguration
+from lsst.cmservice.models.db.settings import settings as DATABASE_SETTINGS
 from lsst.cmservice.models.enums import StatusEnum
 from lsst.cmservice.models.lib.logging import LOGGER_SETTINGS, LoggingConfiguration
-from lsst.cmservice.models.settings import DatabaseConfiguration
-from lsst.cmservice.models.settings import settings as DATABASE_SETTINGS
 
 from .common.enums import ScriptMethodEnum, WmsComputeSite
 from .common.flags import EnabledFeatures
@@ -563,10 +563,8 @@ class Configuration(BaseSettings):
     bps: BpsConfiguration = BpsConfiguration()
     butler: ButlerConfiguration = ButlerConfiguration()
     daemon: DaemonConfiguration = DaemonConfiguration()
-    db: DatabaseConfiguration = DATABASE_SETTINGS
     hips: HipsConfiguration = HipsConfiguration()
     htcondor: HTCondorConfiguration = HTCondorConfiguration()
-    logging: LoggingConfiguration = LOGGER_SETTINGS
     slurm: SlurmConfiguration = SlurmConfiguration()
     panda: PandaConfiguration = PandaConfiguration()
     notifications: NotificationConfiguration = NotificationConfiguration()
@@ -594,6 +592,17 @@ class Configuration(BaseSettings):
         validation_alias=AliasChoices("AWS_ENDPOINT_URL_S3", "AWS_ENDPOINT_URL", "S3_ENDPOINT_URL"),
         serialization_alias="AWS_ENDPOINT_URL_S3",
     )
+
+    @property
+    def db(self) -> DatabaseConfiguration:
+        """Property for accessing the db settings singleton without additional
+        Pydantic overhead.
+        """
+        return DATABASE_SETTINGS
+
+    @property
+    def logging(self) -> LoggingConfiguration:
+        return LOGGER_SETTINGS
 
     @field_validator("mock_status", mode="before")
     @classmethod

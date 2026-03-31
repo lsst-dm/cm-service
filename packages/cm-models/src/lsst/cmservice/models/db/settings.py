@@ -1,11 +1,18 @@
-from pydantic import BaseModel, Field, SecretStr
+from pydantic import Field, SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class DatabaseConfiguration(BaseModel):
+class DatabaseConfiguration(BaseSettings):
     """Database configuration nested model.
 
     Set according to DB__FIELD environment variables.
     """
+
+    model_config = SettingsConfigDict(
+        env_prefix="DB__",
+        case_sensitive=False,
+        extra="ignore",
+    )
 
     url: str = Field(
         default="",

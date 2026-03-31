@@ -3,7 +3,7 @@ from sqlalchemy import MetaData
 from sqlalchemy.orm import DeclarativeBase
 
 from ..enums import StatusEnum
-from ..settings import settings
+from .settings import settings
 
 
 class Base(DeclarativeBase):
