@@ -12,6 +12,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from lsst.cmservice.common.enums import StatusEnum
 from lsst.cmservice.common.graph import (
     delete_node_from_graph,
+    find_endpoints_in_directed_graph,
     graph_from_edge_list_v2,
     processable_graph_nodes,
     validate_graph,
@@ -121,6 +122,11 @@ async def test_validate_graph() -> None:
 
     # this is a valid graph
     assert validate_graph(g, "A", "F")
+
+    # the source and sink nodes are what we expect
+    source, sink = find_endpoints_in_directed_graph(g)
+    assert source is n["A"]
+    assert sink is n["F"]
 
     # add a new parallel node with no path to sink
     new_node = FakeNode("G")

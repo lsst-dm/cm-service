@@ -148,9 +148,16 @@ def find_endpoints_in_directed_graph(g: nx.DiGraph) -> tuple[UUID, UUID]:
     """
     # For a valid graph, the "longest path" in it necessarily has the source
     # and sink nodes as its endpoints.
-    path: list[UUID] = nx.dag_longest_path(g)  # pyright: ignore[reportAssignmentType]
-    # Validate that the potential endpoints correctly have a degree of 1
-    if not all([d[1] == 1 for d in nx.degree(g, (path[0], path[-1]))]):
+    path: list[UUID] = nx.dag_longest_path(g)
+
+    if not all(
+        [
+            g.in_degree(path[0]) == 0,
+            g.out_degree(path[-1]) == 0,
+            sum(1 for _, d in g.in_degree if d == 0) == 1,
+            sum(1 for _, d in g.out_degree if d == 0) == 1,
+        ]
+    ):
         raise RuntimeError("Unable to determine endpoints in graph.")
     return (path[0], path[-1])
 
@@ -200,22 +207,32 @@ def validate_graph(g: nx.DiGraph, source_name: str = "START", sink_name: str = "
     try:
         # Test that G is a directed graph with no cycles
         is_valid = nx.is_directed_acyclic_graph(g)
-        assert is_valid
+        assert is_valid, "Graph is not a DAG"
 
         # And that any path from source to sink exists
         is_valid = nx.has_path(g, source, sink)
-        assert is_valid
+        assert is_valid, "Graph has no path between stated source and sink"
 
         # Guard against bad graphs where START and/or END have been connected
         # such that they are no longer the only source and sink
-        ...
+        is_valid = all(
+            [
+                sum(1 for _, d in g.in_degree if d == 0) == 1,
+                sum(1 for _, d in g.out_degree if d == 0) == 1,
+            ]
+        )
+        assert is_valid, "Multiple source or sink nodes in graph"
+
+        # Test that there are no isolated or separate "islands" of nodes
+        is_valid = nx.is_weakly_connected(g)
+        assert is_valid, "Graph is not weakly connected"
 
         # Test that there are no isolated Nodes in the graph. A node becomes
         # isolated if it was involved with an edge that has been removed from
         # G with no replacement edge added, in which case the node should also
         # be removed.
         is_valid = nx.number_of_isolates(g) == 0
-        assert is_valid
+        assert is_valid, "Graph has isolates"
 
         # TODO Given the set of nodes in the graph, consider all paths in G
         #      from source to sink, making sure every node appears in a path?
