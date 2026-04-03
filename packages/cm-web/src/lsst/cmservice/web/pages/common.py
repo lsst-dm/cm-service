@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Self, TypedDict, cast
 
+from fastapi import Request
 from httpx import AsyncClient
 from nicegui import ui
 
@@ -41,7 +42,9 @@ class CMPage[PageModelT: CMPageModel]:
 
     model: PageModelT
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, request: Request, *args: Any, **kwargs: Any) -> None:
+        self.request = request
+        self.username = request.headers.get("X-Auth-Request-User", "anonymous")
         self.apply_style()
         storage.initialize_client_storage()
         self.page_route: str = kwargs.pop("path", "/")
@@ -95,6 +98,12 @@ class CMPage[PageModelT: CMPageModel]:
             ui.label(crumb).classes("text-h6")
             ui.space()
         ui.space()
+        with ui.dropdown_button(self.username, auto_close=True).bind_visibility_from(
+            self, "username", backward=lambda x: x != "anonymous"
+        ):
+            ui.link("Security Tokens", target="/auth/tokens", new_tab=True).classes(
+                "p-2 text-base text-primary !no-underline"
+            )
         ui.button(icon="menu", on_click=lambda: self.toggle_drawer()).props("flat color=white")
 
     async def footer_contents(self) -> None:
