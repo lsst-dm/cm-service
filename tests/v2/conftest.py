@@ -17,7 +17,7 @@ from testcontainers.postgres import PostgresContainer
 from lsst.cmservice.common.flags import Features
 from lsst.cmservice.config import config
 from lsst.cmservice.db.session import DatabaseManager, db_session_dependency
-from lsst.cmservice.models.db.campaigns import metadata
+from lsst.cmservice.models.db import Base
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE
 from lsst.cmservice.models.types import AnyAsyncSession
 
@@ -100,6 +100,7 @@ async def testdb(rawdb: DatabaseManager) -> AsyncGenerator[DatabaseManager]:
     """
     # v1 objects are created from the legacy DeclarativeBase class and
     # v2 objects are created from the SQLModel metadata.
+    metadata = Base.metadata
     assert rawdb.engine is not None
     async with rawdb.engine.begin() as aconn:
         await aconn.run_sync(metadata.drop_all)
