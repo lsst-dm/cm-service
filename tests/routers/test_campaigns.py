@@ -3,7 +3,7 @@ import os
 import pytest
 from httpx import AsyncClient
 
-from lsst.cmservice import models
+from lsst.cmservice import models_
 from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.config import config
 
@@ -31,10 +31,10 @@ async def test_campaign_routes(client: AsyncClient, api_version: str) -> None:
     await create_tree(client, api_version, LevelEnum.step, uuid_int)
 
     response = await client.get(f"{config.asgi.route_prefix}/{api_version}/campaign/list")
-    campaigns = check_and_parse_response(response, list[models.Campaign])
+    campaigns = check_and_parse_response(response, list[models_.Campaign])
     entry = [c for c in campaigns if str(uuid_int) in c.name][0]
 
-    add_steps_query = models.AddSteps(
+    add_steps_query = models_.AddSteps(
         fullname=entry.fullname,
         child_configs=[],
     )
@@ -43,14 +43,14 @@ async def test_campaign_routes(client: AsyncClient, api_version: str) -> None:
         f"{config.asgi.route_prefix}/{api_version}/load/steps",
         content=add_steps_query.model_dump_json(),
     )
-    campaign_check = check_and_parse_response(response, models.Campaign)
+    campaign_check = check_and_parse_response(response, models_.Campaign)
     assert entry.id == campaign_check.id
 
     # check get methods
-    await check_get_methods(client, api_version, entry, "campaign", models.Campaign)
+    await check_get_methods(client, api_version, entry, "campaign", models_.Campaign)
 
     # check update methods
-    await check_update_methods(client, api_version, entry, "campaign", models.Campaign)
+    await check_update_methods(client, api_version, entry, "campaign", models_.Campaign)
 
     # check scripts
     await check_scripts(client, api_version, entry, "campaign")

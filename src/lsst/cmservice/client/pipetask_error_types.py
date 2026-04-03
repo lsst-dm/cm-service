@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import httpx
 
-from .. import db, models
+from .. import db, models_
 from . import wrappers
 
 if TYPE_CHECKING:
@@ -14,11 +14,11 @@ if TYPE_CHECKING:
 
 # Template specialization
 # Specify the pydantic model for PipetaskErrorType
-ResponseModelClass = models.PipetaskErrorType
+ResponseModelClass = models_.PipetaskErrorType
 # Specify the pydantic model from making new PipetaskErrorTypes
-CreateModelClass = models.PipetaskErrorTypeCreate
+CreateModelClass = models_.PipetaskErrorTypeCreate
 # Specify the pydantic model from updating rows
-UpdateModelClass = models.PipetaskErrorTypeUpdate
+UpdateModelClass = models_.PipetaskErrorTypeUpdate
 # Specify the associated database table
 DbClass = db.PipetaskErrorType
 

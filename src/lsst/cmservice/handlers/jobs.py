@@ -11,12 +11,13 @@ from anyio import Path, to_thread
 from fastapi.concurrency import run_in_threadpool
 from jinja2 import Environment, PackageLoader
 
+from lsst.cmservice.models.enums import StatusEnum
 from lsst.ctrl.bps import BaseWmsService, WmsRunReport, WmsStates
 from lsst.utils import doImport
 
 from ..common.bash import parse_bps_stdout, write_bash_script
 from ..common.butler import remove_run_collections
-from ..common.enums import LevelEnum, StatusEnum, TaskStatusEnum, WmsMethodEnum
+from ..common.enums import LevelEnum, TaskStatusEnum, WmsMethodEnum
 from ..common.errors import (
     CMBadExecutionMethodError,
     CMBadParameterTypeError,
@@ -36,7 +37,7 @@ from .functions import compute_job_status, load_manifest_report, load_wms_report
 from .script_handler import FunctionHandler, ScriptHandler
 
 if TYPE_CHECKING:
-    from ..common.types import AnyAsyncSession
+    from lsst.cmservice.models.types import AnyAsyncSession
 
 
 WMS_TO_TASK_STATUS_MAP = {
@@ -224,7 +225,7 @@ class BpsScriptHandler(ScriptHandler):
         workflow_config["payload"] = payload
 
         # Get the yaml template using package lookup
-        config_template_environment = Environment(loader=PackageLoader("lsst.cmservice"))
+        config_template_environment = Environment(loader=PackageLoader("lsst.cmservice.models"))
         config_template_environment.filters["toyaml"] = yaml.dump
         config_template = config_template_environment.get_template("legacy_bps_submit_yaml.j2")
         try:

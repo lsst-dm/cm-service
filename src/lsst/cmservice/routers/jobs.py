@@ -5,10 +5,11 @@ from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response
 
-from .. import db, models
+from lsst.cmservice.models.types import AnyAsyncSession
+
+from .. import db, models_
 from ..common.errors import CMBadStateTransitionError, CMMissingIDError
 from ..common.logging import LOGGER
-from ..common.types import AnyAsyncSession
 from ..db.session import db_session_dependency
 from ..handlers.functions import force_accept_node
 from . import wrappers
@@ -17,11 +18,11 @@ logger = LOGGER.bind(module=__name__)
 
 # Template specialization
 # Specify the pydantic model for the table
-ResponseModelClass = models.Job
+ResponseModelClass = models_.Job
 # Specify the pydantic model from making new rows
-CreateModelClass = models.JobCreate
+CreateModelClass = models_.JobCreate
 # Specify the pydantic model from updating rows
-UpdateModelClass = models.JobUpdate
+UpdateModelClass = models_.JobUpdate
 # Specify the associated database table
 DbClass = db.Job
 
@@ -48,7 +49,7 @@ delete_row = wrappers.delete_row_function(router, DbClass)
 update_row = wrappers.put_row_function(router, ResponseModelClass, UpdateModelClass, DbClass)
 get_spec_block = wrappers.get_node_spec_block_function(router, DbClass)
 get_specification = wrappers.get_node_specification_function(router, DbClass)
-get_parent = wrappers.get_node_parent_function(router, models.Group, DbClass)
+get_parent = wrappers.get_node_parent_function(router, models_.Group, DbClass)
 get_resolved_collections = wrappers.get_node_resolved_collections_function(router, DbClass)
 get_collections = wrappers.get_node_collections_function(router, DbClass)
 get_child_config = wrappers.get_node_child_config_function(router, DbClass)
@@ -92,7 +93,7 @@ get_products = wrappers.get_element_products_function(router, DbClass)
 @router.get(
     "/get/{row_id}/errors",
     status_code=201,
-    response_model=Sequence[models.PipetaskError],
+    response_model=Sequence[models_.PipetaskError],
     summary="Get the errors associated to a job",
 )
 async def get_errors(

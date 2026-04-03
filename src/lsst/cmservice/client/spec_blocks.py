@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import httpx
 
-from .. import db, models
+from .. import db, models_
 from . import wrappers
 
 if TYPE_CHECKING:
@@ -14,11 +14,11 @@ if TYPE_CHECKING:
 
 # Template specialization
 # Specify the pydantic model for SpecBlock
-ResponseModelClass = models.SpecBlock
+ResponseModelClass = models_.SpecBlock
 # Specify the pydantic model from making new SpecBlocks
-CreateModelClass = models.SpecBlockCreate
+CreateModelClass = models_.SpecBlockCreate
 # Specify the pydantic model from updating rows
-UpdateModelClass = models.SpecBlockUpdate
+UpdateModelClass = models_.SpecBlockUpdate
 # Specify the associated database table
 DbClass = db.SpecBlock
 

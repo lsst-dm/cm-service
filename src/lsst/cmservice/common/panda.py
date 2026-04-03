@@ -11,7 +11,8 @@ from typing import TYPE_CHECKING
 import httpx
 from pandaclient.openidc_utils import decode_id_token
 
-from ..common import timestamp
+from lsst.cmservice.models.lib import timestamp
+
 from ..config import config
 from .logging import LOGGER
 

@@ -6,8 +6,9 @@ import pytest
 
 from lsst.cmservice import db
 from lsst.cmservice.common import errors
-from lsst.cmservice.common.enums import LevelEnum, StatusEnum, TableEnum
-from lsst.cmservice.common.types import AnyAsyncSession
+from lsst.cmservice.common.enums import LevelEnum, TableEnum
+from lsst.cmservice.models.enums import StatusEnum
+from lsst.cmservice.models.types import AnyAsyncSession
 
 type AnyElement = db.Group | db.Campaign | db.Step | db.Job
 

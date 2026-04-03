@@ -17,11 +17,16 @@ from sqlmodel import select
 from transitions import EventData
 from transitions.extensions.asyncio import AsyncMachine
 
-from ..common import timestamp
-from ..common.enums import ManifestKind, StatusEnum
-from ..common.graph import InvalidCampaignGraphError, graph_from_edge_list_v2, validate_graph
+from lsst.cmservice.models.db.campaigns import ActivityLog, Campaign, Edge, Node
+from lsst.cmservice.models.enums import ManifestKind, StatusEnum
+from lsst.cmservice.models.lib import timestamp
+from lsst.cmservice.models.lib.graph import (
+    InvalidCampaignGraphError,
+    graph_from_edge_list_v2,
+    validate_graph,
+)
+
 from ..common.logging import LOGGER
-from ..db.campaigns_v2 import ActivityLog, Campaign, Edge, Node
 from .node import NodeMachine
 
 logger = LOGGER.bind(module=__name__)

@@ -2,16 +2,16 @@
 
 from fastapi import APIRouter
 
-from .. import db, models
+from .. import db, models_
 from . import wrappers
 
 # Template specialization
 # Specify the pydantic model for the table
-ResponseModelClass = models.WmsTaskReport
+ResponseModelClass = models_.WmsTaskReport
 # Specify the pydantic model from making new rows
-CreateModelClass = models.WmsTaskReportCreate
+CreateModelClass = models_.WmsTaskReportCreate
 # Specify the pydantic model from updating rows
-UpdateModelClass = models.WmsTaskReportUpdate
+UpdateModelClass = models_.WmsTaskReportUpdate
 # Specify the associated database table
 DbClass = db.WmsTaskReport
 

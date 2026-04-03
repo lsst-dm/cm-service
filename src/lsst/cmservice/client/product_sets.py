@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import httpx
 
-from .. import db, models
+from .. import db, models_
 from . import wrappers
 
 if TYPE_CHECKING:
@@ -14,11 +14,11 @@ if TYPE_CHECKING:
 
 # Template specialization
 # Specify the pydantic model for ProductSet
-ResponseModelClass = models.ProductSet
+ResponseModelClass = models_.ProductSet
 # Specify the pydantic model from making new ProductSets
-CreateModelClass = models.ProductSetCreate
+CreateModelClass = models_.ProductSetCreate
 # Specify the pydantic model from updating rows
-UpdateModelClass = models.ProductSetUpdate
+UpdateModelClass = models_.ProductSetUpdate
 # Specify the associated database table
 DbClass = db.ProductSet
 

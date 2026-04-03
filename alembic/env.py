@@ -4,8 +4,8 @@ from logging.config import fileConfig
 
 from sqlalchemy import create_engine, pool, text
 
-import lsst.cmservice.db
 from alembic import context
+from lsst.cmservice.db.legacy_base import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -18,7 +18,7 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-target_metadata = lsst.cmservice.db.Base.metadata
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired using `config.get_main_option("...")`

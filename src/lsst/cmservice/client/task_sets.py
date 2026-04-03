@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import httpx
 
-from .. import db, models
+from .. import db, models_
 from . import wrappers
 
 if TYPE_CHECKING:
@@ -14,11 +14,11 @@ if TYPE_CHECKING:
 
 # Template specialization
 # Specify the pydantic model for TaskSet
-ResponseModelClass = models.TaskSet
+ResponseModelClass = models_.TaskSet
 # Specify the pydantic model from making new TaskSets
-CreateModelClass = models.TaskSetCreate
+CreateModelClass = models_.TaskSetCreate
 # Specify the pydantic model from updating rows
-UpdateModelClass = models.TaskSetUpdate
+UpdateModelClass = models_.TaskSetUpdate
 # Specify the associated database table
 DbClass = db.TaskSet
 

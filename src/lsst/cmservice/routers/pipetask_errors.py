@@ -2,16 +2,16 @@
 
 from fastapi import APIRouter
 
-from .. import db, models
+from .. import db, models_
 from . import wrappers
 
 # Template specialization
 # Specify the pydantic model for the table
-ResponseModelClass = models.PipetaskError
+ResponseModelClass = models_.PipetaskError
 # Specify the pydantic model from making new rows
-CreateModelClass = models.PipetaskErrorCreate
+CreateModelClass = models_.PipetaskErrorCreate
 # Specify the pydantic model from updating rows
-UpdateModelClass = models.PipetaskErrorUpdate
+UpdateModelClass = models_.PipetaskErrorUpdate
 # Specify the associated database table
 DbClass = db.PipetaskError
 

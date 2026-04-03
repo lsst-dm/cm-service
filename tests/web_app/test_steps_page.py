@@ -6,8 +6,9 @@ from _pytest.monkeypatch import MonkeyPatch
 from playwright.sync_api import expect, sync_playwright
 
 from lsst.cmservice import db
-from lsst.cmservice.common.enums import LevelEnum, StatusEnum
+from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.db import Step
+from lsst.cmservice.models.enums import StatusEnum
 from lsst.cmservice.web_app.pages.steps import get_step_details
 
 

@@ -9,11 +9,12 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import UUID5, BaseModel, Field
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from lsst.cmservice.models.db.campaigns import Campaign, Node
+from lsst.cmservice.models.enums import StatusEnum
+from lsst.cmservice.models.lib.graph import processable_graph_nodes
+
 from ...common.daemon_v2 import assemble_campaign_graph, daemon_consider_campaign, daemon_process_node
-from ...common.enums import StatusEnum
-from ...common.graph import processable_graph_nodes
 from ...common.logging import LOGGER
-from ...db.campaigns_v2 import Campaign, Node
 from ...db.session import db_session_dependency
 
 logger = LOGGER.bind(module=__name__)

@@ -11,10 +11,10 @@ from uuid import uuid4
 import pytest
 from httpx import Response
 
-from lsst.cmservice.common import timestamp
 from lsst.cmservice.common.logging import LOGGER
 from lsst.cmservice.common.panda import get_panda_token
 from lsst.cmservice.config import config
+from lsst.cmservice.models.lib import timestamp
 
 logger = LOGGER.bind(module=__name__)
 

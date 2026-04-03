@@ -29,11 +29,8 @@ from sqlmodel import cast as sqlcast
 from sqlmodel import col, distinct, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from ...common.enums import DEFAULT_NAMESPACE, ManifestKind, StatusEnum
-from ...common.graph import append_node_to_graph, graph_from_edge_list_v2, graph_to_dict, insert_node_to_graph
-from ...common.logging import LOGGER
-from ...common.timestamp import element_time
-from ...db.campaigns_v2 import (
+from lsst.cmservice.models.api.manifests import CampaignManifest, ManifestRequest
+from lsst.cmservice.models.db.campaigns import (
     ActivityLog,
     Campaign,
     CampaignSummary,
@@ -43,7 +40,16 @@ from ...db.campaigns_v2 import (
     Node,
     NodeStatusSummary,
 )
-from ...db.manifests_v2 import CampaignManifest, ManifestRequest
+from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, ManifestKind, StatusEnum
+from lsst.cmservice.models.lib.graph import (
+    append_node_to_graph,
+    graph_from_edge_list_v2,
+    graph_to_dict,
+    insert_node_to_graph,
+)
+from lsst.cmservice.models.lib.timestamp import element_time
+
+from ...common.logging import LOGGER
 from ...db.session import db_session_dependency
 from ...machines.tasks import change_campaign_state
 

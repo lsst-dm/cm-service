@@ -7,12 +7,14 @@ from uuid import uuid5
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy import select
 
-from .. import db, models
-from ..common import timestamp
-from ..common.enums import DEFAULT_NAMESPACE
-from ..common.graph import graph_from_edge_list, graph_to_dict
+from lsst.cmservice.models.enums import DEFAULT_NAMESPACE
+from lsst.cmservice.models.lib import timestamp
+from lsst.cmservice.models.lib.graph import graph_to_dict
+from lsst.cmservice.models.types import AnyAsyncSession
+
+from .. import db, models_
+from ..common.legacy_graph import graph_from_edge_list
 from ..common.logging import LOGGER
-from ..common.types import AnyAsyncSession
 from ..db.session import db_session_dependency
 from ..handlers.functions import render_campaign_steps
 from . import wrappers
@@ -22,11 +24,11 @@ logger = LOGGER.bind(module=__name__)
 
 # Template specialization
 # Specify the pydantic model for the table
-ResponseModelClass = models.Campaign
+ResponseModelClass = models_.Campaign
 # Specify the pydantic model from making new rows
-CreateModelClass = models.CampaignCreate
+CreateModelClass = models_.CampaignCreate
 # Specify the pydantic model from updating rows
-UpdateModelClass = models.CampaignUpdate
+UpdateModelClass = models_.CampaignUpdate
 # Specify the associated database table
 DbClass = db.Campaign
 
@@ -91,11 +93,11 @@ get_products = wrappers.get_element_products_function(router, DbClass)
 @router.post(
     "/create",
     status_code=201,
-    response_model=models.Campaign,
+    response_model=models_.Campaign,
     summary="Create a campaign and a queue",
 )
 async def post_row(
-    row_create: models.CampaignCreate,
+    row_create: models_.CampaignCreate,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
     background_tasks: BackgroundTasks,
 ) -> db.Campaign:

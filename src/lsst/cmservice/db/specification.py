@@ -7,12 +7,12 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..common.errors import CMMissingFullnameError, CMSpecificationError
-from .base import Base
+from .legacy_base import Base
 from .row import RowMixin
 from .spec_block import SpecBlock
 
 if TYPE_CHECKING:
-    from ..common.types import AnyAsyncSession
+    from lsst.cmservice.models.types import AnyAsyncSession
 
 
 class Specification(Base, RowMixin):

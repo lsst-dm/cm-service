@@ -2,13 +2,14 @@ from sqlalchemy import Enum as saEnum
 from sqlalchemy import MetaData
 from sqlalchemy.orm import DeclarativeBase
 
+from lsst.cmservice.models.enums import StatusEnum
+
 from ..common.enums import (
     ErrorActionEnum,
     ErrorFlavorEnum,
     ErrorSourceEnum,
     LevelEnum,
     ScriptMethodEnum,
-    StatusEnum,
 )
 from ..config import config
 

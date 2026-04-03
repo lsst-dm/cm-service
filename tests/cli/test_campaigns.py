@@ -4,9 +4,10 @@ import uuid
 import pytest
 from click.testing import CliRunner
 
-from lsst.cmservice import models
+from lsst.cmservice import models_
 from lsst.cmservice.cli.client import client_top
-from lsst.cmservice.common.enums import DEFAULT_NAMESPACE, LevelEnum
+from lsst.cmservice.common.enums import LevelEnum
+from lsst.cmservice.models.enums import DEFAULT_NAMESPACE
 
 from .util_functions import (
     check_and_parse_result,
@@ -27,14 +28,14 @@ async def test_campaign_cli(runner: CliRunner) -> None:
     os.environ["CM_CONFIGS"] = "examples"
 
     result = runner.invoke(client_top, "campaign list --output yaml")
-    campaigns = check_and_parse_result(result, list[models.Campaign])
+    campaigns = check_and_parse_result(result, list[models_.Campaign])
     assert len(campaigns) == 0, "Campaign list not empty"
 
     # intialize a tree down to one level lower
     create_tree(runner, client_top, LevelEnum.step, namespace)
 
     result = runner.invoke(client_top, "campaign list --output yaml")
-    campaigns = check_and_parse_result(result, list[models.Campaign])
+    campaigns = check_and_parse_result(result, list[models_.Campaign])
     entry = campaigns[0]
 
     # test other output cases
@@ -63,10 +64,10 @@ async def test_campaign_cli(runner: CliRunner) -> None:
     assert result.exit_code == 2
 
     # check get methods
-    check_get_methods(runner, client_top, entry, "campaign", models.Campaign)
+    check_get_methods(runner, client_top, entry, "campaign", models_.Campaign)
 
     # check update methods
-    check_update_methods(runner, client_top, entry, "campaign", models.Campaign)
+    check_update_methods(runner, client_top, entry, "campaign", models_.Campaign)
 
     # check scripts
     check_scripts(runner, client_top, entry, "campaign")

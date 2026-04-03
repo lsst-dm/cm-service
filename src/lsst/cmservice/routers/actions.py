@@ -2,9 +2,10 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from .. import db, models
-from ..common.enums import StatusEnum
-from ..common.types import AnyAsyncSession
+from lsst.cmservice.models.enums import StatusEnum
+from lsst.cmservice.models.types import AnyAsyncSession
+
+from .. import db, models_
 from ..db.session import db_session_dependency
 from ..handlers import interface
 
@@ -20,7 +21,7 @@ router = APIRouter(
     summary="Process a Node",
 )
 async def process(
-    query: models.ProcessNodeQuery,
+    query: models_.ProcessNodeQuery,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> tuple[bool, StatusEnum]:
     """Invoke the interface.process function"""
@@ -38,11 +39,11 @@ async def process(
 @router.post(
     "/reset_script",
     status_code=201,
-    response_model=models.Script,
+    response_model=models_.Script,
     summary="Reset `Script`",
 )
 async def reset_script(
-    query: models.ResetScriptQuery,
+    query: models_.ResetScriptQuery,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> db.Script:
     """Invoke the interface.reset_script function"""
@@ -58,11 +59,11 @@ async def reset_script(
 @router.post(
     "/rescue_job",
     status_code=201,
-    response_model=models.Job,
+    response_model=models_.Job,
     summary="Run a resuce on a `Job`",
 )
 async def rescue_job(
-    query: models.NodeQuery,
+    query: models_.NodeQuery,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> db.Job:
     """Invoke the interface.rescue_job function"""
@@ -78,11 +79,11 @@ async def rescue_job(
 @router.post(
     "/mark_job_rescued",
     status_code=201,
-    response_model=list[models.Job],
+    response_model=list[models_.Job],
     summary="Mark a `Job` as rescued",
 )
 async def mark_job_rescued(
-    query: models.NodeQuery,
+    query: models_.NodeQuery,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> list[db.Job]:
     """Invoke the interface.mark_job_rescued function"""
@@ -98,11 +99,11 @@ async def mark_job_rescued(
 @router.post(
     "/rematch_errors",
     status_code=201,
-    response_model=list[models.PipetaskError],
+    response_model=list[models_.PipetaskError],
     summary="Rematch the Pipetask errors",
 )
 async def rematch_pipetask_errors(
-    query: models.RematchQuery,
+    query: models_.RematchQuery,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> list[db.PipetaskError]:
     """Invoke the interface.match_pipetask_errors function"""
