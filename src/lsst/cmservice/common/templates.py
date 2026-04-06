@@ -3,7 +3,7 @@ used in the operation of a Scheduled Campaign.
 """
 
 from collections import deque
-from collections.abc import MutableMapping, MutableSequence
+from collections.abc import Mapping, MutableMapping, MutableSequence
 from datetime import datetime, timedelta
 from typing import Any, Literal
 
@@ -26,7 +26,7 @@ def as_obs_day(value: datetime) -> str:
     return f"{value:%Y%m%d}"
 
 
-def as_exposure(value: datetime, exposure=0) -> str:
+def as_exposure(value: datetime, exposure: int = 0) -> str:
     return f"{value:%Y%m%d}{exposure:05d}"
 
 
@@ -36,12 +36,12 @@ def compile_user_expressions(expressions: MutableMapping) -> dict[str, Any]:
     expressed value is cast as a string before being returned as a mapping
     of expression name to expression result.
     """
-    whitelist_modules = {
+    whitelist_modules: Mapping[str, type] = {
         "datetime": datetime,
         "timedelta": timedelta,
     }
     sandbox = ImmutableSandboxedEnvironment()
-    sandbox.globals = whitelist_modules
+    sandbox.globals.update(whitelist_modules)
 
     # TODO exception handling here, should the expression blow up
     # Compile and evaluate the user expression in the sandbox environment
@@ -60,7 +60,7 @@ async def build_sandbox_and_render_templates(expressions: dict, templates: list[
     """
     # . expressions = schedule.expressions
     # . templates = schedule.templates
-    rendered_templates = deque(maxlen=len(templates))
+    rendered_templates: deque[str] = deque(maxlen=len(templates))
     compiled_expressions = compile_user_expressions(expressions)
 
     sandbox = ImmutableSandboxedEnvironment(

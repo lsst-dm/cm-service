@@ -62,7 +62,7 @@ app.include_router(healthz.health_router, prefix="")
 
 # Add Exception Handlers
 @app.exception_handler(NoResultFound)
-async def notfound_error_handler(request: Request, exc: NoResultFound):
+async def notfound_error_handler(request: Request, exc: NoResultFound) -> None:
     """Raise a 404 when the `NoResultFound` exception is raised.
 
     The NoResultFound exception may be raised in a route that uses the
@@ -72,7 +72,7 @@ async def notfound_error_handler(request: Request, exc: NoResultFound):
 
 
 @app.exception_handler(IntegrityError)
-async def duplicate_error_handler(request: Request, exc: IntegrityError):
+async def duplicate_error_handler(request: Request, exc: IntegrityError) -> None:
     """Raise a 409 when the `IntegrityError` exception is raised."""
     raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 

@@ -218,7 +218,7 @@ async def update_schedule_resource(
         # TODO consider a custom validators? Might be overkill for this
         # The cron string is just a string when it comes back out of the db
         schedule_cron = CronStr(schedule.cron)
-        schedule.next_run_at = schedule_cron.next_run  # type: ignore[attr-assigned]
+        schedule.next_run_at = schedule_cron.next_run  # type: ignore
 
     await session.commit()
 

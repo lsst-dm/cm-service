@@ -70,7 +70,7 @@ def template_generator() -> Generator[str]:
     return (t for t in manifest_templates)
 
 
-async def test_custom_expressions(template_generator) -> None:
+async def test_custom_expressions(template_generator: Generator[str]) -> None:
     expressions = {
         "campaign_name": "'test_simple_template'",
         "today": "datetime(year=2026, month=5, day=1)",

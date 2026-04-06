@@ -10,7 +10,8 @@ from sqlmodel import Column, DateTime, Enum, Field, Relationship
 
 from ..enums import ManifestKind
 from ..types import KindField
-from .campaigns import BaseSQLModel, jsonb_column
+from .base import BaseSQLModel
+from .campaigns import jsonb_column
 
 
 class ScheduleBase(BaseSQLModel):
@@ -64,7 +65,6 @@ class ManifestTemplateBase(BaseSQLModel):
     kind: KindField = Field(
         sa_column=Column("kind", Enum(ManifestKind, length=20, native_enum=False, create_constraint=False)),
     )
-    schedule_id: UUID4 = Field(foreign_key="schedules_v2.id", ondelete="CASCADE")
     manifest: dict = jsonb_column("manifest")
     metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])
 
@@ -74,12 +74,13 @@ class ManifestTemplate(ManifestTemplateBase, table=True):
 
     model_config = {"validate_assignment": True}
     __tablename__: str = "templates_v2"  # type: ignore[misc]
+    schedule_id: UUID4 = Field(foreign_key="schedules_v2.id", ondelete="CASCADE")
 
 
 class CreateManifestTemplate(ManifestTemplateBase):
     """A validating model for manifest templates in the new schedule API."""
 
-    # This model differs from its parent in that the schedule_id is an optional
-    # field instead of a mandatory FK constraint, allowing it to be used to
+    # This model differs from its sibling in that the schedule_id is optional
+    # rather than a mandatory FK constraint, allowing it to be used to
     # create new ManifestTemplate objects.
     schedule_id: UUID4 | None = None
