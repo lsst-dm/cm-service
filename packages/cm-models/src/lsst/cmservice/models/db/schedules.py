@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from pydantic import UUID4, AwareDatetime, StrictBool
 from pydantic_extra_types.cron import CronStr
+from sqlalchemy import UniqueConstraint
 from sqlmodel import Column, DateTime, Enum, Field, Relationship
 
 from ..enums import ManifestKind
@@ -18,8 +19,8 @@ class ScheduleBase(BaseSQLModel):
     """schedules_v2 base model, used to create new schedule objects."""
 
     id: UUID4 = Field(default_factory=uuid4, primary_key=True)
-    name: str = Field(unique=True)
-    cron: CronStr
+    name: str = Field(description="A unique name for this schedule")
+    cron: CronStr = Field(description="A cron expression string")
     metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])
     expressions: dict = jsonb_column("expressions")
     is_enabled: StrictBool = Field(default=False)
@@ -41,6 +42,7 @@ class Schedule(ScheduleBase, table=True):
     model_config = {"validate_assignment": True}
 
     __tablename__: str = "schedules_v2"  # type: ignore[misc]
+    __table_args__: tuple[UniqueConstraint, ...] = (UniqueConstraint("name", name="uq_schedule_name"),)  # type: ignore[assignment]
 
     # The templates virtual field is eagerly loaded (SELECT) by default!
     templates: list["ManifestTemplate"] = Relationship(
