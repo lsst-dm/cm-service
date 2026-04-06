@@ -19,7 +19,7 @@ class ScheduleTestCase:
 
 
 @pytest.fixture
-def test_case(request) -> ScheduleTestCase:
+def test_case(request: pytest.FixtureRequest) -> ScheduleTestCase:
     return request.param
 
 

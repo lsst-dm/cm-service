@@ -4,6 +4,7 @@ import importlib
 import os
 from collections.abc import AsyncGenerator, Callable, Generator
 from typing import TYPE_CHECKING
+from unittest.mock import Mock
 from uuid import NAMESPACE_DNS, uuid4
 
 import pytest
@@ -12,8 +13,10 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import insert
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import CreateSchema, DropSchema
+from sqlmodel.ext.asyncio.session import AsyncSession
 from testcontainers.postgres import PostgresContainer
 
+from lsst.cmservice.common.daemon_v2 import DaemonContext
 from lsst.cmservice.common.flags import Features
 from lsst.cmservice.config import config
 from lsst.cmservice.db.session import DatabaseManager, db_session_dependency
@@ -169,6 +172,17 @@ async def async_client_fixture(
     ) as aclient:
         yield aclient
     app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture(name="daemon_context", scope="module", loop_scope="module")
+async def daemon_context(session: AnyAsyncSession) -> AsyncGenerator[DaemonContext]:
+    if TYPE_CHECKING:
+        assert isinstance(session, AsyncSession)
+    dc = DaemonContext(
+        app=Mock(),
+    )
+    dc.session = session
+    yield dc
 
 
 @pytest_asyncio.fixture(scope="function", loop_scope="module")

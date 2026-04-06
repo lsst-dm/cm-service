@@ -4,6 +4,7 @@ from asyncio import TaskGroup, create_task
 from collections.abc import Awaitable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
+from types import TracebackType
 from typing import TYPE_CHECKING, Self, cast
 from uuid import UUID, uuid5
 
@@ -44,7 +45,9 @@ class DaemonContext:
         self.session = db_session_dependency.sessionmaker()
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+    async def __aexit__(
+        self, exc_type: type[BaseException], exc_val: BaseException | None, exc_tb: TracebackType | None
+    ) -> None:
         await self.session.close()
         return None
 
@@ -232,7 +235,7 @@ async def consider_nodes(context: DaemonContext) -> None:
             await session.commit()
 
 
-async def do_schedule_stuff(schedule_id: UUID) -> None:
+async def daemon_check_schedule(schedule_id: UUID) -> None:
     ...
     breakpoint()
     # with daemon context...
@@ -259,7 +262,7 @@ async def consider_schedules(context: DaemonContext) -> None:
             context.app.state.scheduler.scheduler.reschedule_job(job_id, job_trigger)
         else:
             context.app.state.scheduler.scheduler.add_job(
-                do_schedule_stuff,
+                daemon_check_schedule,
                 job_trigger,
                 id=job_id,
                 args=[schedule.id],

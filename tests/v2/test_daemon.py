@@ -6,9 +6,8 @@ from uuid import uuid5
 
 import pytest
 from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
 
-from lsst.cmservice.common.daemon_v2 import consider_campaigns, consider_nodes
+from lsst.cmservice.common.daemon_v2 import DaemonContext, consider_campaigns, consider_nodes
 from lsst.cmservice.common.launchers import LauncherCheckResponse
 from lsst.cmservice.models.db.campaigns import Campaign, Node, Task
 from lsst.cmservice.models.enums import StatusEnum
@@ -18,7 +17,7 @@ pytestmark = pytest.mark.asyncio(loop_scope="module")
 
 
 async def test_daemon_campaign(
-    caplog: pytest.LogCaptureFixture, test_campaign: str, session: AsyncSession
+    caplog: pytest.LogCaptureFixture, test_campaign: str, daemon_context: DaemonContext
 ) -> None:
     """Tests the handling of campaigns during daemon iteration, which is
     primarily done by checking side effects. This test assesses a test campaign
@@ -27,11 +26,12 @@ async def test_daemon_campaign(
     continue to traverse the campaign graph and visit more nodes until the
     END node is reached.
     """
+    session = daemon_context.session
 
     # At first, the test_campaign in a waiting state is not subject to daemon
     # consideration
     caplog.clear()
-    await consider_campaigns(session)
+    await consider_campaigns(daemon_context)
 
     # extract the test campaign id from the fixture url
     campaign_id = urlparse(test_campaign).path.split("/")[-2:][0]
@@ -47,7 +47,7 @@ async def test_daemon_campaign(
 
     # now the daemon should consider the running campaign
     caplog.clear()
-    await consider_campaigns(session)
+    await consider_campaigns(daemon_context)
     found_log_messages = 0
     for r in caplog.records:
         if any(["considering campaign" in r.message, "considering node" in r.message]):
@@ -66,7 +66,7 @@ async def test_daemon_campaign(
     await session.commit()
 
     caplog.clear()
-    await consider_campaigns(session)
+    await consider_campaigns(daemon_context)
     tasks = (await session.exec(select(Task))).all()
     # One additional task should be in the table now
     assert len(tasks) == 2
@@ -76,7 +76,7 @@ async def test_daemon_campaign(
 
     # The next assessment should produce two nodes to be handled in parallel
     caplog.clear()
-    await consider_campaigns(session)
+    await consider_campaigns(daemon_context)
     tasks = (await session.exec(select(Task))).all()
     # Two additional tasks should be in the table now
     assert len(tasks) == 4
@@ -89,7 +89,7 @@ async def test_daemon_campaign(
 
     # The next assessment should produce the END node
     caplog.clear()
-    await consider_campaigns(session)
+    await consider_campaigns(daemon_context)
     tasks = (await session.exec(select(Task))).all()
     # One additional task should be in the table now
     assert len(tasks) == 5
@@ -114,8 +114,9 @@ async def test_daemon_node(
     mock_launch: Mock,
     caplog: pytest.LogCaptureFixture,
     test_campaign: str,
-    session: AsyncSession,
+    daemon_context: DaemonContext,
 ) -> None:
+    session = daemon_context.session
     # set the campaign to running (without involving a campaign machine)
     campaign_id = urlparse(url=test_campaign).path.split("/")[-2:][0]
     campaign = await session.get_one(Campaign, campaign_id)
@@ -124,8 +125,8 @@ async def test_daemon_node(
 
     # after the equivalent of a single iteration, the test campaign's START
     # Node will be on the task list with a transition from waiting->ready.
-    await consider_campaigns(session)
-    await consider_nodes(session)
+    await consider_campaigns(daemon_context)
+    await consider_nodes(daemon_context)
 
     # As we continue to iterate the daemon over the campaign's 5 nodes
     # (including its START and END), each node in the graph is evolved.
@@ -139,8 +140,8 @@ async def test_daemon_node(
     i = 12
     while end_node.status is not StatusEnum.accepted:
         i -= 1
-        await consider_campaigns(session)
-        await consider_nodes(session)
+        await consider_campaigns(daemon_context)
+        await consider_nodes(daemon_context)
         # the end node is expunged from the session as a side effect when the
         # graph is built
         session.add(end_node)
