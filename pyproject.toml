@@ -25,6 +25,7 @@ dynamic = ["version"]
 dependencies = [
     "alembic==1.16.*",
     "anyio==4.10.*",
+    "apscheduler>=3.11.2,<4",
     "asgi-correlation-id>=4.3.4",
     "asyncpg==0.30.*",
     "click==8.1.*",
@@ -38,6 +39,7 @@ dependencies = [
     "numpy==2.1.*",
     "psycopg2-binary==2.9.*",
     "pydantic==2.12.*",
+    "pydantic-extra-types>=2.10.5",
     "pydantic-settings==2.12.*",
     "pytransitions==0.9.*",
     "python-multipart==0.0.*",
@@ -46,8 +48,6 @@ dependencies = [
     "structlog==25.*",
     "tabulate==0.9.*",
     "uvicorn[standard]==0.34.*",
-    "lsst-cmservice-models",
-    "apscheduler>=3.11.2",
 ]
 
 [dependency-groups]
@@ -55,6 +55,7 @@ dependencies = [
 # party dependencies. This dependency group is not optional and will always be
 # included in the default installation of the project environment.
 lsst = [
+    "lsst-cmservice-models",
     "lsst-ctrl-bps>=29.2025.4700",
     "lsst-ctrl-bps-htcondor>=29.2025.4700; sys_platform == 'linux'",
     "lsst-ctrl-bps-panda>=29.2025.4700",
@@ -256,7 +257,7 @@ explicit_package_bases = true
 namespace_packages = true
 
 [[tool.mypy.overrides]]
-module = ["lsst.ctrl.*", "testcontainers.*", "botocore.*", "pandaclient.*", "asyncpg.*"]
+module = ["lsst.ctrl.*", "testcontainers.*", "botocore.*", "pandaclient.*", "asyncpg.*", "apscheduler.*"]
 ignore_missing_imports = true
 disable_error_code = ["import-untyped"]
 
