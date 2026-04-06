@@ -2,7 +2,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
 from ..common.enums import ErrorSourceEnum
-from .base import Base
+from .legacy_base import Base
 from .row import RowMixin
 from .script import Script
 

@@ -4,9 +4,9 @@ from typing import TYPE_CHECKING
 from sqlalchemy import select
 
 from lsst.cmservice.common.enums import LevelEnum
-from lsst.cmservice.common.timestamp import iso_timestamp
-from lsst.cmservice.common.types import AnyAsyncSession
 from lsst.cmservice.db import Campaign, Group
+from lsst.cmservice.models.lib.timestamp import iso_timestamp
+from lsst.cmservice.models.types import AnyAsyncSession
 from lsst.cmservice.web_app.pages.steps import get_campaign_steps, get_step_details
 from lsst.cmservice.web_app.utils.utils import map_status
 

@@ -9,15 +9,16 @@ import pytest
 from httpx import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from lsst.cmservice.common.enums import StatusEnum
-from lsst.cmservice.common.graph import (
+from lsst.cmservice.models.db.campaigns import Edge
+from lsst.cmservice.models.enums import StatusEnum
+from lsst.cmservice.models.lib.graph import (
     delete_node_from_graph,
+    find_endpoints_in_directed_graph,
     graph_from_edge_list_v2,
     processable_graph_nodes,
     validate_graph,
 )
-from lsst.cmservice.common.types import AnyAsyncSession
-from lsst.cmservice.db.campaigns_v2 import Edge
+from lsst.cmservice.models.types import AnyAsyncSession
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""
@@ -101,7 +102,7 @@ async def test_validate_graph() -> None:
             self.id = uuid4()
             self.name = name
 
-    g = nx.DiGraph()
+    g: nx.DiGraph = nx.DiGraph()
     n = {}
     for a in "ABCDEF":
         node = FakeNode(a)
@@ -121,6 +122,11 @@ async def test_validate_graph() -> None:
 
     # this is a valid graph
     assert validate_graph(g, "A", "F")
+
+    # the source and sink nodes are what we expect
+    source, sink = find_endpoints_in_directed_graph(g)
+    assert source is n["A"]
+    assert sink is n["F"]
 
     # add a new parallel node with no path to sink
     new_node = FakeNode("G")

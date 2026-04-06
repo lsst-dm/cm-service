@@ -11,10 +11,10 @@ import pytest
 from httpx import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from lsst.cmservice.common.enums import DEFAULT_NAMESPACE, ManifestKind
-from lsst.cmservice.common.graph import validate_graph
-from lsst.cmservice.db.campaigns_v2 import Node
 from lsst.cmservice.machines.node import GroupMachine, StepMachine
+from lsst.cmservice.models.db.campaigns import Node
+from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, ManifestKind
+from lsst.cmservice.models.lib.graph import validate_graph
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""

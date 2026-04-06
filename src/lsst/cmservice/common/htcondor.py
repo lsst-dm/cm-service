@@ -11,8 +11,9 @@ from typing import TYPE_CHECKING, Any
 from anyio import Path, open_process
 from anyio.streams.text import TextReceiveStream
 
+from lsst.cmservice.models.enums import StatusEnum
+
 from ..config import config
-from .enums import StatusEnum
 from .errors import CMHTCondorCheckError, CMHTCondorSubmitError
 from .launchers import LauncherCheckResponse, LaunchManager
 from .logging import LOGGER

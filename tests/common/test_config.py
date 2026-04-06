@@ -14,22 +14,22 @@ def test_config_nested_partial_update(monkeypatch: Any) -> None:
     """
     # An all-defaults configuration
     config_a = Configuration()
-    assert not config_a.db.echo
+    assert config_a.notifications.slack_webhook_url is None
     assert config_a.htcondor.condor_q_bin == "condor_q"
     assert config_a.asgi.port == 8080
-    assert config_a.logging.profile == "development"
+    assert config_a.daemon.processing_interval == 30
 
-    monkeypatch.setenv("LOGGING__PROFILE", "production")
+    monkeypatch.setenv("DAEMON__PROCESSING_INTERVAL", "600")
     monkeypatch.setenv("ASGI__PORT", "5000")
     monkeypatch.setenv("HTCONDOR__CONDOR_Q_BIN", "/usr/local/bin/condor_q")
-    monkeypatch.setenv("DB__ECHO", "1")
+    monkeypatch.setenv("NOTIFICATIONS__SLACK_WEBHOOK_URL", "https://slack.local/abcdef")
 
     # Partial updates in nested configuration models
     config_b = Configuration()
-    assert config_b.db.echo
+    assert config_b.notifications.slack_webhook_url == "https://slack.local/abcdef"
     assert config_b.htcondor.condor_q_bin == "/usr/local/bin/condor_q"
     assert config_b.asgi.port == 5000
-    assert config_b.logging.profile == "production"
+    assert config_b.daemon.processing_interval == 600
 
 
 def test_config_enum_validation(monkeypatch: Any) -> None:

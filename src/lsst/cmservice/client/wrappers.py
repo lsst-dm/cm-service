@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, TypeAlias
 from httpx import ConnectError, HTTPStatusError
 from pydantic import TypeAdapter
 
-from .. import models
+from .. import models_
 from ..common.logging import LOGGER
 
 if TYPE_CHECKING:
@@ -257,7 +257,7 @@ def get_row_by_fullname_function(
         obj: CMClient,
         fullname: str,
     ) -> response_model_class | None:
-        params = models.FullnameQuery(fullname=fullname).model_dump()
+        params = models_.FullnameQuery(fullname=fullname).model_dump()
         response = obj.client.get(query, params=params)
         if response.status_code == 404:
             return None
@@ -292,7 +292,7 @@ def get_row_by_name_function(
         obj: CMClient,
         name: str,
     ) -> response_model_class | None:
-        params = models.NameQuery(name=name).model_dump()
+        params = models_.NameQuery(name=name).model_dump()
         try:
             response = obj.client.get(query, params=params)
             if response.status_code == 404:

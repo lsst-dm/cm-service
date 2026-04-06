@@ -96,8 +96,8 @@ metadata:
   namespace: example_v2_ci
 # The "spec" of a bps manifest is primarily concerned with providing values to
 # use when rendering a bps workflow YAML. The structure of the yaml is fixed
-# (see `src/lsst/cmservice/templates/bps_submit_yaml.j2`) and pulls from multiple
-# manifests when rendering.
+# (see `packages/cm-models/src/lsst/cm_models/templates/bps_submit_yaml.j2`)
+# and pulls from multiple manifests when rendering.
 # NOTE that the use of bps `{variables}` and `${environment}` variables here
 # follow the expected rules of bps usage.
 spec:

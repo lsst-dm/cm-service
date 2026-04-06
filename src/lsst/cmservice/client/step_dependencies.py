@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import httpx
 
-from .. import db, models
+from .. import db, models_
 from . import wrappers
 
 if TYPE_CHECKING:
@@ -14,9 +14,9 @@ if TYPE_CHECKING:
 
 # Template specialization
 # Specify the pydantic model for StepDependency
-ResponseModelClass = models.Dependency
+ResponseModelClass = models_.Dependency
 # Specify the pydantic model from making new StepDependency
-CreateModelClass = models.DependencyCreate
+CreateModelClass = models_.DependencyCreate
 # Specify the associated database table
 DbClass = db.StepDependency
 

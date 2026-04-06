@@ -6,11 +6,11 @@ import pytest
 from click.testing import CliRunner
 from safir.testing.uvicorn import UvicornProcess
 
-from lsst.cmservice import models
+from lsst.cmservice import models_
 from lsst.cmservice.cli.client import client_top
 from lsst.cmservice.client.clientconfig import client_config
-from lsst.cmservice.common.enums import DEFAULT_NAMESPACE
 from lsst.cmservice.config import config
+from lsst.cmservice.models.enums import DEFAULT_NAMESPACE
 
 from .util_functions import (
     check_and_parse_result,
@@ -42,7 +42,7 @@ async def test_cli_trivial_campaign(monkeypatch: Any, uvicorn: UvicornProcess, a
         client_top,
         f"load campaign --yaml_file {yaml_file} --campaign_yaml {fixtures}/start_trivial.yaml --output yaml",
     )
-    campaign = check_and_parse_result(result, models.Campaign)
+    campaign = check_and_parse_result(result, models_.Campaign)
     assert campaign.name == "trivial_campaign"
 
     # delete everything we just made in the session

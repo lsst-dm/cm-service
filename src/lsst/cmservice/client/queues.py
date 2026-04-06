@@ -9,8 +9,9 @@ from typing import TYPE_CHECKING
 import httpx
 from pydantic import TypeAdapter, ValidationError
 
-from .. import db, models
-from ..common import timestamp
+from lsst.cmservice.models.lib import timestamp
+
+from .. import db, models_
 from ..common.errors import test_type_and_raise
 from ..common.logging import LOGGER
 from . import wrappers
@@ -22,11 +23,11 @@ logger = LOGGER.bind(module_name=__name__)
 
 # Template specialization
 # Specify the pydantic model for Group
-ResponseModelClass = models.Queue
+ResponseModelClass = models_.Queue
 # Specify the pydantic model from making new Groups
-CreateModelClass = models.QueueCreate
+CreateModelClass = models_.QueueCreate
 # Specify the pydantic model from updating rows
-UpdateModelClass = models.QueueUpdate
+UpdateModelClass = models_.QueueUpdate
 # Specify the associated database table
 DbClass = db.Queue
 

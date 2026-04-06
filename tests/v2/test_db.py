@@ -5,8 +5,8 @@ from uuid import uuid4, uuid5
 import pytest
 from sqlmodel import select
 
-from lsst.cmservice.db.campaigns_v2 import Campaign, Machine, _default_campaign_namespace
 from lsst.cmservice.db.session import DatabaseManager
+from lsst.cmservice.models.db.campaigns import Campaign, Machine, _default_campaign_namespace
 
 
 @pytest.mark.asyncio

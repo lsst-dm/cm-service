@@ -1,8 +1,8 @@
 import pytest
 from pydantic import BaseModel, ValidationError
 
-from lsst.cmservice.common.enums import ManifestKind, StatusEnum
-from lsst.cmservice.common.types import KindField, StatusField
+from lsst.cmservice.models.enums import ManifestKind, StatusEnum
+from lsst.cmservice.models.types import KindField, StatusField
 
 
 class FakeModel(BaseModel):

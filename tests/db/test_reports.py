@@ -10,7 +10,8 @@ from safir.database import create_async_session
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from lsst.cmservice import db
-from lsst.cmservice.common.enums import LevelEnum, StatusEnum
+from lsst.cmservice.common.enums import LevelEnum
+from lsst.cmservice.models.enums import StatusEnum
 
 from .util_functions import (
     cleanup,

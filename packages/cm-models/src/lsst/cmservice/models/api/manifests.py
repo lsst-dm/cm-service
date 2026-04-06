@@ -9,9 +9,9 @@ from uuid import UUID, uuid4
 
 from pydantic import UUID5, AliasChoices, BaseModel, ConfigDict, Field, ValidationInfo, model_validator
 
-from ..common.enums import DEFAULT_NAMESPACE, ManifestKind
-from ..common.timestamp import element_time
-from ..common.types import KindField
+from ..enums import DEFAULT_NAMESPACE, ManifestKind
+from ..lib.timestamp import element_time
+from ..types import KindField
 
 
 class ManifestRequest(BaseModel):

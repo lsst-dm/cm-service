@@ -2,16 +2,16 @@
 
 from fastapi import APIRouter
 
-from .. import db, models
+from .. import db, models_
 from . import wrappers
 
 # Template specialization
 # Specify the pydantic model for the table
-ResponseModelClass = models.Step
+ResponseModelClass = models_.Step
 # Specify the pydantic model from making new rows
-CreateModelClass = models.StepCreate
+CreateModelClass = models_.StepCreate
 # Specify the pydantic model from updating rows
-UpdateModelClass = models.StepUpdate
+UpdateModelClass = models_.StepUpdate
 # Specify the associated database table
 DbClass = db.Step
 
@@ -38,7 +38,7 @@ delete_row = wrappers.delete_row_function(router, DbClass)
 update_row = wrappers.put_row_function(router, ResponseModelClass, UpdateModelClass, DbClass)
 get_spec_block = wrappers.get_node_spec_block_function(router, DbClass)
 get_specification = wrappers.get_node_specification_function(router, DbClass)
-get_parent = wrappers.get_node_parent_function(router, models.Campaign, DbClass)
+get_parent = wrappers.get_node_parent_function(router, models_.Campaign, DbClass)
 get_resolved_collections = wrappers.get_node_resolved_collections_function(router, DbClass)
 get_collections = wrappers.get_node_collections_function(router, DbClass)
 get_child_config = wrappers.get_node_child_config_function(router, DbClass)

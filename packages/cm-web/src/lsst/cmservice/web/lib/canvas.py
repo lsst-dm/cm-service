@@ -1,6 +1,6 @@
 import networkx as nx
 
-from lsst.cmservice.common.graph import contract_simple_step_nodes
+from lsst.cmservice.models.lib.graph import contract_simple_step_nodes
 
 
 async def nx_to_flow(g: nx.DiGraph, *, contract: bool = True) -> dict[str, list]:

@@ -18,8 +18,9 @@ import yaml
 from pydantic import BaseModel
 from tabulate import tabulate
 
+from lsst.cmservice.models.enums import StatusEnum
+
 from ..client.client import CMClient
-from ..common.enums import StatusEnum
 from ..db import ElementMixin, Job, RowMixin, Script, SpecBlock, Specification
 from . import options
 

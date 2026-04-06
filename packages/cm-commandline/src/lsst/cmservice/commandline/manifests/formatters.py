@@ -4,7 +4,7 @@ from collections.abc import Sequence
 
 from rich.table import Table
 
-from lsst.cmservice.common.timestamp import iso_timestamp
+from lsst.cmservice.models.lib.timestamp import iso_timestamp
 
 from ..formatters import (
     Formatters as Formatters,

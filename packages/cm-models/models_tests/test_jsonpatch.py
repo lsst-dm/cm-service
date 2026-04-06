@@ -2,7 +2,12 @@ from typing import Any
 
 import pytest
 
-from lsst.cmservice.common.jsonpatch import JSONPatch, JSONPatchError, apply_json_merge, apply_json_patch
+from lsst.cmservice.models.lib.jsonpatch import (
+    JSONPatch,
+    JSONPatchError,
+    apply_json_merge,
+    apply_json_patch,
+)
 
 
 @pytest.fixture

@@ -4,8 +4,9 @@ from typing import TYPE_CHECKING
 
 import httpx
 
-from .. import models
-from ..common.enums import StatusEnum
+from lsst.cmservice.models.enums import StatusEnum
+
+from .. import models_
 from . import wrappers
 
 if TYPE_CHECKING:
@@ -24,31 +25,31 @@ class CMActionClient:
         return self._client
 
     process = wrappers.get_general_post_function(
-        models.ProcessQuery,
+        models_.ProcessQuery,
         tuple[bool, StatusEnum],
         "actions/process",
     )
 
     reset_script = wrappers.get_general_post_function(
-        models.ResetScriptQuery,
-        models.Script,
+        models_.ResetScriptQuery,
+        models_.Script,
         "actions/reset_script",
     )
 
     rescue_job = wrappers.get_general_post_function(
-        models.NodeQuery,
-        models.Job,
+        models_.NodeQuery,
+        models_.Job,
         "actions/rescue_job",
     )
 
     mark_job_rescued = wrappers.get_general_post_function(
-        models.NodeQuery,
-        list[models.Job],
+        models_.NodeQuery,
+        list[models_.Job],
         "actions/mark_job_rescued",
     )
 
     rematch_errors = wrappers.get_general_post_function(
-        models.RematchQuery,
-        list[models.PipetaskError],
+        models_.RematchQuery,
+        list[models_.PipetaskError],
         "actions/rematch_errors",
     )

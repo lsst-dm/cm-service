@@ -8,8 +8,9 @@ from typing import TYPE_CHECKING, Any
 import httpx
 from pydantic import TypeAdapter
 
-from .. import db, models
-from ..common.enums import StatusEnum
+from lsst.cmservice.models.enums import StatusEnum
+
+from .. import db, models_
 from . import wrappers
 
 if TYPE_CHECKING:
@@ -17,11 +18,11 @@ if TYPE_CHECKING:
 
 # Template specialization
 # Specify the pydantic model for Job
-ResponseModelClass = models.Job
+ResponseModelClass = models_.Job
 # Specify the pydantic model from making new Jobs
-CreateModelClass = models.JobCreate
+CreateModelClass = models_.JobCreate
 # Specify the pydantic model from updating rows
-UpdateModelClass = models.JobUpdate
+UpdateModelClass = models_.JobUpdate
 # Specify the associated database table
 DbClass = db.Job
 
@@ -67,19 +68,19 @@ class CMJobClient:
     delete = wrappers.delete_row_function(f"{router_string}/delete")
 
     get_spec_block = wrappers.get_node_property_function(
-        models.SpecBlock,
+        models_.SpecBlock,
         f"{router_string}/get",
         "spec_block",
     )
 
     get_specification = wrappers.get_node_property_function(
-        models.Specification,
+        models_.Specification,
         f"{router_string}/get",
         "specification",
     )
 
     get_parent = wrappers.get_node_property_function(
-        models.Element,
+        models_.Element,
         f"{router_string}/get",
         "parent",
     )
@@ -99,42 +100,42 @@ class CMJobClient:
     get_spec_aliases = wrappers.get_node_property_function(dict, f"{router_string}/get", "spec_aliases")
 
     get_errors = wrappers.get_node_property_function(
-        Sequence[models.PipetaskError],
+        Sequence[models_.PipetaskError],
         f"{router_string}/get",
         "errors",
     )
 
     update_status = wrappers.get_node_post_query_function(
         ResponseModelClass,
-        models.UpdateStatusQuery,
+        models_.UpdateStatusQuery,
         f"{router_string}/update",
         "status",
     )
 
     update_collections = wrappers.get_node_post_query_function(
         ResponseModelClass,
-        models.UpdateNodeQuery,
+        models_.UpdateNodeQuery,
         f"{router_string}/update",
         "collections",
     )
 
     update_child_config = wrappers.get_node_post_query_function(
         ResponseModelClass,
-        models.UpdateNodeQuery,
+        models_.UpdateNodeQuery,
         f"{router_string}/update",
         "child_config",
     )
 
     update_data_dict = wrappers.get_node_post_query_function(
         ResponseModelClass,
-        models.UpdateNodeQuery,
+        models_.UpdateNodeQuery,
         f"{router_string}/update",
         "data_dict",
     )
 
     update_spec_aliases = wrappers.get_node_post_query_function(
         ResponseModelClass,
-        models.UpdateNodeQuery,
+        models_.UpdateNodeQuery,
         f"{router_string}/update",
         "spec_aliases",
     )
@@ -163,14 +164,14 @@ class CMJobClient:
 
     reset = wrappers.get_node_post_query_function(
         ResponseModelClass,
-        models.ResetQuery,
+        models_.ResetQuery,
         f"{router_string}/action",
         "reset",
     )
 
     process = wrappers.get_node_post_query_function(
         tuple[bool, StatusEnum],
-        models.ProcessQuery,
+        models_.ProcessQuery,
         f"{router_string}/action",
         "process",
     )
@@ -182,40 +183,40 @@ class CMJobClient:
     )
 
     get_scripts = wrappers.get_general_query_function(
-        models.ScriptQuery,
-        list[models.Script],
+        models_.ScriptQuery,
+        list[models_.Script],
         f"{router_string}/get",
         "scripts",
     )
 
     get_all_scripts = wrappers.get_general_query_function(
-        models.ScriptQuery,
-        list[models.Script],
+        models_.ScriptQuery,
+        list[models_.Script],
         f"{router_string}/get",
         "all_scripts",
     )
 
     retry_script = wrappers.get_node_post_query_function(
-        models.Script,
-        models.RetryScriptQuery,
+        models_.Script,
+        models_.RetryScriptQuery,
         f"{router_string}/action",
         "retry_script",
     )
 
     get_wms_task_reports = wrappers.get_node_property_function(
-        models.MergedWmsTaskReportDict,
+        models_.MergedWmsTaskReportDict,
         f"{router_string}/get",
         "wms_task_reports",
     )
 
     get_tasks = wrappers.get_node_property_function(
-        models.MergedTaskSetDict,
+        models_.MergedTaskSetDict,
         f"{router_string}/get",
         "tasks",
     )
 
     get_products = wrappers.get_node_property_function(
-        models.MergedProductSetDict,
+        models_.MergedProductSetDict,
         f"{router_string}/get",
         "products",
     )

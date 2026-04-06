@@ -1,6 +1,7 @@
-from lsst.cmservice.common.enums import LevelEnum, StatusEnum
-from lsst.cmservice.common.types import AnyAsyncSession
+from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.db import NodeMixin
+from lsst.cmservice.models.enums import StatusEnum
+from lsst.cmservice.models.types import AnyAsyncSession
 
 
 def map_status(status: StatusEnum) -> str | None:

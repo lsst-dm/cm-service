@@ -11,15 +11,15 @@ from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.types import PickleType
 from sqlmodel import Column, DateTime, Enum, Field, MetaData, Relationship, SQLModel, String
 
-from ..common.enums import ManifestKind, StatusEnum
-from ..common.timestamp import now_utc
-from ..common.types import KindField, StatusField
-from ..config import config
+from ..enums import ManifestKind, StatusEnum
+from ..lib.timestamp import now_utc
+from ..types import KindField, StatusField
+from .settings import settings
 
 _default_campaign_namespace = uuid5(namespace=NAMESPACE_DNS, name="io.lsst.cmservice")
 """Default UUID5 namespace for campaigns"""
 
-metadata: MetaData = MetaData(schema=config.db.table_schema)
+metadata: MetaData = MetaData(schema=settings.table_schema)
 """SQLModel metadata for table models"""
 
 
@@ -50,7 +50,7 @@ def jsonb_column(name: str, aliases: list[str] | None = None) -> Any:
 class BaseSQLModel(AsyncAttrs, SQLModel):
     """Shared base SQL model for all tables."""
 
-    __table_args__ = {"schema": config.db.table_schema}
+    __table_args__ = {"schema": settings.table_schema}
     metadata = metadata
 
 

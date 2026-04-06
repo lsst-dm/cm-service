@@ -5,20 +5,21 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from .. import db, models
-from ..common.enums import StatusEnum
+from lsst.cmservice.models.enums import StatusEnum
+from lsst.cmservice.models.types import AnyAsyncSession
+
+from .. import db, models_
 from ..common.errors import CMMissingIDError
-from ..common.types import AnyAsyncSession
 from ..db.session import db_session_dependency
 from . import wrappers
 
 # Template specialization
 # Specify the pydantic model for the table
-ResponseModelClass = models.Script
+ResponseModelClass = models_.Script
 # Specify the pydantic model from making new rows
-CreateModelClass = models.ScriptCreate
+CreateModelClass = models_.ScriptCreate
 # Specify the pydantic model from updating rows
-UpdateModelClass = models.ScriptUpdate
+UpdateModelClass = models_.ScriptUpdate
 # Specify the associated database table
 DbClass = db.Script
 
@@ -43,7 +44,7 @@ delete_row = wrappers.delete_row_function(router, DbClass)
 update_row = wrappers.put_row_function(router, ResponseModelClass, UpdateModelClass, DbClass)
 get_spec_block = wrappers.get_node_spec_block_function(router, DbClass)
 get_specification = wrappers.get_node_specification_function(router, DbClass)
-get_parent = wrappers.get_node_parent_function(router, models.ElementMixin, DbClass)
+get_parent = wrappers.get_node_parent_function(router, models_.ElementMixin, DbClass)
 get_resolved_collections = wrappers.get_node_resolved_collections_function(router, DbClass)
 get_collections = wrappers.get_node_collections_function(router, DbClass)
 get_child_config = wrappers.get_node_child_config_function(router, DbClass)
@@ -84,7 +85,7 @@ check_prerequisites = wrappers.get_node_check_prerequisites_function(router, DbC
 )
 async def reset_script(
     row_id: int,
-    query: models.ResetQuery,
+    query: models_.ResetQuery,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> StatusEnum:
     """Reset a script to an earlier status
@@ -116,7 +117,7 @@ async def reset_script(
 @router.get(
     "/get/{row_id}/script_errors",
     status_code=201,
-    response_model=Sequence[models.ScriptError],
+    response_model=Sequence[models_.ScriptError],
     summary="Get the errors associated to a job",
 )
 async def get_script_errors(

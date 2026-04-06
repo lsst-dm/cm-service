@@ -8,7 +8,7 @@ from lsst.cmservice.common.bash import (
     run_bash_job,
     write_bash_script,
 )
-from lsst.cmservice.common.enums import LevelEnum, StatusEnum, TableEnum
+from lsst.cmservice.common.enums import LevelEnum, TableEnum
 from lsst.cmservice.common.errors import (
     CMHTCondorSubmitError,
     CMSlurmCheckError,
@@ -16,6 +16,7 @@ from lsst.cmservice.common.errors import (
 )
 from lsst.cmservice.common.htcondor import check_htcondor_job, submit_htcondor_job, write_htcondor_script
 from lsst.cmservice.common.slurm import check_slurm_job, submit_slurm_job
+from lsst.cmservice.models.enums import StatusEnum
 
 
 @pytest.mark.asyncio()

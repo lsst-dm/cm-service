@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..common.enums import LevelEnum, ScriptMethodEnum, StatusEnum
+from lsst.cmservice.common.enums import LevelEnum, ScriptMethodEnum
+from lsst.cmservice.models.enums import StatusEnum
 
 
 class ScriptBase(BaseModel):

@@ -1,22 +1,16 @@
 from collections.abc import Iterable, Mapping, MutableSet, Sequence
 from typing import TYPE_CHECKING, Literal, TypedDict
 from uuid import UUID, uuid4, uuid5
-from warnings import deprecated
 
 import networkx as nx
 from networkx.exception import NodeNotFound
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from ..common.enums import ManifestKind
-from ..common.timestamp import element_time
-from ..db import Script, ScriptDependency, Step, StepDependency
-from ..db.campaigns_v2 import Edge, Node
-from ..parsing.string import parse_element_fullname
-from .types import AnyAsyncSession
-
-type AnyGraphEdge = StepDependency | ScriptDependency
-type AnyGraphNode = Step | Script
+from lsst.cmservice.models.db.campaigns import Edge, Node
+from lsst.cmservice.models.enums import ManifestKind
+from lsst.cmservice.models.lib.timestamp import element_time
+from lsst.cmservice.models.types import AnyAsyncSession
 
 
 class InvalidCampaignGraphError(Exception): ...
@@ -40,32 +34,6 @@ class SimpleNode(TypedDict):
     status: str
     kind: str
     version: str
-
-
-@deprecated("This function is used for CM v1, use graph_from_edge_list_v2 instead")
-async def graph_from_edge_list(
-    edges: Sequence[AnyGraphEdge],
-    node_type: type[AnyGraphNode],
-    session: AnyAsyncSession,
-) -> nx.DiGraph:
-    """Given a sequence of edge-tuples, create a directed graph for these
-    edges with nodes derived from database lookups of the related objects.
-    """
-    g = nx.DiGraph()
-    g.add_edges_from([(e.prereq_id, e.depend_id) for e in edges])
-
-    # Expect to refer to the appropriate node_type given an id to hydrate a
-    # node from the database using the provided session.
-    for node in g.nodes:
-        db_node = await node_type.get_row(session, row_id=node)
-        node_name = parse_element_fullname(db_node.fullname)
-        g.nodes[node]["step"] = node_name.step
-        g.nodes[node]["group"] = node_name.group
-        g.nodes[node]["job"] = node_name.job
-        g.nodes[node]["script"] = node_name.script
-        g.nodes[node]["status"] = db_node.status.name
-
-    return g
 
 
 async def graph_from_edge_list_v2(
@@ -92,7 +60,7 @@ async def graph_from_edge_list_v2(
     session
         An async database session
     """
-    g = nx.DiGraph()
+    g: nx.DiGraph = nx.DiGraph()
     g.add_edges_from([(e.source, e.target) for e in edges])
     relabel_mapping = {}
 
@@ -148,9 +116,16 @@ def find_endpoints_in_directed_graph(g: nx.DiGraph) -> tuple[UUID, UUID]:
     """
     # For a valid graph, the "longest path" in it necessarily has the source
     # and sink nodes as its endpoints.
-    path: list[UUID] = nx.dag_longest_path(g)  # pyright: ignore[reportAssignmentType]
-    # Validate that the potential endpoints correctly have a degree of 1
-    if not all([d[1] == 1 for d in nx.degree(g, (path[0], path[-1]))]):
+    path: list[UUID] = nx.dag_longest_path(g)
+
+    if not all(
+        [
+            g.in_degree(path[0]) == 0,
+            g.out_degree(path[-1]) == 0,
+            sum(1 for _, d in g.in_degree if d == 0) == 1,
+            sum(1 for _, d in g.out_degree if d == 0) == 1,
+        ]
+    ):
         raise RuntimeError("Unable to determine endpoints in graph.")
     return (path[0], path[-1])
 
@@ -164,7 +139,7 @@ def graph_to_dict(g: nx.DiGraph) -> Mapping:
     The "edges" attribute name in the node link data is "edges" instead of the
     default "links".
     """
-    return nx.node_link_data(g, edges="edges")  # pyright: ignore[reportCallIssue]
+    return nx.node_link_data(g, edges="edges")
 
 
 def validate_graph(g: nx.DiGraph, source_name: str = "START", sink_name: str = "END") -> bool:
@@ -200,22 +175,32 @@ def validate_graph(g: nx.DiGraph, source_name: str = "START", sink_name: str = "
     try:
         # Test that G is a directed graph with no cycles
         is_valid = nx.is_directed_acyclic_graph(g)
-        assert is_valid
+        assert is_valid, "Graph is not a DAG"
 
         # And that any path from source to sink exists
         is_valid = nx.has_path(g, source, sink)
-        assert is_valid
+        assert is_valid, "Graph has no path between stated source and sink"
 
         # Guard against bad graphs where START and/or END have been connected
         # such that they are no longer the only source and sink
-        ...
+        is_valid = all(
+            [
+                sum(1 for _, d in g.in_degree if d == 0) == 1,
+                sum(1 for _, d in g.out_degree if d == 0) == 1,
+            ]
+        )
+        assert is_valid, "Multiple source or sink nodes in graph"
+
+        # Test that there are no isolated or separate "islands" of nodes
+        is_valid = nx.is_weakly_connected(g)
+        assert is_valid, "Graph is not weakly connected"
 
         # Test that there are no isolated Nodes in the graph. A node becomes
         # isolated if it was involved with an edge that has been removed from
         # G with no replacement edge added, in which case the node should also
         # be removed.
         is_valid = nx.number_of_isolates(g) == 0
-        assert is_valid
+        assert is_valid, "Graph has isolates"
 
         # TODO Given the set of nodes in the graph, consider all paths in G
         #      from source to sink, making sure every node appears in a path?
@@ -239,7 +224,7 @@ def processable_graph_nodes(g: nx.DiGraph) -> Iterable[Node]:
 
     Yields
     ------
-    `lsst.cmservice.db.campaigns_v2.Node`
+    `lsst.cmservice.cm_models.db.campaigns.Node`
         A Node ORM object that has been ``expunge``d from its ``Session``.
 
     Notes

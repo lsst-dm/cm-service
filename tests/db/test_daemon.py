@@ -8,10 +8,10 @@ from safir.database import create_async_session
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from lsst.cmservice import db
-from lsst.cmservice.common import timestamp
 from lsst.cmservice.common.daemon import daemon_iteration
-from lsst.cmservice.common.enums import StatusEnum
 from lsst.cmservice.handlers import interface
+from lsst.cmservice.models.enums import StatusEnum
+from lsst.cmservice.models.lib import timestamp
 
 from .util_functions import cleanup
 

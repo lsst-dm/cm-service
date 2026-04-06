@@ -2,16 +2,16 @@
 
 from fastapi import APIRouter
 
-from .. import db, models
+from .. import db, models_
 from . import wrappers
 
 # Template specialization
 # Specify the pydantic model for the table
-ResponseModelClass = models.SpecBlock
+ResponseModelClass = models_.SpecBlock
 # Specify the pydantic model from making new rows
-CreateModelClass = models.SpecBlockCreate
+CreateModelClass = models_.SpecBlockCreate
 # Specify the pydantic model from updating rows
-UpdateModelClass = models.SpecBlockUpdate
+UpdateModelClass = models_.SpecBlockUpdate
 # Specify the associated database table
 DbClass = db.SpecBlock
 
