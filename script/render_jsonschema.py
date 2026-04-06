@@ -4,13 +4,13 @@
 # dependencies = [
 #     "click==8.1.*",
 #     "json-schema-for-humans>=1.5.1",
-#     "lsst-cm-service",
+#     "lsst-cmservice-models",
 #     "lsst-utils",
 #     "pydantic==2.12.*",
 # ]
 #
 # [tool.uv.sources]
-# lsst-cm-service = { path = "../" }
+# lsst-cmservice-models = { path = "../packages/cm-models" }
 # ///
 """Loads the CM Service Manifest Models and generates JSONSchema files"""
 
