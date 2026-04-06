@@ -1,6 +1,8 @@
 """Tests for schedules"""
 
-from dataclasses import dataclass
+from __future__ import annotations
+
+from dataclasses import dataclass, field
 from textwrap import dedent
 from uuid import uuid4
 
@@ -12,58 +14,61 @@ pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""
 
 
+# Test Cases
+def make_schedule_no_manifests(**overrides: dict) -> dict:
+    return {
+        "name": f"schedule_with_no_manifests_{uuid4().hex[:8]}",
+        "cron": "0 0 * * SUN",
+    }
+
+
+def make_schedule_with_manifests(**overrides: dict) -> dict:
+    return {
+        "name": f"schedule_with_manifests_{uuid4().hex[:8]}",
+        "cron": "0 */4 * * WED",
+        "expressions": {
+            "today": "datetime.now()",
+            "tomorrow": "datetime.now() + timedelta(days=1)",
+        },
+        "templates": [
+            {
+                "kind": "node",
+                "manifest": yaml.safe_load(
+                    dedent("""\
+                    ---
+                    apiVersion: io.lsst.cmservice/v1
+                    kind: node
+                    metadata: {}
+                    kind: step
+                    name: step_1abc
+                    spec:
+                        bps:
+                            pipeline_yaml: ${DRP_PIPE_DIR}/path/to/file.yaml#step1a,step1b,step1c
+                        groups:
+                            dimension: tract
+                            split_by: values
+                            values:
+                            - 1
+                            - 2
+                            - 3
+                            - 4
+                            - 5
+                """)
+                ),
+            },
+        ],
+    }
+
+
 @dataclass
 class ScheduleTestCase:
-    post_data: dict
-    expected_code: int
+    post_data: dict = field(default_factory=make_schedule_no_manifests)
+    expected_code: int = codes.CREATED
 
 
 @pytest.fixture
 def test_case(request: pytest.FixtureRequest) -> ScheduleTestCase:
     return request.param
-
-
-# Test Cases
-SCHEDULE_NO_MANIFESTS = {
-    "name": "schedule_with_no_manifests",
-    "cron": "0 0 * * SUN",
-}
-
-SCHEDULE_WITH_MANIFESTS = {
-    "name": "schedule_with_manifests",
-    "cron": "0 */4 * * WED",
-    "expressions": {
-        "today": "datetime.now()",
-        "tomorrow": "datetime.now()",
-    },
-    "templates": [
-        {
-            "kind": "node",
-            "manifest": yaml.safe_load(
-                dedent("""\
-                ---
-                apiVersion: io.lsst.cmservice/v1
-                kind: node
-                metadata: {}
-                kind: step
-                name: step_1abc
-                spec:
-                    bps:
-                        pipeline_yaml: ${DRP_PIPE_DIR}/path/to/file.yaml#step1a,step1b,step1c
-                    groups:
-                        dimension: tract
-                        split_by: values
-                        values:
-                        - 1
-                        - 2
-                        - 3
-                        - 4
-                        - 5
-            """)
-            ),
-        },
-    ],
-}
 
 
 async def test_list_no_schedules(aclient: AsyncClient) -> None:
@@ -83,12 +88,8 @@ async def test_list_no_schedules(aclient: AsyncClient) -> None:
     "test_case",
     [
         pytest.param(ScheduleTestCase(post_data={}, expected_code=codes.UNPROCESSABLE_ENTITY), id="bad"),
-        pytest.param(
-            ScheduleTestCase(post_data=SCHEDULE_NO_MANIFESTS, expected_code=codes.CREATED), id="empty"
-        ),
-        pytest.param(
-            ScheduleTestCase(post_data=SCHEDULE_WITH_MANIFESTS, expected_code=codes.CREATED), id="full"
-        ),
+        pytest.param(ScheduleTestCase(), id="empty"),
+        pytest.param(ScheduleTestCase(post_data=make_schedule_with_manifests()), id="full"),
     ],
     indirect=["test_case"],
 )
@@ -128,12 +129,8 @@ async def test_post_new_schedule(
 @pytest.mark.parametrize(
     "test_case",
     [
-        pytest.param(
-            ScheduleTestCase(post_data=SCHEDULE_NO_MANIFESTS, expected_code=codes.CREATED), id="empty"
-        ),
-        pytest.param(
-            ScheduleTestCase(post_data=SCHEDULE_WITH_MANIFESTS, expected_code=codes.CREATED), id="full"
-        ),
+        pytest.param(ScheduleTestCase(), id="empty"),
+        pytest.param(ScheduleTestCase(post_data=make_schedule_with_manifests()), id="full"),
     ],
     indirect=["test_case"],
 )
