@@ -7,7 +7,6 @@ from textwrap import dedent
 from uuid import uuid4
 
 import pytest
-import yaml
 from httpx import AsyncClient, codes
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
@@ -32,9 +31,18 @@ def make_schedule_with_manifests(**overrides: dict) -> dict:
         },
         "templates": [
             {
+                "kind": "campaign",
+                "manifest": dedent("""\
+                    apiVersion: io.lsst.cmservice/v1
+                    kind: campaign
+                    metadata:
+                    name: sample_campaign
+                    spec: {}
+                """),
+            },
+            {
                 "kind": "node",
-                "manifest": yaml.safe_load(
-                    dedent("""\
+                "manifest": dedent("""\
                     ---
                     apiVersion: io.lsst.cmservice/v1
                     kind: node
@@ -53,8 +61,7 @@ def make_schedule_with_manifests(**overrides: dict) -> dict:
                             - 3
                             - 4
                             - 5
-                """)
-                ),
+                """),
             },
         ],
     }
@@ -153,3 +160,18 @@ async def test_put_patch_schedule(
             new_schedule = x.json()
             assert new_schedule["is_enabled"]
             assert new_schedule["next_run_at"] is not None
+
+
+@pytest.mark.parametrize(
+    "test_case",
+    [
+        pytest.param(ScheduleTestCase(post_data=make_schedule_with_manifests()), id="full"),
+    ],
+    indirect=["test_case"],
+)
+async def test_daemon_schedule(aclient: AsyncClient, test_case: ScheduleTestCase) -> None:
+    """Tests creating a new schedule and processing the schedule with the
+    daemon service layer.
+    """
+    x = await aclient.post("/v2/schedules", json=test_case.post_data)
+    assert x.status_code == test_case.expected_code
