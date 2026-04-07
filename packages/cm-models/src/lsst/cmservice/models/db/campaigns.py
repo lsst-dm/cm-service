@@ -2,25 +2,18 @@
 
 from collections.abc import MutableSequence
 from typing import Any, Optional
-from uuid import NAMESPACE_DNS, UUID, uuid4, uuid5
+from uuid import UUID, uuid4, uuid5
 
 from pydantic import AliasChoices, AwareDatetime, ValidationInfo, model_validator
 from sqlalchemy.dialects import postgresql
-from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.types import PickleType
-from sqlmodel import Column, DateTime, Enum, Field, MetaData, Relationship, SQLModel, String
+from sqlmodel import Column, DateTime, Enum, Field, Relationship, String
 
-from ..enums import ManifestKind, StatusEnum
+from ..enums import DEFAULT_NAMESPACE, ManifestKind, StatusEnum
 from ..lib.timestamp import now_utc
 from ..types import KindField, StatusField
-from .settings import settings
-
-_default_campaign_namespace = uuid5(namespace=NAMESPACE_DNS, name="io.lsst.cmservice")
-"""Default UUID5 namespace for campaigns"""
-
-metadata: MetaData = MetaData(schema=settings.table_schema)
-"""SQLModel metadata for table models"""
+from .base import BaseSQLModel
 
 
 def jsonb_column(name: str, aliases: list[str] | None = None) -> Any:
@@ -47,13 +40,6 @@ def jsonb_column(name: str, aliases: list[str] | None = None) -> Any:
     )
 
 
-class BaseSQLModel(AsyncAttrs, SQLModel):
-    """Shared base SQL model for all tables."""
-
-    __table_args__ = {"schema": settings.table_schema}
-    metadata = metadata
-
-
 class CampaignBase(BaseSQLModel):
     """Campaigns_v2 base model, used to create new Campaign objects."""
 
@@ -76,10 +62,15 @@ class CampaignBase(BaseSQLModel):
         where some default non-optional fields can be auto-populated.
         """
         if isinstance(data, dict):
+            # Set the name from the metadata and/or raise an error if no Name
+            if data.get("metadata", {}).get("name") is not None:
+                data["name"] = data["metadata"].pop("name")
             if "name" not in data:
                 raise ValueError("<campaign> name missing.")
+            # Set a default namespace
             if "namespace" not in data:
-                data["namespace"] = _default_campaign_namespace
+                data["namespace"] = DEFAULT_NAMESPACE
+            # Generate namespaced ID for campaign
             if "id" not in data:
                 data["id"] = uuid5(namespace=data["namespace"], name=data["name"])
         return data
@@ -126,7 +117,10 @@ class NodeBase(BaseSQLModel):
         """
         return self.id.int  # pyright: ignore[reportReturnType]
 
-    id: UUID = Field(primary_key=True)
+    id: UUID = Field(
+        primary_key=True,
+        description="A Node's ID is the concatenation of its name and version as a UUID5 in its namespace",
+    )
     name: str
     namespace: UUID = Field(foreign_key="campaigns_v2.id")
     version: int
@@ -149,6 +143,11 @@ class NodeBase(BaseSQLModel):
         where some default non-optional fields can be auto-populated.
         """
         if isinstance(data, dict):
+            # Move node name and/or kind from metadata if present
+            if data.get("metadata", {}).get("name") is not None:
+                data["name"] = data["metadata"].pop("name")
+            if data.get("metadata", {}).get("kind") is not None:
+                data["kind"] = data["metadata"].pop("kind")
             if (node_name := data.get("name")) is None:
                 raise ValueError("<node> name missing.")
             if (node_namespace := data.get("namespace")) is None:
@@ -174,13 +173,28 @@ class Node(NodeBase, table=True):
 class EdgeBase(BaseSQLModel):
     """edges_v2 db table"""
 
-    id: UUID = Field(primary_key=True)
-    name: str
+    id: UUID = Field(
+        primary_key=True,
+        description="An Edge's ID is the arrow ('->') concatenation of the `name.version` of its source and "
+        "target nodes as a UUID5 in its namespace.",
+    )
+    name: str = Field(description="An edge's name is not deterministic or programatically important.")
     namespace: UUID = Field(foreign_key="campaigns_v2.id")
     source: UUID = Field(foreign_key="nodes_v2.id")
     target: UUID = Field(foreign_key="nodes_v2.id")
     metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])
     configuration: dict = jsonb_column("configuration", aliases=["configuration", "data", "spec"])
+
+    @model_validator(mode="before")
+    @classmethod
+    def custom_model_validator(cls, data: Any, info: ValidationInfo) -> Any:
+        """Validates the model based on different types of raw inputs,
+        where some default non-optional fields can be auto-populated.
+        """
+        if isinstance(data, dict):
+            if data.get("metadata", {}).get("name") is not None:
+                data["name"] = data["metadata"].pop("name")
+        return data
 
 
 class EdgeResponseModel(EdgeBase):
@@ -208,8 +222,11 @@ class Machine(MachineBase, table=True):
 class ManifestBase(BaseSQLModel):
     """manifests_v2 db table"""
 
-    id: UUID = Field(primary_key=True)
-    name: str
+    id: UUID = Field(
+        primary_key=True,
+        description="A manifest's ID is the concatenation of its name and kind as a UUID5 in its namespace.",
+    )
+    name: str = Field(description="A manifest's name must be unique in its namespace among its kind.")
     version: int
     namespace: UUID = Field(foreign_key="campaigns_v2.id")
     kind: KindField = Field(
@@ -218,6 +235,19 @@ class ManifestBase(BaseSQLModel):
     )
     metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])
     spec: dict = jsonb_column("spec", aliases=["spec", "configuration", "data"])
+
+    @model_validator(mode="before")
+    @classmethod
+    def custom_model_validator(cls, data: Any, info: ValidationInfo) -> Any:
+        """Validates the model based on different types of raw inputs,
+        where some default non-optional fields can be auto-populated.
+        """
+        if isinstance(data, dict):
+            if data.get("metadata", {}).get("name") is not None:
+                data["name"] = data["metadata"].pop("name")
+            if "id" not in data:
+                data["id"] = uuid5(namespace=data["namespace"], name=f"{data['name']}.{data['kind']}")
+        return data
 
 
 class Manifest(ManifestBase, table=True):

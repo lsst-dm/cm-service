@@ -6,7 +6,8 @@ import pytest
 from sqlmodel import select
 
 from lsst.cmservice.db.session import DatabaseManager
-from lsst.cmservice.models.db.campaigns import Campaign, Machine, _default_campaign_namespace
+from lsst.cmservice.models.db.campaigns import Campaign, Machine
+from lsst.cmservice.models.enums import DEFAULT_NAMESPACE
 
 
 @pytest.mark.asyncio
@@ -17,9 +18,9 @@ async def test_create_campaigns_v2(testdb: DatabaseManager) -> None:
 
     campaign_name = "test_campaign"
     campaign = Campaign(
-        id=uuid5(_default_campaign_namespace, campaign_name),
+        id=uuid5(DEFAULT_NAMESPACE, campaign_name),
         name=campaign_name,
-        namespace=_default_campaign_namespace,
+        namespace=DEFAULT_NAMESPACE,
         owner="test",
         metadata_={"mtime": 0, "crtime": 0},
         configuration={"mtime": 0, "crtime": 0},

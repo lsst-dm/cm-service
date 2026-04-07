@@ -4,8 +4,9 @@ from uuid import uuid4
 
 import uvicorn
 from asgi_correlation_id import CorrelationIdMiddleware
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.exc import IntegrityError, NoResultFound
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from . import __version__
@@ -43,6 +44,7 @@ app = FastAPI(
     redoc_url=None,
 )
 
+# Add Middlewares
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(CorrelationIdMiddleware, generator=lambda: str(uuid4()))
 app.add_middleware(
@@ -54,8 +56,28 @@ app.add_middleware(
 )
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"])
 
+# Add Routers
 app.include_router(healthz.health_router, prefix="")
 
+
+# Add Exception Handlers
+@app.exception_handler(NoResultFound)
+async def notfound_error_handler(request: Request, exc: NoResultFound) -> None:
+    """Raise a 404 when the `NoResultFound` exception is raised.
+
+    The NoResultFound exception may be raised in a route that uses the
+    `session.get_one()` method where it is an error for there not to be one.
+    """
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+
+@app.exception_handler(IntegrityError)
+async def duplicate_error_handler(request: Request, exc: IntegrityError) -> None:
+    """Raise a 409 when the `IntegrityError` exception is raised."""
+    raise HTTPException(status_code=status.HTTP_409_CONFLICT)
+
+
+# Add Features
 if Features.API_V1 in config.features.enabled:
     from .routers import v1
 
