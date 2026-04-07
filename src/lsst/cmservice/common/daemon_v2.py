@@ -23,6 +23,7 @@ from lsst.cmservice.models.enums import StatusEnum
 from lsst.cmservice.models.lib import graph, timestamp
 
 from ..common.flags import Features
+from ..common.templates import build_sandbox_and_render_templates
 from ..config import config
 from ..db.session import db_session_dependency
 from ..machines.node import NodeMachine, node_machine_factory
@@ -235,15 +236,38 @@ async def consider_nodes(context: DaemonContext) -> None:
             await session.commit()
 
 
-async def daemon_check_schedule(schedule_id: UUID) -> None:
-    ...
-    breakpoint()
-    # with daemon context...
+async def daemon_scheduled_job(schedule_id: UUID) -> None:
+    """Daemon work function for performing the work of a scheduled campaign.
+
+    Each `job` added to the scheduler has this function as its target, and the
+    ID of the associated schedule as a single argument.
+
+    This function fetches the identified `Schedule` from the database and
+    passes its `templates` collection through a renderer. The renderer returns
+    an ORM object for each `template`, which are then added to the session and
+    committed.
+    """
+    if TYPE_CHECKING:
+        assert db_session_dependency.sessionmaker is not None
+
     # fetch the schedule and its templates
-    # set up jinja sandbox with schedule expressions
-    # update the name/namespace for each
-    # run each template through jinja render
-    # send each template to API / loader
+    async with db_session_dependency.sessionmaker() as session:
+        schedule = await session.get_one(Schedule, schedule_id)
+
+        # set up jinja sandbox with schedule expressions
+        # run each template through jinja render
+        manifests = [
+            manifest
+            for manifest in await build_sandbox_and_render_templates(
+                expressions=schedule.expressions,
+                templates=schedule.templates,
+            )
+        ]
+
+        # TODO whether to "auto-start" the new campaign. The campaign is always
+        # the first ORM object on the list of manifests.
+        session.add_all(manifests)
+        await session.commit()
 
 
 async def consider_schedules(context: DaemonContext) -> None:
@@ -262,7 +286,7 @@ async def consider_schedules(context: DaemonContext) -> None:
             context.app.state.scheduler.scheduler.reschedule_job(job_id, job_trigger)
         else:
             context.app.state.scheduler.scheduler.add_job(
-                daemon_check_schedule,
+                daemon_scheduled_job,
                 job_trigger,
                 id=job_id,
                 args=[schedule.id],
