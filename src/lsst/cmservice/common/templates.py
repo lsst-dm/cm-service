@@ -3,11 +3,21 @@ used in the operation of a Scheduled Campaign.
 """
 
 from collections import deque
-from collections.abc import Mapping, MutableMapping, MutableSequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any, Literal
+from uuid import UUID, uuid5
 
+from jinja2.exceptions import TemplateError
 from jinja2.sandbox import ImmutableSandboxedEnvironment
+from yaml import YAMLError, safe_load
+
+from lsst.cmservice.models.db.campaigns import Campaign, Edge, Manifest, Node
+from lsst.cmservice.models.db.schedules import ManifestTemplate
+from lsst.cmservice.models.enums import DEFAULT_NAMESPACE
+
+type CampaignElement = Campaign | Node | Edge | Manifest
+"""A type representing the union of all available campaign element objects"""
 
 
 # Jinja Filter functions
@@ -51,16 +61,78 @@ def compile_user_expressions(expressions: MutableMapping) -> dict[str, Any]:
     return compiled_expressions
 
 
+async def prepare_orm_from_manifest(manifest: dict, namespace: UUID | None = None) -> CampaignElement:
+    """Given a dictionary representation of a campaign element manifest,
+    create and return an ORM object for that manifest.
+
+    This is a service-layer function that should be added to lib for reuse.
+
+    Parameters
+    ----------
+    manifest: Mapping
+        A campaign element manifest as a python dict, as one loaded from YAML
+        or JSON.
+
+    namespace: UUID | None
+        The namespace in which the element should exist. If not None, the UUID
+        is added to the ORM object's metadata.
+    """
+    # One assumption this function can make is that it is only ever preparing
+    # VERSION 1 objects for a NEW CAMPAIGN, which simplifies the service-layer
+    # logic of generating Node and Edge ORM objects.
+    orm: CampaignElement
+
+    if namespace is not None:
+        manifest |= {"namespace": namespace}
+
+    match manifest["kind"]:
+        case "campaign":
+            orm = Campaign.model_validate(manifest)
+        case "node":
+            orm = Node.model_validate(manifest)
+        case "edge":
+            if namespace is None:
+                raise RuntimeError("Can't prepare an Edge ORM without a namespace")
+            source_node = f"""{manifest["spec"]["source"]}.1"""
+            target_node = f"""{manifest["spec"]["target"]}.1"""
+
+            orm = Edge.model_validate(
+                manifest
+                | {
+                    "id": uuid5(namespace, f"{source_node}->{target_node}"),
+                    "source": uuid5(namespace, source_node),
+                    "target": uuid5(namespace, target_node),
+                },
+            )
+        case _:
+            orm = Manifest.model_validate(
+                manifest
+                | {
+                    "version": 1,
+                },
+            )
+
+    return orm
+
+
 # OR: why destructure the Schedule object into individual arguments to these
 # different functions? Just use it as a context object, detaching it from the
 # session as necessary.
-async def build_sandbox_and_render_templates(expressions: dict, templates: list[str]) -> MutableSequence[str]:
+async def build_sandbox_and_render_templates(
+    expressions: dict,
+    templates: list[ManifestTemplate],
+) -> Sequence[CampaignElement]:
     """Given a set of expressions for the sandbox environment, create an
     environment and render the collection of templates.
+
+    Manifest templates associated with the schedule are stored as TEXT
+    documents and used with a jinja template environment. The resulting render-
+    ed template must be a valid YAML document for a campaign Manifest. The
+    collection of rendered and parsed/loaded manifests is returned as a
+    sequence of ORM objects.
     """
     # . expressions = schedule.expressions
     # . templates = schedule.templates
-    rendered_templates: deque[str] = deque(maxlen=len(templates))
     compiled_expressions = compile_user_expressions(expressions)
 
     sandbox = ImmutableSandboxedEnvironment(
@@ -77,13 +149,44 @@ async def build_sandbox_and_render_templates(expressions: dict, templates: list[
         "as_exposure": as_exposure,
     }
 
-    for template in templates:
-        # put the manifest templates in loose order in the result deque
-        # campaign -> manifests -> nodes -> edges
-        # this just means that (1) campaign should be added to the left
-        # and then edges are added to the right
-        # nodes and manifests can be put anywhere else.
-        rendered_template = sandbox.from_string(template).render()
-        rendered_templates.append(rendered_template)
+    # put the manifest templates in loose order in the result deque
+    # campaign -> manifests -> nodes -> edges
+    rendered_manifests: deque[Any] = deque(maxlen=len(templates))
+    rendered_edges: list[dict] = []
 
-    return rendered_templates
+    for template in templates:
+        try:
+            rendered_template = sandbox.from_string(template.manifest).render()
+            template_dict: dict = safe_load(rendered_template)
+        except TemplateError:
+            # jinja error
+            ...
+        except YAMLError:
+            # parsing error
+            ...
+        match template_dict["kind"]:
+            case "campaign":
+                rendered_manifests.appendleft(template_dict)
+            case "edge":
+                rendered_edges.append(template_dict)
+            case _:
+                rendered_manifests.append(template_dict)
+
+    # Add the accumulated edge manifests to the end of the deque
+    rendered_manifests.extend(rendered_edges)
+
+    # Work through the deque to create Manifest ORM objects from each rendered
+    # template, populating the campaign namespace for each
+    current_namespace = DEFAULT_NAMESPACE
+    for _ in range(len(rendered_manifests)):
+        _manifest: dict[str, Any] = rendered_manifests.popleft()
+        _orm = await prepare_orm_from_manifest(
+            _manifest,
+            current_namespace,
+        )
+        rendered_manifests.append(_orm)
+        # set the current namespace after a campaign ORM has been prepared
+        if _manifest["kind"] == "campaign":
+            current_namespace = _orm.id
+
+    return rendered_manifests
