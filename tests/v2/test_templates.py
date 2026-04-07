@@ -108,7 +108,7 @@ manifest_templates = [
 def template_generator() -> Generator[ManifestTemplate]:
     schedule_id = uuid4()
     return (
-        ManifestTemplate(kind=t["kind"], manifest=t["template"], schedule_id=schedule_id)  # type: ignore
+        ManifestTemplate(kind=t["kind"], manifest=t["template"], schedule_id=schedule_id)  # pyright: ignore[reportArgumentType]
         for t in manifest_templates
     )
 
