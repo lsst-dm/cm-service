@@ -67,7 +67,7 @@ class ManifestTemplateBase(BaseSQLModel):
     kind: KindField = Field(
         sa_column=Column("kind", Enum(ManifestKind, length=20, native_enum=False, create_constraint=False)),
     )
-    manifest: dict = jsonb_column("manifest")
+    manifest: str = ""
     metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])
 
 

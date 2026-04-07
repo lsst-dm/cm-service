@@ -61,10 +61,8 @@ def upgrade() -> None:
         sa.Column("kind", ENUM_COLUMN_AS_VARCHAR, nullable=False),
         sa.Column(
             "manifest",
-            postgresql.JSONB(),
+            postgresql.TEXT(),
             nullable=False,
-            default=dict,
-            server_default=sa.text("'{}'::json"),
         ),
         sa.Column(
             "metadata",
