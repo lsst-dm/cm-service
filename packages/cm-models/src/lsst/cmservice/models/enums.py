@@ -34,6 +34,7 @@ class ManifestKind(enum.Enum):
     # Fallback kind
     other = enum.auto()
     dummy = enum.auto()
+    schedule = enum.auto()
 
 
 class StatusEnum(enum.Enum):

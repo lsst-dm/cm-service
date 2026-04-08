@@ -88,21 +88,26 @@ class CMPage[PageModelT: CMPageModel | CMPageData]:
             deepindigo=Palette.INDIGO.dark,
             violet=Palette.VIOLET.light,
             deepviolet=Palette.VIOLET.dark,
+            grey=Palette.GREY.light,
+            darkgrey=Palette.GREY.dark,
             # Custom Colors for Statuses
             **{status.name: status.hex for status in StatusDecorators},
         )
 
     @ui.refreshable_method
     def create_header(self) -> None:
-        with ui.link(target="/").classes("text-white !no-underline"):
-            ui.label("Campaign Management").classes("text-h4")
-        ui.space()
-        ui.label(self.page_title).classes("text-h5")
-        ui.space()
+        ui.label(self.page_title).classes("text-h4")
         for crumb in self.breadcrumbs:
+            ui.icon("arrow_right").classes("text-h6")
             ui.label(crumb).classes("text-h6")
-            ui.space()
         ui.space()
+
+        # Nav buttons
+        ui.button("Campaigns", on_click=lambda: ui.navigate.to("/")).classes("text-white").props("flat")
+        ui.button("Schedules", on_click=lambda: ui.navigate.to("/schedules")).classes("text-white").props(
+            "flat"
+        )
+
         with ui.dropdown_button(self.username, auto_close=True).bind_visibility_from(
             self, "username", backward=lambda x: x != "anonymous"
         ):
