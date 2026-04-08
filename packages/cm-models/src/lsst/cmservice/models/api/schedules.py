@@ -8,8 +8,10 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field, StrictBool
 
+from .manifests import Manifest, ManifestSpec
 
-class ScheduleConfiguration(BaseModel):
+
+class ScheduleConfiguration(ManifestSpec):
     """Model representing the configuration details of a Schedule."""
 
     # NOTE migrations targeting this configuration model (adding or changing
@@ -21,7 +23,7 @@ class ScheduleConfiguration(BaseModel):
         default=True, description="Whether the new campaign will be created in a paused or running state."
     )
     name_format: str = Field(
-        default="%Y%m%d%H%M",
+        default="%Y%m%d",
         description="A datetime format string used to format the nonce added to the campaign name.",
     )
 
@@ -34,3 +36,17 @@ class ScheduleUpdate(BaseModel):
     is_enabled: StrictBool | None = None
     configuration: Annotated[dict, Field(default_factory=dict)]
     next_run_at: str | None = None
+
+
+class ScheduleMetadata(BaseModel):
+    """A metadata model for Schedule manifests"""
+
+    owner: str = "root"
+
+
+class ScheduleManifest(Manifest[ScheduleMetadata, ScheduleConfiguration]):
+    """A Manifest for a Schedule consistent with the desing of other campaign
+    element API objects.
+    """
+
+    ...

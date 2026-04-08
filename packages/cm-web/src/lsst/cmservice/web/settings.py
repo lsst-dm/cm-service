@@ -29,6 +29,7 @@ class ClientConfiguration(BaseSettings):
         description="Port for the frontend WebUI to bind",
     )
 
+    # FIXME add a validator to strip any trailing `/` from value
     base_url: str = Field(
         default="http://localhost:8080/cm-service",
         description="Base URL for the CM Service API",

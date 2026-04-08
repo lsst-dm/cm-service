@@ -36,6 +36,7 @@ class ManifestKind(enum.Enum):
     # Fallback kind
     other = enum.auto()
     dummy = enum.auto()
+    schedule = enum.auto()
 
     def __lt__(self, other: ManifestKind) -> bool:
         """Implements a simple "rich" less-than operator for simple ordering

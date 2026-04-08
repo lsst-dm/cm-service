@@ -5,28 +5,31 @@ from dataclasses import dataclass, field
 from enum import IntFlag, auto
 from functools import partial
 from operator import itemgetter
-from typing import Any
+from typing import Any, Self
 from uuid import uuid4, uuid5
 
 import networkx as nx
 import yaml
 from httpx import AsyncClient
-from nice_dialog.dialogs.upload_file import UploadFileDialog
-from nicegui import run, ui
-from nicegui.elements.upload_files import FileUpload
+from nice_dialogs.dialogs import CronEditorDialog, UploadFileDialog
+from nicegui import app, run, ui
+from nicegui.elements.upload_files import FileUpload, SmallFileUpload
 from nicegui.events import ClickEventArguments, GenericEventArguments, ValueChangeEventArguments
 
-from lsst.cmservice.models.enums import DEFAULT_NAMESPACE
+from lsst.cmservice.models.api.schedules import ScheduleManifest
+from lsst.cmservice.models.db.schedules import CreateManifestTemplate, CreateSchedule
+from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, ManifestKind
+from lsst.cmservice.models.lib.parsers import as_snake_case
 from lsst.cmservice.models.lib.yaml import str_representer
 
 from .. import api
 from ..components.button import ToggleButton
 from ..components.dialog import EditorContext, NewManifestEditorDialog, NewStepEditorDialog
+from ..components.expression import ExpressionEditorDialog
 from ..lib.canvas import nx_to_flow
 from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.enum import MANIFEST_KIND_ICONS
 from ..lib.models import STEP_MANIFEST_TEMPLATE
-from ..lib.parsers import as_snake_case
 from ..settings import settings
 from .common import CMPage, CMPageData
 
@@ -50,6 +53,7 @@ class CampaignPageModel(CMPageData):
     spec: dict[str, dict[str, Any]] = field(default_factory=dict)
     campaign: dict[str, Any] = field(default_factory=dict)
     manifests: dict[str, Any] = field(default_factory=dict)
+    schedule_info: dict[str, Any] = field(default_factory=dict)
     flags: PageFlags = field(default_factory=lambda: PageFlags(0))
 
 
@@ -73,11 +77,47 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
         """A row of elements for editing high-level campaign details, such as
         the name.
         """
-        # TODO this input needs a validator
-        with ui.row().classes("shrink-0 p-1 w-full"):
+        with ui.row().classes("shrink-0 p-1 w-full items-center"):
             ui.input(label="Campaign Name", on_change=self.handle_campaign_name_change).bind_value(
                 self, "campaign_name"
             ).classes("w-48").props("debounce=1000")
+
+            with (
+                ui.input(
+                    label="Cron Expression",
+                    value="0 0 1-7 * SUN",  # midnight on first sunday of the month
+                    validation={
+                        "Cron too frequent": lambda c: not c.startswith("*"),
+                    },
+                )
+                .classes("pb-0")
+                .props("readonly") as self.cron_expression_input
+            ):
+                ui.button(icon="schedule", color="accent", on_click=self.handle_cron_dialog).props(
+                    "flat"
+                ).tooltip("Edit cron")
+
+            self.campaign_template_name_format = (
+                ui.input(
+                    label="Name Format",
+                    value="%Y%m%d",
+                )
+                .props('input-class="font-mono"')
+                .tooltip(
+                    "A `strftime` format string for appending runtime tokens to generated campaign names."
+                )
+            )
+
+            self.expressions_dialog_button = (
+                ui.button(icon="calculate", on_click=self.handle_expressions_dialog)
+                .props("fab-mini")
+                .tooltip("Edit Template Expressions")
+            )
+
+            self.auto_start_scheduled_campaign = ui.switch(
+                text="Auto-start Scheduled Campaign",
+                value=False,
+            ).tooltip("Whether new campaigns created from this schedule should be RUNNING by default.")
 
     @ui.refreshable_method
     async def edit_campaign_manifests(self) -> None:
@@ -154,13 +194,68 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
             });
         """)
 
+        # setup bindings
+        self.cron_expression_input.bind_visibility_from(
+            self,
+            ("model", "flags"),
+            backward=lambda v: PageFlags.SCHEDULING_MODE in v,
+            strict=False,
+        ).bind_value(
+            self,
+            ("model", "schedule_info", "cron"),
+            strict=False,
+        )
+        self.expressions_dialog_button.bind_visibility_from(
+            self,
+            ("model", "flags"),
+            backward=lambda v: PageFlags.SCHEDULING_MODE in v,
+            strict=False,
+        )
+        self.save_button.bind_enabled_from(
+            self,
+            ("model", "flags"),
+            backward=lambda v: PageFlags.SCHEDULING_MODE not in v,
+            strict=False,
+        )
+        self.scheduling_switch.bind_value_to(
+            self,
+            ("model", "flags"),
+            strict=False,
+            forward=lambda v: (
+                self.model.flags | PageFlags.SCHEDULING_MODE
+                if v
+                else self.model.flags & ~PageFlags.SCHEDULING_MODE
+            ),
+        )
+        # TODO bind enabled from multiple conditions, including "valid" cron
+        self.save_schedule_button.bind_enabled_from(
+            self,
+            ("scheduling_switch", "value"),
+            strict=False,
+        )
+        self.auto_start_scheduled_campaign.bind_visibility_from(
+            self,
+            ("model", "flags"),
+            backward=lambda v: PageFlags.SCHEDULING_MODE in v,
+            strict=False,
+        ).bind_value(self, ("model", "schedule_info", "auto_start"), strict=False)
+        self.campaign_template_name_format.bind_visibility_from(
+            self,
+            ("model", "flags"),
+            backward=lambda v: PageFlags.SCHEDULING_MODE in v,
+            strict=False,
+        ).bind_value(self, ("model", "schedule_info", "name_format"), strict=False)
+
     def drawer_contents(self) -> None:
         """Right-side menu drawer contents rendered in a ui.column."""
-        ui.button("Save", icon="save", on_click=self.handle_save).classes("w-50")
+        self.save_button = ui.button("Save", icon="save", on_click=self.handle_save).classes("w-50")
         ui.button("Export", icon="save_alt", on_click=self.handle_export).classes("w-50")
         ui.button("Import", icon="file_upload", on_click=self.handle_import).classes("w-50")
         ui.separator()
-        ui.switch("Enable Scheduling Mode").disable()
+        self.scheduling_switch = ui.switch("Enable Scheduling Mode").on_value_change(self.toggle_drawer)
+        self.save_schedule_button = ui.button(
+            "Schedule", icon="update", on_click=self.handle_schedule_save
+        ).classes("w-50")
 
     async def footer_contents(self) -> None:
         ui.label().classes("text-xs").bind_text_from(self, "campaign_id", strict=False)
@@ -258,15 +353,24 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
     async def handle_export(self, e: ClickEventArguments) -> None:
         """Callback wired to the "Export" button in the drawer menu."""
         await ui.run_javascript("""window.dispatchEvent(new CustomEvent("canvasExport"));""")
+        to_export = [
+            self.model.campaign,
+            *self.model.nodes,
+            *self.model.edges,
+            *self.model.manifests.values(),
+        ]
+        # if in scheduling mode, export the schedule as an additional manifest
+        if PageFlags.SCHEDULING_MODE in self.model.flags:
+            to_export.append(
+                ScheduleManifest(
+                    kind=ManifestKind.schedule,
+                    spec=self.model.schedule_info,
+                    metadata={},  # pyright: ignore[reportCallIssue]
+                ).model_dump(by_alias=True)
+            )
 
-        exported_campaign = yaml.dump_all(
-            [
-                self.model.campaign,
-                *self.model.nodes,
-                *self.model.edges,
-                *self.model.manifests.values(),
-            ]
-        )
+        exported_campaign = yaml.dump_all(to_export)
+
         ui.download.content(exported_campaign, f"{self.campaign_name}.yaml")
 
     async def handle_import(self, e: ClickEventArguments) -> None:
@@ -321,6 +425,61 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
 
         if save_result:
             ui.navigate.to(f"/campaign/{self.campaign_id}")
+
+    async def handle_schedule_save(self, e: ClickEventArguments) -> None:
+        """Save the current campaign as a schedule with manifest templates."""
+        # Use export logic to get list of manifests as YAML
+        # Instead of downloading a file, assemble a Schedule model and POST
+        # to the schedules API
+        self.show_spinner("Scheduling Campaign...")
+        await ui.run_javascript("""window.dispatchEvent(new CustomEvent("canvasExport"));""")
+
+        exported_campaign = [
+            self.model.campaign,
+            *self.model.nodes,
+            *self.model.edges,
+            *self.model.manifests.values(),
+        ]
+
+        # Create a Schedule object
+        schedule = CreateSchedule(
+            name=f"schedule-{self.campaign_name}-{uuid4().hex[0:8]}",
+            cron=self.model.schedule_info["cron"],
+            metadata_={
+                "owner": self.username,
+            },
+            configuration={
+                "auto_start": self.model.schedule_info["auto_start"],
+                "expressions": self.model.schedule_info["expressions"],
+                "date_format": self.model.schedule_info["date_format"],
+            },
+            is_enabled=False,
+            templates=[],
+        )
+
+        # Create a ManifestTemplate for each manifest
+        for manifest in exported_campaign:
+            # add each manifest as a CreateManifestTemplate to the templates
+            schedule.templates.append(
+                CreateManifestTemplate(
+                    name=manifest["metadata"]["name"],
+                    kind=manifest["kind"],
+                    manifest=yaml.safe_dump(manifest, explicit_start=True),
+                )
+            )
+
+        # API POST new schedule
+        if not (save_result := await api.post_new_schedule(schedule)):
+            ui.notify(
+                "A problem occurred saving the new schedule. "
+                "Try again or use export to save an offline copy.",
+                type="warning",
+            )
+
+        self.hide_spinner()
+
+        if save_result:
+            ui.navigate.to("/schedules")
 
     async def handle_exported_canvas(self, data: GenericEventArguments) -> None:
         """Callback wired to the "canvasData" listener, which should be sent
@@ -377,6 +536,25 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
         ]
         ...
 
+    async def handle_expressions_dialog(self, e: ClickEventArguments) -> None:
+        """Creates an editor dialog for custom template expressions."""
+        expressions_dialog = ExpressionEditorDialog(
+            with_expressions=self.model.schedule_info.get("expressions", {})
+        )
+        expressions = await expressions_dialog
+        if expressions is not None:
+            self.model.schedule_info["expressions"] = expressions
+        expressions_dialog.clear()
+
+    async def handle_cron_dialog(self, e: ClickEventArguments) -> None:
+        """Creates a cron editor dialog for the current cron string."""
+        cron_dialog = CronEditorDialog()
+        cron_dialog.reset(self.model.schedule_info.get("cron"))
+        cron_str = await cron_dialog
+        if cron_str is not None:
+            self.model.schedule_info["cron"] = cron_str
+        cron_dialog.clear()
+
     async def validate_new_manifest_name(self, data: str | None, ctx: EditorContext) -> str | None:
         """Validates the name of a new manifest by checking against any current
         manifest names in the current known model. This does not perform API
@@ -407,10 +585,6 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
         method to perform data loading/prep, etc., before calling render().
         """
         self.namespace = DEFAULT_NAMESPACE
-        ui.add_head_html(
-            f"""<script src="{settings.root_path}{settings.static_endpoint}/cm-canvas-bundle.iife.js">"""
-            f"""</script>"""
-        )
         self.initialize_model()
         self.initial_flow_nodes: list[dict] = []
         self.initial_flow_edges: list[dict] = []
@@ -434,8 +608,6 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
 
     async def apply_import_to_model(self, upload: FileUpload) -> None:
         """Applies an imported YAML file upload to the current page model."""
-        # TODO maybe this is more appropriately added to the Clone page to
-        # reuse some that "import" logic.
 
         # clear the current page model
         self.initialize_model()
@@ -450,7 +622,13 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
             # Each imported manifest is shaped and added to the page model's
             # `spec` dictionary and canvas components. Some metadata values are
             # removed so they do not leak into new campaigns.
-            for manifest in await run.io_bound(lambda: list(yaml.safe_load_all(contents))):
+            manifest_list = await run.io_bound(lambda: list(yaml.safe_load_all(contents)))
+            # Apply the imported manifests in campaign -> * -> edge order
+            for manifest in sorted(
+                manifest_list,
+                key=lambda m: (m["kind"] == "campaign", m["kind"] != "edge"),
+                reverse=True,
+            ):
                 match manifest["kind"]:
                     case "campaign":
                         self.campaign_name = manifest["metadata"].pop("name")
@@ -482,8 +660,17 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
                         if (manifest_id := manifest["metadata"].pop("id", None)) is None:
                             manifest_id = str(uuid4())  # FIXME what is the real uuid
                         self.model.manifests[manifest_id] = manifest
+                    case "schedule":
+                        self.model.schedule_info = manifest["spec"]
+                        self.scheduling_switch.value = True
+                        self.scheduling_switch.disable()
+                        self.scheduling_switch.tooltip(
+                            "Can't disable scheduling mode when importing a scheduled campaign."
+                        )
                     case _:
-                        ...
+                        # NOTE this should be unreachable, but if we do end up
+                        # here, we gracefully fall through.
+                        pass
         except yaml.YAMLError:
             ui.notify("Could not load YAML from uploaded file.", color="negative")
         except KeyError as e:
@@ -493,7 +680,6 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
         await self.edit_campaign_manifests.refresh()
         await self.create_campaign_canvas.refresh()
         self.hide_spinner()
-        ...
 
 
 class CampaignClonePage(CampaignEditPage):
@@ -501,20 +687,23 @@ class CampaignClonePage(CampaignEditPage):
     creating one from scratch.
     """
 
-    async def setup(self, client_: AsyncClient | None = None, *, clone_campaign_model_from: str = "") -> Any:
+    async def setup(
+        self,
+        client_: AsyncClient | None = None,
+        *,
+        clone_campaign_model_from: str = "",
+        clone_campaign_schedule_from: str = "",
+    ) -> Self:
         """Async method called at page creation. Subpages can override this
         method to perform data loading/prep, etc., before calling render().
         """
         self.namespace = DEFAULT_NAMESPACE
 
-        # Add IIFE script for cm-canvas component
-        ui.add_head_html(
-            f"""<script src="{settings.root_path}{settings.static_endpoint}/cm-canvas-bundle.iife.js">"""
-            f"""</script>"""
-        )
-
         async with CLIENT_FACTORY.aclient() as client:
-            data = await api.describe_one_campaign(client=client, id=clone_campaign_model_from)
+            if clone_campaign_model_from:
+                data = await api.describe_one_campaign(client=client, id=clone_campaign_model_from)
+            elif clone_campaign_schedule_from:
+                return await self.setup_from_schedule(clone_campaign_schedule_from)
 
         self.campaign_name = data["campaign"]["name"]
         # FIXME this doesn't need to be cpu_bound (process), io_bound (thread)
@@ -573,5 +762,45 @@ class CampaignClonePage(CampaignEditPage):
         # TODO Any "missing" manifests could be fetched from the library
         for kind in mandatory_manifests:
             ...
+
+        return self
+
+    async def setup_from_schedule(self, schedule_id: str) -> Self:
+        """Page setup method when importing a stored schedule.
+
+        Notes
+        -----
+        - The stored schedule manifest templates MUST be stored with an
+        explicit start (`---`). This method uses a naive string-join that
+        assumes this is the case.
+        """
+
+        schedule: CreateSchedule | None
+        # FIXME the client needs to be connected before accessing tab storage
+        if (schedule := app.storage.tab.pop("schedule", None)) is None:
+            schedule_ = await anext(api.get_schedule_summary(schedule_id))
+            schedule = CreateSchedule.model_validate(schedule_)
+
+        templates = api.get_schedule_templates(schedule_id=schedule_id)
+
+        # Create an "export" collection YAML documents.
+        yaml_import: str = "".join([template.manifest async for template in templates])
+        yaml_import += yaml.safe_dump(
+            ScheduleManifest(
+                kind=ManifestKind.schedule,
+                spec=schedule.configuration,
+                metadata={},  # pyright: ignore[reportCallIssue]
+            ).model_dump(by_alias=True),
+            explicit_start=True,
+        )
+
+        # create a "SmallFileUpload" container for the schedule parts
+        # as though it had been imported from a YAML
+        schedule_import = SmallFileUpload(
+            name="schedule.yaml",
+            content_type="application/yaml",
+            _data=yaml_import.encode("utf-8"),
+        )
+        await self.apply_import_to_model(schedule_import)
 
         return self

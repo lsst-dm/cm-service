@@ -1130,7 +1130,7 @@ dependencies = [
     { name = "nice-dialogs" },
     { name = "nicegui" },
     { name = "pydantic" },
-    { name = "pydantic-extra-types" },
+    { name = "pydantic-extra-types", extra = ["cron"] },
     { name = "pydantic-settings" },
     { name = "structlog" },
 ]
@@ -1148,7 +1148,7 @@ requires-dist = [
     { name = "nice-dialogs", git = "https://github.com/tcjennings/nice-dialogs?rev=0beec0651fa101576741d2a8cdf7ec5e7c961d59" },
     { name = "nicegui", specifier = ">=3.11.0" },
     { name = "pydantic", specifier = ">=2.12" },
-    { name = "pydantic-extra-types", specifier = ">=2.10.5" },
+    { name = "pydantic-extra-types", extras = ["cron"], specifier = ">=2.10.6" },
     { name = "pydantic-settings", specifier = ">=2.12" },
     { name = "structlog", specifier = ">=24.4.0" },
 ]

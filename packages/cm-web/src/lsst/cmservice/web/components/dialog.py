@@ -4,6 +4,7 @@ from collections.abc import Awaitable, Callable, Generator
 from copy import deepcopy
 from dataclasses import dataclass, field
 from enum import Enum, IntFlag, auto
+from functools import partial
 from typing import TYPE_CHECKING, Any, Self
 
 import yaml
@@ -12,11 +13,13 @@ from nicegui import ui
 from nicegui.events import ClickEventArguments, GenericEventArguments, ValueChangeEventArguments
 from pydantic_core import ValidationError
 
+from lsst.cmservice.models.db.schedules import CreateManifestTemplate
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE
+from lsst.cmservice.models.lib.parsers import as_snake_case
 
 from .. import api
+from ..lib.enum import MANIFEST_KIND_ICONS
 from ..lib.models import KIND_TO_SPEC, STEP_MANIFEST_TEMPLATE
-from ..lib.parsers import as_snake_case
 from ..pages.common import CMPage
 from ..settings import settings
 from . import strings
@@ -822,3 +825,99 @@ class StepEditorDialog(NewStepEditorDialog):
             self.group_option.disable()
             self.context.valid = True
             self.context.readonly = True
+
+
+class ScheduleReviewDialog(ui.dialog):
+    """A dialog for reviewing the contents of a schedule, including the var-
+    iable expressions and manifest templates.
+
+    This dialog does not allow direct editing of the schedule components, but
+    is useful for review/preview.
+    """
+
+    def __init__(self, *, dialog_title: str, schedule: dict, templates: list[CreateManifestTemplate]):
+        super().__init__()
+        self.props("maximized")
+        self.dialog_title = dialog_title
+        self.schedule = schedule
+        self.manifests: dict[str, CreateManifestTemplate] = {str(t.id): t for t in templates}
+        self.active_manifest: str = ""
+        self.dialog_layout()
+
+    # Tell type checkers what is returned when the dialog is awaited
+    if TYPE_CHECKING:
+
+        def __await__(self) -> Generator[None]: ...
+
+    def dialog_layout(self) -> None:
+        """Core layout method for the dialog."""
+        with (
+            self,
+            ui.card().classes("w-[96vw] h-[85vh] max-w-[96vm] max-h-[85vh] flex flex-col overflow-hidden"),
+        ):
+            # HEADER
+            with ui.row().classes("w-full shrink-0 py-2"):
+                ui.label("Previewing:").classes()
+                ui.label(self.dialog_title).classes()
+
+            # CONTENT
+            ui.separator()
+            with ui.row().classes("w-full h-0 flex-1 min-h-0 item-stretch gap-2"):
+                with ui.column().classes("h-full flex-[0.2] m-0 min-h-0"):
+                    with (
+                        ui.list()
+                        .props("bordered separator")
+                        .classes("w-full h-full overflow-x-hidden overflow-y-auto")
+                    ):
+                        ui.item_label("Variable Expressions").props("header").classes(
+                            "sticky top-0 z-10 bg-white text-bold"
+                        )
+                        ui.separator()
+                        for k, v in self.schedule["configuration"]["expressions"].items():
+                            ui.item(f"{k} = {v}").classes("font-mono")
+
+                with ui.column().classes("h-full flex-[0.3] m-0 min-h-0 overflow-y-auto"):
+                    with ui.list().props("bordered separator").classes("w-full h-full overflow-x-hidden"):
+                        ui.item_label("Manifest Templates").props("header").classes(
+                            "sticky top-0 z-10 bg-white text-bold"
+                        )
+                        ui.separator()
+                        for manifest_id, manifest in self.manifests.items():
+                            with ui.item():
+                                with ui.item_section().props("avatar"):
+                                    ui.icon(
+                                        MANIFEST_KIND_ICONS.get(manifest.kind.name, "architecture")
+                                    ).tooltip(manifest.kind.name)
+                                with ui.item_section():
+                                    ui.item_label(f"{manifest.kind.name} [{manifest.name}]")
+                                    ui.item_label(manifest_id).props("caption")
+                                with ui.item_section().props("side"):
+                                    click_handler = partial(self.set_active_manifest, manifest_id=manifest_id)
+                                    ui.icon("chevron_right").classes("cursor-pointer").props("clickable").on(
+                                        "click", handler=click_handler
+                                    )
+
+                with ui.column().classes("flex-[0.5] h-full m-0 min-h-0 overflow-y-auto"):
+                    self.display_manifest_template()
+
+            ui.separator()
+            with ui.card_actions().classes("w-full shrink-0 align-left"):
+                ui.button("Done", color="positive", on_click=lambda: self.submit(None))
+                ui.space()
+                ui.button("Edit", color="accent", on_click=lambda: self.submit(None)).disable()
+
+    def set_active_manifest(self, e: GenericEventArguments, manifest_id: str) -> None:
+        """Update the manifest id used to display the code preview content."""
+        self.active_manifest = manifest_id
+        self.display_manifest_template.refresh()
+
+    @ui.refreshable_method
+    def display_manifest_template(self) -> None:
+        """Place a refreshable code element based on the contents of the active
+        (most recently selected) manifest.
+        """
+        if not self.active_manifest:
+            return None
+        ui.code(content=self.manifests[self.active_manifest].manifest, language="yaml").classes(
+            "h-full w-full overflow-hidden overflow-y-scroll"
+        )
