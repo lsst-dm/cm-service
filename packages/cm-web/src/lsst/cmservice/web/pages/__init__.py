@@ -23,6 +23,7 @@ from .campaign_overview import CampaignOverviewPage
 from .canvas import CanvasScratchPage
 from .help import HelpPage
 from .node_detail import NodeDetailPage
+from .schedule_overview import ScheduleOverviewPage
 
 
 @ui.page("/", response_timeout=settings.timeout)
@@ -81,6 +82,16 @@ async def campaign_clone(campaign_id: str) -> None:
 @ui.page("/canvas", response_timeout=settings.timeout)
 async def canvas_scratch_page() -> None:
     if page := await CanvasScratchPage(title="Canvas Scratch Pad").setup():
+        await ui.context.client.connected()
+        await page.render()
+
+
+@ui.page("/schedules", response_timeout=settings.timeout)
+async def schedule_overview_page(
+    client_: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)],
+) -> None:
+    """Builds a schedule overview page"""
+    if page := await ScheduleOverviewPage(title="Schedule Overview").setup(client_):
         await ui.context.client.connected()
         await page.render()
 
