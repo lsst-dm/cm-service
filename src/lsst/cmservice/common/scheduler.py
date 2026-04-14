@@ -7,6 +7,7 @@ from apscheduler.schedulers.base import STATE_RUNNING, BaseJobStore, BaseSchedul
 from apscheduler.triggers.cron import CronTrigger
 from fastapi import FastAPI
 
+from ..config import config
 from .logging import LOGGER
 
 logger = LOGGER.bind(module=__name__)
@@ -25,10 +26,7 @@ class Scheduler:
     def __init__(self, app: FastAPI):
         self.app = app
         self.jobstores = {"default": MemoryJobStore()}
-        self.job_defaults = {
-            "coalesce": False,
-            "max_instances": 3,
-        }
+        self.job_defaults = config.scheduler.model_dump(by_alias=True)
         self.scheduler = AsyncIOScheduler(jobstores=self.jobstores, job_defaults=self.job_defaults)
 
     @classmethod

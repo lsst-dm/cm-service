@@ -543,6 +543,33 @@ class NotificationConfiguration(BaseModel):
     )
 
 
+class SchedulerConfiguration(BaseModel):
+    """Configuration for the job defaults used by the Scheduler.
+
+    Set according to SCHEDULER__FIELD environment variables.
+    """
+
+    misfire_grace_time: int | None = Field(
+        default=None,
+        description=(
+            "Number of seconds after a missed scheduled job execution during which the job "
+            "should be executed immediately. A `None` means there is no such limit."
+        ),
+    )
+
+    coalesce: bool = Field(
+        default=False,
+        description=(
+            "Whether to coalesce missed job executions into a single execution at the next scheduled time."
+        ),
+    )
+
+    max_instances: int = Field(
+        default=3,
+        description="Maximum number of concurrently executing instances for a given scheduled job.",
+    )
+
+
 class Configuration(BaseSettings):
     """Configuration for cm-service.
 
@@ -569,6 +596,7 @@ class Configuration(BaseSettings):
     panda: PandaConfiguration = PandaConfiguration()
     notifications: NotificationConfiguration = NotificationConfiguration()
     features: EnabledFeatures = EnabledFeatures()
+    scheduler: SchedulerConfiguration = SchedulerConfiguration()
 
     # Root fields
     script_handler: ScriptMethodEnum = Field(

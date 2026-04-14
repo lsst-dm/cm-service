@@ -2,6 +2,7 @@
 with manifest templates as used by the campaign scheduler.
 """
 
+import re
 from collections.abc import Generator
 from itertools import islice
 from textwrap import dedent
@@ -10,6 +11,7 @@ from uuid import uuid4
 import pytest
 
 from lsst.cmservice.common.templates import build_sandbox_and_render_templates
+from lsst.cmservice.models.api.schedules import ScheduleConfiguration
 from lsst.cmservice.models.db.campaigns import Campaign, Manifest
 from lsst.cmservice.models.db.schedules import ManifestTemplate
 
@@ -114,18 +116,20 @@ def template_generator() -> Generator[ManifestTemplate]:
 
 
 async def test_custom_expressions(template_generator: Generator[ManifestTemplate]) -> None:
-    expressions = {
-        "campaign_name": "'test_simple_template'",
-        "today": "datetime(year=2026, month=5, day=1)",
-        "obs_day": "datetime(year=2025, month=7, day=23)",
-        "first_exposure": 398,
-        "last_exposure": 400,
-        "bad_detectors": "[120, 121, 122, 78]",
-    }
-    x = await build_sandbox_and_render_templates(expressions, list(template_generator))
+    context = ScheduleConfiguration(
+        expressions={
+            "campaign_name": "'test_simple_template'",
+            "today": "datetime(year=2026, month=5, day=1)",
+            "obs_day": "datetime(year=2025, month=7, day=23)",
+            "first_exposure": "398",
+            "last_exposure": "400",
+            "bad_detectors": "[120, 121, 122, 78]",
+        }
+    )
+    x = await build_sandbox_and_render_templates(context, list(template_generator))
 
     assert isinstance(x[0], Campaign)
-    assert x[0].name == "test_simple_template"
+    assert re.fullmatch(r"^test_simple_template_\d+$", x[0].name)
 
     assert isinstance(x[2], Manifest)
     assert "exposure > 2025072300398" in x[2].spec["predicates"]
@@ -139,4 +143,4 @@ async def test_custom_expressions(template_generator: Generator[ManifestTemplate
     # correct namespace
     campaign_id = x[0].id
     for orm in islice(x, 1, None):
-        assert orm.namespace is campaign_id
+        assert orm.namespace == campaign_id

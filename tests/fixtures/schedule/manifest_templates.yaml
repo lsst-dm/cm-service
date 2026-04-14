@@ -1,0 +1,74 @@
+---
+campaign_good:
+    apiVersion: io.lsst.cmservice/v1
+    kind: campaign
+    metadata:
+        name: sample_campaign
+    spec: {}
+
+# This manifest is missing a name
+campaign_bad:
+    apiVersion: io.lsst.cmservice/v1
+    kind: campaign
+    metadata: {}
+    spec: {}
+
+butler_manifest_good:
+    apiVersion: io.lsst.cmservice/v1
+    kind: butler
+    metadata:
+        name: repo_main_lsstcam_defaults
+    spec:
+        collections:
+            campaign_input:
+                - LSSTCam/defaults
+        predicates:
+            - instrument='LSSTCam'
+            - skymap='lsst_cells_v1'
+            - day_obs>={{ yesterday | as_obs_day }}
+            - day_obs<{{ today | as_obs_day }}
+        repo: /repo/main
+
+lsst_manifest_good:
+    apiVersion: io.lsst.cmservice/v1
+    kind: lsst
+    metadata:
+        name: usdf_w_latest_dev
+        namespace: b67094a8-c44f-50b7-a2db-81c95a16fd29
+        version: 0
+    spec:
+        lsst_distrib_dir: "/sdf/group/rubin/sw/{{ today | as_lsst_version }}"
+        lsst_version: "{{ today | as_lsst_version }}"
+
+# This manifest already has had "business logic" applied to resolve the
+# adjacencies to uuids
+edge_good:
+    apiVersion: io.lsst.cmservice/v1
+    kind: edge
+    metadata:
+        name: xy-edge__8right-ENDleft
+        namespace: b67094a8-c44f-50b7-a2db-81c95a16fd29
+    spec:
+        source: START
+        target: step_1.1
+
+edge_bad:
+    apiVersion: io.lsst.cmservice/v1
+    kind: edge
+    metadata:
+        name: xy-edge__8right-ENDleft
+    spec:
+        source: step_1
+        target: step_2
+
+node_good:
+    apiVersion: io.lsst.cmservice/v1
+    kind: node
+    metadata:
+        kind: step
+        name: stage3
+        namespace: b67094a8-c44f-50b7-a2db-81c95a16fd29
+    spec:
+        bps:
+            pipeline_yaml: ${DRP_PIPE_DIR}/pipelines/LSSTCam/DRP.yaml#stage3-coadd
+        groups: null

@@ -17,6 +17,8 @@ from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from transitions import Event
 
+from lsst.cmservice.common.scheduler import Scheduler
+from lsst.cmservice.models.api.schedules import ScheduleConfiguration
 from lsst.cmservice.models.db.campaigns import Campaign, Edge, Machine, Node, Task
 from lsst.cmservice.models.db.schedules import Schedule
 from lsst.cmservice.models.enums import StatusEnum
@@ -253,20 +255,22 @@ async def daemon_scheduled_job(schedule_id: UUID) -> None:
     # fetch the schedule and its templates
     async with db_session_dependency.sessionmaker() as session:
         schedule = await session.get_one(Schedule, schedule_id)
+        schedule_context = ScheduleConfiguration(**schedule.configuration)
 
-        # set up jinja sandbox with schedule expressions
-        # run each template through jinja render
-        manifests = [
+        orms = [
             manifest
             for manifest in await build_sandbox_and_render_templates(
-                expressions=schedule.expressions,
+                context=schedule_context,
                 templates=schedule.templates,
             )
         ]
 
-        # TODO whether to "auto-start" the new campaign. The campaign is always
-        # the first ORM object on the list of manifests.
-        session.add_all(manifests)
+        # the first ORM object on the list of manifests is the campaign
+        if isinstance(orms[0], Campaign):
+            orms[0].owner = schedule.metadata_.get("owner")
+            orms[0].status = StatusEnum.running if schedule_context.auto_start else StatusEnum.paused
+
+        session.add_all(orms)
         await session.commit()
 
 
@@ -274,13 +278,15 @@ async def consider_schedules(context: DaemonContext) -> None:
     """Check the schedules table for enabled schedules and set up scheduler
     jobs for them.
     """
+    if TYPE_CHECKING:
+        assert isinstance(context.app.state.scheduler, Scheduler)
 
     # get schedules from db where is_enabled
     statement = select(Schedule).where(Schedule.is_enabled)
     schedules = await context.session.exec(statement)
     for schedule in schedules:
         job_id = str(schedule.id)
-        job_trigger = context.app.state.scheduler.trigger(schedule.cron)
+        job_trigger = await context.app.state.scheduler.trigger(schedule.cron)
 
         if context.app.state.scheduler.scheduler.get_job(job_id):
             context.app.state.scheduler.scheduler.reschedule_job(job_id, job_trigger)
