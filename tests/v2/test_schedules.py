@@ -109,23 +109,30 @@ async def test_post_new_schedule(
 
     match request.node.callspec.id:
         case "full":
-            y = await aclient.get(f"{x.headers['Self']}/templates")
+            y = await aclient.get("/v2/schedules")
+            assert y.status_code == codes.OK
+            r = y.json()
+            assert len(r) > 0
+            # the get collections route does not return relationship fields
+            assert "templates" not in r[0]
+            y = await aclient.get(x.headers["Templates"])
             assert y.status_code == codes.OK
             assert len(y.json()) > 0
             y = await aclient.delete(x.headers["Self"])
             assert y.status_code == codes.NO_CONTENT
             # it is not an error to GET templates for a nonexistent schedule;
             # there will be an empty list
-            y = await aclient.get(f"{x.headers['Self']}/templates")
+            y = await aclient.get(x.headers["Templates"])
             assert y.status_code == codes.OK
             # Ensure the cascade delete has removed the templates when the
             # schedule was removed.
             assert len(y.json()) == 0
         case "empty":
-            y = await aclient.get(f"{x.headers['Self']}/templates")
+            y = await aclient.get(x.headers["Templates"])
             assert y.status_code == codes.OK
             assert len(y.json()) == 0
         case "bad":
+            # Nothing was created
             assert "Self" not in x.headers
             y = await aclient.delete(f"/v2/schedules/{uuid4()}")
             assert y.status_code == codes.NOT_FOUND
