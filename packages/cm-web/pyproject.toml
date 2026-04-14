@@ -6,12 +6,13 @@ requires-python = ">=3.12,<3.14"
 dependencies = [
     "deepdiff>=8.6.1",
     "networkx>=3.5",
-    "nicegui>=3.8.0",
+    "nicegui>=3.10.0",
     "pydantic>=2.12",
-    "pydantic-extra-types>=2.10.5",
+    "pydantic-extra-types[cron]>=2.10.6",
     "pydantic-settings>=2.12",
     "structlog>=24.4.0",
     "lsst-cmservice-models",
+    "nice-dialog",
 ]
 
 [dependency-groups]
@@ -38,3 +39,4 @@ path = "src/lsst/cmservice/web/__init__.py"
 
 [tool.uv.sources]
 lsst-cmservice-models = { workspace = true }
+nice-dialog = { git = "https://github.com/tcjennings/nice-dialogs", rev = "303a3ef6e7d540582965360d9ea98fa85bbde694" }

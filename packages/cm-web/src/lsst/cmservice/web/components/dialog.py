@@ -1,6 +1,6 @@
 """Module implementing reusable and/or modular Dialogs."""
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Generator
 from copy import deepcopy
 from dataclasses import dataclass, field
 from enum import Enum, IntFlag, auto
@@ -11,6 +11,7 @@ from nicegui import ui
 from nicegui.events import ClickEventArguments, GenericEventArguments, ValueChangeEventArguments
 from pydantic_core import ValidationError
 
+from lsst.cmservice.models.db.schedules import ManifestTemplateBase
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE
 
 from .. import api
@@ -768,3 +769,61 @@ class StepEditorDialog(NewStepEditorDialog):
             self.group_option.disable()
             self.context.valid = True
             self.context.readonly = True
+
+
+# dialog for manipulating the templates associated with a schedule?
+class ScheduleEditorDialog(ui.dialog):
+    def __init__(self, *, dialog_title: str, schedule: dict, templates: list[ManifestTemplateBase]):
+        super().__init__()
+        self.props("maximized")
+        self.dialog_title = dialog_title
+        self.schedule = schedule
+        self.tabs: list[ui.tab] = []
+        self.manifests: dict[str, ManifestTemplateBase] = {str(t.id): t for t in templates}
+        self.dialog_layout()
+
+    # Tell type checkers what is returned when the dialog is awaited
+    if TYPE_CHECKING:
+
+        def __await__(self) -> Generator[None]: ...
+
+    def dialog_layout(self) -> None:
+        with (
+            self,
+            ui.card().classes(
+                "w-[96vw] h-[85vh] max-w-[96vm] max-h-[85vh] "
+                "flex flex-col flex-nowrap "
+                "overflow-y-scroll overflow-x-hidden"
+            ),
+        ):
+            with ui.row().classes("w-full"):
+                ui.label(self.dialog_title).classes("font-bold text-3xl")
+            with ui.column().classes("w-full border-1"):
+                ui.label("Template Expressions").classes("font-bold")
+                for k, v in self.schedule["expressions"].items():
+                    with ui.row().classes("gap-4 items-center"):
+                        ui.badge(k, color="primary")
+                        ui.label("=")
+                        ui.badge(v, color="accent").classes("font-mono")
+                        ui.icon("close", size="xs").classes("cursor-pointer")
+            with ui.splitter().classes("w-full") as splitter:
+                with splitter.before:
+                    with ui.tabs().props("vertical").classes("w-full") as tabs:
+                        # template...names?
+                        for i, manifest_id in enumerate(self.manifests.keys()):
+                            self.tabs.append(ui.tab(name=manifest_id, label=f"Manifest {i + 1}"))
+                with splitter.after:
+                    # template contents as jinja code
+                    with ui.tab_panels(tabs).props("vertical").classes("size-full"):
+                        for tab in self.tabs:
+                            if TYPE_CHECKING:
+                                assert isinstance(tab.label, str)
+                            with ui.tab_panel(tab):
+                                ui.label(tab.label).classes("font-bold")
+                                ui.code(content=self.manifests[tab.props["name"]].manifest, language="jinja2")
+
+            ui.space()
+            with ui.card_actions().classes("w-full align-left"):
+                with ui.row().classes("flex w-full items-end"):
+                    ui.button("Done", color="positive", on_click=lambda: self.submit(None))
+                    ui.button("Cancel", color="negative", on_click=lambda: self.submit(None))

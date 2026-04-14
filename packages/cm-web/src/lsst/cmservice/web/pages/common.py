@@ -80,6 +80,8 @@ class CMPage[PageModelT: CMPageModel]:
             deepindigo=Palette.INDIGO.dark,
             violet=Palette.VIOLET.light,
             deepviolet=Palette.VIOLET.dark,
+            grey=Palette.GREY.light,
+            darkgrey=Palette.GREY.dark,
             # Custom Colors for Statuses
             **{status.name: status.hex for status in StatusDecorators},
         )

@@ -3,17 +3,42 @@
 from typing import Any, Self, assert_never
 
 from httpx import AsyncClient
+from nice_dialog.dialogs.cron_editor import CronEditorDialog
 from nicegui import run, ui
 from nicegui.events import GenericEventArguments
 from pydantic_extra_types.cron import CronStr
 
-from ..api.schedules import get_schedule_summary
+from lsst.cmservice.models.db.schedules import ManifestTemplateBase
+
+from ..api.schedules import get_schedule_summary, get_schedule_templates
 from ..components import storage
+from ..components.dialog import ScheduleEditorDialog
 from .common import CMPage, CMPageModel
 
 
 class ScheduleOverviewPageModel(CMPageModel):
-    schedules: list[dict[str, Any]]
+    """ "Page data model for scheduling overview page.
+
+    Attributes
+    ----------
+    schedules: dict[str, dict[str, Any]
+        A mapping of schedule IDs to a schedule instance. Each schedule in the
+        mapping will be shown on the scheduling overview table modulo any active
+        filtering. Each value is a dict representation of the database Schedule
+        record.
+
+    active_schedule: str
+        The string ID of an "active" schedule. The active schedule is one that
+        is the target of editing operations.
+
+    active_templates: list[dict[str, Any]]
+        A list of templates associated with the "active schedule", lazily-
+        loaded when needed.
+    """
+
+    schedules: dict[str, dict[str, Any]]
+    active_templates: list[ManifestTemplateBase]
+    active_schedule: str  # id of schedule most recently accessed
 
 
 class ScheduleOverviewPage(CMPage[ScheduleOverviewPageModel]):
@@ -31,7 +56,9 @@ class ScheduleOverviewPage(CMPage[ScheduleOverviewPageModel]):
 
         self.show_spinner()
         self.model: ScheduleOverviewPageModel = {
-            "schedules": [],
+            "schedules": {},
+            "active_templates": [],
+            "active_schedule": "",
         }
         storage.initialize_client_storage()
         # client_state: storage.ClientStorageModel = app.storage.client["state"]
@@ -43,8 +70,11 @@ class ScheduleOverviewPage(CMPage[ScheduleOverviewPageModel]):
 
         async for schedule in await run.io_bound(get_schedule_summary, client=client_):
             # TODO check favorites / filters
-            self.model["schedules"].append(schedule)
+            # Add each schedule to the page model, indexed by its ID.
+            self.model["schedules"][schedule["id"]] = schedule
+            self.model["schedules"][schedule["id"]]["metadata"]["dirty"] = {}
 
+        self.cron_dialog = CronEditorDialog()
         return self
 
     def drawer_contents(self) -> None: ...
@@ -70,32 +100,50 @@ class ScheduleOverviewPage(CMPage[ScheduleOverviewPageModel]):
         """Renders a table of schedules"""
         columns: list[dict[str, Any]] = [
             {"name": "id", "label": "ID", "field": "id", "classes": "hidden", "headerClasses": "hidden"},
-            {"name": "name", "label": "Name", "field": "name", "sortable": True},
-            {"name": "owner", "label": "Owner", "field": "owner", "sortable": True},
-            {"name": "cron", "label": "Cron Expression", "field": "cron", "sortable": False},
-            {"name": "status", "label": "Status", "field": "status", "sortable": True, "align": "center"},
-            {"name": "next", "label": "Next Run", "field": "next", "sortable": True},
+            {
+                "name": "name",
+                "label": "Name",
+                "field": "name",
+                "sortable": True,
+                ":classes": "(row) => row.classes",
+            },
+            {
+                "name": "owner",
+                "label": "Owner",
+                "field": "owner",
+                "sortable": True,
+                ":classes": "(row) => row.classes",
+            },
+            {
+                "name": "cron",
+                "label": "Cron Expression",
+                "field": "cron",
+                "sortable": False,
+                ":classes": '(row) => row.classes + " " + row.cron_extra',
+            },
+            {
+                "name": "status",
+                "label": "Status",
+                "field": "status",
+                "sortable": True,
+                "align": "center",
+                ":classes": '(row) => row.classes + " " + row.status_extra',
+            },
+            {
+                "name": "next",
+                "label": "Next Run",
+                "field": "next",
+                "sortable": True,
+                ":classes": "(row) => row.classes",
+            },
             {"name": "actions", "label": "Actions", "field": "actions"},
         ]
-        rows: list[dict[str, Any]] = [
-            {
-                "id": schedule["id"],
-                "name": schedule["name"],
-                "cron": schedule["cron"],
-                "status": schedule["is_enabled"],
-                "owner": schedule["metadata"]["owner"],
-                "next": CronStr(schedule["cron"]).next_run,
-                "actions": None,
-            }
-            for schedule in sorted(
-                self.model["schedules"], key=lambda x: x.get("next_run_at", 0), reverse=False
-            )
-        ]
         with self.table_content:
-            schedules_table = ui.table(columns=columns, rows=rows).classes("w-full h-full overflow-auto")
+            self.schedules_table = ui.table(columns=columns, rows=[]).classes("w-full h-full overflow-auto")
 
-        with schedules_table.add_slot("body-cell-actions"):
-            with schedules_table.cell("actions"):
+        await self.update_table_rows()
+        with self.schedules_table.add_slot("body-cell-actions"):
+            with self.schedules_table.cell("actions"):
                 await self.get_schedule_actions()
 
     async def get_schedule_actions(self) -> None:
@@ -129,13 +177,90 @@ class ScheduleOverviewPage(CMPage[ScheduleOverviewPageModel]):
         """Callback for action buttons on schedule rows"""
         # Data input should include the node id, and we could defer dialog
         # behaviors to this callback to simplify the logic in the Node card
-        match data:
-            case GenericEventArguments():
-                # Only for emit handlers
-                target, action = data.args
+        target, action = data.args
+        schedule = self.model["schedules"][target]
+
+        match action:
+            case "cron":
+                # Lookup current cron expression in model and set dialog
+                old_cron = schedule["cron"]
+                self.cron_dialog.reset(old_cron)
+                if (new_cron := await self.cron_dialog) is not None:
+                    # Update model with new cron and refresh table
+                    schedule["cron"] = new_cron
+                    schedule["metadata"]["dirty"] |= {"cron": "bg-blue-200"}
+                    await self.update_table_rows()
+
+            case "toggle":
+                schedule["is_enabled"] = not schedule["is_enabled"]
+                schedule["metadata"]["dirty"] |= {"status": "bg-blue-200"}
+
+            case "preview":
+                if schedule["id"] != self.model["active_schedule"]:
+                    self.model["active_templates"] = [
+                        t async for t in get_schedule_templates(schedule_id=schedule["id"])
+                    ]
+                _: None = await ScheduleEditorDialog(
+                    dialog_title=schedule["name"], schedule=schedule, templates=self.model["active_templates"]
+                )
+                ...
+
+            case "edit":
+                ...
+            case "save":
+                # Pop the "dirty" metadata flags and make a db update
+                schedule["metadata"].pop("dirty")
+                ...
+                schedule["metadata"]["dirty"] = {}
             case _ as unreachable:
                 assert_never(unreachable)
+
+        # we could try to check for any dirty state...or just refresh on every action
+        await self.update_table_rows()
         ui.notify(f"{action}: {target}")
+
+    async def update_table_rows(self):
+        self.schedules_table.rows = [
+            {
+                "id": schedule["id"],
+                "name": schedule["name"],
+                "cron": schedule["cron"],
+                "status": schedule["is_enabled"],
+                "owner": schedule["metadata"]["owner"],
+                "next": CronStr(schedule["cron"]).next_run,
+                "actions": None,
+                "classes": "",
+                "cron_extra": schedule["metadata"].get("dirty", {}).get("cron", ""),
+                "status_extra": schedule["metadata"].get("dirty", {}).get("status", ""),
+            }
+            for schedule in sorted(
+                self.model["schedules"].values(), key=lambda x: x.get("next_run_at", 0), reverse=False
+            )
+        ]
+
+        # Custom cron schedule display as a clickable badge-button
+        with self.schedules_table.add_slot("body-cell-cron"):
+            with self.schedules_table.cell("cron"):
+                ui.badge(color="grey").props("""
+                    :label="props.value"
+                """).classes("cursor-pointer").on(
+                    "click",
+                    js_handler="() => emit(props.row.id, 'cron')",
+                    handler=self.handle_schedule_action,
+                ).tooltip("Edit Schedule")
+
+        # Status toggle button
+        with self.schedules_table.add_slot("body-cell-status"):
+            with self.schedules_table.cell("status"):
+                ui.button().props("""
+                    flat round size=sm
+                    :color="props.value ? 'positive' : 'negative'"
+                    :icon="props.value ? 'toggle_on' : 'toggle_off'"
+                """).on(
+                    "click",
+                    js_handler="() => emit(props.row.id, 'toggle')",
+                    handler=self.handle_schedule_action,
+                ).tooltip("Enable Schedule")
 
     async def new_schedule_controls(self):
         with ui.element("div").classes("w-full h-full pt-[0.5rem] pb-[0.5rem] overflow-y-auto"):
