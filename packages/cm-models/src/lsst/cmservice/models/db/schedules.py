@@ -22,7 +22,7 @@ class ScheduleBase(BaseSQLModel):
     name: str = Field(description="A unique name for this schedule")
     cron: CronStr = Field(description="A cron expression string")
     metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])
-    expressions: dict = jsonb_column("expressions")
+    configuration: dict = jsonb_column("configuration")
     is_enabled: StrictBool = Field(default=False)
     next_run_at: AwareDatetime | None = Field(
         default=None,
@@ -51,7 +51,7 @@ class Schedule(ScheduleBase, table=True):
 
 
 class CreateSchedule(ScheduleBase):
-    """A validating model for the new schedule API.
+    """A validating model for the schedule API.
 
     Note: When this model is used to create an ORM object, any overlapping or
     incompatible fields are explictly excluded from serialization.
@@ -64,6 +64,7 @@ class ManifestTemplateBase(BaseSQLModel):
     """templates_v2 base model, used to create new manifest template objects"""
 
     id: UUID4 = Field(default_factory=uuid4, primary_key=True)
+    version: int = Field(default=1)
     kind: KindField = Field(
         sa_column=Column("kind", Enum(ManifestKind, length=20, native_enum=False, create_constraint=False)),
     )
@@ -80,7 +81,7 @@ class ManifestTemplate(ManifestTemplateBase, table=True):
 
 
 class CreateManifestTemplate(ManifestTemplateBase):
-    """A validating model for manifest templates in the new schedule API."""
+    """A validating model for manifest templates in the schedule API."""
 
     # This model differs from its sibling in that the schedule_id is optional
     # rather than a mandatory FK constraint, allowing it to be used to

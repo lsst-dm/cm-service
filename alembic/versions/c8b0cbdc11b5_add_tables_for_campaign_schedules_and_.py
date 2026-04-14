@@ -40,7 +40,7 @@ def upgrade() -> None:
             server_default=sa.text("'{}'::json"),
         ),
         sa.Column(
-            "expressions",
+            "configuration",
             postgresql.JSONB(),
             nullable=False,
             default=dict,
@@ -58,6 +58,7 @@ def upgrade() -> None:
         "templates_v2",
         sa.Column("id", postgresql.UUID(), nullable=False),
         sa.Column("schedule_id", postgresql.UUID(), nullable=False),
+        sa.Column("version", postgresql.INTEGER(), nullable=False, default=1),
         sa.Column("kind", ENUM_COLUMN_AS_VARCHAR, nullable=False),
         sa.Column(
             "manifest",

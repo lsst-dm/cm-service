@@ -3,8 +3,9 @@
 import importlib
 import os
 from collections.abc import AsyncGenerator, Callable, Generator
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 from uuid import NAMESPACE_DNS, uuid4
 
 import pytest
@@ -18,6 +19,7 @@ from testcontainers.postgres import PostgresContainer
 
 from lsst.cmservice.common.daemon_v2 import DaemonContext
 from lsst.cmservice.common.flags import Features
+from lsst.cmservice.common.scheduler import Scheduler
 from lsst.cmservice.config import config
 from lsst.cmservice.db.session import DatabaseManager, db_session_dependency
 from lsst.cmservice.models.db import Base
@@ -176,13 +178,22 @@ async def async_client_fixture(
 
 @pytest_asyncio.fixture(name="daemon_context", scope="module", loop_scope="module")
 async def daemon_context(session: AnyAsyncSession) -> AsyncGenerator[DaemonContext]:
+    """Fixture for a DaemonContext with a database session provided by the
+    session fixture and a Scheduler task running on the event loop.
+    """
     if TYPE_CHECKING:
         assert isinstance(session, AsyncSession)
+
+    mock_app = MagicMock()
+    mock_app.state = SimpleNamespace()
+    mock_app.state.scheduler = Scheduler(app=mock_app)
+    mock_app.state.scheduler.scheduler.start()
     dc = DaemonContext(
-        app=Mock(),
+        app=mock_app,
     )
     dc.session = session
     yield dc
+    mock_app.state.scheduler.scheduler.shutdown(wait=True)
 
 
 @pytest_asyncio.fixture(scope="function", loop_scope="module")

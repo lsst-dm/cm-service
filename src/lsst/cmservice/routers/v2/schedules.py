@@ -1,7 +1,15 @@
-"""http routers for managing Schedule tables."""
+"""http routers for managing Schedule tables.
+
+These routes are RESTful endpoints that deal with resources and collections of
+resources.
+
+These routes depend upon app-level exception handling for returning 422, 404,
+and 409 errors, so specific handling of these cases is implemented only if some
+custom behavior is needed.
+"""
 
 from collections.abc import Sequence
-from typing import Annotated
+from typing import Annotated, cast
 from uuid import UUID
 
 from fastapi import (
@@ -17,10 +25,11 @@ from fastapi import (
 )
 from pydantic import UUID4
 from pydantic_extra_types.cron import CronStr
+from sqlalchemy.orm import InstrumentedAttribute, noload
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from lsst.cmservice.models.api.schedules import ScheduleUpdate
+from lsst.cmservice.models.api.schedules import ScheduleConfiguration, ScheduleUpdate
 from lsst.cmservice.models.db.schedules import CreateSchedule, ManifestTemplate, Schedule
 from lsst.cmservice.models.lib.timestamp import element_time
 
@@ -53,7 +62,8 @@ async def read_schedule_collection(
     """A paginated API returning a list of all Schedules known to the
     application, ordered by their next scheduled runtime.
     """
-    statement = select(Schedule)
+    # Do not eagerly load the relationship in this route
+    statement = select(Schedule).options(noload(cast(InstrumentedAttribute, Schedule.templates)))
 
     if owner is not None:
         statement = statement.where(Schedule.metadata_["owner"].astext == owner)
@@ -76,6 +86,14 @@ async def read_schedule_collection(
 @router.get(
     "/{schedule_name_or_id}",
     summary="Get a specific schedule",
+    response_model=Schedule,
+    status_code=status.HTTP_200_OK,
+)
+@router.head(
+    "/{schedule_name_or_id}",
+    summary="Get header links for a specific schedule",
+    response_model=None,
+    status_code=status.HTTP_204_NO_CONTENT,
 )
 async def read_schedule_resource(
     *,
@@ -84,25 +102,38 @@ async def read_schedule_resource(
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     schedule_name_or_id: Annotated[str, Path()],
 ) -> Schedule | None:
-    """A paginated API returning a list of all Schedules known to the
-    application, ordered by their next scheduled runtime.
+    """Get a detail record for a specific Schedule by its name or ID.
+
+    If the path parameter is a valid UUID, it will be used as an ID lookup,
+    otherwise the schedule will be looked up by name. Although the ID is the
+    primary key for the table, the name is also subject to a unique constraint.
+
+    Notes
+    -----
+    The response model for this route will not include any relationship fields,
+    like `templates`. Instead, consumers should dereference the "Templates" URL
+    from the response header.
     """
+    TemplatesT = cast(InstrumentedAttribute, Schedule.templates)
 
     try:
         schedule_id = UUID(schedule_name_or_id)
-        schedule = await session.get(Schedule, schedule_id)
+        schedule = await session.get_one(Schedule, schedule_id, options=[noload(TemplatesT)])
     except ValueError:
-        statement = select(Schedule).where(Schedule.name == schedule_name_or_id)
-        schedule = (await session.exec(statement)).one_or_none()
-
-    if schedule is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        statement = select(Schedule).options(noload(TemplatesT)).where(Schedule.name == schedule_name_or_id)
+        schedule = (await session.exec(statement)).one()
 
     response.headers["Self"] = str(
         request.url_for("read_schedule_resource", schedule_name_or_id=str(schedule.id))
     )
+    response.headers["Templates"] = str(
+        request.url_for("read_schedule_template_resources", schedule_id=str(schedule.id))
+    )
 
-    return schedule
+    if request.method == "HEAD":
+        return None
+    else:
+        return schedule
 
 
 @router.get(
@@ -116,9 +147,17 @@ async def read_schedule_template_resources(
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     schedule_id: Annotated[UUID4, Path()],
 ) -> Sequence[ManifestTemplate]:
-    """Get all manifest templates associated with a specific schedule id."""
+    """Get all manifest templates associated with a specific schedule id.
+
+    It is not an error to request templates for a schedule id that does not
+    exist; instead of a 404, this API will return an empty list.
+    """
 
     statement = select(ManifestTemplate).where(ManifestTemplate.schedule_id == schedule_id)
+
+    response.headers["Self"] = str(
+        request.url_for("read_schedule_resource", schedule_name_or_id=str(schedule_id))
+    )
 
     return (await session.exec(statement)).all()
 
@@ -186,6 +225,9 @@ async def create_schedule_resource(
     response.headers["Self"] = str(
         request.url_for("read_schedule_resource", schedule_name_or_id=str(schedule.id))
     )
+    response.headers["Templates"] = str(
+        request.url_for("read_schedule_template_resources", schedule_id=str(schedule.id))
+    )
 
 
 @router.put("/{schedule_id}", summary="Update a schedule")
@@ -202,10 +244,19 @@ async def update_schedule_resource(
     attached manifest templates.
     """
 
+    # FIXME this patch route doesn't successfully account for partial updates
+    # to deeply nested models, e.g., adding or removing specific expressions.
+
     schedule = await session.get_one(Schedule, schedule_id)
 
     match request.method:
         case "PATCH":
+            schedule_update.configuration = (
+                ScheduleConfiguration(**schedule.configuration)
+                .model_copy(update=schedule_update.configuration)
+                .model_dump()
+            )
+            # Shallow update
             schedule.sqlmodel_update(schedule_update.model_dump(exclude_unset=True))
         case _:
             raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED)
@@ -225,3 +276,20 @@ async def update_schedule_resource(
     response.headers["Self"] = str(
         request.url_for("read_schedule_resource", schedule_name_or_id=str(schedule.id))
     )
+
+
+@router.post(
+    "/{schedule_id}/templates",
+    summary="Add a single template to a Schedule",
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_schedule_template_resource(
+    *,
+    request: Request,
+    response: Response,
+    session: Annotated[AsyncSession, Depends(db_session_dependency)],
+    schedule_id: Annotated[UUID4, Path()],
+    # template_manifest: CreateTemplate,
+) -> None:
+    """Creates a new template record associated with a specific schedule."""
+    raise NotImplementedError

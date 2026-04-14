@@ -15,6 +15,9 @@ from ..lib.timestamp import now_utc
 from ..types import KindField, StatusField
 from .base import BaseSQLModel
 
+type CampaignElement = Campaign | Node | Edge | Manifest
+"""A type representing the union of all available campaign element objects"""
+
 
 def jsonb_column(name: str, aliases: list[str] | None = None) -> Any:
     """Constructor for a Field based on a JSONB database column.
@@ -73,6 +76,9 @@ class CampaignBase(BaseSQLModel):
             # Generate namespaced ID for campaign
             if "id" not in data:
                 data["id"] = uuid5(namespace=data["namespace"], name=data["name"])
+            # Pop the owner out of the metadata if it's present
+            if data.get("owner") is None:
+                data["owner"] = data.get("metadata", {}).pop("owner", None)
         return data
 
 

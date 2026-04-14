@@ -77,6 +77,12 @@ async def duplicate_error_handler(request: Request, exc: IntegrityError) -> None
     raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 
 
+@app.exception_handler(NotImplementedError)
+async def not_implemented_error_handler(request: Request, exc: NotImplementedError) -> None:
+    """Raise a 501 when the `NotImplementedError` exception is raised."""
+    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
+
+
 # Add Features
 if Features.API_V1 in config.features.enabled:
     from .routers import v1
