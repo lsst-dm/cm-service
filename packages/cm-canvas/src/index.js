@@ -2,7 +2,7 @@ if (typeof process === "undefined") {
   window.process = { env: {} };
 }
 
-import { mount } from "svelte";
+import { mount, unmount } from "svelte";
 import App from "./App.svelte";
 
 export function initializeFlow(containerId, options = {}) {
@@ -25,6 +25,9 @@ export function initializeFlow(containerId, options = {}) {
 
   return {
     canvas,
+    cleanup: () => {
+      unmount(canvas);
+    },
   };
 }
 

@@ -21,7 +21,7 @@
   import BreakpointNode from "./BreakpointNode.svelte";
   import { useDragDrop } from "./DragDropProvider.svelte";
   import { MarkerType, Position } from "@xyflow/system";
-  import { onMount, tick } from "svelte";
+  import { onDestroy, onMount, tick } from "svelte";
 
   type CanvasProps = {
     nodes?: Node[];
@@ -29,6 +29,9 @@
     onClick?: (nodeId: string) => void;
     onExport?: any;
   };
+
+  // Creates a cleanup controller
+  const abortController = new AbortController();
 
   /* A mapping of custom node names to their implementation. The names used in
      mapping mirror the ManifestKind enum names used in the CM application.
@@ -121,7 +124,7 @@
 
   // export handler, called from python with `canvasExport` event, listener
   // expecting "return" event `canvasExported`
-  window.addEventListener("canvasExport", () => {
+  const handleCanvasExport = () => {
     console.log("Canvas received canvasExport event");
     const serializedCanvas = {
       nodes: JSON.parse(JSON.stringify(nodes)),
@@ -133,7 +136,7 @@
       }),
     );
     console.log("Canvas dispatched canvasExported event");
-  });
+  };
 
   // Auto-layout function using Dagre, basically copy-pasted from svelte-flow
   // layouting documentation example
@@ -185,10 +188,18 @@
   }
 
   onMount(async () => {
+    // Add event listener for export event dispatched by containing page
+    window.addEventListener("canvasExport", handleCanvasExport, {
+      signal: abortController.signal,
+    });
     onLayout("LR");
     await tick();
     await new Promise((resolve) => setTimeout(resolve, 150));
     fitView({ padding: 0.2 });
+  });
+
+  onDestroy(() => {
+    abortController.abort();
   });
 </script>
 
