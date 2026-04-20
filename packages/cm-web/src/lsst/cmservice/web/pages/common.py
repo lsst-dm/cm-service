@@ -135,17 +135,25 @@ class CMPage[PageModelT: CMPageModel]:
 
         Subclasses should use the `create_content()` method, which is called
         from within the content column's context manager.
+
+        Notes
+        -----
+        - Default page footer reserves room for per-page custom footer labels
+         from strings available in `self.footers`, then applies the per-page
+         `self.footer_contents()` method for custom footer objects, followed
+         finally by a standard per-page help link.
         """
         with self.footer:
+            # TODO why are these separate rows?
             with ui.row().classes("items-center gap-2"):
                 for footer in self.footers:
                     ui.label(footer).classes("text-xs m-0")
                 await self.footer_contents()
 
             with ui.row().classes("items-center gap-2"):
-                ui.button(icon="help_outline", on_click=lambda: ui.navigate.to("/help")).classes(
-                    "text-white bg-info m-0"
-                ).props("flat round size=sm")
+                ui.button(
+                    icon="help_outline", on_click=lambda: ui.navigate.to("/help", new_tab=True)
+                ).classes("text-white bg-info m-0").props("flat round size=sm")
 
         with self.content:
             await self.create_content()
