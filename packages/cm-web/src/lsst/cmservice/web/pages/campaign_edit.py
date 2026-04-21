@@ -11,22 +11,24 @@ from uuid import uuid4, uuid5
 import networkx as nx
 import yaml
 from httpx import AsyncClient
+from nice_dialog.dialogs.cron_editor import CronEditorDialog
 from nice_dialog.dialogs.upload_file import UploadFileDialog
 from nicegui import run, ui
 from nicegui.elements.upload_files import FileUpload
 from nicegui.events import ClickEventArguments, GenericEventArguments, ValueChangeEventArguments
 
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE
+from lsst.cmservice.models.lib.parsers import as_snake_case
 from lsst.cmservice.models.lib.yaml import str_representer
 
 from .. import api
 from ..components.button import ToggleButton
 from ..components.dialog import EditorContext, NewManifestEditorDialog, NewStepEditorDialog
+from ..components.expression import ExpressionEditorDialog
 from ..lib.canvas import nx_to_flow
 from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.enum import MANIFEST_KIND_ICONS
 from ..lib.models import STEP_MANIFEST_TEMPLATE
-from ..lib.parsers import as_snake_case
 from ..settings import settings
 from .common import CMPage, CMPageData
 
@@ -50,6 +52,7 @@ class CampaignPageModel(CMPageData):
     spec: dict[str, dict[str, Any]] = field(default_factory=dict)
     campaign: dict[str, Any] = field(default_factory=dict)
     manifests: dict[str, Any] = field(default_factory=dict)
+    schedule_info: dict[str, Any] = field(default_factory=dict)
     flags: PageFlags = field(default_factory=lambda: PageFlags(0))
 
 
@@ -73,11 +76,19 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
         """A row of elements for editing high-level campaign details, such as
         the name.
         """
-        # TODO this input needs a validator
-        with ui.row().classes("shrink-0 p-1 w-full"):
+        with ui.row().classes("shrink-0 p-1 w-full items-center"):
             ui.input(label="Campaign Name", on_change=self.handle_campaign_name_change).bind_value(
                 self, "campaign_name"
             ).classes("w-48").props("debounce=1000")
+
+            with ui.input(label="Cron Expression") as self.cron_expression_input:
+                ui.button(icon="schedule", color="accent", on_click=self.handle_cron_dialog).props("flat")
+
+            self.expressions_dialog_button = (
+                ui.button(icon="calculate", on_click=self.handle_expressions_dialog)
+                .props("fab-mini")
+                .tooltip("Edit Template Expressions")
+            )
 
     @ui.refreshable_method
     async def edit_campaign_manifests(self) -> None:
@@ -154,13 +165,47 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
             });
         """)
 
+        # setup bindings
+        self.cron_expression_input.bind_visibility_from(
+            self,
+            ("model", "flags"),
+            backward=lambda v: PageFlags.SCHEDULING_MODE in v,
+            strict=False,
+        ).bind_value(
+            self,
+            ("model", "schedule_info", "cron"),
+            strict=False,
+        )
+        self.expressions_dialog_button.bind_visibility_from(
+            self,
+            ("model", "flags"),
+            backward=lambda v: PageFlags.SCHEDULING_MODE in v,
+            strict=False,
+        )
+        self.save_button.bind_enabled_from(
+            self,
+            ("model", "flags"),
+            backward=lambda v: PageFlags.SCHEDULING_MODE not in v,
+            strict=False,
+        )
+        self.scheduling_switch.bind_value_to(
+            self,
+            ("model", "flags"),
+            strict=False,
+            forward=lambda v: (
+                self.model.flags | PageFlags.SCHEDULING_MODE
+                if v
+                else self.model.flags & ~PageFlags.SCHEDULING_MODE
+            ),
+        )
+
     def drawer_contents(self) -> None:
         """Right-side menu drawer contents rendered in a ui.column."""
-        ui.button("Save", icon="save", on_click=self.handle_save).classes("w-50")
+        self.save_button = ui.button("Save", icon="save", on_click=self.handle_save).classes("w-50")
         ui.button("Export", icon="save_alt", on_click=self.handle_export).classes("w-50")
         ui.button("Import", icon="file_upload", on_click=self.handle_import).classes("w-50")
         ui.separator()
-        ui.switch("Enable Scheduling Mode").disable()
+        self.scheduling_switch = ui.switch("Enable Scheduling Mode")
 
     async def footer_contents(self) -> None:
         ui.label().classes("text-xs").bind_text_from(self, "campaign_id", strict=False)
@@ -376,6 +421,25 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
             for edge in canvas_data.get("edges", {})
         ]
         ...
+
+    async def handle_expressions_dialog(self, e: ClickEventArguments) -> None:
+        """Creates an editor dialog for custom template expressions."""
+        expressions_dialog = ExpressionEditorDialog(
+            with_expressions=self.model.schedule_info.get("expressions", {})
+        )
+        expressions = await expressions_dialog
+        if expressions is not None:
+            self.model.schedule_info["expressions"] = expressions
+        expressions_dialog.clear()
+
+    async def handle_cron_dialog(self, e: ClickEventArguments) -> None:
+        """Creates a cron editor dialog for the current cron string."""
+        cron_dialog = CronEditorDialog()
+        cron_dialog.reset(self.model.schedule_info.get("cron"))
+        cron_str = await cron_dialog
+        if cron_str is not None:
+            self.model.schedule_info["cron"] = cron_str
+        cron_dialog.clear()
 
     async def validate_new_manifest_name(self, data: str | None, ctx: EditorContext) -> str | None:
         """Validates the name of a new manifest by checking against any current

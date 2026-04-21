@@ -1,17 +1,12 @@
-import re
 from typing import Annotated, Literal
 from uuid import UUID, uuid5
 
 import typer
 
+from lsst.cmservice.models.lib.parsers import as_snake_case
+
 from .models import TypedContext
 from .settings import settings
-
-
-def as_snake_case(s: str) -> str:
-    """Preprocesses a string by sanitizing it and producing snake case."""
-    # TODO clean up unicode characters and etc
-    return re.sub(r"\W+?", "_", s)
 
 
 def preprocess_campaign_name(ctx: TypedContext, campaign: str | None) -> str | None:

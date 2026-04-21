@@ -13,10 +13,10 @@ from pydantic_core import ValidationError
 
 from lsst.cmservice.models.db.schedules import ManifestTemplateBase
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE
+from lsst.cmservice.models.lib.parsers import as_snake_case
 
 from .. import api
 from ..lib.models import KIND_TO_SPEC, STEP_MANIFEST_TEMPLATE
-from ..lib.parsers import as_snake_case
 from ..pages.common import CMPage
 from ..settings import settings
 from . import strings

@@ -36,7 +36,7 @@ def make_schedule_with_manifests(**overrides: dict) -> dict:
                     apiVersion: io.lsst.cmservice/v1
                     kind: campaign
                     metadata:
-                    name: sample_campaign
+                        name: sample_campaign
                     spec: {}
                 """),
             },
@@ -46,9 +46,9 @@ def make_schedule_with_manifests(**overrides: dict) -> dict:
                     ---
                     apiVersion: io.lsst.cmservice/v1
                     kind: node
-                    metadata: {}
-                    kind: step
-                    name: step_1abc
+                    metadata:
+                        kind: step
+                        name: step_1abc
                     spec:
                         bps:
                             pipeline_yaml: ${DRP_PIPE_DIR}/path/to/file.yaml#step1a,step1b,step1c

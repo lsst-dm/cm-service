@@ -200,10 +200,11 @@ class ScheduleOverviewPage(CMPage[ScheduleOverviewPageModel]):
                     self.model["active_templates"] = [
                         t async for t in get_schedule_templates(schedule_id=schedule["id"])
                     ]
-                _: None = await ScheduleEditorDialog(
+                scheduler_preview = ScheduleEditorDialog(
                     dialog_title=schedule["name"], schedule=schedule, templates=self.model["active_templates"]
                 )
-                ...
+                await scheduler_preview
+                scheduler_preview.clear()
 
             case "edit":
                 ...
@@ -219,7 +220,7 @@ class ScheduleOverviewPage(CMPage[ScheduleOverviewPageModel]):
         await self.update_table_rows()
         ui.notify(f"{action}: {target}")
 
-    async def update_table_rows(self):
+    async def update_table_rows(self) -> None:
         self.schedules_table.rows = [
             {
                 "id": schedule["id"],
@@ -262,6 +263,6 @@ class ScheduleOverviewPage(CMPage[ScheduleOverviewPageModel]):
                     handler=self.handle_schedule_action,
                 ).tooltip("Enable Schedule")
 
-    async def new_schedule_controls(self):
+    async def new_schedule_controls(self) -> None:
         with ui.element("div").classes("w-full h-full pt-[0.5rem] pb-[0.5rem] overflow-y-auto"):
             ui.label("Add a new schedule")

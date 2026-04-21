@@ -66,5 +66,8 @@ MANIFEST_KIND_ICONS: dict[str, str] = {
     "bps": "settings",
     "site": "location_city",
     "wms": "lan",
+    "edge": "route",
+    "campaign": "polyline",
+    "step": "spoke",
 }
 """A mapping of manifest kind to a display icon."""
