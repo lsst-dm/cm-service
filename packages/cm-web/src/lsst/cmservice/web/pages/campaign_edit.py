@@ -1,6 +1,8 @@
 """Page and supporting functions for a Campaign's Edit Mode."""
 
 from copy import deepcopy
+from dataclasses import dataclass, field
+from enum import IntFlag, auto
 from functools import partial
 from operator import itemgetter
 from typing import Any
@@ -9,7 +11,9 @@ from uuid import uuid4, uuid5
 import networkx as nx
 import yaml
 from httpx import AsyncClient
+from nice_dialog.dialogs.upload_file import UploadFileDialog
 from nicegui import run, ui
+from nicegui.elements.upload_files import FileUpload
 from nicegui.events import ClickEventArguments, GenericEventArguments, ValueChangeEventArguments
 
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE
@@ -24,18 +28,29 @@ from ..lib.enum import MANIFEST_KIND_ICONS
 from ..lib.models import STEP_MANIFEST_TEMPLATE
 from ..lib.parsers import as_snake_case
 from ..settings import settings
-from .common import CMPage, CMPageModel
+from .common import CMPage, CMPageData
 
+# Apply a custom str representer/parser to the YAML library to format multi-
+# line strings using YAML `|` syntax.
 yaml.add_representer(str, str_representer)
 
 
+class PageFlags(IntFlag):
+    ALLOW_SAVE = auto()
+    ALLOW_EXPORT = auto()
+    ALLOW_SCHEDULE = auto()
+    SCHEDULING_MODE = auto()
+
+
 # TODO replace with a pydantic model
-class CampaignPageModel(CMPageModel):
-    nodes: list[dict[str, Any]]
-    edges: list[dict[str, Any]]
-    spec: dict[str, dict[str, Any]]
-    campaign: dict[str, Any]
-    manifests: dict[str, Any]
+@dataclass
+class CampaignPageModel(CMPageData):
+    nodes: list[dict[str, Any]] = field(default_factory=list)
+    edges: list[dict[str, Any]] = field(default_factory=list)
+    spec: dict[str, dict[str, Any]] = field(default_factory=dict)
+    campaign: dict[str, Any] = field(default_factory=dict)
+    manifests: dict[str, Any] = field(default_factory=dict)
+    flags: PageFlags = field(default_factory=lambda: PageFlags(0))
 
 
 class CampaignEditPage(CMPage[CampaignPageModel]):
@@ -47,6 +62,12 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
     menu drawer is used. Alternately, the EXPORT button will allow a down-
     load of the campaign in YAML format.
     """
+
+    def initialize_model(self) -> None:
+        """Initializes the page model with an empty campaign."""
+        self.model = CampaignPageModel(
+            campaign=deepcopy(STEP_MANIFEST_TEMPLATE) | {"kind": "campaign", "metadata": {"name": ""}},
+        )
 
     async def edit_campaign_name(self) -> None:
         """A row of elements for editing high-level campaign details, such as
@@ -69,7 +90,7 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
             ).classes("w-full"),
             ui.row().classes("w-full flex-nowrap gap-4 py-2 overflow-x-auto items-center"),
         ):
-            for manifest_id, manifest in self.model["manifests"].items():
+            for manifest_id, manifest in self.model.manifests.items():
                 with ui.card().classes("m-1 p-1 shrink-1"):
                     with ui.card_section():
                         with ui.column():
@@ -77,7 +98,7 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
                                 "outline square"
                             ).bind_icon_from(MANIFEST_KIND_ICONS, manifest["kind"]).tooltip(manifest_id)
                             ui.input(label="Manifest Name").bind_value(
-                                self.model["manifests"][manifest_id]["metadata"], "name"
+                                self.model.manifests[manifest_id]["metadata"], "name"
                             ).classes("text-sm")
                     with ui.card_actions().props("align=right").classes("items-center text-sm w-full"):
                         ui.space()
@@ -94,15 +115,17 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
                 "Add a new manifest"
             )
 
+    @ui.refreshable_method
     async def create_campaign_canvas(self) -> None:
         """A section containing a Canvas component for editing a campaign
         graph.
         """
+        ui.run_javascript("""if (window.flowInstance?.cleanup) {{ window.flowInstance.cleanup(); }}""")
+
         with (
             ui.element("div")
             .props("id=canvas-container")
-            # .classes("flex-1 min-h-0 w-full h-full border-1 border-black")
-            .classes("flex-1 w-full border-1 border-black")
+            .classes("flex-1 w-full border-1 border-gray-500")
             .style("isolation: isolate; contain: layout style paint;")
         ):
             ui.run_javascript(f"""
@@ -133,9 +156,11 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
 
     def drawer_contents(self) -> None:
         """Right-side menu drawer contents rendered in a ui.column."""
-        ui.button("Save", icon="save", on_click=self.handle_upload).classes("w-50")
+        ui.button("Save", icon="save", on_click=self.handle_save).classes("w-50")
         ui.button("Export", icon="save_alt", on_click=self.handle_export).classes("w-50")
-        ui.button("Import", icon="file_upload").classes("w-50").disable()
+        ui.button("Import", icon="file_upload", on_click=self.handle_import).classes("w-50")
+        ui.separator()
+        ui.switch("Enable Scheduling Mode").disable()
 
     async def footer_contents(self) -> None:
         ui.label().classes("text-xs").bind_text_from(self, "campaign_id", strict=False)
@@ -145,7 +170,7 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
         step_id, step_name = data.args
 
         # Update the metadata name of any held model
-        if (node := self.model["spec"].get(step_id)) is not None:
+        if (node := self.model.spec.get(step_id)) is not None:
             node["metadata"]["name"] = step_name
 
         ctx = EditorContext(
@@ -167,7 +192,7 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
             return None
         # clean up the manifest in a step-specific way
         _ = result.get("metadata", {}).pop("uuid", None)
-        self.model["spec"][step_id] = result
+        self.model.spec[step_id] = result
 
     async def handle_manifest_edit(self, manifest_id: str | None = None) -> None:
         """Callback for editing or creating a campaign manifest.
@@ -189,11 +214,11 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
             manifest_model = None
         else:
             ctx.uuid = manifest_id
-            ctx.name = self.model["manifests"][manifest_id]["metadata"]["name"]
-            ctx.kind = self.model["manifests"][manifest_id]["kind"]
+            ctx.name = self.model.manifests[manifest_id]["metadata"]["name"]
+            ctx.kind = self.model.manifests[manifest_id]["kind"]
             ctx.allow_name_change = False
             ctx.allow_kind_change = False
-            manifest_model = self.model["manifests"].get(ctx.uuid, {})
+            manifest_model = self.model.manifests.get(ctx.uuid, {})
 
         dialog = NewManifestEditorDialog(
             ctx,
@@ -222,7 +247,7 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
 
         # reduce the None/nulls from the spec
         data["spec"] = {k: v for k, v in data["spec"].items() if v is not None}
-        self.model["manifests"][manifest_id] = data
+        self.model.manifests[manifest_id] = data
         await self.edit_campaign_manifests.refresh()
 
     async def handle_campaign_name_change(self, e: ValueChangeEventArguments) -> None:
@@ -236,24 +261,56 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
 
         exported_campaign = yaml.dump_all(
             [
-                self.model["campaign"],
-                *self.model["nodes"],
-                *self.model["edges"],
-                *self.model["manifests"].values(),
+                self.model.campaign,
+                *self.model.nodes,
+                *self.model.edges,
+                *self.model.manifests.values(),
             ]
         )
         ui.download.content(exported_campaign, f"{self.campaign_name}.yaml")
 
-    async def handle_upload(self, e: ClickEventArguments) -> None:
-        """Callback wired to the "Upload" button in the drawer menu."""
+    async def handle_import(self, e: ClickEventArguments) -> None:
+        """Callback wired to the "Import" button in the drawer menu.
+
+        This callback uses a file-upload dialog to receive a YAML file from the
+        user. The current page model is replaced by the contents of the loaded
+        YAML file, allowing the user to make further edits, save, or re-export
+        the campaign.
+        """
+        self.show_spinner("Importing Campaign...")
+        upload = await UploadFileDialog(
+            dialog_title="Import CM Campaign",
+            allowed_file_types=[
+                "application/yaml",
+                "application/x-yaml",
+                "text/yaml",
+                "text/x-yaml",
+                ".yaml",
+                ".yml",
+            ],
+            max_file_size=settings.max_upload_size,
+        )
+        if upload is not None:
+            await self.apply_import_to_model(upload)
+        else:
+            self.hide_spinner()
+            return None
+
+    async def handle_save(self, e: ClickEventArguments) -> None:
+        """Callback wired to the "Save" button in the drawer menu.
+
+        This callback loads all campaign manifests available in the current
+        page model via REST API, then redirects to the Campaign Overview page
+        for the newly saved campaign.
+        """
         self.show_spinner("Saving Campaign...")
         await ui.run_javascript("""window.dispatchEvent(new CustomEvent("canvasExport"));""")
 
         exported_campaign = [
-            self.model["campaign"],
-            *self.model["nodes"],
-            *self.model["edges"],
-            *self.model["manifests"].values(),
+            self.model.campaign,
+            *self.model.nodes,
+            *self.model.edges,
+            *self.model.manifests.values(),
         ]
 
         # send list of manifests to loader API
@@ -268,10 +325,15 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
     async def handle_exported_canvas(self, data: GenericEventArguments) -> None:
         """Callback wired to the "canvasData" listener, which should be sent
         in response to a "canvasExport" event.
+
+        This event is sent when the Save or Export buttons callback are invoked
+        in order to apply current canvas design to the page model. As the model
+        is updated, the current campaign name/id is applied to each manifest's
+        namespace.
         """
 
         # the campaign manifest with the current name
-        self.model["campaign"]["metadata"]["name"] = self.campaign_name
+        self.model.campaign["metadata"]["name"] = self.campaign_name
 
         canvas_data = data.args.get("data", {})
 
@@ -281,9 +343,9 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
         # List of Node Manifest records (START and END are not needed)
         # Any saved step manifests are applied to the template, otherwise the
         # metadata is constructed.
-        self.model["nodes"] = [
+        self.model.nodes = [
             deepcopy(STEP_MANIFEST_TEMPLATE)
-            | self.model["spec"].get(
+            | self.model.spec.get(
                 node["id"], {"metadata": {"name": node["data"]["name"], "kind": node["type"]}}
             )
             for node in canvas_data.get("nodes", [])
@@ -291,14 +353,14 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
         ]
 
         # Apply current campaign namespace to manifest models and nodes.
-        for manifest in self.model["manifests"].values():
+        for manifest in self.model.manifests.values():
             manifest["metadata"]["namespace"] = str(self.campaign_id)
-        for node in self.model["nodes"]:
+        for node in self.model.nodes:
             node["metadata"]["namespace"] = str(self.campaign_id)
 
         # the exported edges use the node IDs to describe the source and target
         # so we need to dereference that into the node NAME
-        self.model["edges"] = [
+        self.model.edges = [
             {
                 "apiVersion": "io.lsst.cmservice/v1",
                 "kind": "edge",
@@ -313,6 +375,7 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
             }
             for edge in canvas_data.get("edges", {})
         ]
+        ...
 
     async def validate_new_manifest_name(self, data: str | None, ctx: EditorContext) -> str | None:
         """Validates the name of a new manifest by checking against any current
@@ -334,7 +397,7 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
         # Since we can't use an ID to test for uniqueness, we need to check
         # the actual metadata attributes in the model
         if (manifest_kind, data) in [
-            (v["kind"], v["metadata"]["name"]) for v in self.model["manifests"].values()
+            (v["kind"], v["metadata"]["name"]) for v in self.model.manifests.values()
         ]:
             return "Name must be unique by kind in the campaign"
         return None
@@ -348,25 +411,14 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
             f"""<script src="{settings.root_path}{settings.static_endpoint}/cm-canvas-bundle.iife.js">"""
             f"""</script>"""
         )
-        self.model: CampaignPageModel = {
-            "nodes": [],
-            "edges": [],
-            "spec": {},
-            "campaign": {
-                "apiVersion": "io.lsst.cmservice/v1",
-                "kind": "campaign",
-                "metadata": {"name": ""},
-                "spec": {},
-            },
-            "manifests": {},
-        }
+        self.initialize_model()
         self.initial_flow_nodes: list[dict] = []
         self.initial_flow_edges: list[dict] = []
 
         for manifest in await api.get_campaign_manifests():
             # Library manifests are reassigned a new UUID for tracking in the
             # page model
-            self.model["manifests"][str(uuid4())] = {
+            self.model.manifests[str(uuid4())] = {
                 "apiVersion": "io.lsst.cmservice/v1",
                 "kind": manifest["kind"],
                 "metadata": {
@@ -379,6 +431,69 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
         self.campaign_name = "new_campaign"
 
         return self
+
+    async def apply_import_to_model(self, upload: FileUpload) -> None:
+        """Applies an imported YAML file upload to the current page model."""
+        # TODO maybe this is more appropriately added to the Clone page to
+        # reuse some that "import" logic.
+
+        # clear the current page model
+        self.initialize_model()
+        self.initial_flow_nodes = []
+        self.initial_flow_edges = []
+
+        # NOTE: the uploaded file is in a memory buffer, so this is not really
+        # an IO-bound operation. Because pyyaml doesn't have async capabilities
+        # we load the whole file on a thread and iterate the list result.
+        contents = await upload.read()
+        try:
+            # Each imported manifest is shaped and added to the page model's
+            # `spec` dictionary and canvas components. Some metadata values are
+            # removed so they do not leak into new campaigns.
+            for manifest in await run.io_bound(lambda: list(yaml.safe_load_all(contents))):
+                match manifest["kind"]:
+                    case "campaign":
+                        self.campaign_name = manifest["metadata"].pop("name")
+                    case "edge":
+                        self.initial_flow_edges.append(
+                            {
+                                "id": manifest["metadata"]["name"],
+                                "source": f"""{manifest["spec"]["source"]}.1""",
+                                "target": f"""{manifest["spec"]["target"]}.1""",
+                            }
+                        )
+                    case "node":
+                        # Add the imported node to the model's spec and the
+                        # canvas nodes
+                        manifest["metadata"].pop("namespace", None)
+                        node_id = f"{manifest['metadata']['name']}.1"
+                        self.model.spec[node_id] = manifest
+
+                        self.initial_flow_nodes.append(
+                            {
+                                "id": node_id,
+                                "position": {"x": 0, "y": 0},
+                                "data": {"name": manifest["metadata"]["name"]},
+                                "type": manifest["metadata"]["kind"],
+                            }
+                        )
+                    case "lsst" | "butler" | "wms" | "site" | "bps":
+                        manifest["metadata"].pop("namespace", None)
+                        if (manifest_id := manifest["metadata"].pop("id", None)) is None:
+                            manifest_id = str(uuid4())  # FIXME what is the real uuid
+                        self.model.manifests[manifest_id] = manifest
+                    case _:
+                        ...
+        except yaml.YAMLError:
+            ui.notify("Could not load YAML from uploaded file.", color="negative")
+        except KeyError as e:
+            ui.notify(e)
+
+        # refresh page components
+        await self.edit_campaign_manifests.refresh()
+        await self.create_campaign_canvas.refresh()
+        self.hide_spinner()
+        ...
 
 
 class CampaignClonePage(CampaignEditPage):
@@ -402,6 +517,8 @@ class CampaignClonePage(CampaignEditPage):
             data = await api.describe_one_campaign(client=client, id=clone_campaign_model_from)
 
         self.campaign_name = data["campaign"]["name"]
+        # FIXME this doesn't need to be cpu_bound (process), io_bound (thread)
+        # is probably fine
         graph: nx.DiGraph = await run.cpu_bound(
             nx.node_link_graph,
             data["graph"],
@@ -417,10 +534,8 @@ class CampaignClonePage(CampaignEditPage):
         # ed by the node's flow id which for the simple node view used to init-
         # ialize the flow canvas is the node's `name.version`.
         # FIXME the metadata of prepared steps should not be allowed to leak
-        self.model: CampaignPageModel = {
-            "nodes": [],
-            "edges": [],
-            "spec": {
+        self.model = CampaignPageModel(
+            spec={
                 f"{node['name']}.{node['version']}": (
                     deepcopy(STEP_MANIFEST_TEMPLATE)
                     | {
@@ -430,9 +545,8 @@ class CampaignClonePage(CampaignEditPage):
                 )
                 for node in data["nodes"]
             },
-            "campaign": (deepcopy(STEP_MANIFEST_TEMPLATE) | {"kind": "campaign", "metadata": {"name": ""}}),
-            "manifests": {},
-        }
+            campaign=(deepcopy(STEP_MANIFEST_TEMPLATE) | {"kind": "campaign", "metadata": {"name": ""}}),
+        )
 
         mandatory_manifests = {"bps", "lsst", "butler", "wms", "site"}
         for manifest in sorted(data["manifests"], key=itemgetter("version"), reverse=True):
@@ -446,7 +560,7 @@ class CampaignClonePage(CampaignEditPage):
                 mandatory_manifests.remove(manifest["kind"])
             except KeyError:
                 continue
-            self.model["manifests"][manifest["id"]] = deepcopy(STEP_MANIFEST_TEMPLATE) | {
+            self.model.manifests[manifest["id"]] = deepcopy(STEP_MANIFEST_TEMPLATE) | {
                 "kind": manifest["kind"],
                 "metadata": {
                     "name": manifest["name"],
