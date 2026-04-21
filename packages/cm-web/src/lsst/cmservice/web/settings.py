@@ -93,6 +93,11 @@ class ClientConfiguration(BaseSettings):
         "debugging clients.",
     )
 
+    max_upload_size: int = Field(
+        default=65_535,
+        description="""Maximum size in bytes to allow via the Import function.""",
+    )
+
     @field_validator("cookies", mode="before", check_fields=True)
     @classmethod
     def validate_cookies(cls, v: Any) -> list[ClientCookie] | None:

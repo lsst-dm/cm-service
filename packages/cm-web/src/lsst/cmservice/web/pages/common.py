@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any, Self, TypedDict, cast
 
 from httpx import AsyncClient
@@ -12,7 +13,11 @@ from ..lib.enum import Palette, StatusDecorators
 class CMPageModel(TypedDict): ...
 
 
-class CMPage[PageModelT: CMPageModel]:
+@dataclass
+class CMPageData: ...
+
+
+class CMPage[PageModelT: CMPageModel | CMPageData]:
     """Campaign Management Page
 
     Lifecycle
