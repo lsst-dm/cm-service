@@ -1,8 +1,0 @@
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/lsst-dm/cm-service",
-  "title": "Campaign Configuration",
-  "description": "Configuration for a campaign's Spec field.",
-  "type": "object",
-  "properties": {}
-}

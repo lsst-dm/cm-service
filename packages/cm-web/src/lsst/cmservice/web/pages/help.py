@@ -1,7 +1,25 @@
+from functools import lru_cache
+from textwrap import dedent
+from typing import TYPE_CHECKING
+
+from jinja2 import Environment, PackageLoader
 from nicegui import ui
 
 from ..settings import settings
 from .common import CMPage
+
+
+@lru_cache(maxsize=4)
+def get_template_source(template_name: str) -> str:
+    template_environment = Environment(
+        loader=PackageLoader("lsst.cmservice.models"),
+        keep_trailing_newline=True,
+    )
+    if TYPE_CHECKING:
+        assert template_environment.loader is not None
+    template_source, _, _ = template_environment.loader.get_source(template_environment, template_name)
+
+    return template_source
 
 
 class HelpPage(CMPage):
@@ -33,6 +51,9 @@ class HelpPage(CMPage):
             ui.button("Site", on_click=lambda: ui.navigate.to("/help/site"), color="secondary").classes(
                 "flex-1"
             )
+            ui.button(
+                "Templates", on_click=lambda: ui.navigate.to("/help/templates"), color="secondary"
+            ).classes("flex-1")
 
         with ui.element("div").classes("w-full h-full overflow-x-hidden overflow-y-auto"):
             ui.sub_pages(
@@ -44,6 +65,7 @@ class HelpPage(CMPage):
                     "/help/lsst": self.lsst_help,
                     "/help/wms": self.wms_help,
                     "/help/site": self.site_help,
+                    "/help/templates": self.templates_help,
                 },
                 show_404=False,
             ).classes("w-full h-full")
@@ -53,10 +75,12 @@ class HelpPage(CMPage):
         `/help` route and any `/help/*` route not otherwise associated with a
         subpage.
         """
-        ui.markdown("""
-        # Main Help
-        Choose a help section from the options above.
+        ui.markdown(
+            dedent("""\
+            # Main Help
+            Choose a help section from the options above.
         """)
+        )
 
         with ui.expansion(
             text="Glossary", caption="A brief glossary of terms used throughout CM Service."
@@ -79,44 +103,32 @@ class HelpPage(CMPage):
                 await self.markdown_help_section("cmpages.md")
 
     async def bps_help(self) -> None:
-        ui.markdown("""
-        # BPS Help
-        """)
+        ui.markdown("""# BPS Help""")
 
         await self.manifest_spec_iframe("bps")
 
     async def step_help(self) -> None:
-        ui.markdown("""
-        # Step Help
-        """)
+        ui.markdown("""# Step Help""")
 
         await self.manifest_spec_iframe("step")
 
     async def butler_help(self) -> None:
-        ui.markdown("""
-        # Butler Help
-        """)
+        ui.markdown("""# Butler Help""")
 
         await self.manifest_spec_iframe("butler")
 
     async def lsst_help(self) -> None:
-        ui.markdown("""
-        # LSST Help
-        """)
+        ui.markdown("""# LSST Help""")
 
         await self.manifest_spec_iframe("lsst")
 
     async def wms_help(self) -> None:
-        ui.markdown("""
-        # WMS Help
-        """)
+        ui.markdown("""# WMS Help""")
 
         await self.manifest_spec_iframe("wms")
 
     async def site_help(self) -> None:
-        ui.markdown("""
-        # Site Help
-        """)
+        ui.markdown("""# Site Help""")
 
         await self.manifest_spec_iframe("site")
 
@@ -138,3 +150,35 @@ class HelpPage(CMPage):
 
         markdown_content = (settings.static_dir / "markdown" / md).read_text()
         ui.markdown(markdown_content, sanitize=True).classes("w-full h-full")
+
+    async def templates_help(self) -> None:
+        """Adds a help section that describes and displays the Jinja2 templates
+        in use by the application.
+        """
+
+        ui.markdown(
+            dedent("""\
+            # Template Help
+        """)
+        )
+
+        ui.markdown(
+            dedent("""\
+            ## BPS Submit Template
+            When a Group is prepared, its configuration is used as the input
+            context to a Jinja2 template rendering environment. Every Group
+            is based on the same Jinja2 template, and the various manifests
+            that make up the Group's configuration are used to fulfill a part
+            of the template's variables.
+
+            Below is the current Jinja template for a group's BPS Submit YAML,
+            where you can see what `{{ manifest.variable }}` is used in what
+            part of the template. This may be helpful in visualizing the
+            relationship between manifest values and the resulting BPS config;
+            or with reverse-engineering an existing BPS YAML into the configuration
+            language used in CM Service.
+        """)
+        )
+        bps_template_source = get_template_source("bps_submit_yaml.j2")
+        code = ui.code(bps_template_source, language="jinja").classes("no-copy-button")
+        code.copy_button.delete()
