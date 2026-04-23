@@ -299,7 +299,12 @@ async def consider_schedules(context: DaemonContext) -> None:
             )
 
     # remove any jobs that are not enabled
-    ...
+    statement = select(Schedule).where(not Schedule.is_enabled)
+    schedules = await context.session.exec(statement)
+    for schedule in schedules:
+        job_id = str(schedule.id)
+        if context.app.state.scheduler.scheduler.get_job(job_id):
+            context.app.state.scheduler.scheduler.remove_job(job_id)
 
 
 async def daemon_iteration(context: DaemonContext) -> None:
