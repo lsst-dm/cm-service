@@ -25,31 +25,12 @@ from lsst.cmservice.models.api.schedules import ScheduleConfiguration
 from lsst.cmservice.models.db.campaigns import CampaignElement
 from lsst.cmservice.models.db.schedules import ManifestTemplateBase
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, ManifestKind
+from lsst.cmservice.models.lib.jinja import FILTERS
 from lsst.cmservice.models.lib.timestamp import now_utc
 from lsst.cmservice.models.lib.transformer import manifest_to_orm
 
 
 class ManifestRenderingError(Exception): ...
-
-
-# Jinja Filter functions
-# All filter functions should take at least one positional `value` argument.
-def as_lsst_version(value: datetime, format: Literal["weekly", "daily"] = "weekly") -> str:
-    """Given a datetime input, construct a "weekly" LSST version."""
-    match format:
-        case "weekly":
-            return f"{value:w_%G_%V}"
-        case "daily":
-            return f"{value:d_%Y_%m_%d}"
-
-
-def as_obs_day(value: datetime) -> str:
-    """Given a datetime input, construct an "obs_day" format"""
-    return f"{value:%Y%m%d}"
-
-
-def as_exposure(value: datetime, exposure: int = 0) -> str:
-    return f"{value:%Y%m%d}{exposure:05d}"
 
 
 def compile_user_expressions(expressions: MutableMapping[str, str]) -> dict[str, Any]:
@@ -204,11 +185,7 @@ async def build_sandbox_and_render_templates[T: ManifestTemplateBase](
         cache_size=0,
     )
     sandbox.globals = compiled_expressions
-    sandbox.filters |= {
-        "as_lsst_version": as_lsst_version,
-        "as_obs_day": as_obs_day,
-        "as_exposure": as_exposure,
-    }
+    sandbox.filters |= FILTERS
 
     # put the manifest templates in loose order in the result deque
     # campaign -> manifests -> nodes -> edges
