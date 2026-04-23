@@ -198,6 +198,10 @@ async def create_schedule_resource(
 ) -> None:
     """Create a schedule resource and its attached manifest templates."""
 
+    # Cleanup potential inappropriate fields from the manifest templates
+    # - metadata.namespace (meaningless until created)
+    # - any START/END nodes (meaningless for loading into new campaigns)
+
     # Construct ORM objects for the schedule and its constituent templates
     schedule = Schedule(
         **schedule_manifest.model_dump(exclude={"metadata_", "templates"}),
@@ -211,10 +215,6 @@ async def create_schedule_resource(
             for template in schedule_manifest.templates
         ],
     )
-
-    # Cleanup potential inappropriate fields from the manifest templates
-    # - metadata.namespace (meaningless until created)
-    # - any START/END nodes (meaningless for loading into new campaigns)
 
     if schedule.is_enabled:
         schedule.next_run_at = schedule.cron.next_run  # type: ignore[assignment]

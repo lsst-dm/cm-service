@@ -19,7 +19,7 @@ from pydantic import ValidationError
 
 from lsst.cmservice.common.daemon_v2 import DaemonContext, consider_schedules
 from lsst.cmservice.common.scheduler import Scheduler
-from lsst.cmservice.common.templates import build_sandbox_and_render_templates, prepare_orm_from_manifest
+from lsst.cmservice.common.templates import build_sandbox_and_render_templates
 from lsst.cmservice.models.api.manifests import (
     CampaignManifest,
     EdgeManifest,
@@ -29,7 +29,7 @@ from lsst.cmservice.models.api.manifests import (
 )
 from lsst.cmservice.models.api.schedules import ScheduleConfiguration
 from lsst.cmservice.models.db.schedules import ManifestTemplateBase
-from lsst.cmservice.models.lib.transformer import manifest_to_orm
+from lsst.cmservice.models.lib.transformer import manifest_to_orm, prepare_orm_from_manifest
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""
@@ -409,3 +409,4 @@ async def test_daemon_schedule(
     assert len(campaign_manifests) > 0
     butler_manifest = campaign_manifests[0]
     assert f"obs_day>='{right_now:%Y%m%d}'" in butler_manifest["spec"]["predicates"]
+    ...
