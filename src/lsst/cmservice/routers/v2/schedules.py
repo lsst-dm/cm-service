@@ -196,11 +196,15 @@ async def create_schedule_resource(
     schedule_manifest: CreateSchedule,
     schedule_owner: Annotated[str, Header(alias="X-Auth-Request-User")] = "root",
 ) -> None:
-    """Create a schedule resource and its attached manifest templates."""
+    """Create a schedule resource and its attached manifest templates.
 
-    # Cleanup potential inappropriate fields from the manifest templates
-    # - metadata.namespace (meaningless until created)
-    # - any START/END nodes (meaningless for loading into new campaigns)
+    Notes
+    -----
+    - This route may return a 422 if any component of the `CreateSchedule` data
+      does not successfully pass the model validator. This includes the
+      presence of any invalid string values in a manifest template as found by
+      a regex search.
+    """
 
     # Construct ORM objects for the schedule and its constituent templates
     schedule = Schedule(

@@ -50,6 +50,38 @@ def make_schedule_no_manifests(**overrides: dict) -> dict:
     }
 
 
+def make_schedule_with_bad_manifests(**overrides: dict) -> dict:
+    return {
+        "name": f"schedule_with_bad_manifests_{uuid4().hex[:8]}",
+        "cron": "0 0 * * 0",
+        "configuration": {},
+        "templates": [
+            {
+                "kind": "campaign",
+                "manifest": dedent("""\
+                    apiVersion: io.lsst.cmservice/v1
+                    kind: campaign
+                    metadata:
+                        name: sample_campaign
+                    spec: {}
+                """),
+            },
+            {
+                "kind": "node",
+                "manifest": dedent("""\
+                    ---
+                    apiVersion: io.lsst.cmservice/v1
+                    kind: node
+                    metadata:
+                        kind: start
+                        name: START
+                    spec: {}
+                """),
+            },
+        ],
+    }
+
+
 def make_schedule_with_manifests(**overrides: dict) -> dict:
     return {
         "name": f"schedule_with_manifests_{uuid4().hex[:8]}",
@@ -161,9 +193,15 @@ async def test_list_no_schedules(aclient: AsyncClient) -> None:
 @pytest.mark.parametrize(
     "test_case",
     [
-        pytest.param(ScheduleTestCase(post_data={}, expected_code=codes.UNPROCESSABLE_ENTITY), id="bad"),
+        pytest.param(ScheduleTestCase(post_data={}, expected_code=codes.UNPROCESSABLE_ENTITY), id="bad1"),
         pytest.param(ScheduleTestCase(), id="empty"),
         pytest.param(ScheduleTestCase(post_data=make_schedule_with_manifests()), id="full"),
+        pytest.param(
+            ScheduleTestCase(
+                expected_code=codes.UNPROCESSABLE_ENTITY, post_data=make_schedule_with_bad_manifests()
+            ),
+            id="bad2",
+        ),
     ],
     indirect=["test_case"],
 )
@@ -201,7 +239,7 @@ async def test_post_new_schedule(
             y = await aclient.delete(x.headers["Self"])
             y = await aclient.head(x.headers["Self"])
             assert y.status_code == codes.NOT_FOUND
-        case "bad":
+        case "bad1" | "bad2":
             # Nothing was created
             assert "Self" not in x.headers
             y = await aclient.delete(f"/v2/schedules/{uuid4()}")

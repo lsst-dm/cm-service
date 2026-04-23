@@ -131,13 +131,13 @@ async def test_custom_expressions(template_generator: Generator[ManifestTemplate
     assert isinstance(x[0], Campaign)
     assert re.fullmatch(r"^test_simple_template_\d+$", x[0].name)
 
-    assert isinstance(x[2], Manifest)
-    assert "exposure > 2025072300398" in x[2].spec["predicates"]
-    assert "exposure <= 2025072300400" in x[2].spec["predicates"]
-    assert "detector NOT IN (120,121,122,78)" in x[2].spec["predicates"]
+    assert isinstance(x[-3], Manifest)
+    assert "exposure > 2025072300398" in x[-3].spec["predicates"]
+    assert "exposure <= 2025072300400" in x[-3].spec["predicates"]
+    assert "detector NOT IN (120,121,122,78)" in x[-3].spec["predicates"]
 
-    assert isinstance(x[3], Manifest)
-    assert x[3].spec.get("lsst_version") == "w_2026_18"
+    assert isinstance(x[-2], Manifest)
+    assert x[-2].spec.get("lsst_version") == "w_2026_18"
 
     # Ensure every campaign element created by the service layer has the same
     # correct namespace
