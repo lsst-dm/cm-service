@@ -2,32 +2,23 @@
 used in the operation of a Scheduled Campaign.
 """
 
-from collections import defaultdict, deque
+from collections import deque
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any, Literal, overload
-from uuid import UUID, uuid5
 
 from jinja2.exceptions import TemplateError
 from jinja2.sandbox import ImmutableSandboxedEnvironment
 from yaml import YAMLError, safe_load
 
-from lsst.cmservice.models.api.manifests import (
-    CampaignManifest,
-    EdgeManifest,
-    ManifestModel,
-    NodeManifest,
-)
-from lsst.cmservice.models.api.manifests import (
-    Manifest as RequestManifest,
-)
+from lsst.cmservice.models.api.primitives import STEP_MANIFEST_TEMPLATE
 from lsst.cmservice.models.api.schedules import ScheduleConfiguration
 from lsst.cmservice.models.db.campaigns import CampaignElement
 from lsst.cmservice.models.db.schedules import ManifestTemplateBase
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, ManifestKind
 from lsst.cmservice.models.lib.jinja import FILTERS
-from lsst.cmservice.models.lib.timestamp import now_utc
-from lsst.cmservice.models.lib.transformer import manifest_to_orm
+from lsst.cmservice.models.lib.timestamp import element_time, now_utc
+from lsst.cmservice.models.lib.transformer import prepare_orm_from_manifest
 
 
 class ManifestRenderingError(Exception): ...
@@ -55,77 +46,6 @@ def compile_user_expressions(expressions: MutableMapping[str, str]) -> dict[str,
         name: sandbox.compile_expression(expression)() for name, expression in expressions.items()
     }
     return compiled_expressions
-
-
-async def prepare_orm_from_manifest(manifest: dict, namespace: UUID | None = None) -> CampaignElement:
-    """Given a dictionary representation of a campaign element manifest,
-    create and return an ORM object for that manifest.
-
-    This function implements some of the same business logic as found in the
-    creation REST API for a given manifest kind, but always in the context of
-    creating objects for a new campaign -- so versions are always 1, there are
-    no pre-checks for existing objects, etc.
-
-    After the business logic is applied to the manifest request, we get an ORM
-    from a transformer
-
-    Parameters
-    ----------
-    manifest: Mapping
-        A campaign element manifest as a python dict, as one loaded from YAML
-        or JSON.
-
-    namespace: UUID | None
-        The namespace in which the element should exist. If not None, the UUID
-        is added to the ORM object's metadata.
-
-    Raises
-    ------
-    RuntimeError
-        If an ORM object can't be prepared from the given inputs, e.g., an
-        edge manifest without a namespace.
-    """
-    # One assumption this function can make is that it is only ever preparing
-    # VERSION 1 objects for a NEW CAMPAIGN, which simplifies the service-layer
-    # logic of generating Node and Edge ORM objects.
-
-    api_request_mapping: defaultdict[str, type[RequestManifest]] = defaultdict(
-        lambda: ManifestModel,
-        campaign=CampaignManifest,
-        node=NodeManifest,
-        edge=EdgeManifest,
-    )
-
-    # Using the dict manifest, apply business logic to it and build a request
-    # model object from it. This is notably similar to what FastAPI is doing
-    # with request bodies in our POST routes.
-    if namespace is not None:
-        manifest["metadata"] |= {"namespace": str(namespace)}
-
-    match manifest["kind"]:
-        case "edge":
-            if namespace is None:
-                raise RuntimeError("Can't create an edge without a namespace")
-
-            # in an edge, the adjacencies may be specified as a uuid string,
-            # an unversioned name, or a versioned name.
-            for key in ["source", "target"]:
-                node = manifest["spec"][key]
-                try:
-                    _ = UUID(node)
-                    # this is fine, do nothing else
-                except ValueError:
-                    # make sure the node is always version 1
-                    node_name = node.split(".")[0]
-                    adjacency = uuid5(namespace, f"{node_name}.1")
-                    manifest["spec"][key] = str(adjacency)
-
-        case _:
-            manifest["metadata"]["version"] = 1
-
-    manifest_request = api_request_mapping[manifest["kind"]].model_validate(manifest)
-    orm = manifest_to_orm(manifest_request)
-    return orm
 
 
 @overload
@@ -188,8 +108,8 @@ async def build_sandbox_and_render_templates[T: ManifestTemplateBase](
     sandbox.filters |= FILTERS
 
     # put the manifest templates in loose order in the result deque
-    # campaign -> manifests -> nodes -> edges
-    rendered_manifests: deque[Any] = deque(maxlen=len(templates))
+    # campaign -> start/end -> manifests/nodes -> edges
+    rendered_manifests: deque[Any] = deque(maxlen=len(templates) + 2)
     rendered_edges: list[dict] = []
 
     for template in templates:
@@ -210,6 +130,16 @@ async def build_sandbox_and_render_templates[T: ManifestTemplateBase](
                 campaign_name = f"{template_dict['metadata']['name']}_{campaign_name_nonce}"
                 template_dict["metadata"]["name"] = campaign_name
                 rendered_manifests.appendleft(template_dict)
+
+                # Start/End Nodes
+                start_node = STEP_MANIFEST_TEMPLATE | {
+                    "metadata": {"name": "START", "kind": "start", "crtime": element_time()}
+                }
+                end_node = STEP_MANIFEST_TEMPLATE | {
+                    "metadata": {"name": "END", "kind": "end", "crtime": element_time()}
+                }
+                rendered_manifests.append(start_node)
+                rendered_manifests.append(end_node)
             case ManifestKind.edge:
                 rendered_edges.append(template_dict)
             case _:
