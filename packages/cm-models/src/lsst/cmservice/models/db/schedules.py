@@ -2,9 +2,11 @@
 related tables.
 """
 
+import re
+from typing import Annotated
 from uuid import uuid4
 
-from pydantic import UUID4, AwareDatetime, StrictBool
+from pydantic import UUID4, AwareDatetime, BeforeValidator, StrictBool
 from pydantic_extra_types.cron import CronStr
 from sqlalchemy import UniqueConstraint
 from sqlmodel import Column, DateTime, Enum, Field, Relationship
@@ -13,6 +15,22 @@ from ..enums import ManifestKind
 from ..types import KindField
 from .base import BaseSQLModel
 from .campaigns import jsonb_column
+
+
+def check_manifest_template_string(value: str) -> str:
+    """Validator for a manifest template string as included in one of the
+    `ManifestTemplateBase`-derived models.
+
+    Requests that fail this validator should be returned to the caller with a
+    422 (Unprocessable Entity) code.
+    """
+    # Because we can't really parse or load the template string directly as a
+    # python object (it might have Jinja control elements, etc.), we instead
+    # just check for the presence of known bad contents.
+
+    if re.search(r"kind:\s*(start|end)", value.lower()):
+        raise ValueError("Start or End node kinds are not allowed in a template manifest.")
+    return value
 
 
 class ScheduleBase(BaseSQLModel):
@@ -87,3 +105,4 @@ class CreateManifestTemplate(ManifestTemplateBase):
     # rather than a mandatory FK constraint, allowing it to be used to
     # create new ManifestTemplate objects.
     schedule_id: UUID4 | None = None
+    manifest: Annotated[str, BeforeValidator(check_manifest_template_string)] = ""
