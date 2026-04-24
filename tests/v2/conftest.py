@@ -186,7 +186,7 @@ async def daemon_context(session: AnyAsyncSession) -> AsyncGenerator[DaemonConte
 
     mock_app = MagicMock()
     mock_app.state = SimpleNamespace()
-    mock_app.state.scheduler = Scheduler(app=mock_app)
+    mock_app.state.scheduler = Scheduler(app=mock_app, sentinel=MagicMock())
     mock_app.state.scheduler.scheduler.start()
     dc = DaemonContext(
         app=mock_app,
