@@ -82,6 +82,35 @@ services:
       FEATURE_STORE_FSM: 1
     volumes:
       - artifacts:/home/lsstsvc1/output
+    ports:
+      - "8081:8080"
+    networks:
+      - cmservice
+    depends_on:
+      migratedb:
+        condition: service_completed_successfully
+
+  cmscheduler:
+    profiles:
+      - full
+      - daemon
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: cmworker
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      <<: *cmenv
+      SCHEDULER__JOBSTORE_TYPE: "sqlalchemy"
+      FEATURE_API_V2: 0
+      FEATURE_API_V1: 0
+      FEATURE_WEBAPP_V1: 0
+      FEATURE_DAEMON_V2: 0
+      FEATURE_SCHEDULER: 1
+    ports:
+      - "8082:8080"
     networks:
       - cmservice
     depends_on:

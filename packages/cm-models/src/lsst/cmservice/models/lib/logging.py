@@ -119,12 +119,14 @@ def configure_logging(log_level: int) -> None:
         ("httpcore.http11", True),
         ("httpcore.connection", True),
         ("sqlalchemy.engine", True),
+        ("apscheduler.scheduler", True),
     ]:
         logging.getLogger(logger).handlers.clear()
         logging.getLogger(logger).propagate = propagate
 
     # Set ERROR level for chatty modules
     for logger in [
+        "apscheduler.scheduler",
         "asgi_correlation_id",
         "lsst.ctrl.bps",
         "lsst.ctrl.bps.htcondor.htcondor_service",
