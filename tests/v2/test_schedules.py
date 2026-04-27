@@ -356,10 +356,11 @@ async def test_template_render(
     )
     templates = [
         CreateManifestTemplate(
+            name=uuid4().hex[0:8],
             kind=template["kind"],
             manifest=yaml.dump(template),
             metadata_={},
-        )  # pyright: ignore[reportCallIssue]
+        )
     ]
 
     # The function takes a raw manifest template string and a mapping of
