@@ -59,6 +59,7 @@ def upgrade() -> None:
         sa.Column("id", postgresql.UUID(), nullable=False),
         sa.Column("schedule_id", postgresql.UUID(), nullable=False),
         sa.Column("version", postgresql.INTEGER(), nullable=False, default=1),
+        sa.Column("name", postgresql.TEXT(), nullable=False),
         sa.Column("kind", ENUM_COLUMN_AS_VARCHAR, nullable=False),
         sa.Column(
             "manifest",
@@ -74,6 +75,7 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.ForeignKeyConstraint(["schedule_id"], ["schedules_v2.id"], ondelete="CASCADE"),
+        sa.UniqueConstraint("schedule_id", "kind", "name", "version", name="uq_schedule_name_kind_version"),
         if_not_exists=True,
     )
 

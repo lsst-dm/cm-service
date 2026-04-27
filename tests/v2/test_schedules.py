@@ -28,7 +28,7 @@ from lsst.cmservice.models.api.manifests import (
     NodeManifest,
 )
 from lsst.cmservice.models.api.schedules import ScheduleConfiguration
-from lsst.cmservice.models.db.schedules import ManifestTemplateBase
+from lsst.cmservice.models.db.schedules import CreateManifestTemplate
 from lsst.cmservice.models.lib.transformer import manifest_to_orm, prepare_orm_from_manifest
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
@@ -355,11 +355,11 @@ async def test_template_render(
         expressions={"today": "datetime.now()", "yesterday": "datetime.now() - timedelta(days=1)"}
     )
     templates = [
-        ManifestTemplateBase(
+        CreateManifestTemplate(
             kind=template["kind"],
             manifest=yaml.dump(template),
             metadata_={},
-        )
+        )  # pyright: ignore[reportCallIssue]
     ]
 
     # The function takes a raw manifest template string and a mapping of

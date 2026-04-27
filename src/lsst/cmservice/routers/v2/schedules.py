@@ -25,12 +25,18 @@ from fastapi import (
 )
 from pydantic import UUID4
 from pydantic_extra_types.cron import CronStr
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import InstrumentedAttribute, noload
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from lsst.cmservice.models.api.schedules import ScheduleConfiguration, ScheduleUpdate
-from lsst.cmservice.models.db.schedules import CreateSchedule, ManifestTemplate, Schedule
+from lsst.cmservice.models.db.schedules import (
+    CreateManifestTemplate,
+    CreateSchedule,
+    ManifestTemplate,
+    Schedule,
+)
 from lsst.cmservice.models.lib.timestamp import element_time
 
 from ...common.logging import LOGGER
@@ -127,7 +133,7 @@ async def read_schedule_resource(
         request.url_for("read_schedule_resource", schedule_name_or_id=str(schedule.id))
     )
     response.headers["Templates"] = str(
-        request.url_for("read_schedule_template_resources", schedule_id=str(schedule.id))
+        request.url_for("read_schedule_template_collection", schedule_id=str(schedule.id))
     )
 
     if request.method == "HEAD":
@@ -140,7 +146,7 @@ async def read_schedule_resource(
     "/{schedule_id}/templates",
     summary="Get templates for a specific schedule",
 )
-async def read_schedule_template_resources(
+async def read_schedule_template_collection(
     *,
     request: Request,
     response: Response,
@@ -230,7 +236,7 @@ async def create_schedule_resource(
         request.url_for("read_schedule_resource", schedule_name_or_id=str(schedule.id))
     )
     response.headers["Templates"] = str(
-        request.url_for("read_schedule_template_resources", schedule_id=str(schedule.id))
+        request.url_for("read_schedule_template_collection", schedule_id=str(schedule.id))
     )
 
 
@@ -286,6 +292,7 @@ async def update_schedule_resource(
     "/{schedule_id}/templates",
     summary="Add a single template to a Schedule",
     status_code=status.HTTP_201_CREATED,
+    response_model=None,
 )
 async def create_schedule_template_resource(
     *,
@@ -293,7 +300,33 @@ async def create_schedule_template_resource(
     response: Response,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     schedule_id: Annotated[UUID4, Path()],
-    # template_manifest: CreateTemplate,
+    template_manifest: CreateManifestTemplate,
 ) -> None:
     """Creates a new template record associated with a specific schedule."""
-    raise NotImplementedError
+    # Create a new ManifestTemplate by applying the schedule ID to the incoming
+    # model
+    new_template = ManifestTemplate(
+        **template_manifest.model_dump(exclude={"schedule_id", "id"}), schedule_id=schedule_id
+    )
+
+    # Auto-increment the version on conflict -- this is scalable to N versions
+    # just by trying over and over, but at some point you need to put it on the
+    # consumer that they should be incrementing the version in their post data
+    # before hitting this API. This implementation tries to insert the "given"
+    # version and n+1 as a courtesy, but does not try indefinitely.
+    try:
+        session.add(new_template)
+        await session.commit()
+    except IntegrityError:
+        # Integrity Error (Duplicate)
+        new_template.version += 1
+        new_template.generate_id()
+        await session.rollback()
+        session.add(new_template)
+    finally:
+        # If this still fails, let it bubble up to the application exc handler
+        await session.commit()
+
+    response.headers["Templates"] = str(
+        request.url_for("read_schedule_template_collection", schedule_id=schedule_id)
+    )

@@ -317,7 +317,10 @@ async def daemon_iteration(context: DaemonContext) -> None:
     if Features.DAEMON_NODES in config.features.enabled:
         await consider_nodes(context)
     if Features.SCHEDULER in config.features.enabled:
-        await consider_schedules(context)
+        if context.app.state.scheduler.is_running:
+            await consider_schedules(context)
+        else:
+            logger.warning("Scheduler not (yet) running")
 
 
 def trigger_for_transition(task: Task, events: Mapping[str, Event]) -> str | None:
