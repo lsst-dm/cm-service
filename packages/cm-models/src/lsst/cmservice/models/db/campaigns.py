@@ -60,7 +60,7 @@ class CampaignBase(BaseSQLModel):
 
     @model_validator(mode="before")
     @classmethod
-    def custom_model_validator(cls, data: Any, info: ValidationInfo) -> Any:
+    def custom_model_validator[T](cls, data: T, info: ValidationInfo) -> T:
         """Validates the model based on different types of raw inputs,
         where some default non-optional fields can be auto-populated.
         """
@@ -144,7 +144,7 @@ class NodeBase(BaseSQLModel):
 
     @model_validator(mode="before")
     @classmethod
-    def custom_model_validator(cls, data: Any, info: ValidationInfo) -> Any:
+    def custom_model_validator[T](cls, data: T, info: ValidationInfo) -> T:
         """Validates the model based on different types of raw inputs,
         where some default non-optional fields can be auto-populated.
         """
@@ -193,7 +193,7 @@ class EdgeBase(BaseSQLModel):
 
     @model_validator(mode="before")
     @classmethod
-    def custom_model_validator(cls, data: Any, info: ValidationInfo) -> Any:
+    def custom_model_validator[T](cls, data: T, info: ValidationInfo) -> T:
         """Validates the model based on different types of raw inputs,
         where some default non-optional fields can be auto-populated.
         """
@@ -244,7 +244,7 @@ class ManifestBase(BaseSQLModel):
 
     @model_validator(mode="before")
     @classmethod
-    def custom_model_validator(cls, data: Any, info: ValidationInfo) -> Any:
+    def custom_model_validator[T](cls, data: T, info: ValidationInfo) -> T:
         """Validates the model based on different types of raw inputs,
         where some default non-optional fields can be auto-populated.
         """
