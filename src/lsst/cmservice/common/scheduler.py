@@ -9,6 +9,7 @@ from apscheduler.schedulers.base import BaseScheduler
 from apscheduler.triggers.base import BaseTrigger
 from apscheduler.triggers.combining import OrTrigger
 from apscheduler.triggers.cron import CronTrigger
+from cron_converter import Cron
 from fastapi import FastAPI
 
 from lsst.cmservice.models.lib.logging import LOGGER
@@ -58,6 +59,17 @@ class Scheduler:
                 assert_never(unreachable)
 
     @classmethod
+    def normalize_cron_string(cls, cron: str) -> str:
+        """Replaces day-of-week numbers with names in a cron string."""
+        # WORKAROUND for APScheduler 3.x, which uses 0=monday indexed weekdays
+        # - easiest way to deal with this is to always use the weekday names
+        #   instead of numbers when providing a cron string to a CronTrigger
+        # NOTE
+        # - Apscheduler does not support "around the bend" ranges, so a dow
+        #   expression like "sun-tues" produces an error.
+        return str(Cron(cron, {"output_weekday_names": True}))
+
+    @classmethod
     async def trigger(cls, cron: str | list[str]) -> BaseTrigger:
         """Construct a trigger instance from the given cron string or strings.
 
@@ -69,11 +81,16 @@ class Scheduler:
         cron: str | list[str]
             A valid cron expression string, or a list of these strings.
         """
+
         match cron:
             case str():
-                return CronTrigger.from_crontab(cron, timezone=UTC)
+                return CronTrigger.from_crontab(cls.normalize_cron_string(cron), timezone=UTC)
             case list():
-                return OrTrigger(triggers=[CronTrigger.from_crontab(c, timezone=UTC) for c in cron])
+                return OrTrigger(
+                    triggers=[
+                        CronTrigger.from_crontab(cls.normalize_cron_string(c), timezone=UTC) for c in cron
+                    ]
+                )
             case _ as unreachable:
                 assert_never(unreachable)
                 raise RuntimeError("Invalid cron input for trigger.")
