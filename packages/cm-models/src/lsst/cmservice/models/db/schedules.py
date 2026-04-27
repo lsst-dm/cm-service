@@ -86,7 +86,7 @@ class ManifestTemplateBase(BaseSQLModel):
     `schedule_id`.
     """
 
-    name: str = Field(default_factory=lambda: str(uuid4())[0:8])
+    name: str
     version: int = Field(default=1)
     kind: KindField = Field(
         sa_column=Column("kind", Enum(ManifestKind, length=20, native_enum=False, create_constraint=False)),
@@ -101,11 +101,13 @@ class ManifestTemplateBase(BaseSQLModel):
         able.
         """
         if isinstance(data, dict):
+            if "name" not in data:
+                data["name"] = str(uuid4())[0:8]
             # Generate namespaced ID for manifest template
             if "schedule_id" in data and "id" not in data:
                 data["id"] = uuid5(
                     data["schedule_id"],
-                    name=f"""NAME={data["name"]},KIND={data["kind"]},VERSION={data["version"]}""",
+                    name=f"""NAME={data["name"]},KIND={data["kind"]},VERSION={data.get("version", 1)}""",
                 )
         return data
 
@@ -117,6 +119,17 @@ class ManifestTemplate(ManifestTemplateBase, table=True):
     __tablename__: str = "templates_v2"  # type: ignore[misc]
     id: UUID5 = Field(primary_key=True)
     schedule_id: UUID4 = Field(foreign_key="schedules_v2.id", ondelete="CASCADE")
+
+    def generate_id(self) -> UUID5:
+        """An instance method for the ORM version of a ManifestTemplate for
+        easy generation of a new ID, in case the name or version of the object
+        changes.
+        """
+        self.id = uuid5(
+            self.schedule_id,
+            name=f"NAME={self.name},KIND={self.kind},VERSION={self.version}",
+        )
+        return self.id
 
 
 class CreateManifestTemplate(ManifestTemplateBase):
