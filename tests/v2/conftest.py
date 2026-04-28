@@ -427,8 +427,8 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
                     "/path/to/a/duplicate/file.yaml",
                     "${PIPE_DIR}/bps/clustering/include.yaml",
                 ],
-                "extra_qgraph_options": "--dataset-query-constraint finalVisitSummary",
-                "extra_run_quantum_options": "--no-raise-on-partial-outputs",
+                "extra_qgraph_options": ["--dataset-query-constraint finalVisitSummary"],
+                "extra_run_quantum_options": ["--no-raise-on-partial-outputs"],
             },
         },
     )

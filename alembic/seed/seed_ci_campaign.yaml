@@ -107,8 +107,8 @@ spec:
   environment:
     LSST_S3_USE_THREADS: "False"
     LSST_RESOURCES_EXECUTOR: "process"
-  extra_run_quantum_options: >-
-    --no-raise-on-partial-outputs
+  extra_run_quantum_options:
+    - --no-raise-on-partial-outputs
   # Multiple manifests can provide include_files; these are blended together
   # when the YAML template is rendered; e.g., Site-specific includes can be set on
   # a site manifest; wms-specific includes on a wms manifest.
