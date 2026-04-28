@@ -204,3 +204,40 @@ async def test_node_double_update(aclient: AsyncClient) -> None:
     )
     assert not x.is_success
     assert x.status_code == codes.CONFLICT
+
+
+async def test_add_group_as_node(aclient: AsyncClient) -> None:
+    """Tests adding a new Group to an existing campaign using the Node API"""
+    campaign_name = uuid4().hex[:8]
+    node_name = uuid4().hex[:8]
+
+    # Create a campaign
+    x = await aclient.post(
+        "/v2/campaigns",
+        json={
+            "kind": "campaign",
+            "metadata": {"name": campaign_name},
+            "spec": {},
+        },
+    )
+    assert x.is_success
+    campaign_id = x.json()["id"]
+
+    # Create a new campaign node
+    x = await aclient.post(
+        "/v2/nodes",
+        json={
+            "kind": "node",
+            "metadata": {"name": node_name, "namespace": campaign_id, "kind": "group"},
+            "spec": {
+                "bps": {"pipeline_yaml": "${DRP_PIPE_DIR}/pipelines/HSC/DRP-RC2.yaml#step1"},
+                "butler": {},
+                "lsst": {},
+                "wms": {},
+                "site": {},
+            },
+        },
+    )
+    assert x.is_success
+    node = x.json()
+    assert node["version"] == 1

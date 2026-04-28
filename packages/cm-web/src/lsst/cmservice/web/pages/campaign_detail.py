@@ -390,7 +390,7 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
         gauge_card_classes = "w-22 h-30 pt-[0.5rem] pb-[0.5rem] items-center"
         with ui.row().classes("w-full ml-4 mr-4 items-center") as self.gauges_row:
             with ui.card().classes(gauge_card_classes):
-                self.campaign_status_decorator()
+                ui.icon(StatusDecorators["running"].emoji, size="xl", color="primary")
                 with ui.row():
                     campaign_running = self.model["campaign"]["status"] == "running"
                     campaign_terminal: bool = self.model["campaign"]["status"] in (
@@ -417,15 +417,6 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
                     log_count = len(self.model["logs"])
                     error_count = len([log for log in self.model["logs"] if log["detail"].get("error", None)])
                     ui.circular_progress(value=error_count, max=log_count, color="negative", size="xl")
-
-    def campaign_status_decorator(self) -> None:
-        """An icon representing the campaign state."""
-        ui.icon("", size="xl", color="primary").bind_name_from(
-            app.storage.client["state"].campaigns[self.campaign_id],
-            "status",
-            backward=lambda s: StatusDecorators[s].emoji,
-            strict=False,
-        )
 
     @ui.refreshable_method
     async def manifest_row(self, *, library: bool = False) -> None:
