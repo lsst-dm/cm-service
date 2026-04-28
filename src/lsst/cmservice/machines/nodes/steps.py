@@ -582,9 +582,10 @@ class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin
         graph = await graph_from_edge_list_v2(edges, self.session)
         subgraph = subgraph_between_nodes(graph, UUID(parent_step), self.db_model.id)
 
-        # For every node in the sorted subgraph of kind group, find its output
-        # collection.
-        self.collections = topographical_sorted_collections(subgraph)
+        # For every node in the sorted subgraph of kind group, find its run
+        # collection in "reverse" order, putting the run collections "closest"
+        # to the collect first.
+        self.collections = topographical_sorted_collections(subgraph, reverse=True)
 
         # perform specific preparations
         await self.action_prepare(event)

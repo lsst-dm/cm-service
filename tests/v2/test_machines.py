@@ -845,3 +845,70 @@ async def test_group_fail_reset(
     # Assert the artifact directory is deleted
     assert group_artifact_path is not None
     assert not (await Path(group_artifact_path).exists())
+
+
+async def test_group_fail_rescue(
+    test_campaign_groups: str,
+    session: AsyncSession,
+    aclient: AsyncClient,
+    web_client: AsyncClient,
+) -> None:
+    """Tests the rescue action of a failed node.
+
+    This test uses API workflow logic from the cm-web package.
+    """
+    from lsst.cmservice.web.api.rescue import rescue_group
+
+    campaign_id = urlparse(url=test_campaign_groups).path.split("/")[-2:][0]
+
+    # Fetch and prepare a step
+    node_id = uuid5(UUID(campaign_id), "lambert.1")
+    node = await session.get_one(Node, node_id)
+    node_machine = StepMachine(o=node)
+    await node_machine.trigger("prepare")
+
+    # Fetch and prepare a group
+    s = (
+        select(Node)
+        .where(Node.name == "lambert_group_001")
+        .where(Node.namespace == campaign_id)
+        .where(Node.version == 1)
+    )
+
+    group = (await session.exec(s)).one()
+    group_machine = GroupMachine(o=group, initial_state=group.status)
+    await session.commit()
+
+    await group_machine.trigger("prepare")
+    with patch(
+        "lsst.cmservice.machines.node.GroupMachine.do_start",
+        side_effect=RuntimeError("Error: unknown error"),
+    ):
+        await group_machine.trigger("start")
+
+    await session.refresh(group, ["status", "metadata_", "machine"])
+
+    # assert node failed
+    x = await aclient.get(f"/v2/nodes/{group.id}")
+    assert x.is_success
+    assert x.json()["status"] == "failed"
+
+    # ====================
+    # TEST RESCUE WORKFLOW
+    # ====================
+    rescue = await rescue_group(n0=str(group.id))
+
+    # assert details about the rescue
+    x = await aclient.get(f"/v2/nodes/{rescue}")
+    assert x.is_success
+    rescue_group_node: dict = x.json()
+
+    assert "rescue_001" in rescue_group_node["configuration"]["butler"]["collections"]["run"]
+    assert "rescue_001" in rescue_group_node["configuration"]["butler"]["collections"]["group_output"]
+
+    found_skip_option = False
+    for option in rescue_group_node["configuration"]["bps"]["extra_qgraph_options"]:
+        if "skip-existing-in" in option:
+            assert group.configuration["butler"]["collections"]["run"] in option
+            found_skip_option = True
+    assert found_skip_option
