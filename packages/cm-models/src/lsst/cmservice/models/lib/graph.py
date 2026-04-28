@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections.abc import Iterable, Mapping, MutableSet, Sequence
-from typing import TYPE_CHECKING, Literal, TypedDict
+from typing import TYPE_CHECKING, Literal, TypedDict, cast
 from uuid import UUID, uuid4, uuid5
 
 import networkx as nx
@@ -92,14 +94,25 @@ async def graph_from_edge_list_v2(
     return g
 
 
-def subgraph_between_nodes(g: nx.Graph, source: UUID, sink: UUID) -> nx.Graph:
+def subgraph_between_nodes(g: nx.DiGraph[UUID], source: UUID, sink: UUID) -> nx.DiGraph[UUID]:
     """Determine subgraph of graph ``g`` based on an arbitrary source and sink
     node in the graph. If no such subgraph exists, returns an empty graph.
     """
     nodes = set()
     for path in nx.all_simple_paths(g, source=source, target=sink):
         nodes.update(path)
-    return g.subgraph(nodes)
+    return cast(nx.DiGraph, g.subgraph(nodes))
+
+
+def topographical_sorted_collections(g: nx.DiGraph[UUID]) -> list[str]:
+    """Returns a topologically sorted list of run collections for Group nodes
+    in a graph `g`.
+    """
+    return [
+        g.nodes[group]["model"].configuration["butler"]["collections"]["group_output"]
+        for group in nx.topological_sort(g)
+        if g.nodes[group]["model"].kind is ManifestKind.group
+    ]
 
 
 def find_endpoints_in_directed_graph(g: nx.DiGraph) -> tuple[UUID, UUID]:

@@ -18,6 +18,7 @@ from lsst.cmservice.models.lib.graph import (
     graph_from_edge_list_v2,
     insert_node_to_graph,
     subgraph_between_nodes,
+    topographical_sorted_collections,
 )
 from lsst.cmservice.models.lib.timestamp import element_time
 from lsst.cmservice.models.manifest import (
@@ -558,23 +559,21 @@ class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin
         the simple look-back query to have missing information.
 
         The role of the collect step in a graph is to be the definite exit node
-        from a step's sub network of steps. This means that for any given
+        from a step's subgraph of groups. This means that for any given
         collect node, there will be one and only one step node in its reverse
         path, so if we walk the graph backward from this node along any edge,
-        we will reach the same step node along any of those paths, and each of
-        those paths will have exactly one group node, irrespective of any other
-        nodes along that path, e.g., breakpoints.
+        we will reach the same step node along any of those paths. Likewise,
+        any path by which the collect node is reachable from that step node may
+        traverse one or more groups that belong to that step and no other step.
 
-        This should also mean that for any subnetwork defined between step and
-        collect, the set of groups within that network is complete.
-
-        This points to the idea that on creation, the originating step node
-        for which this collect step is created should be cached as a metadata.
+        When a Step node prepares its initial subgraph, it stamps its own ID on
+        each new node, so the Collect step already has a reference to its Step
+        parent in the graph.
         """
 
-        # construct a graph where the source is the originating step and the
-        # sink is the current collect node. This represents a subgraph of the
-        # entire campaign that contains the network of this step and its groups
+        # construct a subgraph where the source is the originating step and the
+        # sink is the current collect node. This subgraph describes the network
+        # of this step and its groups
         parent_step = self.db_model.metadata_.get("step")
         if parent_step is None:
             raise RuntimeError("Collect node has no ancestor step node")
@@ -583,12 +582,9 @@ class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin
         graph = await graph_from_edge_list_v2(edges, self.session)
         subgraph = subgraph_between_nodes(graph, UUID(parent_step), self.db_model.id)
 
-        # For every node in the subgraph of kind group, fish out its output
+        # For every node in the sorted subgraph of kind group, find its output
         # collection.
-        groups = [
-            node[1]["model"] for node in subgraph.nodes.data() if node[1]["model"].kind is ManifestKind.group
-        ]
-        self.collections = [group.configuration["butler"]["collections"]["group_output"] for group in groups]
+        self.collections = topographical_sorted_collections(subgraph)
 
         # perform specific preparations
         await self.action_prepare(event)
