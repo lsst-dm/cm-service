@@ -5,9 +5,10 @@ from __future__ import annotations
 from collections import ChainMap
 from os.path import expandvars
 from types import ModuleType
-from typing import Any
+from typing import Any, cast
 
 from anyio import Path
+from jinja2.sandbox import ImmutableSandboxedEnvironment
 from transitions import EventData
 
 from lsst.cmservice.models.enums import ManifestKind, StatusEnum
@@ -90,6 +91,21 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
             ("wms_submit_sh.j2", f"{self.db_model.name}.sh"),
         }
 
+    async def finalize_preparation(self, event: EventData) -> None:
+        """Finalize the preparation stage of a Group. This includes applying
+        rendered outputs to critical configuration sections using the config
+        chain.
+        """
+        j_env = ImmutableSandboxedEnvironment()
+        j_env.globals = cast(dict[str, object], self.configuration_chain)
+
+        # Render any butler collection configuration
+        for k, v in self.db_model.configuration["butler"]["collections"].items():
+            # TODO this is not recursive into complex collection lists
+            if not isinstance(v, str):
+                continue
+            self.db_model.configuration["butler"]["collections"][k] = j_env.from_string(v).render()
+
     async def do_prepare(self, event: EventData) -> None:
         """Callback invoked when executing the "prepare" transition."""
 
@@ -103,6 +119,8 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
 
         # Render output artifacts
         await self.render_action_templates(event)
+
+        await self.finalize_preparation(event)
 
     async def render_bps_includes(self, event: EventData) -> list[str]:
         """BPS Include files get special treatment here for legacy and pract-
