@@ -19,7 +19,7 @@ follows:
   - Suggested: set `UV_PYTHON_PREFERENCE=only-managed` to prevent non-`uv` Pythons from being used.
   - USDF: set `UV_NATIVE_TLS=true` for compatibility with the Squid proxy.
 
-* Install Python virtual environment, dependencies and activate pre-commit hooks with `make init`.
+* Install Python virtual environment, dependencies and activate pre-commit (`prek`) hooks with `make init`.
 
   - `uv` will automatically install any needed Python version.
   - Note: the `ctrl-bps-htcondor` plugin is not available on macOS and will not be installed on this platform.
@@ -60,7 +60,7 @@ Additional developer conveniences:
 
 * To run the playwright tests, add `--run-playwright` to the pytest arguments
 
-* Run the pre-commit hooks to lint and reformat your code via `make lint`.
+* Run the pre-commit (`prek`) hooks to lint and reformat your code via `make lint`.
 
 * Run the mypy static type hint checker with `make typing`.
 

@@ -34,8 +34,8 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Run pre-commit
-        uses: pre-commit/action@v3.0.1
+      - name: Run prek
+        uses: j178/prek-action@v2
 
   mypy:
     runs-on: ubuntu-latest

@@ -74,9 +74,10 @@ diff_matched_analysis:
         tract: 3828
       error:
       - 'part of the error messgage that we ignore'
-      - 'some weird shit went down in :///sdf/group/rubin/repo/dc2/2.2i/runs/test-med-1/
+      - >-
+        some weird shit went down in :///sdf/group/rubin/repo/dc2/2.2i/runs/test-med-1/
         w_2023_37/DM-40870/step3/group0/w00_000/objectTable_tract/3828/
-	objectTable_tract_3828_DC2_2_2i_runs_test-med-1_w_2023_37_DM-40870_step3_group0_w00_000.parq'
+        objectTable_tract_3828_DC2_2_2i_runs_test-med-1_w_2023_37_DM-40870_step3_group0_w00_000.parq
   n_quanta_blocked: 0
   outputs:
     diff_matched_analysis_log:

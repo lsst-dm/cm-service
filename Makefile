@@ -40,7 +40,8 @@ update-deps:
 .PHONY: init
 init: $(PY_VENV)
 	uv run playwright install
-	uv run pre-commit install
+	uv run prek install -f
+	uv run prek install --prepare-hooks
 
 .PHONY: update
 update: update-deps init
@@ -78,12 +79,12 @@ signed-release:
 
 
 #------------------------------------------------------------------------------
-# Convenience targets to run pre-commit hooks ("lint") and mypy ("typing")
+# Convenience targets to run pre-commit/prek hooks ("lint") and mypy ("typing")
 #------------------------------------------------------------------------------
 
 .PHONY: lint
 lint:
-	pre-commit run --all-files
+	prek run --all-files
 
 .PHONY: typing
 typing:
