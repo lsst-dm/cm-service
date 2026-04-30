@@ -7,9 +7,8 @@ from uuid import UUID, uuid5
 import pytest
 from httpx import AsyncClient, Response
 from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
 
-from lsst.cmservice.common.daemon_v2 import consider_nodes
+from lsst.cmservice.common.daemon_v2 import DaemonContext, consider_nodes
 from lsst.cmservice.common.launchers import LauncherCheckResponse
 from lsst.cmservice.models.db.campaigns import Task
 
@@ -28,11 +27,12 @@ async def test_rpc_process_node(
     caplog: pytest.LogCaptureFixture,
     test_campaign: str,
     aclient: AsyncClient,
-    session: AsyncSession,
+    daemon_context: DaemonContext,
 ) -> None:
     """Tests the manual step-through of a campaign node using the "process" RPC
     API.
     """
+    session = daemon_context.session
     campaign_id = urlparse(url=test_campaign).path.split("/")[-2:][0]
     node_id = uuid5(UUID(campaign_id), "START.1")
 
@@ -51,7 +51,7 @@ async def test_rpc_process_node(
 
     # now the daemon should consider the prepared campaign
     caplog.clear()
-    await consider_nodes(session)
+    await consider_nodes(daemon_context)
     found_log_messages = 0
     for r in caplog.records:
         if any(["evolving node" in r.message]):
@@ -70,7 +70,7 @@ async def test_rpc_process_node(
     # Use the RPC API to process the node into a "running" state
     x = await process_once()
     assert x.is_success
-    await consider_nodes(session)
+    await consider_nodes(daemon_context)
 
     x = await aclient.get(f"/v2/nodes/{node_id}")
     assert x.is_success
@@ -79,7 +79,7 @@ async def test_rpc_process_node(
     # Use the RPC API to process the node into a "accepted" state
     x = await process_once()
     assert x.is_success
-    await consider_nodes(session)
+    await consider_nodes(daemon_context)
 
     x = await aclient.get(f"/v2/nodes/{node_id}")
     assert x.is_success
@@ -122,7 +122,7 @@ async def test_rpc_with_breakpoint_node(
     mock_launch: Mock,
     test_campaign: str,
     aclient: AsyncClient,
-    session: AsyncSession,
+    daemon_context: DaemonContext,
 ) -> None:
     """Tests the addition of a Breakpoint node in a campaign, and that process-
     ing the campaign does not proceed past the breakpoint until it is applied
@@ -167,7 +167,7 @@ async def test_rpc_with_breakpoint_node(
     for _ in range(5):
         x = await process_once()
         assert x.is_success
-        await consider_nodes(session)
+        await consider_nodes(daemon_context)
 
     # confirm that the breakpoint node does not advance from "running"
     r = await aclient.get(breakpoint_url)
@@ -175,7 +175,7 @@ async def test_rpc_with_breakpoint_node(
 
     x = await process_once()
     assert x.is_success
-    await consider_nodes(session)
+    await consider_nodes(daemon_context)
 
     r = await aclient.get(breakpoint_url)
     assert r.json()["status"] == "running"
@@ -195,4 +195,4 @@ async def test_rpc_with_breakpoint_node(
     # confirm that the rpc proceeds to the next node
     x = await process_once()
     assert x.is_success
-    await consider_nodes(session)
+    await consider_nodes(daemon_context)
