@@ -56,6 +56,7 @@ class NodeRecoverAction(Enum):
     retry = auto()
     reset = auto()
     force = auto()
+    rescue = auto()
 
 
 class NodeAllowedActions(IntFlag):
@@ -68,6 +69,7 @@ class NodeAllowedActions(IntFlag):
     retry = auto()
     reset = auto()
     force = auto()
+    rescue = auto()
 
     @classmethod
     def all(cls) -> Self:
@@ -113,6 +115,13 @@ class NodeRecoveryPopup(ui.dialog):
                         color="warning",
                         on_click=lambda: self.submit(NodeRecoverAction.force),
                     ).tooltip(strings.NODE_FORCE_TOOLTIP)
+                if NodeAllowedActions.rescue in allowed_actions:
+                    ui.chip(
+                        "rescue",
+                        icon="fire_truck",
+                        color="warning",
+                        on_click=lambda: self.submit(NodeRecoverAction.rescue),
+                    ).tooltip(strings.NODE_RESCUE_TOOLTIP)
                 ui.chip(
                     "cancel",
                     icon="cancel",
@@ -134,6 +143,7 @@ class NodeRecoveryPopup(ui.dialog):
             allowed_actions = NodeAllowedActions.force
         elif node["kind"] != "group":
             allowed_actions &= ~NodeAllowedActions.restart
+            allowed_actions &= ~NodeAllowedActions.rescue
         result = await cls(allowed_actions)
 
         match result:
@@ -145,6 +155,8 @@ class NodeRecoveryPopup(ui.dialog):
                 await api.retry_restart_node(n0=node["id"], force=True, reset=True)
             case NodeRecoverAction.force:
                 await api.retry_restart_node(n0=node["id"], force=True, accept=True)
+            case NodeRecoverAction.rescue:
+                await api.rescue_group(n0=node["id"])
             case _:
                 # including the cancel case
                 call_refreshable = False

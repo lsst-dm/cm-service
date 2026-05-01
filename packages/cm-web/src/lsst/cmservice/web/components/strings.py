@@ -4,6 +4,7 @@ NODE_RESTART_TOOLTIP = """Attempt a BPS Restart of a Failed Group"""
 NODE_RETRY_TOOLTIP = """Attempt a new BPS Submit of a Failed Group"""
 NODE_RESET_TOOLTIP = """Completely reset the Node to the beginning"""
 NODE_FORCE_TOOLTIP = """Unconditionally accept the Node irrespective of its failure"""
+NODE_RESCUE_TOOLTIP = """Accept this Group and create a new Rescue Group in the graph"""
 
 LIBRARY_MANIFEST_TOOLIP = (
     """Library manifests are read-only global configuration documents that provide defaults for campaigns"""

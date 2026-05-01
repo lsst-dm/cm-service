@@ -15,6 +15,7 @@ from .nodes import (
     node_activity_logs,
     retry_restart_node,
 )
+from .rescue import rescue_group
 
 __all__ = [
     "insert_or_append_node",
@@ -29,6 +30,7 @@ __all__ = [
     "node_activity_logs",
     "put_manifest_list",
     "put_one_manifest",
+    "rescue_group",
     "retry_restart_node",
     "toggle_campaign_state",
     "wait_for_activity_to_complete",

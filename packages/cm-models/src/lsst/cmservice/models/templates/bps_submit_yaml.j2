@@ -60,16 +60,16 @@ payload:
   {{ key }}: "{{ value | trim }}"
 {%- endfor %}
 {%- if bps.extra_qgraph_options %}
-extraQgraphOptions: {{ bps.extra_qgraph_options | replace("\n", " ") | trim }}
+extraQgraphOptions: {{ bps.extra_qgraph_options | join(" ")}}
 {%- endif %}
 {%- if bps.extra_run_quantum_options %}
-extraRunQuantumOptions: {{ bps.extra_run_quantum_options | replace("\n", " ") | trim }}
+extraRunQuantumOptions: {{ bps.extra_run_quantum_options | join(" ") }}
 {%- endif %}
 {%- if bps.extra_init_options %}
-extraInitOptions: {{ bps.extra_init_options | replace("\n", " ") | trim }}
+extraInitOptions: {{ bps.extra_init_options | join(" ") }}
 {%- endif %}
 {%- if bps.extra_update_qgraph_options %}
-extraUpdateQgraphOptions: {{ bps.extra_update_qgraph_options | replace("\n", " ") | trim }}
+extraUpdateQgraphOptions: {{ bps.extra_update_qgraph_options | join(" ") }}
 {%- endif %}
 {# BLANK LINE #}
 {%- if bps.clustering %}

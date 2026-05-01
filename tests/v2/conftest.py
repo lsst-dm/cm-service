@@ -3,7 +3,9 @@
 import importlib
 import os
 from collections.abc import AsyncGenerator, Callable, Generator
+from contextlib import ExitStack, asynccontextmanager
 from typing import TYPE_CHECKING
+from unittest.mock import MagicMock, patch
 from uuid import NAMESPACE_DNS, uuid4
 
 import pytest
@@ -168,6 +170,41 @@ async def async_client_fixture(
     ) as aclient:
         yield aclient
     app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture(name="web_client", scope="module", loop_scope="module")
+async def mock_client_factory(aclient: AsyncClient) -> AsyncGenerator[AsyncClient]:
+    """Mocks a client factory for cm-web API workflows using an async client
+    with test app transport and modified base_url.
+    """
+    base_url = str(aclient.base_url).strip("/")
+    aclient_ = AsyncClient(
+        follow_redirects=True,
+        transport=aclient._transport,
+        base_url=f"{base_url}/v2",
+    )
+
+    @asynccontextmanager
+    async def aclient_cm() -> AsyncGenerator[AsyncClient]:
+        yield aclient_
+
+    mock_factory = MagicMock()
+    mock_factory.aclient = aclient_cm
+
+    modules_to_patch = [
+        "lsst.cmservice.web.api.activity.CLIENT_FACTORY",
+        "lsst.cmservice.web.api.campaigns.CLIENT_FACTORY",
+        "lsst.cmservice.web.api.manifests.CLIENT_FACTORY",
+        "lsst.cmservice.web.api.nodes.CLIENT_FACTORY",
+        "lsst.cmservice.web.lib.client_factory.CLIENT_FACTORY",
+    ]
+    with ExitStack() as stack:
+        for api_module in modules_to_patch:
+            stack.enter_context(patch(api_module, mock_factory))
+
+        # Mock any app storage
+        stack.enter_context(patch("lsst.cmservice.web.api.campaigns.app", MagicMock()))
+        yield aclient_
 
 
 @pytest_asyncio.fixture(scope="function", loop_scope="module")
@@ -427,8 +464,8 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
                     "/path/to/a/duplicate/file.yaml",
                     "${PIPE_DIR}/bps/clustering/include.yaml",
                 ],
-                "extra_qgraph_options": "--dataset-query-constraint finalVisitSummary",
-                "extra_run_quantum_options": "--no-raise-on-partial-outputs",
+                "extra_qgraph_options": ["--dataset-query-constraint finalVisitSummary"],
+                "extra_run_quantum_options": ["--no-raise-on-partial-outputs"],
             },
         },
     )

@@ -29,6 +29,7 @@ async def get_one_manifest(
         return r
 
 
+# FIXME this function is badly named
 async def put_one_manifest(manifest_id: str, manifest_name: str, to_namespace: str) -> Response:
     """Copies a manifest into the designated target namespace."""
     url = f"/manifests/{manifest_id}"
@@ -51,6 +52,7 @@ async def put_manifest_list(manifests: list[dict]) -> bool:
     only ordering necessary is that "campaigns" must be first in the list in
     order to prepare any target namespaces for subsequent manifests.
     """
+    # TODO this should probably return a list of IDs for the added manifests
     # TODO sort manifests list by kind, campaigns first.
     async with CLIENT_FACTORY.aclient() as client:
         for manifest in manifests:

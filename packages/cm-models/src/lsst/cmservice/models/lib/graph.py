@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections.abc import Iterable, Mapping, MutableSet, Sequence
-from typing import TYPE_CHECKING, Literal, TypedDict
+from typing import TYPE_CHECKING, Literal, TypedDict, cast
 from uuid import UUID, uuid4, uuid5
 
 import networkx as nx
@@ -8,7 +10,7 @@ from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from lsst.cmservice.models.db.campaigns import Edge, Node
-from lsst.cmservice.models.enums import ManifestKind
+from lsst.cmservice.models.enums import ManifestKind, StatusEnum
 from lsst.cmservice.models.lib.timestamp import element_time
 from lsst.cmservice.models.types import AnyAsyncSession
 
@@ -92,14 +94,45 @@ async def graph_from_edge_list_v2(
     return g
 
 
-def subgraph_between_nodes(g: nx.Graph, source: UUID, sink: UUID) -> nx.Graph:
+def subgraph_between_nodes(g: nx.DiGraph[UUID], source: UUID, sink: UUID) -> nx.DiGraph[UUID]:
     """Determine subgraph of graph ``g`` based on an arbitrary source and sink
     node in the graph. If no such subgraph exists, returns an empty graph.
     """
     nodes = set()
     for path in nx.all_simple_paths(g, source=source, target=sink):
         nodes.update(path)
-    return g.subgraph(nodes)
+    return cast(nx.DiGraph, g.subgraph(nodes))
+
+
+def topographical_sorted_collections(g: nx.DiGraph[UUID], *, reverse: bool = False) -> list[str]:
+    """Returns a topologically sorted list of run collections for Group nodes
+    in a graph `g`.
+
+    This function is primarily used by Collect nodes at the sink of a step's
+    subgraph of group nodes, so it is assumed that the reachability of that
+    Collect node is dependent on the successful state of its ancestors. There-
+    fore, every Group node in the (sub)graph is included in the list of sorted
+    collections if its state is `accepted`, allowing the exclusion of any other
+    terminal state that has otherwise allowed the Daemon to continue graph
+    evolution.
+
+    Parameters
+    ----------
+    g: nx.DiGraph[UUID]
+        A directed graph whose node identifiers are UUIDs. It is expected that
+        the graph has been constructed using the `model` node view.
+
+    reverse: bool
+        Whether to reverse the graph before sorting. This may be used to get
+        a "backward" view of the nodes.
+    """
+    _g: nx.DiGraph[UUID] = nx.reverse_view(g) if reverse else g  # type: ignore[type-var]
+    return [
+        g.nodes[group]["model"].configuration["butler"]["collections"]["run"]
+        for group in nx.topological_sort(_g)
+        if g.nodes[group]["model"].kind is ManifestKind.group
+        and g.nodes[group]["model"].status is StatusEnum.accepted
+    ]
 
 
 def find_endpoints_in_directed_graph(g: nx.DiGraph) -> tuple[UUID, UUID]:
@@ -255,7 +288,7 @@ def processable_graph_nodes(g: nx.DiGraph) -> Iterable[Node]:
                 processable_nodes.add(node)
                 # We found a processable node in this path, stop traversal
                 break
-            elif node.status.is_bad():
+            elif node.status is StatusEnum.failed:
                 # We reached a failed node in this path, it is blocked
                 break
             else:
