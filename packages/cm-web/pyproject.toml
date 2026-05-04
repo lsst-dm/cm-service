@@ -7,7 +7,7 @@ dependencies = [
     "deepdiff>=8.6.1",
     "networkx>=3.5",
     "nicegui>=3.11.0",
-    "nice-dialog",
+    "nice-dialogs",
     "pydantic>=2.12",
     "pydantic-extra-types>=2.10.5",
     "pydantic-settings>=2.12",
@@ -39,4 +39,4 @@ path = "src/lsst/cmservice/web/__init__.py"
 
 [tool.uv.sources]
 lsst-cmservice-models = { workspace = true }
-nice-dialog = { git = "https://github.com/tcjennings/nice-dialogs", rev = "ac9bce6de5604837e80a921206cf71d5a2e10010" }
+nice-dialogs = { git = "https://github.com/tcjennings/nice-dialogs", rev = "0beec0651fa101576741d2a8cdf7ec5e7c961d59" }

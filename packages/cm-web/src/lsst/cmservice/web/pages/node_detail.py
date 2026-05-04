@@ -4,7 +4,7 @@ from functools import partial
 from typing import Any, Self, TypedDict
 
 from httpx import AsyncClient
-from nice_dialog.dialogs.confirmation import ConfirmationDialog
+from nice_dialogs.dialogs import ConfirmationDialog
 from nicegui import app, ui
 from nicegui.events import ClickEventArguments
 from yaml import safe_dump

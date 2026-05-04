@@ -7,7 +7,7 @@ from enum import Enum, IntFlag, auto
 from typing import TYPE_CHECKING, Any, Self
 
 import yaml
-from nice_dialog.dialogs.confirmation import ConfirmationDialog
+from nice_dialogs.dialogs import ConfirmationDialog
 from nicegui import ui
 from nicegui.events import ClickEventArguments, GenericEventArguments, ValueChangeEventArguments
 from pydantic_core import ValidationError

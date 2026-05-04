@@ -125,6 +125,7 @@ run: export DB__ECHO=true
 run: export FEATURE_API_V2=1
 run: export FEATURE_API_V1=0
 run: export FEATURE_DAEMON_V2=0
+run: export FEATURE_STORE_FSM=1
 run: run-compose
 	alembic upgrade head
 	python3 -m lsst.cmservice.main
@@ -140,6 +141,7 @@ run-worker: export FEATURE_DAEMON_V2=1
 run-worker: export FEATURE_DAEMON_CAMPAIGNS=1
 run-worker: export FEATURE_DAEMON_NODES=1
 run-worker: export FEATURE_ALLOW_TASK_UPSERT=1
+run-worker: export FEATURE_STORE_FSM=1
 run-worker: run-compose
 	alembic upgrade head
 	python3 -m lsst.cmservice.daemon
@@ -175,32 +177,3 @@ unmigrate: export DB__PASSWORD=INSECURE-PASSWORD
 unmigrate: export DB__URL=postgresql://${PGHOST}/${PGDATABASE}
 unmigrate: run-compose
 	alembic downgrade base
-
-
-#------------------------------------------------------------------------------
-# Targets for running per-developer service instances on USDF Rubin dev nodes,
-# using a single shared backend cnpg Postgres in the usdf-cm-dev k8s vcluster.
-# Currently used by most devs for development/debug, and also by pilots for
-# production runs.
-#
-# FIXME: TO BE DEPRECATED as soon as we can reliably use shared phalanx service
-# for production and sqlite for development/debug.
-#------------------------------------------------------------------------------
-
-.PHONY: run-usdf-dev
-run-usdf-dev:DB__HOST=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get svc/cm-pg-lb -o jsonpath='{..ingress[0].ip}')'
-run-usdf-dev: export DB__URL=postgresql://cm-service@${DB__HOST}:5432/cm-service
-run-usdf-dev: export DB__PASSWORD=$(shell kubectl --cluster=usdf-cm-dev -n cm-service get secret/cm-pg-app -o jsonpath='{.data.password}' | base64 --decode)
-run-usdf-dev: export DB__ECHO=true
-run-usdf-dev:
-	python3 -m lsst.cmservice.main
-
-get-env-%: DB__HOST=$(shell kubectl --cluster=$* -n cm-service get svc/cm-pg-lb -o jsonpath='{..ingress[0].ip}')
-get-env-%: export DB__URL=postgresql://cm-servicer@${DB__HOST}:5432/cm-service
-get-env-%: export DB__PASSWORD=$(shell kubectl --cluster=$* -n cm-service get secret/cm-pg-app -o jsonpath='{.data.password}' | base64 --decode)
-get-env-%: export DB__ECHO=true
-get-env-%:
-	rm -f .env.$*
-	echo DB__URL=$${DB__URL} > .env.$*
-	echo DB__ECHO=$${DB__ECHO} >> .env.$*
-	echo DB__PASSWORD=$${DB__PASSWORD} >> .env.$*
