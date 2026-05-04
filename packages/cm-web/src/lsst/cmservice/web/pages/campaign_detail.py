@@ -568,7 +568,7 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
             title=f"Editing Step {node_name}",
             initial_model=node_manifest,
         )
-        result: dict[str, Any] = await dialog
+        result = await dialog
         dialog.clear()
 
         if result is None or ctx.readonly:
@@ -615,7 +615,7 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
             title=f"Editing Manifest {node_name}",
             initial_model=node_manifest,
         )
-        result: dict[str, Any] = await dialog
+        result = await dialog
         dialog.clear()
 
         if result is None or ctx.readonly:

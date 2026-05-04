@@ -23,7 +23,7 @@ TRANSITIONS = [
     {"trigger": "block", "source": StatusEnum.running, "dest": StatusEnum.blocked},
     {
         "trigger": "fail",
-        "source": [StatusEnum.waiting, StatusEnum.ready, StatusEnum.running],
+        "source": "*",
         "dest": StatusEnum.failed,
     },
     # User-initiated transitions
@@ -31,7 +31,7 @@ TRANSITIONS = [
     {"trigger": "unblock", "source": StatusEnum.blocked, "dest": StatusEnum.running},
     {"trigger": "resume", "source": StatusEnum.paused, "dest": StatusEnum.running},
     {"trigger": "force", "source": "*", "dest": StatusEnum.accepted},
-    {"trigger": "reject", "source": "*", "dest": StatusEnum.failed},
+    {"trigger": "reject", "source": StatusEnum.accepted, "dest": StatusEnum.rejected},
     # TODO implement a revival trigger for out-of-band recovery of failures
     {"trigger": "revive", "source": StatusEnum.failed, "dest": StatusEnum.running},
     # Inverse transitions, i.e., rollbacks
