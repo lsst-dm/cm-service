@@ -1,6 +1,15 @@
 {
+  "semi": true,
   "bracketSameLine": false,
   "bracketSpacing": true,
   "singleQuote": false,
-  "plugins": ["prettier-plugin-svelte"]
+  "plugins": ["prettier-plugin-svelte"],
+  "overrides": [
+    {
+      "files": "*.svelte",
+      "options": {
+        "parser": "svelte"
+      }
+    }
+  ]
 }
