@@ -109,8 +109,18 @@ async def read_campaign_collection(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"{str(msg)}") from msg
 
 
-@router.get("/{campaign_name_or_id}", response_model=Campaign, summary="Get campaign detail")
-@router.head("/{campaign_name_or_id}", response_model=None, summary="Get campaign headers")
+@router.get(
+    "/{campaign_name_or_id}",
+    response_model=Campaign,
+    status_code=status.HTTP_200_OK,
+    summary="Get campaign detail",
+)
+@router.head(
+    "/{campaign_name_or_id}",
+    response_model=None,
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Get campaign headers",
+)
 async def read_campaign_resource(
     request: Request,
     response: Response,
@@ -128,11 +138,9 @@ async def read_campaign_resource(
     except ValueError:
         s = s.where(Campaign.name == campaign_name_or_id)
 
-    campaign = (await session.exec(s)).one_or_none()
-    # set the response headers
-    if campaign is None:
-        raise HTTPException(status_code=404)
+    campaign = (await session.exec(s)).one()
 
+    # set the response headers
     response.headers["Self"] = str(request.url_for("read_campaign_resource", campaign_name_or_id=campaign.id))
     response.headers["Nodes"] = str(request.url_for("read_campaign_node_collection", campaign_id=campaign.id))
     response.headers["Edges"] = str(request.url_for("read_campaign_edge_collection", campaign_id=campaign.id))
@@ -532,6 +540,7 @@ async def create_campaign_resource(
     response: Response,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     manifest: CampaignManifest,
+    campaign_owner: Annotated[str, Header(alias="X-Auth-Request-User")] = "root",
 ) -> Campaign:
     """An API to create a Campaign from an appropriate Manifest.
 
@@ -544,7 +553,7 @@ async def create_campaign_resource(
             name=manifest.metadata_.name,
             metadata_=manifest.metadata_.model_dump(),
             configuration=manifest.spec.model_dump(),
-            # owner = ...  # TODO Get username from gafaelfawr # noqa: ERA001
+            owner=campaign_owner,
         )
     )
 

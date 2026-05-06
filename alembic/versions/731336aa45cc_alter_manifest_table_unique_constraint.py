@@ -22,6 +22,7 @@ def upgrade() -> None:
         "manifests_v2_name_version_namespace_key",
         table_name="manifests_v2",
         type_="unique",
+        if_exists=True,
     )
     op.create_unique_constraint(
         constraint_name="manifests_v2_name_version_kind_namespace_key",
@@ -35,6 +36,7 @@ def downgrade() -> None:
         "manifests_v2_name_version_kind_namespace_key",
         table_name="manifests_v2",
         type_="unique",
+        if_exists=True,
     )
     op.create_unique_constraint(
         constraint_name="manifests_v2_name_version_namespace_key",
