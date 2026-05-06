@@ -257,13 +257,10 @@ async def daemon_scheduled_job(schedule_id: UUID) -> None:
         schedule = await session.get_one(Schedule, schedule_id)
         schedule_context = ScheduleConfiguration(**schedule.configuration)
 
-        orms = [
-            manifest
-            for manifest in await build_sandbox_and_render_templates(
-                context=schedule_context,
-                templates=schedule.templates,
-            )
-        ]
+        orms = await build_sandbox_and_render_templates(
+            context=schedule_context,
+            templates=schedule.templates,
+        )
 
         # the first ORM object on the list of manifests is the campaign
         if isinstance(orms[0], Campaign):
