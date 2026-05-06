@@ -25,8 +25,8 @@ butler_manifest_good:
         predicates:
             - instrument='LSSTCam'
             - skymap='lsst_cells_v1'
-            - day_obs>={{ yesterday | as_obs_day }}
-            - day_obs<{{ today | as_obs_day }}
+            - day_obs>={{ yesterday | as_day_obs }}
+            - day_obs<{{ today | as_day_obs }}
         repo: /repo/main
 
 lsst_manifest_good:

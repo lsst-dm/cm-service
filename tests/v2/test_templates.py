@@ -83,8 +83,8 @@ MANIFEST_TEMPLATES = [
                 predicates:
                     - "instrument='LSSTCam'"
                     - "skymap='lsst_cells_v1'"
-                    - "exposure > {{ obs_day | as_exposure(first_exposure) }}"
-                    - "exposure <= {{ obs_day | as_exposure(last_exposure) }}"
+                    - "exposure > {{ day_obs | as_exposure(first_exposure) }}"
+                    - "exposure <= {{ day_obs | as_exposure(last_exposure) }}"
                     - "exposure.observation_type IN ('science')"
                     - "detector NOT IN ({{ bad_detectors | join(',') }})"
                 collections:
@@ -131,7 +131,7 @@ async def test_custom_expressions(template_generator: Generator[CreateManifestTe
         expressions={
             "campaign_name": "'test_simple_template'",
             "today": "datetime(year=2026, month=5, day=1)",
-            "obs_day": "datetime(year=2025, month=7, day=23)",
+            "day_obs": "datetime(year=2025, month=7, day=23)",
             "first_exposure": "398",
             "last_exposure": "400",
             "bad_detectors": "[120, 121, 122, 78]",

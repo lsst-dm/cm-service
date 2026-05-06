@@ -143,8 +143,8 @@ def make_schedule_with_manifests(**overrides: dict) -> dict:
                         predicates:
                             - instrument='LSSTCam'
                             - skymap='lsst_cells_v1'
-                            - obs_day>='{{ today | as_obs_day }}'
-                            - obs_day<'{{ tomorrow | as_obs_day }}'
+                            - day_obs>='{{ today | as_day_obs }}'
+                            - day_obs<'{{ tomorrow | as_day_obs }}'
                         repo: /repo/main
                     """),
             },
@@ -447,5 +447,5 @@ async def test_daemon_schedule(
     campaign_manifests = x.json()
     assert len(campaign_manifests) > 0
     butler_manifest = campaign_manifests[0]
-    assert f"obs_day>='{right_now:%Y%m%d}'" in butler_manifest["spec"]["predicates"]
+    assert f"day_obs>='{right_now:%Y%m%d}'" in butler_manifest["spec"]["predicates"]
     ...
