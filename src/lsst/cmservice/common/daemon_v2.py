@@ -1,14 +1,16 @@
 import pickle
 from asyncio import Task as AsyncTask
 from asyncio import TaskGroup, create_task
-from collections.abc import Awaitable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
+from functools import partial
 from types import TracebackType
 from typing import TYPE_CHECKING, Self, cast
 from uuid import UUID, uuid5
 
 import networkx as nx
+from apscheduler.jobstores.base import JobLookupError
 from fastapi import FastAPI
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import make_transient, selectinload
@@ -238,11 +240,12 @@ async def consider_nodes(context: DaemonContext) -> None:
             await session.commit()
 
 
-async def daemon_scheduled_job(schedule_id: UUID) -> None:
+async def daemon_scheduled_job(remove_self: Callable, *, schedule_id: UUID) -> None:
     """Daemon work function for performing the work of a scheduled campaign.
 
-    Each `job` added to the scheduler has this function as its target, and the
-    ID of the associated schedule as a single argument.
+    Each `job` added to the scheduler has this function as its target. The
+    first argument must be a callable the job can use to remove itself from the
+    scheduler, and additional arguments must be keyword-only.
 
     This function fetches the identified `Schedule` from the database and
     passes its `templates` collection through a renderer. The renderer returns
@@ -254,7 +257,14 @@ async def daemon_scheduled_job(schedule_id: UUID) -> None:
 
     # fetch the schedule and its templates
     async with db_session_dependency.sessionmaker() as session:
-        schedule = await session.get_one(Schedule, schedule_id)
+        schedule = await session.get(Schedule, schedule_id)
+        if schedule is None or not schedule.is_enabled:
+            try:
+                remove_self()
+            except JobLookupError:
+                logger.error("Job not found during self removal", job_id=schedule_id)
+                pass
+            return None
         schedule_context = ScheduleConfiguration(**schedule.configuration)
 
         orms = await build_sandbox_and_render_templates(
@@ -279,6 +289,7 @@ async def consider_schedules(context: DaemonContext) -> None:
         assert isinstance(context.app.state.scheduler, Scheduler)
 
     # get schedules from db where is_enabled
+    # TODO how does the daemon handle one-shots?
     statement = select(Schedule).where(Schedule.is_enabled)
     schedules = await context.session.exec(statement)
     for schedule in schedules:
@@ -288,20 +299,14 @@ async def consider_schedules(context: DaemonContext) -> None:
         if context.app.state.scheduler.scheduler.get_job(job_id):
             context.app.state.scheduler.scheduler.reschedule_job(job_id, job_trigger)
         else:
+            remove_self = partial(context.app.state.scheduler.scheduler.remove_job, job_id)
             context.app.state.scheduler.scheduler.add_job(
                 daemon_scheduled_job,
                 job_trigger,
                 id=job_id,
-                args=[schedule.id],
+                args=[remove_self],
+                kwargs={"schedule_id": schedule.id},
             )
-
-    # remove any jobs that are not enabled
-    statement = select(Schedule).where(not Schedule.is_enabled)
-    schedules = await context.session.exec(statement)
-    for schedule in schedules:
-        job_id = str(schedule.id)
-        if context.app.state.scheduler.scheduler.get_job(job_id):
-            context.app.state.scheduler.scheduler.remove_job(job_id)
 
 
 async def daemon_iteration(context: DaemonContext) -> None:
