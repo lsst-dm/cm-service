@@ -1,4 +1,6 @@
 import asyncio
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from datetime import UTC
 from typing import assert_never
 
@@ -57,6 +59,19 @@ class Scheduler:
             case _ as unreachable:
                 raise RuntimeError("Requested jobstore type not supported.")
                 assert_never(unreachable)
+
+    @classmethod
+    @asynccontextmanager
+    async def get_one_shot_scheduler(cls) -> AsyncGenerator[AsyncIOScheduler]:
+        """Factory method for obtaining a short-lived memory-backed one-shot
+        scheduler; use as a context manager.
+        """
+        one_shot = AsyncIOScheduler(timezone=UTC, jobstores={"default": MemoryJobStore()})
+        one_shot.add_listener(cls.job_event_handler, mask=JOB_EVENTS)
+        one_shot.start()
+        yield one_shot
+        one_shot.shutdown()
+        del one_shot
 
     @classmethod
     def normalize_cron_string(cls, cron: str) -> str:

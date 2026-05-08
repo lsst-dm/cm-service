@@ -9,11 +9,13 @@ custom behavior is needed.
 """
 
 from collections.abc import Sequence
+from functools import partial
 from typing import Annotated, cast
 from uuid import UUID
 
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     Header,
     HTTPException,
@@ -37,8 +39,9 @@ from lsst.cmservice.models.db.schedules import (
     ManifestTemplate,
     Schedule,
 )
-from lsst.cmservice.models.lib.timestamp import element_time
+from lsst.cmservice.models.lib.timestamp import element_time, now_utc
 
+from ...common.daemon_v2 import daemon_scheduled_job
 from ...common.logging import LOGGER
 from ...db.session import db_session_dependency
 
@@ -330,3 +333,41 @@ async def create_schedule_template_resource(
     response.headers["Templates"] = str(
         request.url_for("read_schedule_template_collection", schedule_id=schedule_id)
     )
+
+
+@router.post(
+    "/{schedule_id}/oneshot",
+    summary="Run a scheduled campaign immediately",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=None,
+)
+async def create_schedule_oneshot_resource(
+    *,
+    request: Request,
+    response: Response,
+    session: Annotated[AsyncSession, Depends(db_session_dependency)],
+    schedule_id: Annotated[UUID4, Path()],
+    background_tasks: BackgroundTasks,
+) -> None:
+    """Schedules the campaign schedule for immediate one-shot (non-recurring)
+    execution.
+
+    This API returns a 409 if the schedule is not allowed to run at this time
+    (it is disabled or is too close to its normal execution time).
+    """
+
+    # Application-level handler takes care of 404s
+    schedule = await session.get_one(Schedule, schedule_id)
+
+    if not schedule.is_enabled:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Schedule is not enabled")
+
+    # TODO do we want to prevent one-shots within some delta of the scheduled
+    # run time, or allow the job to figure it out -- e.g., by conflicting the
+    # temporal name of the new campaign?
+
+    job = partial(daemon_scheduled_job, lambda: None, schedule_id=schedule_id)
+    background_tasks.add_task(job)
+
+    schedule.last_run_at = now_utc()
+    await session.commit()
