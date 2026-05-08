@@ -13,6 +13,7 @@ import networkx as nx
 from apscheduler.jobstores.base import JobLookupError
 from fastapi import FastAPI
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import make_transient, selectinload
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlmodel import col, select
@@ -240,7 +241,9 @@ async def consider_nodes(context: DaemonContext) -> None:
             await session.commit()
 
 
-async def daemon_scheduled_job(remove_self: Callable, *, schedule_id: UUID) -> None:
+async def daemon_scheduled_job(
+    remove_self: Callable, *, schedule_id: UUID, suppress_exceptions: bool = False
+) -> None:
     """Daemon work function for performing the work of a scheduled campaign.
 
     Each `job` added to the scheduler has this function as its target. The
@@ -251,6 +254,13 @@ async def daemon_scheduled_job(remove_self: Callable, *, schedule_id: UUID) -> N
     passes its `templates` collection through a renderer. The renderer returns
     an ORM object for each `template`, which are then added to the session and
     committed.
+
+    Parameters
+    ----------
+    suppress_exceptions: bool
+        Defaults to False. If True, exceptions will be logged but not reraised.
+        This is useful for launching in BackgroundTasks or wherever unhandled
+        exceptions are problematic.
     """
     if TYPE_CHECKING:
         assert db_session_dependency.sessionmaker is not None
@@ -277,8 +287,24 @@ async def daemon_scheduled_job(remove_self: Callable, *, schedule_id: UUID) -> N
             orms[0].owner = schedule.metadata_.get("owner")
             orms[0].status = StatusEnum.running if schedule_context.auto_start else StatusEnum.paused
 
-        session.add_all(orms)
-        await session.commit()
+        # We want to split the ORMs so the edges are added only after the nodes
+        # FIXME consider a more reusable partitioning function for this
+        edges = [o for o in orms if o.__class__.__name__ == "Edge"]
+        not_edges = [o for o in orms if o.__class__.__name__ != "Edge"]
+
+        try:
+            session.add_all(not_edges)
+            await session.flush()
+            session.add_all(edges)
+            await session.commit()
+        except IntegrityError as e:
+            # TODO under DEBUG logging, we might use a logger.exception for the
+            # full trackback, but it's not very useful in this case
+            logger.error("Database Conflict: check schedule cron or name format", schedule=str(schedule_id))
+            if not suppress_exceptions:
+                raise RuntimeError("Scheduled Campaign tried to make a duplicate") from e
+        finally:
+            logger.info("Scheduled job has finished running", schedule=str(schedule_id))
 
 
 async def consider_schedules(context: DaemonContext) -> None:

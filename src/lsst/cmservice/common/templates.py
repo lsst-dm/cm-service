@@ -146,6 +146,8 @@ async def build_sandbox_and_render_templates[T: ManifestTemplateBase](
                 rendered_manifests.append(template_dict)
 
     # Add the accumulated edge manifests to the end of the deque
+    # FIXME if we use a partition approach in the caller, then we don't really
+    # need to go out of our way to sort the objects here
     rendered_manifests.extend(rendered_edges)
 
     # Work through the deque to create Manifest ORM objects from each rendered

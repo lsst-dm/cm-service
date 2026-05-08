@@ -366,7 +366,7 @@ async def create_schedule_oneshot_resource(
     # run time, or allow the job to figure it out -- e.g., by conflicting the
     # temporal name of the new campaign?
 
-    job = partial(daemon_scheduled_job, lambda: None, schedule_id=schedule_id)
+    job = partial(daemon_scheduled_job, lambda: None, schedule_id=schedule_id, suppress_exceptions=True)
     background_tasks.add_task(job)
 
     schedule.last_run_at = now_utc()
