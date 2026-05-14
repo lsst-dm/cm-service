@@ -244,7 +244,7 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
             ("model", "flags"),
             backward=lambda v: PageFlags.SCHEDULING_MODE in v,
             strict=False,
-        ).bind_value(self, ("model", "schedule_info", "name_format"), strict=False)
+        ).bind_value(self, ("model", "schedule_info", "date_format"), strict=False)
 
     def drawer_contents(self) -> None:
         """Right-side menu drawer contents rendered in a ui.column."""
@@ -372,6 +372,7 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
         exported_campaign = yaml.dump_all(to_export)
 
         ui.download.content(exported_campaign, f"{self.campaign_name}.yaml")
+        self.drawer_open = False
 
     async def handle_import(self, e: ClickEventArguments) -> None:
         """Callback wired to the "Import" button in the drawer menu.
@@ -657,6 +658,7 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
                         )
                     case "lsst" | "butler" | "wms" | "site" | "bps":
                         manifest["metadata"].pop("namespace", None)
+                        manifest["metadata"].pop("kind", None)
                         if (manifest_id := manifest["metadata"].pop("id", None)) is None:
                             manifest_id = str(uuid4())  # FIXME what is the real uuid
                         self.model.manifests[manifest_id] = manifest
@@ -679,6 +681,7 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
         # refresh page components
         await self.edit_campaign_manifests.refresh()
         await self.create_campaign_canvas.refresh()
+        self.drawer_open = False
         self.hide_spinner()
 
 

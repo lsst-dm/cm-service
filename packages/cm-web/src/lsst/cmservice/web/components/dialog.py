@@ -695,8 +695,13 @@ class NewManifestEditorDialog(EditorDialog):
         self.editor.update()
 
     async def handle_kind_selection_change(self, e: ValueChangeEventArguments) -> None:
-        """Callback triggered when the kind selection changes."""
+        """Callback triggered when the kind selection changes.
+
+        Apply the selected "kind" to the model and purge any redundant kind
+        field from the manifest's metadata.
+        """
         self.context.model["kind"] = e.value
+        self.context.model["metadata"].pop("kind", None)
         self.help_section.refresh()
 
     def spec_model_validator(self) -> None:
