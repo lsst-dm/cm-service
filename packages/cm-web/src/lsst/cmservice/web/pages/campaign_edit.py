@@ -9,7 +9,6 @@ from typing import Any, Self
 from uuid import uuid4, uuid5
 
 import networkx as nx
-import yaml
 from httpx import AsyncClient
 from nice_dialogs.dialogs import CronEditorDialog, UploadFileDialog
 from nicegui import app, run, ui
@@ -20,7 +19,7 @@ from lsst.cmservice.models.api.schedules import ScheduleConfiguration, ScheduleM
 from lsst.cmservice.models.db.schedules import CreateManifestTemplate, CreateSchedule
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, ManifestKind
 from lsst.cmservice.models.lib.parsers import as_snake_case
-from lsst.cmservice.models.lib.yaml import str_representer
+from lsst.cmservice.models.lib.yaml import yaml
 
 from .. import api
 from ..components.button import ToggleButton
@@ -32,10 +31,6 @@ from ..lib.enum import MANIFEST_KIND_ICONS
 from ..lib.models import STEP_MANIFEST_TEMPLATE
 from ..settings import settings
 from .common import CMPage, CMPageData
-
-# Apply a custom str representer/parser to the YAML library to format multi-
-# line strings using YAML `|` syntax.
-yaml.add_representer(str, str_representer)
 
 
 class PageFlags(IntFlag):
