@@ -25,8 +25,8 @@ butler_manifest_good:
         predicates:
             - instrument='LSSTCam'
             - skymap='lsst_cells_v1'
-            - day_obs>={{ yesterday | as_day_obs }}
-            - day_obs<{{ today | as_day_obs }}
+            - day_obs>=${{ yesterday | as_day_obs }}
+            - day_obs<${{ today | as_day_obs }}
         repo: /repo/main
 
 lsst_manifest_good:
@@ -37,8 +37,8 @@ lsst_manifest_good:
         namespace: b67094a8-c44f-50b7-a2db-81c95a16fd29
         version: 0
     spec:
-        lsst_distrib_dir: "/sdf/group/rubin/sw/{{ today | as_lsst_version }}"
-        lsst_version: "{{ today | as_lsst_version }}"
+        lsst_distrib_dir: "/sdf/group/rubin/sw/${{ today | as_lsst_version }}"
+        lsst_version: "${{ today | as_lsst_version }}"
 
 # This manifest already has had "business logic" applied to resolve the
 # adjacencies to uuids
