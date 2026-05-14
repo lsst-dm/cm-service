@@ -144,8 +144,8 @@ def make_schedule_with_manifests(**overrides: dict) -> dict:
                         predicates:
                             - instrument='LSSTCam'
                             - skymap='lsst_cells_v1'
-                            - day_obs>='{{ today | as_day_obs }}'
-                            - day_obs<'{{ tomorrow | as_day_obs }}'
+                            - day_obs>='${{ today | as_day_obs }}'
+                            - day_obs<'${{ tomorrow | as_day_obs }}'
                         repo: /repo/main
                     """),
             },
@@ -372,6 +372,7 @@ async def test_template_render(
 
     # successful rendering means no leftover variable placeholders
     if not raises:
+        assert "${{" not in manifest
         assert "{{" not in manifest
         assert "}}" not in manifest
 
