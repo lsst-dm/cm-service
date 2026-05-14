@@ -5,7 +5,7 @@ from nicegui import ui
 from .client_factory import CLIENT_FACTORY
 
 
-async def patch_resource(manifest_url: str, t1: dict, t2: dict) -> None:
+async def patch_resource(manifest_url: str, t1: dict, t2: dict) -> dict | None:
     """Issues a PATCH to the manifest API using the binary diff of the two
     dictionary parameters.
 
@@ -15,15 +15,16 @@ async def patch_resource(manifest_url: str, t1: dict, t2: dict) -> None:
     diff = DeepDiff(t1, t2)
     delta = Delta(diff)
 
-    async with CLIENT_FACTORY.aclient() as session:
+    async with CLIENT_FACTORY.aclient() as client:
         try:
-            r = await session.patch(
+            r = await client.patch(
                 headers={"Content-Type": "application/octet-stream"},
                 url=manifest_url,
                 content=delta.dumps(),
             )
             r.raise_for_status()
             ui.notify("Update successful", type="positive")
+            return r.json()
         except HTTPStatusError as e:
             match e.response:
                 case Response(status_code=codes.CONFLICT):
@@ -36,3 +37,4 @@ async def patch_resource(manifest_url: str, t1: dict, t2: dict) -> None:
                     )
                 case _:
                     ui.notify(e, type="negative")
+            return None

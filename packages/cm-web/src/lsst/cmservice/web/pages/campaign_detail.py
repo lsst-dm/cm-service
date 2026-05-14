@@ -1,5 +1,7 @@
 from copy import deepcopy
 from functools import partial
+from itertools import groupby
+from operator import itemgetter
 from typing import TYPE_CHECKING, Any, Literal, Self, assert_never
 
 import networkx as nx
@@ -283,11 +285,12 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
     async def get_node_edit_button(self) -> None:
         """Creates an edit or preview button suitable for a table cell"""
         ui.button(
-            icon="edit",
             color="dark",
-        ).props("flat round size=sm").tooltip("View/Edit Node Configuration").on(
+        ).props(""":icon="props.row.readonly ? 'edit_off' : 'edit'" flat round size=sm""").tooltip(
+            "View/Edit Node Configuration"
+        ).on(
             "click",
-            js_handler="() => emit(props.row.id)",
+            js_handler="() => !props.row.readonly && emit(props.row.id)",
             handler=self.handle_node_edit,
         )
 
@@ -309,13 +312,6 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
                 "headerClasses": "hidden",
             },
             {"name": "kind", "label": "Kind", "field": "kind", "sortable": True},
-            {
-                "name": "max_version",
-                "label": "Newest Version",
-                "field": "max_version",
-                "classes": "hidden",
-                "headerClasses": "hidden",
-            },
             {"name": "updated", "label": "Updated At", "field": "updated", "sortable": True},
             {"name": "version", "label": "Version", "field": "version", "sortable": True},
             {"name": "edit", "label": "View/Edit", "field": "edit"},
@@ -327,6 +323,9 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
                 "headerClasses": "hidden",
             },
         ]
+        # group node model by name-version
+        sorted_nodes = sorted(self.model["nodes"], key=lambda x: (x["name"], -int(x["version"])))
+        grouped_nodes = groupby(sorted_nodes, key=itemgetter("name"))
         node_rows: list[dict[str, Any]] = [
             {
                 "id": node["id"],
@@ -335,12 +334,12 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
                 "icon": StatusDecorators[node["status"]].emoji,
                 "kind": node["kind"],
                 "version": node["version"],
-                "max_version": node["version"],
                 "updated": timestamp(node["metadata"].get("mtime", 0), "%-d-%b %H:%M:%S UTC"),
                 "edit": None,
-                "readonly": False,
+                "readonly": node["kind"] in ["start", "end", "breakpoint"],
             }
-            for node in sorted(self.model["nodes"], key=lambda x: x["metadata"].get("mtime", 0), reverse=True)
+            for _, g in grouped_nodes
+            for node in [next(g)]
         ]
 
         with self.node_content:
@@ -354,10 +353,7 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
                 ui.chip().props(":label=props.row.status :color=props.row.status :icon=props.row.icon")
         with node_table.add_slot("body-cell-version"):
             with node_table.cell("version"):
-                ui.badge().props("""
-                    :label="props.value"
-                    :color="parseInt(props.row.max_version) > parseInt(props.value) ? 'warning' : 'primary'"
-                """)
+                ui.badge().props(":label=props.value")
 
     @ui.refreshable_method
     def create_graph_viz(self) -> None:
@@ -378,7 +374,7 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
             ).classes("min-w-full")
 
         ui.button(
-            icon="fullscreen" if self.constrain_graph_viz else "fit_screen",
+            icon="zoom_out_map" if self.constrain_graph_viz else "zoom_in_map",
             on_click=toggle_graph_constraint,
         ).props("fab-mini color=accent").classes(
             "absolute top-2 left-2 z-10 opacity-50 hover:opacity-100"
@@ -462,7 +458,20 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
         async with CLIENT_FACTORY.aclient() as client_:
             data = await api.describe_one_campaign(client=client_, id=self.campaign_id)
         self.model["manifests"] = {m["id"]: m for m in data["manifests"]}
-        self.manifest_row.refresh()
+        await self.manifest_row.refresh()
+
+    async def refresh_node_model(self, *args: Any, **kwargs: Any) -> None:
+        """Updates the page model with new node, edge, graph information."""
+        # TODO provide an api wrapper that specifically targets the nodes
+        async with CLIENT_FACTORY.aclient() as client_:
+            data = await api.describe_one_campaign(client=client_, id=self.campaign_id)
+        self.model["nodes"] = data["nodes"]
+        self.model["graph"] = await run.cpu_bound(
+            nx.node_link_graph,
+            data["graph"],
+            edges="edges",  # pyright: ignore[reportCallIssue]
+        )
+        await self.create_content.refresh()
 
     async def validate_step_name(self, data: str | None, ctx: EditorContext) -> str | None:
         """Method to validate the name of a new step, used as a validation
@@ -541,7 +550,8 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
             [
                 (node.get("status", "") != "waiting"),
                 ("readonly" in data.sender.props),
-                (data.sender.props["icon"] == "preview"),
+                (data.sender.props.get("icon", "") == "preview"),
+                (data.sender.props.get("icon", "") == "edit_off"),
             ]
         )
 
@@ -574,7 +584,14 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
         if result is None or ctx.readonly:
             return None
 
-        await patch_resource(node_url, node["configuration"], result["spec"])
+        patched_node = await patch_resource(node_url, node["configuration"], result["spec"])
+        if patched_node is not None:
+            await api.nodes.replace_node(
+                n0=node["id"],
+                n1=patched_node["id"],
+                namespace=node["namespace"],
+            )
+        await self.refresh_node_model()
 
     async def handle_manifest_edit(self, data: ClickEventArguments) -> None:
         """Callback for edit button on Manifest cards"""
