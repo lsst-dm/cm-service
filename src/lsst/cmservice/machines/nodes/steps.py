@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Generator, Sequence
+from collections.abc import Generator, Mapping, Sequence
 from itertools import chain
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid5
 
 from sqlmodel import select
@@ -11,7 +11,6 @@ from transitions import EventData
 from lsst.cmservice.models.db.campaigns import Edge, Node
 from lsst.cmservice.models.enums import ManifestKind, StatusEnum
 from lsst.cmservice.models.lib.graph import (
-    NodeData,
     append_node_to_graph,
     delete_node_from_graph,
     find_endpoints_in_directed_graph,
@@ -335,11 +334,11 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
         # find all output collections for "collect" steps in the subgraph and
         # add them to the set of intermediate collections to be used in the
         # step_input collection used by each group.
-        intermediate_collections = []
-        data: NodeData
-        for _, data in step_subgraph.nodes.data():
-            if data["model"].kind is ManifestKind.collect_groups:
-                step_config = data["model"].configuration
+        intermediate_collections: list[str] = []
+        for _, data in cast(Mapping[Any, Node], step_subgraph.nodes.data(data="model")):
+            data = cast(Node, data)
+            if data.kind is ManifestKind.collect_groups:
+                step_config = data.configuration
                 step_output = step_config.get("butler", {}).get("collections", {}).get("step_output")
                 if step_output is None:
                     raise RuntimeError("Predecessor collect step has no output collection")

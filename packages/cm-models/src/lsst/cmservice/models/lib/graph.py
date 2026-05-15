@@ -182,10 +182,14 @@ def validate_graph(g: nx.DiGraph, source_name: str = "START", sink_name: str = "
     "Correct" means that there are no cycles or isolate nodes (nodes with
     degree 0) and no nodes with degree 1.
     """
+    source: UUID | str
+    sink: UUID | str
     try:
         # discover and check the source and sink nodes if given as a string
-        source_nodes = [n[1].id for n in g.nodes(data="model") if n[1].name == source_name]  # pyright: ignore[reportArgumentType]
-        sink_nodes = [n[1].id for n in g.nodes(data="model") if n[1].name == sink_name]  # pyright: ignore[reportArgumentType]
+        source_nodes = [
+            cast(Node, n).id for _, n in g.nodes(data="model") if cast(Node, n).name == source_name
+        ]
+        sink_nodes = [cast(Node, n).id for _, n in g.nodes(data="model") if cast(Node, n).name == sink_name]
         if len(source_nodes) > 1:
             raise InvalidCampaignGraphError("Graph has more than one START node")
         elif len(source_nodes) < 1:
@@ -606,10 +610,11 @@ async def contract_step_nodes(graph: nx.DiGraph) -> nx.DiGraph:
     graph : networkx.DiGraph
         A graph object where each node is a full Node Model.
     """
+    node: UUID
     # contract any group nodes in the graph into their step
     g2 = graph.copy()
     for node in graph:
-        model: Node = graph.nodes(data="model")[node]
+        model = cast(Node, graph.nodes(data="model")[node])
         if model.kind is not ManifestKind.group:
             continue
         step = list(graph.predecessors(node)).pop()
@@ -618,7 +623,7 @@ async def contract_step_nodes(graph: nx.DiGraph) -> nx.DiGraph:
     # repeat for the collect steps
     g3 = g2.copy()
     for node in g2:
-        model = graph.nodes(data="model")[node]
+        model = cast(Node, graph.nodes(data="model")[node])
         if model.kind is not ManifestKind.collect_groups:
             continue
         step = list(g2.predecessors(node)).pop()
@@ -637,9 +642,10 @@ async def contract_simple_step_nodes(graph: nx.DiGraph) -> nx.DiGraph:
         A graph object where each node is a simple model.
     """
     # contract any group nodes in the graph into their step
+    node: str
     g2 = graph.copy()
     for node in graph:
-        model: SimpleNode = graph.nodes(data=True)[node]
+        model = cast(SimpleNode, graph.nodes(data=True)[node])
         if ManifestKind[model["kind"]] is not ManifestKind.group:
             continue
         step = list(graph.predecessors(node)).pop()
@@ -648,7 +654,7 @@ async def contract_simple_step_nodes(graph: nx.DiGraph) -> nx.DiGraph:
     # repeat for the collect steps
     g3 = g2.copy()
     for node in g2:
-        model = graph.nodes(data=True)[node]
+        model = cast(SimpleNode, graph.nodes(data=True)[node])
         if ManifestKind[model["kind"]] is not ManifestKind.collect_groups:
             continue
         step = list(g2.predecessors(node)).pop()
