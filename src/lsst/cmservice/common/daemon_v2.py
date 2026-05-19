@@ -15,7 +15,7 @@ import networkx as nx
 from apscheduler.jobstores.base import JobLookupError
 from fastapi import FastAPI
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.orm import make_transient, selectinload
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlmodel import col, select
@@ -244,7 +244,7 @@ async def consider_nodes(context: DaemonContext) -> None:
 
 
 async def daemon_scheduled_job(
-    remove_self: Callable, *, schedule_id: UUID, suppress_exceptions: bool = False
+    remove_self: Callable, *, schedule_id: UUID, suppress_exceptions: bool = False, oneshot: bool = False
 ) -> None:
     """Daemon work function for performing the work of a scheduled campaign.
 
@@ -263,20 +263,31 @@ async def daemon_scheduled_job(
         Defaults to False. If True, exceptions will be logged but not reraised.
         This is useful for launching in BackgroundTasks or wherever unhandled
         exceptions are problematic.
+
+    oneshot: bool
+        Defaults to False. If True, the entire function will be evaluated ir-
+        respective of the schedule's enabled status.
     """
     if TYPE_CHECKING:
         assert db_session_dependency.sessionmaker is not None
 
-    # fetch the schedule and its templates
+    # fetch the schedule and its templates. Return early if the schedule is
+    # not found or not enabled (and we are not oneshotting)
     async with db_session_dependency.sessionmaker() as session:
-        schedule = await session.get(Schedule, schedule_id)
-        if schedule is None or not schedule.is_enabled:
+        try:
+            schedule = await session.get_one(Schedule, schedule_id)
+        except NoResultFound:
+            return None
+
+        if not schedule.is_enabled:
             try:
                 remove_self()
             except JobLookupError:
                 logger.error("Job not found during self removal", job_id=schedule_id)
                 pass
-            return None
+            if not oneshot:
+                return None
+
         schedule_context = ScheduleConfiguration(**schedule.configuration)
 
         # TODO signal version picking; for now we just pick the latest version

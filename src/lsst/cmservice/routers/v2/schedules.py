@@ -352,21 +352,22 @@ async def create_schedule_oneshot_resource(
     """Schedules the campaign schedule for immediate one-shot (non-recurring)
     execution.
 
-    This API returns a 409 if the schedule is not allowed to run at this time
-    (it is disabled or is too close to its normal execution time).
+    This API returns a 409 if the schedule is not allowed to run at this time.
     """
 
     # Application-level handler takes care of 404s
     schedule = await session.get_one(Schedule, schedule_id)
 
-    if not schedule.is_enabled:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Schedule is not enabled")
+    if schedule.is_enabled:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Schedule may not be enabled")
 
     # TODO do we want to prevent one-shots within some delta of the scheduled
     # run time, or allow the job to figure it out -- e.g., by conflicting the
     # temporal name of the new campaign?
 
-    job = partial(daemon_scheduled_job, lambda: None, schedule_id=schedule_id, suppress_exceptions=True)
+    job = partial(
+        daemon_scheduled_job, lambda: None, schedule_id=schedule_id, suppress_exceptions=True, oneshot=True
+    )
     background_tasks.add_task(job)
 
     schedule.last_run_at = now_utc()
