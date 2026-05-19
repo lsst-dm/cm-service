@@ -41,6 +41,7 @@ async def read_activity_collection(
     since: Annotated[
         datetime | None, Query(description="Datetime of earliest log, in any format pydantic can validate")
     ] = None,
+    sort: Annotated[str, Query(description="Sort field(s); `-` prefix descending")] = "finished_at",
 ) -> Sequence[ActivityLog]:
     """A paginated API returning a list of all Activity Logs known to the
     application, with query parameters allowing some constraints.
@@ -57,7 +58,16 @@ async def read_activity_collection(
     if since is not None:
         statement = statement.where(ActivityLog.finished_at >= since)  # type: ignore[operator]
 
-    statement = statement.order_by(col(ActivityLog.created_at).desc()).offset(offset).limit(limit)
+    # Add predicates for sorting
+    for field in sort.split(","):
+        field = field.strip()
+        column = col(getattr(ActivityLog, field.removeprefix("-")))
+        if field.startswith("-"):
+            statement = statement.order_by(column.desc())
+        else:
+            statement = statement.order_by(column.asc())
+
+    statement = statement.offset(offset).limit(limit)
     activity_logs = (await session.exec(statement)).all()
     return activity_logs
 
