@@ -4,7 +4,8 @@ from dataclasses import dataclass
 from typing import Any, Self, TypedDict, cast
 
 from fastapi import Request
-from httpx import AsyncClient
+from httpx import AsyncClient, HTTPStatusError
+from nice_dialogs.dialogs import ConfirmationDialog
 from nicegui import ui
 
 from ..components import storage
@@ -140,6 +141,9 @@ class CMPage[PageModelT: CMPageModel | CMPageData]:
 
         self.overlay_div = ui.element("div").classes("hidden")
 
+        # exception handler for errors after an HTML response has been sent
+        ui.on_exception(self.show_error_dialog)
+
     async def setup(self, client_: AsyncClient | None = None) -> Self:
         """Async method called at page creation. Subpages can override this
         method to perform data loading/prep, etc., before calling render().
@@ -203,3 +207,35 @@ class CMPage[PageModelT: CMPageModel | CMPageData]:
         overlay_classes = "fixed inset-0 bg-white bg-opacity-90 z-50 flex items-center justify-center"
         self.overlay_div.classes(remove=overlay_classes, add="hidden")
         self.overlay_div.clear()
+
+    async def show_error_dialog(self, e: Exception) -> None:
+        """Callback for handling errors that occur after the HTML response has
+        been sent to the client, i.e., exceptions raised by interactions or
+        refreshes, etc.
+        """
+        # Show a popup dialog and navigate/refresh the current page
+        dialog_title: str
+        message: str
+        match e:
+            case HTTPStatusError():
+                dialog_title = f"API Error {e.response.status_code}: {e.response.reason_phrase}"
+                message = f"{e.response.json().get('detail', e.args)}"
+            case _:
+                dialog_title = "An Error Occurred"
+                message = str(e)
+
+        error_dialog = ConfirmationDialog(
+            dialog_title=dialog_title,
+            message=message,
+            icon="error_outline",
+            icon_color="negative",
+            yes_button_label="Go Home",
+            no_button_label="Stay Here",
+            show_remember_checkbox=False,
+        )
+        nav_to_home, _ = await error_dialog
+        error_dialog.clear()
+        if nav_to_home:
+            ui.navigate.to("/")
+        else:
+            ui.navigate.reload()
