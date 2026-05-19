@@ -334,6 +334,14 @@ class HTCondorLaunchMixin(LaunchMixIn):
         lsst_config["launcher"].append("""setup -t ${LSST_VERSION} lsst_distrib""")
         self.configuration_chain["lsst"] = self.configuration_chain["lsst"].new_child(lsst_config)
 
+        # Set any mock BPS overrides to head of chain
+        if config.bps.mock_distrib_dir is not None:
+            self.configuration_chain["lsst"] = self.configuration_chain["lsst"].new_child(
+                {
+                    "lsst_distrib_dir": config.bps.mock_distrib_dir,
+                }
+            )
+
     async def launch_prepare(self, event: EventData) -> None:
         """Prepares a configuration chain link for runtime Launch configs.
 

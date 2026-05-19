@@ -48,6 +48,11 @@ class BpsConfiguration(BaseModel):
         default="/sdf/group/rubin/sw/w_latest",
     )
 
+    mock_distrib_dir: str | None = Field(
+        description="Directory for Mocked components when running under test",
+        default=None,
+    )
+
     bps_bin: str = Field(
         description="Name of a bps client binary",
         default="bps",
