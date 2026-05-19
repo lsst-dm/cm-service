@@ -146,6 +146,13 @@ class HTCondorConfiguration(BaseModel):
     Fields with `exclude=True` are not included when a `model_dump` is called
     on this model; included fields will be represented by their field name or
     their serialization alias.
+
+    FIXME: separation of concerns launcher vs payload. Briefly, "launcher" is
+    cm-service talking to htcondor to LAUNCH a job; "payload" is bps talking
+    to htcondor to EXECUTE a job. These should be separately configurable, and
+    "launcher" should need only a small subset of the fields. Maybe the sub-
+    models just need broken out into separate configs, e.g., `config.htcondor`
+    and `config.condor_launcher`
     """
 
     config_source: str = Field(
@@ -246,6 +253,36 @@ class HTCondorConfiguration(BaseModel):
         description="Shared directory to use with htcondor remote filesystem authentication.",
         default="/tmp",
         serialization_alias="FS_REMOTE_DIR",
+    )
+
+    token_directory: str | None = Field(
+        description="Directory to ID Token file to use with htcondor when authn is IDTOKEN",
+        default=None,
+        serialization_alias="_CONDOR_SEC_TOKEN_DIRECTORY",
+    )
+
+    launcher_authn_method: Literal["FS_REMOTE", "IDTOKENS"] = Field(
+        description="Secure client authn method used by an HTCondor Launcher",
+        default="FS_REMOTE",
+        exclude=True,
+    )
+
+    launcher_authn_identity: str | None = Field(
+        description="Identity to use with Launcher token request",
+        default=None,
+        exclude=True,
+    )
+
+    launcher_token_duration: int = Field(
+        description="Token validity in seconds",
+        default=3_600,
+        exclude=True,
+    )
+
+    launcher_job_architecture: Literal["X86_64", "AARCH64"] | None = Field(
+        description="target architecture to set for launcher job submissions",
+        default=None,
+        serialization_alias="_CONDOR_ARCH",
     )
 
 

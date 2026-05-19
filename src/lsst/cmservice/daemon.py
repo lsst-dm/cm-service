@@ -30,6 +30,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     _ = get_panda_token()
     # Update process environment with configuration models
     os.environ |= config.panda.model_dump(by_alias=True, exclude_none=True)
+    # TODO add the "launcher" config details to the environ
     os.environ |= config.htcondor.model_dump(by_alias=True, exclude_none=True)
     app.state.tasks = set()
     # Dependency inits before app starts running
