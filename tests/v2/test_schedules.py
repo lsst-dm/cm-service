@@ -492,20 +492,26 @@ async def test_one_shot_api(aclient: AsyncClient, test_case: ScheduleTestCase) -
     # Create and enable the schedule
     x = await aclient.post("/v2/schedules", json=test_case.post_data)
     assert x.status_code == test_case.expected_code
+    schedule_url = x.headers["Self"]
 
-    x = await aclient.patch(
-        x.headers["Self"], json={"is_enabled": True, "configuration": {"name_format": "%s"}}
-    )
+    x = await aclient.patch(schedule_url, json={"is_enabled": True, "configuration": {"date_format": "%s"}})
     assert x.status_code == codes.OK
-    x = await aclient.get(x.headers["Self"])
+    x = await aclient.get(schedule_url)
     assert x.status_code == codes.OK
 
     new_schedule = x.json()[0]
     assert new_schedule["is_enabled"]
     assert new_schedule["next_run_at"] is not None
-    assert new_schedule["configuration"]["name_format"] == "%s"
+    assert new_schedule["configuration"]["date_format"] == "%s"
 
-    x = await aclient.post(f"{x.headers['Self']}/oneshot")
+    x = await aclient.post(f"{schedule_url}/oneshot")
+    assert x.status_code == codes.CONFLICT
+    assert "may not be enabled" in x.json()["detail"]
+
+    x = await aclient.patch(schedule_url, json={"is_enabled": False})
+    assert x.status_code == codes.OK
+
+    x = await aclient.post(f"{schedule_url}/oneshot")
     assert x.status_code == codes.ACCEPTED
 
     await asyncio.wait_for(check_oneshot_complete(), timeout=5.0)

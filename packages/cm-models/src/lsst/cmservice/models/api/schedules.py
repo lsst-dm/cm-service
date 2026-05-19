@@ -18,7 +18,11 @@ class ScheduleConfiguration(ManifestSpec):
     # fields, e.g.) must either always use a backward-compatible default and/or
     # be matched with an alembic migration to backfill a backward-compatible
     # default for all extant records.
-    expressions: dict[str, str] = Field(default_factory=dict)
+    expressions: dict[str, str] = Field(
+        default_factory=dict,
+        description="A mapping of a variable name to a string representation of a valid Python expression.",
+        examples=[{"today": "datetime.now()"}],
+    )
     auto_start: bool = Field(
         default=True, description="Whether the new campaign will be created in a paused or running state."
     )
