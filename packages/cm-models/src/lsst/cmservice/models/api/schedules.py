@@ -26,6 +26,10 @@ class ScheduleConfiguration(ManifestSpec):
         default="%Y%m%d",
         description="A datetime format string used to format the nonce added to the campaign name.",
     )
+    cron: str = Field(
+        default="0 0 1-7 * SUN",
+        description="A crontab string expressing a scheduling cadence.",
+    )
 
 
 class ScheduleUpdate(BaseModel):

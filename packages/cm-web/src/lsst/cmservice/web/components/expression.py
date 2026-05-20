@@ -65,15 +65,18 @@ class ExpressionEditorDialog(ui.dialog):
             with ui.expansion("Help").classes("w-full m-0 p-0"):
                 ui.markdown(
                     """
-                    - Variables you create here can be used in your Campaign's manifests as jinja template variables, e.g. `{{ my_variable }}`.
+                    - Variables you create here can be used in your Campaign's manifests as jinja template variables, e.g. `${{ my_variable }}`.
                     - Variables should always be named using valid Python variable naming conventions, e.g. `my_variable`.
                     - Expressions should be valid Python expressions that can be evaluated with `eval()`.
                     - Example: `datetime.now() - timedelta(days=7)` to represent a variable that evaluates to the date 7 days ago.
                     - Some custom Jinja filters are available for use in expressions, including:
-                        - `as_exposure(n)`: datetime as a `YYYYMMDD#####` string
-                        - `as_day_obs`: datetime as a `YYYYMMDD` string
-                        - `as_lsst_version`: datetime as a weekly or daily LSST version string
-                        - Always refer to `lsst.cmservice.models.lib.jinja` for available custom filters
+                      - `as_exposure(n)`: datetime as a `YYYYMMDD#####` string
+                      - `as_day_obs`: datetime as a `YYYYMMDD` string
+                      - `as_lsst_version`: datetime as a weekly or daily LSST version string
+                      - Always refer to `lsst.cmservice.models.lib.jinja` for available custom filters
+                    - Only certain modules and types are whitelisted for expression evaluation, including:
+                      - `datetime`, `timedelta`, and `timezone` from the `datetime` module.
+                      - `string` module.
                     """  # noqa: E501
                 ).classes("max-h-64 overflow-auto")
 

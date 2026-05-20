@@ -16,7 +16,7 @@ from nicegui import app, run, ui
 from nicegui.elements.upload_files import FileUpload, SmallFileUpload
 from nicegui.events import ClickEventArguments, GenericEventArguments, ValueChangeEventArguments
 
-from lsst.cmservice.models.api.schedules import ScheduleManifest
+from lsst.cmservice.models.api.schedules import ScheduleConfiguration, ScheduleManifest
 from lsst.cmservice.models.db.schedules import CreateManifestTemplate, CreateSchedule
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, ManifestKind
 from lsst.cmservice.models.lib.parsers import as_snake_case
@@ -53,7 +53,7 @@ class CampaignPageModel(CMPageData):
     spec: dict[str, dict[str, Any]] = field(default_factory=dict)
     campaign: dict[str, Any] = field(default_factory=dict)
     manifests: dict[str, Any] = field(default_factory=dict)
-    schedule_info: dict[str, Any] = field(default_factory=dict)
+    schedule_info: ScheduleConfiguration = field(default_factory=ScheduleConfiguration)
     flags: PageFlags = field(default_factory=lambda: PageFlags(0))
 
 
@@ -85,7 +85,6 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
             with (
                 ui.input(
                     label="Cron Expression",
-                    value="0 0 1-7 * SUN",  # midnight on first sunday of the month
                     validation={
                         "Cron too frequent": lambda c: not c.startswith("*"),
                     },
@@ -98,10 +97,7 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
                 ).tooltip("Edit cron")
 
             self.campaign_template_name_format = (
-                ui.input(
-                    label="Name Format",
-                    value="%Y%m%d",
-                )
+                ui.input(label="Name Format")
                 .props('input-class="font-mono"')
                 .tooltip(
                     "A `strftime` format string for appending runtime tokens to generated campaign names."
@@ -244,7 +240,7 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
             ("model", "flags"),
             backward=lambda v: PageFlags.SCHEDULING_MODE in v,
             strict=False,
-        ).bind_value(self, ("model", "schedule_info", "date_format"), strict=False)
+        ).bind_value(self, ("model", "schedule_info", "name_format"), strict=False)
 
     def drawer_contents(self) -> None:
         """Right-side menu drawer contents rendered in a ui.column."""
@@ -445,14 +441,14 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
         # Create a Schedule object
         schedule = CreateSchedule(
             name=f"schedule-{self.campaign_name}-{uuid4().hex[0:8]}",
-            cron=self.model.schedule_info["cron"],
+            cron=self.model.schedule_info.cron,
             metadata_={
                 "owner": self.username,
             },
             configuration={
-                "auto_start": self.model.schedule_info["auto_start"],
-                "expressions": self.model.schedule_info["expressions"],
-                "date_format": self.model.schedule_info["date_format"],
+                "auto_start": self.model.schedule_info.auto_start,
+                "expressions": self.model.schedule_info.expressions,
+                "name_format": self.model.schedule_info.name_format,
             },
             is_enabled=False,
             templates=[],
@@ -539,21 +535,19 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
 
     async def handle_expressions_dialog(self, e: ClickEventArguments) -> None:
         """Creates an editor dialog for custom template expressions."""
-        expressions_dialog = ExpressionEditorDialog(
-            with_expressions=self.model.schedule_info.get("expressions", {})
-        )
+        expressions_dialog = ExpressionEditorDialog(with_expressions=self.model.schedule_info.expressions)
         expressions = await expressions_dialog
         if expressions is not None:
-            self.model.schedule_info["expressions"] = expressions
+            self.model.schedule_info.expressions = expressions
         expressions_dialog.clear()
 
     async def handle_cron_dialog(self, e: ClickEventArguments) -> None:
         """Creates a cron editor dialog for the current cron string."""
         cron_dialog = CronEditorDialog()
-        cron_dialog.reset(self.model.schedule_info.get("cron"))
+        cron_dialog.reset(self.model.schedule_info.cron)
         cron_str = await cron_dialog
         if cron_str is not None:
-            self.model.schedule_info["cron"] = cron_str
+            self.model.schedule_info.cron = cron_str
         cron_dialog.clear()
 
     async def validate_new_manifest_name(self, data: str | None, ctx: EditorContext) -> str | None:
@@ -663,7 +657,7 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
                             manifest_id = str(uuid4())  # FIXME what is the real uuid
                         self.model.manifests[manifest_id] = manifest
                     case "schedule":
-                        self.model.schedule_info = manifest["spec"]
+                        self.model.schedule_info = ScheduleConfiguration(**manifest["spec"])
                         self.scheduling_switch.value = True
                         self.scheduling_switch.disable()
                         self.scheduling_switch.tooltip(
