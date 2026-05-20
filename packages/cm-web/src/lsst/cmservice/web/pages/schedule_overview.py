@@ -1,5 +1,3 @@
-# ruff: disable[W505]
-
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Literal, Self, assert_never
 
@@ -25,9 +23,9 @@ class ScheduleOverviewPageModel(CMPageModel):
     ----------
     schedules: dict[str, dict[str, Any]
         A mapping of schedule IDs to a schedule instance. Each schedule in the
-        mapping will be shown on the scheduling overview table modulo any active
-        filtering. Each value is a dict representation of the database Schedule
-        record.
+        mapping will be shown on the scheduling overview table modulo any
+        active filtering. Each value is a dict representation of the database
+        Schedule record.
 
     active_schedule: str
         The string ID of an "active" schedule. The active schedule is one that
@@ -381,7 +379,7 @@ class ScheduleOverviewPage(CMPage[ScheduleOverviewPageModel]):
         # else still false
 
         # FIXME the starts_after filter is always active
-        # pass if the schedule has a next run date and this date is after the filter
+        # pass if the schedule has a next run date after the filter
         if (
             schedule.next_run_at is not None
             and schedule.next_run_at >= self.model["active_starts_after_filter"]

@@ -22,9 +22,13 @@ class ScheduleConfiguration(ManifestSpec):
     auto_start: bool = Field(
         default=True, description="Whether the new campaign will be created in a paused or running state."
     )
-    name_format: str = Field(
+    date_format: str = Field(
         default="%Y%m%d",
         description="A datetime format string used to format the nonce added to the campaign name.",
+    )
+    cron: str = Field(
+        default="0 0 1-7 * SUN",
+        description="A crontab string expressing a scheduling cadence.",
     )
 
 

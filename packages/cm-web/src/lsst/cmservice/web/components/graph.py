@@ -1,8 +1,10 @@
 from networkx import DiGraph
 
-from ..lib import enum, logging
+from lsst.cmservice.models.lib.logging import LOGGER
 
-logger = logging.LOGGER.bind(module=__name__)
+from ..lib import enum
+
+logger = LOGGER.bind(module=__name__)
 
 
 def nx_to_mermaid(graph: DiGraph, *, constrain: bool = True) -> str:
