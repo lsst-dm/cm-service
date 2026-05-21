@@ -140,6 +140,10 @@ class ButlerFactory:
         -------
         ``lsst.daf.butler.ButlerConfig``
         """
+        # Under testing, apply the mock repo to all requests
+        if config.butler.mock_repo is not None:
+            label = config.butler.mock_repo
+            logger.warning("Using Mock Butler repo %s", label)
 
         try:
             repo_uri: ResourcePathExpression = BUTLER_REPO_INDEX.get_repo_uri(label=label)

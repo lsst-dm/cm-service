@@ -1,4 +1,5 @@
 from collections.abc import AsyncGenerator, Mapping, Sequence
+from typing import assert_never
 
 from ..enums import SplitterEnum
 from ..errors import CMInvalidGroupingError
@@ -64,5 +65,6 @@ class ValuesSplitter(Splitter):
                 case Sequence():
                     value_list = ",".join([str(x) for x in value])
                     yield f"({self.dimension} IN ({value_list})"
-                case _:
+                case _ as never:
+                    assert_never(never)
                     raise CMInvalidGroupingError
