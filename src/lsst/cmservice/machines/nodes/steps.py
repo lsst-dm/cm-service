@@ -122,10 +122,11 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
             case SplitterEnum.QUERY:
                 splitter_type = SplitterMapping[SplitterEnum.QUERY.value]
                 splitter_config["butler_label"] = self.butler.spec.repo
+                splitter_config["predicates"] = self.butler.spec.predicates
                 if self.butler.spec.collections.step_input is not None:
                     splitter_config["collections"] = [self.butler.spec.collections.step_input]
                 else:
-                    splitter_config["collections"] = [self.butler.spec.collections.campaign_input]
+                    splitter_config["collections"] = self.butler.spec.collections.campaign_input
 
         return splitter_type(**splitter_config)
 

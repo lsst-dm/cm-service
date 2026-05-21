@@ -121,11 +121,11 @@ class CMYamlParseError(KeyError):
     """Raised when parsing a yaml file fails"""
 
 
-class CMInvalidGroupingError(Exception):
+class CMInvalidGroupingError(RuntimeError):
     """Raised when group splitting fails"""
 
 
-class CMNoSuchManifestError(Exception):
+class CMNoSuchManifestError(RuntimeError):
     """Raised when a Manifest cannot be found in the database."""
 
 

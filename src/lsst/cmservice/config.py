@@ -120,6 +120,19 @@ class ButlerConfiguration(BaseModel):
         default=True,
     )
 
+    mock_repo: str | None = Field(
+        description="Repo name for Mocked components when running under test",
+        default=None,
+    )
+
+    max_query_limit: int = Field(
+        description=(
+            "Query limit for butler data queries. The butler package defaults to `-20_000`"
+            "(the negative meaning to log a warning before truncating results)"
+        ),
+        default=-1_000_000,
+    )
+
 
 class HipsConfiguration(BaseModel):
     """Configuration settings for HiPS operations.
