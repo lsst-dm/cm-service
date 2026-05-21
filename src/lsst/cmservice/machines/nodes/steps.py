@@ -112,8 +112,8 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
     async def get_splitter(self) -> Splitter:
         """Generates group-predicates according to the Node grouping rules."""
         # select a splitter based on the Node's configuration
-        splitter_config = self.db_model.configuration.get("groups", None)
-        if splitter_config is None:
+        splitter_config: dict = {**self.db_model.configuration.get("groups", {})}
+        if not splitter_config:
             return SplitterMapping["null"]()
 
         match SplitterEnum(splitter_config["split_by"]):
@@ -469,9 +469,11 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
             )
 
         # Remove the collect_groups_node
+        collect_group = None
         if self.collect_group is not None:
-            collect_group = await self.session.get_one(Node, ident=self.collect_group, with_for_update=True)
+            collect_group = await self.session.get(Node, ident=self.collect_group, with_for_update=True)
 
+        if collect_group is not None:
             await delete_node_from_graph(
                 node_0=collect_group.id,
                 namespace=self.db_model.namespace,
