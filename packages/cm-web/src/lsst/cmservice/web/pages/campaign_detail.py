@@ -548,7 +548,7 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
         node_name = node["name"]
         readonly_editor = any(
             [
-                (node.get("status", "") != "waiting"),
+                (node.get("status", "") not in ["waiting", "failed", "rejected", "accepted"]),
                 ("readonly" in data.sender.props),
                 (data.sender.props.get("icon", "") == "preview"),
                 (data.sender.props.get("icon", "") == "edit_off"),
