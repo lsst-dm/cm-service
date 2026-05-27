@@ -4,9 +4,9 @@ related tables.
 
 import re
 from typing import Annotated
-from uuid import uuid4
+from uuid import uuid4, uuid5
 
-from pydantic import UUID4, AwareDatetime, BeforeValidator, StrictBool
+from pydantic import UUID4, UUID5, AwareDatetime, BeforeValidator, StrictBool, ValidationInfo, model_validator
 from pydantic_extra_types.cron import CronStr
 from sqlalchemy import UniqueConstraint
 from sqlmodel import Column, DateTime, Enum, Field, Relationship
@@ -79,9 +79,14 @@ class CreateSchedule(ScheduleBase):
 
 
 class ManifestTemplateBase(BaseSQLModel):
-    """templates_v2 base model, used to create new manifest template objects"""
+    """templates_v2 base model, used to create new manifest template objects.
 
-    id: UUID4 = Field(default_factory=uuid4, primary_key=True)
+    The id of a manifest template is a UUID5, expected to be formed by hashing
+    a string of form `NAME=...,KIND=...,VERSION=n` in the namespace of the
+    `schedule_id`.
+    """
+
+    name: str
     version: int = Field(default=1)
     kind: KindField = Field(
         sa_column=Column("kind", Enum(ManifestKind, length=20, native_enum=False, create_constraint=False)),
@@ -89,13 +94,42 @@ class ManifestTemplateBase(BaseSQLModel):
     manifest: str = ""
     metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])
 
+    @model_validator(mode="before")
+    @classmethod
+    def custom_model_validator[T](cls, data: T, info: ValidationInfo) -> T:
+        """Validates the model and provides computed default values when avail-
+        able.
+        """
+        if isinstance(data, dict):
+            if "name" not in data:
+                data["name"] = str(uuid4())[0:8]
+            # Generate namespaced ID for manifest template
+            if "schedule_id" in data and "id" not in data:
+                data["id"] = uuid5(
+                    data["schedule_id"],
+                    name=f"""NAME={data["name"]},KIND={data["kind"]},VERSION={data.get("version", 1)}""",
+                )
+        return data
+
 
 class ManifestTemplate(ManifestTemplateBase, table=True):
     """Model used for database operations involving templates_v2 table rows"""
 
     model_config = {"validate_assignment": True}
     __tablename__: str = "templates_v2"  # type: ignore[misc]
+    id: UUID5 = Field(primary_key=True)
     schedule_id: UUID4 = Field(foreign_key="schedules_v2.id", ondelete="CASCADE")
+
+    def generate_id(self) -> UUID5:
+        """An instance method for the ORM version of a ManifestTemplate for
+        easy generation of a new ID, in case the name or version of the object
+        changes.
+        """
+        self.id = uuid5(
+            self.schedule_id,
+            name=f"NAME={self.name},KIND={self.kind},VERSION={self.version}",
+        )
+        return self.id
 
 
 class CreateManifestTemplate(ManifestTemplateBase):
@@ -103,6 +137,8 @@ class CreateManifestTemplate(ManifestTemplateBase):
 
     # This model differs from its sibling in that the schedule_id is optional
     # rather than a mandatory FK constraint, allowing it to be used to
-    # create new ManifestTemplate objects.
+    # create new ManifestTemplate objects when a schedule and ID is applied
+    # later
+    id: UUID5 | None = None
     schedule_id: UUID4 | None = None
     manifest: Annotated[str, BeforeValidator(check_manifest_template_string)] = ""

@@ -9,20 +9,22 @@ from textwrap import dedent
 from uuid import uuid4
 
 import pytest
+from httpx import AsyncClient, codes
 
 from lsst.cmservice.common.templates import build_sandbox_and_render_templates
 from lsst.cmservice.models.api.schedules import ScheduleConfiguration
 from lsst.cmservice.models.db.campaigns import Campaign, Manifest
-from lsst.cmservice.models.db.schedules import ManifestTemplate
+from lsst.cmservice.models.db.schedules import CreateManifestTemplate
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""
 
 
-manifest_templates = [
+MANIFEST_TEMPLATES = [
     {
+        "name": "A",
         "kind": "campaign",
-        "template": dedent("""\
+        "manifest": dedent("""\
             apiVersion: "io.lsst.cmservice/v1"
             kind: "campaign"
             metadata:
@@ -38,8 +40,9 @@ manifest_templates = [
         """),
     },
     {
+        "name": "A",
         "kind": "node",
-        "template": dedent("""\
+        "manifest": dedent("""\
             apiVersion: io.lsst.cmservice/v1
             kind: node
             metadata:
@@ -52,8 +55,9 @@ manifest_templates = [
         """),
     },
     {
+        "name": "A",
         "kind": "edge",
-        "template": dedent("""\
+        "manifest": dedent("""\
             apiVersion: io.lsst.cmservice/v1
             kind: edge
             metadata:
@@ -64,8 +68,9 @@ manifest_templates = [
         """),
     },
     {
+        "name": "A",
         "kind": "butler",
-        "template": dedent("""\
+        "manifest": dedent("""\
             apiVersion: "io.lsst.cmservice/v1"
             kind: "butler"
             metadata:
@@ -78,8 +83,8 @@ manifest_templates = [
                 predicates:
                     - "instrument='LSSTCam'"
                     - "skymap='lsst_cells_v1'"
-                    - "exposure > {{ obs_day | as_exposure(first_exposure) }}"
-                    - "exposure <= {{ obs_day | as_exposure(last_exposure) }}"
+                    - "exposure > {{ day_obs | as_exposure(first_exposure) }}"
+                    - "exposure <= {{ day_obs | as_exposure(last_exposure) }}"
                     - "exposure.observation_type IN ('science')"
                     - "detector NOT IN ({{ bad_detectors | join(',') }})"
                 collections:
@@ -90,8 +95,9 @@ manifest_templates = [
         """),
     },
     {
+        "name": "A",
         "kind": "lsst",
-        "template": dedent("""\
+        "manifest": dedent("""\
             apiVersion: "io.lsst.cmservice/v1"
             kind: "lsst"
             metadata:
@@ -107,20 +113,25 @@ manifest_templates = [
 
 
 @pytest.fixture
-def template_generator() -> Generator[ManifestTemplate]:
+def template_generator() -> Generator[CreateManifestTemplate]:
     schedule_id = uuid4()
     return (
-        ManifestTemplate(kind=t["kind"], manifest=t["template"], schedule_id=schedule_id)  # pyright: ignore[reportArgumentType]
-        for t in manifest_templates
+        CreateManifestTemplate(
+            name=t["name"],
+            kind=t["kind"],  # pyright: ignore[reportArgumentType]
+            manifest=t["manifest"],
+            schedule_id=schedule_id,
+        )
+        for t in MANIFEST_TEMPLATES
     )
 
 
-async def test_custom_expressions(template_generator: Generator[ManifestTemplate]) -> None:
+async def test_custom_expressions(template_generator: Generator[CreateManifestTemplate]) -> None:
     context = ScheduleConfiguration(
         expressions={
             "campaign_name": "'test_simple_template'",
             "today": "datetime(year=2026, month=5, day=1)",
-            "obs_day": "datetime(year=2025, month=7, day=23)",
+            "day_obs": "datetime(year=2025, month=7, day=23)",
             "first_exposure": "398",
             "last_exposure": "400",
             "bad_detectors": "[120, 121, 122, 78]",
@@ -144,3 +155,38 @@ async def test_custom_expressions(template_generator: Generator[ManifestTemplate
     campaign_id = x[0].id
     for orm in islice(x, 1, None):
         assert orm.namespace == campaign_id
+
+
+async def test_add_templates_to_schedule(aclient: AsyncClient) -> None:
+    """Test the addition of new template manifests to an existing schedule."""
+    x = await aclient.post("/v2/schedules", json={"name": str(uuid4())[0:8], "cron": "* * * * *"})
+    assert x.status_code == codes.CREATED
+
+    for template in MANIFEST_TEMPLATES:
+        y = await aclient.post(f"""{x.headers["Self"]}/templates""", json=template)
+        assert y.status_code == codes.CREATED
+
+    y = await aclient.get(x.headers["Templates"])
+    assert y.status_code == codes.OK
+    assert len(y.json()) == len(MANIFEST_TEMPLATES)
+
+    # Repeat the above, expecting new versions of each manifest
+    for template in MANIFEST_TEMPLATES:
+        y = await aclient.post(f"""{x.headers["Self"]}/templates""", json=template)
+        assert y.status_code == codes.CREATED
+
+    y = await aclient.get(x.headers["Templates"])
+    assert y.status_code == codes.OK
+    schedule_templates = y.json()
+    assert len(schedule_templates) == len(MANIFEST_TEMPLATES) * 2
+    version_1_templates = 0
+    version_2_templates = 0
+    for t in schedule_templates:
+        if t["version"] == 1:
+            version_1_templates += 1
+        elif t["version"] == 2:
+            version_2_templates += 1
+        else:
+            raise RuntimeError("No version other than 1 or 2 should exist in this test.")
+
+    assert version_1_templates == version_2_templates
