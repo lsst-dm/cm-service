@@ -274,6 +274,9 @@ async def update_node_resource(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No such node")
 
     if use_rfc7396:
+        # With RFC7396, a Node is patched without creating a new version. This
+        # is useful for updating status without affecting config
+        # TODO this should support metadata updates as well.
         if TYPE_CHECKING:
             assert isinstance(patch_data, CampaignUpdate)
         if patch_data.status is None:

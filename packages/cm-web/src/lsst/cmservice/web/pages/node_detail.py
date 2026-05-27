@@ -4,8 +4,12 @@ from functools import partial
 from typing import Any, Self, TypedDict
 
 from httpx import AsyncClient
+from nice_dialogs.dialogs import ConfirmationDialog
 from nicegui import app, ui
+from nicegui.events import ClickEventArguments
 from yaml import safe_dump
+
+from lsst.cmservice.models.enums import StatusEnum
 
 from .. import api
 from ..components import dialog, storage, strings
@@ -69,6 +73,7 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
         self.create_header.refresh()
         return self
 
+    @ui.refreshable_method
     async def node_detail_ribbon(self) -> None:
         """Renders a Node Detail ribbon.
 
@@ -77,7 +82,7 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
         and step-advance buttons if available.
         """
         node = self.model["node"]
-        with ui.row().classes("shrink-0 gap-2 w-full"):
+        with ui.row().classes("shrink-0 gap-2 w-full items-center"):
             with ui.link(target=f"/campaign/{node['namespace']}"):
                 ui.chip("Campaign", icon="shape_line", color="white").tooltip(node["namespace"])
             ui.chip(node["kind"], icon="fingerprint", color="white").tooltip("Node Kind")
@@ -135,6 +140,8 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
     @ui.refreshable_method
     async def node_status_chip(self) -> None:
         """Renders a chip indicating the Status of the Node."""
+        color: str
+        icon: str
         data = await api.describe_one_node(id=self.node_id)
         self.model["node"] = data["node"]
         node_status = StatusDecorators[data["node"]["status"]]
@@ -142,15 +149,35 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
         icon, _ = ui.state(node_status.emoji)
         color, _ = ui.state(node_status.hex)
 
-        # For a breakpoint node, we will show the chip only if it is accepted
-        if self.model["node"]["kind"] != "breakpoint":
-            ui.chip(status, icon=icon, color=color).tooltip("Node Status")
-        else:
-            ui.chip(status, icon=icon, color=color).tooltip("Node Status").bind_visibility_from(
-                target_object=self.model["node"],
-                target_name="status",
-                backward=lambda v: v in ["accepted", "failed"],
-            )
+        match self.model["node"]:
+            case {"kind": "breakpoint"}:
+                ui.chip(status, icon=icon, color=color).tooltip("Node Status").bind_visibility_from(
+                    target_object=self.model,
+                    target_name=("node", "status"),
+                    backward=lambda v: v in ["accepted", "failed"],
+                )
+            case {"kind": "group", "status": ("accepted" | "rejected")}:
+                _toggle = {"accepted": "rejected", "rejected": "accepted"}
+                not_status = _toggle[status]
+                with (
+                    ui.dropdown_button(status, icon=icon, color=color, auto_close=True)
+                    .props("flat")
+                    .classes("q-chip")
+                ):
+                    handler = partial(self.handle_accept_reject, StatusEnum[not_status])
+                    with ui.item(on_click=handler).classes("items-center"):
+                        with ui.item_section().props("avatar"):
+                            ui.icon(
+                                StatusDecorators[not_status].emoji,
+                                color=str(StatusDecorators[not_status].color),
+                            )
+                        with ui.item_section():
+                            if status == "accepted":
+                                ui.label("Reject").classes("font-medium")
+                            elif status == "rejected":
+                                ui.label("Accept").classes("font-medium")
+            case _:
+                ui.chip(status, icon=icon, color=color).tooltip("Node Status")
 
     @ui.refreshable_method
     async def node_activity_timeline(self) -> None:
@@ -289,3 +316,30 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
                 on_click=force_method,
             ).tooltip(strings.BREAKPOINT_REJECT_TOOLTIP)
             # TODO refresh element(s) in click callback!
+
+    async def handle_accept_reject(self, desired_state: StatusEnum, e: ClickEventArguments) -> None:
+        """Attempts to toggle an accepted or rejected node into the opposite
+        state.
+        """
+        api_kwargs = {"reject": False, "accept": False, "force": True}
+        if desired_state is StatusEnum.rejected:
+            api_kwargs["reject"] = True
+            confirm_message = strings.GROUP_TOGGLE_REJECT_DETAIL
+        elif desired_state is StatusEnum.accepted:
+            api_kwargs["accept"] = True
+            confirm_message = strings.GROUP_TOGGLE_ACCEPT_DETAIL
+        else:
+            return None
+
+        confirm = ConfirmationDialog(
+            message=confirm_message,
+            show_remember_checkbox=False,
+        )
+        result, _ = await confirm
+        confirm.clear()
+
+        self.show_spinner()
+        if result:
+            await api.retry_restart_node(n0=self.node_id, **api_kwargs)
+            await self.create_content.refresh()
+        self.hide_spinner()

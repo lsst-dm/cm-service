@@ -124,8 +124,15 @@ async def fast_forward_node(n0: str) -> None:
         node_cache[n0]["icon"] = "fast_forward"
 
 
+# FIXME rename function to better reflect its multipurpose utility
 async def retry_restart_node(
-    n0: str, *, force: bool = False, reset: bool = False, accept: bool = False, reject: bool = False
+    n0: str,
+    *,
+    force: bool = False,
+    reset: bool = False,
+    accept: bool = False,
+    reject: bool = False,
+    fail: bool = False,
 ) -> None:
     """A group node in a failed state can be "restarted" if the BPS milestone
     is reached, i.e., a submit directory has been discovered and a qg file
@@ -151,18 +158,25 @@ async def retry_restart_node(
         be set.
 
     reject : bool
+        If True, the node is unconditionally rejected, but ``force`` must also
+        be set.
+
+    fail: bool
         If True, the node is unconditionally failed, but ``force`` must also
         be set.
     """
     # TODO refactor these parameters into a FlagEnum
     url = f"/nodes/{n0}"
-    retry_or_restart = "Restarting" if force else "Retrying"
-    retry_or_restart = "Resetting" if reset else retry_or_restart
-    retry_or_restart = "Accepting" if all([force, accept]) else retry_or_restart
-    retry_or_restart = "Rejecting" if all([force, reject]) else retry_or_restart
     target_state = "waiting" if reset else "ready"
     target_state = "accepted" if all([force, accept]) else target_state
-    target_state = "failed" if all([force, reject]) else target_state
+    target_state = "failed" if all([force, fail]) else target_state
+    target_state = "rejected" if all([force, reject]) else target_state
+
+    message_verb = "Restarting" if force else "Retrying"
+    message_verb = "Resetting" if reset else message_verb
+    message_verb = "Accepting" if all([force, accept]) else message_verb
+    message_verb = "Rejecting" if all([force, reject]) else message_verb
+    message_verb = "Failing" if all([force, fail]) else message_verb
 
     async with CLIENT_FACTORY.aclient() as client:
         n = ui.notification(timeout=None)
@@ -175,7 +189,7 @@ async def retry_restart_node(
             r.raise_for_status()
             n.spinner = True
             n.type = "ongoing"
-            n.message = f"{retry_or_restart} node..."
+            n.message = f"{message_verb} node..."
         except HTTPStatusError as e:
             n.type = "negative"
             n.timeout = 5.0

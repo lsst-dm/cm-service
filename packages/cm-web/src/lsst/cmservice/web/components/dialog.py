@@ -1,12 +1,13 @@
 """Module implementing reusable and/or modular Dialogs."""
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Generator
 from copy import deepcopy
 from dataclasses import dataclass, field
 from enum import Enum, IntFlag, auto
 from typing import TYPE_CHECKING, Any, Self
 
 import yaml
+from nice_dialogs.dialogs import ConfirmationDialog
 from nicegui import ui
 from nicegui.events import ClickEventArguments, GenericEventArguments, ValueChangeEventArguments
 from pydantic_core import ValidationError
@@ -56,6 +57,7 @@ class NodeRecoverAction(Enum):
     retry = auto()
     reset = auto()
     force = auto()
+    rescue = auto()
 
 
 class NodeAllowedActions(IntFlag):
@@ -68,6 +70,7 @@ class NodeAllowedActions(IntFlag):
     retry = auto()
     reset = auto()
     force = auto()
+    rescue = auto()
 
     @classmethod
     def all(cls) -> Self:
@@ -83,42 +86,85 @@ class NodeRecoveryPopup(ui.dialog):
     def __init__(self, allowed_actions: NodeAllowedActions) -> None:
         super().__init__()
         with self, ui.card():
-            ui.label(strings.NODE_RECOVERY_DIALOG_LABEL)
-            with ui.row():
+            ui.label(strings.NODE_RECOVERY_DIALOG_LABEL).classes("font-bold text-3xl")
+            with ui.row().classes("w-full flex items-center"):
                 if NodeAllowedActions.restart in allowed_actions:
                     ui.chip(
                         "restart",
                         icon="restart_alt",
-                        color="positive",
-                        on_click=lambda: self.submit(NodeRecoverAction.restart),
+                        color="green",
+                        text_color="white",
+                        on_click=lambda: self.confirm_and_submit(NodeRecoverAction.restart),
                     ).tooltip(strings.NODE_RESTART_TOOLTIP)
                 if NodeAllowedActions.retry in allowed_actions:
                     ui.chip(
                         "retry",
                         icon="replay",
-                        color="accent",
-                        on_click=lambda: self.submit(NodeRecoverAction.retry),
+                        color="violet",
+                        text_color="white",
+                        on_click=lambda: self.confirm_and_submit(NodeRecoverAction.retry),
                     ).tooltip(strings.NODE_RETRY_TOOLTIP)
                 if NodeAllowedActions.reset in allowed_actions:
                     ui.chip(
                         "reset",
                         icon="settings_backup_restore",
-                        color="negative",
-                        on_click=lambda: self.submit(NodeRecoverAction.reset),
+                        color="indigo",
+                        text_color="white",
+                        on_click=lambda: self.confirm_and_submit(NodeRecoverAction.reset),
                     ).tooltip(strings.NODE_RESET_TOOLTIP)
-                if NodeAllowedActions.force in allowed_actions:
+                if NodeAllowedActions.rescue in allowed_actions:
                     ui.chip(
+                        "rescue",
+                        icon="fire_truck",
+                        color="deepred",
+                        text_color="white",
+                        on_click=lambda: self.confirm_and_submit(NodeRecoverAction.rescue),
+                    ).tooltip(strings.NODE_RESCUE_TOOLTIP)
+            with ui.card_actions().classes("w-full align-right"):
+                if NodeAllowedActions.force in allowed_actions:
+                    ui.button(
                         "accept",
                         icon="auto_fix_high",
-                        color="warning",
-                        on_click=lambda: self.submit(NodeRecoverAction.force),
-                    ).tooltip(strings.NODE_FORCE_TOOLTIP)
-                ui.chip(
+                        color="deepgreen",
+                        on_click=lambda: self.confirm_and_submit(NodeRecoverAction.force),
+                    ).tooltip(strings.NODE_FORCE_TOOLTIP).props("flat")
+                ui.space()
+                ui.button(
                     "cancel",
                     icon="cancel",
                     color="negative",
                     on_click=lambda: self.submit(NodeRecoverAction.cancel),
-                ).tooltip("Never mind.")
+                ).tooltip("Never mind.").props("flat")
+
+    if TYPE_CHECKING:
+
+        def __await__(self) -> Generator[None, None, NodeRecoverAction]: ...
+
+    async def confirm_and_submit(self, action: NodeRecoverAction) -> None:
+        """A recover action confirmation prompt"""
+        confirm_text: str
+        match action:
+            case NodeRecoverAction.rescue:
+                confirm_text = strings.NODE_RESCUE_CONFIRMATION_DETAIL
+            case NodeRecoverAction.restart:
+                confirm_text = strings.NODE_RESTART_CONFIRMATION_DETAIL
+            case NodeRecoverAction.reset:
+                confirm_text = strings.NODE_RESET_CONFIRMATION_DETAIL
+            case NodeRecoverAction.retry:
+                confirm_text = strings.NODE_RETRY_CONFIRMATION_DETAIL
+            case NodeRecoverAction.force:
+                confirm_text = strings.NODE_FORCE_CONFIRMATION_DETAIL
+            case _:
+                confirm_text = "Are you sure?"
+        confirm = ConfirmationDialog(
+            message=confirm_text,
+            yes_return_value=action,
+            no_return_value=NodeRecoverAction.cancel,
+            show_remember_checkbox=False,
+        )
+        result, _ = await confirm
+        confirm.clear()
+        self.submit(result)
 
     @classmethod
     async def click(cls, e: GenericEventArguments, node: dict, refreshable: Callable) -> None:
@@ -134,6 +180,7 @@ class NodeRecoveryPopup(ui.dialog):
             allowed_actions = NodeAllowedActions.force
         elif node["kind"] != "group":
             allowed_actions &= ~NodeAllowedActions.restart
+            allowed_actions &= ~NodeAllowedActions.rescue
         result = await cls(allowed_actions)
 
         match result:
@@ -145,6 +192,8 @@ class NodeRecoveryPopup(ui.dialog):
                 await api.retry_restart_node(n0=node["id"], force=True, reset=True)
             case NodeRecoverAction.force:
                 await api.retry_restart_node(n0=node["id"], force=True, accept=True)
+            case NodeRecoverAction.rescue:
+                await api.rescue_group(n0=node["id"])
             case _:
                 # including the cancel case
                 call_refreshable = False
@@ -193,6 +242,10 @@ class EditorDialog(ui.dialog):
 
         self.dialog_content(title)
 
+    if TYPE_CHECKING:
+
+        def __await__(self) -> Generator[None, None, MaybeDict]: ...
+
     def dialog_content(self, title: str) -> None:
         """Method creates core dialog components."""
         with (
@@ -224,7 +277,6 @@ class EditorDialog(ui.dialog):
                     ui.icon("help", color="info").classes("bg-white rounded-full p-1").tooltip(
                         "Drag for help"
                     )
-
             self.action_section()
 
     def ribbon(self) -> None:
@@ -372,6 +424,8 @@ class EditorDialog(ui.dialog):
         """Toggles the help pane to 50% if it's mostly closed already, other-
         wise closes the pane.
         """
+        if TYPE_CHECKING:
+            assert self.splitter.value is not None
         if self.splitter.value > 85:
             self.splitter.value = 50
         else:
@@ -500,7 +554,7 @@ class EditorDialog(ui.dialog):
         logic. This pattern can be used directly in pages that need to use a
         dialog.
         """
-        result: MaybeDict = await cls(ctx=ctx, title=title)
+        result = await cls(ctx=ctx, title=title)
 
         if result is not None and ctx.callback is not None:
             callback_result: MaybeDict | Awaitable[MaybeDict] = ctx.callback(result)
