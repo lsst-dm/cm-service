@@ -29,6 +29,7 @@ class ClientConfiguration(BaseSettings):
         description="Port for the frontend WebUI to bind",
     )
 
+    # FIXME add a validator to strip any trailing `/` from value
     base_url: str = Field(
         default="http://localhost:8080/cm-service",
         description="Base URL for the CM Service API",
@@ -90,6 +91,11 @@ class ClientConfiguration(BaseSettings):
         validation_alias="CM_RECONNECT_TIMEOUT",
         description="Websocket reconnection timeout. Set higher for networks with high latency or when "
         "debugging clients.",
+    )
+
+    max_upload_size: int = Field(
+        default=65_535,
+        description="""Maximum size in bytes to allow via the Import function.""",
     )
 
     @field_validator("cookies", mode="before", check_fields=True)

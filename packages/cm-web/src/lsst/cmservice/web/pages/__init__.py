@@ -23,6 +23,14 @@ from .campaign_overview import CampaignOverviewPage
 from .canvas import CanvasScratchPage
 from .help import HelpPage
 from .node_detail import NodeDetailPage
+from .schedule_overview import ScheduleOverviewPage
+
+# Add IIFE script for cm-canvas component
+ui.add_head_html(
+    f"""<script src="{settings.root_path}{settings.static_endpoint}/cm-canvas-bundle.iife.js">"""
+    f"""</script>""",
+    shared=True,
+)
 
 
 @ui.page("/", response_timeout=settings.timeout)
@@ -88,6 +96,26 @@ async def campaign_clone(request: Request, campaign_id: str) -> None:
 async def canvas_scratch_page(request: Request) -> None:
     if page := await CanvasScratchPage(request, title="Canvas Scratch Pad").setup():
         await ui.context.client.connected()
+        await page.render()
+
+
+@ui.page("/schedules", response_timeout=settings.timeout)
+async def schedule_overview_page(
+    request: Request,
+    client_: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)],
+) -> None:
+    """Builds a schedule overview page"""
+    if page := await ScheduleOverviewPage(request, title="Schedule Overview").setup():
+        await ui.context.client.connected()
+        await page.render()
+
+
+@ui.page("/schedules/{schedule_id}", response_timeout=settings.timeout)
+async def schedule_edit(request: Request, schedule_id: str) -> None:
+    await ui.context.client.connected()
+    if page := await CampaignClonePage(request, title="Editing Scheduled Campaign").setup(
+        clone_campaign_schedule_from=schedule_id
+    ):
         await page.render()
 
 

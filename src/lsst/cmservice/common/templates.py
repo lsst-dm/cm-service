@@ -126,7 +126,7 @@ async def build_sandbox_and_render_templates[T: ManifestTemplateBase](
         match template.kind:
             case ManifestKind.campaign:
                 # Set the campaign *name* according to the schedule config
-                campaign_name_nonce = now_utc().strftime(context.name_format)
+                campaign_name_nonce = now_utc().strftime(context.date_format)
                 campaign_name = f"{template_dict['metadata']['name']}_{campaign_name_nonce}"
                 template_dict["metadata"]["name"] = campaign_name
                 rendered_manifests.appendleft(template_dict)

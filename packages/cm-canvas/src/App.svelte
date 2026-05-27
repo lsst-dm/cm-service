@@ -17,13 +17,13 @@
     */
   const defaultNodes: Node[] = [
     {
-      id: "START",
+      id: "START.1",
       type: "start",
       position: { x: 0, y: 0 },
       data: { name: "START" },
     },
     {
-      id: "END",
+      id: "END.1",
       type: "end",
       position: { x: 0, y: 0 },
       data: { name: "END" },
@@ -43,21 +43,23 @@
   if the node is an editable type like "step"
   */
   let nodes = $derived(
-    (!incomingNodes || incomingNodes.length === 0
-      ? defaultNodes
-      : incomingNodes
-    ).map((node) => {
-      if (node.type === "step") {
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            handleClick: restProps.onClick,
-          },
-        };
-      }
-      return node;
-    }),
+    [...(incomingNodes || []), ...defaultNodes]
+      .filter(
+        (node, index, arr) =>
+          arr.findLastIndex((n) => n.id === node.id) === index,
+      )
+      .map((node) => {
+        if (node.type === "step") {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              handleClick: restProps.onClick,
+            },
+          };
+        }
+        return node;
+      }),
   );
 
   let edges = $derived(

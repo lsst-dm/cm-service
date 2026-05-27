@@ -1,23 +1,9 @@
-from typing import Self
-
-from httpx import AsyncClient
 from nicegui import ui
 
-from ..settings import settings
 from .common import CMPage
 
 
 class CanvasScratchPage(CMPage):
-    async def setup(self, client_: AsyncClient | None = None) -> Self:
-        """Async method called at page creation. Subpages can override this
-        method to perform data loading/prep, etc., before calling render().
-        """
-        ui.add_head_html(
-            f"""<script src="{settings.root_path}{settings.static_endpoint}/cm-canvas-bundle.iife.js">"""
-            """</script>"""
-        )
-        return self
-
     async def create_content(self) -> None:
         with (
             ui.element("div")

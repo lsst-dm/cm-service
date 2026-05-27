@@ -9,7 +9,7 @@ dependencies = [
     "nicegui>=3.11.0",
     "nice-dialogs",
     "pydantic>=2.12",
-    "pydantic-extra-types>=2.10.5",
+    "pydantic-extra-types[cron]>=2.10.6",
     "pydantic-settings>=2.12",
     "structlog>=24.4.0",
     "lsst-cmservice-models",

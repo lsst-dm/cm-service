@@ -70,6 +70,7 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
         }
 
         self.breadcrumbs.append(data["node"]["name"])
+        self.breadcrumbs.append(f"v{data['node']['version']}")
         self.create_header.refresh()
         return self
 

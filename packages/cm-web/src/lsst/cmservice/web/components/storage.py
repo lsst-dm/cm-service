@@ -7,12 +7,20 @@ from pydantic import BaseModel, Field, PlainSerializer
 
 
 class StorageModel(BaseModel):
+    """A base model for storage models. This model is configured to allow extra
+    fields of arbitrary types beyond those defined in specific child models.
+    """
+
     class Config:
         extra = "allow"
         arbitrary_types_allowed = True
 
 
 class ClientStorageModel(StorageModel):
+    """This model describes the contents of managed CLIENT storage, including
+    the pass-through wrapper to USER storage via the `user` attribute.
+    """
+
     campaigns: dict[str, dict] = Field(
         default_factory=dict,
         description="A cache of loaded campaigns",
@@ -25,6 +33,12 @@ class ClientStorageModel(StorageModel):
 
 
 class UserStorageModel(StorageModel):
+    """This model describes the contents of managed USER storage, especially
+    when used with the `UserStorageWrapper`.
+
+    User storage must be serializable data.
+    """
+
     favorites: Annotated[set, PlainSerializer(lambda x: list(x), return_type=list)] = Field(
         default_factory=set,
         description="A set of IDs that have been marked as user favorites",
@@ -40,6 +54,10 @@ class UserStorageModel(StorageModel):
 
 
 class UserStorageWrapper:
+    """This wrapper provides access to USER storage from another model insstead
+    of separately accessing `app.storage.user` and `app.storage.*`.
+    """
+
     key: str = "user"
     model_class: type[StorageModel] = UserStorageModel
 
@@ -67,9 +85,16 @@ class UserStorageWrapper:
 def initialize_client_storage() -> None:
     """Function initializes server-side in-memory client storage.
 
-    This schema is constructed for each client connection and is ephemeral. It
-    may be used for page/subpage cache information and does not require serial-
-    izable data types.
+    "CLIENT" storage differs from "USER" storage: this schema is constructed
+    for each client connection and is ephemeral. It may be used for page/
+    subpage cache information and does not require serializable data types.
+
+    The `ClientStorageModel` has a *pass-through* wrapper to access "USER"
+    storage via the `.user` atttribute.
+
+    This method creates a singleton `ClientStorageModel` as the "state" key
+    in the standard app client storage. Any page using this storage may call
+    this method during setup to ensure its initialization.
     """
     if "state" not in app.storage.client:
         app.storage.client["state"] = ClientStorageModel(user=UserStorageWrapper())
