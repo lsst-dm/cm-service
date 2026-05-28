@@ -306,9 +306,13 @@ async def daemon_scheduled_job(
         )
 
         # the first ORM object on the list of manifests is the campaign
-        if isinstance(orms[0], Campaign):
-            orms[0].owner = schedule.metadata_.get("owner")
-            orms[0].status = StatusEnum.running if schedule_context.auto_start else StatusEnum.paused
+        campaign = orms[0] if isinstance(orms[0], Campaign) else None
+        if campaign is None:
+            logger.error("Campaign object not created", schedule=str(schedule_id))
+            return None
+
+        campaign.owner = schedule.metadata_.get("owner")
+        campaign.status = StatusEnum.running if schedule_context.auto_start else StatusEnum.paused
 
         # We want to split the ORMs so the edges are added only after the nodes
         # FIXME consider a more reusable partitioning function for this
@@ -327,7 +331,9 @@ async def daemon_scheduled_job(
             if not suppress_exceptions:
                 raise RuntimeError("Scheduled Campaign tried to make a duplicate") from e
         finally:
-            logger.info("Scheduled job has finished running", schedule=str(schedule_id))
+            logger.info(
+                "Scheduled job has finished running", schedule=str(schedule_id), campaign=campaign.name
+            )
 
 
 async def consider_schedules(context: DaemonContext) -> None:
