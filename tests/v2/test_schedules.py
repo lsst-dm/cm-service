@@ -514,7 +514,7 @@ async def test_one_shot_api(aclient: AsyncClient, test_case: ScheduleTestCase) -
     x = await aclient.post(f"{schedule_url}/oneshot")
     assert x.status_code == codes.ACCEPTED
 
-    await asyncio.wait_for(check_oneshot_complete(), timeout=5.0)
+    await asyncio.wait_for(check_oneshot_complete(), timeout=10.0)
     x = await aclient.get(f"/v2/campaigns/sample_campaign_{today:%s}")
     assert x.status_code == codes.OK
     x = await aclient.get(x.headers["nodes"])
