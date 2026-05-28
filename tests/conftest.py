@@ -1,6 +1,6 @@
 import importlib
 from collections.abc import AsyncIterator, Iterator
-from typing import Any
+from typing import Any, cast
 
 import pytest
 import pytest_asyncio
@@ -31,7 +31,7 @@ def set_app_config() -> None:
 async def engine_fixture() -> AsyncIterator[AsyncEngine]:
     """Return a SQLAlchemy AsyncEngine configured to talk to the app db."""
     logger = LOGGER.bind(module=__name__)
-    the_engine = create_database_engine(config_.db.url, config_.db.password)
+    the_engine = create_database_engine(config_.db.url, cast(str, config_.db.password))
     await initialize_database(the_engine, logger, schema=db.Base.metadata, reset=True)
     yield the_engine
     await the_engine.dispose()

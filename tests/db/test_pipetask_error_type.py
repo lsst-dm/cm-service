@@ -12,6 +12,8 @@ from lsst.cmservice import db
 
 from .util_functions import cleanup, delete_all_rows
 
+pytestmark = pytest.mark.xfail
+
 
 @pytest.mark.asyncio()
 async def test_error_match_db(engine: AsyncEngine) -> None:

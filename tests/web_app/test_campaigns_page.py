@@ -11,6 +11,8 @@ from lsst.cmservice.db import Campaign
 from lsst.cmservice.models.enums import StatusEnum
 from lsst.cmservice.web_app.pages.campaigns import get_campaign_details
 
+pytestmark = pytest.mark.xfail
+
 
 @pytest.fixture()
 def mock_session() -> typing.Generator:

@@ -645,7 +645,7 @@ async def read_campaign_activity_log(
     response: Response,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     campaign_name: str,
-    request_id: Annotated[str | None, Query(validation_alias="request_id", alias="request-id")] = None,
+    request_id: Annotated[str | None, Query(alias="request-id")] = None,
 ) -> Sequence[ActivityLog]:
     """Returns the collection of Activity Log resources associated with a
     Campaign by its namespace. Optionally, a ``?request-id=...`` query param
@@ -683,7 +683,7 @@ async def replace_node_in_graph(
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     campaign_id: UUID5,
     node_0_id: UUID5,
-    node_1_id: Annotated[UUID5, Query(validation_alias="node_1_id", alias="with-node")],
+    node_1_id: Annotated[UUID5, Query(alias="with-node")],
 ) -> None:
     """Replaces Node[0] in Campaign graph with provided Node[1]. The in and out
     edges for Node[0] are replaced with the same edges for Node[1]. The
@@ -762,7 +762,7 @@ async def update_node_in_graph(
     background_tasks: BackgroundTasks,
     campaign_id: UUID5,
     node_0_id: UUID5,
-    node_1_id: Annotated[UUID5, Query(validation_alias="node_1_id", alias="add-node")],
+    node_1_id: Annotated[UUID5, Query(alias="add-node")],
     operation: Annotated[Literal["insert", "append"], Query()],
 ) -> None:
     """Updates Node[0] in a Campaign graph in terms of its relationship to a

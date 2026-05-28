@@ -483,7 +483,7 @@ async def test_one_shot_api(aclient: AsyncClient, test_case: ScheduleTestCase) -
     async def check_oneshot_complete() -> bool:
         """checks for the existence of the expected new campaign"""
         while True:
-            y = await aclient.get(f"/v2/campaigns/sample_campaign_{today:%s}")
+            y = await aclient.get(f"/v2/campaigns/sample_campaign_{today:%Y%m%d%H%M}")
             if y.status_code == codes.OK:
                 return True
             else:
@@ -494,7 +494,9 @@ async def test_one_shot_api(aclient: AsyncClient, test_case: ScheduleTestCase) -
     assert x.status_code == test_case.expected_code
     schedule_url = x.headers["Self"]
 
-    x = await aclient.patch(schedule_url, json={"is_enabled": True, "configuration": {"date_format": "%s"}})
+    x = await aclient.patch(
+        schedule_url, json={"is_enabled": True, "configuration": {"date_format": "%Y%m%d%H%M"}}
+    )
     assert x.status_code == codes.OK
     x = await aclient.get(schedule_url)
     assert x.status_code == codes.OK
@@ -502,7 +504,7 @@ async def test_one_shot_api(aclient: AsyncClient, test_case: ScheduleTestCase) -
     new_schedule = x.json()[0]
     assert new_schedule["is_enabled"]
     assert new_schedule["next_run_at"] is not None
-    assert new_schedule["configuration"]["date_format"] == "%s"
+    assert new_schedule["configuration"]["date_format"] == "%Y%m%d%H%M"
 
     x = await aclient.post(f"{schedule_url}/oneshot")
     assert x.status_code == codes.CONFLICT
@@ -515,7 +517,7 @@ async def test_one_shot_api(aclient: AsyncClient, test_case: ScheduleTestCase) -
     assert x.status_code == codes.ACCEPTED
 
     await asyncio.wait_for(check_oneshot_complete(), timeout=10.0)
-    x = await aclient.get(f"/v2/campaigns/sample_campaign_{today:%s}")
+    x = await aclient.get(f"/v2/campaigns/sample_campaign_{today:%Y%m%d%H%M}")
     assert x.status_code == codes.OK
     x = await aclient.get(x.headers["nodes"])
     assert x.status_code == codes.OK
