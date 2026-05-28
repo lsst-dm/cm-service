@@ -48,8 +48,8 @@ async def read_nodes_collection(
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     offset: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(le=100)] = 10,
-    namespace: Annotated[UUID5 | None, Query(validation_alias="campaign_id", alias="campaign-id")] = None,
-    node_name: Annotated[str | None, Query(validation_alias="node_name", alias="node-name")] = None,
+    namespace: Annotated[UUID5 | None, Query(alias="campaign-id")] = None,
+    node_name: Annotated[str | None, Query(alias="node-name")] = None,
 ) -> Sequence[Node]:
     """Fetches and returns all nodes known to the service.
 
@@ -88,7 +88,7 @@ async def read_node_resource(
     response: Response,
     node_name: str,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
-    namespace: Annotated[UUID5 | None, Query(validation_alias="campaign_id", alias="campaign-id")] = None,
+    namespace: Annotated[UUID5 | None, Query(alias="campaign-id")] = None,
     version: Annotated[int | None, Query()] = None,
 ) -> Node | None:
     """Fetch a single node from the database given either the node id or its
