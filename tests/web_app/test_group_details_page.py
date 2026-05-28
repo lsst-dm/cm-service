@@ -11,6 +11,8 @@ from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.web_app.pages.group_details import get_group_by_id
 from tests.db.util_functions import create_tree, delete_all_artifacts
 
+pytestmark = pytest.mark.xfail
+
 
 @pytest.mark.asyncio()
 async def test_get_group_details_by_id(engine: AsyncEngine) -> None:

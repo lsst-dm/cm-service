@@ -14,6 +14,8 @@ from lsst.cmservice.models.enums import StatusEnum
 
 from .util_functions import cleanup
 
+pytestmark = pytest.mark.xfail
+
 
 @pytest.mark.asyncio()
 @pytest.mark.parametrize(

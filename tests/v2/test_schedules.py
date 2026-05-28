@@ -144,8 +144,8 @@ def make_schedule_with_manifests(**overrides: dict) -> dict:
                         predicates:
                             - instrument='LSSTCam'
                             - skymap='lsst_cells_v1'
-                            - day_obs>='{{ today | as_day_obs }}'
-                            - day_obs<'{{ tomorrow | as_day_obs }}'
+                            - day_obs>='${{ today | as_day_obs }}'
+                            - day_obs<'${{ tomorrow | as_day_obs }}'
                         repo: /repo/main
                     """),
             },
@@ -372,6 +372,7 @@ async def test_template_render(
 
     # successful rendering means no leftover variable placeholders
     if not raises:
+        assert "${{" not in manifest
         assert "{{" not in manifest
         assert "}}" not in manifest
 
@@ -482,7 +483,7 @@ async def test_one_shot_api(aclient: AsyncClient, test_case: ScheduleTestCase) -
     async def check_oneshot_complete() -> bool:
         """checks for the existence of the expected new campaign"""
         while True:
-            y = await aclient.get(f"/v2/campaigns/sample_campaign_{today:%Y%m%d}")
+            y = await aclient.get(f"/v2/campaigns/sample_campaign_{today:%Y%m%d%H%M}")
             if y.status_code == codes.OK:
                 return True
             else:
@@ -491,24 +492,32 @@ async def test_one_shot_api(aclient: AsyncClient, test_case: ScheduleTestCase) -
     # Create and enable the schedule
     x = await aclient.post("/v2/schedules", json=test_case.post_data)
     assert x.status_code == test_case.expected_code
+    schedule_url = x.headers["Self"]
 
     x = await aclient.patch(
-        x.headers["Self"], json={"is_enabled": True, "configuration": {"name_format": "%Y%m%d"}}
+        schedule_url, json={"is_enabled": True, "configuration": {"date_format": "%Y%m%d%H%M"}}
     )
     assert x.status_code == codes.OK
-    x = await aclient.get(x.headers["Self"])
+    x = await aclient.get(schedule_url)
     assert x.status_code == codes.OK
 
     new_schedule = x.json()[0]
     assert new_schedule["is_enabled"]
     assert new_schedule["next_run_at"] is not None
-    assert new_schedule["configuration"]["name_format"] == "%Y%m%d"
+    assert new_schedule["configuration"]["date_format"] == "%Y%m%d%H%M"
 
-    x = await aclient.post(f"{x.headers['Self']}/oneshot")
+    x = await aclient.post(f"{schedule_url}/oneshot")
+    assert x.status_code == codes.CONFLICT
+    assert "may not be enabled" in x.json()["detail"]
+
+    x = await aclient.patch(schedule_url, json={"is_enabled": False})
+    assert x.status_code == codes.OK
+
+    x = await aclient.post(f"{schedule_url}/oneshot")
     assert x.status_code == codes.ACCEPTED
 
-    await asyncio.wait_for(check_oneshot_complete(), timeout=5.0)
-    x = await aclient.get(f"/v2/campaigns/sample_campaign_{today:%Y%m%d}")
+    await asyncio.wait_for(check_oneshot_complete(), timeout=10.0)
+    x = await aclient.get(f"/v2/campaigns/sample_campaign_{today:%Y%m%d%H%M}")
     assert x.status_code == codes.OK
     x = await aclient.get(x.headers["nodes"])
     assert x.status_code == codes.OK

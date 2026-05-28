@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Generator, Sequence
+from collections.abc import Generator, Mapping, Sequence
 from itertools import chain
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid5
 
 from sqlmodel import select
@@ -11,7 +11,6 @@ from transitions import EventData
 from lsst.cmservice.models.db.campaigns import Edge, Node
 from lsst.cmservice.models.enums import ManifestKind, StatusEnum
 from lsst.cmservice.models.lib.graph import (
-    NodeData,
     append_node_to_graph,
     delete_node_from_graph,
     find_endpoints_in_directed_graph,
@@ -113,8 +112,8 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
     async def get_splitter(self) -> Splitter:
         """Generates group-predicates according to the Node grouping rules."""
         # select a splitter based on the Node's configuration
-        splitter_config = self.db_model.configuration.get("groups", None)
-        if splitter_config is None:
+        splitter_config: dict = {**self.db_model.configuration.get("groups", {})}
+        if not splitter_config:
             return SplitterMapping["null"]()
 
         match SplitterEnum(splitter_config["split_by"]):
@@ -123,10 +122,11 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
             case SplitterEnum.QUERY:
                 splitter_type = SplitterMapping[SplitterEnum.QUERY.value]
                 splitter_config["butler_label"] = self.butler.spec.repo
+                splitter_config["predicates"] = self.butler.spec.predicates
                 if self.butler.spec.collections.step_input is not None:
                     splitter_config["collections"] = [self.butler.spec.collections.step_input]
                 else:
-                    splitter_config["collections"] = [self.butler.spec.collections.campaign_input]
+                    splitter_config["collections"] = self.butler.spec.collections.campaign_input
 
         return splitter_type(**splitter_config)
 
@@ -335,11 +335,11 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
         # find all output collections for "collect" steps in the subgraph and
         # add them to the set of intermediate collections to be used in the
         # step_input collection used by each group.
-        intermediate_collections = []
-        data: NodeData
-        for _, data in step_subgraph.nodes.data():
-            if data["model"].kind is ManifestKind.collect_groups:
-                step_config = data["model"].configuration
+        intermediate_collections: list[str] = []
+        for _, data in cast(Mapping[Any, Node], step_subgraph.nodes.data(data="model")):
+            data = cast(Node, data)
+            if data.kind is ManifestKind.collect_groups:
+                step_config = data.configuration
                 step_output = step_config.get("butler", {}).get("collections", {}).get("step_output")
                 if step_output is None:
                     raise RuntimeError("Predecessor collect step has no output collection")
@@ -470,9 +470,11 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
             )
 
         # Remove the collect_groups_node
+        collect_group = None
         if self.collect_group is not None:
-            collect_group = await self.session.get_one(Node, ident=self.collect_group, with_for_update=True)
+            collect_group = await self.session.get(Node, ident=self.collect_group, with_for_update=True)
 
+        if collect_group is not None:
             await delete_node_from_graph(
                 node_0=collect_group.id,
                 namespace=self.db_model.namespace,

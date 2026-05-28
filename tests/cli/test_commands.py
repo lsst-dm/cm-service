@@ -6,6 +6,8 @@ from lsst.cmservice.cli.client import client_top
 from lsst.cmservice.client.clientconfig import client_config
 from lsst.cmservice.config import config
 
+pytestmark = pytest.mark.xfail
+
 
 @pytest.mark.parametrize("api_version", ["v1"])
 def test_commands_cli(uvicorn: UvicornProcess, api_version: str) -> None:

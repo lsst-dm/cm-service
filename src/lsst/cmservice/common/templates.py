@@ -2,12 +2,13 @@
 used in the operation of a Scheduled Campaign.
 """
 
+import string
 from collections import deque
 from collections.abc import Mapping, MutableMapping, Sequence
-from datetime import datetime, timedelta
-from typing import Any, Literal, overload
+from datetime import datetime, timedelta, timezone
+from typing import TYPE_CHECKING, Any, Literal, overload
 
-from jinja2.exceptions import TemplateError
+from jinja2.exceptions import TemplateError, TemplateSyntaxError
 from jinja2.sandbox import ImmutableSandboxedEnvironment
 from yaml import YAMLError, safe_load
 
@@ -19,6 +20,9 @@ from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, ManifestKind
 from lsst.cmservice.models.lib.jinja import FILTERS
 from lsst.cmservice.models.lib.timestamp import element_time, now_utc
 from lsst.cmservice.models.lib.transformer import prepare_orm_from_manifest
+
+if TYPE_CHECKING:
+    from types import ModuleType
 
 
 class ManifestRenderingError(Exception): ...
@@ -33,18 +37,25 @@ def compile_user_expressions(expressions: MutableMapping[str, str]) -> dict[str,
     dict[str, Any]
         A mapping of each expression name to its compiled value.
     """
-    whitelist_modules: Mapping[str, type] = {
+    whitelist_modules: Mapping[str, type | ModuleType] = {
         "datetime": datetime,
         "timedelta": timedelta,
+        "string": string,
+        "timezone": timezone,
     }
     sandbox = ImmutableSandboxedEnvironment()
     sandbox.globals.update(whitelist_modules)
 
-    # TODO exception handling here, should the expression blow up
     # Compile and evaluate the user expression in the sandbox environment
-    compiled_expressions = {
-        name: sandbox.compile_expression(expression)() for name, expression in expressions.items()
-    }
+    # NOTE this is built assuming the expressions are always str-str mappings
+    # and that python scalar objects are never present, although this case is
+    # supported by the compiler.
+    try:
+        compiled_expressions = {
+            name: sandbox.compile_expression(expression.strip())() for name, expression in expressions.items()
+        }
+    except TemplateSyntaxError:
+        raise ManifestRenderingError("Syntax error in user expression.")
     return compiled_expressions
 
 
@@ -98,7 +109,7 @@ async def build_sandbox_and_render_templates[T: ManifestTemplateBase](
     compiled_expressions = compile_user_expressions(context.expressions)
 
     sandbox = ImmutableSandboxedEnvironment(
-        variable_start_string="{{",
+        variable_start_string="${{",
         variable_end_string="}}",
         newline_sequence="\n",
         keep_trailing_newline=True,

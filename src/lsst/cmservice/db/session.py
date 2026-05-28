@@ -3,6 +3,7 @@
 from collections.abc import AsyncGenerator
 
 from sqlalchemy import URL, make_url
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import AsyncAdaptedQueuePool, Pool
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -78,7 +79,7 @@ class DatabaseManager:
         async with self.sessionmaker() as session:
             try:
                 yield session
-            except Exception:
+            except SQLAlchemyError:
                 logger.exception()
                 await session.rollback()
                 raise

@@ -207,8 +207,10 @@ async def retry_restart_node(
 
 
 async def node_activity_logs(id: str) -> list[dict]:
-    # FIXME this API needs to be sorted by `finished_at`
+    """Use the CM API to fetch all activity log entries for a given node,
+    sorted by time (descending).
+    """
     async with CLIENT_FACTORY.aclient() as session:
-        r = await session.get(f"/logs?node={id}")
+        r = await session.get(f"/logs?node={id}&sort=-finished_at")
         r.raise_for_status()
     return r.json()

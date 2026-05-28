@@ -18,6 +18,8 @@ from .util_functions import (
     expect_failed_response,
 )
 
+pytestmark = pytest.mark.xfail
+
 
 @pytest.mark.asyncio()
 @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")

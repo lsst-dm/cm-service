@@ -1,6 +1,7 @@
+---
 extends: default
 rules:
-  document-start: {present: false}
+  document-start: {present: true}
   line-length:
     max: 132
     allow-non-breakable-words: true

@@ -352,10 +352,33 @@ class HTCondorManager(LaunchManager):
 
         return submit_dict
 
-    def get_token(self) -> None:
-        """Request an HTCondor authentication token."""
+    async def get_token(self) -> None:
+        """Request an HTCondor authentication token if using IDTOKENS authn."""
+
+        if any(
+            [
+                self._htcondor is None,
+                config.htcondor.launcher_authn_identity is None,
+                config.htcondor.launcher_authn_method != "IDTOKENS",
+            ]
+        ):
+            return None
+
         # Careful, the TokenRequest interface is blocking
-        ...
+        # FIXME This API is written out for reference, it would not be
+        # practical to obtain tokens this way except when provisioned with a
+        # valid bootstrap token
+        token_request = self._htcondor.TokenRequest(  # type: ignore
+            identity=config.htcondor.launcher_authn_identity,
+            bounding_set=["READ", "WRITE"],
+            lifetime=config.htcondor.launcher_token_duration,
+        )
+        # The TR is sent to the collector
+        token_request.submit()
+        # The TR is not immediately fulfilled
+        # TODO use anyio/asyncio Event to wait_for token_request.done()
+        #      or token_request.result(timeout=...)
+        # TODO write new token to file
 
     def select_schedd(self) -> None:
         """Determine a schedd host to use with this instance of an HTCondor
