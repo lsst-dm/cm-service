@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import enum
+from functools import total_ordering
 from uuid import NAMESPACE_DNS, uuid5
 
 DEFAULT_NAMESPACE = uuid5(NAMESPACE_DNS, "io.lsst.cmservice")
 """A default UUID5 namespace to use throughout the application."""
 
 
+@total_ordering
 class ManifestKind(enum.Enum):
     """Define a manifest kind"""
 
@@ -34,6 +36,19 @@ class ManifestKind(enum.Enum):
     # Fallback kind
     other = enum.auto()
     dummy = enum.auto()
+
+    def __lt__(self, other: ManifestKind) -> bool:
+        """Implements a simple "rich" less-than operator for simple ordering
+        based on the (arbitrary) value of each member. This is primarily used
+        for sorting and grouping operations, not necessarily for semantic
+        comparison.
+
+        Note: the `@total_ordering` decorator adds all other rich comparison
+        methods.
+        """
+        if not isinstance(other, ManifestKind):
+            return NotImplemented
+        return self.value < other.value
 
 
 class StatusEnum(enum.Enum):

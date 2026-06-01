@@ -5,6 +5,8 @@ from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from functools import partial
+from itertools import groupby
+from operator import attrgetter
 from types import TracebackType
 from typing import TYPE_CHECKING, Self, cast
 from uuid import UUID, uuid5
@@ -277,9 +279,19 @@ async def daemon_scheduled_job(
             return None
         schedule_context = ScheduleConfiguration(**schedule.configuration)
 
+        # TODO signal version picking; for now we just pick the latest version
+        # of each name-kind pair of templates.
+        newest_templates = [
+            next(m)
+            for _, m in groupby(
+                sorted(schedule.templates, key=attrgetter("kind", "name", "version"), reverse=True),
+                key=attrgetter("name", "kind"),
+            )
+        ]
+
         orms = await build_sandbox_and_render_templates(
             context=schedule_context,
-            templates=schedule.templates,
+            templates=newest_templates,
         )
 
         # the first ORM object on the list of manifests is the campaign
