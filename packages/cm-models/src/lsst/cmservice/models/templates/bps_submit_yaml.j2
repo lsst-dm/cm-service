@@ -55,6 +55,9 @@ environment:
 ########################################
 # BPS PAYLOAD OPTIONS
 ########################################
+{%- if bps.qgraph_file %}
+qgraphFile: {{ bps.qgraph_file }}
+{%- endif %}
 payload:
 {%- for key, value in bps.payload|items %}
   {{ key }}: "{{ value | trim }}"
