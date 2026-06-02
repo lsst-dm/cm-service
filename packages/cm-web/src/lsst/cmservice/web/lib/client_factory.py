@@ -59,6 +59,9 @@ class ClientFactory:
         client = await self.get_aclient()
         try:
             yield client
+        except httpx.HTTPStatusError:
+            # Do not reraise status errors from here, let the caller handle it
+            pass
         except Exception:
             raise
 

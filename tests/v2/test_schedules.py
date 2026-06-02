@@ -275,7 +275,7 @@ async def test_put_patch_schedule(
             assert x.status_code == codes.OK
             x = await aclient.get(x.headers["Self"])
             assert x.status_code == codes.OK
-            new_schedule = x.json()
+            new_schedule = x.json()[0]
             assert new_schedule["is_enabled"]
             assert new_schedule["next_run_at"] is not None
             assert "mtime" in new_schedule["metadata"]
@@ -410,7 +410,7 @@ async def test_daemon_schedule(
     x = await aclient.get(x.headers["Self"])
     assert x.status_code == codes.OK
 
-    new_schedule = x.json()
+    new_schedule = x.json()[0]
     assert new_schedule["is_enabled"]
     assert new_schedule["next_run_at"] is not None
     assert new_schedule["configuration"]["name_format"] == "%Y%m%d"
@@ -500,7 +500,7 @@ async def test_one_shot_api(aclient: AsyncClient, test_case: ScheduleTestCase) -
     x = await aclient.get(x.headers["Self"])
     assert x.status_code == codes.OK
 
-    new_schedule = x.json()
+    new_schedule = x.json()[0]
     assert new_schedule["is_enabled"]
     assert new_schedule["next_run_at"] is not None
     assert new_schedule["configuration"]["name_format"] == "%Y%m%d%H%M"

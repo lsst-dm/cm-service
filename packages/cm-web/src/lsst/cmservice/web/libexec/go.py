@@ -1,7 +1,8 @@
 from nicegui import app, ui
 
+from lsst.cmservice.models.lib.logging import LOGGER
+
 from .. import pages as pages
-from ..lib.logging import LOGGER
 from ..settings import settings
 
 logger = LOGGER.bind(module=__name__)

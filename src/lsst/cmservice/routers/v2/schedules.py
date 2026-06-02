@@ -95,7 +95,7 @@ async def read_schedule_collection(
 @router.get(
     "/{schedule_name_or_id}",
     summary="Get a specific schedule",
-    response_model=Schedule,
+    response_model=Sequence[Schedule],
     status_code=status.HTTP_200_OK,
 )
 @router.head(
@@ -110,7 +110,7 @@ async def read_schedule_resource(
     response: Response,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     schedule_name_or_id: Annotated[str, Path()],
-) -> Schedule | None:
+) -> Sequence[Schedule] | None:
     """Get a detail record for a specific Schedule by its name or ID.
 
     If the path parameter is a valid UUID, it will be used as an ID lookup,
@@ -142,7 +142,7 @@ async def read_schedule_resource(
     if request.method == "HEAD":
         return None
     else:
-        return schedule
+        return [schedule]
 
 
 @router.get(

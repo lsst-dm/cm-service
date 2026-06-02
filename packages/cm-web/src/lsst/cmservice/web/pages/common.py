@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any, Self, TypedDict, cast
 
 from fastapi import Request
-from httpx import AsyncClient
+from httpx import AsyncClient, HTTPStatusError
+from nice_dialogs.dialogs import ConfirmationDialog
 from nicegui import ui
 
 from ..components import storage
@@ -13,7 +15,11 @@ from ..lib.enum import Palette, StatusDecorators
 class CMPageModel(TypedDict): ...
 
 
-class CMPage[PageModelT: CMPageModel]:
+@dataclass
+class CMPageData: ...
+
+
+class CMPage[PageModelT: CMPageModel | CMPageData]:
     """Campaign Management Page
 
     Lifecycle
@@ -83,21 +89,26 @@ class CMPage[PageModelT: CMPageModel]:
             deepindigo=Palette.INDIGO.dark,
             violet=Palette.VIOLET.light,
             deepviolet=Palette.VIOLET.dark,
+            grey=Palette.GREY.light,
+            darkgrey=Palette.GREY.dark,
             # Custom Colors for Statuses
             **{status.name: status.hex for status in StatusDecorators},
         )
 
     @ui.refreshable_method
     def create_header(self) -> None:
-        with ui.link(target="/").classes("text-white !no-underline"):
-            ui.label("Campaign Management").classes("text-h4")
-        ui.space()
-        ui.label(self.page_title).classes("text-h5")
-        ui.space()
+        ui.label(self.page_title).classes("text-h4")
         for crumb in self.breadcrumbs:
+            ui.icon("arrow_right").classes("text-h6")
             ui.label(crumb).classes("text-h6")
-            ui.space()
         ui.space()
+
+        # Nav buttons
+        ui.button("Campaigns", on_click=lambda: ui.navigate.to("/")).classes("text-white").props("flat")
+        ui.button("Schedules", on_click=lambda: ui.navigate.to("/schedules")).classes("text-white").props(
+            "flat"
+        )
+
         with ui.dropdown_button(self.username, auto_close=True).bind_visibility_from(
             self, "username", backward=lambda x: x != "anonymous"
         ):
@@ -130,6 +141,9 @@ class CMPage[PageModelT: CMPageModel]:
 
         self.overlay_div = ui.element("div").classes("hidden")
 
+        # exception handler for errors after an HTML response has been sent
+        ui.on_exception(self.show_error_dialog)
+
     async def setup(self, client_: AsyncClient | None = None) -> Self:
         """Async method called at page creation. Subpages can override this
         method to perform data loading/prep, etc., before calling render().
@@ -142,17 +156,25 @@ class CMPage[PageModelT: CMPageModel]:
 
         Subclasses should use the `create_content()` method, which is called
         from within the content column's context manager.
+
+        Notes
+        -----
+        - Default page footer reserves room for per-page custom footer labels
+         from strings available in `self.footers`, then applies the per-page
+         `self.footer_contents()` method for custom footer objects, followed
+         finally by a standard per-page help link.
         """
         with self.footer:
+            # TODO why are these separate rows?
             with ui.row().classes("items-center gap-2"):
                 for footer in self.footers:
                     ui.label(footer).classes("text-xs m-0")
                 await self.footer_contents()
 
             with ui.row().classes("items-center gap-2"):
-                ui.button(icon="help_outline", on_click=lambda: ui.navigate.to("/help")).classes(
-                    "text-white bg-info m-0"
-                ).props("flat round size=sm")
+                ui.button(
+                    icon="help_outline", on_click=lambda: ui.navigate.to("/help", new_tab=True)
+                ).classes("text-white bg-info m-0").props("flat round size=sm")
 
         with self.content:
             await self.create_content()
@@ -185,3 +207,35 @@ class CMPage[PageModelT: CMPageModel]:
         overlay_classes = "fixed inset-0 bg-white bg-opacity-90 z-50 flex items-center justify-center"
         self.overlay_div.classes(remove=overlay_classes, add="hidden")
         self.overlay_div.clear()
+
+    async def show_error_dialog(self, e: Exception) -> None:
+        """Callback for handling errors that occur after the HTML response has
+        been sent to the client, i.e., exceptions raised by interactions or
+        refreshes, etc.
+        """
+        # Show a popup dialog and navigate/refresh the current page
+        dialog_title: str
+        message: str
+        match e:
+            case HTTPStatusError():
+                dialog_title = f"API Error {e.response.status_code}: {e.response.reason_phrase}"
+                message = f"{e.response.json().get('detail', e.args)}"
+            case _:
+                dialog_title = "An Error Occurred"
+                message = str(e)
+
+        error_dialog = ConfirmationDialog(
+            dialog_title=dialog_title,
+            message=message,
+            icon="error_outline",
+            icon_color="negative",
+            yes_button_label="Go Home",
+            no_button_label="Stay Here",
+            show_remember_checkbox=False,
+        )
+        nav_to_home, _ = await error_dialog
+        error_dialog.clear()
+        if nav_to_home:
+            ui.navigate.to("/")
+        else:
+            ui.navigate.reload()

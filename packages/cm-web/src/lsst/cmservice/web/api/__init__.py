@@ -16,10 +16,18 @@ from .nodes import (
     retry_restart_node,
 )
 from .rescue import rescue_group
+from .schedules import (
+    delete_schedule,
+    get_schedule_summary,
+    get_schedule_templates,
+    oneshot_schedule,
+    patch_schedule,
+    post_new_schedule,
+)
 
 __all__ = [
-    "insert_or_append_node",
     "compile_campaign_manifests",
+    "delete_schedule",
     "describe_one_campaign",
     "describe_one_node",
     "fast_forward_node",
@@ -27,7 +35,13 @@ __all__ = [
     "get_campaign_summary",
     "get_one_manifest",
     "get_one_node",
+    "get_schedule_summary",
+    "get_schedule_templates",
+    "insert_or_append_node",
     "node_activity_logs",
+    "oneshot_schedule",
+    "patch_schedule",
+    "post_new_schedule",
     "put_manifest_list",
     "put_one_manifest",
     "rescue_group",
