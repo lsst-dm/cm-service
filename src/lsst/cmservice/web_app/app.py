@@ -99,7 +99,9 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
         return response
 
     return templates.TemplateResponse(
-        "pages/error.html", {"request": request, "status_code": exc.status_code, "detail": exc.detail}
+        request=request,
+        name="pages/error.html",
+        context={"status_code": exc.status_code, "detail": exc.detail},
     )
 
 
@@ -143,10 +145,10 @@ async def search(
             campaigns_list.append(campaign_details)
 
         return templates.TemplateResponse(
-            "pages/campaign_search_results.html",
+            request=request,
+            name="pages/campaign_search_results.html",
             context={
                 "search_term": search_term,
-                "request": request,
                 "search_results": campaigns_list,
             },
         )
@@ -297,7 +299,7 @@ async def get_script(
 
 @web_app.get("/layout/", response_class=HTMLResponse)
 async def test_layout(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse("pages/mockup.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="pages/mockup.html")
 
 
 class ReadScriptLogRequest(BaseModel):

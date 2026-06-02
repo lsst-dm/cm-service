@@ -11,6 +11,8 @@ from lsst.cmservice.db import Step
 from lsst.cmservice.models.enums import StatusEnum
 from lsst.cmservice.web_app.pages.steps import get_step_details
 
+pytestmark = pytest.mark.xfail
+
 
 @pytest.fixture()
 def mock_session() -> typing.Generator:

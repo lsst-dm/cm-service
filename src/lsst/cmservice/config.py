@@ -1,6 +1,6 @@
 import logging
 from datetime import UTC, datetime
-from typing import Annotated, Self
+from typing import Annotated, Literal, Self
 from urllib.parse import urlparse
 from warnings import warn
 
@@ -565,8 +565,20 @@ class SchedulerConfiguration(BaseModel):
     )
 
     max_instances: int = Field(
-        default=3,
+        default=1,
         description="Maximum number of concurrently executing instances for a given scheduled job.",
+    )
+
+    jobstore_type: Literal["memory", "sqlalchemy"] = Field(
+        default="memory",
+        description="Type of jobstore the scheduler should use",
+        exclude=True,
+    )
+
+    jobstore_table_name: str = Field(
+        default="apscheduler_jobs",
+        description="Name of a database table to store scheduler jobs in.",
+        exclude=True,
     )
 
 

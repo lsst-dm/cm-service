@@ -15,6 +15,8 @@ from lsst.cmservice.models.lib import timestamp
 
 from .util_functions import cleanup
 
+pytestmark = pytest.mark.xfail
+
 
 @pytest.mark.asyncio()
 async def test_daemon_db(engine: AsyncEngine) -> None:

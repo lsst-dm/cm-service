@@ -1,16 +1,21 @@
 import pickle
 from asyncio import Task as AsyncTask
 from asyncio import TaskGroup, create_task
-from collections.abc import Awaitable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
+from functools import partial
+from itertools import groupby
+from operator import attrgetter
 from types import TracebackType
 from typing import TYPE_CHECKING, Self, cast
 from uuid import UUID, uuid5
 
 import networkx as nx
+from apscheduler.jobstores.base import JobLookupError
 from fastapi import FastAPI
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import make_transient, selectinload
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlmodel import col, select
@@ -238,40 +243,80 @@ async def consider_nodes(context: DaemonContext) -> None:
             await session.commit()
 
 
-async def daemon_scheduled_job(schedule_id: UUID) -> None:
+async def daemon_scheduled_job(
+    remove_self: Callable, *, schedule_id: UUID, suppress_exceptions: bool = False
+) -> None:
     """Daemon work function for performing the work of a scheduled campaign.
 
-    Each `job` added to the scheduler has this function as its target, and the
-    ID of the associated schedule as a single argument.
+    Each `job` added to the scheduler has this function as its target. The
+    first argument must be a callable the job can use to remove itself from the
+    scheduler, and additional arguments must be keyword-only.
 
     This function fetches the identified `Schedule` from the database and
     passes its `templates` collection through a renderer. The renderer returns
     an ORM object for each `template`, which are then added to the session and
     committed.
+
+    Parameters
+    ----------
+    suppress_exceptions: bool
+        Defaults to False. If True, exceptions will be logged but not reraised.
+        This is useful for launching in BackgroundTasks or wherever unhandled
+        exceptions are problematic.
     """
     if TYPE_CHECKING:
         assert db_session_dependency.sessionmaker is not None
 
     # fetch the schedule and its templates
     async with db_session_dependency.sessionmaker() as session:
-        schedule = await session.get_one(Schedule, schedule_id)
+        schedule = await session.get(Schedule, schedule_id)
+        if schedule is None or not schedule.is_enabled:
+            try:
+                remove_self()
+            except JobLookupError:
+                logger.error("Job not found during self removal", job_id=schedule_id)
+                pass
+            return None
         schedule_context = ScheduleConfiguration(**schedule.configuration)
 
-        orms = [
-            manifest
-            for manifest in await build_sandbox_and_render_templates(
-                context=schedule_context,
-                templates=schedule.templates,
+        # TODO signal version picking; for now we just pick the latest version
+        # of each name-kind pair of templates.
+        newest_templates = [
+            next(m)
+            for _, m in groupby(
+                sorted(schedule.templates, key=attrgetter("kind", "name", "version"), reverse=True),
+                key=attrgetter("name", "kind"),
             )
         ]
+
+        orms = await build_sandbox_and_render_templates(
+            context=schedule_context,
+            templates=newest_templates,
+        )
 
         # the first ORM object on the list of manifests is the campaign
         if isinstance(orms[0], Campaign):
             orms[0].owner = schedule.metadata_.get("owner")
             orms[0].status = StatusEnum.running if schedule_context.auto_start else StatusEnum.paused
 
-        session.add_all(orms)
-        await session.commit()
+        # We want to split the ORMs so the edges are added only after the nodes
+        # FIXME consider a more reusable partitioning function for this
+        edges = [o for o in orms if o.__class__.__name__ == "Edge"]
+        not_edges = [o for o in orms if o.__class__.__name__ != "Edge"]
+
+        try:
+            session.add_all(not_edges)
+            await session.flush()
+            session.add_all(edges)
+            await session.commit()
+        except IntegrityError as e:
+            # TODO under DEBUG logging, we might use a logger.exception for the
+            # full trackback, but it's not very useful in this case
+            logger.error("Database Conflict: check schedule cron or name format", schedule=str(schedule_id))
+            if not suppress_exceptions:
+                raise RuntimeError("Scheduled Campaign tried to make a duplicate") from e
+        finally:
+            logger.info("Scheduled job has finished running", schedule=str(schedule_id))
 
 
 async def consider_schedules(context: DaemonContext) -> None:
@@ -282,6 +327,7 @@ async def consider_schedules(context: DaemonContext) -> None:
         assert isinstance(context.app.state.scheduler, Scheduler)
 
     # get schedules from db where is_enabled
+    # TODO how does the daemon handle one-shots?
     statement = select(Schedule).where(Schedule.is_enabled)
     schedules = await context.session.exec(statement)
     for schedule in schedules:
@@ -291,20 +337,14 @@ async def consider_schedules(context: DaemonContext) -> None:
         if context.app.state.scheduler.scheduler.get_job(job_id):
             context.app.state.scheduler.scheduler.reschedule_job(job_id, job_trigger)
         else:
+            remove_self = partial(context.app.state.scheduler.scheduler.remove_job, job_id)
             context.app.state.scheduler.scheduler.add_job(
                 daemon_scheduled_job,
                 job_trigger,
                 id=job_id,
-                args=[schedule.id],
+                args=[remove_self],
+                kwargs={"schedule_id": schedule.id},
             )
-
-    # remove any jobs that are not enabled
-    statement = select(Schedule).where(not Schedule.is_enabled)
-    schedules = await context.session.exec(statement)
-    for schedule in schedules:
-        job_id = str(schedule.id)
-        if context.app.state.scheduler.scheduler.get_job(job_id):
-            context.app.state.scheduler.scheduler.remove_job(job_id)
 
 
 async def daemon_iteration(context: DaemonContext) -> None:
@@ -317,7 +357,10 @@ async def daemon_iteration(context: DaemonContext) -> None:
     if Features.DAEMON_NODES in config.features.enabled:
         await consider_nodes(context)
     if Features.SCHEDULER in config.features.enabled:
-        await consider_schedules(context)
+        if context.app.state.scheduler.is_running:
+            await consider_schedules(context)
+        else:
+            logger.warning("Scheduler not (yet) running")
 
 
 def trigger_for_transition(task: Task, events: Mapping[str, Event]) -> str | None:

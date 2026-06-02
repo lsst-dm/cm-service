@@ -28,7 +28,8 @@ from lsst.cmservice.models.api.manifests import (
     NodeManifest,
 )
 from lsst.cmservice.models.api.schedules import ScheduleConfiguration
-from lsst.cmservice.models.db.schedules import ManifestTemplateBase
+from lsst.cmservice.models.db.schedules import CreateManifestTemplate
+from lsst.cmservice.models.lib.timestamp import now_utc
 from lsst.cmservice.models.lib.transformer import manifest_to_orm, prepare_orm_from_manifest
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
@@ -143,8 +144,8 @@ def make_schedule_with_manifests(**overrides: dict) -> dict:
                         predicates:
                             - instrument='LSSTCam'
                             - skymap='lsst_cells_v1'
-                            - obs_day>='{{ today | as_obs_day }}'
-                            - obs_day<'{{ tomorrow | as_obs_day }}'
+                            - day_obs>='{{ today | as_day_obs }}'
+                            - day_obs<'{{ tomorrow | as_day_obs }}'
                         repo: /repo/main
                     """),
             },
@@ -355,7 +356,8 @@ async def test_template_render(
         expressions={"today": "datetime.now()", "yesterday": "datetime.now() - timedelta(days=1)"}
     )
     templates = [
-        ManifestTemplateBase(
+        CreateManifestTemplate(
+            name=uuid4().hex[0:8],
             kind=template["kind"],
             manifest=yaml.dump(template),
             metadata_={},
@@ -446,5 +448,69 @@ async def test_daemon_schedule(
     campaign_manifests = x.json()
     assert len(campaign_manifests) > 0
     butler_manifest = campaign_manifests[0]
-    assert f"obs_day>='{right_now:%Y%m%d}'" in butler_manifest["spec"]["predicates"]
+    assert f"day_obs>='{right_now:%Y%m%d}'" in butler_manifest["spec"]["predicates"]
     ...
+
+
+async def test_one_shot_scheduler() -> None:
+    """Tests the one-shot scheduler."""
+    sentinel = asyncio.Event()
+    job_target = False
+
+    def job_function() -> None:
+        nonlocal job_target
+        job_target = not job_target
+        sentinel.set()
+
+    async with Scheduler.get_one_shot_scheduler() as scheduler:
+        scheduler.add_job(job_function, "interval", id="test_job")
+        await asyncio.wait_for(sentinel.wait(), timeout=5.0)
+        assert job_target is True
+
+
+@pytest.mark.parametrize(
+    "test_case",
+    [
+        pytest.param(ScheduleTestCase(post_data=make_schedule_with_manifests()), id="full"),
+    ],
+    indirect=["test_case"],
+)
+async def test_one_shot_api(aclient: AsyncClient, test_case: ScheduleTestCase) -> None:
+    """Creates a schedule and runs it using the oneshot API."""
+    today = now_utc()
+
+    async def check_oneshot_complete() -> bool:
+        """checks for the existence of the expected new campaign"""
+        while True:
+            y = await aclient.get(f"/v2/campaigns/sample_campaign_{today:%Y%m%d%H%M}")
+            if y.status_code == codes.OK:
+                return True
+            else:
+                await asyncio.sleep(1.0)
+
+    # Create and enable the schedule
+    x = await aclient.post("/v2/schedules", json=test_case.post_data)
+    assert x.status_code == test_case.expected_code
+    schedule_url = x.headers["Self"]
+
+    x = await aclient.patch(
+        schedule_url, json={"is_enabled": True, "configuration": {"name_format": "%Y%m%d%H%M"}}
+    )
+    assert x.status_code == codes.OK
+    x = await aclient.get(x.headers["Self"])
+    assert x.status_code == codes.OK
+
+    new_schedule = x.json()
+    assert new_schedule["is_enabled"]
+    assert new_schedule["next_run_at"] is not None
+    assert new_schedule["configuration"]["name_format"] == "%Y%m%d%H%M"
+
+    x = await aclient.post(f"{x.headers['Self']}/oneshot")
+    assert x.status_code == codes.ACCEPTED
+
+    await asyncio.wait_for(check_oneshot_complete(), timeout=10.0)
+    x = await aclient.get(f"/v2/campaigns/sample_campaign_{today:%Y%m%d%H%M}")
+    assert x.status_code == codes.OK
+    x = await aclient.get(x.headers["nodes"])
+    assert x.status_code == codes.OK
+    assert len(x.json()) == 3

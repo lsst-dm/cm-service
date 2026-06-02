@@ -15,8 +15,8 @@ def as_lsst_version(value: datetime, format: Literal["weekly", "daily"] = "weekl
             return f"{value:d_%Y_%m_%d}"
 
 
-def as_obs_day(value: datetime) -> str:
-    """Given a datetime input, construct an "obs_day" format"""
+def as_day_obs(value: datetime) -> str:
+    """Given a datetime input, construct an "day_obs" format"""
     return f"{value:%Y%m%d}"
 
 
@@ -27,6 +27,6 @@ def as_exposure(value: datetime, exposure: int = 0) -> str:
 # All filters as a mapping constant
 FILTERS: Mapping[str, Callable] = {
     "as_lsst_version": as_lsst_version,
-    "as_obs_day": as_obs_day,
+    "as_day_obs": as_day_obs,
     "as_exposure": as_exposure,
 }

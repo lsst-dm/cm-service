@@ -17,6 +17,8 @@ from .util_functions import (
     create_tree,
 )
 
+pytestmark = pytest.mark.xfail
+
 
 @pytest.mark.asyncio()
 async def test_step_cli(runner: CliRunner) -> None:

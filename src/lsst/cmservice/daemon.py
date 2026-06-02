@@ -1,10 +1,9 @@
+import asyncio
 import os
-from asyncio import TaskGroup
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import uvicorn
-from anyio import current_time, sleep_until
 from fastapi import FastAPI
 
 from . import __version__
@@ -26,6 +25,7 @@ logger = LOGGER.bind(module=__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator:
     # start
+    logger.debug("=== LIFESPAN START ===")
     # Bootstrap a panda id token
     _ = get_panda_token()
     # Update process environment with configuration models
@@ -36,25 +36,28 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     await db_session_dependency.initialize()
     assert db_session_dependency.engine is not None
 
-    async with TaskGroup() as tg:
+    shutdown_signal = asyncio.Event()
+    async with asyncio.TaskGroup() as tg:
         # Daemon
-        daemon = tg.create_task(main_loop(app=app), name="daemon")
+        daemon = tg.create_task(main_loop(app=app, sentinel=shutdown_signal), name="daemon")
         app.state.tasks.add(daemon)
 
         # Scheduler
         if Features.SCHEDULER in config.features.enabled:
-            scheduler = Scheduler(app=app)
+            scheduler = Scheduler(app=app, sentinel=shutdown_signal)
             scheduler_task = tg.create_task(scheduler.scheduler_task(), name="scheduler")
             app.state.tasks.add(scheduler_task)
 
         yield
-        # Tasks are cancelled at the end of the taskgroup
+        # Set the shutdown signal for all tasks
+        shutdown_signal.set()
+        # Tasks are awaited at the end of the taskgroup
 
     # stop
     await db_session_dependency.aclose()
 
 
-async def main_loop(app: FastAPI) -> None:
+async def main_loop(app: FastAPI, sentinel: asyncio.Event) -> None:
     """Daemon execution loop.
 
     With a database session, perform a single daemon interation and then sleep
@@ -68,19 +71,23 @@ async def main_loop(app: FastAPI) -> None:
     logger.info("Starting Daemon...")
     _iteration_count = 0
 
-    while True:
+    while not sentinel.is_set():
         _iteration_count += 1
+        logger.info("Daemon starting iteration %s", _iteration_count)
         async with DaemonContext(app=app) as context:
-            logger.info("Daemon starting iteration %s", _iteration_count)
             if Features.DAEMON_V1 in config.features.enabled:
                 await daemon_iteration(context.session)
             if Features.DAEMON_V2 in config.features.enabled:
                 await daemon_iteration_v2(context)
-            _iteration_time = current_time()
-            logger.info("Daemon completed %s iterations at %s.", _iteration_count, _iteration_time)
-            _next_wakeup = _iteration_time + sleep_time
-            logger.info("Daemon next iteration at %s.", _next_wakeup)
-        await sleep_until(_next_wakeup)
+
+        logger.info("Daemon completed %s iterations.", _iteration_count)
+        try:
+            await asyncio.wait_for(sentinel.wait(), timeout=sleep_time)
+            logger.info("Daemon stopping")
+            break
+        except TimeoutError:
+            # next iteration
+            pass
 
 
 def main() -> None:

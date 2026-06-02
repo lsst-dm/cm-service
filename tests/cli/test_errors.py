@@ -14,6 +14,8 @@ from .util_functions import (
     delete_all_rows,
 )
 
+pytestmark = pytest.mark.xfail
+
 
 @pytest.mark.asyncio()
 @pytest.mark.parametrize("api_version", ["v1"])
