@@ -439,9 +439,9 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
                 "ticket": "DM-ZZZZZ",
                 "campaign": "test_campaign_with_groups",
                 "project": "integration-testing",
-                "prepend": "export LSST_S3_USE_THREADS=False",
-                "custom_lsst_setup": "setup -j -r /path/to/some/custom/pipe_base",
-                "append": 'echo "All done!"',
+                "prepend": ["export LSST_S3_USE_THREADS=False"],
+                "custom_lsst_setup": [("setup", "-j", "-r", "/path/to/some/custom/pipe_base")],
+                "append": ['echo "All done!"'],
             },
         },
     )

@@ -3,44 +3,46 @@ set -e
 {# BLANK LINE #}
 {#- PHASE: HEADER =========================================================== #}
 {%- if lsst.prepend %}
-{{ lsst.prepend }}
+{%- for line in lsst.prepend %}
+{{ line | shlex }}
+{%- endfor %}
 {# BLANK LINE #}
 {%- endif %}
 {%- if lsst.launcher %}
-{#- PHASE: LSST SETUP ======================================================= #}
+{#- PHASE: LAUNCHER LSST SETUP ============================================== #}
 {%- for line in lsst.launcher %}
-{{ line | trim }}
+{{ line | shlex }}
 {%- endfor %}
 {# BLANK LINE #}
 {%- endif %}
 {%- if lsst.custom_lsst_setup %}
-{{ lsst.custom_lsst_setup }}
+{%- for line in lsst.custom_lsst_setup %}
+{{ line | shlex }}
+{%- endfor %}
 {# BLANK LINE #}
 {%- endif %}
 {#- PHASE: WMS SETUP ======================================================== #}
-{%- if wms.batch_system == "htcondor" %}
-{%- elif wms.batch_system == "panda" %}
-{#- what value is this LATEST_PANDA path? #}
-{#- LATEST_PANDA=$(ls -td /cvmfs/sw.lsst.eu/almalinux-x86_64/panda_env/v* | head -1) #}
-export PANDA_SYS=${CONDA_PREFIX}
-export IDDS_CONFIG=${PANDA_SYS}/etc/idds/idds.cfg.client.template
-export IDDS_MAX_NAME_LENGTH=30000
-export BPS_WMS_SERVICE_CLASS=lsst.ctrl.bps.panda.PanDAService
-{# BLANK LINE #}
-unset PANDA_CONFIG_ROOT
+{%- if wms.environment %}
+{%- for key, value in wms.environment|items %}
+export {{ key }}="{{ value }}"
+{%- endfor %}
 {# BLANK LINE #}
 {%- endif %}
-{%- if wms.custom_wms_setup %}
-{{ wms.custom_wms_setup }}
+{%- if wms.custom_setup %}
+{%- for line in wms.custom_setup %}
+{{ line | shlex }}
+{%- endfor %}
 {# BLANK LINE #}
 {%- endif %}
-{#- PHASE: COMMANDS ========================================================= #}
+{#- PHASE: PAYLOAD COMMANDS ================================================= #}
 {%- for command in lsst.command %}
-{{ command | trim }}
+{{ command | shlex }}
 {# BLANK LINE #}
 {%- endfor %}
-{#- PHASE: TRAILER ========================================================== #}
+{#- PHASE: POSTFLIGHT TRAILER =============================================== #}
 {%- if lsst.append %}
-{{ lsst.append }}
+{%- for line in lsst.append %}
+{{ line | shlex }}
+{%- endfor %}
 {# BLANK LINE #}
 {%- endif %}

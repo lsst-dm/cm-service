@@ -79,6 +79,13 @@ spec:
 # spec:
 #   batch_system: "panda"
 #   service_class: "lsst.ctrl.bps.panda.PanDAService"
+# environment:
+#   IDDS_MAX_NAME_LENGTH: "30000"
+#   PANDA_SYS: "${CONDA_PREFIX}"
+#   IDDS_CONFIG: "${PANDA_SYS}/etc/idds/idds.cfg.client.template"
+#   BPS_WMS_SERVICE_CLASS: "lsst.ctrl.bps.panda.PanDAService"
+# custom_setup:
+#   - ["unset", "PANDA_CONFIG_ROOT"]
 ---
 apiVersion: io.lsst.cmservice/v1
 kind: site

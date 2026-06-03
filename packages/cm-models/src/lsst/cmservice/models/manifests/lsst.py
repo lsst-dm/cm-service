@@ -52,25 +52,28 @@ class LsstSpec(ManifestSpec):
         description="Absolute path to a stack distribution location",
         examples=["/sdf/group/rubin/sw/tag/<tag>", "/cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib/<tag>/"],
     )
-    prepend: str | None = Field(
+    prepend: list[str | tuple[str, ...]] | None = Field(
         default=None,
         title="Stack Setup Prepend Commands",
-        description="A newline-delimited string of shell actions to execute prior to stack setup.",
-        examples=["echo Hello World", "echo Starting New Campaign\necho Hello World"],
+        description="A list of shell actions to execute prior to stack setup.",
+        examples=["echo Hello World", ("echo", "-e", "Starting New Campaign")],
     )
-    custom_lsst_setup: str | None = Field(
+    custom_lsst_setup: list[str | tuple[str, ...]] | None = Field(
         default=None,
         title="Custom Stack Setup Commands",
-        description="A newline-delimited string of optional commands to be added to any Bash script that "
-        "sets up the LSST Stack, to be executed verbatim *after* EUPS setup but *before* the payload "
-        "command. Can be used to customize the Stack with EUPS, for example.",
-        examples=["setup --just --root=/path/to/custom/product"],
+        description="A list of script commands (or a tuple of command tokens) representing optional commands"
+        "to be added to any Bash script that sets up the LSST Stack, to be executed verbatim *after* EUPS "
+        "setup but *before* the payload command. Can be used to customize the Stack with EUPS, for example.",
+        examples=[
+            "setup --just --root=/path/to/custom/product",
+            [("setup", "--just", "--root=/path/to/custom/product")],
+        ],
     )
-    append: str | None = Field(
+    append: list[str | tuple[str, ...]] | None = Field(
         default=None,
         title="Stack Setup Append Commands",
-        description="A newline-delimited string of shell actions to execute after the payload command.",
-        examples=["echo Finished", "source /path/to/custom/script.sh"],
+        description="A list of shell actions to execute after the payload command.",
+        examples=["echo Finished", ("source", "/path/to/custom/script.sh")],
     )
     environment: Mapping | None = Field(
         default_factory=dict,

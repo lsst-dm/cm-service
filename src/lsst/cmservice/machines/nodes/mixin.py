@@ -221,6 +221,7 @@ class FilesystemActionMixin(ActionMixIn):
         )
         action_template_environment.filters["toyaml"] = yaml.dump
         action_template_environment.filters["flatten_chainmap"] = lib.flatten_chainmap
+        action_template_environment.filters["shlex"] = lib.parse_custom_script_lines
 
         # Render and Add any command_templates to the lsst config chain
         rendered_command_templates = [
@@ -324,6 +325,13 @@ class HTCondorLaunchMixin(LaunchMixIn):
     async def lsst_prepare(self, event: EventData) -> None:
         """Prepares launcher-specific LSST setup manifest used when rendering
         templates.
+
+        Adds launcher-specific script commands to the LSST configuration chain,
+        which are added verbatim as script lines to any launcher script, after
+        any `prepend` but before any `custom_lsst_setup` sections.
+
+        The primary purpose of this section is to call stack setup on a per-
+        launcher basis.
         """
         lsst_config: dict[str, Any] = {"launcher": []}
         lsst_config["launcher"].append("""export LSST_VERSION="{{ lsst.lsst_version }}" """)

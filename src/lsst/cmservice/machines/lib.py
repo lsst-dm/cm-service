@@ -1,7 +1,8 @@
 """Library functions supporting State Machines"""
 
+import shlex
 from collections import ChainMap
-from collections.abc import Callable, Generator
+from collections.abc import Callable, Generator, Sequence
 from functools import partial, reduce
 from shutil import rmtree
 from typing import Any
@@ -181,3 +182,24 @@ async def deltree(path: Path) -> None:
             logger.error("Error raised trying to rename directory", path=path, exc=e)
             # pragma: human intervention required
             raise
+
+
+def parse_custom_script_lines(line: str | Sequence[str]) -> str:
+    """A naive parser for configuration manifest entries that represent custom
+    or arbitrary script content.
+
+    A string is parsed into tokens, or it may be already parsed as a tuple of
+    tokens.
+
+    Returns a normalized command string for each input line.
+    """
+    tokens = line
+    match tokens:
+        case str():
+            tokens = shlex.split(tokens)
+        case _:
+            pass
+
+    # TODO here we could check tokens[0] against some whitelist of commands
+
+    return shlex.join(tokens).strip()
