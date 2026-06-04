@@ -1,16 +1,19 @@
 """Library functions supporting State Machines"""
 
 import shlex
+import traceback
 from collections import ChainMap
 from collections.abc import Callable, Generator, Sequence
 from functools import partial, reduce
 from shutil import rmtree
+from textwrap import dedent
 from typing import Any
 from uuid import uuid5
 
 from anyio import Path, to_thread
 from sqlalchemy.dialects.postgresql import insert
 from sqlmodel import col, select
+from transitions import EventData
 
 from lsst.cmservice.models.db.campaigns import ActivityLog, Campaign, Manifest, Node
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, ManifestKind
@@ -203,3 +206,27 @@ def parse_custom_script_lines(line: str | Sequence[str]) -> str:
     # TODO here we could check tokens[0] against some whitelist of commands
 
     return shlex.join(tokens).strip()
+
+
+def event_error_heuristic(event: EventData) -> str | None:
+    """Given a transition event with an error, return a string describing the
+    error in the best concise way we can.
+    """
+    if event.error is None:
+        return
+    exc_name = event.error.__class__.__name__
+    exc_message = event.error.__doc__ or "Unknown reason"
+    exc_detail = str(event.error) or str(event.error.__cause__) or "No additional details"
+    exc_traceback: traceback.FrameSummary = traceback.extract_tb(event.error.__traceback__)[-1]
+    error_markdown = dedent(f"""\
+        ## Transition Failed
+        *An error occurred during state transition:*
+        **{exc_name}** : {exc_message} : {exc_detail}
+
+        *This error occurred at:*
+        module: {exc_traceback.filename}
+        line: {exc_traceback.lineno}
+        code: {exc_traceback.line}
+    """)
+
+    return error_markdown

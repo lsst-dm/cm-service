@@ -28,6 +28,7 @@ from ...common.logging import LOGGER
 from ...config import config
 from ...db.session import db_session_dependency
 from ..abc import StatefulModel
+from ..lib import event_error_heuristic
 from . import TRANSITIONS
 from .mixin import FilesystemActionMixin, HTCondorLaunchMixin, NodeMixIn
 
@@ -122,7 +123,7 @@ class NodeMachine(StatefulModel):
 
         logger.exception(event.error, id=str(self.db_model.id), exc=event.error.__class__.__qualname__)
         if self.activity_log_entry is not None:
-            error_cause = str(event.error) or str(event.error.__cause__) or "An unknown error occurred"
+            error_cause = event_error_heuristic(event)
             self.activity_log_entry.detail["trigger"] = event.event.name
             self.activity_log_entry.detail["error"] = error_cause
             self.activity_log_entry.detail["exception"] = event.error.__class__.__qualname__

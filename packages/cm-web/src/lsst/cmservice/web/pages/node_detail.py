@@ -214,12 +214,12 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
                             ...
 
                 with ui.timeline_entry(
-                    body=entry_body,
                     title=entry_title,
                     subtitle=entry["finished_at"],
                     icon=StatusDecorators[entry["to_status"]].emoji,
                     color=entry_color,
                 ):
+                    ui.markdown(entry_body)
                     if entry_milestone:
                         ui.code(safe_dump(entry["detail"]), language="yaml")
 
