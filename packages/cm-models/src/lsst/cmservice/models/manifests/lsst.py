@@ -8,8 +8,9 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Annotated
 
-from pydantic import Field
+from pydantic import BeforeValidator, Field
 
+from ..lib.parsers import strip_trailing_slash
 from . import SPEC_CONFIG, LibraryManifest, ManifestSpec
 
 
@@ -47,11 +48,15 @@ class LsstSpec(ManifestSpec):
         description="LSST Stack version or tag",
         examples=["w_latest", "d_latest", "w_2026_01"],
     )
-    lsst_distrib_dir: str = Field(
-        title="LSST Distribution Directory",
-        description="Absolute path to a stack distribution location",
-        examples=["/sdf/group/rubin/sw/tag/<tag>", "/cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib/<tag>/"],
-    )
+    lsst_distrib_dir: Annotated[
+        str,
+        BeforeValidator(strip_trailing_slash),
+        Field(
+            title="LSST Distribution Directory",
+            description="Absolute path to a stack distribution location. Should not have a trailing slash.",
+            examples=["/sdf/group/rubin/sw/tag/<tag>", "/cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib/<tag>"],
+        ),
+    ]
     prepend: list[str | tuple[str, ...]] | None = Field(
         default=None,
         title="Stack Setup Prepend Commands",

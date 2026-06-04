@@ -335,9 +335,7 @@ class HTCondorLaunchMixin(LaunchMixIn):
         """
         lsst_config: dict[str, Any] = {"launcher": []}
         lsst_config["launcher"].append("""export LSST_VERSION="{{ lsst.lsst_version }}" """)
-        lsst_config["launcher"].append(
-            """export LSST_DISTRIB_DIR="{{ lsst.lsst_distrib_dir.rstrip("/") }}" """
-        )
+        lsst_config["launcher"].append("""export LSST_DISTRIB_DIR="{{ lsst.lsst_distrib_dir }}" """)
         lsst_config["launcher"].append("""source ${LSST_DISTRIB_DIR}/loadLSST.bash""")
         lsst_config["launcher"].append("""setup -t ${LSST_VERSION} lsst_distrib""")
         self.configuration_chain["lsst"] = self.configuration_chain["lsst"].new_child(lsst_config)
