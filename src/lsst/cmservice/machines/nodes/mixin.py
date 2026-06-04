@@ -163,6 +163,7 @@ class FilesystemActionMixin(ActionMixIn):
         if await self.artifact_path.exists():
             # Create a new name for the existing path
             legacy_path = self.artifact_path.with_suffix(f".{element_time()}")
+            self.db_model.metadata_["replaces_path"] = str(legacy_path)
             # Rename the existing artifact_path
             await self.artifact_path.replace(target=legacy_path)
             logger.warning(
@@ -176,6 +177,7 @@ class FilesystemActionMixin(ActionMixIn):
             await self.artifact_path.mkdir(parents=True, exist_ok=False)
             # Update the metadata model for the node after the path has been
             # successfully created
+            self.db_model.metadata_["parent_path"] = str(parent_path)
             self.db_model.metadata_["artifact_path"] = str(self.artifact_path)
         except FileExistsError:
             raise

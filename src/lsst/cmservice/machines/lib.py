@@ -93,6 +93,11 @@ async def assemble_config_chain(
             library_config,
             extra.get(kind, {}),
         )
+    # Add node metadata to config_chain
+    config_chain["metadata"] = ChainMap(
+        node.metadata_,
+        extra.get("metadata", {}),
+    )
     return config_chain
 
 
