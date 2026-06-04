@@ -147,17 +147,27 @@ def fake_bps(argv: list) -> Any:
         return no_op(argv)
     elif bps_command == "submit":
         return fake_bps_submit(argv)
+    elif bps_command == "acquire":
+        return fake_bps_acquire(argv)
     else:
         return no_op(argv)
 
 
-def fake_bps_submit(argv: list) -> Any:
+def fake_bps_acquire(argv: list) -> Any:
     bps_run_name = os.environ.get("BPS_RUN_NAME", "mock_bps_submit_side_effect_001_version_1")
     cwd = Path.cwd()
     submit_dir = cwd / "submit" / f"{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}"  # noqa: UP017
     qg_file = submit_dir / f"{bps_run_name}.qg"
     submit_dir.mkdir(parents=True, exist_ok=True)
     qg_file.write_bytes(b"\x04")
+
+
+def fake_bps_submit(argv: list) -> Any:
+    bps_run_name = os.environ.get("BPS_RUN_NAME", "mock_bps_submit_side_effect_001_version_1")
+    fake_bps_acquire(argv)
+    cwd = Path.cwd()
+    submit_dir = cwd / "submit" / f"{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}"  # noqa: UP017
+    submit_dir.mkdir(parents=True, exist_ok=True)
 
     # Need to write the fake details for bps status
     dagman_log_file = submit_dir / f"{bps_run_name}.dag.dagman.log"

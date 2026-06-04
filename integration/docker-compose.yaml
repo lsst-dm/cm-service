@@ -24,8 +24,11 @@ services:
         install -o root -g root -m 0755 -d /opt/sw
         ln -s /opt/mocks/rubin.py /opt/sw/bps
         ln -s /opt/mocks/rubin.py /opt/sw/butler
+        ln -s /opt/mocks/rubin.py /opt/sw/eups
         ln -s /opt/mocks/rubin.py /opt/sw/setup
-        ln -s /opt/mocks/rubin.py /opt/sw/mc
+        ln -s /opt/mocks/rubin.py /opt/sw/python
+        ln -s /opt/mocks/rubin.py /opt/sw/python3
+        ln -s /opt/mocks/rubin.py /opt/sw/mv
         echo "export PATH=/opt/sw:$$PATH" > /opt/sw/loadLSST.bash
         # Regular startup
         exec /bin/bash -x /start.sh
@@ -91,9 +94,45 @@ services:
       butler:
         condition: service_healthy
 
+  s3mock:
+    profiles:
+      - full
+    image: adobe/s3mock:5.0.0
+    environment:
+      COM_ADOBE_TESTING_S3MOCK_STORE_ROOT: s3data
+      COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: mock-bucket
+      COM_ADOBE_TESTING_S3MOCK_STORE_RETAIN_FILES_ON_EXIT: "true"
+    networks:
+      - cmservice
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/favicon.ico"]
+      interval: 5s
+      retries: 3
+
+  s3mock-seed:
+    profiles:
+      - full
+    image: amazon/aws-cli:latest
+    environment:
+      AWS_ACCESS_KEY_ID: NOT-A-REAL-ACCESS-KEY
+      AWS_SECRET_ACCESS_KEY: NOT-A-REAL-SECRET-ACCESS-KEY
+      AWS_ENDPOINT_URL_S3: http://s3mock:9090
+    volumes:
+      - ./bucket.d:/seed
+    networks:
+      - cmservice
+    depends_on:
+      s3mock:
+        condition: service_healthy
+    entrypoint: ["aws", "s3"]
+    command: ["cp", "/seed/", "s3://mock-bucket/", "--recursive"]
+
 secrets:
   condor_token_file:
     environment: "CM_RUBIN_ORG_TOKEN"
-
+  aws_config:
+    file: ./aws.d/config
+  aws_credentials:
+    file: ./aws.d/credentials
 volumes:
   butler-repo:

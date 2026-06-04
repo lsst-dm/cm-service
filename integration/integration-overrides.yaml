@@ -27,6 +27,9 @@ services:
         {"repo/mock": "/opt/shared/butler.yaml"}
       LSST_DB_AUTH_CREDENTIALS: >-
         [{"url": "postgresql://butler:5432/repo", "username": "mockbutler", "password": "INSECURE-PASSWORD"}]
+      LSST_RESOURCES_S3_PROFILE_embargo: http://s3mock:9090
+      AWS_CONFIG_FILE: /run/secrets/aws_config
+      AWS_SHARED_CREDENTIALS_FILE: /run/secrets/aws_credentials
     env_file:
       - path: integration/shared.env
         required: true
@@ -37,6 +40,8 @@ services:
         mode: 0o400
         uid: "3967"
         gid: "1126"
+      - source: aws_config
+      - source: aws_credentials
     depends_on:
       migratedb:
         condition: service_completed_successfully
