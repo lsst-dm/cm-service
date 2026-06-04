@@ -645,7 +645,7 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
                                 "type": manifest["metadata"]["kind"],
                             }
                         )
-                    case "lsst" | "butler" | "wms" | "site" | "bps":
+                    case "lsst" | "butler" | "wms" | "site" | "bps" | "artifact":
                         manifest["metadata"].pop("namespace", None)
                         manifest["metadata"].pop("kind", None)
                         if (manifest_id := manifest["metadata"].pop("id", None)) is None:

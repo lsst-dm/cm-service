@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 from anyio import Path, TemporaryDirectory
-from jinja2 import Environment, PackageLoader, Template
+from jinja2 import ChoiceLoader, DictLoader, Environment, PackageLoader, Template
 from sqlalchemy.exc import MissingGreenlet, NoResultFound
 from sqlmodel import desc, or_, select
 from transitions import EventData
@@ -218,7 +218,12 @@ class FilesystemActionMixin(ActionMixIn):
         # Get the yaml template using package lookup and wire in any custom
         # template filters
         action_template_environment = Environment(
-            loader=PackageLoader("lsst.cmservice.models"),
+            loader=ChoiceLoader(
+                [
+                    DictLoader(getattr(self, "artifact_templates", {})),
+                    PackageLoader("lsst.cmservice.models"),
+                ]
+            ),
             keep_trailing_newline=True,
         )
         action_template_environment.filters["toyaml"] = yaml.dump

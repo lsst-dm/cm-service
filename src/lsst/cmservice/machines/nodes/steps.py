@@ -21,6 +21,7 @@ from lsst.cmservice.models.lib.graph import (
 )
 from lsst.cmservice.models.lib.timestamp import element_time
 from lsst.cmservice.models.manifest import (
+    ArtifactManifest,
     BpsManifest,
     ButlerManifest,
     FacilityManifest,
@@ -28,6 +29,7 @@ from lsst.cmservice.models.manifest import (
     WmsManifest,
 )
 
+from ...common.errors import CMNoSuchManifestError
 from ...common.flags import Features
 from ...common.logging import LOGGER
 from ...common.splitter import Splitter, SplitterEnum, SplitterMapping
@@ -411,6 +413,17 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
         self.bps = await self.get_manifest(ManifestKind.bps, BpsManifest)
         self.wms = await self.get_manifest(ManifestKind.wms, WmsManifest)
         self.site = await self.get_manifest(ManifestKind.site, FacilityManifest)
+
+        try:
+            artifact_manifest = await self.get_manifest(ManifestKind.artifact, ArtifactManifest)
+            self.artifact_templates = artifact_manifest.spec.artifacts
+            if self.templates is None:
+                self.templates = set()
+            for template in self.artifact_templates:
+                self.templates.add((template, template))
+        except CMNoSuchManifestError:
+            # this is not a fatal error
+            pass
 
         predicates = await self.get_predicates()
         splitter = await self.get_splitter()

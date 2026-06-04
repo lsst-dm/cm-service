@@ -505,6 +505,20 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
             },
         },
     )
+    x = await aclient.post(
+        "/v2/manifests",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "artifact",
+            "metadata": {"name": "custom_artifacts", "namespace": campaign["id"]},
+            "spec": {
+                "artifacts": {
+                    "file_a.txt": "line 1\nline 2\n",
+                    "file_b.yaml": "---\nhello: world\nfoo:\n  - bar\n  - baz",
+                },
+            },
+        },
+    )
 
     # Make a step node with null groups
     x = await aclient.post(

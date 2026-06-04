@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Self
 from nice_dialogs.dialogs import ConfirmationDialog
 from nicegui import ui
 from nicegui.events import ClickEventArguments, GenericEventArguments, ValueChangeEventArguments
-from pydantic_core import ValidationError
+from pydantic_core import PydanticUndefined, ValidationError
 
 from lsst.cmservice.models.db.schedules import CreateManifestTemplate
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE
@@ -682,7 +682,7 @@ class NewManifestEditorDialog(EditorDialog):
         template = {}
         kind_model = KIND_TO_SPEC[self.context.kind]
         for field_name, field_info in kind_model.model_fields.items():
-            if field_info.exclude:
+            if field_info.exclude or field_info.deprecated:
                 continue
             elif field_info.examples:
                 field_example = field_info.examples[0]
@@ -690,9 +690,12 @@ class NewManifestEditorDialog(EditorDialog):
                     template[field_name] = field_example.get(field_name, field_example)
                 else:
                     template[field_name] = field_example
-            else:
+            elif field_info.default is not PydanticUndefined:
                 template[field_name] = field_info.get_default(call_default_factory=True)
+            else:
+                template[field_name] = None
         self.editor.set_value(yaml.safe_dump(template))
+
         self.editor.update()
 
     async def handle_kind_selection_change(self, e: ValueChangeEventArguments) -> None:

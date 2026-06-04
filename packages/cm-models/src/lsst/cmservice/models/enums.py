@@ -33,6 +33,7 @@ class ManifestKind(enum.Enum):
     butler = enum.auto()
     wms = enum.auto()
     site = enum.auto()
+    artifact = enum.auto()
     # Fallback kind
     other = enum.auto()
     dummy = enum.auto()
