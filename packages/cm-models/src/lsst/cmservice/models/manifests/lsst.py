@@ -74,6 +74,17 @@ class LsstSpec(ManifestSpec):
             [("setup", "--just", "--root=/path/to/custom/product")],
         ],
     )
+    custom_group_payload: list[str | tuple[str, ...]] = Field(
+        default_factory=list,
+        title="Custom Group PayloadCommands",
+        description="A list of script commands (or a tuple of command tokens) representing optional commands "
+        "to be added to any Bash script that executes a payload for a Group. These commands will not be "
+        "added to any launcher script for any Node other than groups.",
+        examples=[
+            "mc cp bucket/path/to/some/object .",
+            [("python", "-m", "lsst.package.module.submodule")],
+        ],
+    )
     append: list[str | tuple[str, ...]] | None = Field(
         default=None,
         title="Stack Setup Append Commands",

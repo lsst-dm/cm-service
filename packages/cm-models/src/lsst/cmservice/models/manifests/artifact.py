@@ -22,7 +22,17 @@ class ArtifactSpec(ManifestSpec):
             "as other node templates.",
             examples=[{"filename.txt": "file contents\n"}],
         ),
-    ]
+    ] = Field(default_factory=dict)
+
+    resources: Annotated[
+        dict[str, str],
+        Field(
+            description="A mapping of resources where the key is the target file name of the resource "
+            "(relative to the current node's artifact path) and the value is a `ResourcePath` expression "
+            "usually of an `s3://{profile}@{bucket}/{key}` form.",
+            examples=[{"local_file.txt": "s3://embargo@bucket/path/to/remote_file.txt"}],
+        ),
+    ] = Field(default_factory=dict)
 
 
 class ArtifactManifest(LibraryManifest[ArtifactSpec]): ...

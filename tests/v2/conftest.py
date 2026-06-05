@@ -4,6 +4,7 @@ import importlib
 import os
 from collections.abc import AsyncGenerator, Callable, Generator
 from contextlib import ExitStack, asynccontextmanager
+from pathlib import Path
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
@@ -35,8 +36,15 @@ POSTGRES_CONTAINER_IMAGE = "postgres:16"
 
 @pytest.fixture(scope="module")
 def monkeypatch_module() -> Generator[pytest.MonkeyPatch]:
+    """A module-scoped monkeypatch fixture"""
     with pytest.MonkeyPatch.context() as mp:
         yield mp
+
+
+@pytest.fixture(scope="module")
+def tmp_path_m(tmp_path_factory: pytest.TempPathFactory) -> Generator[Path]:
+    """A module-scoped tmp_path fixture"""
+    yield tmp_path_factory.mktemp("cm", numbered=True)
 
 
 @pytest.fixture(scope="module", autouse=True)

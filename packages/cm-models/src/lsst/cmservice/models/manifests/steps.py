@@ -14,6 +14,7 @@ from typing import Annotated, Literal
 from pydantic import Field, PlainSerializer
 
 from . import SPEC_CONFIG, LibraryManifest, ManifestSpec, SubfieldManifest
+from .artifact import ArtifactSpec
 from .bps import BpsSpec
 from .butler import ButlerSpec
 from .facility import FacilitySpec
@@ -220,6 +221,23 @@ class StepSpec(ManifestSpec):
             Field(
                 title="Null Configuration",
                 description="A Site config is not mandatory for a Step configuration",
+            ),
+        ]
+    ) = None
+
+    artifact: (
+        Annotated[
+            SubfieldManifest[ArtifactSpec],
+            Field(
+                title="Step Artifact Configuration",
+                description="Any Artifact Manifest fields can be set at the step level.",
+            ),
+        ]
+        | Annotated[
+            None,
+            Field(
+                title="Null Configuration",
+                description="An Artifact config is not mandatory for a Step configuration",
             ),
         ]
     ) = None

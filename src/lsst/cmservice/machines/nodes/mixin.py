@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from collections import ChainMap
 from collections.abc import AsyncGenerator
+from functools import partial
 from os.path import expandvars
 from typing import TYPE_CHECKING, Any
 
 import yaml
-from anyio import Path, TemporaryDirectory
+from anyio import Path, TemporaryDirectory, to_thread
 from jinja2 import ChoiceLoader, DictLoader, Environment, PackageLoader, Template
 from sqlalchemy.exc import MissingGreenlet, NoResultFound
 from sqlmodel import desc, or_, select
@@ -17,6 +18,7 @@ from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, ManifestKind, StatusE
 from lsst.cmservice.models.lib.logging import LOGGER
 from lsst.cmservice.models.lib.timestamp import element_time
 from lsst.cmservice.models.manifest import LibraryManifest
+from lsst.resources import ResourcePath
 
 from ...common.errors import CMNoSuchManifestError
 from ...common.htcondor import HTCondorManager
@@ -32,6 +34,9 @@ class NodeMixIn(MixIn):
     """Mixin Methods for a Stateful Model representing any kind of Node in a
     campaign graph.
     """
+
+    artifact_resources: dict
+    artifact_templates: dict
 
     # TODO if no more functionality is added in this mixin, just promote this
     # method into the NodeMachine class.
@@ -205,6 +210,26 @@ class FilesystemActionMixin(ActionMixIn):
             self.session, self.db_model, extra=fallback_configuration
         )
 
+    async def fetch_artifact_resources(self, event: EventData) -> None:
+        """For any static resources provided by an artifact manifest applied
+        to the node, fetch (`get`) the specified object and store it in the
+        artifact path.
+
+        If there are no such resources, this is a no-op
+        """
+        if not hasattr(self, "artifact_resources"):
+            return
+
+        # if present, attribute is added by the NodeMixin
+        if TYPE_CHECKING:
+            self.artifact_resources: dict
+
+        for local, remote in self.artifact_resources.items():
+            in_resource = ResourcePath(remote)
+            out_resource = ResourcePath(self.artifact_path / local)
+            sync_xfer = partial(out_resource.transfer_from, src=in_resource, transfer="copy")
+            await to_thread.run_sync(sync_xfer)
+
     async def render_action_templates(self, event: EventData) -> None:
         """Render the set of templates associated with this Node via the
         `templates` attribute, using the Node's configuration chain as a
@@ -256,6 +281,8 @@ class FilesystemActionMixin(ActionMixIn):
             except yaml.YAMLError as yaml_error:
                 msg = f"Error rendering YAML template; threw {yaml_error}"
                 raise yaml.YAMLError(msg)
+
+        await self.fetch_artifact_resources(event)
 
     async def action_prepare(self, event: EventData) -> None:
         """Wrapper method for Action node preparation."""
