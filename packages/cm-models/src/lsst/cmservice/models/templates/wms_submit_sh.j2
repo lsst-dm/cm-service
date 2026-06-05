@@ -35,6 +35,12 @@ export {{ key }}="{{ value }}"
 {# BLANK LINE #}
 {%- endif %}
 {#- PHASE: PAYLOAD COMMANDS ================================================= #}
+{%- if lsst.custom_payload %}
+{%- for line in lsst.custom_payload %}
+{{ line | shlex }}
+{%- endfor %}
+{# BLANK LINE #}
+{%- endif %}
 {%- for command in lsst.command %}
 {{ command | shlex }}
 {# BLANK LINE #}
