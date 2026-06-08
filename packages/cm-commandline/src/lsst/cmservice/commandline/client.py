@@ -23,14 +23,15 @@ def http_client(ctx: TypedContext) -> Generator[Client]:
     api_version = ctx.obj.api_version
     auth_token = ctx.obj.auth_token
 
+    headers = {"X-Request-Id": f"{uuid4()}"}
+    if auth_token:
+        headers["Authorization"] = f"Bearer {auth_token}"
+
     with Client(
         base_url=f"{endpoint_url}/{api_version}",
         follow_redirects=True,
         transport=transport,
-        headers={
-            "Authorization": f"Bearer {auth_token}",
-            "X-Request-Id": f"{uuid4()}",
-        },
+        headers=headers,
     ) as session:
         try:
             yield session
