@@ -28,8 +28,8 @@ class Settings(BaseSettings):
         description="Version of the CM Service API",
     )
 
-    token: str = Field(
-        default="",
+    token: str | None = Field(
+        default=None,
         description="Gafaelfawr auth token to use with API",
     )
 
