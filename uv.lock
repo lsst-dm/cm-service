@@ -1092,8 +1092,10 @@ dependencies = [
     { name = "jinja2" },
     { name = "networkx" },
     { name = "pydantic" },
+    { name = "pydantic-extra-types", extra = ["cron"] },
     { name = "pydantic-settings" },
     { name = "sqlmodel" },
+    { name = "structlog" },
 ]
 
 [package.dev-dependencies]
@@ -1109,8 +1111,10 @@ requires-dist = [
     { name = "jinja2", specifier = "==3.1.*" },
     { name = "networkx", specifier = ">=3.5" },
     { name = "pydantic", specifier = "==2.12.*" },
+    { name = "pydantic-extra-types", extras = ["cron"], specifier = ">=2.10.6" },
     { name = "pydantic-settings", specifier = "==2.12.*" },
     { name = "sqlmodel", specifier = ">=0.0.24" },
+    { name = "structlog", specifier = "==25.*" },
 ]
 
 [package.metadata.requires-dev]
