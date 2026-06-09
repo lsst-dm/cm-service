@@ -39,7 +39,7 @@ from lsst.cmservice.models.db.schedules import (
     ManifestTemplate,
     Schedule,
 )
-from lsst.cmservice.models.lib.timestamp import element_time, now_utc
+from lsst.cmservice.models.lib.timestamp import element_time
 
 from ...common.daemon_v2 import daemon_scheduled_job
 from ...common.logging import LOGGER
@@ -138,6 +138,10 @@ async def read_schedule_resource(
     response.headers["Templates"] = str(
         request.url_for("read_schedule_template_collection", schedule_id=str(schedule.id))
     )
+    if (last_campaign_id := schedule.metadata_.get("last_campaign_id", None)) is not None:
+        response.headers["Last-Campaign"] = str(
+            request.url_for("read_campaign_resource", campaign_name_or_id=last_campaign_id)
+        )
 
     if request.method == "HEAD":
         return None
@@ -367,6 +371,3 @@ async def create_schedule_oneshot_resource(
 
     job = partial(daemon_scheduled_job, schedule_id=schedule_id, suppress_exceptions=True, oneshot=True)
     background_tasks.add_task(job)
-
-    schedule.last_run_at = now_utc()
-    await session.commit()
