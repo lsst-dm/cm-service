@@ -1,6 +1,7 @@
 """Provide a common application root logger."""
 
 import logging
+import sys
 from collections.abc import Callable
 from typing import Annotated, Literal
 
@@ -45,6 +46,11 @@ class LoggingConfiguration(BaseSettings):
         default="development",
         title="Logging profile",
         description="Production generates structured JSON logs, Development generates console messages",
+    )
+
+    stream: Literal["stdout", "stderr"] = Field(
+        default="stdout",
+        title="Logging stream destination",
     )
 
 
@@ -183,6 +189,9 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 # Module level actions
 LOGGER_SETTINGS = LoggingConfiguration()
 """Settings object with runtime Logger configuration details."""
+
+LOGGER_STREAM = sys.stdout if LOGGER_SETTINGS.stream == "stdout" else sys.stderr
+logging.basicConfig(stream=LOGGER_STREAM)
 
 configure_logging(LOGGER_SETTINGS.level)
 
