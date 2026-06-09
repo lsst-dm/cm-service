@@ -22,7 +22,7 @@ def build_context(
     ctx: TypedContext,
     output: options.output = "table",
     endpoint: options.endpoint = settings.endpoint,
-    token: options.token = settings.token,
+    token: options.token | None = settings.token,
 ) -> None:
     ctx.obj = AppContext(output_format=output, endpoint_url=endpoint, auth_token=token)
 
