@@ -17,7 +17,7 @@ name: Rebase Checker and Commitlint
       custom-rules:
         description: >-
           Custom rules module to use with check-conventional
-          (relative path to file from repository root, including `./`)
+          (relative path to file, e.g., `./path/to/config.ts`)
         required: false
         type: string
         default: "@commitlint/config-conventional"
@@ -49,49 +49,39 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install commitlint
+      - name: Create bun lockfile (not run)
+        if: false
+        working-directory: .github/rebase-checker
         run: >
-          bun add --global
+          bun add --minimum-release-age=604800 --production --lockfile-only
           @commitlint/cli@21.0.1
           @commitlint/config-conventional@21.0.1
           conventional-commits-parser@6.4.0
 
-      - name: Create rebase-checker commitlint config
-        if: inputs.rebase-checker
-        run: |
-          cat > rebase-checker.config.mjs << 'EOF'
-          export default {
-            defaultIgnores: false,
-            ignores: [(commit) => !/^Merge branch/.test(commit)],
-            plugins: [{
-              rules: {
-                'rebase-checker': (commitMessage, when, pattern) => {
-                  const { raw } = commitMessage;
-                  if (!pattern) return [false, 'missing pattern'];
-                  const regex = new RegExp(pattern);
-                  let result = regex.test(raw ?? '');
-                  if (when === 'never') result = !result;
-                  return [result, `You must rebase against main, not merge it`];
-                },
-              },
-            }],
-            rules: {
-              'rebase-checker': [2, 'never', /^Merge branch '?(main|master)'? into (.*?)(?:\r?\n)*$/],
-            },
-          };
-          EOF
+      - name: Install commitlint
+        working-directory: .github/rebase-checker
+        run: >
+          bun install --frozen-lockfile --no-save
 
       - name: Rebase Checker (PR Branch must be rebased, not merged into)
         if: inputs.rebase-checker
+        working-directory: .github/rebase-checker
         run: >
-          bunx --bun commitlint
+          bunx --no-install --bun commitlint
           --config ./rebase-checker.config.mjs
           --from ${{ steps.commits.outputs.base }} --to ${{ steps.commits.outputs.head }}
 
       - name: Validate Commits as Conventional Commits
         if: inputs.check-conventional
-        run: >
-          bunx --bun commitlint
-          --extends ${{ inputs.custom-rules }}
-          --from ${{ steps.commits.outputs.base }} --to ${{ steps.commits.outputs.head }}
+        working-directory: .github/rebase-checker
+        run: |
+          EXTENDS="${{ inputs.custom-rules }}"
+          if [[ "$EXTENDS" != @* ]]
+          then
+            EXTENDS="${GITHUB_WORKSPACE}/${EXTENDS}"
+          fi
+
+          bunx --no-install --bun commitlint \
+          --extends $EXTENDS \
+          --from ${{ steps.commits.outputs.base }} --to ${{ steps.commits.outputs.head }} \
           --verbose

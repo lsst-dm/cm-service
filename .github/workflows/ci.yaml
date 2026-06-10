@@ -22,7 +22,7 @@ jobs:
     with:
       rebase-checker: true
       check-conventional: true
-      custom-rules: './.github/commitlint.ts'
+      custom-rules: .github/commitlint.ts
 
   lint:
     runs-on: ubuntu-latest
