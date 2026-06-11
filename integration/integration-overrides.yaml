@@ -3,10 +3,6 @@ services:
     environment:
       LOGGING__LEVEL: ERROR
       DB__ECHO: false
-  cmscheduler:
-    environment:
-      LOGGING__LEVEL: ERROR
-      DB__ECHO: false
   cmweb:
     environment:
       LOGGING__LEVEL: ERROR
@@ -46,4 +42,6 @@ services:
       migratedb:
         condition: service_completed_successfully
       butler-init:
+        condition: service_completed_successfully
+      s3mock-seed:
         condition: service_completed_successfully
