@@ -18,14 +18,6 @@ FROM dhi.io/bun:1-dev AS bun
 
 
 #==============================================================================
-# HTCONDOR SOURCE IMAGE
-# - The easiest way to obtain an architecture-appropriate set of htcondor client
-#   binaries is to install them into an otherwise bare conda environment.
-FROM continuumio/miniconda3:latest AS htcondor
-RUN conda create -p /opt/htcondor -c conda-forge htcondor-utils --no-default-packages
-
-
-#==============================================================================
 # BASE IMAGE
 # - The base image is an updated debian python container with a nonroot user
 #   created. This can be extended into include any *runtime* system dependencies
@@ -150,9 +142,6 @@ CMD ["lsst.cmservice.main"]
 #==============================================================================
 # RUNTIME IMAGE - Daemon
 FROM cmservice AS cmworker
-
-USER ROOT
-COPY --from=htcondor /opt/htcondor /opt/htcondor
 
 USER lsstsvc1
 CMD ["lsst.cmservice.daemon"]
