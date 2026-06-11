@@ -90,6 +90,7 @@ services:
       - artifacts:/opt/shared
     networks:
       - cmservice
+    restart: "no"
     depends_on:
       butler:
         condition: service_healthy
@@ -121,6 +122,7 @@ services:
       - ./bucket.d:/seed
     networks:
       - cmservice
+    restart: "no"
     depends_on:
       s3mock:
         condition: service_healthy
