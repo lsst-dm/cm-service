@@ -41,7 +41,7 @@ The CM Service consumes several secrets from the k8s application environment. Th
 
     - Every CM Service deployment template needing database access should have the `DB__PASSWORD` environment variable set using the value of the postgres secret. For the internal phalanx database, this is the `internalDatabasePassword` key in the `cm-service` secret.
 
-- Butler. The CM Service uses secrets to configure Butler registry authentication details. This secret is either a manually-managed secret in the `cm-service` application or a Vault secret managed by the application's Vault Secret Operator. The value of these secret should be a JSON string representation of an otherwise valid `db-auth.yaml` file commonly used for storing Butler registry authentication secrets. The `db-auth.yaml` is an array of objects with `url`, `username`, and `password` keys.
+- Butler. The CM Service uses secrets to configure Butler registry authentication details. This secret is either a manually-managed secret in the `cm-service` application or a Vault secret managed by the application's Vault Secret Operator. The value of these secret should be a JSON string representation of an otherwise valid `db-auth.yaml` file commonly used for storing Butler registry authentication secrets. The `db-auth.yaml` is an array of objects with `url`, `username`, and `password` keys. This value is stored in the environment variable `LSST_DB_AUTH_CREDENTIALS` rather than a filesystem object.
 
 - PanDA. The CM Service uses secrets to store PanDA authentication information, specifically an id-token and a refresh-token.
 
@@ -65,3 +65,27 @@ After appropriately setting the Kubernetes context and namespace:
 
 > [!CAUTION]
 > This operation unconditionally destroys the database contents and all objects.
+
+## Object Store Access
+CM Service may require configuration for one or more S3-compatible object stores. These may be used for Butler repo configuration files (although CM Service should not need to access Butler filestores) or for accessing external resources defined for a campaign or node via an `artifacts` manifest.
+
+Standard `boto3` tooling configuration applies to CM Service, even if the object store provider is not AWS S3:
+
+- `config` and `credentials` files. Maintaining access to multiple object stores depends on the "profile"-driven configurations supported by this pair of files. The `config` file should define for each profile any configuration detail as necessary -- especially the endpoint URL for the profile, and the `credentials` file should define for each profile the access key id and secret key pair that enables access. Multi-profile configuration is not possible via pure environment variable configuration, so the presence of these files is mandatory.
+
+- Mandatory environment variables. The `AWS_CONFIG_FILE` and `AWS_SHARED_CREDENTIALS_FILE` variables should both be set, pointing to the appropriate files by absolute path. In addition to these, one or more `LSST_RESOURCES_S3_PROFILE_<profile>` variables should be set to the endpoint url for each profile. While this is redundant with the core `config` file, these variables are used by any `lsst.resources.ResourcePath` instances used by the application.
+
+- Optional environment variables. Setting standard AWS-compatible environment variables, including `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` is optional and should apply only to a "default" profile, which is likely undefined for a given deployment of CM Service. Likewise, setting and endpoint with `AWS_ENDPOINT_URL_S3` is not mandatory.
+
+## Butler Access
+CM Service may access one or more Butler registries to satisfy dataset queries, but should not need any datastore access (i.e., CM Service does not acquire any Butler-managed data).
+
+At startup, CM Service primes Butler objects for each Butler configured in the `DAF_BUTLER_REPOSITORIES` environment variable, which is a JSON string mapping of a repo name to a configuration file.
+
+The instantation of each Butler may require access to the referenced configuration file by POSIX path or S3 URL.
+
+In the case of an S3 URL, the file is fetched by the Butler using an `lsst.resources.ResourcePath`, so the profile named in the URL must have a matching configuration and credential (see "Object Store Access" above).
+
+In the case of POSIX path, the exact path must be a mounted filesystem or PVC that provides access to the named file or directory.
+
+In either case, the config file will define a database connection URL. This database must have a matching credential in the `LSST_DB_AUTH_CREDENTIALS` environment variable, which is the JSON string equivalent of a `db-auth.yaml` file.
