@@ -66,6 +66,11 @@ spec:
   request_cpus: "1"
   request_mem: "1024M"
   request_disk: "10240K"
+  auto_provision: false
+  provisioned_node_count: 10
+  provisioned_max_wall_time: "0-1:0:0"
+  provisioned_idle_time: 900
+  provisioned_check_interval: 600
 # ---
 # apiVersion: io.lsst.cmservice/v1
 # kind: wms
@@ -100,6 +105,9 @@ spec:
   facility: USDF
   include_files:
     - "${DRP_PIPE_DIR}/bps/caching/LSSTCam/usdf/DRP-caching.yaml"
+  provisioned_platform: "s3df"
+  provisioned_queue: "milano"
+  provisioned_account_group: "rubin:developers"
 ---
 apiVersion: io.lsst.cmservice/v1
 kind: bps

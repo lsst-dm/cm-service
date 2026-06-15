@@ -95,7 +95,21 @@ cluster:
 # SITE WMS CONFIGURATION
 ########################################
 wmsServiceClass: {{ wms.service_class }}
-{%- if site %}
-{{ site | flatten_chainmap | toyaml -}}
-{%- endif %}
 {# BLANK LINE #}
+{%- if wms.auto_provision %}
+########################################
+# PROVISIONING CONFIGURATION
+########################################
+nodeset: {{ wms.batch_name }}
+provisionResources: {{ wms.auto_provision }}
+provisioning:
+  provisioningNodeCount: {{ wms.provisioned_node_count }}
+  provisioningMaxIdleTime: {{ wms.provisioned_idle_time }}
+  provisioningMaxWallTime: {{ wms.provisioned_max_wall_time }}
+  provisioningCheckInterval: {{ wms.provisioned_check_interval }}
+  provisioningQueue: {{ site.provisioned_queue }}
+  provisioningAccountingUser: {{ site.provisioned_account_group }}
+  provisioningPlatform: "{{ site.provisioned_platform }}"
+  provisioningExtraOptions: "{{ wms.provisioned_extra_arguments | join(' ') }}"
+{# BLANK LINE #}
+{%- endif %}
