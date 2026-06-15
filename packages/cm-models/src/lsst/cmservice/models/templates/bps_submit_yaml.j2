@@ -101,7 +101,7 @@ wmsServiceClass: {{ wms.service_class }}
 # PROVISIONING CONFIGURATION
 ########################################
 nodeset: {{ wms.batch_name }}
-provisionResources: {{ wms.auto_provision }}
+provisionResources: {{ wms.auto_provision | string | lower }}
 provisioning:
   provisioningNodeCount: {{ wms.provisioned_node_count }}
   provisioningMaxIdleTime: {{ wms.provisioned_idle_time }}
