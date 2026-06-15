@@ -85,9 +85,7 @@ class WmsSpec(ManifestSpec):
 
     request_cpus: Annotated[
         int, Field(description="The number of CPUs requested of the WMS for a Launch Task")
-    ] = Field(
-        default=1,
-    )
+    ] = Field(default=1)
 
     request_mem: (
         Annotated[
@@ -114,10 +112,65 @@ class WmsSpec(ManifestSpec):
     batch_name: (
         Annotated[
             str,
-            Field(title="Batch Name", description="An optional name to associate with jobs sent to the WMS"),
+            Field(
+                title="Nodeset Name",
+                description="Batch or Nodeset name for matching jobs with provisioned glideins. "
+                "If auto provisioning is enabled, this must not be null.",
+            ),
         ]
         | Annotated[None, Field(title="Null", description="This field is optional for a WMS configuration.")]
     ) = Field(default=None, examples=["cmservice-usdf-prod", "cmservice-usdf-dev"])
+
+    auto_provision: Annotated[
+        bool,
+        Field(
+            title="Automatic Provisioning",
+            description="Whether automatic provisioning of resources is enabled for the WMS",
+        ),
+    ] = Field(default=False)
+
+    provisioned_node_count: Annotated[
+        int,
+        Field(
+            title="Provisioned Node Count",
+            description="Node count requested for automatic provisioning, e.g., glidein size",
+        ),
+    ] = Field(default=10, examples=[10, 100])
+
+    provisioned_max_wall_time: Annotated[
+        str,
+        Field(
+            title="Maximum Wall Clock Time",
+            description="Maximum lifetime for provisioned glidein, as time-component format [days-HH:MM:SS]",
+        ),
+    ] = Field(default="0-1:00:00", examples=["3600", "10:00:00", "6-00:00:00"])
+
+    provisioned_idle_time: Annotated[
+        int,
+        Field(
+            title="Maximum Idle Time",
+            description="Maximum idle time for provisioned glidein, in seconds",
+        ),
+    ] = Field(default=900, examples=[600, 900, 86400])
+
+    provisioned_extra_arguments: Annotated[
+        list[str],
+        Field(
+            title="Extra arguments for auto provisioning",
+            description="A list of string arguments to be included as extra arguments to auto provisioning, "
+            "e.g., `allocateNodes.py`",
+        ),
+    ] = Field(
+        default_factory=list, examples=[["--pack", "--exclusive-user"], ["--exclude", "badnode1", "badnode2"]]
+    )
+
+    provisioned_check_interval: Annotated[
+        int,
+        Field(
+            title="Provisioning Check Interval",
+            description="Time between auto provision (`allocateNodes.py`) checks in seconds.",
+        ),
+    ] = Field(default=600, examples=[30, 600, 900, 3600])
 
 
 class WmsManifest(LibraryManifest[WmsSpec]): ...
