@@ -102,8 +102,8 @@ class ButlerSpec(ManifestSpec):
         examples=[
             {
                 "campaign_input": ["LSSTCam/defaults"],
-                "campaign_public_output": "u/{operator}/{campaign}",
-                "campaign_output": "u/{operator}/{campaign}/out",
+                "campaign_public_output": "u/{{ bps.operator }}/{{ lsst.campaign }}",
+                "campaign_output": "u/{{ bps.operator }}/{{ lsst.campaign }}/out",
             }
         ],
     )
@@ -123,7 +123,7 @@ class ButlerSpec(ManifestSpec):
         default=None,
         description="A list of files to be added to the BPS submission as include files "
         "that are specific to the use of this Butler.",
-        examples=["${DRP_PIPE_DIR}/includes/butler/{butler-tuning}.yaml"],
+        examples=[["${DRP_PIPE_DIR}/includes/butler/repo_tuned_butler.yaml"]],
     )
 
 

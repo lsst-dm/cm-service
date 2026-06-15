@@ -114,7 +114,7 @@ class BpsSpec(ManifestSpec):
                 "requestMemory": 2048,
                 "numberOfRetries": 5,
                 "retryUnlessExit": [1, 2],
-                "finalJob": {"command1": "echo HELLO WORLD"},
+                "finalJob": {"command2": "echo HELLO WORLD"},
             }
         ],
     )
@@ -138,7 +138,7 @@ class BpsSpec(ManifestSpec):
         ]
     ) = Field(
         default=None,
-        examples=[{"LSST_S3_USE_THREADS": 1}],
+        examples=[{"LSST_S3_USE_THREADS": "1"}],
     )
 
     payload: (

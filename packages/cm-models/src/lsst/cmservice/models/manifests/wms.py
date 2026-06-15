@@ -67,8 +67,8 @@ class WmsSpec(ManifestSpec):
         "to be added to any Bash script that sets up the LSST Stack, to be executed verbatim *after* LSST "
         "setup but *before* the payload command. Used to customize the launch context for a specific WMS",
         examples=[
-            "setup --just --root=/path/to/custom/product",
             [("setup", "--just", "--root=/path/to/custom/product")],
+            ["setup --just --root=/path/to/custom/product"],
         ],
     )
 
