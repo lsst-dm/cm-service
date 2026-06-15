@@ -165,11 +165,13 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         # Order is preserved in this list
         bps_includes: list[str] = []
 
-        # Assemble a omnibus set of includes from multiple
+        # Assemble a omnibus set of includes from multiple manifests
         include_candidates: list[str] = [
+            *self.configuration_chain["lsst"].get("include_files", []),
             *self.configuration_chain["bps"].get("include_files", []),
             *self.configuration_chain["butler"].get("include_files", []),
             *self.configuration_chain["wms"].get("include_files", []),
+            *self.configuration_chain["site"].get("include_files", []),
         ]
 
         for include in include_candidates:
