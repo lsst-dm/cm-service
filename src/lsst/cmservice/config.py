@@ -456,26 +456,29 @@ class SlurmConfiguration(BaseModel):
     home: str = Field(
         description="Location of the installed slurm client binaries",
         default="/opt/slurm/slurm-curr/bin",
+        deprecated="Slurm configuration is no longer supported.",
     )
 
     memory: str = Field(
-        description="Amount of memory requested when submitting a slurm job.",
-        default="16448",
+        description="Amount of memory requested when submitting a slurm job.", default="16448", deprecated=""
     )
 
     account: str = Field(
         description="Account used when submitting a slurm job.",
         default="rubin:production",
+        deprecated="set `wms.provisioned_account_group` instead.",
     )
 
     partition: str = Field(
         description="Partition requested when submitting a slurm job.",
         default="milano",
+        deprecated="set `wms.provisioned_queue` instead.",
     )
 
     platform: str = Field(
         description="Platform requested when submitting a slurm job.",
         default="s3df",
+        deprecated="set `site.provisioning_platform` instead.",
     )
 
     duration: str = Field(
@@ -483,32 +486,37 @@ class SlurmConfiguration(BaseModel):
             "Expected Duration for a cmservice script that needs to be scheduled (maximum wall-clock time)."
         ),
         default="0-1:0:0",
+        deprecated="set `wms.provisioned_max_wall_time` instead.",
     )
 
     idle_timeout: int = Field(
         description="glide-in inactivity shutdown time in seconds",
         default=240,
+        deprecated="set `wms.provisioned_idle_time` instead.",
     )
 
     node_count: int = Field(
         description="number of glideins to submit; these are chunks of a node, size the number of cores/cpus",
         default=50,
+        deprecated="set `wms.provisioned_node_count` instead.",
     )
 
-    # FIXME should be an enum if this sticks around
     exclusive: str | None = Field(
         description="Whether to allocate resources as `exclusive` or `exclusive-user`",
         default=None,
+        deprecated="set in `wms.provisioned_extra_arguments` instead.",
     )
 
     cores: int = Field(
         description="How many cores to reserve for resource allocation",
         default=15,
+        deprecated="set in `wms.provisioned_extra_arguments` instead.",
     )
 
     extra_arguments: str = Field(
         description="Space separated set of arbitrary extra arguments for resource allocation",
         default="",
+        deprecated="set in `wms.provisioned_extra_arguments` instead.",
     )
 
 
