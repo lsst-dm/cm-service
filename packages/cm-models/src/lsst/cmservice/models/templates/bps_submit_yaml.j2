@@ -61,7 +61,7 @@ qgraphFile: {{ bps.qgraph_file }}
 {%- endif %}
 payload:
 {%- for key, value in bps.payload|items %}
-  {{ key }}: "{{ value | trim }}"
+  {{ key }}: {{ value | trim }}
 {%- endfor %}
 {%- if bps.extra_qgraph_options %}
 extraQgraphOptions: {{ bps.extra_qgraph_options | join(" ")}}
