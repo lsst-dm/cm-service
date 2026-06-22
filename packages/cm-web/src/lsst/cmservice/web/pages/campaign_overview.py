@@ -36,6 +36,18 @@ class CampaignOverviewPage(CMPage[CampaignOverviewPageModel]):
             if campaign_id in app.storage.client["state"].user.ignore_list:
                 return False
 
+        if (
+            self.owner_filter.value
+            and self.model["campaigns"][campaign_id]["owner"] not in self.owner_filter.value
+        ):
+            return False
+
+        if (
+            self.status_filter.value
+            and self.model["campaigns"][campaign_id]["status"] not in self.status_filter.value
+        ):
+            return False
+
         return display_campaign
 
     async def setup(self, client_: AsyncClient | None = None) -> Self:
@@ -99,6 +111,10 @@ class CampaignOverviewPage(CMPage[CampaignOverviewPageModel]):
                         with ui.row().classes("items-center"):
                             ui.icon("design_services")
                             ui.label(sorted(node_times)[-1])
+                    with ui.row().classes("items-center"):
+                        ui.icon("perm_identity")
+                        ui.label(campaign.get("owner", "anonymous"))
+
             # card actions
             with ui.card_actions().props("align=right").classes("items-center text-sm w-full"):
                 campaign_toggle = partial(toggle_campaign_state, campaign=campaign)
@@ -146,21 +162,37 @@ class CampaignOverviewPage(CMPage[CampaignOverviewPageModel]):
         # TODO bind to content refresh
         favorites_active = "favorites" in app.storage.client["state"].user.active_filters
         ignored_active = "ignored" not in app.storage.client["state"].user.active_filters
+        owners_active = list(app.storage.client["state"].user.filtered_owners) or (
+            [self.username] if self.username != "anonymous" else []
+        )
 
         self.favorites_switch = ui.switch(
             "Favorites", value=favorites_active, on_change=self.toggle_favorites_filter
         )
 
-        self.status_filters = (
+        self.owner_filter = (
             ui.select(
-                ["waiting", "paused", "running", "failed", "accepted", "rejected"],
+                options=["daemon", "root"],
+                new_value_mode="add-unique",
+                value=owners_active,
                 multiple=True,
-                label="Filter by Status",
+                label="Filter by Owner",
+                on_change=self.update_user_filter,
             )
             .classes("w-full")
             .props("use-chips")
         )
-        self.status_filters.disable()
+
+        self.status_filter = (
+            ui.select(
+                ["waiting", "paused", "running", "failed", "accepted", "rejected"],
+                multiple=True,
+                label="Filter by Status",
+                on_change=self.update_status_filter,
+            )
+            .classes("w-full")
+            .props("use-chips")
+        )
 
         self.name_filter = ui.select(
             options=[],  # TODO needs to be a list of all available campaigns
@@ -168,18 +200,6 @@ class CampaignOverviewPage(CMPage[CampaignOverviewPageModel]):
             label="Filter by Name",
         ).classes("w-full")
         self.name_filter.disable()
-
-        self.owner_filter = (
-            ui.select(
-                options=["daemon"],  # TODO needs to be a list of all available owners
-                with_input=True,
-                multiple=True,
-                label="Filter by Owner",
-            )
-            .classes("w-full")
-            .props("use-chips")
-        )
-        self.owner_filter.disable()
 
         self.ignore_switch = ui.switch(
             "Show Hidden", value=ignored_active, on_change=self.toggle_ignored_filter
@@ -215,4 +235,14 @@ class CampaignOverviewPage(CMPage[CampaignOverviewPageModel]):
         except KeyError:
             pass
         app.storage.client["state"].user.active_filters = active_filters
+        await self.create_campaign_grid.refresh()
+
+    async def update_user_filter(self, e: ValueChangeEventArguments) -> None:
+        """Callback when user filter selection is updated."""
+        app.storage.client["state"].user.filtered_owners = e.value
+        await self.create_campaign_grid.refresh()
+
+    async def update_status_filter(self, e: ValueChangeEventArguments) -> None:
+        """Callback when status filter selection is updated."""
+        # this filter is not stored in the user storage
         await self.create_campaign_grid.refresh()
