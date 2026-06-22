@@ -95,7 +95,12 @@ class ClientConfiguration(BaseSettings):
 
     max_upload_size: int = Field(
         default=65_535,
-        description="""Maximum size in bytes to allow via the Import function.""",
+        description="Maximum size in bytes to allow via the Import function.",
+    )
+
+    default_username: str = Field(
+        default="anonymous",
+        description="The default username to assign the client when one is not otherwise available",
     )
 
     @field_validator("cookies", mode="before", check_fields=True)

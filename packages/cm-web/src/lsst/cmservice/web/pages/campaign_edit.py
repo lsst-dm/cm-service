@@ -438,7 +438,7 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
             name=f"schedule-{self.campaign_name}-{uuid4().hex[0:8]}",
             cron=self.model.schedule_info.cron,
             metadata_={
-                "owner": self.username,
+                "owner": app.storage.client["state"].user.username,
             },
             configuration={
                 "auto_start": self.model.schedule_info.auto_start,

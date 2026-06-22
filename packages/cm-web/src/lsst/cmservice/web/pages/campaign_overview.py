@@ -160,10 +160,11 @@ class CampaignOverviewPage(CMPage[CampaignOverviewPageModel]):
 
     def drawer_contents(self) -> None:
         # TODO bind to content refresh
+        _username = app.storage.client["state"].user.username
         favorites_active = "favorites" in app.storage.client["state"].user.active_filters
         ignored_active = "ignored" not in app.storage.client["state"].user.active_filters
         owners_active = list(app.storage.client["state"].user.filtered_owners) or (
-            [self.username] if self.username != "anonymous" else []
+            [_username] if _username != "anonymous" else []
         )
 
         self.favorites_switch = ui.switch(
@@ -172,7 +173,7 @@ class CampaignOverviewPage(CMPage[CampaignOverviewPageModel]):
 
         self.owner_filter = (
             ui.select(
-                options=["daemon", "root"],
+                options=[_username, "daemon", "root"],
                 new_value_mode="add-unique",
                 value=owners_active,
                 multiple=True,
