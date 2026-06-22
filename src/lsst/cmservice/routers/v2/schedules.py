@@ -207,7 +207,7 @@ async def create_schedule_resource(
     response: Response,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     schedule_manifest: CreateSchedule,
-    schedule_owner: Annotated[str, Header(alias="X-Auth-Request-User")] = "root",
+    schedule_owner: Annotated[str, Header(alias="X-Auth-Request-User")] | None = None,
 ) -> None:
     """Create a schedule resource and its attached manifest templates.
 
@@ -218,6 +218,11 @@ async def create_schedule_resource(
       presence of any invalid string values in a manifest template as found by
       a regex search.
     """
+
+    # If the submitting user is not known via header, use any provided value
+    # from the incoming metadata, with default "root"
+    if schedule_owner is None:
+        schedule_owner = schedule_manifest.metadata_.get("owner", "root")
 
     # Construct ORM objects for the schedule and its constituent templates
     schedule = Schedule(
