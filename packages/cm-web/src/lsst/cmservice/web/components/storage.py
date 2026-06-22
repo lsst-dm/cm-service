@@ -51,6 +51,10 @@ class UserStorageModel(StorageModel):
         default_factory=set,
         description="A set of IDs that have been marked as ignored/hidden/trashed by the user",
     )
+    filtered_owners: Annotated[set, PlainSerializer(lambda x: list(x), return_type=list)] = Field(
+        default_factory=set,
+        description="A set of owner names that have been selected by the user in the campaign filter",
+    )
 
 
 class UserStorageWrapper:
