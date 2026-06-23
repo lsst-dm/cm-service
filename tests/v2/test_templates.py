@@ -28,7 +28,7 @@ MANIFEST_TEMPLATES = [
             apiVersion: "io.lsst.cmservice/v1"
             kind: "campaign"
             metadata:
-                name: {{ campaign_name }}
+                name: ${{ campaign_name }}
             spec:
                 butlerSelector:
                     instrument: lsstcam
@@ -83,10 +83,10 @@ MANIFEST_TEMPLATES = [
                 predicates:
                     - "instrument='LSSTCam'"
                     - "skymap='lsst_cells_v1'"
-                    - "exposure > {{ day_obs | as_exposure(first_exposure) }}"
-                    - "exposure <= {{ day_obs | as_exposure(last_exposure) }}"
+                    - "exposure > ${{ day_obs | as_exposure(first_exposure) }}"
+                    - "exposure <= ${{ day_obs | as_exposure(last_exposure) }}"
                     - "exposure.observation_type IN ('science')"
-                    - "detector NOT IN ({{ bad_detectors | join(',') }})"
+                    - ${{ bad_detectors | sql_not_in(field="detector" )}}
                 collections:
                     campaign_input:
                     - LSSTCam/defaults
@@ -105,8 +105,8 @@ MANIFEST_TEMPLATES = [
                 labels:
                     track: weekly
             spec:
-                lsst_version: {{ today | as_lsst_version }}
-                lsst_distrib_dir: "/sdf/group/rubin/sw/{{ today | as_lsst_version}}"
+                lsst_version: ${{ today | as_lsst_version }}
+                lsst_distrib_dir: "/sdf/group/rubin/sw/${{ today | as_lsst_version}}"
             """),
     },
 ]

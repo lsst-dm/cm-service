@@ -1,0 +1,49 @@
+services:
+  cmservice:
+    environment:
+      LOGGING__LEVEL: ERROR
+      DB__ECHO: false
+  cmscheduler:
+    environment:
+      LOGGING__LEVEL: ERROR
+      DB__ECHO: false
+  cmweb:
+    environment:
+      LOGGING__LEVEL: ERROR
+  cmworker:
+    environment:
+      DB__ECHO: false
+      LOGGING__LEVEL: ERROR
+      BPS__MOCK_DISTRIB_DIR: /opt/sw
+      BUTLER__MOCK_REPO: repo/mock
+      DAEMON__processing_interval: 5
+      HTCONDOR__config_source: ONLY_ENV
+      HTCONDOR__collector_host: htcondor
+      HTCONDOR__schedd_host: htcondor
+      HTCONDOR__authn_methods: IDTOKENS
+      HTCONDOR__token_directory: /run/secrets
+      HTCONDOR__launcher_job_architecture: X86_64
+      DAF_BUTLER_REPOSITORIES: >-
+        {"repo/mock": "/opt/shared/butler.yaml"}
+      LSST_DB_AUTH_CREDENTIALS: >-
+        [{"url": "postgresql://butler:5432/repo", "username": "mockbutler", "password": "INSECURE-PASSWORD"}]
+      LSST_RESOURCES_S3_PROFILE_embargo: http://s3mock:9090
+      AWS_CONFIG_FILE: /run/secrets/aws_config
+      AWS_SHARED_CREDENTIALS_FILE: /run/secrets/aws_credentials
+    env_file:
+      - path: integration/shared.env
+        required: true
+    volumes:
+      - artifacts:/opt/shared
+    secrets:
+      - source: condor_token_file
+        mode: 0o400
+        uid: "3967"
+        gid: "1126"
+      - source: aws_config
+      - source: aws_credentials
+    depends_on:
+      migratedb:
+        condition: service_completed_successfully
+      butler-init:
+        condition: service_completed_successfully

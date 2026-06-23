@@ -1,8 +1,10 @@
 """CM Service yaml constructors"""
 
+from __future__ import annotations
+
 import os
 
-import yaml
+import yaml as yaml
 
 
 def resolved_string_constructor(loader: yaml.SafeLoader, node: yaml.nodes.ScalarNode) -> str:
@@ -23,9 +25,15 @@ def get_loader() -> type[yaml.SafeLoader]:
     return loader
 
 
-def str_representer(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
+def str_representer(dumper: yaml.Dumper | yaml.SafeDumper, data: str) -> yaml.ScalarNode:
     str_tag = "tag:yaml.org,2002:str"
     if "\n" in data:
         return dumper.represent_scalar(str_tag, data, style="|")
     else:
         return dumper.represent_scalar(str_tag, data)
+
+
+# Apply a custom str representer/parser to the YAML library to format multi-
+# line strings using YAML `|` syntax.
+yaml.add_representer(str, str_representer, Dumper=yaml.Dumper)
+yaml.add_representer(str, str_representer, Dumper=yaml.SafeDumper)

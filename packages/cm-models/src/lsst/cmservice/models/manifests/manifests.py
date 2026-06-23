@@ -4,6 +4,8 @@ circular imports while minimizing number of places needed to import
 
 from . import LibraryManifest as LibraryManifest
 from . import ManifestSpec as ManifestSpec
+from .artifact import ArtifactManifest as ArtifactManifest
+from .artifact import ArtifactSpec as ArtifactSpec
 from .bps import BpsManifest as BpsManifest
 from .bps import BpsSpec as BpsSpec
 from .butler import ButlerManifest as ButlerManifest

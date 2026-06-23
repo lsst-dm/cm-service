@@ -12,6 +12,7 @@ from jinja2.sandbox import ImmutableSandboxedEnvironment
 from transitions import EventData
 
 from lsst.cmservice.models.enums import ManifestKind, StatusEnum
+from lsst.cmservice.models.lib.parsers import as_snake_case
 from lsst.ctrl.bps import WmsRunReport, WmsStates
 from lsst.utils import doImport
 
@@ -229,6 +230,8 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         bps_config["exe_log"] = bps_submit_path.with_name(f"{self.db_model.name}_log.json")
         bps_config["submit_yaml"] = bps_submit_path
         bps_config["stdout_log"] = bps_submit_path.with_name(f"{self.db_model.name}.log")
+        # the default uniqProcName is the outputRun as snake_case
+        bps_config["uniq_proc_name"] = as_snake_case(self.configuration_chain["butler"]["collections"]["run"])
 
         # Prepare a BPS payload
         bps_payload: dict[str, Any] = {}

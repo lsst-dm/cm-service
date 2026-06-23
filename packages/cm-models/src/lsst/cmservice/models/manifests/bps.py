@@ -244,5 +244,25 @@ class BpsSpec(ManifestSpec):
         ),
     ] = "cmservice"
 
+    qgraph_file: (
+        Annotated[
+            str,
+            Field(
+                title="QGraph File Name",
+                description=(
+                    "The name of a qgraph file for the BPS job. If provided, it will be used "
+                    "in a BPS submit file in place of a BPS-generated qgraph."
+                ),
+            ),
+        ]
+        | Annotated[
+            None,
+            Field(
+                title="Null",
+                description="BPS will generate a QGraph file",
+            ),
+        ]
+    ) = Field(default=None)
+
 
 class BpsManifest(LibraryManifest[BpsSpec]): ...

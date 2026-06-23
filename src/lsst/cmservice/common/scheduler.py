@@ -2,6 +2,7 @@ import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import UTC
+from enum import Enum, auto
 from typing import assert_never
 
 import apscheduler.events
@@ -36,6 +37,13 @@ JOB_EVENTS = (
 """Collection of job-related events for observation."""
 
 
+class JobEventReturnCode(Enum):
+    SUCCESS = auto()
+    REMOVE_SELF = auto()
+    SCHEDULE_NOT_FOUND = auto()
+    CAMPAIGN_NOT_FOUND = auto()
+
+
 class Scheduler:
     """A class wrapping an async `apscheduler` for use with the FastAPI and
     CM Daemon event loop.
@@ -50,10 +58,11 @@ class Scheduler:
         self.scheduler = AsyncIOScheduler(
             timezone=UTC, jobstores={}, job_defaults=config.scheduler.model_dump(by_alias=True)
         )
+        self.jobstore_alias = "default"
 
         match config.scheduler.jobstore_type:
             case "memory":
-                self.scheduler.add_jobstore(MemoryJobStore(), alias="default")
+                self.scheduler.add_jobstore(MemoryJobStore(), alias=self.jobstore_alias)
             case "sqlalchemy":
                 self.configure_postgres_jobstore()
             case _ as unreachable:
@@ -158,12 +167,20 @@ class Scheduler:
             case _:
                 logger.info("Scheduler event received", code=event.code, alias=event.alias)
 
-    @classmethod
-    def job_event_handler(cls, event: apscheduler.events.JobEvent) -> None:
+    def job_event_handler(self, event: apscheduler.events.JobExecutionEvent) -> None:
         """Callback handler for scheduler job-related events."""
         # NOTE event listeners may not be async in apscheduler 3.x
         # TODO integrate with notification system(s)
         logger.info("Scheduler Job event received", code=event.code, alias=event.alias)
+
+        # Remove a job that signals removal
+        match event.code:
+            case apscheduler.events.EVENT_JOB_EXECUTED:
+                if event.retval is JobEventReturnCode.REMOVE_SELF:
+                    self.scheduler.remove_job(event.job_id)
+                    logger.info("Removed job by request", code=event.code, alias=event.alias)
+            case _:
+                pass
 
     def configure_postgres_jobstore(self) -> None:
         """Helper method to create a jobstore for a postgresql database."""
@@ -185,5 +202,5 @@ class Scheduler:
                 tablename=config.scheduler.jobstore_table_name,
                 tableschema=config.db.table_schema,
             ),
-            alias="default",
+            alias=self.jobstore_alias,
         )

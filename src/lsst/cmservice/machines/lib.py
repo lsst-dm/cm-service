@@ -1,15 +1,20 @@
 """Library functions supporting State Machines"""
 
+import re
+import shlex
+import traceback
 from collections import ChainMap
-from collections.abc import Callable, Generator
+from collections.abc import Callable, Generator, Sequence
 from functools import partial, reduce
 from shutil import rmtree
-from typing import Any
+from textwrap import dedent
+from typing import TYPE_CHECKING, Any
 from uuid import uuid5
 
 from anyio import Path, to_thread
 from sqlalchemy.dialects.postgresql import insert
 from sqlmodel import col, select
+from transitions import EventData
 
 from lsst.cmservice.models.db.campaigns import ActivityLog, Campaign, Manifest, Node
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, ManifestKind
@@ -89,6 +94,11 @@ async def assemble_config_chain(
             library_config,
             extra.get(kind, {}),
         )
+    # Add node metadata to config_chain
+    config_chain["metadata"] = ChainMap(
+        node.metadata_,
+        extra.get("metadata", {}),
+    )
     return config_chain
 
 
@@ -181,3 +191,79 @@ async def deltree(path: Path) -> None:
             logger.error("Error raised trying to rename directory", path=path, exc=e)
             # pragma: human intervention required
             raise
+
+
+def parse_custom_script_lines(line: str | Sequence[str]) -> str:
+    """A naive parser for configuration manifest entries that represent custom
+    or arbitrary script content.
+
+    A string is parsed into tokens, or it may be already parsed as a tuple of
+    tokens.
+
+    Returns a normalized command string for each input line.
+
+    This function is primarily used as a jinja filter for custom command
+    components being added to a CM-managed script.
+    """
+    tokens = line
+    return_original_line = False
+    includes_redirect: re.Match | None = None
+    pipes_stdout: re.Match | None = None
+    match tokens:
+        case str():
+            # The shlex parser does not normalize for shell syntax, just
+            # components, so variable expansion or redirect options can get
+            # broken (or rendered inert, depending on how you look at it) by
+            # shlex's quoting mechanism.
+            return_original_line = bool(re.search(r"\$\{[^{}]+\}|\d*>{1,2}(?:&\d)?|\|", tokens))
+            includes_redirect = re.search(r"\d*>{1,2}(?:&\d)?", tokens)
+            pipes_stdout = re.search(r"\|", tokens)
+            tokens = shlex.split(tokens)
+        case _:
+            pass
+
+    # TODO here we could check tokens[0] against some whitelist of commands
+    ...
+
+    if includes_redirect or pipes_stdout:
+        # TODO any special handling or handling of redirected commands?
+        ...
+
+    if return_original_line:
+        if TYPE_CHECKING:
+            assert isinstance(line, str)
+        return line
+
+    return shlex.join(tokens).strip()
+
+
+def event_error_heuristic(event: EventData) -> str | None:
+    """Given a transition event with an error, return a string describing the
+    error in the best concise way we can.
+    """
+    if event.error is None:
+        return None
+    exc_name = event.error.__class__.__name__
+    exc_message = event.error.__doc__ or "Unknown reason"
+    exc_detail = str(event.error) or str(event.error.__cause__) or "No additional details"
+    exc_traceback: traceback.FrameSummary = traceback.extract_tb(event.error.__traceback__)[-1]
+    error_markdown = dedent(f"""\
+        ## Transition Failed
+        *An error occurred during state transition:*
+
+        **{exc_name}** : {exc_message}
+
+        ```
+        {exc_detail}
+        ```
+
+        *This error occurred at:*
+
+        module: {exc_traceback.filename}
+
+        line: {exc_traceback.lineno}
+
+        code: {exc_traceback.line}
+    """)
+
+    return error_markdown

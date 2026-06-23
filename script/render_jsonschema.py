@@ -23,7 +23,7 @@ from json_schema_for_humans.generate import generate_from_file_object
 from json_schema_for_humans.generation_configuration import GenerationConfiguration
 from pydantic import BaseModel
 
-from lsst.cmservice.models.manifests import bps, butler, facility, lsst, steps, wms
+from lsst.cmservice.models.manifests import artifact, bps, butler, facility, lsst, steps, wms
 
 GENCONFIG = GenerationConfiguration(
     template_name="js_offline",
@@ -65,6 +65,7 @@ def main(*, html: bool, markdown: bool, jsonschema: bool, clean: bool, output: P
 
     manifest: BaseModel
     for manifest in [
+        artifact.ArtifactSpec,
         bps.BpsSpec,
         butler.ButlerSpec,
         facility.FacilitySpec,

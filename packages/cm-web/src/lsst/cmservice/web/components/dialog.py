@@ -7,15 +7,15 @@ from enum import Enum, IntFlag, auto
 from functools import partial
 from typing import TYPE_CHECKING, Any, Self
 
-import yaml
 from nice_dialogs.dialogs import ConfirmationDialog
 from nicegui import ui
 from nicegui.events import ClickEventArguments, GenericEventArguments, ValueChangeEventArguments
-from pydantic_core import ValidationError
+from pydantic_core import PydanticUndefined, ValidationError
 
 from lsst.cmservice.models.db.schedules import CreateManifestTemplate
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE
 from lsst.cmservice.models.lib.parsers import as_snake_case
+from lsst.cmservice.models.lib.yaml import yaml
 
 from .. import api
 from ..lib.enum import MANIFEST_KIND_ICONS
@@ -402,6 +402,8 @@ class EditorDialog(ui.dialog):
         self.error_log.clear()
         self.error_log.update()
         try:
+            # Round-trip the content through a YAML load/dump to check basic
+            # validity. This may cause unintended reformatting.
             yaml_spec = yaml.safe_load(self.editor.value)
             self.context.model["spec"] = yaml_spec
             for validator in self.validation_handlers:
@@ -412,7 +414,6 @@ class EditorDialog(ui.dialog):
                 except AttributeError:
                     msg = f"Required validation handler not found: {validator}"
                     raise RuntimeError(msg)
-            # Round trip the loaded spec back to yaml. This will reformat etc.
             self.editor.set_value(yaml.safe_dump(yaml_spec))
             self.editor.update()
             return await positive_validation()
@@ -681,7 +682,7 @@ class NewManifestEditorDialog(EditorDialog):
         template = {}
         kind_model = KIND_TO_SPEC[self.context.kind]
         for field_name, field_info in kind_model.model_fields.items():
-            if field_info.exclude:
+            if field_info.exclude or field_info.deprecated:
                 continue
             elif field_info.examples:
                 field_example = field_info.examples[0]
@@ -689,9 +690,12 @@ class NewManifestEditorDialog(EditorDialog):
                     template[field_name] = field_example.get(field_name, field_example)
                 else:
                     template[field_name] = field_example
-            else:
+            elif field_info.default is not PydanticUndefined:
                 template[field_name] = field_info.get_default(call_default_factory=True)
+            else:
+                template[field_name] = None
         self.editor.set_value(yaml.safe_dump(template))
+
         self.editor.update()
 
     async def handle_kind_selection_change(self, e: ValueChangeEventArguments) -> None:

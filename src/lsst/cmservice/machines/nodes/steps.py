@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Generator, Sequence
+from collections.abc import Generator, Mapping, Sequence
 from itertools import chain
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid5
 
 from sqlmodel import select
@@ -11,7 +11,6 @@ from transitions import EventData
 from lsst.cmservice.models.db.campaigns import Edge, Node
 from lsst.cmservice.models.enums import ManifestKind, StatusEnum
 from lsst.cmservice.models.lib.graph import (
-    NodeData,
     append_node_to_graph,
     delete_node_from_graph,
     find_endpoints_in_directed_graph,
@@ -22,6 +21,7 @@ from lsst.cmservice.models.lib.graph import (
 )
 from lsst.cmservice.models.lib.timestamp import element_time
 from lsst.cmservice.models.manifest import (
+    ArtifactManifest,
     BpsManifest,
     ButlerManifest,
     FacilityManifest,
@@ -29,6 +29,7 @@ from lsst.cmservice.models.manifest import (
     WmsManifest,
 )
 
+from ...common.errors import CMNoSuchManifestError
 from ...common.flags import Features
 from ...common.logging import LOGGER
 from ...common.splitter import Splitter, SplitterEnum, SplitterMapping
@@ -94,6 +95,8 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
         }
         self.anchor_group: UUID | None = None
         self.collect_group: UUID | None = None
+        self.artifact_templates: dict[str, str] = {}
+        self.artifact_resources: dict[str, str] = {}
 
     async def get_predicates(self) -> tuple[str, ...]:
         """Determines the collection of data query predicates relevant to the
@@ -113,8 +116,8 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
     async def get_splitter(self) -> Splitter:
         """Generates group-predicates according to the Node grouping rules."""
         # select a splitter based on the Node's configuration
-        splitter_config = self.db_model.configuration.get("groups", None)
-        if splitter_config is None:
+        splitter_config: dict = {**self.db_model.configuration.get("groups", {})}
+        if not splitter_config:
             return SplitterMapping["null"]()
 
         match SplitterEnum(splitter_config["split_by"]):
@@ -123,10 +126,11 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
             case SplitterEnum.QUERY:
                 splitter_type = SplitterMapping[SplitterEnum.QUERY.value]
                 splitter_config["butler_label"] = self.butler.spec.repo
+                splitter_config["predicates"] = self.butler.spec.predicates
                 if self.butler.spec.collections.step_input is not None:
                     splitter_config["collections"] = [self.butler.spec.collections.step_input]
                 else:
-                    splitter_config["collections"] = [self.butler.spec.collections.campaign_input]
+                    splitter_config["collections"] = self.butler.spec.collections.campaign_input
 
         return splitter_type(**splitter_config)
 
@@ -199,11 +203,24 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
         # TODO since every group gets the same configuration spec, this should
         # be done once per step instead of once per group. This is not true
         # for the butler collections (above)
+        # FIXME this mixing of model attribute access with dict key access is
+        # not great
+
+        # The group LSST config starts with the incoming manifest combined with
+        # any step-specific configuration, without mutating either source
+        group_lsst: dict[str, Any] = self.lsst.spec.model_dump(
+            exclude_none=True, exclude={"custom_group_payload"}
+        ) | self.db_model.configuration.get("lsst", {})
+        # The group's custom payload is based on the incoming manifest extended
+        # by the step-specific configuration, again without mutating either
+        group_lsst["custom_payload"] = self.lsst.spec.custom_group_payload + group_lsst.pop(
+            "custom_group_payload", []
+        )
+
         group_configuration = {
             "butler": group_butler.model_dump(exclude_none=True),
             "bps": self.bps.spec.model_dump(exclude_none=True) | self.db_model.configuration.get("bps", {}),
-            "lsst": self.lsst.spec.model_dump(exclude_none=True)
-            | self.db_model.configuration.get("lsst", {}),
+            "lsst": group_lsst,
             "site": self.site.spec.model_dump(exclude_none=True)
             | self.db_model.configuration.get("site", {}),
             "wms": self.wms.spec.model_dump(exclude_none=True) | self.db_model.configuration.get("wms", {}),
@@ -335,11 +352,11 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
         # find all output collections for "collect" steps in the subgraph and
         # add them to the set of intermediate collections to be used in the
         # step_input collection used by each group.
-        intermediate_collections = []
-        data: NodeData
-        for _, data in step_subgraph.nodes.data():
-            if data["model"].kind is ManifestKind.collect_groups:
-                step_config = data["model"].configuration
+        intermediate_collections: list[str] = []
+        for _, data in cast(Mapping[Any, Node], step_subgraph.nodes.data(data="model")):
+            data = cast(Node, data)
+            if data.kind is ManifestKind.collect_groups:
+                step_config = data.configuration
                 step_output = step_config.get("butler", {}).get("collections", {}).get("step_output")
                 if step_output is None:
                     raise RuntimeError("Predecessor collect step has no output collection")
@@ -384,8 +401,7 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
         include in the Node's "base_query".
 
         The full specification of a Node's grouping configuration is defined
-        in the ``step_config.jsonschema`` file. A simplified version
-        follows.
+        in the ``StepSpec`` model. A simplified version follows.
 
         ```
         predicates: list[str]
@@ -411,6 +427,22 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
         self.bps = await self.get_manifest(ManifestKind.bps, BpsManifest)
         self.wms = await self.get_manifest(ManifestKind.wms, WmsManifest)
         self.site = await self.get_manifest(ManifestKind.site, FacilityManifest)
+
+        try:
+            artifact_manifest = await self.get_manifest(ManifestKind.artifact, ArtifactManifest)
+            self.artifact_templates |= artifact_manifest.spec.artifacts
+            self.artifact_resources |= artifact_manifest.spec.resources
+        except CMNoSuchManifestError:
+            # this is not a fatal error
+            pass
+        finally:
+            self.artifact_templates |= self.db_model.configuration.get("artifact", {}).get("artifacts", {})
+            self.artifact_resources |= self.db_model.configuration.get("artifact", {}).get("resources", {})
+
+        if self.templates is None:
+            self.templates = set()
+        for template in self.artifact_templates:
+            self.templates.add((template, template))
 
         predicates = await self.get_predicates()
         splitter = await self.get_splitter()
@@ -438,6 +470,8 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
 
     async def do_unprepare(self, event: EventData) -> None:
         """Unprepare removes step groups from the graph."""
+        # FIXME this method is not idempotent, and incomplete or repeated runs
+        # end up raising sqlalchemy exceptions
         # If there is an anchor group known to the machine, remove each node
         # parallel to it.
         if self.anchor_group is not None:
@@ -470,9 +504,11 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
             )
 
         # Remove the collect_groups_node
+        collect_group = None
         if self.collect_group is not None:
-            collect_group = await self.session.get_one(Node, ident=self.collect_group, with_for_update=True)
+            collect_group = await self.session.get(Node, ident=self.collect_group, with_for_update=True)
 
+        if collect_group is not None:
             await delete_node_from_graph(
                 node_0=collect_group.id,
                 namespace=self.db_model.namespace,
@@ -482,6 +518,8 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
             )
 
         await self.session.commit()
+        self.collect_group = None
+        self.anchor_group = None
 
         if self.activity_log_entry is not None:
             self.activity_log_entry.detail["message"] = (

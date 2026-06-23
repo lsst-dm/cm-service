@@ -72,7 +72,7 @@ async def get_campaign_manifests(id: str | None = None, manifests: list[dict] = 
     """
     # -- if the campaign does not have these kinds, then we will pull the
     #    version 0 of that kind from the library (default namespace)
-    mandatory_kinds = ["lsst", "bps", "butler", "wms", "site"]
+    mandatory_kinds = ["lsst", "bps", "butler", "wms", "site", "artifact"]
 
     for kind in mandatory_kinds:
         if not list(filter(lambda m: m["kind"] == kind, manifests)):

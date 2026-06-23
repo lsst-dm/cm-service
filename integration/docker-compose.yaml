@@ -1,0 +1,138 @@
+include:
+  - path:
+      - ../docker-compose.yaml
+      - ./integration-overrides.yaml
+
+services:
+
+  htcondor:
+    image: "htcondor/mini"
+    hostname: "htcondor"
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        # Install a queue user
+        getent group lsstsvc1 || groupadd --gid 3967 lsstsvc1
+        getent passwd lsstsvc1 || useradd -m --uid 17951 --gid 3967 --no-user-group lsstsvc1
+        # Fixup shared volume permissions
+        install -o root -g lsstsvc1 -m 0777 -d /opt/shared/artifacts
+        # Install POOL password from mounted secret
+        perl -e 'print pack("H*", $$ENV{"POOL_PASSWORD"})' > /run/secrets/condor_pool_password
+        install -o root -g root -m 0600 -D /run/secrets/condor_pool_password /etc/condor/passwords.d/POOL
+        # Set up mocks
+        install -o root -g root -m 0755 -d /opt/sw
+        ln -s /opt/mocks/rubin.py /opt/sw/bps
+        ln -s /opt/mocks/rubin.py /opt/sw/butler
+        ln -s /opt/mocks/rubin.py /opt/sw/eups
+        ln -s /opt/mocks/rubin.py /opt/sw/setup
+        ln -s /opt/mocks/rubin.py /opt/sw/python
+        ln -s /opt/mocks/rubin.py /opt/sw/python3
+        ln -s /opt/mocks/rubin.py /opt/sw/mv
+        echo "export PATH=/opt/sw:$$PATH" > /opt/sw/loadLSST.bash
+        # Regular startup
+        exec /bin/bash -x /start.sh
+    environment:
+      _CONDOR_SEC_DEFAULT_AUTHENTICATION: REQUIRED
+      _CONDOR_SEC_DEFAULT_AUTHENTICATION_METHODS: IDTOKENS,FS
+      _CONDOR_SEC_CLIENT_AUTHENTICATION_METHODS: IDTOKENS,FS
+      _CONDOR_SEC_TOKEN_DIRECTORY: /run/secrets
+      _CONDOR_QUEUE_SUPER_USERS: condor
+    env_file:
+      - path: shared.env
+        required: true
+    volumes:
+      - artifacts:/opt/shared
+      - ./script:/opt/mocks
+    secrets:
+      - source: condor_token_file
+        mode: 0o600
+    networks:
+      - cmservice
+
+  butler:
+    image: "postgres:16"
+    hostname: butler
+    environment:
+      POSTGRES_PASSWORD: INSECURE-PASSWORD
+      POSTGRES_USER: mockbutler
+      POSTGRES_DB: repo
+    ports:
+      - "65433:5432"
+    networks:
+      - cmservice
+    volumes:
+      - "butler-repo:/var/lib/postgresql/data"
+      - "./butler.d/01-extensions.sql:/docker-entrypoint-initdb.d/01-extensions.sql"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mockbutler -d repo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  butler-init:
+    profiles:
+      - full
+    image: python:3.13-trixie
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        pip3 install --upgrade pip
+        pip3 install lsst-daf-butler psycopg2-binary
+        exec python3 -u /opt/butler/bootstrap.py
+    environment:
+      PGPASSWORD: INSECURE-PASSWORD
+      PGUSER: mockbutler
+      DB__URL: postgresql://butler:5432/repo
+    volumes:
+      - ./butler.d:/opt/butler
+      - artifacts:/opt/shared
+    networks:
+      - cmservice
+    depends_on:
+      butler:
+        condition: service_healthy
+
+  s3mock:
+    profiles:
+      - full
+    image: adobe/s3mock:5.0.0
+    environment:
+      COM_ADOBE_TESTING_S3MOCK_STORE_ROOT: s3data
+      COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: mock-bucket
+      COM_ADOBE_TESTING_S3MOCK_STORE_RETAIN_FILES_ON_EXIT: "true"
+    networks:
+      - cmservice
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/favicon.ico"]
+      interval: 5s
+      retries: 3
+
+  s3mock-seed:
+    profiles:
+      - full
+    image: amazon/aws-cli:latest
+    environment:
+      AWS_ACCESS_KEY_ID: NOT-A-REAL-ACCESS-KEY
+      AWS_SECRET_ACCESS_KEY: NOT-A-REAL-SECRET-ACCESS-KEY
+      AWS_ENDPOINT_URL_S3: http://s3mock:9090
+    volumes:
+      - ./bucket.d:/seed
+    networks:
+      - cmservice
+    depends_on:
+      s3mock:
+        condition: service_healthy
+    entrypoint: ["aws", "s3"]
+    command: ["cp", "/seed/", "s3://mock-bucket/", "--recursive"]
+
+secrets:
+  condor_token_file:
+    environment: "CM_RUBIN_ORG_TOKEN"
+  aws_config:
+    file: ./aws.d/config
+  aws_credentials:
+    file: ./aws.d/credentials
+volumes:
+  butler-repo:

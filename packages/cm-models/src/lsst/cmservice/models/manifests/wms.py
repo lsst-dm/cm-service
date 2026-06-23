@@ -60,6 +60,18 @@ class WmsSpec(ManifestSpec):
         examples=[{"environment": {"_CONDOR_SCHEDD_HOST": "myfavoritehost"}}],
     )
 
+    custom_setup: list[str | tuple[str, ...]] | None = Field(
+        default=None,
+        title="Custom WMS Setup Commands",
+        description="A list of script commands (or a tuple of command tokens) representing optional commands"
+        "to be added to any Bash script that sets up the LSST Stack, to be executed verbatim *after* LSST "
+        "setup but *before* the payload command. Used to customize the launch context for a specific WMS",
+        examples=[
+            "setup --just --root=/path/to/custom/product",
+            [("setup", "--just", "--root=/path/to/custom/product")],
+        ],
+    )
+
     service_class: Annotated[
         str,
         Field(

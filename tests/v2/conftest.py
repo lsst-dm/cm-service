@@ -4,6 +4,7 @@ import importlib
 import os
 from collections.abc import AsyncGenerator, Callable, Generator
 from contextlib import ExitStack, asynccontextmanager
+from pathlib import Path
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
@@ -35,8 +36,15 @@ POSTGRES_CONTAINER_IMAGE = "postgres:16"
 
 @pytest.fixture(scope="module")
 def monkeypatch_module() -> Generator[pytest.MonkeyPatch]:
+    """A module-scoped monkeypatch fixture"""
     with pytest.MonkeyPatch.context() as mp:
         yield mp
+
+
+@pytest.fixture(scope="module")
+def tmp_path_m(tmp_path_factory: pytest.TempPathFactory) -> Generator[Path]:
+    """A module-scoped tmp_path fixture"""
+    yield tmp_path_factory.mktemp("cm", numbered=True)
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -439,9 +447,9 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
                 "ticket": "DM-ZZZZZ",
                 "campaign": "test_campaign_with_groups",
                 "project": "integration-testing",
-                "prepend": "export LSST_S3_USE_THREADS=False",
-                "custom_lsst_setup": "setup -j -r /path/to/some/custom/pipe_base",
-                "append": 'echo "All done!"',
+                "prepend": ["export LSST_S3_USE_THREADS=False"],
+                "custom_lsst_setup": [("setup", "-j", "-r", "/path/to/some/custom/pipe_base")],
+                "append": ['echo "All done!"'],
             },
         },
     )
@@ -502,6 +510,20 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
             "metadata": {"name": "usdf-cm-test", "namespace": campaign["id"]},
             "spec": {
                 "facility": "USDF",
+            },
+        },
+    )
+    x = await aclient.post(
+        "/v2/manifests",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "artifact",
+            "metadata": {"name": "custom_artifacts", "namespace": campaign["id"]},
+            "spec": {
+                "artifacts": {
+                    "file_a.txt": "line 1\nline 2\n",
+                    "file_b.yaml": "---\nhello: world\nfoo:\n  - bar\n  - baz",
+                },
             },
         },
     )

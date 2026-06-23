@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from collections import ChainMap
 from collections.abc import AsyncGenerator
+from functools import partial
 from os.path import expandvars
 from typing import TYPE_CHECKING, Any
 
 import yaml
-from anyio import Path, TemporaryDirectory
-from jinja2 import Environment, PackageLoader, Template
+from anyio import Path, TemporaryDirectory, to_thread
+from jinja2 import ChoiceLoader, DictLoader, Environment, PackageLoader, Template
 from sqlalchemy.exc import MissingGreenlet, NoResultFound
 from sqlmodel import desc, or_, select
 from transitions import EventData
@@ -17,6 +18,7 @@ from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, ManifestKind, StatusE
 from lsst.cmservice.models.lib.logging import LOGGER
 from lsst.cmservice.models.lib.timestamp import element_time
 from lsst.cmservice.models.manifest import LibraryManifest
+from lsst.resources import ResourcePath
 
 from ...common.errors import CMNoSuchManifestError
 from ...common.htcondor import HTCondorManager
@@ -32,6 +34,9 @@ class NodeMixIn(MixIn):
     """Mixin Methods for a Stateful Model representing any kind of Node in a
     campaign graph.
     """
+
+    artifact_resources: dict
+    artifact_templates: dict
 
     # TODO if no more functionality is added in this mixin, just promote this
     # method into the NodeMachine class.
@@ -163,6 +168,7 @@ class FilesystemActionMixin(ActionMixIn):
         if await self.artifact_path.exists():
             # Create a new name for the existing path
             legacy_path = self.artifact_path.with_suffix(f".{element_time()}")
+            self.db_model.metadata_["replaces_path"] = str(legacy_path)
             # Rename the existing artifact_path
             await self.artifact_path.replace(target=legacy_path)
             logger.warning(
@@ -176,6 +182,7 @@ class FilesystemActionMixin(ActionMixIn):
             await self.artifact_path.mkdir(parents=True, exist_ok=False)
             # Update the metadata model for the node after the path has been
             # successfully created
+            self.db_model.metadata_["parent_path"] = str(parent_path)
             self.db_model.metadata_["artifact_path"] = str(self.artifact_path)
         except FileExistsError:
             raise
@@ -203,6 +210,26 @@ class FilesystemActionMixin(ActionMixIn):
             self.session, self.db_model, extra=fallback_configuration
         )
 
+    async def fetch_artifact_resources(self, event: EventData) -> None:
+        """For any static resources provided by an artifact manifest applied
+        to the node, fetch (`get`) the specified object and store it in the
+        artifact path.
+
+        If there are no such resources, this is a no-op
+        """
+        if not hasattr(self, "artifact_resources"):
+            return
+
+        # if present, attribute is added by the NodeMixin
+        if TYPE_CHECKING:
+            self.artifact_resources: dict
+
+        for local, remote in self.artifact_resources.items():
+            in_resource = ResourcePath(remote)
+            out_resource = ResourcePath(self.artifact_path / local)
+            sync_xfer = partial(out_resource.transfer_from, src=in_resource, transfer="copy")
+            await to_thread.run_sync(sync_xfer)
+
     async def render_action_templates(self, event: EventData) -> None:
         """Render the set of templates associated with this Node via the
         `templates` attribute, using the Node's configuration chain as a
@@ -216,11 +243,17 @@ class FilesystemActionMixin(ActionMixIn):
         # Get the yaml template using package lookup and wire in any custom
         # template filters
         action_template_environment = Environment(
-            loader=PackageLoader("lsst.cmservice.models"),
+            loader=ChoiceLoader(
+                [
+                    DictLoader(getattr(self, "artifact_templates", {})),
+                    PackageLoader("lsst.cmservice.models"),
+                ]
+            ),
             keep_trailing_newline=True,
         )
         action_template_environment.filters["toyaml"] = yaml.dump
         action_template_environment.filters["flatten_chainmap"] = lib.flatten_chainmap
+        action_template_environment.filters["shlex"] = lib.parse_custom_script_lines
 
         # Render and Add any command_templates to the lsst config chain
         rendered_command_templates = [
@@ -248,6 +281,8 @@ class FilesystemActionMixin(ActionMixIn):
             except yaml.YAMLError as yaml_error:
                 msg = f"Error rendering YAML template; threw {yaml_error}"
                 raise yaml.YAMLError(msg)
+
+        await self.fetch_artifact_resources(event)
 
     async def action_prepare(self, event: EventData) -> None:
         """Wrapper method for Action node preparation."""
@@ -324,15 +359,28 @@ class HTCondorLaunchMixin(LaunchMixIn):
     async def lsst_prepare(self, event: EventData) -> None:
         """Prepares launcher-specific LSST setup manifest used when rendering
         templates.
+
+        Adds launcher-specific script commands to the LSST configuration chain,
+        which are added verbatim as script lines to any launcher script, after
+        any `prepend` but before any `custom_lsst_setup` sections.
+
+        The primary purpose of this section is to call stack setup on a per-
+        launcher basis.
         """
         lsst_config: dict[str, Any] = {"launcher": []}
         lsst_config["launcher"].append("""export LSST_VERSION="{{ lsst.lsst_version }}" """)
-        lsst_config["launcher"].append(
-            """export LSST_DISTRIB_DIR="{{ lsst.lsst_distrib_dir.rstrip("/") }}" """
-        )
+        lsst_config["launcher"].append("""export LSST_DISTRIB_DIR="{{ lsst.lsst_distrib_dir }}" """)
         lsst_config["launcher"].append("""source ${LSST_DISTRIB_DIR}/loadLSST.bash""")
         lsst_config["launcher"].append("""setup -t ${LSST_VERSION} lsst_distrib""")
         self.configuration_chain["lsst"] = self.configuration_chain["lsst"].new_child(lsst_config)
+
+        # Set any mock BPS overrides to head of chain
+        if config.bps.mock_distrib_dir is not None:
+            self.configuration_chain["lsst"] = self.configuration_chain["lsst"].new_child(
+                {
+                    "lsst_distrib_dir": config.bps.mock_distrib_dir,
+                }
+            )
 
     async def launch_prepare(self, event: EventData) -> None:
         """Prepares a configuration chain link for runtime Launch configs.

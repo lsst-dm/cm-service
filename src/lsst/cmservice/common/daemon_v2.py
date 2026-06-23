@@ -1,10 +1,9 @@
 import pickle
 from asyncio import Task as AsyncTask
 from asyncio import TaskGroup, create_task
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
-from functools import partial
 from itertools import groupby
 from operator import attrgetter
 from types import TracebackType
@@ -12,10 +11,9 @@ from typing import TYPE_CHECKING, Self, cast
 from uuid import UUID, uuid5
 
 import networkx as nx
-from apscheduler.jobstores.base import JobLookupError
 from fastapi import FastAPI
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.orm import make_transient, selectinload
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlmodel import col, select
@@ -35,6 +33,7 @@ from ..config import config
 from ..db.session import db_session_dependency
 from ..machines.node import NodeMachine, node_machine_factory
 from .logging import LOGGER
+from .scheduler import JobEventReturnCode
 
 logger = LOGGER.bind(module=__name__)
 
@@ -244,8 +243,8 @@ async def consider_nodes(context: DaemonContext) -> None:
 
 
 async def daemon_scheduled_job(
-    remove_self: Callable, *, schedule_id: UUID, suppress_exceptions: bool = False
-) -> None:
+    *, schedule_id: UUID, suppress_exceptions: bool = False, oneshot: bool = False
+) -> JobEventReturnCode:
     """Daemon work function for performing the work of a scheduled campaign.
 
     Each `job` added to the scheduler has this function as its target. The
@@ -263,20 +262,31 @@ async def daemon_scheduled_job(
         Defaults to False. If True, exceptions will be logged but not reraised.
         This is useful for launching in BackgroundTasks or wherever unhandled
         exceptions are problematic.
+
+    oneshot: bool
+        Defaults to False. If True, the entire function will be evaluated ir-
+        respective of the schedule's enabled status.
+
+    Returns
+    -------
+    JobEventReturnCode
+        An enum representing an exit code. A scheduler job event callback may
+        make use of this.
     """
     if TYPE_CHECKING:
         assert db_session_dependency.sessionmaker is not None
 
-    # fetch the schedule and its templates
+    # fetch the schedule and its templates. Return early if the schedule is
+    # not found or not enabled (and we are not oneshotting)
     async with db_session_dependency.sessionmaker() as session:
-        schedule = await session.get(Schedule, schedule_id)
-        if schedule is None or not schedule.is_enabled:
-            try:
-                remove_self()
-            except JobLookupError:
-                logger.error("Job not found during self removal", job_id=schedule_id)
-                pass
-            return None
+        try:
+            schedule = await session.get_one(Schedule, schedule_id)
+        except NoResultFound:
+            return JobEventReturnCode.SCHEDULE_NOT_FOUND
+
+        if not schedule.is_enabled and not oneshot:
+            return JobEventReturnCode.REMOVE_SELF
+
         schedule_context = ScheduleConfiguration(**schedule.configuration)
 
         # TODO signal version picking; for now we just pick the latest version
@@ -295,9 +305,13 @@ async def daemon_scheduled_job(
         )
 
         # the first ORM object on the list of manifests is the campaign
-        if isinstance(orms[0], Campaign):
-            orms[0].owner = schedule.metadata_.get("owner")
-            orms[0].status = StatusEnum.running if schedule_context.auto_start else StatusEnum.paused
+        campaign = orms[0] if isinstance(orms[0], Campaign) else None
+        if campaign is None:
+            logger.error("Campaign object not created", schedule=str(schedule_id))
+            return JobEventReturnCode.CAMPAIGN_NOT_FOUND
+
+        campaign.owner = schedule.metadata_.get("owner")
+        campaign.status = StatusEnum.running if schedule_context.auto_start else StatusEnum.paused
 
         # We want to split the ORMs so the edges are added only after the nodes
         # FIXME consider a more reusable partitioning function for this
@@ -316,7 +330,10 @@ async def daemon_scheduled_job(
             if not suppress_exceptions:
                 raise RuntimeError("Scheduled Campaign tried to make a duplicate") from e
         finally:
-            logger.info("Scheduled job has finished running", schedule=str(schedule_id))
+            logger.info(
+                "Scheduled job has finished running", schedule=str(schedule_id), campaign=campaign.name
+            )
+        return JobEventReturnCode.SUCCESS
 
 
 async def consider_schedules(context: DaemonContext) -> None:
@@ -327,23 +344,25 @@ async def consider_schedules(context: DaemonContext) -> None:
         assert isinstance(context.app.state.scheduler, Scheduler)
 
     # get schedules from db where is_enabled
-    # TODO how does the daemon handle one-shots?
     statement = select(Schedule).where(Schedule.is_enabled)
     schedules = await context.session.exec(statement)
+    jobstore = context.app.state.scheduler.jobstore_alias
     for schedule in schedules:
         job_id = str(schedule.id)
         job_trigger = await context.app.state.scheduler.trigger(schedule.cron)
 
-        if context.app.state.scheduler.scheduler.get_job(job_id):
-            context.app.state.scheduler.scheduler.reschedule_job(job_id, job_trigger)
+        if context.app.state.scheduler.scheduler.get_job(job_id, jobstore=jobstore):
+            context.app.state.scheduler.scheduler.reschedule_job(
+                job_id, jobstore=jobstore, trigger=job_trigger
+            )
         else:
-            remove_self = partial(context.app.state.scheduler.scheduler.remove_job, job_id)
             context.app.state.scheduler.scheduler.add_job(
-                daemon_scheduled_job,
-                job_trigger,
+                func=daemon_scheduled_job,
+                trigger=job_trigger,
                 id=job_id,
-                args=[remove_self],
+                args=[],
                 kwargs={"schedule_id": schedule.id},
+                jobstore=jobstore,
             )
 
 

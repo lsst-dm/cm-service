@@ -51,6 +51,7 @@ class CMPage[PageModelT: CMPageModel | CMPageData]:
     def __init__(self, request: Request, *args: Any, **kwargs: Any) -> None:
         self.request = request
         self.username = request.headers.get("X-Auth-Request-User", "anonymous")
+        self.base_url = f"{request.url.scheme}://{request.headers.get('host')}"
         self.apply_style()
         storage.initialize_client_storage()
         self.page_route: str = kwargs.pop("path", "/")
@@ -112,7 +113,7 @@ class CMPage[PageModelT: CMPageModel | CMPageData]:
         with ui.dropdown_button(self.username, auto_close=True).bind_visibility_from(
             self, "username", backward=lambda x: x != "anonymous"
         ):
-            ui.link("Security Tokens", target="/auth/tokens", new_tab=True).classes(
+            ui.link("Security Tokens", target=f"{self.base_url}/auth/tokens", new_tab=True).classes(
                 "p-2 text-base text-primary !no-underline"
             )
         ui.button(icon="menu", on_click=lambda: self.toggle_drawer()).props("flat color=white")

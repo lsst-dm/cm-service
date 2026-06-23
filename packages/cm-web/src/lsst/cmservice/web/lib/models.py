@@ -1,6 +1,7 @@
 from typing import Any
 
 from lsst.cmservice.models.manifests.manifests import (
+    ArtifactSpec,
     BpsSpec,
     ButlerSpec,
     FacilitySpec,
@@ -28,6 +29,7 @@ STEP_MANIFEST_TEMPLATE: dict[str, Any] = {
 
 
 KIND_TO_SPEC: dict[str, type[ManifestSpec]] = {
+    "artifact": ArtifactSpec,
     "bps": BpsSpec,
     "wms": WmsSpec,
     "lsst": LsstSpec,

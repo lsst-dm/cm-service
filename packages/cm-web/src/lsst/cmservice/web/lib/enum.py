@@ -61,6 +61,7 @@ class StatusDecorators(StatusDecorator, enum.Enum):
 
 
 MANIFEST_KIND_ICONS: dict[str, str] = {
+    "artifact": "file_present",
     "lsst": "code",
     "butler": "folder",
     "bps": "settings",
