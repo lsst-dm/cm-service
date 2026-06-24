@@ -13,6 +13,7 @@ from transitions import EventData
 
 from lsst.cmservice.models.enums import ManifestKind, StatusEnum
 from lsst.cmservice.models.lib.parsers import as_templated_snake_case
+from lsst.cmservice.models.lib.timestamp import element_time
 from lsst.ctrl.bps import WmsRunReport, WmsStates
 from lsst.utils import doImport
 
@@ -495,7 +496,20 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         self.db_model.metadata_.pop("bps", None)
 
         # increment the number of retries tracked by the node
-        self.db_model.metadata_["retries"] = self.db_model.metadata_.get("retries", 0) + 1
+        attempt_num = self.db_model.metadata_.get("retries", 0)
+        self.db_model.metadata_["retries"] = attempt_num + 1
+
+        # archive the previous bps submit directory, if there is one
+        if (artifact_path := self.db_model.metadata_.get("artifact_path", None)) is not None:
+            original_path = Path(artifact_path) / "submit"
+            new_path = original_path.with_suffix(f".{attempt_num}")
+            if await new_path.exists():
+                # This should not happen but could be the result of out-of-band
+                # intervention, so we preserve an unknown artifact with the
+                # current timestamp
+                await new_path.rename(new_path.with_suffix(f".{element_time()}"))
+            if await original_path.exists():
+                await original_path.replace(new_path)
 
     async def do_restart(self, event: EventData) -> None:
         """Restart a Group by manipulating the rendered artifacts to effect a
