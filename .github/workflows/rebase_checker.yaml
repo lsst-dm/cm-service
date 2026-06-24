@@ -1,10 +1,87 @@
 ---
-name: Rebase Checker
+name: Rebase Checker and Commitlint
 
 "on":
   workflow_call:
-  pull_request:
+    inputs:
+      check-conventional:
+        description: 'Check conventional commits'
+        required: false
+        type: boolean
+        default: false
+      rebase-checker:
+        description: 'Check for merge commits of main'
+        required: false
+        type: boolean
+        default: false
+      custom-rules:
+        description: >-
+          Custom rules module to use with check-conventional
+          (relative path to file, e.g., `./path/to/config.ts`)
+        required: false
+        type: string
+        default: "@commitlint/config-conventional"
 
 jobs:
-  call-workflow:
-    uses: lsst/rubin_workflows/.github/workflows/rebase_checker.yaml@main
+  rebase-checker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Determine commit range
+        id: commits
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            HEAD=${{ github.event.pull_request.head.sha }}
+            BASE=${{ github.event.pull_request.base.sha }}
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            MAIN=origin/${{ github.event.repository.default_branch }}
+            BRANCH=${{ github.ref_name }}
+            HEAD=${{ github.event.after }}
+            BASE=$(git log $MAIN..$BRANCH --oneline --format=%H | tail -1)
+          fi
+          echo "base=$BASE" >> $GITHUB_OUTPUT
+          echo "head=$HEAD" >> $GITHUB_OUTPUT
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6  # v2.2.0
+        with:
+          bun-version: latest
+
+      - name: Create bun lockfile (not run)
+        if: false
+        working-directory: .github/rebase-checker
+        run: >
+          bun add --minimum-release-age=604800 --production --lockfile-only
+          @commitlint/cli@21.0.1
+          @commitlint/config-conventional@21.0.1
+          conventional-commits-parser@6.4.0
+
+      - name: Install commitlint
+        working-directory: .github/rebase-checker
+        run: >
+          bun install --frozen-lockfile --no-save
+
+      - name: Rebase Checker (PR Branch must be rebased, not merged into)
+        if: inputs.rebase-checker
+        working-directory: .github/rebase-checker
+        run: >
+          bunx --no-install --bun commitlint
+          --config ./rebase-checker.config.mjs
+          --from ${{ steps.commits.outputs.base }} --to ${{ steps.commits.outputs.head }}
+
+      - name: Validate Commits as Conventional Commits
+        if: inputs.check-conventional
+        working-directory: .github/rebase-checker
+        run: |
+          EXTENDS="${{ inputs.custom-rules }}"
+          if [[ "$EXTENDS" != @* ]]
+          then
+            EXTENDS="${GITHUB_WORKSPACE}/${EXTENDS}"
+          fi
+
+          bunx --no-install --bun commitlint \
+          --extends $EXTENDS \
+          --from ${{ steps.commits.outputs.base }} --to ${{ steps.commits.outputs.head }} \
+          --verbose
