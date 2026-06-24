@@ -205,11 +205,11 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
                     match entry["to_status"]:
                         case "ready":
                             artifact_path = metadata.get("artifact_path", None)
-                            entry_body += artifact_path or ""
+                            entry_body += f"`{artifact_path}`" or ""
                         case "running":
                             job_id = metadata.get("launcher", {}).get("job_id", "Unknown")
                             execute_host = metadata.get("launcher", {}).get("execute_host", "Unknown")
-                            entry_body += f"Job {job_id} on launch host {execute_host}"
+                            entry_body += f"Job `{job_id}` on launch host `{execute_host}`"
                         case _:
                             ...
 
