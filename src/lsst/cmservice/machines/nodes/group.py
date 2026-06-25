@@ -222,8 +222,9 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
 
         self.command_templates = [
             (
-                "{{bps.exe_bin}} --log-file {{bps.exe_log}} "
-                "--no-log-tty submit {{bps.submit_yaml}} > {{bps.stdout_log}}"
+                "{{bps.exe_bin}} --log-file {{bps.exe_log}} --no-log-tty "
+                "submit {{bps.submit_yaml}} ${BPS_SUBMIT_OPTIONS}"
+                "> {{bps.stdout_log}}"
             )
         ]
 
@@ -527,8 +528,9 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         # with a bps restart command
         self.command_templates = [
             (
-                "{{bps.exe_bin}} --log-file {{bps.restart_exe_log}} "
-                "--no-log-tty restart --id {{bps.run_id}} > {{bps.restart_stdout_log}}"
+                "{{bps.exe_bin}} --log-file {{bps.restart_exe_log}} --no-log-tty "
+                "restart --id {{bps.run_id}} ${BPS_RESTART_OPTIONS} "
+                "> {{bps.restart_stdout_log}}"
             )
         ]
 
