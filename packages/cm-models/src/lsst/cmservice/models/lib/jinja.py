@@ -52,9 +52,10 @@ def not_in_(value: list[str | int | float], *, field: str) -> str:
     return in_(value, field=field, not_in=True)
 
 
-def random_n(value: str, n: int) -> str:
+def random_n(value: str, n: int, sep: str = ".") -> str:
     """Return a random string of length n joined by the passed value."""
-    return value.join(random.choices(ascii_letters + digits, k=n))
+    r = "".join(random.choices(ascii_letters + digits, k=n))
+    return f"{value}{sep}{r}"
 
 
 # All filters as a mapping constant
