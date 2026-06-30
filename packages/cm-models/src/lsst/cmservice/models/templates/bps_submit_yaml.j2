@@ -95,6 +95,10 @@ cluster:
 # SITE WMS CONFIGURATION
 ########################################
 wmsServiceClass: {{ wms.service_class }}
+computeSite: {{ site.facility }}
+{%- if site.literals %}
+{{ site.literals | toyaml -}}
+{%- endif %}
 {# BLANK LINE #}
 {%- if wms.auto_provision %}
 ########################################

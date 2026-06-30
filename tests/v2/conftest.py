@@ -509,7 +509,7 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
             "kind": "site",
             "metadata": {"name": "usdf-cm-test", "namespace": campaign["id"]},
             "spec": {
-                "facility": "USDF",
+                "facility": "S3DF",
             },
         },
     )

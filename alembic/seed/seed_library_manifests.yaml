@@ -45,7 +45,7 @@ spec:
   repo: "/repo/main"
   predicates:
     - instrument='LSSTCam'
-    - skymap='lsst_cells_v1'
+    - skymap='lsst_cells_v2'
   collections:
     campaign_input:
       - LSSTCam/defaults
@@ -102,7 +102,7 @@ metadata:
     site: usdf
     instrument: lsstcam
 spec:
-  facility: USDF
+  facility: S3DF
   include_files:
     - "${DRP_PIPE_DIR}/bps/caching/LSSTCam/usdf/DRP-caching.yaml"
   provisioned_platform: "s3df"
