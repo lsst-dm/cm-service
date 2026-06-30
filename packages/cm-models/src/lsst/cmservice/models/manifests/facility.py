@@ -15,11 +15,16 @@ from . import SPEC_CONFIG, LibraryManifest, ManifestSpec
 # consistency
 class FacilitySpec(ManifestSpec):
     model_config = SPEC_CONFIG | {"title": "site_spec"}
-    facility: Literal["USDF", "IN2P3", "LANC", "RAL"] = Field(
-        default="USDF",
+    facility: Literal["SLAC", "IN2P3", "LANC", "RAL"] = Field(
+        default="SLAC",
         title="Processing Facility Name",
-        description="The name of the processing facility.",
-        examples=["USDF", "IN2P3"],
+        description="The name of the processing facility, equivalent to the BPS `computeSite` setting",
+        examples=["SLAC", "IN2P3"],
+    )
+    literals: dict | None = Field(
+        default=None,
+        title="Processing Facility Literal Configuration, used as top-level BPS configuration",
+        examples=[{"site": {"SLAC": {"profile": {"condor": {"+Walltime": 43200}}}}}],
     )
     include_files: list[str] = Field(
         default_factory=list,
