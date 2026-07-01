@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from warnings import deprecated
 
 from sqlalchemy.future import select
 
@@ -7,7 +8,6 @@ from lsst.cmservice.models.lib import timestamp
 from lsst.cmservice.models.types import AnyAsyncSession
 
 from ..common import notification
-from ..common.flags import Features
 from ..config import config
 from ..db.node import NodeMixin
 from ..db.queue import Queue
@@ -70,16 +70,8 @@ async def daemon_iteration(session: AnyAsyncSession) -> None:
             continue
     await session.commit()
 
-    # Try to allocate resources at the end of the loop, but do not crash if it
-    # doesn't work.
-    # FIXME this could be run async
-    try:
-        if (Features.DAEMON_ALLOCATE in config.features.enabled) and (processed_nodes > 0):
-            allocate_resources()
-    except Exception:
-        logger.exception()
 
-
+@deprecated("Delegate resource allocation to WMS/BPS auto provisioner with nodeset")
 def allocate_resources() -> None:
     """Allocate resources for htcondor jobs submitted during the daemon
     iteration.

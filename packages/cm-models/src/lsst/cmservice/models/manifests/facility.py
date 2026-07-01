@@ -28,6 +28,25 @@ class FacilitySpec(ManifestSpec):
         "that are specific to the use of this Facility.",
         examples=[["${DRP_PIPE_DIR}/bps/caching/{instrument}/{site}/{caching}.yaml"]],
     )
+    provisioned_platform: str = Field(
+        default="s3df",
+        title="Provisioning Platform Name",
+        description="The naem of the provisioning platform at the facility, for use with `allocateNodes.py`",
+        examples=["s3df"],
+    )
+    provisioned_queue: str = Field(
+        default="milano",
+        title="Provisioning Queue",
+        description="Name of the provisioning queue or partition for provisioned glidein",
+        examples=["milano", "roma"],
+    )
+
+    provisioned_account_group: str = Field(
+        default="rubin:developers",
+        title="Accounting User",
+        description="Name of the accounting user or group associated with the provisioned glidein",
+        examples=["rubin:developers", "rubin:production"],
+    )
 
 
 class FacilityManifest(LibraryManifest[FacilitySpec]): ...

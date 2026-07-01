@@ -1,0 +1,149 @@
+---
+apiVersion: io.lsst.cmservice/v1
+kind: campaign
+metadata:
+  name: smoketest
+spec: {}
+---
+apiVersion: io.lsst.cmservice/v1
+kind: node
+metadata:
+  kind: step
+  name: SMOKETEST
+  namespace: b7047eb6-5e22-5b5e-86a7-41b3e216e898
+spec:
+  artifact:
+    resources:
+      apdb_config.yaml: "s3://embargo@mock-bucket/apdb_config.yaml"
+  bps:
+    pipeline_yaml: "${AP_PIPE_DIR}/pipelines/LSSTCam/ApPipe.yaml"
+  lsst:
+    environment:
+      BPS_RUN_NAME: "{{ bps.uniq_proc_name }}"
+    custom_group_payload:
+      - ["bps", "acquire", "{{ bps.submit_yaml }}"]
+      - ["mv", "{{ bps.uniq_proc_name}}.qg", "{{ bps.uniq_proc_name}}_full.qg"]
+      - ["python", "-m", "lsst.ap.pipe.prune_orphan_preloads", "{{ bps.uniq_proc_name}}_full.qg", "{{ bps.uniq_proc_name}}.qg"]
+  groups:
+    split_by: query
+    dataset: raw
+    dimension: exposure
+    min_groups: 2
+---
+apiVersion: io.lsst.cmservice/v1
+kind: edge
+metadata:
+  name: START.1--3
+  namespace: b7047eb6-5e22-5b5e-86a7-41b3e216e898
+spec:
+  source: START
+  target: SMOKETEST
+---
+apiVersion: io.lsst.cmservice/v1
+kind: edge
+metadata:
+  name: xy-edge__3right-END.1left
+  namespace: b7047eb6-5e22-5b5e-86a7-41b3e216e898
+spec:
+  source: SMOKETEST
+  target: END
+---
+apiVersion: io.lsst.cmservice/v1
+kind: butler
+metadata:
+  name: embargo
+  namespace: b7047eb6-5e22-5b5e-86a7-41b3e216e898
+spec:
+  collections:
+    campaign_input:
+      - LSSTCam/defaults
+      - LSSTCam/templates
+      - LSSTCam/runs/prompt-${{ yesterday | as_day_obs }}
+    campaign_output: u/lsstsvc1/runs/daytimeAP/${{ yesterday | as_day_obs }}/output
+    campaign_public_output: u/lsstsvc1/runs/daytimeAP/${{ yesterday | as_day_obs }}
+  include_files: []
+  predicates:
+    - instrument='LSSTCam'
+    - skymap='lsst_cells_v2'
+    - day_obs=${{ yesterday | as_day_obs }}
+    - ${{ bad_detectors | sql_not_in(field="detector") }}
+  repo: embargo
+---
+apiVersion: io.lsst.cmservice/v1
+kind: bps
+metadata:
+  name: ap_catchup
+  namespace: b7047eb6-5e22-5b5e-86a7-41b3e216e898
+spec:
+  extra_qgraph_options:
+    - --skip-existing-in LSSTCam/runs/prompt-${{ yesterday | as_day_obs }}
+    - -c parameters:release_id=1
+    - -c parameters:apdb_config={{ metadata.parent_path }}/apdb_config.yaml
+    - -c associateApdb:doRunForcedMeasurement=False
+    - --dataset-query-constraint off
+  extra_run_quantum_options:
+    - --no-raise-on-partial-outputs
+  include_files:
+    - ${AP_PIPE_DIR}/bps/clustering/clustering_Daytime.yaml
+  literals:
+    finalJob:
+      command2: ${DAF_BUTLER_DIR}/bin/butler {finalPreCmdOpts} update-dimension-regions
+        {butlerConfig} LSSTCam {outputRun} --batch-size 2000
+    nodeset: daily
+---
+apiVersion: io.lsst.cmservice/v1
+kind: lsst
+metadata:
+  name: ap_daily
+  namespace: b7047eb6-5e22-5b5e-86a7-41b3e216e898
+spec:
+  campaign: AP-daytime
+  prepend:
+    - - ulimit
+      - -n
+      - '65536'
+  description: Alert Production Daytime Catchup (Daily Batch)
+  environment:
+    DAX_APDB_MONITOR_CONFIG: logging:lsst.dax.apdb.monitor
+  lsst_distrib_dir: /sdf/group/rubin/sw/w_latest
+  lsst_version: w_latest
+  project: SmokeTest
+  ticket: DM-XXXXX
+---
+apiVersion: io.lsst.cmservice/v1
+kind: wms
+metadata:
+  name: htcondor
+  namespace: b7047eb6-5e22-5b5e-86a7-41b3e216e898
+spec:
+  batch_name: cmservice-usdf-prod
+  batch_system: htcondor
+  service_class: lsst.ctrl.bps.htcondor.HTCondorService
+  environment:
+    BPS_WMS_SERVICE_CLASS: "lsst.ctrl.bps.htcondor.HTCondorService"
+---
+apiVersion: io.lsst.cmservice/v1
+kind: site
+metadata:
+  name: usdf
+  namespace: b7047eb6-5e22-5b5e-86a7-41b3e216e898
+spec:
+  facility: USDF
+---
+apiversion: io.lsst.cmservice/v1
+kind: schedule
+metadata:
+  owner: root
+spec:
+  auto_start: true
+  cron: 0 12 * * *
+  name_format: '%s'
+  expressions:
+    today: "datetime.now(timezone.utc)"
+    yesterday: "datetime.now(timezone.utc) - timedelta(days=1)"
+    bad_detectors: >-
+        [120, 122, 0, 20, 27, 65, 123, 161, 168, 188, 1, 19, 30, 68, 158, 169, 187, 189, 190, 191, 192, 193, 194, 195,
+        196, 197, 198, 199, 200, 201, 202, 203, 204]
+    science_blocks: >-
+        ["BLOCK-365", "BLOCK-407", "BLOCK-408", "BLOCK-416", "BLOCK-417", "BLOCK-419", "BLOCK-421", "BLOCK-T698",
+        "BLOCK-T703", "BLOCK-T704", "BLOCK-T706"]
