@@ -25,7 +25,7 @@ from fastapi import (
     Response,
     status,
 )
-from pydantic import UUID4
+from pydantic import UUID4, UUID5
 from pydantic_extra_types.cron import CronStr
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import InstrumentedAttribute, noload
@@ -342,6 +342,39 @@ async def create_schedule_template_resource(
     response.headers["Templates"] = str(
         request.url_for("read_schedule_template_collection", schedule_id=schedule_id)
     )
+
+
+@router.put(
+    "/{schedule_id}/templates/{template_id}",
+    summary="Update a single template for a Schedule",
+    status_code=status.HTTP_201_CREATED,
+    response_model=None,
+)
+async def update_schedule_template_resource(
+    *,
+    request: Request,
+    response: Response,
+    session: Annotated[AsyncSession, Depends(db_session_dependency)],
+    schedule_id: Annotated[UUID4, Path()],
+    template_id: Annotated[UUID5, Path()],
+    template_manifest: CreateManifestTemplate,
+) -> ManifestTemplate:
+    """Creates a new template record associated with a specific schedule."""
+
+    template = await session.get_one(ManifestTemplate, template_id)
+
+    # Update the template with the new data
+    # Currently this ONLY supports a full replacement of the template manifest
+    # FIXME consider what versioning support or strategy we need here
+    template.manifest = template_manifest.manifest
+    template.metadata_["mtime"] = element_time()
+
+    await session.commit()
+
+    response.headers["Templates"] = str(
+        request.url_for("read_schedule_template_collection", schedule_id=schedule_id)
+    )
+    return template
 
 
 @router.post(
