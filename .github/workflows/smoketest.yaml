@@ -9,7 +9,6 @@ on:
 env:
   BUILDKIT_PROGRESS: plain
   CM_ENDPOINT: "http://localhost:8080/cm-service"
-  CM_RUBIN_ORG_TOKEN: "eyJhbGciOiJIUzI1NiIsImtpZCI6IlBPT0wifQ.eyJpYXQiOjE3Nzk0NzY4OTgsImlzcyI6Imh0Y29uZG9yIiwianRpIjoiZWRhMDJhNDYxYzVlOTYxOTQ4MTFmNDJhMzExYTA5ZDMiLCJzY29wZSI6ImNvbmRvcjpcL1JFQUQgY29uZG9yOlwvV1JJVEUiLCJzdWIiOiJsc3N0c3ZjMUBjbXdvcmtlciJ9.Y2Vopues6of6GYDv7zDu5D7LqrzAbDLjg5hV4jr22HY"
   COMPOSE_PROFILES: full
   LOGGING__LEVEL: "ERROR"
   NO_COLOR: "1"
@@ -37,7 +36,7 @@ jobs:
         working-directory: ./integration
         run: |
           docker compose build --pull --quiet
-          docker compose up -d --wait
+          docker compose --env-file shared.env up -d --wait
 
       - name: Load smoketest schedule
         id: load-smoke
