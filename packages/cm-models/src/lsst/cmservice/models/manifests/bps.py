@@ -160,7 +160,7 @@ class BpsSpec(ManifestSpec):
     ) = None
 
     extra_init_options: (
-        Annotated[list[str], Field(description="Passthrough options added to the end of pipetaskinit")]
+        Annotated[list[str], Field(description="Options to add to pipetaskInit")]
         | Annotated[
             None,
             Field(
@@ -171,7 +171,7 @@ class BpsSpec(ManifestSpec):
     ) = None
 
     extra_qgraph_options: (
-        Annotated[list[str], Field(description="Passthrough options for QuantumGraph builder.")]
+        Annotated[list[str], Field(description="Options to add to QuantumGraph updater.")]
         | Annotated[
             None,
             Field(
@@ -184,7 +184,7 @@ class BpsSpec(ManifestSpec):
     extra_run_quantum_options: (
         Annotated[
             list[str],
-            Field(description="Passthrough options for Quantum execution", examples=["--no-versions"]),
+            Field(description="Options to add to Quantum execution", examples=["--no-versions"]),
         ]
         | Annotated[
             None,

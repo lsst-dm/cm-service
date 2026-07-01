@@ -12,6 +12,7 @@
 !/packages/cm-web/
 !/packages/cm-commandline/
 !/packages/cm-canvas/package*.json
+!/packages/cm-canvas/*.lock
 !/packages/cm-canvas/*config.js
 !/packages/cm-canvas/src/
 !/script/render_jsonschema.py

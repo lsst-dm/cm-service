@@ -39,6 +39,9 @@ class UserStorageModel(StorageModel):
     User storage must be serializable data.
     """
 
+    username: str = Field(
+        default="anonymous", description="The name of the current user as understood from the request header."
+    )
     favorites: Annotated[set, PlainSerializer(lambda x: list(x), return_type=list)] = Field(
         default_factory=set,
         description="A set of IDs that have been marked as user favorites",
@@ -50,6 +53,10 @@ class UserStorageModel(StorageModel):
     ignore_list: Annotated[set, PlainSerializer(lambda x: list(x), return_type=list)] = Field(
         default_factory=set,
         description="A set of IDs that have been marked as ignored/hidden/trashed by the user",
+    )
+    filtered_owners: Annotated[set, PlainSerializer(lambda x: list(x), return_type=list)] = Field(
+        default_factory=set,
+        description="A set of owner names that have been selected by the user in the campaign filter",
     )
 
 
