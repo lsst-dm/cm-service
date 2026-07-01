@@ -1,7 +1,7 @@
 {
   "dependencies": {
-    "@commitlint/cli": "21.0.1",
-    "@commitlint/config-conventional": "21.0.1",
+    "@commitlint/cli": "21.1.0",
+    "@commitlint/config-conventional": "21.1.0",
     "conventional-commits-parser": "6.4.0"
   }
 }
