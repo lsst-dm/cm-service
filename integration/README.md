@@ -5,15 +5,14 @@ This directory contains resources for integration testing of CM Service configur
 
 - `docker-compose.yaml`: A compose file that extends the base `docker-compose.yaml` by adding an HTCondor "mini" service.
 - `integration-overrides.yaml`: Configuration extentions for the base `docker-compose.yaml` to enable its use with the integration stack.
+- `shared.env`: An environment file that defines shared secrets for the integration test. These include a resuable `POOL` signing key and JWT token(s) for HTCondor clients. *These are not production tokens.*
 - `script/`: A directory of utility and/or runtime scripts that enable or help orchestrate the integration test.
-- `passwords.d`: a reusable `POOL` password file for HTCondor used as a signing key for ID tokens. *This is not a production key.*
-- `tokens.d`: A directory of HTCondor ID tokens used by CM Service to authenticate during job Launches. These tokens are signed by the reusable `POOL` signing key. *These are not production tokens.*
 - `butler.d`: A directory of items related to bootstrapping and running a Butler registry for integration testing.
 
 ## Secrets
 The signing key and JWT tokens are shared secrets. These are not production keys or tokens, so it is not an error to commit them to VCS.
 
-The signing key (`passwords.d/POOL`) is generated using `condor_store_cred add -c -p <PASSWORD> -f POOL`.
+The `POOL` signing key (`${POOL_PASSWORD}$`) is generated using `condor_store_cred add -c -p <PASSWORD> -f POOL` and then hex-encoded as a byte string.
 
 Each JWT token is then generated using the signing key with `condor_token_create -identity <user>@<host> -authz WRITE -authz READ -key POOL`.
 
