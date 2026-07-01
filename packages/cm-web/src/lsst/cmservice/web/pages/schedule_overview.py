@@ -169,15 +169,15 @@ class ScheduleOverviewPage(CMPage[ScheduleOverviewPageModel]):
             "click",
             js_handler="() => emit(props.row.id, 'preview')",
             handler=self.handle_schedule_action,
-        ).tooltip("Preview")
+        ).tooltip("Preview/Edit")
         ui.button(
-            icon="edit",
+            icon="copy_all",
             color="dark",
         ).props("flat round size=sm").on(
             "click",
             js_handler="() => emit(props.row.id, 'edit')",
             handler=self.handle_schedule_action,
-        ).tooltip("Edit")
+        ).tooltip("Clone")
         ui.button(
             icon="play_arrow",
             color="dark",

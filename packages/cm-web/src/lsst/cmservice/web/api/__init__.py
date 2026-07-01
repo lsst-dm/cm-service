@@ -23,6 +23,7 @@ from .schedules import (
     oneshot_schedule,
     patch_schedule,
     post_new_schedule,
+    put_schedule_template,
 )
 
 __all__ = [
@@ -44,6 +45,7 @@ __all__ = [
     "post_new_schedule",
     "put_manifest_list",
     "put_one_manifest",
+    "put_schedule_template",
     "rescue_group",
     "retry_restart_node",
     "toggle_campaign_state",

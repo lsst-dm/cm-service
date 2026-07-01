@@ -76,3 +76,20 @@ async def oneshot_schedule(schedule_id: str | UUID) -> None:
     async with CLIENT_FACTORY.aclient() as client:
         r = await client.post(f"/schedules/{schedule_id}/oneshot")
         r.raise_for_status()
+
+
+async def put_schedule_template(
+    schedule_id: str | UUID, template_id: str | UUID, manifest: dict | CreateManifestTemplate
+) -> None:
+    """PUTs a new manifest to the API for a given template. This will replace
+    the content of the template.
+    """
+    if isinstance(manifest, CreateManifestTemplate):
+        template = manifest.model_dump(mode="json", exclude_none=True, exclude_unset=True)
+
+    async with CLIENT_FACTORY.aclient() as client:
+        r = await client.put(
+            f"/schedules/{schedule_id}/templates/{template_id}",
+            json=template,
+        )
+        r.raise_for_status()
