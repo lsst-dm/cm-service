@@ -7,7 +7,7 @@ from os.path import expandvars
 from types import ModuleType
 from typing import TYPE_CHECKING, Any, cast
 
-from anyio import Path
+from anyio import Path, to_thread
 from jinja2.sandbox import ImmutableSandboxedEnvironment
 from transitions import EventData
 
@@ -399,10 +399,9 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         # directory in order for BPS to identify it properly. Specifically, the
         # status is read from a `*.dag.dagman.log` file in the submit directory
         # - This only works with a shared filesystem between CM and BPS/WMS
-        # FIXME use async run_thread
         bps_status: WmsStates
         status_message: str
-        bps_status, status_message = wms_svc.get_status(bps_submit_dir)
+        bps_status, status_message = await to_thread.run_sync(wms_svc.get_status, bps_submit_dir)
 
         # TODO implement an OVERDUE check in here. This should be a simple
         # algorithm to identify long-running jobs (especially those that remain
@@ -420,23 +419,13 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
             f"bps_status_{bps_status.name}",
         )
 
-        match bps_status:
-            case WmsStates.RUNNING:
-                return False
-            case WmsStates.FAILED:
-                # TODO we want bps report if we are failed
-                msg = "WMS Job is Failed"
-                raise RuntimeError(msg)
-            case WmsStates.DELETED:
-                msg = "WMS Job is Deleted"
-                raise RuntimeError(msg)
-            case _:
-                pass
+        if bps_status is WmsStates.RUNNING:
+            return False
 
         # BPS Report
         run_reports: list[WmsRunReport]
         report_message: str
-        run_reports, report_message = wms_svc.report(bps_submit_dir)
+        run_reports, report_message = await to_thread.run_sync(wms_svc.report, bps_submit_dir)
 
         if len(report_message):
             logger.warning(report_message, id=str(self.db_model.id))
@@ -471,6 +460,11 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
                     f"n_{state_.name.lower()}": count_ for state_, count_ in job_summary.items() if count_ > 0
                 }
                 self.db_model.metadata_["bps_report"][task_name] = wms_dict
+
+        # Negative terminal states short-circuit to the machine's error handler
+        if bps_status in {WmsStates.FAILED, WmsStates.DELETED}:
+            msg = f"WMS Job is {bps_status.name}"
+            raise RuntimeError(msg)
 
         # Create an Activity Log entry
         activity_log_entry = self.get_activity_log(event)
