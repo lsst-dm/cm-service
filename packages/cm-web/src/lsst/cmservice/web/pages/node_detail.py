@@ -180,6 +180,42 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
             case _:
                 ui.chip(status, icon=icon, color=color).tooltip("Node Status")
 
+    async def bps_report_table(self, bps_report: dict) -> None:
+        """Renders a table of BPS report data."""
+        status_names = set()
+        rows = []
+        columns = [{"name": "task", "label": "Task", "field": "task", "sortOrder": "ad"}]
+
+        # each task is a table row, each status is a column
+        task: str
+        statuses: dict[str, int]
+        for task, statuses in bps_report.items():
+            rows.append({"task": task, **{status: count for status, count in statuses.items()}})
+            status_names.update({status for status in statuses.keys()})
+
+        # Apply some basic ordering to the status columns while ensuring we
+        # always start the same way
+        column_names = ["n_succeeded", "n_failed"]
+        column_names.extend(list(status_names - set(column_names)))
+        columns.extend(
+            [
+                {
+                    "name": status,
+                    "label": status.split("_")[1],
+                    "field": status,
+                    ":format": "(val) => val == null ? 0 : new Intl.NumberFormat().format(val)",
+                }
+                for status in column_names
+            ]
+        )
+        ui.table(
+            columns=columns,
+            rows=rows,
+            row_key="task",
+            column_defaults={"sortable": True, "headerClasses": "uppercase text-primary"},
+            pagination={"sortBy": "n_succeeded", "descending": True, "rowsPerPage": 10},
+        ).props("column-sort-order='da'")
+
     @ui.refreshable_method
     async def node_activity_timeline(self) -> None:
         """Builds a timeline providing an illustration of Node status changes
@@ -188,6 +224,17 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
         id = self.model["node"]["id"]
         name = self.model["node"]["name"]
         metadata = self.model["node"]["metadata"]
+
+        if "bps_report" in metadata:
+            total_tasks = sum([sum(t.values()) for t in metadata["bps_report"].values()])
+            good_tasks = sum([t.get("n_succeeded", 0) for t in metadata["bps_report"].values()])
+            with ui.row().classes("w-full gap-6 items-center"):
+                ui.markdown("### BPS Report")
+                ui.circular_progress(value=good_tasks, show_value=False, max=total_tasks).props(
+                    "color='positive' track-color='negative' :thickness='1'"
+                ).tooltip(f"{good_tasks} successful tasks of {total_tasks} tasks")
+            await self.bps_report_table(metadata["bps_report"])
+
         with ui.timeline(side="right").classes("w-full h-full"):
             entry_milestone = ""
             for entry in await api.node_activity_logs(id):
