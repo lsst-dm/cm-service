@@ -61,7 +61,7 @@ qgraphFile: {{ bps.qgraph_file }}
 {%- endif %}
 payload:
 {%- for key, value in bps.payload|items %}
-  {{ key }}: {{ value | trim }}
+  {{ key }}: "{{ value | trim }}"
 {%- endfor %}
 {%- if bps.extra_qgraph_options %}
 extraQgraphOptions: {{ bps.extra_qgraph_options | join(" ")}}
@@ -96,11 +96,13 @@ cluster:
 ########################################
 wmsServiceClass: {{ wms.service_class }}
 {# BLANK LINE #}
-{%- if wms.auto_provision %}
 ########################################
 # PROVISIONING CONFIGURATION
 ########################################
+{%- if wms.batch_name %}
 nodeset: {{ wms.batch_name }}
+{%- endif %}
+{%- if wms.auto_provision %}
 provisionResources: {{ wms.auto_provision | string | lower }}
 provisioning:
   provisioningNodeCount: {{ wms.provisioned_node_count }}

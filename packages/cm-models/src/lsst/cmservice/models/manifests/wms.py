@@ -115,7 +115,7 @@ class WmsSpec(ManifestSpec):
             Field(
                 title="Nodeset Name",
                 description="Batch or Nodeset name for matching jobs with provisioned glideins. "
-                "If auto provisioning is enabled, this must not be null.",
+                "If auto provisioning is enabled, this will be ignored.",
             ),
         ]
         | Annotated[None, Field(title="Null", description="This field is optional for a WMS configuration.")]

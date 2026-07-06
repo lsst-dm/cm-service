@@ -233,8 +233,7 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         bps_config["submit_yaml"] = bps_submit_path
         bps_config["stdout_log"] = bps_submit_path.with_name(f"{self.db_model.name}.log")
         # the default uniqProcName is the outputRun as snake_case
-        # FIXME this does not work if the run collection name has any variable
-        # content
+        # FIXME doesn't work if the run collection name has variable content
         bps_config["uniq_proc_name"] = as_templated_snake_case(
             self.configuration_chain["butler"]["collections"]["run"]
         )
