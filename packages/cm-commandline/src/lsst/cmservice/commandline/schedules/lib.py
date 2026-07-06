@@ -6,6 +6,7 @@ from pathlib import Path
 
 import yaml
 from httpx import HTTPStatusError, Response
+from pydantic_extra_types.cron import CronStr
 from rich.console import Console
 
 from lsst.cmservice.models.db.schedules import CreateManifestTemplate, CreateSchedule
@@ -17,10 +18,12 @@ console = Console()
 
 
 def create_schedule(spec: dict | None) -> CreateSchedule:
-    # Create a Schedule object
+    """Create a new schedule object and apply the provided configuration spec
+    to it.
+    """
     schedule = CreateSchedule(
         name="",
-        cron="* * * * *",  # pyright: ignore[reportArgumentType]
+        cron=CronStr("* * * * *"),
         metadata_={
             "owner": "nobody",
         },
@@ -34,12 +37,16 @@ def create_schedule(spec: dict | None) -> CreateSchedule:
 
 
 def read_schedule_from_file(filename: Path) -> list[dict]:
+    """Read a schedule specification from a YAML file and return the list of
+    manifests.
+    """
     contents = filename.read_text()
     manifest_list = list(yaml.safe_load_all(contents))
     return manifest_list
 
 
 def apply_templates_to_schedule(schedule: CreateSchedule, templates: dict[str, dict]) -> CreateSchedule:
+    """Apply the provided collection of manifest templates to a schedule."""
     for k, manifest in templates.items():
         schedule.templates.append(
             CreateManifestTemplate(
@@ -53,6 +60,7 @@ def apply_templates_to_schedule(schedule: CreateSchedule, templates: dict[str, d
 
 
 def post_new_schedule(ctx: TypedContext, schedule: CreateSchedule) -> Response | None:
+    """Post a new schedule to the CMService API."""
     post_data = schedule.model_dump(exclude={"id"})
     post_data["templates"] = [
         template.model_dump(exclude_none=True, exclude_unset=True) for template in schedule.templates
