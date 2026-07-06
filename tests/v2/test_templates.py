@@ -228,3 +228,9 @@ async def test_modify_existing_template(aclient: AsyncClient) -> None:
         json=template_to_update,
     )
     assert z.status_code == codes.CREATED
+
+    # test audit logging has captured some diff detail
+    z = await aclient.get("v2/audit", params={"object": template_id})
+    assert z.status_code == codes.OK
+    audit = z.json()[0]
+    assert "_aux" in audit["context"]["diff"]

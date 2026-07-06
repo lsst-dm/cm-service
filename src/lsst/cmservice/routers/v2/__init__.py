@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from . import (
     activity_log,
+    audit,
     campaigns,
     edges,
     manifests,
@@ -15,6 +16,7 @@ router = APIRouter(
 )
 
 router.include_router(activity_log.router)
+router.include_router(audit.router)
 router.include_router(campaigns.router)
 router.include_router(edges.router)
 router.include_router(manifests.router)
