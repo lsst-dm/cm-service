@@ -1,4 +1,6 @@
+import sys
 from pathlib import Path
+from textwrap import dedent
 from time import sleep
 from typing import Annotated
 from uuid import uuid4
@@ -6,7 +8,9 @@ from uuid import uuid4
 import typer
 from httpx import HTTPStatusError, codes
 from rich.console import Console
+from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
+from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
 
@@ -172,3 +176,37 @@ def oneshot_schedule(
             console.print(table)
         case formatters.Formatters.json:
             formatters.as_json(result_dict)
+
+
+@app.command(name="audit")
+def audit_schedule(
+    ctx: TypedContext,
+    schedule: arguments.schedule_id,
+) -> None:
+    """Return an audit of changes to templates belonging to schedule."""
+
+    with http_client(ctx) as client:
+        try:
+            r = client.get("/audit", params={"object_type": "template", "context.schedule": schedule})
+            r.raise_for_status()
+            audit: list[dict] = r.json()
+        except HTTPStatusError as e:
+            console.print(e.response.status_code)
+            console.print(e.response.text)
+            sys.exit(1)
+
+    if not audit:
+        console.print(Panel("[red]No audit logs available for requested schedule[/red]"))
+        return None
+
+    for entry in audit:
+        console.print(
+            Panel(
+                dedent(f"""\
+            [green]Manifest Template [dark_orange]{entry["object_name"]}[/dark_orange][/green]
+            [green]Modified By[/green] [dark_orange]{entry["actor"]}[/dark_orange]
+            [green]At[/green] [dark_orange]{entry["created_at"]}[/dark_orange]""")
+            )
+        )
+        syntax = Syntax(entry["context"]["diff"], lexer="diff")
+        console.print(syntax)
