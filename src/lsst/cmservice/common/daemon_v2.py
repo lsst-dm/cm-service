@@ -281,6 +281,8 @@ async def daemon_scheduled_job(
     async with db_session_dependency.sessionmaker() as session:
         try:
             schedule = await session.get_one(Schedule, schedule_id)
+            # FIXME this is a type coercion hack
+            base_schedule = Schedule.model_validate(schedule.model_dump())
         except NoResultFound:
             return JobEventReturnCode.SCHEDULE_NOT_FOUND
 
@@ -333,6 +335,13 @@ async def daemon_scheduled_job(
             logger.info(
                 "Scheduled job has finished running", schedule=str(schedule_id), campaign=campaign.name
             )
+
+        schedule.last_run_at = timestamp.now_utc()
+        schedule.metadata_["last_campaign_id"] = str(campaign.id)
+        if schedule.is_enabled:
+            schedule.next_run_at = base_schedule.cron.next_run  # type: ignore[assignment]
+
+        await session.commit()
         return JobEventReturnCode.SUCCESS
 
 

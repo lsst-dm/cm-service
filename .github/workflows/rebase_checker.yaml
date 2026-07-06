@@ -16,7 +16,8 @@ name: Rebase Checker and Commitlint
         default: false
       custom-rules:
         description: >-
-          Custom rules module to use with check-conventional
+          Custom rules module to use with check-conventional, may be a `ts` or
+          `mjs` file but cannot import other files.
           (relative path to file, e.g., `./path/to/config.ts`)
         required: false
         type: string
@@ -33,17 +34,17 @@ jobs:
       - name: Determine commit range
         id: commits
         run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            HEAD=${{ github.event.pull_request.head.sha }}
-            BASE=${{ github.event.pull_request.base.sha }}
-          elif [[ "${{ github.event_name }}" == "push" ]]; then
-            MAIN=origin/${{ github.event.repository.default_branch }}
-            BRANCH=${{ github.ref_name }}
-            HEAD=${{ github.event.after }}
-            BASE=$(git log $MAIN..$BRANCH --oneline --format=%H | tail -1)
+          if [[ '${{ github.event_name }}' == "pull_request" ]]; then
+            HEAD='${{ github.event.pull_request.head.sha }}'
+            BASE='${{ github.event.pull_request.base.sha }}'
+          elif [[ '${{ github.event_name }}' == "push" ]]; then
+            MAIN='origin/${{ github.event.repository.default_branch }}'
+            BRANCH='${{ github.ref_name }}'
+            HEAD='${{ github.event.after }}'
+            BASE="$(git log $MAIN..$BRANCH --oneline --format=%H | tail -1)"
           fi
-          echo "base=$BASE" >> $GITHUB_OUTPUT
-          echo "head=$HEAD" >> $GITHUB_OUTPUT
+          echo "base=${BASE}" >> $GITHUB_OUTPUT
+          echo "head=${HEAD}" >> $GITHUB_OUTPUT
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6  # v2.2.0
         with:
@@ -52,11 +53,11 @@ jobs:
       - name: Create bun lockfile (not run)
         if: false
         working-directory: .github/rebase-checker
-        run: >
-          bun add --minimum-release-age=604800 --production --lockfile-only
-          @commitlint/cli@21.0.1
-          @commitlint/config-conventional@21.0.1
-          conventional-commits-parser@6.4.0
+        run: |
+          bun add --minimum-release-age=604800 --production --lockfile-only \
+          '@commitlint/cli@21.1.0' \
+          '@commitlint/config-conventional@21.1.0' \
+          'conventional-commits-parser@6.4.0'
 
       - name: Install commitlint
         working-directory: .github/rebase-checker
@@ -68,20 +69,22 @@ jobs:
         working-directory: .github/rebase-checker
         run: >
           bunx --no-install --bun commitlint
-          --config ./rebase-checker.config.mjs
-          --from ${{ steps.commits.outputs.base }} --to ${{ steps.commits.outputs.head }}
+          --config './rebase-checker.config.mjs'
+          --from '${{ steps.commits.outputs.base }}' --to '${{ steps.commits.outputs.head }}'
 
       - name: Validate Commits as Conventional Commits
         if: inputs.check-conventional
         working-directory: .github/rebase-checker
         run: |
-          EXTENDS="${{ inputs.custom-rules }}"
-          if [[ "$EXTENDS" != @* ]]
+          CUSTOM_RULES="${{ inputs.custom-rules }}"
+          if [[ "${CUSTOM_RULES}" != @* ]]
           then
-            EXTENDS="${GITHUB_WORKSPACE}/${EXTENDS}"
+            ext="${CUSTOM_RULES##*.}"
+            cp "${GITHUB_WORKSPACE}/${CUSTOM_RULES}" "./custom-rules.${ext}"
+            EXTENDS="./custom-rules.${ext}"
           fi
 
           bunx --no-install --bun commitlint \
-          --extends $EXTENDS \
-          --from ${{ steps.commits.outputs.base }} --to ${{ steps.commits.outputs.head }} \
+          --extends "${EXTENDS}" \
+          --from '${{ steps.commits.outputs.base }}' --to '${{ steps.commits.outputs.head }}' \
           --verbose

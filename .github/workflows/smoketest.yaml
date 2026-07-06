@@ -1,0 +1,96 @@
+---
+name: CM Service Smoketest
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 1"
+
+env:
+  BUILDKIT_PROGRESS: plain
+  CM_ENDPOINT: "http://localhost:8080/cm-service"
+  COMPOSE_PROFILES: full
+  LOGGING__LEVEL: "ERROR"
+  NO_COLOR: "1"
+  UV_VERSION: "0.11.x"
+  UV_FROZEN: "1"
+
+jobs:
+  smoketest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+          python-version: "3.13"
+
+      - name: Install packages for smoketest
+        run: uv sync --frozen --package lsst-cmservice-commandline
+
+      - name: Build and start services
+        working-directory: ./integration
+        run: |
+          docker compose build --pull --quiet
+          docker compose --env-file shared.env up -d --wait
+
+      - name: Load smoketest schedule
+        id: load-smoke
+        env:
+          LOGGING__STREAM: stderr
+          UV_NO_SYNC: "1"
+        run: |
+          SCHEDID=$(uv run -q cm --output json schedules load smoketest/smoketest.yaml | jq -r '.self | split("/") | .[-1]')
+          echo "id=$SCHEDID" >> $GITHUB_OUTPUT
+
+      - name: Oneshot smoketest schedule
+        id: oneshot-smoke
+        env:
+          LOGGING__STREAM: stderr
+          UV_NO_SYNC: "1"
+        run: |
+          URL=$(uv run -q cm --output json schedules oneshot ${{ steps.load-smoke.outputs.id }} | jq -r '.new_campaign_url')
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+      - name: Wait for campaign to complete
+        run: |
+          TIMEOUT=300
+          ELAPSED=0
+          INTERVAL=10
+          while [ $ELAPSED -lt $TIMEOUT ]; do
+            status=$(curl -s get "${{ steps.oneshot-smoke.outputs.url }}" | jq -r '.status')
+            echo "Campaign status is $status..."
+            if [ "$status" = "accepted" ]; then
+              exit 0
+            elif [ "$status" = "failed" ]; then
+              docker compose logs cmworker
+              exit 1
+            else
+              sleep $INTERVAL
+            fi
+            ELAPSED=$((ELAPSED + INTERVAL))
+          done
+          exit 1
+
+      - name: Collect artifacts on failure
+        if: failure()
+        working-directory: ./integration
+        run: |
+          docker compose logs > ${{ runner.temp }}/service-logs.txt
+          docker compose ps > ${{ runner.temp }}/service-status.txt
+
+      - name: Upload artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  #v7.0.1
+        with:
+          name: debug-logs
+          path: ${{ runner.temp }}/service-*.txt
+
+      - name: Clean up
+        if: always()
+        working-directory: ./integration
+        run: docker compose --profile full down -v

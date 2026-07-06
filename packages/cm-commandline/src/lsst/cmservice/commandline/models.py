@@ -5,7 +5,7 @@ from .settings import settings
 
 
 class AppContext(BaseModel):
-    auth_token: str = settings.token
+    auth_token: str | None = settings.token
     campaign_name: str | None = None
     campaign_id: str | None = None
     endpoint_url: str = settings.endpoint
