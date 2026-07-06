@@ -14,6 +14,7 @@ from .common.flags import Features
 from .common.logging import LOGGER, LoggingMiddleware
 from .config import config
 from .db.session import db_session_dependency
+from .middleware.audit import AuditLogMiddleware
 from .routers import healthz, tags_metadata
 
 logger = LOGGER.bind(module=__name__)
@@ -55,6 +56,7 @@ app.add_middleware(
     expose_headers=["X-Request-ID"],
 )
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"])
+app.add_middleware(AuditLogMiddleware)
 
 # Add Routers
 app.include_router(healthz.health_router, prefix="")
