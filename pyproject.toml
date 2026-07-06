@@ -38,7 +38,7 @@ dependencies = [
     "numpy==2.1.*",
     "psycopg2-binary==2.9.*",
     "pydantic==2.12.*",
-    "pydantic-extra-types[cron]>=2.10.6",
+    "pydantic-extra-types[cron,uuid_utils]>=2.10.6",
     "pydantic-settings==2.12.*",
     "pytransitions==0.9.*",
     "python-multipart==0.0.*",
