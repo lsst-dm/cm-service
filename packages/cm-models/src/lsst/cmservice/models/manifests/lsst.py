@@ -61,7 +61,10 @@ class LsstSpec(ManifestSpec):
         default=None,
         title="Stack Setup Prepend Commands",
         description="A list of shell actions to execute prior to stack setup.",
-        examples=["echo Hello World", ("echo", "-e", "Starting New Campaign")],
+        examples=[
+            [("echo", "-e", "Starting New Campaign")],
+            ["echo Hello World"],
+        ],
     )
     custom_lsst_setup: list[str | tuple[str, ...]] | None = Field(
         default=None,
@@ -70,8 +73,8 @@ class LsstSpec(ManifestSpec):
         "to be added to any Bash script that sets up the LSST Stack, to be executed verbatim *after* EUPS "
         "setup but *before* the payload command. Can be used to customize the Stack with EUPS, for example.",
         examples=[
-            "setup --just --root=/path/to/custom/product",
             [("setup", "--just", "--root=/path/to/custom/product")],
+            ["setup --just --root=/path/to/custom/product"],
         ],
     )
     custom_group_payload: list[str | tuple[str, ...]] = Field(
@@ -81,15 +84,18 @@ class LsstSpec(ManifestSpec):
         "to be added to any Bash script that executes a payload for a Group. These commands will not be "
         "added to any launcher script for any Node other than groups.",
         examples=[
-            "mc cp bucket/path/to/some/object .",
             [("python", "-m", "lsst.package.module.submodule")],
+            ["mc cp bucket/path/to/some/object ."],
         ],
     )
     append: list[str | tuple[str, ...]] | None = Field(
         default=None,
-        title="Stack Setup Append Commands",
+        title="Launcher Script Afterburner Commands",
         description="A list of shell actions to execute after the payload command.",
-        examples=["echo Finished", ("source", "/path/to/custom/script.sh")],
+        examples=[
+            [("source", "/path/to/custom/script.sh")],
+            ["echo Finished"],
+        ],
     )
     environment: Mapping | None = Field(
         default_factory=dict,

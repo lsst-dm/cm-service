@@ -18,7 +18,6 @@ class Features(IntFlag):
     DAEMON_NODES = auto()
     DAEMON_V1 = auto()
     DAEMON_V2 = auto()
-    DAEMON_ALLOCATE = auto()
     WEBAPP_V1 = auto()
     SCHEDULER = auto()
     STORE_FSM = auto()

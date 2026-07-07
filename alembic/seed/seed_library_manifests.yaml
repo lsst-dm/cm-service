@@ -4,11 +4,11 @@
 apiVersion: io.lsst.cmservice/v1
 kind: lsst
 metadata:
-  name: usdf_w_latest_dev
+  name: slac_w_latest_dev
   namespace: dda54a0c-6878-5c95-ac4f-007f6808049e
   version: 0
   labels:
-    site: usdf
+    site: slac
     environment: dev
     track: weekly
 spec:
@@ -38,14 +38,14 @@ metadata:
   namespace: dda54a0c-6878-5c95-ac4f-007f6808049e
   version: 0
   labels:
-    site: usdf
+    site: slac
     instrument: lsstcam
     embargo: "false"
 spec:
   repo: "/repo/main"
   predicates:
     - instrument='LSSTCam'
-    - skymap='lsst_cells_v1'
+    - skymap='lsst_cells_v2'
   collections:
     campaign_input:
       - LSSTCam/defaults
@@ -53,12 +53,12 @@ spec:
 apiVersion: io.lsst.cmservice/v1
 kind: wms
 metadata:
-  name: usdf_htcondor
+  name: slac_htcondor
   namespace: dda54a0c-6878-5c95-ac4f-007f6808049e
   version: 0
   labels:
     wms: htcondor
-    site: usdf
+    site: slac
 spec:
   batch_system: "htcondor"
   service_class: "lsst.ctrl.bps.htcondor.HTCondorService"
@@ -66,16 +66,21 @@ spec:
   request_cpus: "1"
   request_mem: "1024M"
   request_disk: "10240K"
+  auto_provision: false
+  provisioned_node_count: 10
+  provisioned_max_wall_time: "0-1:0:0"
+  provisioned_idle_time: 900
+  provisioned_check_interval: 600
 # ---
 # apiVersion: io.lsst.cmservice/v1
 # kind: wms
 # metadata:
-#   name: usdf_panda
+#   name: slac_panda
 #   namespace: dda54a0c-6878-5c95-ac4f-007f6808049e
 #   version: 0
 #   labels:
 #     wms: panda
-#     site: usdf
+#     site: slac
 # spec:
 #   batch_system: "panda"
 #   service_class: "lsst.ctrl.bps.panda.PanDAService"
@@ -90,24 +95,27 @@ spec:
 apiVersion: io.lsst.cmservice/v1
 kind: site
 metadata:
-  name: usdf_lsstcam
+  name: slac_lsstcam
   namespace: dda54a0c-6878-5c95-ac4f-007f6808049e
   version: 0
   labels:
-    site: usdf
+    site: slac
     instrument: lsstcam
 spec:
-  facility: USDF
+  facility: "SLAC"
   include_files:
     - "${DRP_PIPE_DIR}/bps/caching/LSSTCam/usdf/DRP-caching.yaml"
+  provisioned_platform: "s3df"
+  provisioned_queue: "milano"
+  provisioned_account_group: "rubin:developers"
 ---
 apiVersion: io.lsst.cmservice/v1
 kind: bps
 metadata:
-  name: bps_usdf
+  name: bps_slac
   namespace: dda54a0c-6878-5c95-ac4f-007f6808049e
   version: 0
   labels:
-    site: usdf
+    site: slac
 spec:
   operator: lsstsvc1
