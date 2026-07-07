@@ -213,6 +213,20 @@ async def create_node_resource(
     "/{node_id}",
     summary="Update node detail",
     status_code=status.HTTP_202_ACCEPTED,
+    openapi_extra={
+        "requestBody": {
+            "required": True,
+            "content": {
+                "application/json-patch+json": {
+                    "schema": {"type": "array", "items": {"$ref": "#/components/schemas/JSONPatch"}}
+                },
+                "application/merge-patch+json": {
+                    "schema": {"type": "object", "items": {"$ref": "#/components/schemas/CampaignUpdate"}}
+                },
+                "application/octet-stream": {"schema": {"type": "string", "format": "binary"}},
+            },
+        }
+    },
 )
 async def update_node_resource(
     request: Request,
