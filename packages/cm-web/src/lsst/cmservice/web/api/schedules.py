@@ -102,3 +102,13 @@ async def put_schedule_template(
             json=template,
         )
         r.raise_for_status()
+
+
+async def get_schedule_change_history(schedule_id: UUID) -> list:
+    """Get the template manifest audit log entries for a schedule."""
+    async with CLIENT_FACTORY.aclient() as client:
+        r = await client.get(
+            "/audit", params={"object_type": "template", "context.schedule": str(schedule_id)}
+        )
+        r.raise_for_status()
+        return r.json()
