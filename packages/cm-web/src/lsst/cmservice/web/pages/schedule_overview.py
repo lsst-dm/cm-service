@@ -12,7 +12,7 @@ from lsst.cmservice.models.db.schedules import CreateManifestTemplate, CreateSch
 
 from ..api import schedules
 from ..components import storage
-from ..components.dialog import ScheduleReviewDialog
+from ..components.dialog import AuditLogDialog, ScheduleReviewDialog
 from .common import CMPage, CMPageModel
 
 
@@ -180,15 +180,23 @@ class ScheduleOverviewPage(CMPage[ScheduleOverviewPageModel]):
         ).tooltip("Clone")
         ui.button(
             icon="play_arrow",
-            color="dark",
+            color="positive",
         ).props("flat round size=sm").on(
             "click",
             js_handler="() => emit(props.row.id, 'one_shot')",
             handler=self.handle_schedule_action,
         ).tooltip("Run Now")
         ui.button(
-            icon="delete",
+            icon="change_history",
             color="dark",
+        ).props("flat round size=sm").on(
+            "click",
+            js_handler="() => emit(props.row.id, 'audit')",
+            handler=self.handle_schedule_action,
+        ).tooltip("Audit Logs")
+        ui.button(
+            icon="delete",
+            color="negative",
         ).props("flat round size=sm").on(
             "click",
             js_handler="() => emit(props.row.id, 'delete')",
@@ -199,7 +207,7 @@ class ScheduleOverviewPage(CMPage[ScheduleOverviewPageModel]):
         """Callback for action buttons on schedule rows"""
         if TYPE_CHECKING:
             target: str
-            action: Literal["cron", "toggle", "preview", "edit", "delete", "one_shot"]
+            action: Literal["audit", "cron", "toggle", "preview", "edit", "delete", "one_shot"]
         target, action = data.args
         schedule = self.model["schedules"][target]
 
@@ -282,6 +290,16 @@ class ScheduleOverviewPage(CMPage[ScheduleOverviewPageModel]):
                     # here, so the best we can do is navigate to the campaign
                     # overview page
                     ui.navigate.to("/")
+
+            case "audit":
+                audit_events = await schedules.get_schedule_change_history(schedule.id)
+                audit_log_dialog = AuditLogDialog(
+                    dialog_title=f"{schedule.name} Change History",
+                    schedule=schedule.id,
+                    events=audit_events,
+                )
+                await audit_log_dialog
+                audit_log_dialog.clear()
 
             case _ as unreachable:
                 assert_never(unreachable)

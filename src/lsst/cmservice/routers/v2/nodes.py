@@ -276,7 +276,7 @@ async def update_node_resource(
         use_rfc7396 = True
         mutable_fields.extend(["status"])
     else:
-        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Unsupported Content-Type")
+        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
 
     # TODO it will be an IntegrityError if the targeted node is not the most
     # recent version, it may be nicer to check this and exit early.
