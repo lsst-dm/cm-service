@@ -2,7 +2,7 @@
 
 __all__ = ["__version__"]
 
-__version__ = "0.8.0-alpha.3"
+__version__ = "0.8.0-rc.1"
 
 
 import pkgutil
