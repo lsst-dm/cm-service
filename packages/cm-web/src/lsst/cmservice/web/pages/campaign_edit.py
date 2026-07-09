@@ -1,5 +1,6 @@
 """Page and supporting functions for a Campaign's Edit Mode."""
 
+from asyncio import CancelledError
 from copy import deepcopy
 from dataclasses import dataclass, field
 from enum import IntFlag, auto
@@ -612,7 +613,15 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
             # Each imported manifest is shaped and added to the page model's
             # `spec` dictionary and canvas components. Some metadata values are
             # removed so they do not leak into new campaigns.
-            manifest_list = await run.io_bound(lambda: list(yaml.safe_load_all(contents)))
+
+            # FIXME temporary wrapper around None return, expect behavior
+            # change in `nicegui >= 4`
+            try:
+                manifest_list = await run.io_bound(lambda: list(yaml.safe_load_all(contents)))
+                if manifest_list is None:
+                    raise CancelledError
+            except CancelledError:
+                raise
             # Apply the imported manifests in campaign -> * -> edge order
             for manifest in sorted(
                 manifest_list,
@@ -698,13 +707,16 @@ class CampaignClonePage(CampaignEditPage):
                 return await self.setup_from_schedule(clone_campaign_schedule_from)
 
         self.campaign_name = data["campaign"]["name"]
-        # FIXME this doesn't need to be cpu_bound (process), io_bound (thread)
-        # is probably fine
-        graph: nx.DiGraph = await run.cpu_bound(
+
+        # FIXME temporary wrapper around None return, expect behavior change
+        # in nicegui>=4
+        graph: nx.DiGraph | None = await run.io_bound(
             nx.node_link_graph,
             data["graph"],
-            edges="edges",  # pyright: ignore[reportCallIssue]
+            edges="edges",
         )
+        if graph is None:
+            raise CancelledError
         flow = await nx_to_flow(graph)
         self.initial_flow_nodes = flow["nodes"]
         self.initial_flow_edges = flow["edges"]
