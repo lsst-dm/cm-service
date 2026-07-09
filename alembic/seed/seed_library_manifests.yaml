@@ -49,6 +49,7 @@ spec:
   collections:
     campaign_input:
       - LSSTCam/defaults
+      - LSSTCam/templates
 ---
 apiVersion: io.lsst.cmservice/v1
 kind: wms
@@ -95,7 +96,7 @@ spec:
 apiVersion: io.lsst.cmservice/v1
 kind: site
 metadata:
-  name: slac_lsstcam
+  name: slac_lsstcam_dev
   namespace: dda54a0c-6878-5c95-ac4f-007f6808049e
   version: 0
   labels:
@@ -119,3 +120,5 @@ metadata:
     site: slac
 spec:
   operator: lsstsvc1
+  extra_run_quantum_options:
+    - "--no-raise-on-partial-outputs"

@@ -53,8 +53,11 @@ class LsstSpec(ManifestSpec):
         BeforeValidator(strip_trailing_slash),
         Field(
             title="LSST Distribution Directory",
-            description="Absolute path to a stack distribution location. Should not have a trailing slash.",
-            examples=["/sdf/group/rubin/sw/tag/<tag>", "/cvmfs/sw.lsst.eu/linux-x86_64/lsst_distrib/<tag>"],
+            description="Absolute path to a stack distribution location.",
+            examples=[
+                "/sdf/group/rubin/sw/tag/<tag>",
+                "/cvmfs/sw.lsst.eu/almalinux-x86_64/lsst_distrib/<tag>",
+            ],
         ),
     ]
     prepend: list[str | tuple[str, ...]] | None = Field(
