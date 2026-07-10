@@ -314,7 +314,7 @@ class EditorDialog(ui.dialog):
                 # When creating the editor, the value needs to be a string,
                 # so we use a placeholder if the spec dict is empty
                 initial_value = (
-                    yaml.safe_dump(self.context.model["spec"])
+                    yaml.safe_dump(self.context.model["spec"], width=160)
                     if self.context.model["spec"]
                     else "# Apply a template or freestyle some YAML"
                 )
@@ -415,7 +415,7 @@ class EditorDialog(ui.dialog):
                 except AttributeError:
                     msg = f"Required validation handler not found: {validator}"
                     raise RuntimeError(msg)
-            self.editor.set_value(yaml.safe_dump(yaml_spec))
+            self.editor.set_value(yaml.safe_dump(yaml_spec, width=160))
             self.editor.update()
             return await positive_validation()
         except yaml.YAMLError as e:
@@ -628,7 +628,7 @@ class NewStepEditorDialog(EditorDialog):
             if temp_spec is None:
                 temp_spec = {}
             temp_spec["groups"] = group_config
-            self.editor.set_value(yaml.safe_dump(temp_spec))
+            self.editor.set_value(yaml.safe_dump(temp_spec, width=160))
             self.editor.update()
         except yaml.YAMLError:
             self.context.valid = False
@@ -695,7 +695,7 @@ class NewManifestEditorDialog(EditorDialog):
                 template[field_name] = field_info.get_default(call_default_factory=True)
             else:
                 template[field_name] = None
-        self.editor.set_value(yaml.safe_dump(template))
+        self.editor.set_value(yaml.safe_dump(template, width=160))
 
         self.editor.update()
 
@@ -980,7 +980,9 @@ class ScheduleReviewDialog(ui.dialog):
 
 
 class AuditLogDialog(ui.dialog):
-    """..."""
+    """Display a dialog with a timeline of template changes as read from the
+    audit log api.
+    """
 
     def __init__(self, *, dialog_title: str, schedule: UUID, events: list):
         super().__init__()
