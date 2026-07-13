@@ -4,15 +4,23 @@ updates:
   #   directory: "/"
   #   schedule:
   #     interval: "weekly"
-  # - package-ecosystem: "bun"
-  #   directory: "/packages/cm-canvas"
-  #   schedule:
-  #     interval: "weekly"
-  # - package-ecosystem: "pre-commit"
-  #   directory: "/"
-  #   schedule:
-  #     interval: "monthly"
+  - package-ecosystem: "bun"
+    directory: "/packages/cm-canvas"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    schedule:
+      interval: "weekly"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+  - package-ecosystem: "bun"
+    directory: ".github/commitlint"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
