@@ -125,10 +125,10 @@ spec:
 apiVersion: io.lsst.cmservice/v1
 kind: site
 metadata:
-  name: usdf
+  name: slac
   namespace: b7047eb6-5e22-5b5e-86a7-41b3e216e898
 spec:
-  facility: USDF
+  facility: SLAC
 ---
 apiversion: io.lsst.cmservice/v1
 kind: schedule
