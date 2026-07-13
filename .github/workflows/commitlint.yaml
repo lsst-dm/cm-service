@@ -45,15 +45,6 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Create bun lockfile (not run)
-        if: false
-        working-directory: .github/commitlint
-        run: |
-          bun add --minimum-release-age=604800 --production --lockfile-only \
-          '@commitlint/cli@21.2.0' \
-          '@commitlint/config-conventional@21.2.0' \
-          'conventional-commits-parser@6.4.0'
-
       - name: Install commitlint
         working-directory: .github/commitlint
         run: >
