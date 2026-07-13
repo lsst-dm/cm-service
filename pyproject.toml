@@ -29,6 +29,7 @@ dependencies = [
     "asgi-correlation-id>=4.3.4",
     "asyncpg==0.30.*",
     "click==8.1.*",
+    "cryptography>=49",
     "deepdiff>=8.6.1,<9",
     "fastapi==0.136.*",
     "greenlet==3.1.*",
