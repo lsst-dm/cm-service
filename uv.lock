@@ -955,6 +955,7 @@ dependencies = [
     { name = "asgi-correlation-id" },
     { name = "asyncpg" },
     { name = "click" },
+    { name = "cryptography" },
     { name = "deepdiff" },
     { name = "fastapi" },
     { name = "greenlet" },
@@ -1029,6 +1030,7 @@ requires-dist = [
     { name = "asgi-correlation-id", specifier = ">=4.3.4" },
     { name = "asyncpg", specifier = "==0.30.*" },
     { name = "click", specifier = "==8.1.*" },
+    { name = "cryptography", specifier = ">=49" },
     { name = "deepdiff", specifier = ">=8.6.1,<9" },
     { name = "fastapi", specifier = "==0.136.*" },
     { name = "greenlet", specifier = "==3.1.*" },
@@ -1175,7 +1177,7 @@ requires-dist = [
     { name = "deepdiff", specifier = ">=8.6.1" },
     { name = "lsst-cmservice-models", editable = "packages/cm-models" },
     { name = "networkx", specifier = ">=3.5" },
-    { name = "nice-dialogs", git = "https://github.com/tcjennings/nice-dialogs?rev=0beec0651fa101576741d2a8cdf7ec5e7c961d59" },
+    { name = "nice-dialogs", specifier = ">=1.3" },
     { name = "nicegui", specifier = ">=3.11.0" },
     { name = "pydantic", specifier = ">=2.12" },
     { name = "pydantic-extra-types", extras = ["cron"], specifier = ">=2.10.6" },
@@ -1587,11 +1589,15 @@ wheels = [
 
 [[package]]
 name = "nice-dialogs"
-version = "1.1.0"
-source = { git = "https://github.com/tcjennings/nice-dialogs?rev=0beec0651fa101576741d2a8cdf7ec5e7c961d59#0beec0651fa101576741d2a8cdf7ec5e7c961d59" }
+version = "1.3.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "nicegui" },
     { name = "pydantic-extra-types", extra = ["cron"] },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d4/f1/10aa9134536484ee4a5efcc4c298747bdcd0f369ecdf0f4e76171fbd6591/nice_dialogs-1.3.0.tar.gz", hash = "sha256:2f8b50faec4f13480b7cab7abcc2af31cac727a9f2afaf6421c932b756d0df8a", size = 132896, upload-time = "2026-07-11T22:42:27.871Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/99/e9/75225a9f83dd6375d2c9edd982d875919afc3e52d1422ad0cc0b81069a71/nice_dialogs-1.3.0-py3-none-any.whl", hash = "sha256:b44f64da86b1df01673d4c6ec2a62a53108b8059fa96e7cb750357d1bb52ef5d", size = 17868, upload-time = "2026-07-11T22:42:26.424Z" },
 ]
 
 [[package]]
