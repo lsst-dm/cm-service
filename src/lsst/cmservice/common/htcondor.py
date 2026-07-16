@@ -267,13 +267,14 @@ def build_htcondor_submit_environment() -> Mapping[str, str]:
         HOME=config.htcondor.remote_user_home,
         LSST_VERSION=config.bps.lsst_version,
         LSST_DISTRIB_DIR=config.bps.lsst_distrib_dir,
+        LSST_DB_AUTH_CONFIG=f"{config.htcondor.remote_user_home}/.lsst/db-auth.{config.service_id}.yaml",
         # FIXME: because the aws credentials file is assumed to be in place;
         #        the s3 resource supports a custom but nonstandard environment
         #        variable LSST_RESOURCES_S3_PROFILE_<profile> that can contain
         #        a https://<access key ID>:<secretkey>@<s3 endpoint hostname>;
         #        if this is a string we can build dynamically then we could use
         #        it instead of the following assertion
-        AWS_SHARED_CREDENTIALS_FILE=f"{config.htcondor.remote_user_home}/.lsst/aws-credentials.ini",
+        AWS_SHARED_CREDENTIALS_FILE=f"{config.htcondor.remote_user_home}/.lsst/aws-credentials.{config.service_id}.ini",
         # FIXME: if we're going to go by AWS profiles, then we should maintain
         #        a config file with properly configured endpoint URLs -or-
         #        at least use the standard one(s)!
@@ -285,11 +286,6 @@ def build_htcondor_submit_environment() -> Mapping[str, str]:
         AWS_ENDPOINT_URL_S3=config.aws_s3_endpoint_url or "",
         AWS_REQUEST_CHECKSUM_CALCULATION="WHEN_REQUIRED",
         AWS_RESPONSE_CHECKSUM_VALIDATION="WHEN_REQUIRED",
-        # FIXME: because there is no db-auth.yaml in lsstsvc1's home directory
-        PGPASSFILE=f"{config.htcondor.remote_user_home}/.lsst/postgres-credentials.txt",
-        # FIXME: the user is part of the credentials file, we should not need
-        #        it in the env as well!
-        PGUSER=config.butler.default_username,
         PATH=(
             f"{config.htcondor.remote_user_home}/.local/bin:{config.htcondor.remote_user_home}/bin:{config.slurm.home}:"
             f"/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin"
