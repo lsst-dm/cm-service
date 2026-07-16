@@ -681,7 +681,7 @@ class Configuration(BaseSettings):
 
     compute_site: WmsComputeSite = Field(
         description="The default WMS compute site",
-        default=WmsComputeSite.usdf,
+        default=WmsComputeSite.slac,
     )
 
     mock_status: StatusEnum | None = Field(
@@ -745,7 +745,7 @@ class Configuration(BaseSettings):
             return WmsComputeSite[value]
         except KeyError:
             warn(f"Invalid script handler ({value}) provided to config, using default.")
-            return WmsComputeSite.usdf
+            return WmsComputeSite.slac
 
 
 config = Configuration()
