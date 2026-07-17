@@ -8,7 +8,7 @@ from typing import Any
 
 from pydantic import PlainSerializer, PlainValidator
 
-from .enums import AuditActionEnum, ManifestKind, StatusEnum
+from .enums import AuditActionEnum, ManifestKind, NotificationLabelEnum, StatusEnum
 
 
 def EnumValidator[T: EnumType](value: Any, enum_: T) -> T:
@@ -50,5 +50,11 @@ or a value.
 
 AuditActionEnumValidator = PlainValidator(partial(EnumValidator, enum_=AuditActionEnum))
 """A validator for the AuditActionEnum that can parse the enum from a name
+or a value.
+"""
+
+
+NotificationLabelEnumValidator = PlainValidator(partial(EnumValidator, enum_=NotificationLabelEnum))
+"""A validator for a NotificationLabelEnum that can parse the enum from a name
 or a value.
 """
