@@ -172,3 +172,9 @@ class AuditActionEnum(enum.Enum):
     read = enum.auto()
     update = enum.auto()
     delete = enum.auto()
+
+
+class NotificationLabelEnum(enum.Enum):
+    """Available label kinds for notification events."""
+
+    slack = enum.auto()
