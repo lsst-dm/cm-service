@@ -1,152 +1,24 @@
 """Module for implementing notification functions through third-party message
 systems.
+
+.. deprecated:: 1.0.0
+    'lsst.cmservice.common.notification` is deprecated in favor of transport-
+    based `lsst.cmservice.notifications`
 """
 
-from abc import ABC, abstractmethod
-from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
-import httpx
-
 from lsst.cmservice.models.enums import StatusEnum
+from lsst.cmservice.models.lib.logging import LOGGER
 
 from ..config import config
+from ..notifications.transport.slack import SlackNotification
 from ..parsing.string import parse_element_fullname
-from .logging import LOGGER
 
 if TYPE_CHECKING:
     from ..db import Campaign, Job, Script
 
 logger = LOGGER.bind(module=__name__)
-
-
-SLACK_HEADER_SECTION = {
-    StatusEnum.blocked: {
-        "emoji": "ice_cube",
-        "text": "One or more WMS Jobs are BLOCKED",
-    },
-    StatusEnum.failed: {
-        "emoji": "dumpster-fire",
-        "text": "One or more Campaign Nodes have FAILED",
-    },
-    StatusEnum.reviewable: {
-        "emoji": "interrobang",
-        "text": "One or more Campaign Nodes may require REVIEW",
-    },
-    StatusEnum.accepted: {
-        "emoji": "100",
-        "text": "A Campaign or Node is SUCCESSFUL",
-    },
-    StatusEnum.running: {
-        "emoji": "tada",
-        "text": "A Campaign has started RUNNING",
-    },
-    StatusEnum.rejected: {
-        "emoji": "thumbsdown",
-        "text": "A Campaign has been REJECTED",
-    },
-    StatusEnum.overdue: {
-        "emjoji": "calendar",
-        "text": "A Campaign is taking TOO LONG",
-    },
-}
-
-
-@asynccontextmanager
-async def http_async_client(*, verify_host: bool = True) -> AsyncGenerator[httpx.AsyncClient]:
-    """Generate a client session for http API operations."""
-    transport = httpx.AsyncHTTPTransport(
-        verify=verify_host,
-        retries=3,
-    )
-    async with httpx.AsyncClient(transport=transport) as session:
-        yield session
-
-
-class Notification(ABC):
-    @abstractmethod
-    def notify(self, message: bytes | dict) -> None:
-        """Sends a notification message."""
-        ...
-
-    @abstractmethod
-    async def anotify(self, message: bytes | dict) -> None:
-        """Sends a notification message asynchronously."""
-        ...
-
-
-class SlackNotification(Notification):
-    headers: httpx.Headers = httpx.Headers({"Content-type": "application/json"})
-
-    def notify(self, message: bytes | dict) -> None:
-        raise NotImplementedError("Only asynchronous notifications are supported")
-
-    async def anotify(self, message: bytes | dict) -> None:
-        """Sends a Slack notification message asynchronously."""
-
-        if config.notifications.slack_webhook_url is None:
-            logger.warning("Cannot produce Slack notification without a webhook url set.")
-            return None
-
-        data = dict(text=message) if isinstance(message, bytes) else message
-
-        async with http_async_client() as asession:
-            try:
-                response = await asession.post(
-                    url=config.notifications.slack_webhook_url,
-                    json=data,
-                    headers=self.headers,
-                )
-                response.raise_for_status()
-            except httpx.HTTPStatusError as e:
-                logger.error(
-                    "Unable to send Slack Notification",
-                    http_status=e.response.status_code,
-                    message=e.response.reason_phrase,
-                )
-
-        return None
-
-    def build_message(self, status: StatusEnum, detail_text: str) -> dict | None:
-        """Construct a Slack Block Kit message
-
-        Raises
-        ------
-        KeyError
-            If status is not valid for notification, i.e., it is not a terminal
-            status.
-        """
-
-        try:
-            use_header = SLACK_HEADER_SECTION[status]
-        except KeyError:
-            return None
-
-        message = {
-            "text": use_header["text"],
-            "blocks": [
-                # rich text header
-                {
-                    "type": "rich_text",
-                    "elements": [
-                        {
-                            "type": "rich_text_section",
-                            "elements": [
-                                {"type": "emoji", "name": use_header["emoji"]},
-                                {"type": "text", "text": use_header["text"]},
-                            ],
-                        }
-                    ],
-                },
-                {"type": "divider"},
-                # detail section
-                {"type": "section", "text": {"type": "mrkdwn", "text": detail_text}},
-                {"type": "divider"},
-                # TODO footer
-            ],
-        }
-        return message
 
 
 async def send_notification(
