@@ -1,15 +1,18 @@
 import logging
 from datetime import UTC, datetime
+from functools import cached_property
 from typing import Annotated, Literal, Self
 from urllib.parse import urlparse
 from warnings import warn
 
+from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 from pydantic import (
     AliasChoices,
     BaseModel,
     BeforeValidator,
     Field,
+    SecretBytes,
     computed_field,
     field_serializer,
     field_validator,
@@ -600,10 +603,19 @@ class NotificationConfiguration(BaseModel):
     Set according to NOTIFICATIONS__FIELD environment variables.
     """
 
+    fernet_key: SecretBytes | None = Field(
+        default=None,
+        description="A secret key for a fernet instance for handling notification secrets",
+    )
     slack_webhook_url: str | None = Field(
         default=None,
         description="URL of a Slack Application webhook",
+        deprecated="This should be part of the `default` notification label",
     )
+
+    @cached_property
+    def fernet(self) -> Fernet | None:
+        return Fernet(self.fernet_key.get_secret_value()) if self.fernet_key else None
 
 
 class SchedulerConfiguration(BaseModel):
