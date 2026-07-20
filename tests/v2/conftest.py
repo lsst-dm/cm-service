@@ -13,6 +13,7 @@ from uuid import NAMESPACE_DNS, uuid4
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from pydantic import SecretBytes
 from sqlalchemy import insert
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import CreateSchema, DropSchema
@@ -59,6 +60,12 @@ def patched_config(monkeypatch_module: pytest.MonkeyPatch, tmp_path_factory: pyt
         target=config.features,
         name="enabled",
         value=Features.API_V2 | Features.DAEMON_V2 | Features.STORE_FSM,
+    )
+    # NOTE: this is a testing-only key
+    monkeypatch_module.setattr(
+        target=config.notifications,
+        name="fernet_key",
+        value=SecretBytes(b"jtGJdvA5wQZXLg62IutuDcYO8uXS32b0i99s4-wc13g="),
     )
 
 
