@@ -132,7 +132,7 @@ class SlackNotification(NotificationTransport):
         async with db_session_dependency.sessionmaker() as session:
             try:
                 activity_log = await session.get_one(ActivityLog, payload.id)
-                notification_label = await session.get_one(NotificationLabel, payload.label)
+                notification_label = await session.get(NotificationLabel, payload.label)
             except NoResultFound:
                 logger.error(
                     "Notification subsystem did not find an activity log or "
@@ -152,8 +152,11 @@ class SlackNotification(NotificationTransport):
         if message is None:
             return None
 
-        # discover the slack webhook url from the label.secret
-        self.slack_webhook_url = config.notifications.fernet.decrypt(notification_label.secret).decode()
+        # discover the slack webhook url from the label.secret or use default
+        if notification_label is None:
+            self.slack_webhook_url = config.notifications.slack_webhook_url
+        else:
+            self.slack_webhook_url = config.notifications.fernet.decrypt(notification_label.secret).decode()
 
         # dispatch the notification with anotify
         await self.anotify(message)
