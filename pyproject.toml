@@ -80,6 +80,7 @@ dev = [
     "pytest>=9.0.0",
     "pytest-asyncio>=0.24.0",
     "pytest-cov>=6.0.0",
+    "pytest-mock>=3.15.0",
     "pytest-playwright>=0.5.2",
     "pytest-timeout>=2.3.1",
     "python-semantic-release==10.6.*",
