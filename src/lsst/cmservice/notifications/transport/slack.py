@@ -4,14 +4,13 @@ from typing import TYPE_CHECKING
 import httpx
 from sqlalchemy.exc import NoResultFound
 
-from lsst.cmservice.models.db.campaigns import ActivityLog
 from lsst.cmservice.models.db.notifications import NotificationLabel
 from lsst.cmservice.models.enums import NotificationLabelEnum, StatusEnum
 from lsst.cmservice.models.lib.logging import LOGGER
 
 from ...config import config
 from ...db.session import db_session_dependency
-from .abc import NotificationPayload, NotificationTransport
+from .abc import ActivityLog, NotificationPayload, NotificationTransport
 
 logger = LOGGER.bind(module=__name__)
 
@@ -132,6 +131,7 @@ class SlackNotification(NotificationTransport):
         async with db_session_dependency.sessionmaker() as session:
             try:
                 activity_log = await session.get_one(ActivityLog, payload.id)
+                _ = await activity_log.awaitable_attrs.subject
                 notification_label = await session.get(NotificationLabel, payload.label)
             except NoResultFound:
                 logger.error(
@@ -141,8 +141,17 @@ class SlackNotification(NotificationTransport):
                 )
                 return None
 
-        # TODO filter the log entry according to rules
-        # (notification_label.configuration?)
+        # discover the slack webhook url from the label.secret or use default
+        if notification_label is None:
+            self.slack_webhook_url = config.notifications.slack_webhook_url
+            notification_filters = self.default_filters
+        else:
+            self.slack_webhook_url = config.notifications.fernet.decrypt(notification_label.secret).decode()
+            notification_filters = notification_label.configuration.get("filters", self.default_filters)
+
+        if not await self.check_notification_filter(notification_filters, activity_log):
+            return None
+
         if activity_log.to_status not in SLACK_HEADER_SECTION:
             return None
 
@@ -151,12 +160,6 @@ class SlackNotification(NotificationTransport):
         message = self.build_message(activity_log.to_status, detail)
         if message is None:
             return None
-
-        # discover the slack webhook url from the label.secret or use default
-        if notification_label is None:
-            self.slack_webhook_url = config.notifications.slack_webhook_url
-        else:
-            self.slack_webhook_url = config.notifications.fernet.decrypt(notification_label.secret).decode()
 
         # dispatch the notification with anotify
         await self.anotify(message)
