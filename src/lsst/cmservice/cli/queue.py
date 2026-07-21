@@ -2,8 +2,8 @@
 
 import click
 
-from .. import db
 from ..client.client import CMClient
+from ..db import legacy
 from . import options, wrappers
 
 
@@ -16,7 +16,7 @@ def queue_group() -> None:
 # Specify the cli path to attach these commands to
 cli_group = queue_group
 # Specify the associated database table
-DbClass = db.Queue
+DbClass = legacy.Queue
 # Specify the options for the create command
 create_options = [
     options.cmclient(),

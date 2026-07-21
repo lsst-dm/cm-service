@@ -4,9 +4,9 @@ from typing import Any
 import click
 import rich
 
-from .. import db
 from ..client.client import CMClient
 from ..common.logging import LOGGER
+from ..db import legacy
 from . import options
 from .wrappers import output_pydantic_list, output_pydantic_object
 
@@ -37,10 +37,10 @@ def specification(
     do_print = output not in [options.OutputEnum.json, options.OutputEnum.yaml]
     if do_print:
         rich.print("Specifications: -----")
-        output_pydantic_list(specifications, output, db.Specification.col_names_for_table)
+        output_pydantic_list(specifications, output, legacy.Specification.col_names_for_table)
     if do_print:
         rich.print("SpecBlocks: -----")
-        output_pydantic_list(spec_blocks, output, db.SpecBlock.col_names_for_table)
+        output_pydantic_list(spec_blocks, output, legacy.SpecBlock.col_names_for_table)
 
 
 @load_group.command(name="campaign")
@@ -59,7 +59,7 @@ def campaign(
     """Load a Specification from a yaml file and make a Campaign"""
     try:
         result = client.load.campaign_cl(**kwargs)
-        output_pydantic_object(result, output, db.Campaign.col_names_for_table)
+        output_pydantic_object(result, output, legacy.Campaign.col_names_for_table)
     except RuntimeError as e:
         logger.error(e)
         sys.exit(1)
@@ -79,7 +79,7 @@ def error_types(
 ) -> None:
     """Load PipetaskErrorTypes from a yaml file"""
     result = client.load.error_types_cl(**kwargs)
-    output_pydantic_list(result, output, db.PipetaskErrorType.col_names_for_table)
+    output_pydantic_list(result, output, legacy.PipetaskErrorType.col_names_for_table)
 
 
 @load_group.command()
@@ -94,4 +94,4 @@ def manifest_report(
 ) -> None:
     """Load a manifest report from a yaml file"""
     result = client.load.manifest_report(**kwargs)
-    output_pydantic_object(result, output, db.Job.col_names_for_table)
+    output_pydantic_object(result, output, legacy.Job.col_names_for_table)

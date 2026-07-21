@@ -2,7 +2,7 @@
 
 import click
 
-from .. import db
+from ..db import legacy
 from . import options, wrappers
 
 
@@ -15,7 +15,7 @@ def spec_block_group() -> None:
 # Specify the cli path to attach these commands to
 cli_group = spec_block_group
 # Specify the associated database table
-DbClass = db.SpecBlock
+DbClass = legacy.SpecBlock
 # Specify the options for the create command
 create_options = [
     options.cmclient(),

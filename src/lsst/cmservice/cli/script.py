@@ -2,8 +2,8 @@
 
 import click
 
-from .. import db
 from ..client.client import CMClient
+from ..db import legacy
 from . import options, wrappers
 
 
@@ -16,7 +16,7 @@ def script_group() -> None:
 # Specify the cli path to attach these commands to
 cli_group = script_group
 # Specify the associated database table
-DbClass = db.Script
+DbClass = legacy.Script
 # Specify the options for the create command
 create_options = [
     options.cmclient(),
@@ -129,4 +129,4 @@ def get_script_errors(
 ) -> None:
     """Get the errors associated to this script"""
     result = client.script.get_script_errors(row_id=row_id)
-    wrappers.output_pydantic_list(result, output, db.ScriptError.col_names_for_table)
+    wrappers.output_pydantic_list(result, output, legacy.ScriptError.col_names_for_table)

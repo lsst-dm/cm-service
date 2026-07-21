@@ -2,7 +2,7 @@
 
 import click
 
-from .. import db
+from ..db import legacy
 from . import options, wrappers
 
 
@@ -15,7 +15,7 @@ def script_error_group() -> None:
 # Specify the cli path to attach these commands to
 cli_group = script_error_group
 # Specify the associated database table
-DbClass = db.ScriptError
+DbClass = legacy.ScriptError
 # Specify the options for the create command
 create_options = [
     options.cmclient(),

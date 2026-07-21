@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING
 
 import httpx
 
-from .. import db, models_
+from .. import models_
+from ..db import legacy
 from . import wrappers
 
 if TYPE_CHECKING:
@@ -20,7 +21,7 @@ CreateModelClass = models_.PipetaskErrorTypeCreate
 # Specify the pydantic model from updating rows
 UpdateModelClass = models_.PipetaskErrorTypeUpdate
 # Specify the associated database table
-DbClass = db.PipetaskErrorType
+DbClass = legacy.PipetaskErrorType
 
 # Construct derived templates
 router_string = f"{DbClass.class_string}"

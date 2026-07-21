@@ -7,9 +7,9 @@ from safir.database import create_async_session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from lsst.cmservice import db
 from lsst.cmservice.common import errors
 from lsst.cmservice.common.enums import LevelEnum
+from lsst.cmservice.db import legacy
 
 from .util_functions import (
     check_get_methods,
@@ -38,7 +38,7 @@ async def test_group_db(engine: AsyncEngine) -> None:
         await create_tree(session, LevelEnum.job, uuid_int)
 
         with pytest.raises(IntegrityError):
-            await db.Group.create_row(
+            await legacy.Group.create_row(
                 session,
                 name=f"group0_{uuid_int}",
                 spec_block_name="group",
@@ -46,15 +46,15 @@ async def test_group_db(engine: AsyncEngine) -> None:
             )
 
         # run row mixin method tests
-        check_getall = await db.Group.get_rows(
+        check_getall = await legacy.Group.get_rows(
             session,
             parent_name=f"camp0_{uuid_int}/step1_{uuid_int}",
-            parent_class=db.Step,
+            parent_class=legacy.Step,
         )
         assert len(check_getall) == 5, "length should be 5"
 
         with pytest.raises(errors.CMMissingRowCreateInputError):
-            await db.Group.create_row(
+            await legacy.Group.create_row(
                 session,
                 name="foo",
                 parent_name=f"step1_{uuid_int}",
@@ -62,10 +62,10 @@ async def test_group_db(engine: AsyncEngine) -> None:
 
         entry = check_getall[0]  # defining single unit for later
 
-        await check_get_methods(session, entry, db.Group, db.Step)
+        await check_get_methods(session, entry, legacy.Group, legacy.Step)
 
         with pytest.raises(errors.CMMissingIDError):
-            await db.Group.delete_row(session, -99)
+            await legacy.Group.delete_row(session, -99)
 
         # run group specific method tests
         campaign = await entry.get_campaign(session)
@@ -75,7 +75,7 @@ async def test_group_db(engine: AsyncEngine) -> None:
         assert len(list(children)) == 1, "length of children should be 1"
 
         # check update methods
-        await check_update_methods(session, entry, db.Group)
+        await check_update_methods(session, entry, legacy.Group)
 
         # check scripts
         await check_scripts(session, entry)
@@ -90,7 +90,7 @@ async def test_group_db(engine: AsyncEngine) -> None:
 
         # test key error in get_create_kwargs
         with pytest.raises(KeyError):
-            await db.Group.get_create_kwargs(session, parent_name="foo", name="bar")
+            await legacy.Group.get_create_kwargs(session, parent_name="foo", name="bar")
 
         # make and test queue object
         await check_queue(session, entry)

@@ -2,8 +2,8 @@
 
 import click
 
-from .. import db
 from ..client.client import CMClient
+from ..db import legacy
 from . import options, wrappers
 
 
@@ -16,7 +16,7 @@ def group_group() -> None:
 # Specify the cli path to attach these commands to
 cli_group = group_group
 # Specify the associated database table
-DbClass = db.Group
+DbClass = legacy.Group
 # Specify the options for the create command
 create_options = [
     options.cmclient(),
@@ -85,7 +85,7 @@ get_row_by_name = wrappers.get_row_by_name_command(get_command, sub_client, DbCl
 
 get_row_by_fullname = wrappers.get_row_by_fullname_command(get_command, sub_client, DbClass)
 
-get_parent = wrappers.get_element_parent_command(get_command, sub_client, db.Step)
+get_parent = wrappers.get_element_parent_command(get_command, sub_client, legacy.Step)
 
 get_spec_block = wrappers.get_spec_block_command(get_command, sub_client)
 
@@ -149,7 +149,7 @@ def rescue_job(
 ) -> None:
     """Create a rescue job"""
     result = client.group.rescue_job(row_id=row_id)
-    wrappers.output_pydantic_object(result, output, db.Job.col_names_for_table)
+    wrappers.output_pydantic_object(result, output, legacy.Job.col_names_for_table)
 
 
 @action_command(name="mark_rescued")
@@ -163,4 +163,4 @@ def mark_rescued(
 ) -> None:
     """Mark the jobs in a group as rescued"""
     result = client.group.mark_rescued(row_id=row_id)
-    wrappers.output_pydantic_list(result, output, db.Job.col_names_for_table)
+    wrappers.output_pydantic_list(result, output, legacy.Job.col_names_for_table)
