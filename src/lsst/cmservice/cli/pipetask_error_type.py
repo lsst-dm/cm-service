@@ -2,7 +2,7 @@
 
 import click
 
-from .. import db
+from ..db import legacy
 from . import options, wrappers
 
 
@@ -15,7 +15,7 @@ def pipetask_error_type_group() -> None:
 # Specify the cli path to attach these commands to
 cli_group = pipetask_error_type_group
 # Specify the associated database table
-DbClass = db.PipetaskErrorType
+DbClass = legacy.PipetaskErrorType
 # Specify the options for the create command
 create_options = [
     options.cmclient(),

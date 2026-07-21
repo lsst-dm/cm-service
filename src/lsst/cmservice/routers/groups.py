@@ -6,7 +6,8 @@ from fastapi import APIRouter, Depends
 
 from lsst.cmservice.models.types import AnyAsyncSession
 
-from .. import db, models_
+from .. import models_
+from ..db import legacy
 from ..db.session import db_session_dependency
 from . import wrappers
 
@@ -18,7 +19,7 @@ CreateModelClass = models_.GroupCreate
 # Specify the pydantic model from updating rows
 UpdateModelClass = models_.GroupUpdate
 # Specify the associated database table
-DbClass = db.Group
+DbClass = legacy.Group
 
 
 # Build the router
@@ -95,7 +96,7 @@ get_products = wrappers.get_element_products_function(router, DbClass)
 async def rescue_job(
     row_id: int,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-) -> db.Job:
+) -> legacy.Job:
     """Invoke the Group.rescue_job function"""
     the_group = await DbClass.get_row(session, row_id)
     return await the_group.rescue_job(session)
@@ -110,7 +111,7 @@ async def rescue_job(
 async def mark_job_rescued(
     row_id: int,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-) -> list[db.Job]:
+) -> list[legacy.Job]:
     """Invoke the Group.mark_job_rescued function"""
     the_group = await DbClass.get_row(session, row_id)
     return await the_group.mark_job_rescued(session)

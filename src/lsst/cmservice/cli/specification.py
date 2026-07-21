@@ -2,7 +2,7 @@
 
 import click
 
-from .. import db
+from ..db import legacy
 from . import options, wrappers
 
 
@@ -15,7 +15,7 @@ def specification_group() -> None:
 # Specify the cli path to attach these commands to
 cli_group = specification_group
 # Specify the associated database table
-DbClass = db.Specification
+DbClass = legacy.Specification
 # Specify the options for the create command
 create_options = [
     options.cmclient(),

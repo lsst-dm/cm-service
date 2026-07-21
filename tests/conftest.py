@@ -12,11 +12,11 @@ from safir.database import create_database_engine, initialize_database
 from safir.testing.uvicorn import UvicornProcess, spawn_uvicorn
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from lsst.cmservice import db
 from lsst.cmservice.common.enums import ScriptMethodEnum
 from lsst.cmservice.common.flags import Features
 from lsst.cmservice.common.logging import LOGGER
 from lsst.cmservice.config import config as config_
+from lsst.cmservice.db import legacy
 
 
 @pytest.fixture(autouse=True)
@@ -32,7 +32,7 @@ async def engine_fixture() -> AsyncIterator[AsyncEngine]:
     """Return a SQLAlchemy AsyncEngine configured to talk to the app db."""
     logger = LOGGER.bind(module=__name__)
     the_engine = create_database_engine(config_.db.url, cast(str, config_.db.password))
-    await initialize_database(the_engine, logger, schema=db.Base.metadata, reset=True)
+    await initialize_database(the_engine, logger, schema=legacy.Base.metadata, reset=True)
     yield the_engine
     await the_engine.dispose()
 

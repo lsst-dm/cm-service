@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from lsst.cmservice.models.types import AnyAsyncSession
 
-from .. import db, models_
+from .. import models_
+from ..db import legacy
 from ..db.session import db_session_dependency
 from ..handlers import functions, interface
 
@@ -23,7 +24,7 @@ router = APIRouter(
 async def add_steps(
     query: models_.AddSteps,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-) -> db.Campaign:
+) -> legacy.Campaign:
     """Invoke the interface.add_steps function"""
     try:
         async with session.begin():
@@ -42,7 +43,7 @@ async def add_steps(
 async def load_specification(
     query: models_.SpecificationLoad,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-) -> db.Specification:
+) -> legacy.Specification:
     """Load a specification object fom a yaml file
 
     Parameters
@@ -75,7 +76,7 @@ async def load_specification(
 async def load_and_create_campaign(
     query: models_.LoadAndCreateCampaign,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-) -> db.Campaign:
+) -> legacy.Campaign:
     """Load a specification and use it to create a `Campaign`
 
     Parameters
@@ -108,7 +109,7 @@ async def load_and_create_campaign(
 async def load_error_types(
     query: models_.YamlFileQuery,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-) -> list[db.PipetaskErrorType]:
+) -> list[legacy.PipetaskErrorType]:
     """Load a set of PipetaskErrorType object from a yaml file
 
     Parameters
@@ -141,7 +142,7 @@ async def load_error_types(
 async def load_manifest_report(
     query: models_.LoadManifestReport,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-) -> db.Job:
+) -> legacy.Job:
     """Load a pipetask report and associated it to a Job
 
     Parameters

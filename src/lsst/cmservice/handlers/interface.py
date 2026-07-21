@@ -10,7 +10,6 @@ from lsst.cmservice.models.db.campaigns import ActivityLog
 from lsst.cmservice.models.enums import StatusEnum
 from lsst.cmservice.models.types import AnyAsyncSession, AsyncSession
 
-from .. import db
 from ..common.enums import LevelEnum, NodeTypeEnum, TableEnum
 from ..common.errors import (
     CMBadEnumError,
@@ -20,32 +19,33 @@ from ..common.errors import (
     test_type_and_raise,
 )
 from ..common.logging import LOGGER
+from ..db import legacy
 from . import functions
 
-TABLE_DICT: dict[TableEnum, type[db.RowMixin]] = {
-    TableEnum.campaign: db.Campaign,
-    TableEnum.step: db.Step,
-    TableEnum.group: db.Group,
-    TableEnum.script: db.Script,
-    TableEnum.job: db.Job,
-    TableEnum.step_dependency: db.StepDependency,
-    TableEnum.script_dependency: db.ScriptDependency,
-    TableEnum.pipetask_error_type: db.PipetaskErrorType,
-    TableEnum.pipetask_error: db.PipetaskError,
-    TableEnum.script_error: db.ScriptError,
-    TableEnum.task_set: db.TaskSet,
-    TableEnum.product_set: db.ProductSet,
-    TableEnum.specification: db.Specification,
-    TableEnum.spec_block: db.SpecBlock,
+TABLE_DICT: dict[TableEnum, type[legacy.RowMixin]] = {
+    TableEnum.campaign: legacy.Campaign,
+    TableEnum.step: legacy.Step,
+    TableEnum.group: legacy.Group,
+    TableEnum.script: legacy.Script,
+    TableEnum.job: legacy.Job,
+    TableEnum.step_dependency: legacy.StepDependency,
+    TableEnum.script_dependency: legacy.ScriptDependency,
+    TableEnum.pipetask_error_type: legacy.PipetaskErrorType,
+    TableEnum.pipetask_error: legacy.PipetaskError,
+    TableEnum.script_error: legacy.ScriptError,
+    TableEnum.task_set: legacy.TaskSet,
+    TableEnum.product_set: legacy.ProductSet,
+    TableEnum.specification: legacy.Specification,
+    TableEnum.spec_block: legacy.SpecBlock,
 }
 
 
-LEVEL_DICT: dict[LevelEnum, type[db.NodeMixin]] = {
-    LevelEnum.campaign: db.Campaign,
-    LevelEnum.step: db.Step,
-    LevelEnum.group: db.Group,
-    LevelEnum.job: db.Job,
-    LevelEnum.script: db.Script,
+LEVEL_DICT: dict[LevelEnum, type[legacy.NodeMixin]] = {
+    LevelEnum.campaign: legacy.Campaign,
+    LevelEnum.step: legacy.Step,
+    LevelEnum.group: legacy.Group,
+    LevelEnum.job: legacy.Job,
+    LevelEnum.script: legacy.Script,
 }
 
 
@@ -54,7 +54,7 @@ logger = LOGGER.bind(module=__name__)
 
 def get_table(
     table_enum: TableEnum,
-) -> type[db.RowMixin]:
+) -> type[legacy.RowMixin]:
     """Get any table
 
     Parameters
@@ -74,7 +74,7 @@ async def get_row_by_table_and_id(
     session: AnyAsyncSession,
     row_id: int,
     table_enum: TableEnum,
-) -> db.RowMixin:
+) -> legacy.RowMixin:
     """Get a row from a table
 
     Parameters
@@ -117,7 +117,7 @@ async def get_node_by_level_and_id(
     session: AnyAsyncSession,
     element_id: int,
     level: LevelEnum,
-) -> db.NodeMixin:
+) -> legacy.NodeMixin:
     """Get a `Node` from the DB
 
     Parameters
@@ -177,7 +177,7 @@ def get_node_type_by_fullname(
 async def get_element_by_fullname(
     session: AnyAsyncSession,
     fullname: str,
-) -> db.ElementMixin:
+) -> legacy.ElementMixin:
     """Get a `Element` from the DB
 
     Parameters
@@ -200,19 +200,19 @@ async def get_element_by_fullname(
     CMMissingFullnameError : No such element was found
     """
     n_slash = fullname.count("/")
-    element: db.ElementMixin | None = None
+    element: legacy.ElementMixin | None = None
     if n_slash > 3 or not len(fullname):
         message = f"Can not figure out Table for bad fullname {fullname}"
         logger.error(message)
         raise CMBadFullnameError(message)
     elif n_slash == 0:
-        element = await db.Campaign.get_row_by_fullname(session, fullname)
+        element = await legacy.Campaign.get_row_by_fullname(session, fullname)
     elif n_slash == 1:
-        element = await db.Step.get_row_by_fullname(session, fullname)
+        element = await legacy.Step.get_row_by_fullname(session, fullname)
     elif n_slash == 2:
-        element = await db.Group.get_row_by_fullname(session, fullname)
+        element = await legacy.Group.get_row_by_fullname(session, fullname)
     elif n_slash == 3:
-        element = await db.Job.get_row_by_fullname(session, fullname)
+        element = await legacy.Job.get_row_by_fullname(session, fullname)
     if TYPE_CHECKING:
         assert element is not None
     return element
@@ -221,7 +221,7 @@ async def get_element_by_fullname(
 async def get_node_by_fullname(
     session: AnyAsyncSession,
     fullname: str,
-) -> db.NodeMixin:
+) -> legacy.NodeMixin:
     """Get a `Node` from the DB
 
     Parameters
@@ -247,7 +247,7 @@ async def get_node_by_fullname(
     node_type = get_node_type_by_fullname(fullname)
     if node_type is NodeTypeEnum.element:
         return await get_element_by_fullname(session, fullname)
-    result = await db.Script.get_row_by_fullname(session, fullname[7:])
+    result = await legacy.Script.get_row_by_fullname(session, fullname[7:])
     return result
 
 
@@ -280,7 +280,7 @@ async def process_script(
     ------
     CMMissingFullnameError : Could not find Script
     """
-    script = await db.Script.get_row_by_fullname(session, fullname)
+    script = await legacy.Script.get_row_by_fullname(session, fullname)
     changed, result = await script.process(session, fake_status=fake_status)
     await session.commit()
     return changed, result
@@ -372,7 +372,7 @@ async def reset_script(
     status: StatusEnum,
     *,
     fake_reset: bool = False,
-) -> db.Script:
+) -> legacy.Script:
     """Run a retry on a `Script`
 
     Notes
@@ -408,7 +408,7 @@ async def reset_script(
 
     CMMissingFullnameError : Could not find Node
     """
-    script = await db.Script.get_row_by_fullname(session, fullname)
+    script = await legacy.Script.get_row_by_fullname(session, fullname)
     _result = await script.reset_script(session, status, fake_reset=fake_reset)
     return script
 
@@ -416,7 +416,7 @@ async def reset_script(
 async def rescue_job(
     session: AnyAsyncSession,
     fullname: str,
-) -> db.Job:
+) -> legacy.Job:
     """Run a rescue on a `Job`
 
     Notes
@@ -447,14 +447,14 @@ async def rescue_job(
     CMMissingFullnameError : Could not find Element
     """
     element = await get_element_by_fullname(session, fullname)
-    element = test_type_and_raise(element, db.Group, "rescue_job element")
+    element = test_type_and_raise(element, legacy.Group, "rescue_job element")
     return await element.rescue_job(session)
 
 
 async def mark_job_rescued(
     session: AnyAsyncSession,
     fullname: str,
-) -> list[db.Job]:
+) -> list[legacy.Job]:
     """Mark a `Job` as rescued
 
     Notes
@@ -487,14 +487,14 @@ async def mark_job_rescued(
     CMMissingFullnameError : Could not find Element
     """
     element = await get_element_by_fullname(session, fullname)
-    element = test_type_and_raise(element, db.Group, "mark_job_rescued element")
+    element = test_type_and_raise(element, legacy.Group, "mark_job_rescued element")
     return await element.mark_job_rescued(session)
 
 
 async def create_campaign(
     session: AnyAsyncSession,
     **kwargs: Any,
-) -> db.Campaign:
+) -> legacy.Campaign:
     """Create a new Campaign
 
     Parameters
@@ -510,7 +510,7 @@ async def create_campaign(
     campaign: Campaign
         Newly created Campaign
     """
-    result = await db.Campaign.create_row(session, **kwargs)
+    result = await legacy.Campaign.create_row(session, **kwargs)
     return result
 
 
@@ -520,7 +520,7 @@ async def load_and_create_campaign(
     name: str,
     spec_block_assoc_name: str | None = None,
     **kwargs: Any,
-) -> db.Campaign:
+) -> legacy.Campaign:
     """Load a Specification and use it to create a `Campaign`
 
     Parameters
@@ -566,7 +566,7 @@ async def add_steps(
     session: AnyAsyncSession,
     fullname: str,
     child_configs: list[dict[str, Any]],
-) -> db.Campaign:
+) -> legacy.Campaign:
     """Add Steps to a `Campaign`
 
     Parameters
@@ -591,7 +591,7 @@ async def add_steps(
 
     CMMissingFullnameError : Could not find Element
     """
-    campaign = await db.Campaign.get_row_by_fullname(session, fullname)
+    campaign = await legacy.Campaign.get_row_by_fullname(session, fullname)
     result = await functions.add_steps(session, campaign, child_configs)
     return result
 
@@ -599,7 +599,7 @@ async def add_steps(
 async def load_error_types(
     session: AnyAsyncSession,
     yaml_file: str,
-) -> list[db.PipetaskErrorType]:
+) -> list[legacy.PipetaskErrorType]:
     """Load a set of `PipetaskErrorType`s from a yaml file
 
     Parameters
@@ -625,7 +625,7 @@ async def load_manifest_report(
     fullname: str,
     *,
     allow_update: bool = False,
-) -> db.Job:
+) -> legacy.Job:
     """Load a manifest checker yaml file
 
     Parameters
@@ -655,7 +655,7 @@ async def match_pipetask_errors(
     session: AnyAsyncSession,
     *,
     rematch: bool = False,
-) -> list[db.PipetaskError]:
+) -> list[legacy.PipetaskError]:
     """Match PipetaskErrors to PipetaskErrorTypes
 
     FIXME: implement this function

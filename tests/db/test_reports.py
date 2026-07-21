@@ -9,8 +9,8 @@ import structlog
 from safir.database import create_async_session
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from lsst.cmservice import db
 from lsst.cmservice.common.enums import LevelEnum
+from lsst.cmservice.db import legacy
 from lsst.cmservice.models.enums import StatusEnum
 
 from .util_functions import (
@@ -39,10 +39,10 @@ async def test_reports_db(engine: AsyncEngine) -> None:
         await create_tree(session, LevelEnum.job, uuid_int)
 
         # run row mixin method tests
-        check_getall = await db.Job.get_rows(
+        check_getall = await legacy.Job.get_rows(
             session,
             parent_name=f"camp0_{uuid_int}/step1_{uuid_int}/group0_{uuid_int}",
-            parent_class=db.Group,
+            parent_class=legacy.Group,
         )
         assert len(check_getall) == 1, "length should be 1"
 
@@ -50,7 +50,7 @@ async def test_reports_db(engine: AsyncEngine) -> None:
 
         parent = await entry.get_parent(session)
         if TYPE_CHECKING:
-            assert isinstance(parent, db.Group)
+            assert isinstance(parent, legacy.Group)
 
         await interface.load_error_types(
             session,
@@ -75,7 +75,7 @@ async def test_reports_db(engine: AsyncEngine) -> None:
         )
         assert status_check is StatusEnum.reviewable
 
-        await db.Job.update_row(
+        await legacy.Job.update_row(
             session,
             entry.id,
             status=StatusEnum.running,
@@ -101,7 +101,7 @@ async def test_reports_db(engine: AsyncEngine) -> None:
             allow_update=True,
         )
 
-        await db.Job.update_row(
+        await legacy.Job.update_row(
             session,
             entry.id,
             status=StatusEnum.rescuable,
@@ -124,7 +124,7 @@ async def test_reports_db(engine: AsyncEngine) -> None:
             do_checks=False,
         )
         assert status_check is StatusEnum.failed
-        await db.Job.update_row(session, job2.id, superseded=True)
+        await legacy.Job.update_row(session, job2.id, superseded=True)
 
         job3 = await parent.rescue_job(session)
 
@@ -144,7 +144,7 @@ async def test_reports_db(engine: AsyncEngine) -> None:
         )
         assert status_check is StatusEnum.reviewable
 
-        await db.Job.update_row(session, job3.id, status=StatusEnum.rescuable)
+        await legacy.Job.update_row(session, job3.id, status=StatusEnum.rescuable)
 
         job4 = await parent.rescue_job(session)
         await interface.load_manifest_report(

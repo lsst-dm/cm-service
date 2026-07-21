@@ -16,9 +16,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from lsst.cmservice.models.enums import StatusEnum
 from lsst.cmservice.models.types import AnyAsyncSession
 
-from .. import db, models_
+from .. import models_
 from ..common.errors import CMBadStateTransitionError, CMMissingFullnameError, CMMissingIDError
 from ..common.logging import LOGGER
+from ..db import legacy
 from ..db.session import db_session_dependency
 
 logger = LOGGER.bind(module=__name__)
@@ -27,7 +28,7 @@ logger = LOGGER.bind(module=__name__)
 def get_rows_no_parent_function(
     router: APIRouter,
     response_model_class: TypeAlias,
-    db_class: type[db.RowMixin],
+    db_class: type[legacy.RowMixin],
 ) -> Callable:
     """Return a function that gets all the rows from a table
     and attaches that function to a router.
@@ -61,7 +62,7 @@ def get_rows_no_parent_function(
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
         skip: int = 0,
         limit: int = 100,
-    ) -> Sequence[db.RowMixin]:
+    ) -> Sequence[legacy.RowMixin]:
         try:
             async with session.begin():
                 return await db_class.get_rows(session, skip=skip, limit=limit)
@@ -75,7 +76,7 @@ def get_rows_no_parent_function(
 def get_rows_function(
     router: APIRouter,
     response_model_class: TypeAlias,
-    db_class: type[db.RowMixin],
+    db_class: type[legacy.RowMixin],
 ) -> Callable:
     """Return a function that gets all the rows from a table
     and attaches that function to a router.
@@ -110,7 +111,7 @@ def get_rows_function(
         parent_id: int | None = None,
         skip: int = 0,
         limit: int = 100,
-    ) -> Sequence[db.RowMixin]:
+    ) -> Sequence[legacy.RowMixin]:
         try:
             async with session.begin():
                 return await db_class.get_rows(
@@ -118,7 +119,7 @@ def get_rows_function(
                     parent_id=parent_id,
                     skip=skip,
                     limit=limit,
-                    parent_class=db.Campaign,
+                    parent_class=legacy.Campaign,
                 )
         except Exception as msg:
             logger.error(msg, exc_info=True)
@@ -130,7 +131,7 @@ def get_rows_function(
 def get_row_function(
     router: APIRouter,
     response_model_class: TypeAlias,
-    db_class: type[db.RowMixin],
+    db_class: type[legacy.RowMixin],
 ) -> Callable:
     """Return a function that gets a single row from a table (by ID)
     and attaches that function to a router.
@@ -160,7 +161,7 @@ def get_row_function(
     async def get_row(
         row_id: int,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-    ) -> db.RowMixin:
+    ) -> legacy.RowMixin:
         try:
             async with session.begin():
                 return await db_class.get_row(session, row_id)
@@ -177,7 +178,7 @@ def get_row_function(
 def get_row_by_fullname_function(
     router: APIRouter,
     response_model_class: TypeAlias,
-    db_class: type[db.RowMixin],
+    db_class: type[legacy.RowMixin],
 ) -> Callable:
     """Return a function that gets a single row from a table (by fullname)
     and attaches that function to a router.
@@ -207,7 +208,7 @@ def get_row_by_fullname_function(
     async def get_row_by_fullname(
         fullname: str,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-    ) -> db.RowMixin:
+    ) -> legacy.RowMixin:
         try:
             async with session.begin():
                 return await db_class.get_row_by_fullname(session, fullname)
@@ -224,7 +225,7 @@ def get_row_by_fullname_function(
 def get_row_by_name_function(
     router: APIRouter,
     response_model_class: TypeAlias,
-    db_class: type[db.RowMixin],
+    db_class: type[legacy.RowMixin],
 ) -> Callable:
     """Return a function that gets a single row from a table (by name)
     and attaches that function to a router.
@@ -254,7 +255,7 @@ def get_row_by_name_function(
     async def get_row_by_name(
         name: str,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-    ) -> db.RowMixin:
+    ) -> legacy.RowMixin:
         try:
             async with session.begin():
                 return await db_class.get_row_by_name(session, name)
@@ -272,7 +273,7 @@ def post_row_function(
     router: APIRouter,
     response_model_class: TypeAlias,
     create_model_class: TypeAlias,
-    db_class: type[db.RowMixin],
+    db_class: type[legacy.RowMixin],
 ) -> Callable:
     """Return a function that creates a single row in a table
     and attaches that function to a router.
@@ -306,7 +307,7 @@ def post_row_function(
     async def post_row(
         row_create: create_model_class,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-    ) -> db.RowMixin:
+    ) -> legacy.RowMixin:
         try:
             async with session.begin():
                 return await db_class.create_row(session, **row_create.model_dump())
@@ -319,7 +320,7 @@ def post_row_function(
 
 def delete_row_function(
     router: APIRouter,
-    db_class: type[db.RowMixin],
+    db_class: type[legacy.RowMixin],
 ) -> Callable:
     """Return a function that deletes a single row in a table
     and attaches that function to a router.
@@ -364,7 +365,7 @@ def put_row_function(
     router: APIRouter,
     response_model_class: TypeAlias,
     update_model_class: TypeAlias,
-    db_class: type[db.RowMixin],
+    db_class: type[legacy.RowMixin],
 ) -> Callable:
     """Return a function that updates a single row in a table
     and attaches that function to a router.
@@ -398,7 +399,7 @@ def put_row_function(
         row_id: int,
         row_update: update_model_class,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-    ) -> db.RowMixin:
+    ) -> legacy.RowMixin:
         try:
             async with session.begin():
                 return await db_class.update_row(session, row_id, **row_update.model_dump())
@@ -414,7 +415,7 @@ def put_row_function(
 
 def get_node_spec_block_function(
     router: APIRouter,
-    db_class: type[db.NodeMixin],
+    db_class: type[legacy.NodeMixin],
 ) -> Callable:
     """Return a function gets the SpecBlock associated to a Node.
 
@@ -440,7 +441,7 @@ def get_node_spec_block_function(
     async def get_node_spec_block(
         row_id: int,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-    ) -> db.SpecBlock:
+    ) -> legacy.SpecBlock:
         try:
             async with session.begin():
                 the_node = await db_class.get_row(session, row_id)
@@ -458,7 +459,7 @@ def get_node_spec_block_function(
 
 def get_node_specification_function(
     router: APIRouter,
-    db_class: type[db.NodeMixin],
+    db_class: type[legacy.NodeMixin],
 ) -> Callable:
     """Return a function gets the Specification associated to a Node.
 
@@ -484,7 +485,7 @@ def get_node_specification_function(
     async def get_node_specification(
         row_id: int,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-    ) -> db.Specification:
+    ) -> legacy.Specification:
         try:
             async with session.begin():
                 the_node = await db_class.get_row(session, row_id)
@@ -503,7 +504,7 @@ def get_node_specification_function(
 def get_node_parent_function(
     router: APIRouter,
     response_model_class: TypeAlias,
-    db_class: type[db.NodeMixin],
+    db_class: type[legacy.NodeMixin],
 ) -> Callable:
     """Return a function gets the parent Node associated to a Node.
 
@@ -532,7 +533,7 @@ def get_node_parent_function(
     async def get_node_parent(
         row_id: int,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-    ) -> db.NodeMixin:
+    ) -> legacy.NodeMixin:
         try:
             async with session.begin():
                 the_node = await db_class.get_row(session, row_id)
@@ -550,7 +551,7 @@ def get_node_parent_function(
 
 def get_node_resolved_collections_function(
     router: APIRouter,
-    db_class: type[db.NodeMixin],
+    db_class: type[legacy.NodeMixin],
 ) -> Callable:
     """Return a function gets resolved collection names associated to a Node.
 
@@ -593,7 +594,7 @@ def get_node_resolved_collections_function(
 
 def get_node_collections_function(
     router: APIRouter,
-    db_class: type[db.NodeMixin],
+    db_class: type[legacy.NodeMixin],
 ) -> Callable:
     """Return a function gets collection names associated to a Node.
 
@@ -636,7 +637,7 @@ def get_node_collections_function(
 
 def get_node_child_config_function(
     router: APIRouter,
-    db_class: type[db.NodeMixin],
+    db_class: type[legacy.NodeMixin],
 ) -> Callable:
     """Return a function gets child_conifg dict associated to a Node.
 
@@ -679,7 +680,7 @@ def get_node_child_config_function(
 
 def get_node_data_dict_function(
     router: APIRouter,
-    db_class: type[db.NodeMixin],
+    db_class: type[legacy.NodeMixin],
 ) -> Callable:
     """Return a function gets data_dict associated to a Node.
 
@@ -722,7 +723,7 @@ def get_node_data_dict_function(
 
 def get_node_spec_aliases_function(
     router: APIRouter,
-    db_class: type[db.NodeMixin],
+    db_class: type[legacy.NodeMixin],
 ) -> Callable:
     """Return a function that gets the spec_aliases associated to a Node.
 
@@ -766,7 +767,7 @@ def get_node_spec_aliases_function(
 def update_node_status_function(
     router: APIRouter,
     response_model_class: TypeAlias,
-    db_class: type[db.NodeMixin],
+    db_class: type[legacy.NodeMixin],
 ) -> Callable:
     """Return a function that updates the status of a Node.
 
@@ -797,7 +798,7 @@ def update_node_status_function(
         row_id: int,
         query: models_.UpdateStatusQuery,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-    ) -> db.NodeMixin:
+    ) -> legacy.NodeMixin:
         try:
             async with session.begin():
                 the_node = await db_class.get_row(session, row_id)
@@ -818,7 +819,7 @@ def update_node_status_function(
 def update_node_collections_function(
     router: APIRouter,
     response_model_class: TypeAlias,
-    db_class: type[db.NodeMixin],
+    db_class: type[legacy.NodeMixin],
 ) -> Callable:
     """Return a function that updates the collections associated to a Node.
 
@@ -849,7 +850,7 @@ def update_node_collections_function(
         row_id: int,
         query: models_.UpdateNodeQuery,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-    ) -> db.NodeMixin:
+    ) -> legacy.NodeMixin:
         try:
             async with session.begin():
                 the_node = await db_class.get_row(session, row_id)
@@ -868,7 +869,7 @@ def update_node_collections_function(
 def update_node_child_config_function(
     router: APIRouter,
     response_model_class: TypeAlias,
-    db_class: type[db.NodeMixin],
+    db_class: type[legacy.NodeMixin],
 ) -> Callable:
     """Return a function that updates the child_config associated to a Node.
 
@@ -898,7 +899,7 @@ def update_node_child_config_function(
         row_id: int,
         query: models_.UpdateNodeQuery,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-    ) -> db.NodeMixin:
+    ) -> legacy.NodeMixin:
         try:
             async with session.begin():
                 the_node = await db_class.get_row(session, row_id)
@@ -917,7 +918,7 @@ def update_node_child_config_function(
 def update_node_data_dict_function(
     router: APIRouter,
     response_model_class: TypeAlias,
-    db_class: type[db.NodeMixin],
+    db_class: type[legacy.NodeMixin],
 ) -> Callable:
     """Return a function that updates the data_dict associated to a Node.
 
@@ -947,7 +948,7 @@ def update_node_data_dict_function(
         row_id: int,
         query: models_.UpdateNodeQuery,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-    ) -> db.NodeMixin:
+    ) -> legacy.NodeMixin:
         try:
             async with session.begin():
                 the_node = await db_class.get_row(session, row_id)
@@ -966,7 +967,7 @@ def update_node_data_dict_function(
 def update_node_spec_aliases_function(
     router: APIRouter,
     response_model_class: TypeAlias,
-    db_class: type[db.NodeMixin],
+    db_class: type[legacy.NodeMixin],
 ) -> Callable:
     """Return a function that updates the spec_aliases associated to a Node.
 
@@ -996,7 +997,7 @@ def update_node_spec_aliases_function(
         row_id: int,
         query: models_.UpdateNodeQuery,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-    ) -> db.NodeMixin:
+    ) -> legacy.NodeMixin:
         try:
             async with session.begin():
                 the_node = await db_class.get_row(session, row_id)
@@ -1014,7 +1015,7 @@ def update_node_spec_aliases_function(
 
 def get_node_check_prerequisites_function(
     router: APIRouter,
-    db_class: type[db.NodeMixin],
+    db_class: type[legacy.NodeMixin],
 ) -> Callable:
     """Return a function that checks the prerequisites of a Node.
 
@@ -1058,7 +1059,7 @@ def get_node_check_prerequisites_function(
 def get_node_reject_function(
     router: APIRouter,
     response_model_class: TypeAlias,
-    db_class: type[db.NodeMixin],
+    db_class: type[legacy.NodeMixin],
 ) -> Callable:
     """Return a function that marks a Node as rejected.
 
@@ -1088,7 +1089,7 @@ def get_node_reject_function(
     async def node_reject(
         row_id: int,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-    ) -> db.NodeMixin:
+    ) -> legacy.NodeMixin:
         try:
             async with session.begin():
                 the_node = await db_class.get_row(session, row_id)
@@ -1109,7 +1110,7 @@ def get_node_reject_function(
 def get_node_accept_function(
     router: APIRouter,
     response_model_class: TypeAlias,
-    db_class: type[db.NodeMixin],
+    db_class: type[legacy.NodeMixin],
 ) -> Callable:
     """Return a function that marks a Node as accepted.
 
@@ -1139,7 +1140,7 @@ def get_node_accept_function(
     async def node_accept(
         row_id: int,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-    ) -> db.NodeMixin:
+    ) -> legacy.NodeMixin:
         try:
             async with session.begin():
                 the_node = await db_class.get_row(session, row_id)
@@ -1160,7 +1161,7 @@ def get_node_accept_function(
 def get_node_reset_function(
     router: APIRouter,
     response_model_class: TypeAlias,
-    db_class: type[db.NodeMixin],
+    db_class: type[legacy.NodeMixin],
 ) -> Callable:
     """Return a function resets a Node status to waiting.
 
@@ -1191,7 +1192,7 @@ def get_node_reset_function(
         row_id: int,
         query: models_.ResetQuery,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-    ) -> db.NodeMixin:
+    ) -> legacy.NodeMixin:
         try:
             async with session.begin():
                 the_node = await db_class.get_row(session, row_id)
@@ -1211,7 +1212,7 @@ def get_node_reset_function(
 
 def get_node_process_function(
     router: APIRouter,
-    db_class: type[db.NodeMixin],
+    db_class: type[legacy.NodeMixin],
 ) -> Callable:
     """Return a function that causes a Node to be processed.
 
@@ -1255,7 +1256,7 @@ def get_node_process_function(
 
 def get_node_run_check_function(
     router: APIRouter,
-    db_class: type[db.NodeMixin],
+    db_class: type[legacy.NodeMixin],
 ) -> Callable:
     """Return a function that checks the status of a Node.
 
@@ -1299,7 +1300,7 @@ def get_node_run_check_function(
 
 def get_element_get_scripts_function(
     router: APIRouter,
-    db_class: type[db.ElementMixin],
+    db_class: type[legacy.ElementMixin],
 ) -> Callable:
     """Return a function get the scripts associated to an Element.
 
@@ -1327,7 +1328,7 @@ def get_element_get_scripts_function(
         row_id: int,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
         script_name: str = "",
-    ) -> list[db.Script]:
+    ) -> list[legacy.Script]:
         try:
             async with session.begin():
                 the_element = await db_class.get_row(session, row_id)
@@ -1345,7 +1346,7 @@ def get_element_get_scripts_function(
 
 def get_element_get_all_scripts_function(
     router: APIRouter,
-    db_class: type[db.ElementMixin],
+    db_class: type[legacy.ElementMixin],
 ) -> Callable:
     """Return a function that gets all scripts associated to an Element.
 
@@ -1372,7 +1373,7 @@ def get_element_get_all_scripts_function(
     async def element_get_all_scripts(
         row_id: int,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-    ) -> list[db.Script]:
+    ) -> list[legacy.Script]:
         try:
             async with session.begin():
                 the_element = await db_class.get_row(session, row_id)
@@ -1390,7 +1391,7 @@ def get_element_get_all_scripts_function(
 
 def get_element_get_jobs_function(
     router: APIRouter,
-    db_class: type[db.ElementMixin],
+    db_class: type[legacy.ElementMixin],
 ) -> Callable:
     """Return a function get the jobs associated to an Element.
 
@@ -1417,7 +1418,7 @@ def get_element_get_jobs_function(
     async def element_get_jobs(
         row_id: int,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-    ) -> list[db.Job]:
+    ) -> list[legacy.Job]:
         try:
             async with session.begin():
                 the_element = await db_class.get_row(session, row_id)
@@ -1435,7 +1436,7 @@ def get_element_get_jobs_function(
 
 def get_element_retry_script_function(
     router: APIRouter,
-    db_class: type[db.ElementMixin],
+    db_class: type[legacy.ElementMixin],
 ) -> Callable:
     """Return a function that will retry a script
 
@@ -1463,7 +1464,7 @@ def get_element_retry_script_function(
         row_id: int,
         query: models_.RetryScriptQuery,
         session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-    ) -> db.Script:
+    ) -> legacy.Script:
         if TYPE_CHECKING:
             assert query.script_name is not None
         try:
@@ -1486,7 +1487,7 @@ def get_element_retry_script_function(
 
 def get_element_wms_task_reports_function(
     router: APIRouter,
-    db_class: type[db.ElementMixin],
+    db_class: type[legacy.ElementMixin],
 ) -> Callable:
     """Return a function get the WmsTaskReports associated to an Element.
 
@@ -1531,7 +1532,7 @@ def get_element_wms_task_reports_function(
 
 def get_element_tasks_function(
     router: APIRouter,
-    db_class: type[db.ElementMixin],
+    db_class: type[legacy.ElementMixin],
 ) -> Callable:
     """Return a function get the TaskSets associated to an Element.
 
@@ -1576,7 +1577,7 @@ def get_element_tasks_function(
 
 def get_element_products_function(
     router: APIRouter,
-    db_class: type[db.ElementMixin],
+    db_class: type[legacy.ElementMixin],
 ) -> Callable:
     """Return a function get the ProductSets associated to an Element.
 

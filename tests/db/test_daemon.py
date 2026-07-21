@@ -7,8 +7,8 @@ import structlog
 from safir.database import create_async_session
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from lsst.cmservice import db
 from lsst.cmservice.common.daemon import daemon_iteration
+from lsst.cmservice.db import legacy
 from lsst.cmservice.handlers import interface
 from lsst.cmservice.models.enums import StatusEnum
 from lsst.cmservice.models.lib import timestamp
@@ -43,7 +43,7 @@ async def test_daemon_db(engine: AsyncEngine) -> None:
         )
 
         # Add the job to the work queue, to be processed by the daemon.
-        queue_entry = await db.Queue.create_row(
+        queue_entry = await legacy.Queue.create_row(
             session,
             fullname=campaign.fullname,
             time_created=timestamp.now_utc(),
@@ -69,7 +69,7 @@ async def test_daemon_db(engine: AsyncEngine) -> None:
 
         assert campaign.status is StatusEnum.accepted
 
-        await db.Queue.get_rows(
+        await legacy.Queue.get_rows(
             session,
         )
 

@@ -8,7 +8,8 @@ import httpx
 
 from lsst.cmservice.models.enums import StatusEnum
 
-from .. import db, models_
+from .. import models_
+from ..db import legacy
 from . import wrappers
 
 if TYPE_CHECKING:
@@ -22,7 +23,7 @@ CreateModelClass = models_.ScriptCreate
 # Specify the pydantic model from updating rows
 UpdateModelClass = models_.ScriptUpdate
 # Specify the associated database table
-DbClass = db.Script
+DbClass = legacy.Script
 
 # Construct derived templates
 router_string = f"{DbClass.class_string}"
