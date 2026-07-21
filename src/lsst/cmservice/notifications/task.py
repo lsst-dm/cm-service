@@ -51,7 +51,9 @@ class Notifier:
                 for label in NotificationLabelEnum.__members__:
                     self.transports[label] = SlackNotification()
                     await pg_conn.add_listener(label, self.notification_handler)
-
+                # Add a default listener
+                self.transports["default"] = SlackNotification()
+                await pg_conn.add_listener("default", self.notification_handler)
                 try:
                     logger.info("Started notifier")
                     await self.sentinel.wait()
