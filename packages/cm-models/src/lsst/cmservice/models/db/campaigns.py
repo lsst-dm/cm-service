@@ -351,3 +351,8 @@ class ActivityLogBase(BaseSQLModel):
 
 class ActivityLog(ActivityLogBase, table=True):
     __tablename__: str = "activity_log_v2"  # type: ignore[misc]
+
+    # The subject-node virtual field is lazily loaded
+    subject: Node = Relationship(
+        sa_relationship_kwargs={"lazy": "select"},
+    )
