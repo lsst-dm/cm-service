@@ -1,9 +1,9 @@
-import json
 from typing import TYPE_CHECKING
 
 import httpx
 from sqlalchemy.exc import NoResultFound
 
+from lsst.cmservice.models.db.campaigns import Node
 from lsst.cmservice.models.db.notifications import NotificationLabel
 from lsst.cmservice.models.enums import NotificationLabelEnum, StatusEnum
 from lsst.cmservice.models.lib.logging import LOGGER
@@ -34,7 +34,7 @@ SLACK_HEADER_SECTION = {
     },
     StatusEnum.running: {
         "emoji": "tada",
-        "text": "A Campaign has started RUNNING",
+        "text": "A Campaign or Node has started RUNNING",
     },
     StatusEnum.rejected: {
         "emoji": "thumbsdown",
@@ -131,7 +131,7 @@ class SlackNotification(NotificationTransport):
         async with db_session_dependency.sessionmaker() as session:
             try:
                 activity_log = await session.get_one(ActivityLog, payload.id)
-                _ = await activity_log.awaitable_attrs.subject
+                node: Node = await activity_log.awaitable_attrs.subject
                 notification_label = await session.get(NotificationLabel, payload.label)
             except NoResultFound:
                 logger.error(
@@ -155,9 +155,20 @@ class SlackNotification(NotificationTransport):
         if activity_log.to_status not in SLACK_HEADER_SECTION:
             return None
 
-        # TODO build a message from the log entry
-        detail = json.dumps(activity_log.detail) or "Node transitioned"
-        message = self.build_message(activity_log.to_status, detail)
+        node_link = f"{config.asgi.fqdn}/gui/node/{node.id}"
+        campaign_link = f"{config.asgi.fqdn}/gui/campaign/{node.namespace}"
+        detail_md = (
+            f"{node.kind.name.title()} <{node_link}|*{node.name}*> (v{node.version}) "
+            f"in <{campaign_link}|*{node.campaign.name}*> "
+            f"is now **{activity_log.to_status.name.title()}**\n"
+        )
+
+        if activity_log.detail:
+            if error_md := activity_log.detail.get("error"):
+                detail_md += error_md
+                detail_md += "\n"
+
+        message = self.build_message(activity_log.to_status, detail_md)
         if message is None:
             return None
 
