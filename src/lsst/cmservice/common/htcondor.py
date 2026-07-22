@@ -267,7 +267,7 @@ def build_htcondor_submit_environment() -> Mapping[str, str]:
         HOME=config.htcondor.remote_user_home,
         LSST_VERSION=config.bps.lsst_version,
         LSST_DISTRIB_DIR=config.bps.lsst_distrib_dir,
-        LSST_DB_AUTH_CONFIG=f"{config.htcondor.remote_user_home}/.lsst/db-auth.{config.service_id}.yaml",
+        LSST_DB_AUTH=f"{config.htcondor.remote_user_home}/.lsst/db-auth.{config.service_id}.yaml",
         # FIXME: because the aws credentials file is assumed to be in place;
         #        the s3 resource supports a custom but nonstandard environment
         #        variable LSST_RESOURCES_S3_PROFILE_<profile> that can contain
