@@ -178,4 +178,5 @@ class AuditActionEnum(enum.Enum):
 class NotificationLabelEnum(enum.Enum):
     """Available label kinds for notification events."""
 
+    default = enum.auto()
     slack = enum.auto()
