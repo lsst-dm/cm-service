@@ -89,3 +89,14 @@ In the case of an S3 URL, the file is fetched by the Butler using an `lsst.resou
 In the case of POSIX path, the exact path must be a mounted filesystem or PVC that provides access to the named file or directory.
 
 In either case, the config file will define a database connection URL. This database must have a matching credential in the `LSST_DB_AUTH_CREDENTIALS` environment variable, which is the JSON string equivalent of a `db-auth.yaml` file.
+
+## Supplying Secrets to Launched Jobs
+Most payloads executed by CM Service are delivered to HTCondor to run in a `local` universe.
+An environment firewall exists between the service's runtime environment and the environment inherited by the HTCondor job submission ("launcher").
+
+Secrets are *not* set in this launcher environment, as it is expected that one or more processes may create plaintext dumps of the execution environment during payload execution, and this can expose secrets.
+
+To the degree that launcher job payloads may require secrets usually provided by `aws-credentials.ini` and/or `db-auth.yaml`, service-specific instances of these files are located in the HTCondor user home directory and the launcher environment sets variables that point to these files.
+
+> [!CAUTION]
+> CM does not currently manage these secrets files, and out-of-band manipulation of these files may impact CM launcher behavior.

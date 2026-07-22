@@ -1,5 +1,5 @@
 ---
-name: Rebase Checker and Commitlint
+name: Commitlint
 
 "on":
   workflow_call:
@@ -8,12 +8,7 @@ name: Rebase Checker and Commitlint
         description: 'Check conventional commits'
         required: false
         type: boolean
-        default: false
-      rebase-checker:
-        description: 'Check for merge commits of main'
-        required: false
-        type: boolean
-        default: false
+        default: true
       custom-rules:
         description: >-
           Custom rules module to use with check-conventional, may be a `ts` or
@@ -21,10 +16,10 @@ name: Rebase Checker and Commitlint
           (relative path to file, e.g., `./path/to/config.ts`)
         required: false
         type: string
-        default: "@commitlint/config-conventional"
+        default: ""
 
 jobs:
-  rebase-checker:
+  commitlint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
@@ -50,41 +45,25 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Create bun lockfile (not run)
-        if: false
-        working-directory: .github/rebase-checker
-        run: |
-          bun add --minimum-release-age=604800 --production --lockfile-only \
-          '@commitlint/cli@21.1.0' \
-          '@commitlint/config-conventional@21.1.0' \
-          'conventional-commits-parser@6.4.0'
-
       - name: Install commitlint
-        working-directory: .github/rebase-checker
+        working-directory: .github/commitlint
         run: >
           bun install --frozen-lockfile --no-save
 
-      - name: Rebase Checker (PR Branch must be rebased, not merged into)
-        if: inputs.rebase-checker
-        working-directory: .github/rebase-checker
-        run: >
-          bunx --no-install --bun commitlint
-          --config './rebase-checker.config.mjs'
-          --from '${{ steps.commits.outputs.base }}' --to '${{ steps.commits.outputs.head }}'
-
       - name: Validate Commits as Conventional Commits
         if: inputs.check-conventional
-        working-directory: .github/rebase-checker
+        working-directory: .github/commitlint
         run: |
           CUSTOM_RULES="${{ inputs.custom-rules }}"
-          if [[ "${CUSTOM_RULES}" != @* ]]
+          if [[ -n "${CUSTOM_RULES}" ]]
           then
             ext="${CUSTOM_RULES##*.}"
             cp "${GITHUB_WORKSPACE}/${CUSTOM_RULES}" "./custom-rules.${ext}"
-            EXTENDS="./custom-rules.${ext}"
+            CONFIG_EXTENDS="--extends ./custom-rules.${ext}"
+          else
+            CONFIG_EXTENDS="--default-config"
           fi
 
-          bunx --no-install --bun commitlint \
-          --extends "${EXTENDS}" \
+          bunx --no-install --bun commitlint ${CONFIG_EXTENDS} \
           --from '${{ steps.commits.outputs.base }}' --to '${{ steps.commits.outputs.head }}' \
           --verbose
