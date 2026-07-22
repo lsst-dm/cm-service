@@ -5,15 +5,17 @@ from __future__ import annotations
 from collections import ChainMap
 from os.path import expandvars
 from types import ModuleType
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
-from anyio import Path
+from anyio import Path, to_thread
 from jinja2.sandbox import ImmutableSandboxedEnvironment
 from transitions import EventData
 
 from lsst.cmservice.models.enums import ManifestKind, StatusEnum
 from lsst.cmservice.models.lib.parsers import as_templated_snake_case
+from lsst.cmservice.models.lib.timestamp import element_time
 from lsst.ctrl.bps import WmsRunReport, WmsStates
+from lsst.ctrl.bps.bps_reports import compile_job_summary
 from lsst.utils import doImport
 
 from ...common.bash import parse_bps_stdout
@@ -221,8 +223,9 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
 
         self.command_templates = [
             (
-                "{{bps.exe_bin}} --log-file {{bps.exe_log}} "
-                "--no-log-tty submit {{bps.submit_yaml}} > {{bps.stdout_log}}"
+                "{{bps.exe_bin}} --log-file {{bps.exe_log}} --no-log-tty "
+                "submit {{bps.submit_yaml}} ${BPS_SUBMIT_OPTIONS} "
+                "> {{bps.stdout_log}}"
             )
         ]
 
@@ -395,10 +398,9 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         # directory in order for BPS to identify it properly. Specifically, the
         # status is read from a `*.dag.dagman.log` file in the submit directory
         # - This only works with a shared filesystem between CM and BPS/WMS
-        # FIXME use async run_thread
         bps_status: WmsStates
         status_message: str
-        bps_status, status_message = wms_svc.get_status(bps_submit_dir)
+        bps_status, status_message = await to_thread.run_sync(wms_svc.get_status, bps_submit_dir)
 
         # TODO implement an OVERDUE check in here. This should be a simple
         # algorithm to identify long-running jobs (especially those that remain
@@ -416,31 +418,52 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
             f"bps_status_{bps_status.name}",
         )
 
-        match bps_status:
-            case WmsStates.RUNNING:
-                return False
-            case WmsStates.FAILED:
-                # TODO we want bps report if we are failed
-                msg = "WMS Job is Failed"
-                raise RuntimeError(msg)
-            case WmsStates.DELETED:
-                msg = "WMS Job is Deleted"
-                raise RuntimeError(msg)
-            case _:
-                pass
+        if bps_status is WmsStates.RUNNING:
+            return False
 
         # BPS Report
         run_reports: list[WmsRunReport]
         report_message: str
-        run_reports, report_message = wms_svc.report(bps_submit_dir)
+        run_reports, report_message = await to_thread.run_sync(wms_svc.report, bps_submit_dir)
 
         if len(report_message):
             logger.warning(report_message, id=str(self.db_model.id))
 
         wms_run_report = run_reports[0]
-        # TODO load bps report result into database. Legacy CM uses the
-        # wms_task_report table but this needs to be updated to v2
         status = status_from_bps_report(wms_run_report)
+        compile_job_summary(wms_run_report)
+
+        terminal_wms_states = {WmsStates.SUCCEEDED, WmsStates.FAILED, WmsStates.PRUNED}
+        if all(
+            [
+                wms_run_report.job_summary is not None,
+                wms_run_report.total_number_jobs is not None,
+                wms_run_report.job_state_counts is not None,
+            ]
+        ):
+            if TYPE_CHECKING:
+                assert wms_run_report.job_summary is not None
+                assert wms_run_report.total_number_jobs is not None
+                assert wms_run_report.job_state_counts is not None
+
+            terminal_jobs = sum(
+                [
+                    count if state in terminal_wms_states else 0
+                    for state, count in wms_run_report.job_state_counts.items()
+                ]
+            )
+            self.db_model.metadata_["percent_done"] = terminal_jobs / wms_run_report.total_number_jobs
+            self.db_model.metadata_["bps_report"] = {}
+            for task_name, job_summary in wms_run_report.job_summary.items():
+                wms_dict = {
+                    f"n_{state_.name.lower()}": count_ for state_, count_ in job_summary.items() if count_ > 0
+                }
+                self.db_model.metadata_["bps_report"][task_name] = wms_dict
+
+        # Negative terminal states short-circuit to the machine's error handler
+        if bps_status in {WmsStates.FAILED, WmsStates.DELETED}:
+            msg = f"WMS Job is {bps_status.name}"
+            raise RuntimeError(msg)
 
         # Create an Activity Log entry
         activity_log_entry = self.get_activity_log(event)
@@ -495,7 +518,20 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         self.db_model.metadata_.pop("bps", None)
 
         # increment the number of retries tracked by the node
-        self.db_model.metadata_["retries"] = self.db_model.metadata_.get("retries", 0) + 1
+        attempt_num = self.db_model.metadata_.get("retries", 0)
+        self.db_model.metadata_["retries"] = attempt_num + 1
+
+        # archive the previous bps submit directory, if there is one
+        if (artifact_path := self.db_model.metadata_.get("artifact_path", None)) is not None:
+            original_path = Path(artifact_path) / "submit"
+            new_path = original_path.with_suffix(f".{attempt_num}")
+            if await new_path.exists():
+                # This should not happen but could be the result of out-of-band
+                # intervention, so we preserve an unknown artifact with the
+                # current timestamp
+                await new_path.rename(new_path.with_suffix(f".{element_time()}"))
+            if await original_path.exists():
+                await original_path.replace(new_path)
 
     async def do_restart(self, event: EventData) -> None:
         """Restart a Group by manipulating the rendered artifacts to effect a
@@ -512,8 +548,9 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         # with a bps restart command
         self.command_templates = [
             (
-                "{{bps.exe_bin}} --log-file {{bps.restart_exe_log}} "
-                "--no-log-tty restart --id {{bps.run_id}} > {{bps.restart_stdout_log}}"
+                "{{bps.exe_bin}} --log-file {{bps.restart_exe_log}} --no-log-tty "
+                "restart --id {{bps.run_id}} ${BPS_RESTART_OPTIONS} "
+                "> {{bps.restart_stdout_log}}"
             )
         ]
 

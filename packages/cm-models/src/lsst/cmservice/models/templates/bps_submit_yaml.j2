@@ -15,7 +15,7 @@ campaign: {{ lsst.campaign }}
 {%- if bps.operator %}
 operator: {{ bps.operator }}
 {%- endif %}
-submitPath: {{ wms.working_directory }}/submit/{timestamp}
+submitPath: {{ wms.working_directory }}/submit
 uniqProcName: {{ bps.uniq_proc_name }}
 {# BLANK LINE #}
 ########################################
@@ -95,6 +95,10 @@ cluster:
 # SITE WMS CONFIGURATION
 ########################################
 wmsServiceClass: {{ wms.service_class }}
+computeSite: {{ site.facility }}
+{%- if site.literals %}
+{{ site.literals | toyaml -}}
+{%- endif %}
 {# BLANK LINE #}
 ########################################
 # PROVISIONING CONFIGURATION

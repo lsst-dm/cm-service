@@ -851,6 +851,7 @@ class ScheduleReviewDialog(ui.dialog):
         self.schedule = schedule
         self.manifests: dict[str, CreateManifestTemplate] = {str(t.id): t for t in templates}
         self.active_manifest: str = ""
+        self.allow_editing: bool = False
         self.dialog_layout()
 
     # Tell type checkers what is returned when the dialog is awaited
@@ -911,14 +912,57 @@ class ScheduleReviewDialog(ui.dialog):
 
             ui.separator()
             with ui.card_actions().classes("w-full shrink-0 align-left"):
-                ui.button("Done", color="positive", on_click=lambda: self.submit(None))
+                ui.button("Close", color="positive", on_click=lambda: self.submit(None))
                 ui.space()
-                ui.button("Edit", color="accent", on_click=lambda: self.submit(None)).disable()
+                self.save_button = (
+                    ui.button("Save", color="positive", on_click=self.save_button_handler)
+                    .bind_enabled_from(self, target_name="allow_editing")
+                    .bind_visibility_from(self, target_name="allow_editing")
+                )
+                ui.button(color="accent", on_click=self.edit_button_handler).bind_text_from(
+                    self, target_name="allow_editing", backward=lambda v: "Done" if v else "Edit"
+                ).bind_background_color_from(
+                    self, target_name="allow_editing", backward=lambda v: "negative" if v else "accent"
+                )
 
     def set_active_manifest(self, e: GenericEventArguments, manifest_id: str) -> None:
         """Update the manifest id used to display the code preview content."""
         self.active_manifest = manifest_id
         self.display_manifest_template.refresh()
+
+    def edit_button_handler(self, e: ClickEventArguments) -> None:
+        """Callback for the Edit button click event."""
+        if TYPE_CHECKING:
+            assert type(e.sender) is ui.button
+        if not self.active_manifest:
+            return None
+        # This is an A/B toggle behavior
+        match self.allow_editing:
+            case True:
+                self.allow_editing = False
+                self.active_manifest_editor.set_theme("vscodeLight")
+            case False:
+                self.allow_editing = True
+                self.active_manifest_editor.set_theme("vscodeDark")
+        self.active_manifest_editor.update()
+        e.sender.update()
+
+    async def save_button_handler(self, e: ClickEventArguments) -> None:
+        """Callback for the Save button click event."""
+        # If we have the active manifest ID, we may be able to use a PUT api
+        # to replace the template body for that record. This doesn't apply the
+        # same rigorous validation that the regular editor does.
+        self.active_manifest_editor.update()
+
+        schedule_id = self.schedule["id"]
+        template_id = self.active_manifest
+        self.manifests[template_id].manifest = self.active_manifest_editor.value
+
+        await api.put_schedule_template(
+            schedule_id=schedule_id, template_id=template_id, manifest=self.manifests[self.active_manifest]
+        )
+        self.allow_editing = False
+        await self.display_manifest_template.refresh()
 
     @ui.refreshable_method
     def display_manifest_template(self) -> None:
@@ -927,6 +971,8 @@ class ScheduleReviewDialog(ui.dialog):
         """
         if not self.active_manifest:
             return None
-        ui.code(content=self.manifests[self.active_manifest].manifest, language="yaml").classes(
-            "h-full w-full overflow-hidden overflow-y-scroll"
+        self.active_manifest_editor = (
+            ui.codemirror(self.manifests[self.active_manifest].manifest, language="YAML", theme="vscodeLight")
+            .classes("h-full w-full overflow-hidden overflow-y-scroll")
+            .bind_enabled_from(self, target_name="allow_editing")
         )

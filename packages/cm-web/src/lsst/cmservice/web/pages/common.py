@@ -6,10 +6,11 @@ from typing import Any, Self, TypedDict, cast
 from fastapi import Request
 from httpx import AsyncClient, HTTPStatusError
 from nice_dialogs.dialogs import ConfirmationDialog
-from nicegui import ui
+from nicegui import app, ui
 
 from ..components import storage
 from ..lib.enum import Palette, StatusDecorators
+from ..settings import settings
 
 
 class CMPageModel(TypedDict): ...
@@ -50,10 +51,12 @@ class CMPage[PageModelT: CMPageModel | CMPageData]:
 
     def __init__(self, request: Request, *args: Any, **kwargs: Any) -> None:
         self.request = request
-        self.username = request.headers.get("X-Auth-Request-User", "anonymous")
         self.base_url = f"{request.url.scheme}://{request.headers.get('host')}"
         self.apply_style()
         storage.initialize_client_storage()
+        app.storage.client["state"].user.username = request.headers.get(
+            "X-Auth-Request-User", settings.default_username
+        )
         self.page_route: str = kwargs.pop("path", "/")
         self.page_title: str = kwargs.pop("title", "~SCENE MISSING~")
         self.breadcrumbs: list[str] = kwargs.pop("breadcrumbs", [])
@@ -110,9 +113,7 @@ class CMPage[PageModelT: CMPageModel | CMPageData]:
             "flat"
         )
 
-        with ui.dropdown_button(self.username, auto_close=True).bind_visibility_from(
-            self, "username", backward=lambda x: x != "anonymous"
-        ):
+        with ui.dropdown_button(app.storage.client["state"].user.username, auto_close=True):
             ui.link("Security Tokens", target=f"{self.base_url}/auth/tokens", new_tab=True).classes(
                 "p-2 text-base text-primary !no-underline"
             )

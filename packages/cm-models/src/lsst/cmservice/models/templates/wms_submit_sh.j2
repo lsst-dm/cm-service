@@ -2,6 +2,13 @@
 set -e
 {# BLANK LINE #}
 {#- PHASE: HEADER =========================================================== #}
+export CM_TIMESTAMP="$(date '+%Y%m%dT%H%M%SZ')"
+{%- if lsst.environment %}
+{%- for key, value in lsst.environment|items %}
+export {{ key }}="{{ value }}"
+{%- endfor %}
+{# BLANK LINE #}
+{%- endif %}
 {%- if lsst.prepend %}
 {%- for line in lsst.prepend %}
 {{ line | shlex }}
