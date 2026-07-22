@@ -45,8 +45,8 @@ class NotificationLabelMetadata(BaseModel):
 
 
 class NotificationLabelManifest(Manifest[NotificationLabelMetadata, NotificationLabelConfiguration]):
-    """A Manifest for a Schedule consistent with the desing of other campaign
-    element API objects.
+    """A Manifest for a Notification Label consistent with the design of other
+    campaign element API objects.
     """
 
     ...

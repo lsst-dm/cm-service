@@ -159,12 +159,13 @@ class SlackNotification(NotificationTransport):
         detail_md = (
             f"{node.kind.name.title()} <{node_link}|*{node.name}*> (v{node.version}) "
             f"in <{campaign_link}|*{node.campaign.name}*> "
-            f"is now **{activity_log.to_status.name.title()}**\n"
+            f"is now _{activity_log.to_status.name.title()}_\n"
         )
 
         if activity_log.detail:
             if error_md := activity_log.detail.get("error"):
-                detail_md += error_md
+                # basic translation to Slack's special "mrkdown"
+                detail_md += error_md.replace("**", "_").replace("##", "").strip()
                 detail_md += "\n"
 
         message = self.build_message(activity_log.to_status, detail_md)
