@@ -7,9 +7,10 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response
 
 from lsst.cmservice.models.types import AnyAsyncSession
 
-from .. import db, models_
+from .. import models_
 from ..common.errors import CMBadStateTransitionError, CMMissingIDError
 from ..common.logging import LOGGER
+from ..db import legacy
 from ..db.session import db_session_dependency
 from ..handlers.functions import force_accept_node
 from . import wrappers
@@ -24,7 +25,7 @@ CreateModelClass = models_.JobCreate
 # Specify the pydantic model from updating rows
 UpdateModelClass = models_.JobUpdate
 # Specify the associated database table
-DbClass = db.Job
+DbClass = legacy.Job
 
 
 # Build the router
@@ -99,7 +100,7 @@ get_products = wrappers.get_element_products_function(router, DbClass)
 async def get_errors(
     row_id: int,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-) -> Sequence[db.PipetaskError]:
+) -> Sequence[legacy.PipetaskError]:
     try:
         async with session.begin():
             the_job = await DbClass.get_row(session, row_id)
@@ -125,7 +126,7 @@ async def accept_job(
     force: bool = False,
     output_collection: str | None = None,
     response: Response,
-) -> db.Job | None:
+) -> legacy.Job | None:
     """Put a job into an accepted state.
 
     If the force option is not supplied along with an output_collection, the
@@ -141,7 +142,7 @@ async def accept_job(
         if output_collection is None:
             raise HTTPException(status_code=422, detail="Cannot force accept without output collection")
         background_tasks.add_task(
-            force_accept_node, node=row_id, db_class=db.Job, output_collection=output_collection
+            force_accept_node, node=row_id, db_class=legacy.Job, output_collection=output_collection
         )
         response.status_code = 202
         return None
@@ -149,10 +150,10 @@ async def accept_job(
         # Standard element accept processing logic
         try:
             async with session.begin():
-                the_node = await db.Job.get_row(session, row_id)
+                the_node = await legacy.Job.get_row(session, row_id)
                 ret_val = await the_node.accept(session)
             if TYPE_CHECKING:
-                assert isinstance(ret_val, db.Job)
+                assert isinstance(ret_val, legacy.Job)
             return ret_val
         except CMMissingIDError as e:
             raise HTTPException(status_code=404, detail=str(e)) from e

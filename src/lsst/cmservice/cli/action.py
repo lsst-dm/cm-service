@@ -4,8 +4,8 @@ import click
 
 from lsst.cmservice.models.enums import StatusEnum
 
-from .. import db
 from ..client.client import CMClient
+from ..db import legacy
 from . import options
 from .wrappers import output_dict, output_pydantic_list, output_pydantic_object
 
@@ -58,7 +58,7 @@ def reset_script(
         fullname=fullname,
         status=status,
     )
-    output_pydantic_object(result, output, db.Script.col_names_for_table)
+    output_pydantic_object(result, output, legacy.Script.col_names_for_table)
 
 
 @action_group.command()
@@ -77,7 +77,7 @@ def rescue_job(
     result = client.action.rescue_job(
         fullname=fullname,
     )
-    output_pydantic_object(result, output, db.Job.col_names_for_table)
+    output_pydantic_object(result, output, legacy.Job.col_names_for_table)
 
 
 @action_group.command()
@@ -97,7 +97,7 @@ def mark_job_rescued(
     result = client.action.mark_job_rescued(
         fullname=fullname,
     )
-    output_pydantic_list(result, output, db.Job.col_names_for_table)
+    output_pydantic_list(result, output, legacy.Job.col_names_for_table)
 
 
 @action_group.command()
@@ -111,4 +111,4 @@ def rematch(
 ) -> None:
     """Rematch the errors"""
     result = client.action.rematch_errors(**kwargs)
-    output_pydantic_list(result, output, db.PipetaskError.col_names_for_table)
+    output_pydantic_list(result, output, legacy.PipetaskError.col_names_for_table)

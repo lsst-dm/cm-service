@@ -7,8 +7,8 @@ from playwright.sync_api import expect, sync_playwright
 from safir.database import create_async_session
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from lsst.cmservice import db
 from lsst.cmservice.common.enums import LevelEnum
+from lsst.cmservice.db import legacy
 from lsst.cmservice.web_app.pages.job_details import get_job_by_id
 from tests.db.util_functions import create_tree, delete_all_artifacts
 
@@ -61,7 +61,7 @@ async def test_get_job_by_id(engine: AsyncEngine) -> None:
         await delete_all_artifacts(session)
 
         # confirm cleanup
-        campaigns = await db.Campaign.get_rows(
+        campaigns = await legacy.Campaign.get_rows(
             session,
         )
         assert len(campaigns) == 0

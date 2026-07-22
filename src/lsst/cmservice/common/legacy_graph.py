@@ -5,7 +5,7 @@ import networkx as nx
 
 from lsst.cmservice.models.types import AnyAsyncSession
 
-from ..db import Script, ScriptDependency, Step, StepDependency
+from ..db.legacy import Script, ScriptDependency, Step, StepDependency
 from ..parsing.string import parse_element_fullname
 
 type AnyGraphEdge = StepDependency | ScriptDependency

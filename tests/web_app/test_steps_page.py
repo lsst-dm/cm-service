@@ -5,9 +5,9 @@ import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from playwright.sync_api import expect, sync_playwright
 
-from lsst.cmservice import db
 from lsst.cmservice.common.enums import LevelEnum
-from lsst.cmservice.db import Step
+from lsst.cmservice.db import legacy
+from lsst.cmservice.db.legacy import Step
 from lsst.cmservice.models.enums import StatusEnum
 from lsst.cmservice.web_app.pages.steps import get_step_details
 
@@ -34,10 +34,10 @@ def mock_step() -> Step:
 @pytest.fixture()
 def mock_groups() -> typing.Generator:
     yield [
-        db.Group(id=1, name="first_group", status=StatusEnum.accepted),
-        db.Group(id=2, name="second_group", status=StatusEnum.paused),
-        db.Group(id=3, name="third_group", status=StatusEnum.failed),
-        db.Group(id=4, name="fourth_group", status=StatusEnum.rejected),
+        legacy.Group(id=1, name="first_group", status=StatusEnum.accepted),
+        legacy.Group(id=2, name="second_group", status=StatusEnum.paused),
+        legacy.Group(id=3, name="third_group", status=StatusEnum.failed),
+        legacy.Group(id=4, name="fourth_group", status=StatusEnum.rejected),
     ]
 
 

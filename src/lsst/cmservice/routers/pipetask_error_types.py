@@ -2,7 +2,8 @@
 
 from fastapi import APIRouter
 
-from .. import db, models_
+from .. import models_
+from ..db import legacy
 from . import wrappers
 
 # Template specialization
@@ -13,7 +14,7 @@ CreateModelClass = models_.PipetaskErrorTypeCreate
 # Specify the pydantic model from updating rows
 UpdateModelClass = models_.PipetaskErrorTypeUpdate
 # Specify the associated database table
-DbClass = db.PipetaskErrorType
+DbClass = legacy.PipetaskErrorType
 
 
 # Build the router

@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING
 
 import httpx
 
-from .. import db, models_
+from .. import models_
+from ..db import legacy
 from . import wrappers
 
 if TYPE_CHECKING:
@@ -20,7 +21,7 @@ CreateModelClass = models_.SpecBlockCreate
 # Specify the pydantic model from updating rows
 UpdateModelClass = models_.SpecBlockUpdate
 # Specify the associated database table
-DbClass = db.SpecBlock
+DbClass = legacy.SpecBlock
 
 # Construct derived templates
 router_string = f"{DbClass.class_string}"

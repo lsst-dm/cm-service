@@ -2,7 +2,7 @@
 
 import click
 
-from .. import db
+from ..db import legacy
 from . import options, wrappers
 
 
@@ -15,7 +15,7 @@ def wms_task_report_group() -> None:
 # Specify the cli path to attach these commands to
 cli_group = wms_task_report_group
 # Specify the associated database table
-DbClass = db.WmsTaskReport
+DbClass = legacy.WmsTaskReport
 # Specify the options for the create command
 create_options = [
     options.cmclient(),

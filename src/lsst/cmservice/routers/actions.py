@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from lsst.cmservice.models.enums import StatusEnum
 from lsst.cmservice.models.types import AnyAsyncSession
 
-from .. import db, models_
+from .. import models_
+from ..db import legacy
 from ..db.session import db_session_dependency
 from ..handlers import interface
 
@@ -45,7 +46,7 @@ async def process(
 async def reset_script(
     query: models_.ResetScriptQuery,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-) -> db.Script:
+) -> legacy.Script:
     """Invoke the interface.reset_script function"""
     params = query.model_dump()
     try:
@@ -65,7 +66,7 @@ async def reset_script(
 async def rescue_job(
     query: models_.NodeQuery,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-) -> db.Job:
+) -> legacy.Job:
     """Invoke the interface.rescue_job function"""
     params = query.model_dump()
     try:
@@ -85,7 +86,7 @@ async def rescue_job(
 async def mark_job_rescued(
     query: models_.NodeQuery,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-) -> list[db.Job]:
+) -> list[legacy.Job]:
     """Invoke the interface.mark_job_rescued function"""
     params = query.model_dump()
     try:
@@ -105,7 +106,7 @@ async def mark_job_rescued(
 async def rematch_pipetask_errors(
     query: models_.RematchQuery,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-) -> list[db.PipetaskError]:
+) -> list[legacy.PipetaskError]:
     """Invoke the interface.match_pipetask_errors function"""
     params = query.model_dump()
     try:

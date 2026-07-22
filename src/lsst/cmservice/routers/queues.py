@@ -6,9 +6,10 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from lsst.cmservice.models.types import AnyAsyncSession
 
-from .. import db, models_
+from .. import models_
 from ..common.errors import CMMissingIDError
 from ..common.logging import LOGGER
+from ..db import legacy
 from ..db.session import db_session_dependency
 from . import wrappers
 
@@ -22,7 +23,7 @@ CreateModelClass = models_.QueueCreate
 # Specify the pydantic model from updating rows
 UpdateModelClass = models_.QueueUpdate
 # Specify the associated database table
-DbClass = db.Queue
+DbClass = legacy.Queue
 
 
 # Build the router
@@ -70,7 +71,7 @@ async def process_element(
     """
     try:
         async with session.begin():
-            queue = await db.Queue.get_row(session, row_id)
+            queue = await legacy.Queue.get_row(session, row_id)
             can_continue = await queue.process_node(session)
     except CMMissingIDError as msg:
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg
@@ -105,7 +106,7 @@ async def toggle_active(
     """
     try:
         async with session.begin():
-            queue = await db.Queue.get_row(session, row_id)
+            queue = await legacy.Queue.get_row(session, row_id)
             new_status = not queue.active
             queue.active = new_status
     except CMMissingIDError as msg:
@@ -140,7 +141,7 @@ async def sleep_time(
     """
     try:
         async with session.begin():
-            queue = await db.Queue.get_row(session, row_id)
+            queue = await legacy.Queue.get_row(session, row_id)
             node_sleep_time = await queue.node_sleep_time(session)
     except CMMissingIDError as msg:
         raise HTTPException(status_code=404, detail=f"{str(msg)}") from msg

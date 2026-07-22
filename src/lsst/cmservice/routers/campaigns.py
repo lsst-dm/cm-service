@@ -12,9 +12,10 @@ from lsst.cmservice.models.lib import timestamp
 from lsst.cmservice.models.lib.graph import graph_to_dict
 from lsst.cmservice.models.types import AnyAsyncSession
 
-from .. import db, models_
+from .. import models_
 from ..common.legacy_graph import graph_from_edge_list
 from ..common.logging import LOGGER
+from ..db import legacy
 from ..db.session import db_session_dependency
 from ..handlers.functions import render_campaign_steps
 from . import wrappers
@@ -30,7 +31,7 @@ CreateModelClass = models_.CampaignCreate
 # Specify the pydantic model from updating rows
 UpdateModelClass = models_.CampaignUpdate
 # Specify the associated database table
-DbClass = db.Campaign
+DbClass = legacy.Campaign
 
 
 # Build the router
@@ -100,11 +101,11 @@ async def post_row(
     row_create: models_.CampaignCreate,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
     background_tasks: BackgroundTasks,
-) -> db.Campaign:
+) -> legacy.Campaign:
     try:
         async with session.begin():
-            campaign = await db.Campaign.create_row(session, **row_create.model_dump())
-            _ = await db.Queue.create_row(
+            campaign = await legacy.Campaign.create_row(session, **row_create.model_dump())
+            _ = await legacy.Queue.create_row(
                 session,
                 fullname=campaign.fullname,
                 time_next_check=timestamp.utc_datetime(campaign.metadata_.get("start_after", 0)),
@@ -128,16 +129,16 @@ async def get_step_graph(
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> Mapping:
     # Determine the namespace UUID for the campaign
-    campaign = await db.Campaign.get_row(session, row_id)
+    campaign = await legacy.Campaign.get_row(session, row_id)
     if (campaign_namespace := campaign.data.get("namespace")) is None:
         campaign_namespace = uuid5(DEFAULT_NAMESPACE, campaign.name)
 
     # Fetch the *edges* for the campaign from the step_dependency table
-    statement = select(db.StepDependency).filter_by(namespace=campaign_namespace)
+    statement = select(legacy.StepDependency).filter_by(namespace=campaign_namespace)
     edges = (await session.scalars(statement)).all()
 
     # Organize the edges into a graph
-    step_graph = await graph_from_edge_list(edges=edges, node_type=db.Step, session=session)
+    step_graph = await graph_from_edge_list(edges=edges, node_type=legacy.Step, session=session)
     return graph_to_dict(step_graph)
 
 
@@ -151,14 +152,14 @@ async def get_script_graph(
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
 ) -> Mapping:
     # Determine the namespace UUID for the campaign
-    campaign = await db.Campaign.get_row(session, row_id)
+    campaign = await legacy.Campaign.get_row(session, row_id)
     if (campaign_namespace := campaign.data.get("namespace")) is None:
         campaign_namespace = uuid5(DEFAULT_NAMESPACE, campaign.name)
 
     # Fetch the *edges* for the campaign from the script_dependency table
-    statement = select(db.ScriptDependency).filter_by(namespace=campaign_namespace)
+    statement = select(legacy.ScriptDependency).filter_by(namespace=campaign_namespace)
     edges = (await session.scalars(statement)).all()
 
     # Organize the edges into a graph
-    script_graph = await graph_from_edge_list(edges=edges, node_type=db.Script, session=session)
+    script_graph = await graph_from_edge_list(edges=edges, node_type=legacy.Script, session=session)
     return graph_to_dict(script_graph)

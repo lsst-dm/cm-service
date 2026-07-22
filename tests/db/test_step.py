@@ -7,9 +7,9 @@ from safir.database import create_async_session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from lsst.cmservice import db
 from lsst.cmservice.common import errors
 from lsst.cmservice.common.enums import LevelEnum
+from lsst.cmservice.db import legacy
 
 from .util_functions import (
     check_get_methods,
@@ -38,7 +38,7 @@ async def test_step_db(engine: AsyncEngine) -> None:
         await create_tree(session, LevelEnum.group, uuid_int)
 
         with pytest.raises(IntegrityError):
-            await db.Step.create_row(
+            await legacy.Step.create_row(
                 session,
                 name=f"step0_{uuid_int}",
                 spec_block_name="basic_step",
@@ -46,15 +46,15 @@ async def test_step_db(engine: AsyncEngine) -> None:
             )
 
         # run row mixin method tests
-        check_getall = await db.Step.get_rows(
+        check_getall = await legacy.Step.get_rows(
             session,
             parent_name=f"camp0_{uuid_int}",
-            parent_class=db.Campaign,
+            parent_class=legacy.Campaign,
         )
         assert len(check_getall) == 2, "length should be 2"
 
         with pytest.raises(errors.CMMissingRowCreateInputError):
-            await db.Step.create_row(
+            await legacy.Step.create_row(
                 session,
                 name="foo",
                 parent_name=f"camp0{uuid_int}",
@@ -62,10 +62,10 @@ async def test_step_db(engine: AsyncEngine) -> None:
 
         entry = check_getall[1]  # defining single unit for later
 
-        await check_get_methods(session, entry, db.Step, db.Campaign)
+        await check_get_methods(session, entry, legacy.Step, legacy.Campaign)
 
         with pytest.raises(errors.CMMissingIDError):
-            await db.Step.delete_row(session, -99)
+            await legacy.Step.delete_row(session, -99)
 
         # run step specific method tests
         check1 = await entry.get_campaign(session)
@@ -78,7 +78,7 @@ async def test_step_db(engine: AsyncEngine) -> None:
         assert len(list(check3)) == 5, "length of children should be 5"
 
         # check update methods
-        await check_update_methods(session, entry, db.Step)
+        await check_update_methods(session, entry, legacy.Step)
 
         # check scripts
         await check_scripts(session, entry)

@@ -6,8 +6,8 @@ import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from playwright.sync_api import expect, sync_playwright
 
-from lsst.cmservice import db
-from lsst.cmservice.db import Campaign
+from lsst.cmservice.db import legacy
+from lsst.cmservice.db.legacy import Campaign
 from lsst.cmservice.models.enums import StatusEnum
 from lsst.cmservice.web_app.pages.campaigns import get_campaign_details
 
@@ -32,8 +32,8 @@ def mock_collections() -> dict:
 @pytest.fixture()
 def mock_scripts() -> list:
     return [
-        db.Script(id=1, name="first_script", status=StatusEnum.accepted),
-        db.Script(id=2, name="second_script", status=StatusEnum.accepted),
+        legacy.Script(id=1, name="first_script", status=StatusEnum.accepted),
+        legacy.Script(id=2, name="second_script", status=StatusEnum.accepted),
     ]
 
 
@@ -69,8 +69,8 @@ def first_campaign(
 @pytest.fixture()
 def mock_groups() -> typing.Generator:
     yield [
-        db.Group(id=1, name="first_group", status=StatusEnum.accepted),
-        db.Group(id=1, name="second_group", status=StatusEnum.accepted),
+        legacy.Group(id=1, name="first_group", status=StatusEnum.accepted),
+        legacy.Group(id=1, name="second_group", status=StatusEnum.accepted),
     ]
 
 
