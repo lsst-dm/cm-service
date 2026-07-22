@@ -53,7 +53,7 @@ class ScheduleMetadata(BaseModel):
 
 
 class ScheduleManifest(Manifest[ScheduleMetadata, ScheduleConfiguration]):
-    """A Manifest for a Schedule consistent with the desing of other campaign
+    """A Manifest for a Schedule consistent with the design of other campaign
     element API objects.
     """
 
