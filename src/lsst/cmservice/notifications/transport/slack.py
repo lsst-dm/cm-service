@@ -50,7 +50,6 @@ SLACK_HEADER_SECTION = {
 class SlackNotification(NotificationTransport):
     __kind__ = NotificationLabelEnum.slack
     headers: httpx.Headers = httpx.Headers({"Content-type": "application/json"})
-    slack_webhook_url: str | None = None
 
     def notify(self, message: bytes | dict) -> None:
         raise NotImplementedError("Only asynchronous notifications are supported")
@@ -58,7 +57,7 @@ class SlackNotification(NotificationTransport):
     async def anotify(self, message: bytes | dict) -> None:
         """Sends a Slack notification message asynchronously."""
 
-        if self.slack_webhook_url is None:
+        if self.secret is None:
             logger.warning("Cannot produce Slack notification without a webhook url set.")
             return None
 
@@ -67,7 +66,7 @@ class SlackNotification(NotificationTransport):
         async with self.http_async_client() as asession:
             try:
                 response = await asession.post(
-                    url=self.slack_webhook_url,
+                    url=self.secret,
                     json=data,
                     headers=self.headers,
                 )
@@ -142,11 +141,11 @@ class SlackNotification(NotificationTransport):
                 return None
 
         # discover the slack webhook url from the label.secret or use default
-        if notification_label is None:
-            self.slack_webhook_url = config.notifications.slack_webhook_url
+        if notification_label is None or payload.label == "default":
+            self.secret = config.notifications.slack_webhook_url
             notification_filters = self.default_filters
         else:
-            self.slack_webhook_url = config.notifications.fernet.decrypt(notification_label.secret).decode()
+            self.secret = config.notifications.fernet.decrypt(notification_label.secret).decode()
             notification_filters = notification_label.configuration.get("filters", self.default_filters)
 
         if not await self.check_notification_filter(notification_filters, activity_log):
