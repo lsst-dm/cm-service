@@ -190,3 +190,47 @@ async def test_add_templates_to_schedule(aclient: AsyncClient) -> None:
             raise RuntimeError("No version other than 1 or 2 should exist in this test.")
 
     assert version_1_templates == version_2_templates
+
+
+async def test_modify_existing_template(aclient: AsyncClient) -> None:
+    """Test the addition of new template manifests to an existing schedule."""
+    x = await aclient.post("/v2/schedules", json={"name": str(uuid4())[0:8], "cron": "* * * * *"})
+    assert x.status_code == codes.CREATED
+
+    for template in MANIFEST_TEMPLATES:
+        y = await aclient.post(f"""{x.headers["Self"]}/templates""", json=template)
+        assert y.status_code == codes.CREATED
+
+    y = await aclient.get(x.headers["Templates"])
+    assert y.status_code == codes.OK
+    schedule_templates = y.json()
+    assert len(schedule_templates) == len(MANIFEST_TEMPLATES)
+
+    template_to_update = [c for c in schedule_templates if c["kind"] == "campaign"][0]
+    template_id = template_to_update["id"]
+    template_to_update["manifest"] = dedent("""\
+        apiVersion: "io.lsst.cmservice/v1"
+        kind: "campaign"
+        metadata:
+            name: ${{ campaign_name }}_aux
+        spec:
+            butlerSelector:
+                instrument: lsstcam
+                embargo: "true"
+            lsstSelector:
+                track: daily
+            wmsSelector:
+                wms: htcondor
+    """)
+
+    z = await aclient.put(
+        f"""{x.headers["Self"]}/templates/{template_id}""",
+        json=template_to_update,
+    )
+    assert z.status_code == codes.CREATED
+
+    # test audit logging has captured some diff detail
+    z = await aclient.get("v2/audit", params={"object": template_id})
+    assert z.status_code == codes.OK
+    audit = z.json()[0]
+    assert "_aux" in audit["context"]["diff"]

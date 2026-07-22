@@ -26,13 +26,16 @@ class JSONPatch(BaseModel):
 
     op: Literal["add", "remove", "replace", "move", "copy", "test"]
     path: str = Field(
-        description="An RFC6901 JSON Pointer", pattern=r"^\/(metadata|spec|configuration|metadata_|data)\/.*$"
+        description="An RFC6901 JSON Pointer",
+        pattern=r"^\/(metadata|spec|configuration|metadata_|data)\/.*$",
+        examples=["/metadata/custom_attribute"],
     )
     value: Any | None = None
     from_: str | None = Field(
         default=None,
         pattern=r"^\/(metadata|spec|configuration|metadata_|data)\/.*$",
         validation_alias=AliasChoices("from", "from_"),
+        examples=[None],
     )
 
 

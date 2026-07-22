@@ -410,11 +410,9 @@ class HTCondorLaunchMixin(LaunchMixIn):
         launch_config: dict[str, Any] = {}
         launch_config["working_directory"] = self.artifact_path
         launch_config["wms_executable_path"] = launch_executable_path
-        launch_config["wms_event_log_path"] = launch_executable_path.with_suffix(".condorlog")
+        launch_config["wms_event_log_path"] = launch_executable_path.with_suffix(".log")
         launch_config["wms_submission_path"] = launch_executable_path.with_suffix(".sub")
-        launch_config["wms_output_log_path"] = launch_executable_path.with_stem(
-            f"{launch_executable_path.stem}_condorsub"
-        ).with_suffix(".log")
+        launch_config["wms_output_log_path"] = launch_executable_path.with_suffix(".out")
         self.configuration_chain["wms"] = self.configuration_chain["wms"].new_child(launch_config)
 
         await self.lsst_prepare(event)

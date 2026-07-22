@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from enum import Enum, IntFlag, auto
 from functools import partial
 from typing import TYPE_CHECKING, Any, Self
+from uuid import UUID
 
 from nice_dialogs.dialogs import ConfirmationDialog
 from nicegui import ui
@@ -976,3 +977,46 @@ class ScheduleReviewDialog(ui.dialog):
             .classes("h-full w-full overflow-hidden overflow-y-scroll")
             .bind_enabled_from(self, target_name="allow_editing")
         )
+
+
+class AuditLogDialog(ui.dialog):
+    """..."""
+
+    def __init__(self, *, dialog_title: str, schedule: UUID, events: list):
+        super().__init__()
+        self.props("maximized")
+        self.dialog_title = dialog_title
+        self.schedule = schedule
+        self.audit_events = events
+        self.dialog_layout()
+
+    # Tell type checkers what is returned when the dialog is awaited
+    if TYPE_CHECKING:
+
+        def __await__(self) -> Generator[None]: ...
+
+    def dialog_layout(self) -> None:
+        """Core layout method for the dialog."""
+        with (
+            self,
+            ui.card().classes("w-[96vw] h-[85vh] max-w-[96vm] max-h-[85vh] flex flex-col overflow-visible"),
+        ):
+            # HEADER
+            with ui.row().classes("w-full shrink-0 py-2"):
+                ui.label(self.dialog_title).classes("text-h6")
+
+            # CONTENT
+            ui.separator()
+            if not self.audit_events:
+                ui.label("No change logs available for schedule")
+            with ui.timeline(side="right").classes("w-full h-0 flex-1 min-h-0 overflow-y-auto pl-6"):
+                for event in sorted(self.audit_events, key=lambda x: x["created_at"], reverse=True):
+                    with ui.timeline_entry(
+                        subtitle=event["created_at"],
+                        title=f"{event['actor']} modified template {event['object_name']}",
+                        icon="edit_note",
+                    ):
+                        ui.code(content=event["context"]["diff"], language="diff")
+            ui.separator()
+            with ui.card_actions().classes("w-full shrink-0 align-left"):
+                ui.button("Close", color="positive", on_click=lambda: self.submit(None))

@@ -8,6 +8,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Annotated
 from uuid import UUID, uuid5
 
+from asgi_correlation_id import correlation_id
 from deepdiff import Delta
 from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query, Request, Response, status
 from pydantic import UUID5
@@ -17,8 +18,9 @@ from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from lsst.cmservice.models.api.manifests import ManifestModel
+from lsst.cmservice.models.db.audit import AuditLog
 from lsst.cmservice.models.db.campaigns import Campaign, Manifest
-from lsst.cmservice.models.enums import DEFAULT_NAMESPACE
+from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, AuditActionEnum
 from lsst.cmservice.models.lib.jsonpatch import JSONPatch, JSONPatchError, apply_json_patch
 from lsst.cmservice.models.lib.timestamp import element_time
 
@@ -47,7 +49,7 @@ async def read_manifest_collection(
     offset: Annotated[int, Query()] = 0,
     limit: Annotated[int, Query(le=100)] = 10,
 ) -> Sequence[Manifest]:
-    """Gets all manifests"""
+    """Get all manifests"""
     response.headers["Next"] = str(
         request.url_for("read_manifest_collection").include_query_params(offset=(offset + limit), limit=limit)
     )
@@ -99,10 +101,7 @@ async def read_single_manifest(
     else:
         s = s.where(Manifest.version == manifest_version)
 
-    manifest = (await session.exec(s)).one_or_none()
-
-    if manifest is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    manifest = (await session.exec(s)).one()
 
     response.headers["Self"] = str(request.url_for("read_single_manifest", manifest_name_or_id=manifest.id))
     if request.method == "HEAD":
@@ -122,6 +121,7 @@ async def create_one_or_more_manifests(
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     manifests: ManifestModel | list[ManifestModel],
 ) -> None:
+    """Add one or more manifests"""
     # We could be given a single manifest or a list of them. In the singleton
     # case, wrap it in a list so we can treat everything equally
     if not isinstance(manifests, list):
@@ -197,6 +197,17 @@ async def create_one_or_more_manifests(
     "/{manifest_name_or_id}",
     summary="Update manifest detail",
     status_code=status.HTTP_202_ACCEPTED,
+    openapi_extra={
+        "requestBody": {
+            "required": True,
+            "content": {
+                "application/json-patch+json": {
+                    "schema": {"type": "array", "items": {"$ref": "#/components/schemas/JSONPatch"}}
+                },
+                "application/octet-stream": {"schema": {"type": "string", "format": "binary"}},
+            },
+        }
+    },
 )
 async def update_manifest_resource(
     request: Request,
@@ -205,7 +216,7 @@ async def update_manifest_resource(
     manifest_name_or_id: str,
     patch_data: Annotated[bytes, Body()] | Sequence[JSONPatch],
 ) -> Manifest:
-    """Partial update method for manifests.
+    """Partially update a manifest.
 
     A Manifest's spec or metadata may be updated with this PATCH operation. All
     updates to a Manifest creates a new version of the Manifest instead of
@@ -232,7 +243,7 @@ async def update_manifest_resource(
     elif request.headers["Content-Type"] == "application/octet-stream":
         use_deepdiff = True
     else:
-        raise HTTPException(status_code=406, detail="Unsupported Content-Type")
+        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
 
     s = select(Manifest).with_for_update()
 
@@ -251,9 +262,7 @@ async def update_manifest_resource(
     # error if it is not the most recent version.
     s = s.order_by(col(Manifest.version).desc()).limit(1)
 
-    old_manifest = (await session.exec(s)).one_or_none()
-    if old_manifest is None:
-        raise HTTPException(status_code=404, detail="No such campaign")
+    old_manifest = (await session.exec(s)).one()
 
     new_manifest = old_manifest.model_dump(by_alias=True)
     new_manifest["version"] += 1
@@ -302,14 +311,12 @@ async def copy_manifest_resource(
     namespace_copy_target: Annotated[UUID5, Header()],
     name_copy_target: Annotated[str | None, Header()] = None,
 ) -> Manifest:
-    """Copies a manifest resource to a new namespace. The version of the new
+    """Copy a manifest resource to a new namespace. The version of the new
     manifest is set to 1. The new namespace must be present in the request
     header "namespace-copy-target". The manifest's name is preserved unless the
     "name-copy-target" header is also set.
     """
-    manifest = await session.get(Manifest, manifest_id)
-    if manifest is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    manifest = await session.get_one(Manifest, manifest_id)
 
     make_transient(manifest)
     manifest.namespace = namespace_copy_target
@@ -328,3 +335,39 @@ async def copy_manifest_resource(
 
     response.headers["Self"] = str(request.url_for("read_single_manifest", manifest_name_or_id=manifest.id))
     return manifest
+
+
+@router.delete(
+    "/{manifest_id}",
+    summary="Deletes a library manifest",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_manifest_resource(
+    request: Request,
+    response: Response,
+    session: Annotated[AsyncSession, Depends(db_session_dependency)],
+    manifest_id: UUID5,
+    actor: Annotated[str, Header(alias="X-Auth-Request-User")],
+) -> None:
+    """Delete a manifest identified by ID"""
+    manifest = await session.get_one(Manifest, manifest_id)
+
+    if manifest.version > 0:
+        raise HTTPException(
+            status_code=status.HTTP_405_METHOD_NOT_ALLOWED, detail="Only library manifests may be deleted."
+        )
+
+    await session.delete(manifest)
+    await session.commit()
+
+    audit = AuditLog(
+        actor=actor,
+        action=AuditActionEnum.delete,
+        request_id=UUID(correlation_id.get()),
+        object_id=manifest.id,
+        object_type=manifest.kind,
+        object_name=manifest.name,
+        context={},
+    )
+    request.state.audit.add(audit)
+    return None

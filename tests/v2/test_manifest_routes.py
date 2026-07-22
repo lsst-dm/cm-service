@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 from uuid import uuid4, uuid5
 
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, codes
 
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE
 
@@ -390,3 +390,16 @@ async def test_new_manifest_version(aclient: AsyncClient, test_campaign: str) ->
     x = await aclient.get(f"/v2/campaigns/{campaign_id}/manifest/dummy/campaign_manifest_a")
     assert x.is_success
     assert x.json()["version"] == 1
+
+
+async def test_delete_library_manifest_resource(aclient: AsyncClient, manifest_fixtures: None) -> None:
+    """Tests deleting a library manifest"""
+    manifest_name = "muthur"
+    x = await aclient.get(f"/v2/manifests/{manifest_name}")
+    assert x.is_success
+
+    x = await aclient.delete(x.headers["Self"])
+    assert x.status_code == codes.NO_CONTENT
+
+    x = await aclient.get(f"/v2/manifests/{manifest_name}")
+    assert x.status_code == codes.NOT_FOUND

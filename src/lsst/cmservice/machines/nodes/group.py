@@ -232,9 +232,9 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         # Prepare a BPS runtime configuration to add to the Node's config chain
         bps_config: dict[str, Any] = {}
         bps_config["exe_bin"] = "true" if Features.MOCK_BPS in config.features.enabled else config.bps.bps_bin
-        bps_config["exe_log"] = bps_submit_path.with_name(f"{self.db_model.name}_log.json")
+        bps_config["exe_log"] = bps_submit_path.with_name(f"{self.db_model.name}_bps.json")
         bps_config["submit_yaml"] = bps_submit_path
-        bps_config["stdout_log"] = bps_submit_path.with_name(f"{self.db_model.name}.log")
+        bps_config["stdout_log"] = bps_submit_path.with_name(f"{self.db_model.name}_bps.out")
         # the default uniqProcName is the outputRun as snake_case
         # FIXME doesn't work if the run collection name has variable content
         bps_config["uniq_proc_name"] = as_templated_snake_case(

@@ -4,8 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession as AsyncSessionSA
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlmodel.ext.asyncio.session import AsyncSession as AsyncSession
 
-from .enums import ManifestKind, StatusEnum
-from .serde import EnumSerializer, ManifestKindEnumValidator, StatusEnumValidator
+from .enums import AuditActionEnum, ManifestKind, StatusEnum
+from .serde import AuditActionEnumValidator, EnumSerializer, ManifestKindEnumValidator, StatusEnumValidator
 
 type AnyAsyncSession = AsyncSession | AsyncSessionSA | async_scoped_session
 """A type union of async database sessions the application may use"""
@@ -19,5 +19,11 @@ enums operations.
 
 type KindField = Annotated[ManifestKind, ManifestKindEnumValidator, EnumSerializer]
 """A type for fields representing a Kind with a custom validator tuned for
+enums operations.
+"""
+
+
+type ActionField = Annotated[AuditActionEnum, AuditActionEnumValidator, EnumSerializer]
+"""A type for fields representing an Action with a custom validator tuned for
 enums operations.
 """

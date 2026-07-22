@@ -1,4 +1,4 @@
-from . import campaigns, schedules
+from . import audit, campaigns, schedules
 from .base import BaseSQLModel as Base
 
-__all__ = ["Base", "campaigns", "schedules"]
+__all__ = ["audit", "Base", "campaigns", "schedules"]
