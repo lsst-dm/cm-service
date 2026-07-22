@@ -15,7 +15,7 @@ from . import SPEC_CONFIG, LibraryManifest, ManifestSpec
 # consistency
 class FacilitySpec(ManifestSpec):
     model_config = SPEC_CONFIG | {"title": "site_spec"}
-    facility: Literal["SLAC", "IN2P3", "LANC", "RAL"] = Field(
+    facility: Literal["SLAC", "IN2P3", "LANCS", "RAL"] = Field(
         default="SLAC",
         title="Processing Facility Name",
         description="Name of the processing facility, equivalent to the BPS `computeSite` setting",

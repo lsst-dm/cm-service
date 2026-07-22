@@ -182,7 +182,7 @@ class WmsComputeSite(enum.Enum):
 
     default = -1
     usdf = 1
-    lanc = 2
+    lancs = 2
     ral = 3
     in2p3 = 4
 
