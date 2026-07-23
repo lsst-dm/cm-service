@@ -3,9 +3,9 @@ from __future__ import annotations
 from functools import partial
 from typing import Any, Self, TypedDict
 
-from httpx import AsyncClient
+from httpx import URL, AsyncClient
 from nice_dialogs.dialogs import ConfirmationDialog
-from nicegui import app, ui
+from nicegui import app, binding, ui
 from nicegui.events import ClickEventArguments
 from yaml import safe_dump
 
@@ -15,6 +15,7 @@ from .. import api
 from ..components import dialog, storage, strings
 from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.enum import StatusDecorators
+from ..lib.grafana import get_grafana_link_for_node
 from ..lib.timestamp import iso_timestamp
 from .common import CMPage
 
@@ -38,6 +39,7 @@ async def configuration_history(id: str) -> list[dict]:
 class NodeDetailPageModel(TypedDict):
     node: dict[str, Any]
     logs: list
+    grafana: URL | None
 
 
 class NodeDetailPage(CMPage[NodeDetailPageModel]):
@@ -67,6 +69,7 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
         self.model: NodeDetailPageModel = {
             "node": data["node"],
             "logs": data["logs"],
+            "grafana": get_grafana_link_for_node(data["node"]),
         }
 
         self.breadcrumbs.append(data["node"]["name"])
@@ -102,6 +105,14 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
             else:
                 # if campaign is paused, then show transport (step) control
                 await self.node_advance_chip()
+
+            # If the node has advanced to a point where a bps run name is known
+            # add a time-scoped link to the grafana history page
+            with ui.link().bind_visibility_from(
+                self, ("model", "grafana"), backward=lambda x: x is not None
+            ) as grafana_link:
+                binding.bind_to(self.model, "grafana", grafana_link.props, "href", forward=str)
+                ui.chip("History (Grafana)", icon="open_in_browser", color="white")
 
     async def node_tab_bar(self) -> None:
         """Renders a tab bar for the node detail page.

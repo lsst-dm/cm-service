@@ -103,6 +103,16 @@ class ClientConfiguration(BaseSettings):
         description="The default username to assign the client when one is not otherwise available",
     )
 
+    grafana_base_url: str = Field(
+        default="http://localhost:3000",
+        description="The base url, without trailing slash, of a grafana instance to build links against",
+    )
+
+    grafana_campaign_history: str = Field(
+        default="/d/campaign-history",
+        description="The grafana url path to a campaign history dashboard",
+    )
+
     @field_validator("cookies", mode="before", check_fields=True)
     @classmethod
     def validate_cookies(cls, v: Any) -> list[ClientCookie] | None:
