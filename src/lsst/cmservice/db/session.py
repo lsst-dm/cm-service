@@ -1,11 +1,12 @@
 """Module to create and handle async database sessions"""
 
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 from sqlalchemy import URL, make_url
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import AsyncAdaptedQueuePool, Pool
+from sqlalchemy.pool import AssertionPool, AsyncAdaptedQueuePool, Pool
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ..common.logging import LOGGER
@@ -63,6 +64,27 @@ class DatabaseManager:
             **pool_kwargs,
         )
         self.sessionmaker = async_sessionmaker(self.engine, class_=AsyncSession, expire_on_commit=False)
+
+    @asynccontextmanager
+    async def dedicated_async_engine(
+        self, isolation_level: str = "READ COMMITED"
+    ) -> AsyncGenerator[AsyncEngine]:
+        """Creates and yields a dedicated database engine with a constrained
+        pool size.
+        """
+        if not self.sessionmaker:
+            raise RuntimeError("Async sessionmaker is not initialized")
+
+        try:
+            engine = create_async_engine(
+                url=self.url,
+                echo=config.db.echo,
+                poolclass=AssertionPool,
+                isolation_level=isolation_level,
+            )
+            yield engine
+        finally:
+            await engine.dispose()
 
     async def __call__(self) -> AsyncGenerator[AsyncSession]:
         """Yields a database session, rolls it back on error and closes it on

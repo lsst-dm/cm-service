@@ -363,7 +363,7 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         self.db_model.metadata_ = new_metadata
 
         # Create an Activity Log entry
-        activity_log_entry = self.get_activity_log(event)
+        activity_log_entry = await self.get_activity_log(event)
         await materialize_activity_log(
             self.session,
             activity_log_entry,
@@ -410,7 +410,7 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
             logger.warning(status_message, id=str(self.db_model.id))
 
         # Create an Activity Log entry
-        activity_log_entry = self.get_activity_log(event)
+        activity_log_entry = await self.get_activity_log(event)
         activity_log_entry.detail = {"bps_status": bps_status.name, "bps_status_message": status_message}
         await materialize_activity_log(
             self.session,
@@ -466,7 +466,7 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
             raise RuntimeError(msg)
 
         # Create an Activity Log entry
-        activity_log_entry = self.get_activity_log(event)
+        activity_log_entry = await self.get_activity_log(event)
         activity_log_entry.detail = {"report_status": status.name, "report_message": report_message}
         await materialize_activity_log(
             self.session,
