@@ -97,6 +97,7 @@ class CampaignUpdate(BaseSQLModel):
 
     owner: str | None = None
     status: StatusField | None = None
+    configuration: dict | None = None
     force: bool = Field(default=False, description="Makes the status change unconditional.")
 
 
