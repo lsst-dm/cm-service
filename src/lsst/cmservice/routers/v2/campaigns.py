@@ -26,7 +26,7 @@ from sqlalchemy.dialects.postgresql import INTEGER
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.orm import aliased
 from sqlmodel import cast as sqlcast
-from sqlmodel import col, distinct, func, select
+from sqlmodel import col, distinct, func, select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from lsst.cmservice.models.api.manifests import CampaignManifest, ManifestRequest
@@ -48,6 +48,7 @@ from lsst.cmservice.models.lib.graph import (
     insert_node_to_graph,
 )
 from lsst.cmservice.models.lib.timestamp import element_time
+from lsst.cmservice.models.types import KindField
 
 from ...common.logging import LOGGER
 from ...db.session import db_session_dependency
@@ -826,6 +827,54 @@ async def update_node_in_graph(
     response.headers["Edges"] = str(request.url_for("read_campaign_edge_collection", campaign_id=campaign.id))
     response.headers["Graph"] = str(request.url_for("read_campaign_graph", campaign_name=campaign.id))
     return None
+
+
+@router.get(
+    "/{campaign_id}/manifests/{kind}/default",
+    summary="Get the default manifest for specified kind within the campaign",
+)
+async def read_default_manifest_resource(
+    request: Request,
+    response: Response,
+    session: Annotated[AsyncSession, Depends(db_session_dependency)],
+    campaign_id: UUID5,
+    kind: KindField,
+) -> Manifest | None:
+    """Get the default manifest for specified kind within the campaign"""
+    manifest = await session.exec(select(Manifest).where(col(Manifest.default).is_(True)))
+    return manifest.first()
+
+
+@router.put(
+    "/{campaign_id}/manifests/{kind}/default",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Set the default manifest for specified kind within the campaign",
+)
+async def update_default_manifest_resource(
+    request: Request,
+    response: Response,
+    session: Annotated[AsyncSession, Depends(db_session_dependency)],
+    campaign_id: UUID5,
+    kind: KindField,
+    manifest_id: Annotated[UUID5, Query(alias="manifest-id")],
+) -> None:
+    """Set the default manifest for specified kind within the campaign to the
+    provided manifest id. There may be only one default manifest for each kind
+    within a campaign, so the default flag is cleared for any previous default
+    manifest in the collection. No new manifest versions are created by this
+    operation.
+    """
+    async with session.begin():
+        await session.exec(
+            update(Manifest)
+            .where(
+                col(Manifest.namespace) == campaign_id,
+                col(Manifest.kind) == kind,
+                col(Manifest.default).is_(True),
+            )
+            .values(default=False)
+        )
+        await session.exec(update(Manifest).where(col(Manifest.id) == manifest_id).values(default=True))
 
 
 # TODO additional graph-node operations?
