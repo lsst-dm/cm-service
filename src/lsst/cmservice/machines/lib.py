@@ -12,8 +12,8 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid5
 
 from anyio import Path, to_thread
-from sqlalchemy.dialects.postgresql import insert
-from sqlmodel import col, select
+from sqlalchemy.dialects.postgresql import INTEGER, insert
+from sqlmodel import cast, col, select
 from transitions import EventData
 
 from lsst.cmservice.models.db.campaigns import ActivityLog, Campaign, Manifest, Node
@@ -35,7 +35,8 @@ async def assemble_config_chain(
     The standard configuration chain lookup is
     - The node's direct configuration
     - (The node's incoming edge configuration)
-    - A campaign manifest of the specified kind (optional)
+    - A "selected" campaign manifest of the specified kind (optional)
+    - The "default" campaign manifest of the specified kind (optional)
     - Any extra manifest configuration provided at runtime
     - A library (version 0) manifest of the specified kind (optional)
 
@@ -64,12 +65,24 @@ async def assemble_config_chain(
         # each key in the node configuration is the basis of a configchain
         # find the "latest" manifest of this kind within the campaign
         campaign_config: dict[str, Any] = {}
+        default_campaign_config: dict[str, Any] = {}
+
+        s = (
+            select(Manifest)
+            .where(Manifest.namespace == node.namespace)
+            .where(col(Manifest.kind) == kind)
+            .where(col(Manifest.default).is_(True))
+            .limit(1)
+        )
+        if (manifest := (await session.exec(s)).one_or_none()) is not None:
+            default_campaign_config = manifest.spec
 
         s = (
             select(Manifest)
             .where(Manifest.namespace == node.namespace)
             .where(col(Manifest.kind) == kind)
             .order_by(col(Manifest.version).desc())
+            .order_by(cast(Manifest.metadata_["crtime"].as_string(), INTEGER).desc())
             .limit(1)
         )
         if (manifest := (await session.exec(s)).one_or_none()) is not None:
@@ -91,6 +104,7 @@ async def assemble_config_chain(
         config_chain[kind] = ChainMap(
             node.configuration.get(kind, {}),
             campaign_config,
+            default_campaign_config,
             library_config,
             extra.get(kind, {}),
         )
