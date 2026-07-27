@@ -242,6 +242,9 @@ class ManifestBase(BaseSQLModel):
     )
     metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])
     spec: dict = jsonb_column("spec", aliases=["spec", "configuration", "data"])
+    default: bool = Field(
+        default=False, description="Whether this manifest is the default for the (namespace, kind)"
+    )
 
     @model_validator(mode="before")
     @classmethod
