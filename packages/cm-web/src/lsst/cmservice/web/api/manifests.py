@@ -77,3 +77,21 @@ async def put_manifest_list(manifests: list[dict]) -> bool:
                     continue
     # A true response indicates success
     return True
+
+
+async def get_default_manifest_for_campaign(campaign_id: str, kind: str) -> str | None:
+    """..."""
+    ...
+
+
+async def set_default_manifest_for_campaign(manifest: dict) -> bool:
+    """Set the given manifest as the default for that campaign-kind"""
+    uri = f"/campaigns/{manifest['namespace']}/manifests/{manifest['kind']}/default"
+    async with CLIENT_FACTORY.aclient() as client:
+        try:
+            r = await client.put(uri, params={"manifest-id": manifest["id"]})
+            r.raise_for_status()
+        except HTTPStatusError:
+            ui.notify(f"Failed to set default manifest: {manifest['metadata']['name']}", type="negative")
+            return False
+    return True

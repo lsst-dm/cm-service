@@ -11,6 +11,7 @@ from nicegui.events import ClickEventArguments, GenericEventArguments, ValueChan
 
 from .. import api
 from ..components import dicebear, storage, strings
+from ..components.button import DefaultManifestButton
 from ..components.dialog import (
     AddStepEditorDialog,
     EditorContext,
@@ -451,6 +452,12 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
                             icon="commit",
                             color="white",
                         ).tooltip("Manifest Version")
+                        DefaultManifestButton(
+                            color="dark",
+                            manifest=manifest["id"],
+                            is_default=manifest["default"],
+                            on_completed=self.handle_set_default_manifest,
+                        ).props("style: flat").tooltip("Set as default manifest for campaign")
                         edit_button = (
                             ui.button(
                                 icon="preview" if readonly else "edit",
@@ -687,3 +694,11 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
     async def commit_campaign_notification_labels(self, data: ValueChangeEventArguments) -> None:
         """Commit changes to notification labels with PATCH API."""
         await api.apply_notification_labels(self.model["campaign"])
+
+    async def handle_set_default_manifest(self, manifest_id: str) -> None:
+        """Call the api to set the default manifest for this campaign-kind.
+        This will implicitly *remove* default status from a different manifest
+        if one is already set as the default.
+        """
+        await api.manifests.set_default_manifest_for_campaign(self.model["manifests"][manifest_id])
+        await self.refresh_manifest_row()
