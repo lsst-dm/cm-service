@@ -23,7 +23,7 @@ from lsst.cmservice.models.lib.parsers import as_snake_case
 from lsst.cmservice.models.lib.yaml import yaml
 
 from .. import api
-from ..components.button import ToggleButton
+from ..components.button import DefaultManifestButton
 from ..components.dialog import EditorContext, NewManifestEditorDialog, NewStepEditorDialog
 from ..components.expression import ExpressionEditorDialog
 from ..lib.canvas import nx_to_flow
@@ -139,13 +139,16 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
                                 "outline square"
                             ).bind_icon_from(MANIFEST_KIND_ICONS, manifest["kind"]).tooltip(manifest_id)
                             ui.input(label="Manifest Name").bind_value(
-                                self.model.manifests[manifest_id]["metadata"], "name"
+                                self, ("model", "manifests", manifest_id, "metadata", "name")
                             ).classes("text-sm")
                     with ui.card_actions().props("align=right").classes("items-center text-sm w-full"):
                         ui.space()
-                        ToggleButton(color="dark").props("style: flat").tooltip(
-                            "Set as default manifest for campaign"
-                        )
+                        DefaultManifestButton(
+                            color="dark",
+                            manifest=manifest_id,
+                            is_default=manifest["metadata"].get("default", False),
+                            on_completed=self.handle_set_default_manifest,
+                        ).props("style: flat").tooltip("Set as default manifest for campaign")
                         ui.button(
                             icon="edit",
                             color="dark",
@@ -343,6 +346,7 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
 
         # reduce the None/nulls from the spec
         data["spec"] = {k: v for k, v in data["spec"].items() if v is not None}
+        data["metadata"]["default"] = False
         self.model.manifests[manifest_id] = data
         await self.edit_campaign_manifests.refresh()
 
@@ -446,7 +450,7 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
         # Create a Schedule object
         schedule = CreateSchedule(
             name=f"schedule-{self.campaign_name}-{uuid4().hex[0:8]}",
-            cron=self.model.schedule_info.cron,
+            cron=self.model.schedule_info.cron,  # pyright: ignore[reportArgumentType]
             metadata_={
                 "owner": app.storage.client["state"].user.username,
             },
@@ -553,6 +557,16 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
         if cron_str is not None:
             self.model.schedule_info.cron = cron_str
         cron_dialog.clear()
+
+    async def handle_set_default_manifest(self, manifest_id: str) -> None:
+        """Set the default flag for the supplied manifest, first clearing the
+        flag from all manifests of that kind.
+        """
+        manifest_kind = self.model.manifests[manifest_id]["kind"]
+        for _manifest in filter(lambda m: m.get("kind", "") == manifest_kind, self.model.manifests.values()):
+            _manifest["metadata"]["default"] = False
+        self.model.manifests[manifest_id]["metadata"]["default"] = True
+        await self.edit_campaign_manifests.refresh()
 
     async def validate_new_manifest_name(self, data: str | None, ctx: EditorContext) -> str | None:
         """Validates the name of a new manifest by checking against any current
