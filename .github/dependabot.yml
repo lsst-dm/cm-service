@@ -10,17 +10,19 @@ updates:
       interval: "weekly"
     cooldown:
       default-days: 7
+    groups:
+      canvas:
+        patterns:
+          - "*"
   - package-ecosystem: "pre-commit"
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      prek:
+        patterns:
+          - "*"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-  - package-ecosystem: "bun"
-    directory: ".github/commitlint"
-    schedule:
-      interval: "weekly"
-    cooldown:
-      default-days: 7
