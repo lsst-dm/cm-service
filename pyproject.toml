@@ -84,7 +84,7 @@ dev = [
     "pytest-timeout>=2.3.1",
     "python-semantic-release==10.6.*",
     "respx>=0.22.0",
-    "ruff>=0.15.0",
+    "ruff>=0.16.0",
     "safir[db]<16",
     "sqlalchemy[mypy]>=2.0.36",
     "testcontainers[postgres]==4.10.*",

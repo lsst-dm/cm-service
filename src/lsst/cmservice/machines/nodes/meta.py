@@ -121,7 +121,7 @@ class NodeMachine(StatefulModel):
         if event.error is None:
             return
 
-        logger.exception(event.error, id=str(self.db_model.id), exc=event.error.__class__.__qualname__)
+        logger.error(event.error, id=str(self.db_model.id), exc=event.error.__class__.__qualname__)
         if self.activity_log_entry is not None:
             error_cause = event_error_heuristic(event)
             self.activity_log_entry.detail["trigger"] = event.event.name

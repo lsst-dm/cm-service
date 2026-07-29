@@ -119,7 +119,7 @@ class CampaignOverviewPage(CMPage[CampaignOverviewPageModel]):
                     if node_times:
                         with ui.row().classes("items-center"):
                             ui.icon("design_services")
-                            ui.label(sorted(node_times)[-1])
+                            ui.label(max(node_times))
                     with ui.row().classes("items-center"):
                         ui.icon("perm_identity")
                         ui.label(campaign.get("owner", "anonymous"))
