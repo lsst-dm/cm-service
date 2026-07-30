@@ -586,11 +586,42 @@ class NewStepEditorDialog(EditorDialog):
                 "bps": {"pipeline_yaml": "${DRP_PIPE_DIR}/path/to/file.yaml#anchor"},
                 "groups": None,
             }
+        ui.button("Edit Selectors", icon="new_label", on_click=self.handle_edit_selectors).props(
+            "fab outline"
+        )
         with ui.dropdown_button("Grouping", auto_close=True) as self.group_option:
             self.group_option.tooltip("Apply a grouping template spec to the Step")
             ui.item("No Grouping", on_click=self.set_group_config).props("id=grouping_none")
             ui.item("Fixed-Value Grouping", on_click=self.set_group_config).props("id=grouping_fixed")
             ui.item("Query Grouping", on_click=self.set_group_config).props("id=grouping_query")
+
+    async def handle_edit_selectors(self) -> None:
+        """Display a label editor dialog and apply results to the model"""
+        base_selectors = [
+            (s, k, v)
+            for s, d in self.context.model["metadata"].get("selectors", {}).items()
+            for k, v in d.items()
+        ]
+        selector_dialog = LabelMakerDialog(
+            "Manifest Selectors",
+            num_inputs=3,
+            values=base_selectors,
+            validators=[],
+            allow_sorting=False,
+            value_types=[
+                Literal["bps", "butler", "lsst", "site", "wms"],
+                str,
+                str,
+            ],
+        )
+        result = await selector_dialog
+        if result is not None:
+            selector_keys = {k for k, _, _ in result}
+            head_selectors = {k: {} for k in selector_keys}
+            for s, k, v in result:
+                head_selectors[s][k] = v
+            self.context.model["metadata"]["selectors"] = head_selectors
+        selector_dialog.clear()
 
     async def set_group_config(self, data: ClickEventArguments) -> None:
         """Patches the step's group configuration with a template config based
@@ -669,9 +700,25 @@ class NewManifestEditorDialog(EditorDialog):
         self.kind_selector.set_options(
             [kind for kind in set(self.kind_selector.options).difference({"step"})]
         )
+        ui.button("Edit Labels", icon="new_label", on_click=self.handle_edit_labels).props("fab outline")
         ui.button("Apply Template", icon="settings_suggest", on_click=self.handle_apply_template).props(
             "fab outline"
         )
+
+    async def handle_edit_labels(self) -> None:
+        """Display a label editor dialog and apply results to the model"""
+        base_labels = [(k, v) for k, v in self.context.model["metadata"].get("labels", {}).items()]
+        label_editor_dialog = LabelMakerDialog(
+            "Manifest Labels",
+            num_inputs=2,
+            values=base_labels,
+            validators=[],
+            allow_sorting=False,
+        )
+        result = await label_editor_dialog
+        if result is not None:
+            self.context.model["metadata"]["labels"] = {k: v for (k, v) in result}
+        label_editor_dialog.clear()
 
     def handle_apply_template(self) -> None:
         """Applies a template spec to the editor based on the selected manifest
