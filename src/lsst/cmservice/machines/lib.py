@@ -63,9 +63,22 @@ async def assemble_config_chain(
     # result when no namespace-scoped manifest candidate is available.
     for kind in ManifestKind.__members__:
         # each key in the node configuration is the basis of a configchain
-        # find the "latest" manifest of this kind within the campaign
+
+        # Select a manifest from the campaign.
+        # Use ONE of selected, default, or best-effort
         campaign_config: dict[str, Any] = {}
-        default_campaign_config: dict[str, Any] = {}
+        if "selectors" in node.metadata_ and kind in node.metadata_["selectors"]:
+            label_containment = {"labels": node.metadata_["selectors"][kind]}
+            s = (
+                select(Manifest)
+                .where(Manifest.namespace == node.namespace)
+                .where(col(Manifest.kind) == kind)
+                .where(col(Manifest.metadata_).contains(label_containment))
+                .order_by(col(Manifest.version).desc())
+                .limit(1)
+            )
+            if (manifest := (await session.exec(s)).one_or_none()) is not None:
+                campaign_config = manifest.spec
 
         s = (
             select(Manifest)
@@ -74,8 +87,8 @@ async def assemble_config_chain(
             .where(col(Manifest.default).is_(True))
             .limit(1)
         )
-        if (manifest := (await session.exec(s)).one_or_none()) is not None:
-            default_campaign_config = manifest.spec
+        if not campaign_config and (manifest := (await session.exec(s)).one_or_none()) is not None:
+            campaign_config = manifest.spec
 
         s = (
             select(Manifest)
@@ -85,10 +98,10 @@ async def assemble_config_chain(
             .order_by(cast(Manifest.metadata_["crtime"].as_string(), INTEGER).desc())
             .limit(1)
         )
-        if (manifest := (await session.exec(s)).one_or_none()) is not None:
+        if not campaign_config and (manifest := (await session.exec(s)).one_or_none()) is not None:
             campaign_config = manifest.spec
-        else:
-            campaign_config = {}
+
+        # Library manifest
         s = (
             select(Manifest)
             .where(Manifest.namespace == DEFAULT_NAMESPACE)
@@ -104,7 +117,6 @@ async def assemble_config_chain(
         config_chain[kind] = ChainMap(
             node.configuration.get(kind, {}),
             campaign_config,
-            default_campaign_config,
             library_config,
             extra.get(kind, {}),
         )
