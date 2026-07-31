@@ -1,6 +1,6 @@
 """Module implementing reusable and/or modular Dialogs."""
 
-from collections.abc import Awaitable, Callable, Generator, MutableMapping
+from collections.abc import Awaitable, Callable, Generator, Mapping, MutableMapping
 from copy import deepcopy
 from dataclasses import dataclass, field
 from enum import Enum, IntFlag, auto
@@ -617,7 +617,7 @@ class NewStepEditorDialog(EditorDialog):
         result = await selector_dialog
         if result is not None:
             selector_keys = {k for k, _, _ in result}
-            head_selectors = {k: {} for k in selector_keys}
+            head_selectors: Mapping[str, MutableMapping] = {k: {} for k in selector_keys}
             for s, k, v in result:
                 head_selectors[s][k] = v
             self.context.model["metadata"]["selectors"] = head_selectors
