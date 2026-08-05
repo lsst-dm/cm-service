@@ -1,5 +1,6 @@
 from .activity import wait_for_activity_to_complete
 from .campaigns import (
+    apply_notification_labels,
     compile_campaign_manifests,
     describe_one_campaign,
     get_campaign_manifests,
@@ -15,6 +16,9 @@ from .nodes import (
     node_activity_logs,
     retry_restart_node,
 )
+from .notifications import (
+    get_notifications,
+)
 from .rescue import rescue_group
 from .schedules import (
     delete_schedule,
@@ -27,6 +31,7 @@ from .schedules import (
 )
 
 __all__ = [
+    "apply_notification_labels",
     "compile_campaign_manifests",
     "delete_schedule",
     "describe_one_campaign",
@@ -39,6 +44,7 @@ __all__ = [
     "get_schedule_summary",
     "get_schedule_templates",
     "insert_or_append_node",
+    "get_notifications",
     "node_activity_logs",
     "oneshot_schedule",
     "patch_schedule",

@@ -1,20 +1,20 @@
 """Module implementing reusable and/or modular Dialogs."""
 
-from collections.abc import Awaitable, Callable, Generator
+from collections.abc import Awaitable, Callable, Generator, MutableMapping
 from copy import deepcopy
 from dataclasses import dataclass, field
 from enum import Enum, IntFlag, auto
 from functools import partial
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Literal, Self
 from uuid import UUID
 
-from nice_dialogs.dialogs import ConfirmationDialog
+from nice_dialogs.dialogs import ConfirmationDialog, LabelMakerDialog
 from nicegui import ui
 from nicegui.events import ClickEventArguments, GenericEventArguments, ValueChangeEventArguments
 from pydantic_core import PydanticUndefined, ValidationError
 
 from lsst.cmservice.models.db.schedules import CreateManifestTemplate
-from lsst.cmservice.models.enums import DEFAULT_NAMESPACE
+from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, NotificationLabelEnum
 from lsst.cmservice.models.lib.parsers import as_snake_case
 from lsst.cmservice.models.lib.yaml import yaml
 
@@ -1022,3 +1022,77 @@ class AuditLogDialog(ui.dialog):
             ui.separator()
             with ui.card_actions().classes("w-full shrink-0 align-left"):
                 ui.button("Close", color="positive", on_click=lambda: self.submit(None))
+
+
+class NewNotificationLabelDialog(ui.dialog):
+    """Display a simple dialog for creating a new notification label."""
+
+    def __init__(self, *, dialog_title: str):
+        super().__init__()
+        self.dialog_title = dialog_title
+        default_filters = [
+            ("start", "*", "running"),
+            ("end", "running", "*"),
+            ("*", "*", "failed"),
+            ("breakpoint", "*", "running"),
+        ]
+        self.model: MutableMapping = {
+            "kind": "notification_label",
+            "spec": {"secret_plaintext": "", "filters": [":".join(f) for f in default_filters]},
+            "metadata": {"name": "", "kind": ""},
+        }
+        self.dialog_layout()
+
+    # Tell type checkers what is returned when the dialog is awaited
+    if TYPE_CHECKING:
+
+        def __await__(self) -> Generator[None, None, dict | None]: ...
+
+    def dialog_layout(self) -> None:
+        """Core layout method for the dialog."""
+        with (
+            self,
+            ui.card(),
+        ):
+            # HEADER
+            with ui.row().classes("w-full shrink-0 py-2"):
+                ui.label(self.dialog_title).classes("text-h6")
+
+            # CONTENT
+            ui.separator()
+            with ui.row().classes("w-full flex"):
+                ui.input(label="Name").bind_value(self, ("model", "metadata", "name")).classes("flex-1")
+                ui.select(
+                    options=[e.name for e in NotificationLabelEnum], label="Kind", with_input=False
+                ).bind_value(self, ("model", "metadata", "kind")).classes("flex-1")
+                ui.input(label="Secret", password=True, password_toggle_button=True).bind_value(
+                    self, ("model", "spec", "secret_plaintext")
+                ).classes("flex-1")
+            with ui.row().classes("w-full flex"):
+                ui.button(text="Events", icon="edit_notifications", on_click=self.handle_edit_events).classes(
+                    "flex-1"
+                )
+
+            # ACTIONS
+            ui.separator()
+            with ui.card_actions().classes("w-full shrink-0 align-left"):
+                ui.button("Save", color="positive", on_click=lambda: self.submit(self.model))
+                ui.button("Cancel", color="negative", on_click=lambda: self.submit(None))
+
+    async def handle_edit_events(self, data: ClickEventArguments) -> None:
+        """Display a dialog to allow setting notification rules for a label"""
+        edit_notifications = LabelMakerDialog(
+            "Notification Label Event Rules",
+            num_inputs=3,
+            input_labels=["kind", "from status", "to status"],
+            values=[tuple(f.split(":")) for f in self.model["spec"]["filters"]],
+            value_types=[
+                Literal["*", "step", "group", "breakpoint", "start", "end"],
+                Literal["*", "running", "ready", "waiting"],
+                Literal["*", "running", "accepted", "failed", "ready", "waiting"],
+            ],
+            allow_sorting=False,
+        )
+        result = await edit_notifications
+        if result is not None:
+            self.model["spec"]["filters"] = [":".join(e) for e in result]
