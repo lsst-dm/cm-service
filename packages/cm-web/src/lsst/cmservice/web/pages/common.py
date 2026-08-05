@@ -112,6 +112,9 @@ class CMPage[PageModelT: CMPageModel | CMPageData]:
         ui.button("Schedules", on_click=lambda: ui.navigate.to("/schedules")).classes("text-white").props(
             "flat"
         )
+        ui.button("Notifications", on_click=lambda: ui.navigate.to("/notifications")).classes(
+            "text-white"
+        ).props("flat")
 
         with ui.dropdown_button(app.storage.client["state"].user.username, auto_close=True):
             ui.link("Security Tokens", target=f"{self.base_url}/auth/tokens", new_tab=True).classes(

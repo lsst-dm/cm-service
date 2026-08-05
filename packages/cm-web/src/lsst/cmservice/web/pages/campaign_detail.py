@@ -11,7 +11,12 @@ from nicegui.events import ClickEventArguments, GenericEventArguments, ValueChan
 
 from .. import api
 from ..components import dicebear, storage, strings
-from ..components.dialog import AddStepEditorDialog, EditorContext, NewManifestEditorDialog, StepEditorDialog
+from ..components.dialog import (
+    AddStepEditorDialog,
+    EditorContext,
+    NewManifestEditorDialog,
+    StepEditorDialog,
+)
 from ..components.graph import nx_to_mermaid
 from ..lib.client_factory import CLIENT_FACTORY
 from ..lib.configdiff import patch_resource
@@ -28,6 +33,7 @@ class CampaignDetailPageModel(CMPageModel):
     manifests: dict[str, Any]
     graph: nx.DiGraph | None
     logs: list[dict[str, Any]]
+    notification_labels: list[str]
 
 
 class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
@@ -166,6 +172,7 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
                                 on_click=node_replacement_callback,
                             ).tooltip(version["status"])
 
+    @ui.refreshable_method
     def drawer_contents(self) -> None:
         ui.button(
             "New Step",
@@ -188,6 +195,9 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
             ui.toggle(
                 {"cards": "Cards", "table": "Table"}, value="cards", on_change=self.handle_node_display_toggle
             ).classes("flex-1").bind_value(self, "nodes_view", strict=False)
+
+        with ui.button("Notifications", icon="edit_notifications", color="accent").classes("w-full"):
+            self.handle_edit_notifications()
 
     async def footer_contents(self) -> None:
         ui.label().classes("text-xs").bind_text_from(self, "campaign_id", strict=False)
@@ -215,6 +225,7 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
             "manifests": {m["id"]: m for m in data["manifests"]},
             "graph": None,
             "logs": data["logs"],
+            "notification_labels": [],
         }
         self.model["graph"] = await run.cpu_bound(
             nx.node_link_graph,
@@ -229,6 +240,9 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
         # events emitted by the graph viz component
         ui.on("node_click", lambda n: ui.navigate.to(f"/node/{n.args}"))
 
+        # fetch the available notification labels
+        self.model["notification_labels"] = [label["name"] async for label in api.get_notifications()]
+        await self.drawer_contents.refresh()
         return self
 
     @ui.refreshable_method
@@ -643,7 +657,8 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
 
     async def handle_node_display_toggle(self, data: ValueChangeEventArguments) -> None:
         """Toggle and refresh the Node display area based on the node display
-        toggle control."""
+        toggle control.
+        """
         match data:
             case ValueChangeEventArguments(value="table"):
                 self.node_content.clear()
@@ -653,3 +668,22 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
                 await self.create_node_cards.refresh()
             case _:
                 ...
+
+    def handle_edit_notifications(self) -> None:
+        """Display a popup for applying existing notification labels to the
+        campaign.
+        """
+        if not hasattr(self, "model"):
+            return None
+        with ui.popup().classes("w-64") as popup:
+            ui.select(
+                self.model["notification_labels"],
+                multiple=True,
+                on_change=self.commit_campaign_notification_labels,
+            ).bind_value(self, ("model", "campaign", "configuration", "notification_labels")).classes(
+                "w-full"
+            ).props("autofocus use-chips").on("keydown.enter", popup.close)
+
+    async def commit_campaign_notification_labels(self, data: ValueChangeEventArguments) -> None:
+        """Commit changes to notification labels with PATCH API."""
+        await api.apply_notification_labels(self.model["campaign"])

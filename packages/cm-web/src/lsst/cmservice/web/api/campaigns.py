@@ -207,3 +207,17 @@ async def toggle_campaign_state(e: ValueChangeEventArguments | SimpleNamespace, 
         n.position = "top"
         n.close_button = "OK"
         n.close_button = True
+
+
+async def apply_notification_labels(campaign: dict) -> None:
+    """Apply a set of notification labels to a campaign with PATCH"""
+    campaign_id = campaign["id"]
+    if not (labels := campaign["configuration"].get("notification_labels")):
+        return None
+    async with CLIENT_FACTORY.aclient() as aclient:
+        r = await aclient.patch(
+            f"/campaigns/{campaign_id}",
+            json={"configuration": {"notification_labels": labels}},
+            headers={"Content-Type": "application/merge-patch+json"},
+        )
+        r.raise_for_status()
