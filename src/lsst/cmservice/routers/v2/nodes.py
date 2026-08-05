@@ -213,6 +213,20 @@ async def create_node_resource(
     "/{node_id}",
     summary="Update node detail",
     status_code=status.HTTP_202_ACCEPTED,
+    openapi_extra={
+        "requestBody": {
+            "required": True,
+            "content": {
+                "application/json-patch+json": {
+                    "schema": {"type": "array", "items": {"$ref": "#/components/schemas/JSONPatch"}}
+                },
+                "application/merge-patch+json": {
+                    "schema": {"type": "object", "items": {"$ref": "#/components/schemas/CampaignUpdate"}}
+                },
+                "application/octet-stream": {"schema": {"type": "string", "format": "binary"}},
+            },
+        }
+    },
 )
 async def update_node_resource(
     request: Request,
@@ -262,7 +276,7 @@ async def update_node_resource(
         use_rfc7396 = True
         mutable_fields.extend(["status"])
     else:
-        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Unsupported Content-Type")
+        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
 
     # TODO it will be an IntegrityError if the targeted node is not the most
     # recent version, it may be nicer to check this and exit early.

@@ -10,9 +10,9 @@ from _pytest.monkeypatch import MonkeyPatch
 from safir.database import create_async_session
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from lsst.cmservice import db
 from lsst.cmservice.common.enums import LevelEnum
 from lsst.cmservice.common.flags import Features
+from lsst.cmservice.db import legacy
 from lsst.cmservice.models.enums import StatusEnum
 from lsst.cmservice.models.types import AnyAsyncSession
 
@@ -24,13 +24,13 @@ pytestmark = pytest.mark.xfail
 @pytest.mark.asyncio()
 async def check_run_script(
     session: AnyAsyncSession,
-    parent: db.ElementMixin,
+    parent: legacy.ElementMixin,
     script_name: str,
     spec_block_name: str,
     **kwargs: Any,
-) -> db.Script:
+) -> legacy.Script:
     interface = sys.modules["lsst.cmservice.handlers"].interface
-    script = await db.Script.create_row(
+    script = await legacy.Script.create_row(
         session,
         parent_name=parent.fullname,
         name=script_name,
@@ -53,13 +53,13 @@ async def check_run_script(
 @pytest.mark.asyncio()
 async def check_script(
     session: AnyAsyncSession,
-    parent: db.ElementMixin,
+    parent: legacy.ElementMixin,
     script_name: str,
     spec_block_name: str,
     **kwargs: Any,
-) -> db.Script:
+) -> legacy.Script:
     interface = sys.modules["lsst.cmservice.handlers"].interface
-    script = await db.Script.create_row(
+    script = await legacy.Script.create_row(
         session,
         parent_name=parent.fullname,
         name=script_name,
@@ -111,7 +111,7 @@ async def test_handlers_campaign_level_db(
 
         await create_tree(session, LevelEnum.campaign, 0)
 
-        campaign = (await db.Campaign.get_rows(session))[0]
+        campaign = (await legacy.Campaign.get_rows(session))[0]
 
         await campaign.update_data_dict(
             session,
@@ -194,7 +194,7 @@ async def test_handlers_step_level_db(
         os.environ["CM_CONFIGS"] = "examples"
         await create_tree(session, LevelEnum.step, 0)
 
-        step = (await db.Step.get_rows(session))[0]
+        step = (await legacy.Step.get_rows(session))[0]
 
         await step.update_data_dict(
             session,
@@ -235,7 +235,7 @@ async def test_handlers_group_level_db(
         os.environ["CM_CONFIGS"] = "examples"
         await create_tree(session, LevelEnum.group, 0)
 
-        group = (await db.Group.get_rows(session))[0]
+        group = (await legacy.Group.get_rows(session))[0]
 
         await group.update_data_dict(
             session,
@@ -259,7 +259,7 @@ async def test_handlers_group_level_db(
 
         run_jobs = await check_run_script(session, group, "run", "run_jobs", collections=collections)
 
-        await db.Script.update_row(session, run_jobs.id, status=StatusEnum.reviewable)
+        await legacy.Script.update_row(session, run_jobs.id, status=StatusEnum.reviewable)
 
         _changed, status = await run_jobs.process(session, fake_status=StatusEnum.reviewable)
         assert status.value >= StatusEnum.reviewable.value
@@ -267,7 +267,7 @@ async def test_handlers_group_level_db(
         status = await run_jobs.review(session, fake_status=StatusEnum.accepted)
         assert status is StatusEnum.accepted
 
-        await db.Group.update_row(session, group.id, status=StatusEnum.reviewable)
+        await legacy.Group.update_row(session, group.id, status=StatusEnum.reviewable)
         _changed, status = await group.process(session)
         assert status is StatusEnum.accepted
 
@@ -290,7 +290,7 @@ async def test_handlers_job_level_db(
         os.environ["CM_CONFIGS"] = "examples"
         await create_tree(session, LevelEnum.job, 0)
 
-        job = (await db.Job.get_rows(session))[0]
+        job = (await legacy.Job.get_rows(session))[0]
 
         await job.update_data_dict(
             session,
@@ -320,14 +320,14 @@ async def test_handlers_job_level_db(
             session, job, "bps_panda_report", "bps_panda_report_script", collections=collections, data=data
         )
 
-        await db.WmsTaskReport.create_row(
+        await legacy.WmsTaskReport.create_row(
             session,
             job_id=job.id,
             name="dummy_report",
             fullname=f"{job.fullname}#dummy_report",
         )
 
-        await db.Script.update_row(
+        await legacy.Script.update_row(
             session,
             bps_panda_report.id,
             status=StatusEnum.prepared,
@@ -367,7 +367,7 @@ async def test_handlers_job_level_db(
             fullname=job.fullname,
         )
 
-        await db.Script.update_row(
+        await legacy.Script.update_row(
             session,
             manifest_report_load.id,
             status=StatusEnum.prepared,

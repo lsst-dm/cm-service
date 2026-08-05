@@ -1,6 +1,8 @@
 from collections.abc import AsyncGenerator
 from uuid import UUID
 
+from nicegui import app
+
 from lsst.cmservice.models.api.schedules import ScheduleUpdate
 from lsst.cmservice.models.db.schedules import CreateManifestTemplate, CreateSchedule
 
@@ -23,7 +25,9 @@ async def get_schedule_summary(schedule_id: str | None = None) -> AsyncGenerator
 
 async def patch_schedule(schedule_id: str | UUID, patch_data: ScheduleUpdate) -> None:
     """PATCH a schedule to toggle its enabled status."""
+    actor = app.storage.client["state"].user.username
     async with CLIENT_FACTORY.aclient() as client:
+        client.headers["X-Auth-Request-User"] = actor
         r = await client.patch(f"/schedules/{schedule_id}", json=patch_data.model_dump(exclude_unset=True))
         r.raise_for_status()
 
@@ -65,8 +69,10 @@ async def delete_schedule(schedule_id: str | UUID) -> None:
     that will remove all the schedule's template manifests but will not affect
     any campaigns created from this schedule in the past.
     """
+    actor = app.storage.client["state"].user.username
 
     async with CLIENT_FACTORY.aclient() as client:
+        client.headers["X-Auth-Request-User"] = actor
         r = await client.delete(f"/schedules/{schedule_id}")
         r.raise_for_status()
 
@@ -84,12 +90,25 @@ async def put_schedule_template(
     """PUTs a new manifest to the API for a given template. This will replace
     the content of the template.
     """
+    actor = app.storage.client["state"].user.username
+
     if isinstance(manifest, CreateManifestTemplate):
         template = manifest.model_dump(mode="json", exclude_none=True, exclude_unset=True)
 
     async with CLIENT_FACTORY.aclient() as client:
+        client.headers["X-Auth-Request-User"] = actor
         r = await client.put(
             f"/schedules/{schedule_id}/templates/{template_id}",
             json=template,
         )
         r.raise_for_status()
+
+
+async def get_schedule_change_history(schedule_id: UUID) -> list:
+    """Get the template manifest audit log entries for a schedule."""
+    async with CLIENT_FACTORY.aclient() as client:
+        r = await client.get(
+            "/audit", params={"object_type": "template", "context.schedule": str(schedule_id)}
+        )
+        r.raise_for_status()
+        return r.json()

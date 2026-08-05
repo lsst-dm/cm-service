@@ -181,6 +181,7 @@ async def async_client_fixture(
     async with AsyncClient(
         follow_redirects=True, transport=ASGITransport(app), base_url=f"http://test{config.asgi.route_prefix}"
     ) as aclient:
+        aclient.headers["X-Auth-Request-User"] = "testuser"
         yield aclient
     app.dependency_overrides.clear()
 

@@ -12,7 +12,7 @@ from .element_handler import ElementHandler
 if TYPE_CHECKING:
     from lsst.cmservice.models.types import AnyAsyncSession
 
-    from ..db import Job
+    from ..db.legacy import Job
 
 
 class JobHandler(ElementHandler):

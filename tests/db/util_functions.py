@@ -4,20 +4,20 @@ from typing import TypeAlias
 
 import pytest
 
-from lsst.cmservice import db
 from lsst.cmservice.common import errors
 from lsst.cmservice.common.enums import LevelEnum, TableEnum
+from lsst.cmservice.db import legacy
 from lsst.cmservice.models.enums import StatusEnum
 from lsst.cmservice.models.types import AnyAsyncSession
 
-type AnyElement = db.Group | db.Campaign | db.Step | db.Job
+type AnyElement = legacy.Group | legacy.Campaign | legacy.Step | legacy.Job
 
 
 async def add_scripts(
     session: AnyAsyncSession,
-    element: db.ElementMixin,
-) -> tuple[list[db.Script], db.ScriptDependency]:
-    prep_script = await db.Script.create_row(
+    element: legacy.ElementMixin,
+) -> tuple[list[legacy.Script], legacy.ScriptDependency]:
+    prep_script = await legacy.Script.create_row(
         session,
         name="prepare",
         parent_name=element.fullname,
@@ -25,7 +25,7 @@ async def add_scripts(
         spec_block_name="null_script",
     )
 
-    collect_script = await db.Script.create_row(
+    collect_script = await legacy.Script.create_row(
         session,
         name="collect",
         parent_name=element.fullname,
@@ -33,7 +33,7 @@ async def add_scripts(
         spec_block_name="null_script",
     )
 
-    script_depend = await db.ScriptDependency.create_row(
+    script_depend = await legacy.ScriptDependency.create_row(
         session,
         prereq_id=prep_script.id,
         depend_id=collect_script.id,
@@ -55,7 +55,7 @@ async def create_tree(
     pname = "DEFAULT"
 
     cname = f"camp0_{uuid_int}"
-    camp = await db.Campaign.create_row(
+    camp = await legacy.Campaign.create_row(
         session,
         name=cname,
         spec_block_assoc_name="base#campaign",
@@ -69,7 +69,7 @@ async def create_tree(
 
     snames = [f"step{i}_{uuid_int}" for i in range(2)]
     steps = [
-        await db.Step.create_row(
+        await legacy.Step.create_row(
             session,
             name=sname_,
             spec_block_name="basic_step",
@@ -81,7 +81,7 @@ async def create_tree(
     for step_ in steps:
         await add_scripts(session, step_)
 
-    step_depend = await db.StepDependency.create_row(
+    step_depend = await legacy.StepDependency.create_row(
         session,
         prereq_id=steps[0].id,
         depend_id=steps[1].id,
@@ -97,7 +97,7 @@ async def create_tree(
 
     gnames = [f"group{i}_{uuid_int}" for i in range(5)]
     groups = [
-        await db.Group.create_row(
+        await legacy.Group.create_row(
             session,
             name=gname_,
             spec_block_name="group",
@@ -113,7 +113,7 @@ async def create_tree(
         return
 
     jobs_ = [
-        await db.Job.create_row(
+        await legacy.Job.create_row(
             session,
             name=f"job_{uuid_int}",
             spec_block_name="job",
@@ -130,7 +130,7 @@ async def create_tree(
 
 async def delete_all_rows(
     session: AnyAsyncSession,
-    table_class: TypeAlias = db.RowMixin,
+    table_class: TypeAlias = legacy.RowMixin,
 ) -> None:
     rows = await table_class.get_rows(session)
     for row_ in rows:
@@ -145,13 +145,13 @@ async def delete_all_artifacts(
     *,
     check_cascade: bool = False,
 ) -> None:
-    await delete_all_rows(session, db.Campaign)
+    await delete_all_rows(session, legacy.Campaign)
     if check_cascade:
-        n_campaigns = len(await db.Campaign.get_rows(session))
-        n_steps = len(await db.Step.get_rows(session))
-        n_groups = len(await db.Group.get_rows(session))
-        n_jobs = len(await db.Job.get_rows(session))
-        n_scripts = len(await db.Script.get_rows(session))
+        n_campaigns = len(await legacy.Campaign.get_rows(session))
+        n_steps = len(await legacy.Step.get_rows(session))
+        n_groups = len(await legacy.Group.get_rows(session))
+        n_jobs = len(await legacy.Job.get_rows(session))
+        n_scripts = len(await legacy.Script.get_rows(session))
         assert n_campaigns == 0
         assert n_steps == 0
         assert n_groups == 0
@@ -162,14 +162,14 @@ async def delete_all_artifacts(
 async def delete_all_spec_stuff(
     session: AnyAsyncSession,
 ) -> None:
-    await delete_all_rows(session, db.Specification)
-    await delete_all_rows(session, db.SpecBlock)
+    await delete_all_rows(session, legacy.Specification)
+    await delete_all_rows(session, legacy.SpecBlock)
 
 
 async def delete_all_queues(
     session: AnyAsyncSession,
 ) -> None:
-    await delete_all_rows(session, db.Queue)
+    await delete_all_rows(session, legacy.Queue)
 
 
 async def cleanup(
@@ -189,8 +189,8 @@ async def cleanup(
 
 async def check_update_methods(
     session: AnyAsyncSession,
-    entry: db.NodeMixin,
-    entry_class: TypeAlias = db.ElementMixin,
+    entry: legacy.NodeMixin,
+    entry_class: TypeAlias = legacy.ElementMixin,
 ) -> None:
     check = await entry.update_data_dict(
         session,
@@ -297,7 +297,7 @@ async def check_update_methods(
 
 async def check_scripts(
     session: AnyAsyncSession,
-    entry: db.ElementMixin,
+    entry: legacy.ElementMixin,
 ) -> None:
     interface = importlib.import_module("lsst.cmservice.handlers.interface")
     scripts = await entry.get_scripts(session)
@@ -382,8 +382,8 @@ async def check_scripts(
 async def check_get_methods(
     session: AnyAsyncSession,
     entry: AnyElement,
-    entry_class: TypeAlias = db.ElementMixin,
-    parent_class: TypeAlias | None = db.ElementMixin,
+    entry_class: TypeAlias = legacy.ElementMixin,
+    parent_class: TypeAlias | None = legacy.ElementMixin,
 ) -> None:
     interface = importlib.import_module("lsst.cmservice.handlers.interface")
     if parent_class is not None:
@@ -464,15 +464,15 @@ async def check_get_methods(
 
 async def check_queue(
     session: AnyAsyncSession,
-    entry: db.ElementMixin,
+    entry: legacy.ElementMixin,
 ) -> None:
     # make and test queue object
-    queue = await db.Queue.create_row(session, fullname=entry.fullname)
+    queue = await legacy.Queue.create_row(session, fullname=entry.fullname)
 
     check_elem = await queue.get_node(session)
     assert check_elem.id == entry.id
 
-    check_queue_item = await db.Queue.get_queue_item(session, fullname=entry.fullname)
+    check_queue_item = await legacy.Queue.get_queue_item(session, fullname=entry.fullname)
     assert check_queue_item.node_id == entry.id
 
     queue.waiting()
@@ -482,12 +482,12 @@ async def check_queue(
 
     scripts = await entry.get_scripts(session)
     script = scripts[0]
-    queue_script = await db.Queue.create_row(session, fullname=f"script:{script.fullname}")
+    queue_script = await legacy.Queue.create_row(session, fullname=f"script:{script.fullname}")
 
     check_script = await queue_script.get_node(session)
     assert check_script.id == script.id
 
-    check_queue_script_item = await db.Queue.get_queue_item(session, fullname=f"script:{script.fullname}")
+    check_queue_script_item = await legacy.Queue.get_queue_item(session, fullname=f"script:{script.fullname}")
     assert check_queue_script_item.node_id == script.id
 
-    await db.Queue.delete_row(session, queue.id)
+    await legacy.Queue.delete_row(session, queue.id)

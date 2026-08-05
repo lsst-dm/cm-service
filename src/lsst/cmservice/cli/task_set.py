@@ -2,7 +2,7 @@
 
 import click
 
-from .. import db
+from ..db import legacy
 from . import options, wrappers
 
 
@@ -15,7 +15,7 @@ def task_set_group() -> None:
 # Specify the cli path to attach these commands to
 cli_group = task_set_group
 # Specify the associated database table
-DbClass = db.TaskSet
+DbClass = legacy.TaskSet
 # Specify the options for the create command
 create_options = [
     options.cmclient(),

@@ -38,6 +38,7 @@ class ManifestKind(enum.Enum):
     other = enum.auto()
     dummy = enum.auto()
     schedule = enum.auto()
+    template = enum.auto()
 
     def __lt__(self, other: ManifestKind) -> bool:
         """Implements a simple "rich" less-than operator for simple ordering
@@ -162,3 +163,12 @@ class StatusEnum(enum.Enum):
             return happy_path[next_index]
         else:
             return StatusEnum.failed
+
+
+class AuditActionEnum(enum.Enum):
+    """Available actions for audit log entries."""
+
+    create = enum.auto()
+    read = enum.auto()
+    update = enum.auto()
+    delete = enum.auto()

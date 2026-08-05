@@ -10,7 +10,8 @@ from pydantic import TypeAdapter
 
 from lsst.cmservice.models.enums import StatusEnum
 
-from .. import db, models_
+from .. import models_
+from ..db import legacy
 from . import wrappers
 
 if TYPE_CHECKING:
@@ -24,7 +25,7 @@ CreateModelClass = models_.JobCreate
 # Specify the pydantic model from updating rows
 UpdateModelClass = models_.JobUpdate
 # Specify the associated database table
-DbClass = db.Job
+DbClass = legacy.Job
 
 # Construct derived templates
 router_string = f"{DbClass.class_string}"

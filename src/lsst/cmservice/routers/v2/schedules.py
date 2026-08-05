@@ -8,11 +8,13 @@ and 409 errors, so specific handling of these cases is implemented only if some
 custom behavior is needed.
 """
 
+import difflib
 from collections.abc import Sequence
 from functools import partial
 from typing import Annotated, cast
 from uuid import UUID
 
+from asgi_correlation_id import correlation_id
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -33,12 +35,14 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from lsst.cmservice.models.api.schedules import ScheduleConfiguration, ScheduleUpdate
+from lsst.cmservice.models.db.audit import AuditLog
 from lsst.cmservice.models.db.schedules import (
     CreateManifestTemplate,
     CreateSchedule,
     ManifestTemplate,
     Schedule,
 )
+from lsst.cmservice.models.enums import AuditActionEnum, ManifestKind
 from lsst.cmservice.models.lib.timestamp import element_time
 
 from ...common.daemon_v2 import daemon_scheduled_job
@@ -185,15 +189,25 @@ async def delete_schedule_resource(
     response: Response,
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     schedule_id: UUID,
+    actor: Annotated[str, Header(alias="X-Auth-Request-User")],
 ) -> None:
     """Delete a schedule resource. The delete operation should cascade to any
     associated manifest template resources.
     """
-
     schedule = await session.get_one(Schedule, schedule_id)
     await session.delete(schedule)
     await session.commit()
 
+    audit = AuditLog(
+        actor=actor,
+        action=AuditActionEnum.delete,
+        request_id=UUID(correlation_id.get()),
+        object_id=schedule_id,
+        object_type=ManifestKind.schedule,
+        object_name=schedule.name,
+        context={},
+    )
+    request.state.audit.add(audit)
     return None
 
 
@@ -358,18 +372,37 @@ async def update_schedule_template_resource(
     schedule_id: Annotated[UUID4, Path()],
     template_id: Annotated[UUID5, Path()],
     template_manifest: CreateManifestTemplate,
+    owner_editor: Annotated[str, Header(alias="X-Auth-Request-User")],
 ) -> ManifestTemplate:
-    """Creates a new template record associated with a specific schedule."""
+    """Update an existing template record for a specific schedule."""
 
     template = await session.get_one(ManifestTemplate, template_id)
 
-    # Update the template with the new data
-    # Currently this ONLY supports a full replacement of the template manifest
-    # FIXME consider what versioning support or strategy we need here
+    update_diff = difflib.unified_diff(
+        template.manifest.splitlines(keepends=True),
+        template_manifest.manifest.splitlines(keepends=True),
+        fromfile=template.name,
+        tofile=template.name,
+    )
+    # Replace the template with the new data
     template.manifest = template_manifest.manifest
     template.metadata_["mtime"] = element_time()
 
     await session.commit()
+
+    audit = AuditLog(
+        actor=owner_editor,
+        action=AuditActionEnum.update,
+        request_id=UUID(correlation_id.get()),
+        object_id=template_id,
+        object_type=ManifestKind.template,
+        object_name=template.name,
+        context={
+            "schedule": str(schedule_id),
+            "diff": "".join(update_diff),
+        },
+    )
+    request.state.audit.add(audit)
 
     response.headers["Templates"] = str(
         request.url_for("read_schedule_template_collection", schedule_id=schedule_id)

@@ -8,8 +8,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from lsst.cmservice.models.enums import StatusEnum
 from lsst.cmservice.models.types import AnyAsyncSession
 
-from .. import db, models_
+from .. import models_
 from ..common.errors import CMMissingIDError
+from ..db import legacy
 from ..db.session import db_session_dependency
 from . import wrappers
 
@@ -21,7 +22,7 @@ CreateModelClass = models_.ScriptCreate
 # Specify the pydantic model from updating rows
 UpdateModelClass = models_.ScriptUpdate
 # Specify the associated database table
-DbClass = db.Script
+DbClass = legacy.Script
 
 
 # Build the router
@@ -123,7 +124,7 @@ async def reset_script(
 async def get_script_errors(
     row_id: int,
     session: Annotated[AnyAsyncSession, Depends(db_session_dependency)],
-) -> Sequence[db.ScriptError]:
+) -> Sequence[legacy.ScriptError]:
     try:
         async with session.begin():
             the_script = await DbClass.get_row(session, row_id)

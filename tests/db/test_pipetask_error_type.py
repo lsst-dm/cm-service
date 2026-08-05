@@ -8,7 +8,7 @@ from safir.database import create_async_session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from lsst.cmservice import db
+from lsst.cmservice.db import legacy
 
 from .util_functions import cleanup, delete_all_rows
 
@@ -42,14 +42,14 @@ async def test_error_match_db(engine: AsyncEngine) -> None:
             "diagnostic_message": "The error message from a regular pipetask error",
         }
         # First we want to make a row of the database table for the error.
-        e1 = await db.PipetaskErrorType.create_row(
+        e1 = await legacy.PipetaskErrorType.create_row(
             session,
             **known_error,
         )
 
         assert e1.fullname == f"{e1.task_name}#{e1.diagnostic_message}", "Bad fullname"
 
-        dummy = await db.PipetaskErrorType.get_row_by_fullname(session, e1.fullname)
+        dummy = await legacy.PipetaskErrorType.get_row_by_fullname(session, e1.fullname)
         assert dummy.fullname == e1.fullname
 
         # Assert that the error we just put in the database will match with
@@ -108,7 +108,7 @@ async def test_error_match_db(engine: AsyncEngine) -> None:
         )
         assert not_matched is None
 
-        await delete_all_rows(session, db.PipetaskErrorType)
+        await delete_all_rows(session, legacy.PipetaskErrorType)
         await cleanup(session)
 
 
@@ -141,19 +141,19 @@ async def test_error_type_db(engine: AsyncEngine) -> None:
         #       sure it is the combination of the message with the pipetask.
         #       There exist some diagnostic messages which arise from different
         #       tasks.
-        e1 = await db.PipetaskErrorType.create_row(
+        e1 = await legacy.PipetaskErrorType.create_row(
             session,
             **error,
         )
         with pytest.raises(IntegrityError):
-            e1 = await db.PipetaskErrorType.create_row(
+            e1 = await legacy.PipetaskErrorType.create_row(
                 session,
                 **error,
             )
 
         # Make sure we can read the same values out of the PipetaskErrorType
         # database that we just put in it and that the id is right
-        check = await db.PipetaskErrorType.get_row(session, e1.id)
+        check = await legacy.PipetaskErrorType.get_row(session, e1.id)
         assert check.task_name == e1.task_name
         assert check.diagnostic_message == e1.diagnostic_message
 
@@ -161,14 +161,14 @@ async def test_error_type_db(engine: AsyncEngine) -> None:
 
         # Check that we have actually created a PipetaskErrorType by putting
         # one in the database
-        errors = await db.PipetaskErrorType.get_rows(session)
+        errors = await legacy.PipetaskErrorType.get_rows(session)
         n_errors = len(errors)
         assert n_errors >= 1
 
         # Check that we can delete rows from the PipetaskErrorType database
-        await db.PipetaskErrorType.delete_row(session, e1.id)
-        errors = await db.PipetaskErrorType.get_rows(session)
+        await legacy.PipetaskErrorType.delete_row(session, e1.id)
+        errors = await legacy.PipetaskErrorType.get_rows(session)
         assert len(errors) == n_errors - 1
 
-        await delete_all_rows(session, db.PipetaskErrorType)
+        await delete_all_rows(session, legacy.PipetaskErrorType)
         await cleanup(session)

@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING
 
 import httpx
 
-from .. import db, models_
+from .. import models_
+from ..db import legacy
 from . import wrappers
 
 if TYPE_CHECKING:
@@ -18,7 +19,7 @@ ResponseModelClass = models_.Dependency
 # Specify the pydantic model from making new StepDependency
 CreateModelClass = models_.DependencyCreate
 # Specify the associated database table
-DbClass = db.StepDependency
+DbClass = legacy.StepDependency
 
 # Construct derived templates
 router_string = f"{DbClass.class_string}"

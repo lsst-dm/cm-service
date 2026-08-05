@@ -21,7 +21,7 @@ from tabulate import tabulate
 from lsst.cmservice.models.enums import StatusEnum
 
 from ..client.client import CMClient
-from ..db import ElementMixin, Job, RowMixin, Script, SpecBlock, Specification
+from ..db.legacy import ElementMixin, Job, RowMixin, Script, SpecBlock, Specification
 from . import options
 
 

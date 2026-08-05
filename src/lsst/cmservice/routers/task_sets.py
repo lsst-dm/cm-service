@@ -2,7 +2,8 @@
 
 from fastapi import APIRouter
 
-from .. import db, models_
+from .. import models_
+from ..db import legacy
 from . import wrappers
 
 # Template specialization
@@ -13,7 +14,7 @@ CreateModelClass = models_.TaskSetCreate
 # Specify the pydantic model from updating rows
 UpdateModelClass = models_.TaskSetUpdate
 # Specify the associated database table
-DbClass = db.TaskSet
+DbClass = legacy.TaskSet
 
 
 # Build the router

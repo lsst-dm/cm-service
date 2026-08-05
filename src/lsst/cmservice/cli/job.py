@@ -4,8 +4,8 @@ import click
 import rich
 from pydantic import BaseModel
 
-from .. import db
 from ..client.client import CMClient
+from ..db import legacy
 from . import options, wrappers
 
 
@@ -17,7 +17,7 @@ def job_group() -> None:
 # Template specialization
 # Specify the cli path to attach these commands to
 cli_group = job_group
-DbClass = db.Job
+DbClass = legacy.Job
 # Specify the options for the create command
 create_options = [
     options.cmclient(),
@@ -87,7 +87,7 @@ get_row_by_name = wrappers.get_row_by_name_command(get_command, sub_client, DbCl
 
 get_row_by_fullname = wrappers.get_row_by_fullname_command(get_command, sub_client, DbClass)
 
-get_parent = wrappers.get_element_parent_command(get_command, sub_client, db.Group)
+get_parent = wrappers.get_element_parent_command(get_command, sub_client, legacy.Group)
 
 get_spec_block = wrappers.get_spec_block_command(get_command, sub_client)
 
@@ -146,7 +146,7 @@ def get_errors(
     output: options.OutputEnum | None,
 ) -> None:
     result = client.job.get_errors(row_id=row_id)
-    wrappers.output_pydantic_list(result, output, db.PipetaskError.col_names_for_table)
+    wrappers.output_pydantic_list(result, output, legacy.PipetaskError.col_names_for_table)
 
 
 @action_command(name="accept")
@@ -164,9 +164,9 @@ def accept(
     output: options.OutputEnum | None,
 ) -> None:
     """Mark a job as accepted"""
-    sub_client = getattr(client, db.Job.class_string)
+    sub_client = getattr(client, legacy.Job.class_string)
     result = sub_client.accept(row_id=row_id, force=force, output_collection=run_collection)
     if isinstance(result, BaseModel):
-        wrappers.output_pydantic_object(result, output, db.Job.col_names_for_table)
+        wrappers.output_pydantic_object(result, output, legacy.Job.col_names_for_table)
     else:
         rich.print(result)

@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING
 
 import httpx
 
-from .. import db, models_
+from .. import models_
+from ..db import legacy
 from . import wrappers
 
 if TYPE_CHECKING:
@@ -20,7 +21,7 @@ CreateModelClass = models_.WmsTaskReportCreate
 # Specify the pydantic model from updating rows
 UpdateModelClass = models_.WmsTaskReportUpdate
 # Specify the associated database table
-DbClass = db.WmsTaskReport
+DbClass = legacy.WmsTaskReport
 
 # Construct derived templates
 router_string = f"{DbClass.class_string}"

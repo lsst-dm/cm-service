@@ -2,7 +2,7 @@
 
 import click
 
-from .. import db
+from ..db import legacy
 from . import options, wrappers
 
 
@@ -15,7 +15,7 @@ def step_group() -> None:
 # Specify the cli path to attach these commands to
 cli_group = step_group
 # Specify the associated database table
-DbClass = db.Step
+DbClass = legacy.Step
 # Specify the options for the create command
 create_options = [
     options.cmclient(),
@@ -84,7 +84,7 @@ get_row_by_name = wrappers.get_row_by_name_command(get_command, sub_client, DbCl
 
 get_row_by_fullname = wrappers.get_row_by_fullname_command(get_command, sub_client, DbClass)
 
-get_parent = wrappers.get_element_parent_command(get_command, sub_client, db.Campaign)
+get_parent = wrappers.get_element_parent_command(get_command, sub_client, legacy.Campaign)
 
 get_spec_block = wrappers.get_spec_block_command(get_command, sub_client)
 

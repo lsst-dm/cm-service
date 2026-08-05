@@ -16,7 +16,7 @@ from ..parsing.string import parse_element_fullname
 from .logging import LOGGER
 
 if TYPE_CHECKING:
-    from ..db import Campaign, Job, Script
+    from ..db.legacy import Campaign, Job, Script
 
 logger = LOGGER.bind(module=__name__)
 

@@ -11,9 +11,10 @@ from pydantic import TypeAdapter, ValidationError
 
 from lsst.cmservice.models.lib import timestamp
 
-from .. import db, models_
+from .. import models_
 from ..common.errors import test_type_and_raise
 from ..common.logging import LOGGER
+from ..db import legacy
 from . import wrappers
 
 if TYPE_CHECKING:
@@ -29,7 +30,7 @@ CreateModelClass = models_.QueueCreate
 # Specify the pydantic model from updating rows
 UpdateModelClass = models_.QueueUpdate
 # Specify the associated database table
-DbClass = db.Queue
+DbClass = legacy.Queue
 
 # Construct derived templates
 router_string = f"{DbClass.class_string}"
