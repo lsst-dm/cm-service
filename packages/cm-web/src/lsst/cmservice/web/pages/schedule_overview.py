@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Literal, Self, assert_never
 
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 from nice_dialogs.dialogs import ConfirmationDialog, CronEditorDialog, DatetimePickerDialog
 from nicegui import app, ui
 from nicegui.events import ClickEventArguments, GenericEventArguments

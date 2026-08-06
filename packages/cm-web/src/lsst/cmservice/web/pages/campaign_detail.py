@@ -5,7 +5,7 @@ from operator import itemgetter
 from typing import TYPE_CHECKING, Any, Literal, Self, assert_never
 
 import networkx as nx
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 from nicegui import app, run, ui
 from nicegui.events import ClickEventArguments, GenericEventArguments, ValueChangeEventArguments
 
@@ -197,7 +197,7 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
         method to perform data loading/prep, etc., before calling render().
         """
         if client_ is None:
-            raise RuntimeError("Campaign Detail page setup requires an httpx client")
+            raise RuntimeError("Campaign Detail page setup requires an httpx2 client")
 
         self.show_spinner()
         storage.initialize_client_storage()

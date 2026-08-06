@@ -3,7 +3,7 @@
 from uuid import uuid4
 
 import pytest
-from httpx import AsyncClient, codes
+from httpx2 import AsyncClient, codes
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""

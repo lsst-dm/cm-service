@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
-import httpx
+import httpx2
 from pydantic import TypeAdapter
 
 from lsst.cmservice.models.enums import StatusEnum
@@ -38,8 +38,8 @@ class CMJobClient:
         self._client = parent.client
 
     @property
-    def client(self) -> httpx.Client:
-        """Return the httpx.Client"""
+    def client(self) -> httpx2.Client:
+        """Return the httpx2.Client"""
         return self._client
 
     get_rows = wrappers.get_rows_no_parent_function(ResponseModelClass, f"{router_string}/list")
@@ -150,7 +150,7 @@ class CMJobClient:
         **kwargs: Any,
     ) -> ResponseModelClass | int:
         full_query = f"{router_string}/action/{row_id}/accept"
-        params = httpx.QueryParams(force=force, output_collection=output_collection)
+        params = httpx2.QueryParams(force=force, output_collection=output_collection)
         response = self.client.post(full_query, params=params).raise_for_status()
         if result := response.json():
             return TypeAdapter(ResponseModelClass).validate_python(result)

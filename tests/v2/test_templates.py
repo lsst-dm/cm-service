@@ -9,7 +9,7 @@ from textwrap import dedent
 from uuid import uuid4
 
 import pytest
-from httpx import AsyncClient, codes
+from httpx2 import AsyncClient, codes
 
 from lsst.cmservice.common.templates import build_sandbox_and_render_templates
 from lsst.cmservice.models.api.schedules import ScheduleConfiguration

@@ -2,26 +2,26 @@ import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-import httpx
+import httpx2
 
 from ..settings import settings
 
-_atransport = httpx.AsyncHTTPTransport(
+_atransport = httpx2.AsyncHTTPTransport(
     verify=False,
     retries=3,
 )
-"""An asynchronous HTTP transport for httpx clients."""
+"""An asynchronous HTTP transport for httpx2 clients."""
 
-_transport = httpx.HTTPTransport(
+_transport = httpx2.HTTPTransport(
     verify=False,
     retries=3,
 )
-"""A synchronous HTTP transport for httpx clients."""
+"""A synchronous HTTP transport for httpx2 clients."""
 
 
 class ClientFactory:
-    _atransport: httpx.AsyncHTTPTransport
-    _client: httpx.AsyncClient | None
+    _atransport: httpx2.AsyncHTTPTransport
+    _client: httpx2.AsyncClient | None
     _headers: dict[str, str]
     _kwargs: dict
     _lock: asyncio.Lock
@@ -47,19 +47,19 @@ class ClientFactory:
             "timeout": settings.timeout,
         }
 
-    async def get_aclient(self) -> httpx.AsyncClient:
+    async def get_aclient(self) -> httpx2.AsyncClient:
         """Get a shared client"""
         async with self._lock:
             if self._client is None or self._client.is_closed:
-                self._client = httpx.AsyncClient(**self._kwargs)
+                self._client = httpx2.AsyncClient(**self._kwargs)
         return self._client
 
     @asynccontextmanager
-    async def aclient(self) -> AsyncGenerator[httpx.AsyncClient]:
+    async def aclient(self) -> AsyncGenerator[httpx2.AsyncClient]:
         client = await self.get_aclient()
         try:
             yield client
-        except httpx.HTTPStatusError:
+        except httpx2.HTTPStatusError:
             # Do not reraise status errors from here, let the caller handle it
             pass
         except Exception:

@@ -4,7 +4,7 @@ import sys
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, TypeAlias
 
-from httpx import ConnectError, HTTPStatusError
+from httpx2 import ConnectError, HTTPStatusError
 from pydantic import TypeAdapter
 
 from .. import models_

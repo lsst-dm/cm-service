@@ -90,7 +90,7 @@ def configure_logging(log_level: int) -> None:
     # Feed third-party logs to our root logger, except the Unvicorn access log,
     # for which we have a custom implementation as middleware.
     for logger, propagate in [
-        ("httpx", True),
+        ("httpx2", True),
     ]:
         logging.getLogger(logger).handlers.clear()
         logging.getLogger(logger).propagate = propagate
