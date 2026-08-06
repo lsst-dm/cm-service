@@ -1,7 +1,7 @@
 import json
 from collections.abc import AsyncGenerator
 
-from httpx import HTTPStatusError, codes
+from httpx2 import HTTPStatusError, codes
 from nicegui import ui
 
 from lsst.cmservice.models.api.notifications import NotificationLabelManifest
