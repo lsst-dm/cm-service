@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Any, Literal, Self, assert_never
 
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 from nice_dialogs.dialogs import ConfirmationDialog
 from nicegui import ui
 from nicegui.events import ClickEventArguments, GenericEventArguments
