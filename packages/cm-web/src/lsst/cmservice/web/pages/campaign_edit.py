@@ -51,6 +51,7 @@ class CampaignPageModel(CMPageData):
     manifests: dict[str, Any] = field(default_factory=dict)
     schedule_info: ScheduleConfiguration = field(default_factory=ScheduleConfiguration)
     flags: PageFlags = field(default_factory=lambda: PageFlags(0))
+    available_notification_labels: list[str] = field(default_factory=list)
 
 
 class CampaignEditPage(CMPage[CampaignPageModel]):
@@ -77,6 +78,14 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
             ui.input(label="Campaign Name", on_change=self.handle_campaign_name_change).bind_value(
                 self, "campaign_name"
             ).classes("w-48").props("debounce=1000")
+
+            ui.select(
+                options=self.model.available_notification_labels,
+                label="Notification Labels",
+                multiple=True,
+            ).bind_value(self, ("model", "campaign", "configuration", "notification_labels")).classes(
+                "w-48"
+            ).props("use-chips")
 
             with (
                 ui.input(
@@ -594,6 +603,8 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
             }
 
         self.campaign_name = "new_campaign"
+        # fetch the available notification labels
+        self.model.available_notification_labels = [label["name"] async for label in api.get_notifications()]
 
         return self
 

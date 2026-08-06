@@ -1061,11 +1061,11 @@ class NewNotificationLabelDialog(ui.dialog):
             # CONTENT
             ui.separator()
             with ui.row().classes("w-full flex"):
-                ui.input(label="Name").bind_value(self, ("model", "metadata", "name")).classes("flex-1")
+                ui.input(label="Label Name").bind_value(self, ("model", "metadata", "name")).classes("flex-1")
                 ui.select(
-                    options=[e.name for e in NotificationLabelEnum], label="Kind", with_input=False
+                    options=[e.name for e in NotificationLabelEnum], label="Label Kind", with_input=False
                 ).bind_value(self, ("model", "metadata", "kind")).classes("flex-1")
-                ui.input(label="Secret", password=True, password_toggle_button=True).bind_value(
+                ui.input(label="Label Secret", password=True, password_toggle_button=True).bind_value(
                     self, ("model", "spec", "secret_plaintext")
                 ).classes("flex-1")
             with ui.row().classes("w-full flex"):
