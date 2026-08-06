@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import httpx
+import httpx2
 
 from .. import models_
 from ..db import legacy
@@ -36,8 +36,8 @@ class CMScriptErrorClient:
         self._client = parent.client
 
     @property
-    def client(self) -> httpx.Client:
-        """Return the httpx.Client"""
+    def client(self) -> httpx2.Client:
+        """Return the httpx2.Client"""
         return self._client
 
     # Add functions to the client class

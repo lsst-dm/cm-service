@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-import httpx
+import httpx2
 from sqlalchemy.exc import NoResultFound
 
 from lsst.cmservice.models.db.campaigns import Node
@@ -49,7 +49,7 @@ SLACK_HEADER_SECTION = {
 
 class SlackNotification(NotificationTransport):
     __kind__ = NotificationLabelEnum.slack
-    headers: httpx.Headers = httpx.Headers({"Content-type": "application/json"})
+    headers: httpx2.Headers = httpx2.Headers({"Content-type": "application/json"})
 
     def notify(self, message: bytes | dict) -> None:
         raise NotImplementedError("Only asynchronous notifications are supported")
@@ -71,12 +71,12 @@ class SlackNotification(NotificationTransport):
                     headers=self.headers,
                 )
                 response.raise_for_status()
-            except httpx.ConnectError as e:
+            except httpx2.ConnectError as e:
                 logger.error(
                     "Unable to connect to Slack endpoint",
                     message=e,
                 )
-            except httpx.HTTPStatusError as e:
+            except httpx2.HTTPStatusError as e:
                 logger.error(
                     "Unable to send Slack Notification",
                     http_status=e.response.status_code,

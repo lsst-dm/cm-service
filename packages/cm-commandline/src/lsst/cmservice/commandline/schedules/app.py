@@ -6,7 +6,7 @@ from typing import Annotated
 from uuid import uuid4
 
 import typer
-from httpx import HTTPStatusError, codes
+from httpx2 import HTTPStatusError, codes
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn

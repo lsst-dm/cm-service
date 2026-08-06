@@ -4,7 +4,7 @@ targeting Node resources.
 
 from typing import Literal
 
-from httpx import HTTPStatusError, Response, codes
+from httpx2 import HTTPStatusError, Response, codes
 from nicegui import app, ui
 
 from ..lib.client_factory import CLIENT_FACTORY

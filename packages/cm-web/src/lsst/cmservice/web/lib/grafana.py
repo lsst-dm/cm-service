@@ -2,16 +2,16 @@
 
 from typing import Any, Literal
 
-import httpx
+import httpx2
 
 from ..settings import settings
 
 
-def get_grafana_link(bps_run_name: str, from_epoch_ms: int, to_epoch_ms: int | Literal["now"]) -> httpx.URL:
+def get_grafana_link(bps_run_name: str, from_epoch_ms: int, to_epoch_ms: int | Literal["now"]) -> httpx2.URL:
     """Generate a Grafana link for a bps run"""
     url = f"{settings.grafana_base_url}/{settings.grafana_campaign_history}"
 
-    request = httpx.Request(
+    request = httpx2.Request(
         method="get",
         url=url,
         params={
@@ -26,7 +26,7 @@ def get_grafana_link(bps_run_name: str, from_epoch_ms: int, to_epoch_ms: int | L
     return request.url
 
 
-def get_grafana_link_for_node(node: dict[str, Any]) -> httpx.URL | None:
+def get_grafana_link_for_node(node: dict[str, Any]) -> httpx2.URL | None:
     """..."""
     if (bps_run_name := node["metadata"].get("bps", {}).get("Run Name")) is None:
         return None

@@ -3,7 +3,7 @@ from collections.abc import AsyncGenerator, Sequence
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, cast
 
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 from nicegui import app, ui
 from nicegui.events import ValueChangeEventArguments
 

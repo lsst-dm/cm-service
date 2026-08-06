@@ -1,10 +1,10 @@
-"""Module providing an httpx client for the cli application"""
+"""Module providing an httpx2 client for the cli application"""
 
 from collections.abc import Generator
 from contextlib import contextmanager
 from uuid import uuid4
 
-from httpx import Client, HTTPStatusError, HTTPTransport
+from httpx2 import Client, HTTPStatusError, HTTPTransport
 
 from .logging import LOGGER
 from .models import TypedContext

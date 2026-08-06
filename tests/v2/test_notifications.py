@@ -7,7 +7,7 @@ from uuid import UUID, uuid4, uuid5
 
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 from pytest_mock import MockerFixture
 from sqlalchemy import text
 from sqlmodel.ext.asyncio.session import AsyncSession

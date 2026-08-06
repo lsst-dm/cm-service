@@ -6,7 +6,7 @@ from datetime import timedelta
 from time import sleep
 from typing import TYPE_CHECKING
 
-import httpx
+import httpx2
 from pydantic import TypeAdapter, ValidationError
 
 from lsst.cmservice.models.lib import timestamp
@@ -43,8 +43,8 @@ class CMQueueClient:
         self._client = parent.client
 
     @property
-    def client(self) -> httpx.Client:
-        """Return the httpx.Client"""
+    def client(self) -> httpx2.Client:
+        """Return the httpx2.Client"""
         return self._client
 
     # Add functions to the client class

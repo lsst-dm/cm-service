@@ -5,7 +5,7 @@ command.
 from pathlib import Path
 
 import yaml
-from httpx import HTTPStatusError, Response
+from httpx2 import HTTPStatusError, Response
 from pydantic_extra_types.cron import CronStr
 from rich.console import Console
 

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Self, TypedDict, cast
 
 from fastapi import Request
-from httpx import AsyncClient, HTTPStatusError
+from httpx2 import AsyncClient, HTTPStatusError
 from nice_dialogs.dialogs import ConfirmationDialog
 from nicegui import app, ui
 

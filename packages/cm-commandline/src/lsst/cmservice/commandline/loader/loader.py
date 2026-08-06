@@ -3,7 +3,7 @@ from typing import Any
 
 import typer
 import yaml
-from httpx import Headers, HTTPStatusError
+from httpx2 import Headers, HTTPStatusError
 
 from ..client import http_client
 from ..models import TypedContext

@@ -1,7 +1,7 @@
 import os
 
 import pytest
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 
 from lsst.cmservice import models_
 from lsst.cmservice.common.enums import LevelEnum

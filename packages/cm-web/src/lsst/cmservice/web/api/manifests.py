@@ -1,4 +1,4 @@
-from httpx import HTTPStatusError, Response, codes
+from httpx2 import HTTPStatusError, Response, codes
 from nicegui import ui
 
 from ..lib.client_factory import CLIENT_FACTORY

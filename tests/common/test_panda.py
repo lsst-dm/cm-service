@@ -9,7 +9,7 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
-from httpx import Response
+from httpx2 import Response
 
 from lsst.cmservice.common.logging import LOGGER
 from lsst.cmservice.common.panda import get_panda_token

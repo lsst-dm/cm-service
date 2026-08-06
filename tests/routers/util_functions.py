@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import TypeAlias
 
-from httpx import AsyncClient, Response
+from httpx2 import AsyncClient, Response
 from pydantic import TypeAdapter
 
 from lsst.cmservice import models_

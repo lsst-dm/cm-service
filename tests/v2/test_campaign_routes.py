@@ -3,7 +3,7 @@
 from uuid import NAMESPACE_DNS, UUID, uuid4, uuid5
 
 import pytest
-from httpx import AsyncClient, codes
+from httpx2 import AsyncClient, codes
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""
