@@ -33,7 +33,7 @@ dependencies = [
     "deepdiff>=8.6.1,<9",
     "fastapi==0.136.*",
     "greenlet==3.1.*",
-    "httpx>=0.27.2",
+    "httpx2==2.9.*",
     "jinja2==3.1.*",
     "networkx>=3.5",
     "numpy==2.1.*",
@@ -80,6 +80,8 @@ dev = [
     "pytest>=9.0.0",
     "pytest-asyncio>=0.24.0",
     "pytest-cov>=6.0.0",
+    "pytest-httpx2>=1.0.0",
+    "pytest-mock",
     "pytest-playwright>=0.5.2",
     "pytest-timeout>=2.3.1",
     "python-semantic-release==10.6.*",
@@ -90,7 +92,7 @@ dev = [
     "testcontainers[postgres]==4.10.*",
     "types-pyyaml>=6.0.12.20240917",
     "types-tabulate>=0.9.0.20240106",
-    "types-networkx",
+    "types-networkx==3.6.1.20260624",
 ]
 
 [project.optional-dependencies]
@@ -219,7 +221,7 @@ convention = "numpy"
 
 [tool.pytest]
 minversion = "9.0"
-addopts = ["--import-mode=importlib"]
+addopts = ["--import-mode=importlib", "-p pytest_httpx2"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope="function"
 testpaths=["tests", "packages/**/*_tests"]
