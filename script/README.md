@@ -5,6 +5,6 @@ required or used by the application runtime.
 
 This script bootstraps the `uv` tool if it is not present in your working environment.
 
-## get_nodes.sh
+## render_jsonschema.py
 
-This script runs an allocate nodes command on a loop.
+This script is used by the build process to create HTML and JSON representations of Pydantic models used in the application.

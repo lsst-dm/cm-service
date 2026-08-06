@@ -67,12 +67,12 @@ uv:
 .PHONY: release
 release: export GIT_COMMIT_AUTHOR="$(shell git config user.name) <$(shell git config user.email)>"
 release:
-	semantic-release version --no-push --no-vcs-release --skip-build --no-changelog --no-tag
+	psr version --no-push --no-vcs-release --skip-build --no-changelog --no-tag
 
 
 .PHONY: signed-release
 signed-release: release
-signed-release: export RELEASE_TAG=$(shell semantic-release version --print-last-released)
+signed-release: export RELEASE_TAG=$(shell psr version --print-last-released)
 signed-release:
 	git tag -d "$(RELEASE_TAG)" || true
 	git tag -s "$(RELEASE_TAG)" -m "Release $(RELEASE_TAG)"

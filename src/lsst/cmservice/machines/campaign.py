@@ -106,7 +106,7 @@ class CampaignMachine(NodeMachine):
         if self.activity_log_entry is None:
             await self.prepare_activity_log(event)
 
-        logger.exception(event.error, id=str(self.db_model.id), exc=event.error.__class__.__qualname__)
+        logger.error(event.error, id=str(self.db_model.id), exc=event.error.__class__.__qualname__)
         if self.activity_log_entry is not None:
             self.activity_log_entry.detail["trigger"] = event.event.name
             self.activity_log_entry.detail["error"] = str(event.error)

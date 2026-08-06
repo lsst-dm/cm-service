@@ -44,7 +44,7 @@ jobs:
           LOGGING__STREAM: stderr
           UV_NO_SYNC: "1"
         run: |
-          SCHEDID=$(uv run -q cm --output json schedules load smoketest/smoketest.yaml | jq -r '.self | split("/") | .[-1]')
+          SCHEDID=$(uv run -q cm --output json schedules load integration/smoketest.yaml | jq -r '.self | split("/") | .[-1]')
           echo "id=$SCHEDID" >> $GITHUB_OUTPUT
 
       - name: Oneshot smoketest schedule
