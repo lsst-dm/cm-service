@@ -26,7 +26,7 @@ from sqlalchemy.dialects.postgresql import INTEGER
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.orm import aliased
 from sqlmodel import cast as sqlcast
-from sqlmodel import col, distinct, func, select, update
+from sqlmodel import col, distinct, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from lsst.cmservice.models.api.manifests import CampaignManifest, ManifestRequest
@@ -51,6 +51,7 @@ from lsst.cmservice.models.lib.graph import (
 from lsst.cmservice.models.lib.timestamp import element_time
 from lsst.cmservice.models.types import KindField
 
+from ... import services
 from ...common.logging import LOGGER
 from ...db.session import db_session_dependency
 from ...machines.tasks import change_campaign_state
@@ -842,6 +843,8 @@ async def read_default_manifest_resource(
     kind: KindField,
 ) -> Manifest | None:
     """Get the default manifest for specified kind within the campaign"""
+    # NOTE: since the table has a unique index applied, it should be impossible
+    # to ever set more than one default for a campaign-kind manifest.
     manifest = await session.exec(select(Manifest).where(col(Manifest.default).is_(True)))
     return manifest.first()
 
@@ -866,16 +869,9 @@ async def update_default_manifest_resource(
     operation.
     """
     async with session.begin():
-        await session.exec(
-            update(Manifest)
-            .where(
-                col(Manifest.namespace) == campaign_id,
-                col(Manifest.kind) == kind,
-                col(Manifest.default).is_(True),
-            )
-            .values(default=False)
+        await services.set_manifest_default_for_campaign(
+            session, campaign_id=campaign_id, kind=kind, manifest_id=manifest_id
         )
-        await session.exec(update(Manifest).where(col(Manifest.id) == manifest_id).values(default=True))
 
 
 @router.delete(
