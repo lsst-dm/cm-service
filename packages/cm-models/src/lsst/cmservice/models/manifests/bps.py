@@ -206,6 +206,25 @@ class BpsSpec(ManifestSpec):
         ]
     ) = None
 
+    extra_aggregate_options: (
+        Annotated[list[str], Field(description="Extra options added to finalJob `aggregate-graph` command")]
+        | Annotated[
+            None,
+            Field(
+                title="Null",
+                description="This field is optional for a BPS configuration.",
+            ),
+        ]
+    ) = Field(
+        default_factory=lambda: ["--output {submitPath}/{uniqProcName}_prov.qg"],
+        examples=[
+            [
+                "--worker-log-dir {submitPath}/jobs/finalJob",
+                "--output {submitPath}/{uniqProcName}_prov.qg",
+            ]
+        ],
+    )
+
     clustering: (
         Annotated[
             dict[str, Any],

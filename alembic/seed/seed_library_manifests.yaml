@@ -122,3 +122,6 @@ spec:
   operator: lsstsvc1
   extra_run_quantum_options:
     - "--no-raise-on-partial-outputs"
+  extra_aggregate_options:
+    - "--worker-log-dir {submitPath}/jobs/finalJob"
+    - "--output {submitPath}/{uniqProcName}_prov.qg"
