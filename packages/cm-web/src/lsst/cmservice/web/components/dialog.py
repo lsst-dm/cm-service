@@ -605,6 +605,7 @@ class NewStepEditorDialog(EditorDialog):
         selector_dialog = LabelMakerDialog(
             "Manifest Selectors",
             num_inputs=3,
+            input_labels=["Manifest Kind", "Selector Name", "Selector Value"],
             values=base_selectors,
             validators=[],
             allow_sorting=False,
@@ -711,6 +712,7 @@ class NewManifestEditorDialog(EditorDialog):
         label_editor_dialog = LabelMakerDialog(
             "Manifest Labels",
             num_inputs=2,
+            input_labels=["Label Name", "Label Value"],
             values=base_labels,
             validators=[],
             allow_sorting=False,
