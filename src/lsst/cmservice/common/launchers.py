@@ -2,13 +2,55 @@
 Systems.
 """
 
+import asyncio
 from abc import ABC, abstractmethod
+from collections.abc import Awaitable, Callable
 from datetime import datetime
+from functools import wraps
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
 from lsst.cmservice.models.lib.timestamp import element_time
+
+
+def exponential_retry[**P, T](
+    *,
+    delay: float | int = 5,
+    tries: int = 3,
+    backoff: float | int = 1.5,
+    retryables: list[str] = [],
+) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T | None]]]:
+    """Decorator factory for applying a retry mechanism to an async function"""
+
+    def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T | None]]:
+        """Decorator wraps async function with a retry mechanism"""
+
+        @wraps(func)
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T | None:
+            """Wraps async function with a retry mechanism"""
+            evt = asyncio.Event()
+            r = None
+            _delay = delay
+            _tries = tries
+            while not evt.is_set():
+                try:
+                    r = await func(*args, **kwargs)
+                    evt.set()
+                except Exception as exc:
+                    if type(exc).__name__ not in retryables:
+                        raise
+                    elif _tries < 0:
+                        raise
+                    else:
+                        _delay *= backoff
+                        await asyncio.sleep(_delay)
+                        _tries -= 1
+            return r
+
+        return wrapper
+
+    return decorator
 
 
 class LauncherCheckResponse(BaseModel):

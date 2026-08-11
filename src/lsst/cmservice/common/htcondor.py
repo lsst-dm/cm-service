@@ -15,7 +15,7 @@ from lsst.cmservice.models.enums import StatusEnum
 
 from ..config import config
 from .errors import CMHTCondorCheckError, CMHTCondorSubmitError
-from .launchers import LauncherCheckResponse, LaunchManager
+from .launchers import LauncherCheckResponse, LaunchManager, exponential_retry
 from .logging import LOGGER
 from .panda import get_panda_token
 
@@ -297,13 +297,13 @@ def import_htcondor() -> ModuleType | None:
     """Import and return the htcondor module if it is available. Ensure the
     the current configuration is loaded.
     """
-    if (htcondor := sys.modules.get("htcondor")) is not None:
+    if (htcondor := sys.modules.get("htcondor2")) is not None:
         pass
-    elif (importlib.util.find_spec("htcondor")) is not None:
-        htcondor = importlib.import_module("htcondor")
+    elif (importlib.util.find_spec("htcondor2")) is not None:
+        htcondor = importlib.import_module("htcondor2")
 
     if htcondor is None:
-        logger.warning("HTcondor not available.")
+        logger.warning("HTCondor not available.")
         return None
 
     htcondor.reload_config()
@@ -389,6 +389,7 @@ class HTCondorManager(LaunchManager):
         # the schedd to which we submit a job is randomly chosen from the list
         self.schedd = self._htcondor.Schedd(random.choice(schedds))
 
+    @exponential_retry(delay=3.0, tries=5, backoff=1.2, retryables=["HTCondorIOError"])
     async def submit_ad(self, submission_spec: Path | dict | str) -> Any | None:
         """Submits a job ad to the currently selected schedd and returns the
         job reference which includes the cluster id.
@@ -440,11 +441,16 @@ class HTCondorManager(LaunchManager):
             raise FileNotFoundError(msg)
 
         submit_ad = self._htcondor.Submit(submission_spec)
+        logger.debug(
+            "Launching job", schedd=self.schedd.location.address, version=self.schedd.location.version
+        )
         cluster_id = self.schedd.submit(submit_ad)
-        # TODO should log the schedd name and cluster id for reference. It's
-        # probably not a bad idea to persist these metadata in the launch
-        # just to have it available; it should agree with the same metdata
-        # gathered in the check method when the event log is parsed.
+        logger.info(
+            "Launched job",
+            schedd=self.schedd.location.address,
+            version=self.schedd.location.version,
+            cluster_id=cluster_id,
+        )
         return cluster_id
 
     async def check(self, cluster_id: int, condor_log: Path) -> LauncherCheckResponse:
@@ -596,7 +602,10 @@ class HTCondorManager(LaunchManager):
         int
             The HTCondor job cluster ID as an integer.
         """
-        job_id = await self.submit_ad(submission_spec)
+        try:
+            job_id = await self.submit_ad(submission_spec)
+        except Exception:
+            logger.exception()
         if job_id is None:
             msg = "No submit result returned from htcondor"
             raise RuntimeError(msg)
