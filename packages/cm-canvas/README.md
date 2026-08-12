@@ -75,6 +75,7 @@ The `initializeFlow` function in the IIFE component passes a set of properties t
 - `onClick`: A Javascript function definition to be used with the "Edit" button available on Step on the Canvas.
 
 ### Example Node
+
 ```
 {
     "id": "unique id",
@@ -87,6 +88,7 @@ The `initializeFlow` function in the IIFE component passes a set of properties t
 Note the "position" of a Node doesn't really matter when initializing the canvas, because the component will call one of the layout functions automatically in an "onMount" lifecycle callback.
 
 ### Example Edge
+
 ```
 {
     "id": "source--target",
@@ -114,6 +116,7 @@ Note that this canvas component does not itself save or fully configure campaign
 The canvas also includes two panel buttons that are self-contained (i.e., they do not emit events for external handling). These are auto-layout buttons to redesign the current graph in either a vertical or horizontal layout. Larger graphs can be complicated to read; these layout buttons help designers keep the graph clean.
 
 ## Events
+
 The Canvas component has the following event listeners by default:
 
 - `canvasExport`: Causes the current graph on the canvas to be serialized and returned as data with an answering `canvasExported` event. The current positions of the nodes are not part of the export: only the shape of the graph and core identity of the nodes (i.e., their unique ID and Name values) are exported. No other state for a Node is ever stored or saved by the Canvas.
