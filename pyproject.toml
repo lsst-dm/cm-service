@@ -231,6 +231,10 @@ filterwarnings= [
     'ignore::DeprecationWarning:jinja2',
 ]
 
+[tool.ty.src]
+include = ["packages", "src"]
+exclude = ["src/lsst/cmservice/routers/wrappers.py"]
+
 [tool.mypy]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
