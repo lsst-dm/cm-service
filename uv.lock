@@ -753,11 +753,11 @@ wheels = [
 
 [[package]]
 name = "htcondor"
-version = "24.0.21"
+version = "24.0.22"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9a/f6/d5a52e17af7f809b977263c396a5453df6ced2d5651a99ce5a09d14245ef/htcondor-24.0.21-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:c2c754f1bed56bfa60b7d3a615d8776236055676e6c061b7762cbb8a58eabb4b", size = 59197935, upload-time = "2026-06-11T14:27:17.674Z" },
-    { url = "https://files.pythonhosted.org/packages/5c/ed/241a2d563967adb92b9320907d25499cff03d681f1760193979646702a7e/htcondor-24.0.21-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:16fac04628ee032572bc4f6a55dfc76a82a78f48efd83d451d7cfec2bcba1d78", size = 60707769, upload-time = "2026-06-11T14:27:20.583Z" },
+    { url = "https://files.pythonhosted.org/packages/bb/0d/ca59dcb4c275fe77d0ad83d26d403b9369c23bf1a6ab8632855bd7f8ce20/htcondor-24.0.22-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:5d643e9f122a1cca9805c8e4d433e19a277fa739a4112faa341f3093144eb51e", size = 9366221, upload-time = "2026-07-22T18:06:41.201Z" },
+    { url = "https://files.pythonhosted.org/packages/26/f8/8087395ca3889cf955fecd2b6e2bc8a1c191b42c945b7b1a8ac2e50a8124/htcondor-24.0.22-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:cf721ee678ef91ce99481b9e8d540f4cbb6c53319dea61d819ea69aecfbd3072", size = 9835234, upload-time = "2026-07-22T18:06:43.431Z" },
 ]
 
 [[package]]
@@ -1089,7 +1089,7 @@ requires-dist = [
     { name = "deepdiff", specifier = ">=8.6.1,<9" },
     { name = "fastapi", specifier = "==0.136.*" },
     { name = "greenlet", specifier = "==3.1.*" },
-    { name = "htcondor", marker = "sys_platform == 'linux' and extra == 'wms'", specifier = "==24.0.21" },
+    { name = "htcondor", marker = "sys_platform == 'linux' and extra == 'wms'", specifier = "==24.0.*" },
     { name = "httpx2", specifier = "==2.9.*" },
     { name = "jinja2", specifier = "==3.1.*" },
     { name = "lsst-cmservice-commandline", marker = "extra == 'cli'", editable = "packages/cm-commandline" },
