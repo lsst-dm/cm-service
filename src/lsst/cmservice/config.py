@@ -169,8 +169,8 @@ class HTCondorConfiguration(BaseModel):
     """
 
     condor_version: int = Field(
-        description="HTCondor Python Bindings API version",
-        default=2,
+        description="HTCondor Python Bindings API version (1 - htcondor 24 LTS; 2 - prefer htcondor 25 LTS)",
+        default=1,
         exclude=True,
     )
 
@@ -272,6 +272,12 @@ class HTCondorConfiguration(BaseModel):
         description="Shared directory to use with htcondor remote filesystem authentication.",
         default="/tmp",
         serialization_alias="FS_REMOTE_DIR",
+    )
+
+    enforce_channel_binding: str = Field(
+        description="Require FS auth to validate server ip-port (requires schedd >= 24.0.22)",
+        default="false",
+        serialization_alias="_CONDOR_SEC_FS_ENFORCE_CHANNEL_BINDING",
     )
 
     token_directory: str | None = Field(
