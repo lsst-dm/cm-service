@@ -168,6 +168,12 @@ class HTCondorConfiguration(BaseModel):
     and `config.condor_launcher`
     """
 
+    condor_version: int = Field(
+        description="HTCondor Python Bindings API version",
+        default=2,
+        exclude=True,
+    )
+
     config_source: str = Field(
         description="Source of htcondor configuration",
         default="ONLY_ENV",

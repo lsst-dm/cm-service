@@ -113,7 +113,7 @@ web = [
 # Use `--extra wms` with uv to include these dependencies when installing the
 # project environment.
 wms = [
-    "htcondor==24.0.*; sys_platform == 'linux'",
+    "htcondor==24.0.21; sys_platform == 'linux'",
     "panda-client>=1.5.82",
 ]
 

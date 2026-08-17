@@ -297,10 +297,11 @@ def import_htcondor() -> ModuleType | None:
     """Import and return the htcondor module if it is available. Ensure the
     the current configuration is loaded.
     """
-    if (htcondor := sys.modules.get("htcondor2")) is not None:
+    module_name = "htcondor2" if config.htcondor.condor_version == 2 else "htcondor"
+    if (htcondor := sys.modules.get(module_name)) is not None:
         pass
-    elif (importlib.util.find_spec("htcondor2")) is not None:
-        htcondor = importlib.import_module("htcondor2")
+    elif (importlib.util.find_spec(module_name)) is not None:
+        htcondor = importlib.import_module(module_name)
 
     if htcondor is None:
         logger.warning("HTCondor not available.")
@@ -318,6 +319,7 @@ class HTCondorManager(LaunchManager):
 
     collector: Any | None
     schedd: Any | None
+    schedd_ad: Any | None
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._htcondor: ModuleType | None = import_htcondor()
@@ -326,6 +328,7 @@ class HTCondorManager(LaunchManager):
         else:
             self.collector = None
         self.schedd = None
+        self.schedd_ad = None
 
     async def submit_description_from_file(self, submission_spec: str | Path) -> dict[str, str]:
         """Given an htcondor submit description file, parse it into a dict
@@ -387,7 +390,8 @@ class HTCondorManager(LaunchManager):
         schedds = self.collector.locateAll(self._htcondor.DaemonTypes.Schedd)
 
         # the schedd to which we submit a job is randomly chosen from the list
-        self.schedd = self._htcondor.Schedd(random.choice(schedds))
+        self.schedd_ad = random.choice(schedds)
+        self.schedd = self._htcondor.Schedd(self.schedd_ad)
 
     @exponential_retry(delay=3.0, tries=5, backoff=1.2, retryables=["HTCondorIOError"])
     async def submit_ad(self, submission_spec: Path | dict | str) -> Any | None:
@@ -407,7 +411,7 @@ class HTCondorManager(LaunchManager):
         # Ensure we have obtained a Schedd ad from the collector
         self.select_schedd()
 
-        if self.schedd is None:
+        if self.schedd_ad is None or self.schedd is None:
             return None
 
         # Parse the submit description file as a dictionary for "easier"
@@ -441,14 +445,12 @@ class HTCondorManager(LaunchManager):
             raise FileNotFoundError(msg)
 
         submit_ad = self._htcondor.Submit(submission_spec)
-        logger.debug(
-            "Launching job", schedd=self.schedd.location.address, version=self.schedd.location.version
-        )
+        logger.debug("Launching job", schedd=self.schedd_ad["Name"], version=self.schedd_ad["CondorVersion"])
         cluster_id = self.schedd.submit(submit_ad)
         logger.info(
             "Launched job",
-            schedd=self.schedd.location.address,
-            version=self.schedd.location.version,
+            schedd=self.schedd_ad["Name"],
+            version=self.schedd_ad["CondorVersion"],
             cluster_id=cluster_id,
         )
         return cluster_id
@@ -602,6 +604,7 @@ class HTCondorManager(LaunchManager):
         int
             The HTCondor job cluster ID as an integer.
         """
+        job_id: Any | None = None
         try:
             job_id = await self.submit_ad(submission_spec)
         except Exception:
