@@ -20,7 +20,7 @@ from lsst.cmservice.models.lib.yaml import yaml
 
 from .. import api
 from ..lib.enum import MANIFEST_KIND_ICONS
-from ..lib.models import KIND_TO_SPEC, STEP_MANIFEST_TEMPLATE
+from ..lib.models import DEFAULT_NOTIFICATION_FILTERS, KIND_TO_SPEC, STEP_MANIFEST_TEMPLATE
 from ..pages.common import CMPage
 from ..settings import settings
 from . import strings
@@ -1030,12 +1030,7 @@ class NewNotificationLabelDialog(ui.dialog):
     def __init__(self, *, dialog_title: str):
         super().__init__()
         self.dialog_title = dialog_title
-        default_filters = [
-            ("start", "*", "running"),
-            ("end", "running", "*"),
-            ("*", "*", "failed"),
-            ("breakpoint", "*", "running"),
-        ]
+        default_filters = DEFAULT_NOTIFICATION_FILTERS
         self.model: MutableMapping = {
             "kind": "notification_label",
             "spec": {"secret_plaintext": "", "filters": [":".join(f) for f in default_filters]},

@@ -37,3 +37,10 @@ KIND_TO_SPEC: dict[str, type[ManifestSpec]] = {
     "butler": ButlerSpec,
     "step": StepSpec,
 }
+
+DEFAULT_NOTIFICATION_FILTERS = [
+    ("start", "*", "running"),
+    ("end", "running", "*"),
+    ("*", "*", "failed"),
+    ("breakpoint", "*", "running"),
+]
