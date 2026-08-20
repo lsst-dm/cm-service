@@ -23,7 +23,8 @@ async def get_notifications(label_name: str | None = None) -> AsyncGenerator[dic
             detail = f"{e.response.status_code}: {e.response.reason_phrase}"
             ui.notify(detail)
 
-    for label in r.json():
+    labels = r.json()
+    for label in labels:
         yield label
 
 

@@ -29,7 +29,7 @@ ENUM_COLUMN_AS_VARCHAR = sa.Enum(Enum, length=20, native_enum=False, check_const
 
 def upgrade() -> None:
 
-    op.create_table(
+    notification_labels_v2 = op.create_table(
         "notification_labels_v2",
         sa.Column("name", postgresql.TEXT(), nullable=False),
         sa.Column("kind", ENUM_COLUMN_AS_VARCHAR, nullable=False),
@@ -54,6 +54,26 @@ def upgrade() -> None:
             server_default=sa.text("'{}'::text[]"),
         ),
         if_not_exists=True,
+    )
+
+    # Insert default notification label record
+    op.bulk_insert(
+        notification_labels_v2,
+        [
+            {
+                "name": "default",
+                "kind": "default",
+                "secret": None,
+                "configuration": {
+                    "filters": [
+                        "start:*:running",
+                        "end:running:*",
+                        "*:*:failed",
+                        "breakpoint:*:running",
+                    ]
+                },
+            }
+        ],
     )
 
 

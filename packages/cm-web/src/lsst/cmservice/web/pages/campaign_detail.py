@@ -678,6 +678,7 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
         with ui.popup().classes("w-64") as popup:
             ui.select(
                 self.model["notification_labels"],
+                label="Notification Labels",
                 multiple=True,
                 on_change=self.commit_campaign_notification_labels,
             ).bind_value(self, ("model", "campaign", "configuration", "notification_labels")).classes(
