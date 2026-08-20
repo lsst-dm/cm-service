@@ -39,7 +39,7 @@ jobs:
           username: ${{ vars.DOCKERHUB_SQREREADONLY_USERNAME }}
           password: ${{ secrets.DOCKERHUB_SQREREADONLY_TOKEN }}
 
-      - uses: lsst-sqre/build-and-push-to-ghcr@4c321a20846de9fe30f9ea80c1149a70387d8e7b  # v1.5.2
+      - uses: lsst-sqre/build-and-push-to-ghcr@d583ad50f606e6077f0ec23f081519cf92717fd7  # v1.5.2
         with:
           dockerfile: docker/Dockerfile
           target: ${{ matrix.target }}
