@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import httpx
+import httpx2
 
 from .actions import CMActionClient
 from .campaigns import CMCampaignClient
@@ -40,12 +40,12 @@ class CMClient:
         if "timeout" in client_config.model_fields_set:  # pragma: no cover
             client_kwargs["timeout"] = client_config.timeout
         if "cookies" in client_config.model_fields_set:  # pragma: no cover
-            cookies = httpx.Cookies()
+            cookies = httpx2.Cookies()
             if client_config.cookies:
                 for cookie in client_config.cookies:
                     cookies.set(name=cookie.name, value=cookie.value)
             client_kwargs["cookies"] = cookies
-        self._client = httpx.Client(**client_kwargs)
+        self._client = httpx2.Client(**client_kwargs)
 
         self.campaign = CMCampaignClient(self)
         self.step = CMStepClient(self)
@@ -72,6 +72,6 @@ class CMClient:
         self.load = CMLoadClient(self)
 
     @property
-    def client(self) -> httpx.Client:
-        """Return the httpx.Client"""
+    def client(self) -> httpx2.Client:
+        """Return the httpx2.Client"""
         return self._client

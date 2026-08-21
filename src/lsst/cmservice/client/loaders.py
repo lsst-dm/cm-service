@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from uuid import UUID, uuid5
 
-import httpx
+import httpx2
 import yaml
 from pydantic.v1.utils import deep_update
 
@@ -33,15 +33,15 @@ class CMLoadClient:
     """Interface for accessing remote cm-service."""
 
     def __init__(self, parent: CMClient) -> None:
-        """Return the httpx.Client"""
+        """Return the httpx2.Client"""
         self._parent = parent
         self._client = parent.client
 
     steps = wrappers.get_general_post_function(models_.AddSteps, models_.Campaign, "load/steps")
 
     @property
-    def client(self) -> httpx.Client:
-        """Return the httpx.Client"""
+    def client(self) -> httpx2.Client:
+        """Return the httpx2.Client"""
         return self._client
 
     def _upsert_spec_block(

@@ -53,10 +53,13 @@ class DaemonContext:
         return self
 
     async def __aexit__(
-        self, exc_type: type[BaseException], exc_val: BaseException | None, exc_tb: TracebackType | None
-    ) -> None:
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> bool:
         await self.session.close()
-        return None
+        return False
 
 
 async def daemon_process_node(session: AsyncSession, node: Node, request_id: str | None = None) -> None:

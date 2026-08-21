@@ -1,21 +1,35 @@
-# CI workflow runs linting, typing, and unit tests on every push to a branch
-# and when called from another workflow.
+# CI workflow runs linting, typing, and unit tests on pull request targeting
+# the main branch.
+# For stacked PRs only, a build workflow is called for the head of the stack.
+# PRs created by stack actions will not trigger CI.
 ---
 name: "CI"
 
 "on":
+  workflow_dispatch:
+    inputs:
+      create_artifacts:
+        type: boolean
+        required: false
+        default: false
   workflow_call:
-  push:
+    inputs:
+      create_artifacts:
+        type: boolean
+        required: false
+        default: false
+
+  # Every pull request in a stack is evaluated as if it targets the base of the stack
+  pull_request:
     branches:
-      - "tickets/**"
-      - "u/**"
+      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  UV_VERSION: "0.11.x"
+  UV_VERSION: "0.12.x"
   UV_FROZEN: "1"
   TEST__LOCAL_DB: "1"  # signals test fixtures to not use testcontainers
 
@@ -102,8 +116,13 @@ jobs:
         run: echo "Test matrix has passed"
 
   build-and-push:
+    if: >-
+      inputs.create_artifacts ||
+      (
+        github.event.pull_request.stack == null ||
+        github.event.pull_request.stack.position == github.event.pull_request.stack.size
+      )
     needs:
       - test
-    if: ${{ startsWith(github.ref_name, 'tickets/DM-') }}
     uses: ./.github/workflows/build_and_push.yaml
     secrets: inherit

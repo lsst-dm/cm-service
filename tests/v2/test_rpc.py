@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 from uuid import UUID, uuid5
 
 import pytest
-from httpx import AsyncClient, Response
+from httpx2 import AsyncClient, Response
 from sqlmodel import select
 
 from lsst.cmservice.common.daemon_v2 import DaemonContext, consider_nodes

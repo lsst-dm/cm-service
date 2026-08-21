@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 from uuid import uuid4, uuid5
 
 import pytest
-from httpx import AsyncClient, codes
+from httpx2 import AsyncClient, codes
 
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE
 

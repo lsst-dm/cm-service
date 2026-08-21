@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import partial
 from typing import Any, Self, TypedDict
 
-from httpx import URL, AsyncClient
+from httpx2 import URL, AsyncClient
 from nice_dialogs.dialogs import ConfirmationDialog
 from nicegui import app, binding, ui
 from nicegui.events import ClickEventArguments
@@ -59,7 +59,7 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
         current Node's details.
         """
         if client_ is None:
-            raise RuntimeError("Node Detail page setup requires an httpx client")
+            raise RuntimeError("Node Detail page setup requires an httpx2 client")
 
         self.show_spinner()
         storage.initialize_client_storage()

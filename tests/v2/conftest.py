@@ -12,7 +12,7 @@ from uuid import NAMESPACE_DNS, uuid4
 
 import pytest
 import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
+from httpx2 import ASGITransport, AsyncClient
 from sqlalchemy import insert
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import CreateSchema, DropSchema
@@ -171,8 +171,8 @@ async def session_fixture(session_factory: Callable) -> AsyncGenerator[AnyAsyncS
 async def async_client_fixture(
     session_factory: Callable, testdb: DatabaseManager, patched_config: pytest.FixtureRequest
 ) -> AsyncGenerator[AsyncClient]:
-    """Test fixture for an HTTPX async test client backed by a FastAPI app with
-    its dependency injections overriden by factory fixtures.
+    """Test fixture for an httpx2 async test client backed by a FastAPI app
+    with its dependency injections overriden by factory fixtures.
     """
     main_ = importlib.import_module("lsst.cmservice.main")
     app: FastAPI = getattr(main_, "app")

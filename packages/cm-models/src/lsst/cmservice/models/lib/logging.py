@@ -120,7 +120,7 @@ def configure_logging(log_level: int) -> None:
         ("uvicorn", True),
         ("uvicorn.error", True),
         ("uvicorn.access", False),
-        ("httpx", True),
+        ("httpx2", True),
         ("httpcore", True),
         ("httpcore.http11", True),
         ("httpcore.connection", True),

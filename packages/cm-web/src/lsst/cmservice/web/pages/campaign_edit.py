@@ -10,7 +10,7 @@ from typing import Any, Self
 from uuid import uuid4, uuid5
 
 import networkx as nx
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 from nice_dialogs.dialogs import CronEditorDialog, UploadFileDialog
 from nicegui import app, run, ui
 from nicegui.elements.upload_files import FileUpload, SmallFileUpload

@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 
 import networkx as nx
 import pytest
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from lsst.cmservice.models.db.campaigns import Edge

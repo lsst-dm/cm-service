@@ -11,7 +11,7 @@ from uuid import UUID, uuid4, uuid5
 
 import pytest
 from anyio import Path
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 from sqlalchemy.orm import make_transient, selectinload
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlmodel import select
