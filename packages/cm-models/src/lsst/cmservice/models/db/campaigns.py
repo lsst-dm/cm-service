@@ -97,6 +97,7 @@ class CampaignUpdate(BaseSQLModel):
 
     owner: str | None = None
     status: StatusField | None = None
+    configuration: dict | None = None
     force: bool = Field(default=False, description="Makes the status change unconditional.")
 
 
@@ -342,7 +343,17 @@ class ActivityLogBase(BaseSQLModel):
     )
     detail: dict = jsonb_column("detail")
     metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])
+    notification_labels: list[str] = Field(
+        description="list of notification label names that should consume this activity",
+        default_factory=list,
+        sa_column=Column(MutableList.as_mutable(postgresql.ARRAY(postgresql.TEXT()))),
+    )
 
 
 class ActivityLog(ActivityLogBase, table=True):
     __tablename__: str = "activity_log_v2"  # type: ignore[misc]
+
+    # The subject-node virtual field is lazily loaded
+    subject: Node = Relationship(
+        sa_relationship_kwargs={"lazy": "select"},
+    )

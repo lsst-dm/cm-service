@@ -39,6 +39,7 @@ class ManifestKind(enum.Enum):
     dummy = enum.auto()
     schedule = enum.auto()
     template = enum.auto()
+    notification_label = enum.auto()
 
     def __lt__(self, other: ManifestKind) -> bool:
         """Implements a simple "rich" less-than operator for simple ordering
@@ -172,3 +173,10 @@ class AuditActionEnum(enum.Enum):
     read = enum.auto()
     update = enum.auto()
     delete = enum.auto()
+
+
+class NotificationLabelEnum(enum.Enum):
+    """Available label kinds for notification events."""
+
+    default = enum.auto()
+    slack = enum.auto()

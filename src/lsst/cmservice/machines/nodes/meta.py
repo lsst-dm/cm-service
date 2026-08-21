@@ -16,7 +16,7 @@ from sqlmodel import select
 from transitions import EventData
 from transitions.extensions.asyncio import AsyncEvent, AsyncMachine
 
-from lsst.cmservice.models.db.campaigns import ActivityLog, Edge, Machine, Node
+from lsst.cmservice.models.db.campaigns import ActivityLog, Campaign, Edge, Machine, Node
 from lsst.cmservice.models.enums import ManifestKind, StatusEnum
 from lsst.cmservice.models.lib import timestamp
 from lsst.cmservice.models.lib.graph import graph_from_edge_list_v2
@@ -92,7 +92,7 @@ class NodeMachine(StatefulModel):
             del state["session"]
         return state
 
-    def get_activity_log(self, event: EventData) -> ActivityLog:
+    async def get_activity_log(self, event: EventData) -> ActivityLog:
         """Constructs and returns an activity log database entry for ad-hoc
         use. The entry is not part of any session.
 
@@ -100,8 +100,14 @@ class NodeMachine(StatefulModel):
         entry initially useful as a "milestone" entry since it does not
         represent a complete transition
         """
+        if TYPE_CHECKING:
+            assert isinstance(self.db_model, Node)
+
         from_state = StatusEnum[event.transition.source] if event.transition else self.state
         to_state = from_state
+
+        campaign: Campaign = await self.db_model.awaitable_attrs.campaign
+        notification_labels = campaign.configuration.get("notification_labels", ["default"])
 
         activity_log_entry = ActivityLog(
             namespace=self.db_model.namespace,
@@ -111,6 +117,7 @@ class NodeMachine(StatefulModel):
             to_status=to_state,
             detail={},
             metadata_={"request_id": event.kwargs.get("request_id")},
+            notification_labels=notification_labels,
         )
         return activity_log_entry
 
@@ -165,7 +172,7 @@ class NodeMachine(StatefulModel):
             return None
 
         logger.debug("Preparing activity log for transition", id=str(self.db_model.id))
-        self.activity_log_entry = self.get_activity_log(event)
+        self.activity_log_entry = await self.get_activity_log(event)
 
     async def repatriate_node(self, event: EventData) -> None:
         """Ensures the ORM model of the Node associated with this machine is
