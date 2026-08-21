@@ -353,6 +353,9 @@ async def test_group_config_chain(test_campaign_groups: str, session: AsyncSessi
     group = (await session.exec(s)).one()
 
     # Check group's configuration
+    # campaign-default configuration
+    assert group.configuration["site"]["facility"] == "SLAC"
+
     predicates = group.configuration.get("butler", {}).get("predicates", [])
 
     # campaign-level predicates
