@@ -163,7 +163,7 @@ async def test_patch_campaign_notification_labels(
 
 
 async def test_patch_campaign(aclient: AsyncClient, caplog: pytest.LogCaptureFixture) -> None:
-    """Tests the campaign update API"""
+    """Tests the campaign update and delete API"""
     # Create a new campaign with spec data
     campaign_name = uuid4().hex[-8:]
     x = await aclient.post(
@@ -249,3 +249,7 @@ async def test_patch_campaign(aclient: AsyncClient, caplog: pytest.LogCaptureFix
     activity_log_entry = y.json()[0]
     assert activity_log_entry["detail"]["trigger"] == "resume"
     assert activity_log_entry["detail"]["exception"] == "InvalidCampaignGraphError"
+
+    # Delete the campaign
+    y = await aclient.delete(campaign_url)
+    assert y.is_success

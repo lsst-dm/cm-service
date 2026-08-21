@@ -30,6 +30,7 @@ from sqlmodel import col, distinct, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from lsst.cmservice.models.api.manifests import CampaignManifest, ManifestRequest
+from lsst.cmservice.models.db.audit import AuditLog
 from lsst.cmservice.models.db.campaigns import (
     ActivityLog,
     Campaign,
@@ -40,7 +41,7 @@ from lsst.cmservice.models.db.campaigns import (
     Node,
     NodeStatusSummary,
 )
-from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, ManifestKind, StatusEnum
+from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, AuditActionEnum, ManifestKind, StatusEnum
 from lsst.cmservice.models.lib.graph import (
     append_node_to_graph,
     graph_from_edge_list_v2,
@@ -826,6 +827,42 @@ async def update_node_in_graph(
     response.headers["Edges"] = str(request.url_for("read_campaign_edge_collection", campaign_id=campaign.id))
     response.headers["Graph"] = str(request.url_for("read_campaign_graph", campaign_name=campaign.id))
     return None
+
+
+@router.delete(
+    "/{campaign_id}",
+    summary="Deletes a campaign and all its objects",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_campaign_resource(
+    request: Request,
+    response: Response,
+    session: Annotated[AsyncSession, Depends(db_session_dependency)],
+    campaign_id: UUID5,
+    actor: Annotated[str, Header(alias="X-Auth-Request-User")],
+) -> None:
+    """Delete a campaign identified by ID"""
+    campaign = await session.get_one(Campaign, campaign_id)
+
+    # campaign must not be running
+    if campaign.status is StatusEnum.running:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="A running campaign may not be deleted"
+        )
+
+    await session.delete(campaign)
+    await session.commit()
+
+    audit = AuditLog(
+        actor=actor,
+        action=AuditActionEnum.delete,
+        request_id=UUID(correlation_id.get()),
+        object_id=campaign.id,
+        object_type=ManifestKind.campaign,
+        object_name=campaign.name,
+        context={},
+    )
+    request.state.audit.add(audit)
 
 
 # TODO additional graph-node operations?
