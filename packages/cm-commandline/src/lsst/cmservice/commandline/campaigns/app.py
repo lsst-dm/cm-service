@@ -336,3 +336,16 @@ def load_campaign(
     if auto_run:
         typer.echo(f"Starting campaign {ctx.obj.campaign_name}")
         ctx.invoke(start_campaign, ctx=ctx, campaign=campaign)
+
+
+@app.command(name="delete")
+def delete_campaign(
+    ctx: TypedContext,
+    campaign: arguments.CampaignName.Required,
+) -> None:
+    """Deletes a campaign by ID"""
+    with http_client(ctx) as session:
+        r = session.delete(
+            f"/campaigns/{ctx.obj.campaign_id}",
+        )
+        r.raise_for_status()

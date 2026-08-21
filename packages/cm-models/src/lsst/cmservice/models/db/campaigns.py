@@ -56,7 +56,7 @@ class CampaignBase(BaseSQLModel):
     )
     metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])
     configuration: dict = jsonb_column("configuration", aliases=["configuration", "data", "spec"])
-    machine: UUID | None = Field(foreign_key="machines_v2.id", default=None, ondelete="CASCADE")
+    machine: UUID | None = Field(foreign_key="machines_v2.id", default=None, ondelete="SET NULL")
 
     @model_validator(mode="before")
     @classmethod
@@ -87,7 +87,9 @@ class Campaign(CampaignBase, table=True):
 
     __tablename__: str = "campaigns_v2"  # type: ignore[misc]
 
-    nodes: list["Node"] = Relationship(back_populates="campaign")
+    nodes: list["Node"] = Relationship(
+        back_populates="campaign", sa_relationship_kwargs={"passive_deletes": True}
+    )
 
 
 class CampaignUpdate(BaseSQLModel):
@@ -129,7 +131,7 @@ class NodeBase(BaseSQLModel):
         description="A Node's ID is the concatenation of its name and version as a UUID5 in its namespace",
     )
     name: str
-    namespace: UUID = Field(foreign_key="campaigns_v2.id")
+    namespace: UUID = Field(foreign_key="campaigns_v2.id", ondelete="CASCADE")
     version: int
     kind: KindField = Field(
         default=ManifestKind.other,
@@ -141,7 +143,7 @@ class NodeBase(BaseSQLModel):
     )
     metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])
     configuration: dict = jsonb_column("configuration", aliases=["configuration", "data", "spec"])
-    machine: UUID | None = Field(foreign_key="machines_v2.id", default=None, ondelete="CASCADE")
+    machine: UUID | None = Field(foreign_key="machines_v2.id", default=None, ondelete="SET NULL")
 
     @model_validator(mode="before")
     @classmethod
@@ -171,7 +173,11 @@ class Node(NodeBase, table=True):
 
     campaign: Campaign = Relationship(
         back_populates="nodes",
-        sa_relationship_kwargs={"lazy": "joined", "innerjoin": True, "uselist": False},
+        sa_relationship_kwargs={
+            "lazy": "joined",
+            "innerjoin": True,
+            "uselist": False,
+        },
     )
 
     fsm: Optional["Machine"] = Relationship(sa_relationship_kwargs={"uselist": False})
@@ -186,9 +192,9 @@ class EdgeBase(BaseSQLModel):
         "target nodes as a UUID5 in its namespace.",
     )
     name: str = Field(description="An edge's name is not deterministic or programatically important.")
-    namespace: UUID = Field(foreign_key="campaigns_v2.id")
-    source: UUID = Field(foreign_key="nodes_v2.id")
-    target: UUID = Field(foreign_key="nodes_v2.id")
+    namespace: UUID = Field(foreign_key="campaigns_v2.id", ondelete="CASCADE")
+    source: UUID = Field(foreign_key="nodes_v2.id", ondelete="CASCADE")
+    target: UUID = Field(foreign_key="nodes_v2.id", ondelete="CASCADE")
     metadata_: dict = jsonb_column("metadata", aliases=["metadata", "metadata_"])
     configuration: dict = jsonb_column("configuration", aliases=["configuration", "data", "spec"])
 
@@ -235,7 +241,7 @@ class ManifestBase(BaseSQLModel):
     )
     name: str = Field(description="A manifest's name must be unique in its namespace among its kind.")
     version: int
-    namespace: UUID = Field(foreign_key="campaigns_v2.id")
+    namespace: UUID = Field(foreign_key="campaigns_v2.id", ondelete="CASCADE")
     kind: KindField = Field(
         default=ManifestKind.other,
         sa_column=Column("kind", Enum(ManifestKind, length=20, native_enum=False, create_constraint=False)),
@@ -271,8 +277,16 @@ class Task(BaseSQLModel, table=True):
         primary_key=True,
         description="A hash of the related Node ID and target status, as a UUID5.",
     )
-    namespace: UUID = Field(foreign_key="campaigns_v2.id", description="The ID of a Campaign")
-    node: UUID = Field(foreign_key="nodes_v2.id", description="The ID of the target node")
+    namespace: UUID = Field(
+        foreign_key="campaigns_v2.id",
+        description="The ID of a Campaign",
+        ondelete="CASCADE",
+    )
+    node: UUID = Field(
+        foreign_key="nodes_v2.id",
+        description="The ID of the target node",
+        ondelete="CASCADE",
+    )
     priority: int | None = Field(default=None)
     created_at: AwareDatetime = Field(
         description="The `datetime` (UTC) at which this Task was first added to the queue",
@@ -312,8 +326,12 @@ class Task(BaseSQLModel, table=True):
 
 class ActivityLogBase(BaseSQLModel):
     id: UUID = Field(primary_key=True, default_factory=uuid4)
-    namespace: UUID = Field(foreign_key="campaigns_v2.id", description="The ID of a Campaign")
-    node: UUID | None = Field(default=None, foreign_key="nodes_v2.id", description="The ID of a Node")
+    namespace: UUID | None = Field(
+        foreign_key="campaigns_v2.id", description="The ID of a Campaign", ondelete="SET NULL"
+    )
+    node: UUID | None = Field(
+        default=None, foreign_key="nodes_v2.id", description="The ID of a Node", ondelete="SET NULL"
+    )
     operator: str = Field(description="The name of the operator or pilot who triggered the activity")
     created_at: AwareDatetime = Field(
         description="The `datetime` in UTC at which this log entry was created.",
