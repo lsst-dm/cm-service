@@ -88,6 +88,9 @@ cluster:
 ########################################
 # AUXILIARY CONFIGURATION
 ########################################
+{%- if bps.extra_aggregate_options %}
+extraAggregateOptions: {{ bps.extra_aggregate_options | join(" ") }}
+{%- endif %}
 {{ bps.literals | toyaml -}}
 {# BLANK LINE #}
 {%- endif%}
