@@ -23,7 +23,7 @@ from ...common.flags import Features
 from ...common.logging import LOGGER
 from ...config import config
 from ...handlers.functions import status_from_bps_report
-from ..lib import materialize_activity_log
+from ..lib import materialize_activity_log, read_provenance_report_json
 from .meta import NodeMachine
 from .mixin import FilesystemActionMixin, HTCondorLaunchMixin
 
@@ -297,7 +297,11 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         # Phase 3 can itself be split into 2 sub-phases:
         # Phase 3A: Quick BPS Status
         # Phase 3B: Full BPS Report
-        return await self.check_bps_report(event)
+        # Phase 4: Provenance Report
+        done_running = await self.check_bps_report(event)
+        if done_running:
+            await self.check_provenance_report(event)
+        return done_running
 
     async def is_restartable(self, event: EventData) -> bool:
         """Determine whether a Group is in a restartable state.
@@ -494,6 +498,35 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
                 return True
             case _:
                 return False
+
+    async def check_provenance_report(self, event: EventData) -> bool:
+        """Callback invoked during the transition from running to accepted. The
+        machine's conditions will be invoked first (e.g., ``is_done_running``)
+        and this method is called before the destination state is changed.
+
+        Uses a previously discovered bps submit directory as an "id" to
+        discover a provenance report.
+        """
+        if (bps_submit_dir := self.db_model.metadata_.get("bps", {}).get("Submit dir")) is None:
+            raise RuntimeError("No BPS Submit dir known to machine")
+
+        if (bps_uniq_proc_name := self.configuration_chain["bps"].get("uniq_proc_name")) is None:
+            raise RuntimeError("No BPS Uniq Proc Name known to machine")
+
+        # IF there is a *_prov.json, ingest it
+        provenance_report: None | dict = None
+        provenance_report_json_path = Path(bps_submit_dir / f"{bps_uniq_proc_name}_prov.json")
+        async for provenance_report_json in self.get_artifact(event, provenance_report_json_path):
+            provenance_report = await read_provenance_report_json(provenance_report_json)
+
+        # TODO is there another way to get the provenance report from Butler?
+        if provenance_report is None:
+            return False
+
+        # TODO add provenance report to node metadata
+        self.db_model.metadata_["provenance"] = provenance_report
+
+        return True
 
     async def do_retry(self, event: EventData) -> None:
         """Reverts the running status of a Group node from Failed to Ready.
