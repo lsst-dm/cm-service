@@ -10,6 +10,5 @@ jobs:
       lint-commits: true
       rebase-checker: true
       do-not-merge-checker: true
-      dependency-checker: true
       verbose: true
       workflow-ref: u/tobyj/commitlint

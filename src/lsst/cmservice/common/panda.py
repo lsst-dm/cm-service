@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import httpx
+import httpx2
 from pandaclient.openidc_utils import decode_id_token
 
 from lsst.cmservice.models.lib import timestamp
@@ -22,13 +22,13 @@ logger = LOGGER.bind(module=__name__)
 
 # TODO generalize to use a common client/session generator
 @contextmanager
-def http_client() -> Generator[httpx.Client]:
+def http_client() -> Generator[httpx2.Client]:
     """Generate a client session for panda API operations."""
-    transport = httpx.HTTPTransport(
+    transport = httpx2.HTTPTransport(
         verify=config.panda.verify_host,
         retries=3,
     )
-    with httpx.Client(transport=transport) as session:
+    with httpx2.Client(transport=transport) as session:
         yield session
 
 
@@ -65,7 +65,7 @@ def refresh_panda_token(url: str, data: dict[str, str]) -> str | None:
                 url=url, data=data, headers={"content-type": "application/x-www-form-urlencoded"}
             )
             response.raise_for_status()
-        except httpx.HTTPStatusError as e:
+        except httpx2.HTTPStatusError as e:
             logger.error(
                 "Unable to refresh panda token",
                 http_status=e.response.status_code,
@@ -175,7 +175,7 @@ def get_panda_token() -> str | None:
                 )
 
             _ = refresh_panda_token(token_endpoint, data)
-        except (httpx.HTTPStatusError, json.JSONDecodeError, KeyError):
+        except (httpx2.HTTPStatusError, json.JSONDecodeError, KeyError):
             # Error classes could include http status, malformed responses, or
             # responses with missing keys, either in this function or in the
             # token refresh function.

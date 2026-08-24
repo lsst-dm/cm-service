@@ -14,7 +14,7 @@ from uuid import uuid4
 import pytest
 import yaml
 from apscheduler import events
-from httpx import AsyncClient, codes
+from httpx2 import AsyncClient, codes
 from pydantic import ValidationError
 
 from lsst.cmservice.common.daemon_v2 import DaemonContext, consider_schedules

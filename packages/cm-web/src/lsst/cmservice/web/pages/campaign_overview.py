@@ -2,7 +2,7 @@ from asyncio import CancelledError
 from functools import partial
 from typing import TYPE_CHECKING, Any, Self
 
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 from nicegui import app, run, ui
 from nicegui.events import ValueChangeEventArguments
 
@@ -56,7 +56,7 @@ class CampaignOverviewPage(CMPage[CampaignOverviewPageModel]):
         method to perform data loading/prep, etc., before calling render().
         """
         if client_ is None:
-            raise RuntimeError("Campaign Overview page setup requires an httpx client")
+            raise RuntimeError("Campaign Overview page setup requires an httpx2 client")
 
         self.show_spinner()
         self.model: CampaignOverviewPageModel = {

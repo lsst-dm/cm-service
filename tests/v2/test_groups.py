@@ -8,7 +8,7 @@ from uuid import UUID, uuid4, uuid5
 import networkx as nx
 import numpy as np
 import pytest
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from lsst.cmservice.machines.node import GroupMachine, StepMachine

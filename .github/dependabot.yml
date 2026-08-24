@@ -10,14 +10,23 @@ updates:
       interval: "weekly"
     cooldown:
       default-days: 7
+    pull-request-branch-name:
+      prefix: "u/dependabot"
     groups:
       canvas:
         patterns:
           - "*"
+    allow:
+      - dependency-type: direct
+        update-types:
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"
   - package-ecosystem: "pre-commit"
     directory: "/"
     schedule:
       interval: "weekly"
+    pull-request-branch-name:
+      prefix: "u/dependabot"
     groups:
       prek:
         patterns:
@@ -26,3 +35,9 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    pull-request-branch-name:
+      prefix: "u/dependabot"
+    groups:
+      gha:
+        patterns:
+          - "*"

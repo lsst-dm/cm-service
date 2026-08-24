@@ -6,7 +6,7 @@ from typing import Any, cast
 
 import click
 from click.decorators import FC
-from httpx import HTTPStatusError
+from httpx2 import HTTPStatusError
 
 from lsst.cmservice.models.enums import StatusEnum
 

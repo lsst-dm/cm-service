@@ -7,7 +7,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
-import httpx
+import httpx2
 
 from lsst.cmservice.models.enums import StatusEnum
 
@@ -54,13 +54,13 @@ SLACK_HEADER_SECTION = {
 
 
 @asynccontextmanager
-async def http_async_client(*, verify_host: bool = True) -> AsyncGenerator[httpx.AsyncClient]:
+async def http_async_client(*, verify_host: bool = True) -> AsyncGenerator[httpx2.AsyncClient]:
     """Generate a client session for http API operations."""
-    transport = httpx.AsyncHTTPTransport(
+    transport = httpx2.AsyncHTTPTransport(
         verify=verify_host,
         retries=3,
     )
-    async with httpx.AsyncClient(transport=transport) as session:
+    async with httpx2.AsyncClient(transport=transport) as session:
         yield session
 
 
@@ -77,7 +77,7 @@ class Notification(ABC):
 
 
 class SlackNotification(Notification):
-    headers: httpx.Headers = httpx.Headers({"Content-type": "application/json"})
+    headers: httpx2.Headers = httpx2.Headers({"Content-type": "application/json"})
 
     def notify(self, message: bytes | dict) -> None:
         raise NotImplementedError("Only asynchronous notifications are supported")
@@ -99,7 +99,7 @@ class SlackNotification(Notification):
                     headers=self.headers,
                 )
                 response.raise_for_status()
-            except httpx.HTTPStatusError as e:
+            except httpx2.HTTPStatusError as e:
                 logger.error(
                     "Unable to send Slack Notification",
                     http_status=e.response.status_code,

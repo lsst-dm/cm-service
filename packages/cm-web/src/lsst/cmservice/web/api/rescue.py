@@ -42,7 +42,7 @@ import re
 from types import SimpleNamespace
 from typing import cast
 
-from httpx import HTTPStatusError
+from httpx2 import HTTPStatusError
 from nicegui.events import ValueChangeEventArguments
 
 from lsst.cmservice.models.db.campaigns import Node

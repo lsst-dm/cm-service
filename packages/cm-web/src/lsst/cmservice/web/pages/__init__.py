@@ -12,7 +12,7 @@ from typing import Annotated
 
 from fastapi import Depends, Request
 from fastapi.responses import JSONResponse
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 from nicegui import app, ui
 
 from ..lib.client_factory import CLIENT_FACTORY
