@@ -117,10 +117,16 @@ jobs:
 
   build-and-push:
     if: >-
-      inputs.create_artifacts ||
       (
-        github.event.pull_request.stack == null ||
-        github.event.pull_request.stack.position == github.event.pull_request.stack.size
+        startsWith(github.head_ref, 'u/') &&
+        inputs.create_artifacts
+      ) ||
+      (
+        startsWith(github.head_ref, 'tickets/DM-') &&
+        (
+          github.event.pull_request.stack == null ||
+          github.event.pull_request.stack.position == github.event.pull_request.stack.size
+        )
       )
     needs:
       - test
