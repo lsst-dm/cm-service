@@ -1,7 +1,6 @@
 import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import AbstractContextManager, nullcontext
-from textwrap import dedent
 from urllib.parse import urlparse
 from uuid import UUID, uuid4, uuid5
 
@@ -14,7 +13,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from lsst.cmservice.config import config
 from lsst.cmservice.db.session import DatabaseManager
-from lsst.cmservice.models.db import Base
+from lsst.cmservice.models.db import Base, raw
 from lsst.cmservice.models.db.campaigns import ActivityLog, Node
 from lsst.cmservice.models.db.notifications import NotificationLabel
 from lsst.cmservice.models.enums import NotificationLabelEnum, StatusEnum
@@ -23,44 +22,14 @@ from lsst.cmservice.notifications.task import Notifier
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""
 
-NOTIFICATION_FUNCTION = dedent("""\
-    CREATE OR REPLACE FUNCTION {schema}.notify_event_listeners()
-    RETURNS TRIGGER AS $$
-    DECLARE
-        label_name TEXT;
-        label_kind TEXT;
-        payload TEXT;
-    BEGIN
-        FOREACH label_name in ARRAY NEW.notification_labels
-        LOOP
-            label_kind := NULL;
-            payload := json_build_object(
-                'id', NEW.id::text,
-                'label', label_name
-            );
-            SELECT kind INTO label_kind FROM {schema}.notification_labels_v2 WHERE name = label_name;
-            PERFORM pg_notify(COALESCE(label_kind, 'default'), payload::text);
-        END LOOP;
-        RETURN NEW;
-    END;
-    $$ LANGUAGE plpgsql;
-""")
-
-NOTIFICATION_TRIGGER = dedent("""\
-    CREATE TRIGGER notification_events_trigger
-    AFTER INSERT ON {schema}.activity_log_v2
-    FOR EACH ROW
-    EXECUTE FUNCTION {schema}.notify_event_listeners();
-""")
-
 
 @pytest_asyncio.fixture(scope="module", loop_scope="module")
 async def pubsubdb(testdb: DatabaseManager) -> AsyncGenerator:
     """Set up notification trigger and function on testdb"""
     assert testdb.engine is not None
     async with testdb.engine.begin() as aconn:
-        await aconn.execute(text(NOTIFICATION_FUNCTION.format(schema=Base.metadata.schema)))
-        await aconn.execute(text(NOTIFICATION_TRIGGER.format(schema=Base.metadata.schema)))
+        await aconn.execute(text(raw.NOTIFICATION_FUNCTION.format(schema=Base.metadata.schema)))
+        await aconn.execute(text(raw.NOTIFICATION_TRIGGER.format(schema=Base.metadata.schema)))
         await aconn.commit()
     yield testdb
     async with testdb.engine.begin() as aconn:
