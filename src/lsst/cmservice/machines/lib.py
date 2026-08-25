@@ -5,14 +5,14 @@ import re
 import shlex
 import traceback
 from collections import ChainMap, defaultdict
-from collections.abc import Callable, Generator, Sequence
+from collections.abc import AsyncGenerator, Callable, Generator, Sequence
 from functools import partial, reduce
 from shutil import rmtree
 from textwrap import dedent
 from typing import TYPE_CHECKING, Any
 from uuid import uuid5
 
-from anyio import Path, open_file, to_thread
+from anyio import Path, TemporaryDirectory, open_file, to_thread
 from sqlalchemy.dialects.postgresql import INTEGER, insert
 from sqlmodel import cast, col, select
 from transitions import EventData
@@ -326,3 +326,17 @@ async def read_provenance_report_json(path: Path) -> dict:
         }
 
     return {"tasks": report, "legend": provenance.pop("legend")}
+
+
+async def get_artifact(artifact: Path | str) -> AsyncGenerator[Path]:
+    """Copy an artifact from the provided path to a local temporary
+    directory and return the Path to it.
+    """
+    remote_artifact = Path(artifact)
+    if not await remote_artifact.exists():
+        return
+    async with TemporaryDirectory() as temp_dir:
+        remote_bytes = await remote_artifact.read_bytes()
+        local_artifact = Path(temp_dir) / remote_artifact.name
+        await local_artifact.write_bytes(remote_bytes)
+        yield local_artifact
