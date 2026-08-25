@@ -50,6 +50,8 @@ class Notifier:
                 for channel in factory.builders:
                     await pg_conn.add_listener(channel, self.notification_handler)
 
+                pg_conn.add_termination_listener(self.termination_callback)
+
                 try:
                     logger.info("Started notifier")
                     await self.sentinel.wait()
@@ -57,6 +59,14 @@ class Notifier:
                 finally:
                     for channel in factory.builders:
                         await pg_conn.remove_listener(channel, self.notification_handler)
+
+    async def termination_callback(self, connection: Connection) -> None:
+        """Callback for connection terminations.
+
+        Sets the sentinel event to ensure task shutdown when the connection is
+        lost.
+        """
+        self.sentinel.set()
 
     async def notification_handler(
         self, connection: Connection, pid: int, channel: str, payload_: str
