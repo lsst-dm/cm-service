@@ -14,6 +14,7 @@ from .nodes import (
     get_one_node,
     insert_or_append_node,
     node_activity_logs,
+    node_provenance_report,
     retry_restart_node,
 )
 from .notifications import (
@@ -46,6 +47,7 @@ __all__ = [
     "insert_or_append_node",
     "get_notifications",
     "node_activity_logs",
+    "node_provenance_report",
     "oneshot_schedule",
     "patch_schedule",
     "post_new_schedule",
