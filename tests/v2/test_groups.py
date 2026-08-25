@@ -53,12 +53,8 @@ async def test_campaign_with_groups(
     node_machine = StepMachine(o=node)
     await node_machine.trigger("prepare")
 
-    ...
-
     # Rollback the prepare trigger
     await node_machine.trigger("unprepare")
-
-    ...
 
 
 async def test_append_node_to_prepared_step(
