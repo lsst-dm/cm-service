@@ -259,6 +259,7 @@ def build_htcondor_submit_environment() -> Mapping[str, str]:
         _CONDOR_COLLECTOR_HOST=config.htcondor.collector_host,
         _CONDOR_SCHEDD_HOST=config.htcondor.schedd_host,
         _CONDOR_SEC_CLIENT_AUTHENTICATION_METHODS=config.htcondor.authn_methods,
+        _CONDOR_SEC_FS_ENFORCE_CHANNEL_BINDING=config.htcondor.enforce_channel_binding,
         _CONDOR_DAGMAN_MANAGER_JOB_APPEND_GETENV="True",
         FS_REMOTE_DIR=config.htcondor.fs_remote_dir,
         # FIXME: populate the DAF_BUTLER_REPOSITORIES env var with the JSON
