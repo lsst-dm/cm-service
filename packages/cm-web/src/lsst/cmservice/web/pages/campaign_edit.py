@@ -83,9 +83,9 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
                 options=self.model.available_notification_labels,
                 label="Notification Labels",
                 multiple=True,
-            ).bind_value(self, ("model", "campaign", "configuration", "notification_labels")).classes(
-                "w-48"
-            ).props("use-chips")
+            ).bind_value(self, ("model", "campaign", "spec", "notification_labels")).classes("w-48").props(
+                "use-chips"
+            )
 
             with (
                 ui.input(
@@ -536,7 +536,6 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
             }
             for edge in canvas_data.get("edges", {})
         ]
-        ...
 
     async def handle_expressions_dialog(self, e: ClickEventArguments) -> None:
         """Creates an editor dialog for custom template expressions."""
@@ -817,5 +816,8 @@ class CampaignClonePage(CampaignEditPage):
             _data=yaml_import.encode("utf-8"),
         )
         await self.apply_import_to_model(schedule_import)
+
+        # fetch the available notification labels
+        self.model.available_notification_labels = [label["name"] async for label in api.get_notifications()]
 
         return self
