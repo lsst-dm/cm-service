@@ -127,33 +127,9 @@ async def test_create_campaign(aclient: AsyncClient) -> None:
     assert len(edges) == 0
 
 
-@pytest.mark.skip(reason="Deprecated distinction between waiting and paused campaign states")
-@pytest.mark.parametrize("spec_state,expected_state", [(True, "waiting"), (False, "paused")])
-async def test_create_campaign_with_spec(
-    *, spec_state: bool, expected_state: str, aclient: AsyncClient
+async def test_patch_campaign_notification_labels(
+    aclient: AsyncClient, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Tests the campaign creation API"""
-    campaign_name = uuid4().hex[-8:]
-
-    # Test successful campaign creation
-    x = await aclient.post(
-        "/v2/campaigns",
-        json={
-            "apiVersion": "io.lsst.cmservice/v1",
-            "kind": "campaign",
-            "metadata": {"name": campaign_name},
-            "spec": {
-                "auto_transition": spec_state,
-            },
-        },
-    )
-    assert x.is_success
-
-    campaign = x.json()
-    assert campaign["status"] == expected_state
-
-
-async def test_patch_campaign(aclient: AsyncClient, caplog: pytest.LogCaptureFixture) -> None:
     """Tests the campaign update API"""
     # Create a new campaign with spec data
     campaign_name = uuid4().hex[-8:]
@@ -163,10 +139,40 @@ async def test_patch_campaign(aclient: AsyncClient, caplog: pytest.LogCaptureFix
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "campaign",
             "metadata_": {"name": campaign_name},
-            "spec": {
-                "collections": ["a", "b", "c"],
-                "enable_notifications": True,
-            },
+            "spec": {},
+        },
+    )
+
+    assert x.is_success
+    # The response header 'self' has the canonical url for the new campaign
+    campaign_url = x.headers["self"]
+
+    # The campaign's notification labels should be empty, per default
+    y = await aclient.get(campaign_url)
+    assert y.json()["configuration"]["notification_labels"] == []
+
+    # Update notification labels for the campaign
+    y = await aclient.patch(
+        campaign_url,
+        json={"configuration": {"notification_labels": ["slack-ops"]}},
+        headers={"Content-Type": "application/merge-patch+json"},
+    )
+    assert y.is_success
+    y = await aclient.get(campaign_url)
+    assert y.json()["configuration"]["notification_labels"] == ["slack-ops"]
+
+
+async def test_patch_campaign(aclient: AsyncClient, caplog: pytest.LogCaptureFixture) -> None:
+    """Tests the campaign update and delete API"""
+    # Create a new campaign with spec data
+    campaign_name = uuid4().hex[-8:]
+    x = await aclient.post(
+        "/v2/campaigns",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "campaign",
+            "metadata_": {"name": campaign_name},
+            "spec": {},
         },
     )
 
@@ -243,3 +249,7 @@ async def test_patch_campaign(aclient: AsyncClient, caplog: pytest.LogCaptureFix
     activity_log_entry = y.json()[0]
     assert activity_log_entry["detail"]["trigger"] == "resume"
     assert activity_log_entry["detail"]["exception"] == "InvalidCampaignGraphError"
+
+    # Delete the campaign
+    y = await aclient.delete(campaign_url)
+    assert y.is_success

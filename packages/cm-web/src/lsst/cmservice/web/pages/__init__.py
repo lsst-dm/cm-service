@@ -23,6 +23,7 @@ from .campaign_overview import CampaignOverviewPage
 from .canvas import CanvasScratchPage
 from .help import HelpPage
 from .node_detail import NodeDetailPage
+from .notification_overview import NotificationOverviewPage
 from .schedule_overview import ScheduleOverviewPage
 
 # Add IIFE script for cm-canvas component
@@ -95,6 +96,17 @@ async def campaign_clone(request: Request, campaign_id: str) -> None:
 @ui.page("/canvas", response_timeout=settings.timeout)
 async def canvas_scratch_page(request: Request) -> None:
     if page := await CanvasScratchPage(request, title="Canvas Scratch Pad").setup():
+        await ui.context.client.connected()
+        await page.render()
+
+
+@ui.page("/notifications", response_timeout=settings.timeout)
+async def notification_overview_page(
+    request: Request,
+    client_: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)],
+) -> None:
+    """Builds a notifications overview page"""
+    if page := await NotificationOverviewPage(request, title="Notifications Overview").setup():
         await ui.context.client.connected()
         await page.render()
 

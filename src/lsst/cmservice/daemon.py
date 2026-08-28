@@ -17,6 +17,7 @@ from .common.panda import get_panda_token
 from .common.scheduler import Scheduler
 from .config import config
 from .db.session import db_session_dependency
+from .notifications.task import Notifier
 from .routers.healthz import health_router
 
 logger = LOGGER.bind(module=__name__)
@@ -48,6 +49,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
             scheduler = Scheduler(app=app, sentinel=shutdown_signal)
             scheduler_task = tg.create_task(scheduler.scheduler_task(), name="scheduler")
             app.state.tasks.add(scheduler_task)
+
+        # Notifier
+        if Features.NOTIFIER in config.features.enabled:
+            notifier = Notifier(app=app, sentinel=shutdown_signal)
+            notifier_task = tg.create_task(notifier.task(), name="notifier")
+            app.state.tasks.add(notifier_task)
 
         yield
         # Set the shutdown signal for all tasks

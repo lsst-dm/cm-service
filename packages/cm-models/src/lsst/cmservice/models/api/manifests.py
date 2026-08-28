@@ -64,12 +64,6 @@ class ManifestSpec(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
-class CampaignSpec(ManifestSpec):
-    """Spec model for a Campaign."""
-
-    ...
-
-
 class VersionedMetadata(BaseModel):
     """Metadata model for versioned Manifests with timestamps."""
 
@@ -112,6 +106,15 @@ class ManifestModel(Manifest[ManifestModelMetadata, ManifestSpec]):
             raise ValueError(msg)
 
         return self
+
+
+class CampaignSpec(ManifestSpec):
+    """Spec model for a Campaign."""
+
+    notification_labels: list[str] = Field(
+        default_factory=list,
+        description="List of labels to be notified when campaign events occur.",
+    )
 
 
 class CampaignManifest(Manifest[ManifestModelMetadata, CampaignSpec]):

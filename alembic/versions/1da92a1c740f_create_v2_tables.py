@@ -64,7 +64,7 @@ def upgrade() -> None:
         ),
         sa.Column("status", ENUM_COLUMN_AS_VARCHAR, nullable=False, default="waiting"),
         sa.Column(
-            "machine", postgresql.UUID(), sa.ForeignKey(machines_v2.c.id, ondelete="CASCADE"), nullable=True
+            "machine", postgresql.UUID(), sa.ForeignKey(machines_v2.c.id, ondelete="SET NULL"), nullable=True
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("name", "namespace"),
@@ -100,7 +100,7 @@ def upgrade() -> None:
         ),
         sa.Column("status", ENUM_COLUMN_AS_VARCHAR, nullable=False, default="waiting"),
         sa.Column(
-            "machine", postgresql.UUID(), sa.ForeignKey(machines_v2.c.id, ondelete="CASCADE"), nullable=True
+            "machine", postgresql.UUID(), sa.ForeignKey(machines_v2.c.id, ondelete="SET NULL"), nullable=True
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("name", "version", "namespace"),
@@ -117,8 +117,12 @@ def upgrade() -> None:
             sa.ForeignKey(campaigns_v2.c.id, ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column("source", postgresql.UUID(), sa.ForeignKey(nodes_v2.c.id), nullable=False),
-        sa.Column("target", postgresql.UUID(), sa.ForeignKey(nodes_v2.c.id), nullable=False),
+        sa.Column(
+            "source", postgresql.UUID(), sa.ForeignKey(nodes_v2.c.id, ondelete="CASCADE"), nullable=False
+        ),
+        sa.Column(
+            "target", postgresql.UUID(), sa.ForeignKey(nodes_v2.c.id, ondelete="CASCADE"), nullable=False
+        ),
         sa.Column(
             "metadata",
             postgresql.JSONB(),
@@ -192,16 +196,23 @@ def upgrade() -> None:
             server_default=sa.text("'{}'::json"),
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.ForeignKeyConstraint(["node"], ["nodes_v2.id"]),
-        sa.ForeignKeyConstraint(["namespace"], ["campaigns_v2.id"]),
+        sa.ForeignKeyConstraint(["node"], ["nodes_v2.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["namespace"], ["campaigns_v2.id"], ondelete="CASCADE"),
         if_not_exists=True,
     )
 
     _ = op.create_table(
         "activity_log_v2",
         sa.Column("id", postgresql.UUID(), nullable=False),
-        sa.Column("namespace", postgresql.UUID(), nullable=False),
-        sa.Column("node", postgresql.UUID(), sa.ForeignKey(nodes_v2.c.id), nullable=True),
+        sa.Column(
+            "namespace",
+            postgresql.UUID(),
+            sa.ForeignKey(campaigns_v2.c.id, ondelete="SET NULL"),
+            nullable=True,
+        ),
+        sa.Column(
+            "node", postgresql.UUID(), sa.ForeignKey(nodes_v2.c.id, ondelete="SET NULL"), nullable=True
+        ),
         sa.Column("operator", postgresql.VARCHAR(), nullable=False, default="root"),
         sa.Column("created_at", postgresql.TIMESTAMP(timezone=True), nullable=False),
         sa.Column("finished_at", postgresql.TIMESTAMP(timezone=True), nullable=True),
