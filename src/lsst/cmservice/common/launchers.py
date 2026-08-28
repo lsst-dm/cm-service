@@ -21,7 +21,23 @@ def exponential_retry[**P, T](
     backoff: float | int = 1.5,
     retryables: list[str] = [],
 ) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T | None]]]:
-    """Decorator factory for applying a retry mechanism to an async function"""
+    """Decorator factory for applying a retry mechanism to an async function
+
+    Parameters
+    ----------
+    delay : ``float``
+        Initial time to wait between tries, in seconds.
+
+    tries: ``int``
+        Total number of attempts to make, including the initial try.
+
+    backoff: ``float``
+        Multiplicative factor for increasing the delay between tries.
+
+    retryables: ``list`` [``str``]
+        A list of exception names that if raised by the payload are subject
+        to retries. If empty, retries are not constrained by exception name.
+    """
 
     def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T | None]]:
         """Decorator wraps async function with a retry mechanism"""
@@ -40,7 +56,7 @@ def exponential_retry[**P, T](
                 except Exception as exc:
                     if type(exc).__name__ not in retryables:
                         raise
-                    elif _tries < 0:
+                    elif _tries <= 0:
                         raise
                     else:
                         _delay *= backoff
