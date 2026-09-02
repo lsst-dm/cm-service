@@ -454,6 +454,8 @@ class PandaConfiguration(BaseModel, validate_assignment=True):
 
 # TODO deprecate and remove "slurm"-specific logic from cm-service; it is
 #      unlikely that interfacing with slurm directly from k8s will be possible.
+# TODO rename this configuration model to reflect its role in controlling
+#      resource allocation, not direct slurm interaction
 class SlurmConfiguration(BaseModel):
     """Configuration settings for slurm client operations.
 
@@ -621,8 +623,7 @@ class NotificationConfiguration(BaseModel):
     )
     slack_webhook_url: str | None = Field(
         default=None,
-        description="URL of a Slack Application webhook",
-        deprecated="This should be part of the `default` notification label",
+        description="URL of a Slack Application webhook for the `default` notification label",
     )
 
     @cached_property
