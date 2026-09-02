@@ -2,8 +2,6 @@
 nodes, including START/END/BREAKPOINT nodes.
 """
 
-from __future__ import annotations
-
 import pickle
 import shutil
 from typing import TYPE_CHECKING, Any
@@ -20,7 +18,7 @@ from lsst.cmservice.models.db.campaigns import ActivityLog, Campaign, Edge, Mach
 from lsst.cmservice.models.enums import ManifestKind, StatusEnum
 from lsst.cmservice.models.lib import timestamp
 from lsst.cmservice.models.lib.graph import graph_from_edge_list_v2
-from lsst.cmservice.models.manifest import ButlerManifest
+from lsst.cmservice.models.manifests.butler import ButlerManifest
 
 from ...common.flags import Features
 from ...common.launchers import LauncherCheckResponse

@@ -1,3 +1,5 @@
+# ruff: noqa: UP037
+
 from typing import TYPE_CHECKING
 
 from sqlalchemy import JSON

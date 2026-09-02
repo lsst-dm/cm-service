@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any
 
 from anyio import Path
@@ -19,7 +17,6 @@ from ..common.errors import (
 from ..common.htcondor import check_htcondor_job, submit_htcondor_job, write_htcondor_script
 from ..common.logging import LOGGER
 from ..common.notification import send_notification
-from ..common.slurm import check_slurm_job, submit_slurm_job
 from ..config import config
 from ..db.element import ElementMixin
 from ..db.handler import Handler
@@ -393,42 +390,6 @@ class ScriptHandler(BaseScriptHandler):
         await script.update_values(session, status=status)
         return status
 
-    async def _check_slurm_job(
-        self,
-        session: AnyAsyncSession,
-        slurm_id: str | None,
-        script: Script,
-        parent: ElementMixin,
-        fake_status: StatusEnum | None = None,
-    ) -> StatusEnum:
-        """Check the status of a `Script` sent to slurm
-
-        Parameters
-        ----------
-        session : AnyAsyncSession
-            DB session manager
-
-        slurm_id : str
-            Slurm job id
-
-        script: Script
-            The `Script` in question
-
-        parent: ElementMixin
-            Parent Element of the `Script` in question
-
-        fake_status: StatusEnum | None,
-            If set, don't actually check the job, set status to fake_status
-
-        Returns
-        -------
-        status : StatusEnum
-            The status of the processing
-        """
-        status = await check_slurm_job(slurm_id, fake_status)
-        await script.update_values(session, status=status)
-        return status
-
     async def _check_htcondor_job(
         self,
         session: AnyAsyncSession,
@@ -480,8 +441,6 @@ class ScriptHandler(BaseScriptHandler):
                 raise CMBadExecutionMethodError("ScriptMethodEnum.no_script can not be set for ScriptHandler")
             case ScriptMethodEnum.bash:
                 status = await self._write_script(session, script, parent, **kwargs)
-            case ScriptMethodEnum.slurm:
-                status = await self._write_script(session, script, parent, **kwargs)
             case ScriptMethodEnum.htcondor:
                 status = await self._write_script(session, script, parent, setup_stack=True, **kwargs)
             case _:
@@ -517,10 +476,6 @@ class ScriptHandler(BaseScriptHandler):
                 await run_bash_job(script.script_url, script.log_url, script.stamp_url, **kwargs)
                 status = StatusEnum.running
                 await script.update_values(session, status=status)
-            case ScriptMethodEnum.slurm:
-                job_id = await submit_slurm_job(script.script_url, script.log_url, **kwargs)
-                status = StatusEnum.running
-                await script.update_values(session, stamp_url=job_id, status=status)
             case ScriptMethodEnum.htcondor:
                 job_script_path = await Path(script.script_url).resolve()
                 htcondor_script_path = job_script_path.with_suffix(".sub")
@@ -556,8 +511,6 @@ class ScriptHandler(BaseScriptHandler):
         match script_method:
             case ScriptMethodEnum.bash:
                 status = await self._check_stamp_file(session, script.stamp_url, script, parent, fake_status)
-            case ScriptMethodEnum.slurm:
-                status = await self._check_slurm_job(session, script.stamp_url, script, parent, fake_status)
             case ScriptMethodEnum.htcondor:
                 status = await self._check_htcondor_job(
                     session, script.stamp_url, script, parent, fake_status

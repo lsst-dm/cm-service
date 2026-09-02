@@ -5,8 +5,6 @@ Configuration provided by a WMS manifest generally align with the WMS config-
 uration block of a BPS submit file.
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import Annotated, Literal
 
