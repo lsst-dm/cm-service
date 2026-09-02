@@ -183,6 +183,7 @@ async def async_client_fixture(
     """
     main_ = importlib.import_module("lsst.cmservice.main")
     app: FastAPI = getattr(main_, "app")
+    app.state.tasks = set()
     app.dependency_overrides[db_session_dependency] = session_factory
 
     async with AsyncClient(
