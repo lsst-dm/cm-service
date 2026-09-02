@@ -11,13 +11,13 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Intended Audience :: Developers",
     "Natural Language :: English",
     "Operating System :: POSIX",
     "Typing :: Typed",
 ]
-requires-python = ">=3.13,<3.14"
+requires-python = ">=3.14,<3.15"
 dynamic = ["version"]
 
 # Core dependencies for the CM Service. These dependencies must be compatible
@@ -27,20 +27,20 @@ dependencies = [
     "anyio==4.10.*",
     "apscheduler>=3.11.2,<4",
     "asgi-correlation-id>=4.3.4",
-    "asyncpg==0.30.*",
+    "asyncpg==0.31.*",
     "click==8.1.*",
     "cryptography>=49",
     "deepdiff>=8.6.1,<9",
-    "fastapi==0.136.*",
-    "greenlet==3.1.*",
+    "fastapi==0.140.*",
+    "greenlet==3.5.*",
     "httpx2==2.9.*",
     "jinja2==3.1.*",
     "networkx>=3.5",
-    "numpy==2.1.*",
+    "numpy==2.4.*",
     "psycopg2-binary==2.9.*",
     "pydantic==2.12.*",
     "pydantic-extra-types[cron,uuid_utils]>=2.10.6",
-    "pydantic-settings==2.12.*",
+    "pydantic-settings==2.14.*",
     "pytransitions==0.9.*",
     "python-multipart==0.0.*",
     "sqlalchemy[asyncio]==2.0.*",
@@ -76,7 +76,7 @@ dev = [
     "coverage[toml]>=7.6.7",
     "json-schema-for-humans",
     "mypy>=1.17.0",
-    "prek==0.3.*",
+    "prek==0.5.*",
     "pytest>=9.0.0",
     "pytest-asyncio>=0.24.0",
     "pytest-cov>=6.0.0",
@@ -87,7 +87,6 @@ dev = [
     "python-semantic-release==10.6.*",
     "respx>=0.22.0",
     "ruff>=0.16.0",
-    "safir[db]<16",
     "sqlalchemy[mypy]>=2.0.36",
     "testcontainers[postgres]==4.10.*",
     "types-pyyaml>=6.0.12.20240917",
@@ -173,7 +172,7 @@ exclude_lines = [
 
 [tool.ruff]
 line-length = 110
-target-version = "py313"
+target-version = "py314"
 
 [tool.ruff.lint]
 ignore = [
