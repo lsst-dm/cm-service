@@ -67,10 +67,12 @@ class ManifestSpec(BaseModel):
 class VersionedMetadata(BaseModel):
     """Metadata model for versioned Manifests with timestamps."""
 
+    model_config = ConfigDict(extra="allow")
     version: int = Field(exclude=True, default=0)
     crtime: int = Field(default_factory=element_time)
     mtime: int | None = Field(default=None)
     labels: dict[str, str] = Field(default_factory=dict)
+    default: bool | None = Field(default=None)
 
 
 class ManifestMetadata(VersionedMetadata):
@@ -82,6 +84,7 @@ class ManifestMetadata(VersionedMetadata):
 
     name: str = Field(exclude=True)
     namespace: str = Field(exclude=True)
+    default: bool | None = Field(default=None, exclude=True)
 
 
 class ManifestModelMetadata(ManifestMetadata):
