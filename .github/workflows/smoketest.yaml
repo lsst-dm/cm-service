@@ -27,7 +27,7 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
-          python-version: "3.13"
+          python-version: "3.14"
 
       - name: Install packages for smoketest
         run: uv sync --frozen --package lsst-cmservice-commandline
