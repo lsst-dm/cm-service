@@ -2,6 +2,8 @@
 related tables.
 """
 
+# ruff: noqa: UP037
+
 import re
 from typing import Annotated
 from uuid import uuid4, uuid5

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections import ChainMap
 from collections.abc import AsyncGenerator
 from functools import partial
@@ -17,7 +15,7 @@ from lsst.cmservice.models.db.campaigns import Manifest, Node
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, ManifestKind, StatusEnum
 from lsst.cmservice.models.lib.logging import LOGGER
 from lsst.cmservice.models.lib.timestamp import element_time
-from lsst.cmservice.models.manifest import LibraryManifest
+from lsst.cmservice.models.manifests import LibraryManifest
 from lsst.resources import ResourcePath
 
 from ...common.errors import CMNoSuchManifestError
@@ -145,7 +143,7 @@ class FilesystemActionMixin(ActionMixIn):
         # this case depending on how the Node was initially loaded)
         try:
             campaign_name = self.db_model.campaign.name
-        except (AttributeError, MissingGreenlet):
+        except AttributeError, MissingGreenlet:
             campaign_name = str(self.db_model.namespace)
         campaign_artifact_path = await (Path(lsst_artifact_path) / campaign_name).resolve()
         parent_path = Path(

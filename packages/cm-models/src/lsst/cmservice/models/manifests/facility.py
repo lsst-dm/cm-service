@@ -2,8 +2,6 @@
 processing site or facility.
 """
 
-from __future__ import annotations
-
 from typing import Literal
 
 from pydantic import Field

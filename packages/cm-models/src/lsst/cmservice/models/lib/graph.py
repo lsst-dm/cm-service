@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Iterable, Mapping, MutableSet, Sequence
 from typing import TYPE_CHECKING, Literal, TypedDict, cast
 from uuid import UUID, uuid4, uuid5
@@ -202,7 +200,7 @@ def validate_graph(g: nx.DiGraph, source_name: str = "START", sink_name: str = "
             raise InvalidCampaignGraphError("Graph has no END node")
         else:
             sink = sink_nodes[0]
-    except (AttributeError, KeyError):
+    except AttributeError, KeyError:
         # Graph nodes data do not have a model component, which should only
         # occur in unit tests or when the graph has been serialized with a
         # "simple" view
@@ -248,7 +246,7 @@ def validate_graph(g: nx.DiGraph, source_name: str = "START", sink_name: str = "
         g_degree_view: Iterable = nx.degree(g, (n for n in g.nodes if n not in [source, sink]))
         is_valid = min([d[1] for d in g_degree_view]) > 1
         assert is_valid
-    except (NodeNotFound, AssertionError):
+    except NodeNotFound, AssertionError:
         return False
     return True
 

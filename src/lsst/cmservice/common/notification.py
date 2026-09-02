@@ -23,8 +23,8 @@ logger = LOGGER.bind(module=__name__)
 
 async def send_notification(
     for_status: StatusEnum,
-    for_campaign: "Campaign",
-    for_job: "Job | Script | None" = None,
+    for_campaign: Campaign,
+    for_job: Job | Script | None = None,
     detail: str | None = None,
 ) -> None:
     """Sends a notification message."""
