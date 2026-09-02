@@ -6,8 +6,6 @@ configuration inputs. These models are considered the source of truth for a
 step's configuration.
 """
 
-from __future__ import annotations
-
 from collections.abc import MutableSequence, Sequence
 from typing import Annotated, Literal
 

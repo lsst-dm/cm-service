@@ -1,5 +1,7 @@
 """ORM Models for v2 tables and objects."""
 
+# ruff: noqa: UP037
+
 from collections.abc import MutableSequence
 from typing import Any, Optional
 from uuid import UUID, uuid4, uuid5
@@ -180,7 +182,7 @@ class Node(NodeBase, table=True):
         },
     )
 
-    fsm: Optional["Machine"] = Relationship(sa_relationship_kwargs={"uselist": False})
+    fsm: Optional["Machine"] = Relationship(sa_relationship_kwargs={"uselist": False})  # noqa: UP045
 
 
 class EdgeBase(BaseSQLModel):
