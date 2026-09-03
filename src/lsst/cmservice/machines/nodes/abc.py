@@ -1,7 +1,5 @@
 """Abstract Base Classes for Mixins related to node state machines."""
 
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
 from collections import ChainMap
 from collections.abc import AsyncGenerator

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Generator, Mapping, Sequence
 from itertools import chain
 from typing import Any, cast
@@ -20,14 +18,12 @@ from lsst.cmservice.models.lib.graph import (
     topographical_sorted_collections,
 )
 from lsst.cmservice.models.lib.timestamp import element_time
-from lsst.cmservice.models.manifest import (
-    ArtifactManifest,
-    BpsManifest,
-    ButlerManifest,
-    FacilityManifest,
-    LsstManifest,
-    WmsManifest,
-)
+from lsst.cmservice.models.manifests.artifact import ArtifactManifest
+from lsst.cmservice.models.manifests.bps import BpsManifest
+from lsst.cmservice.models.manifests.butler import ButlerManifest
+from lsst.cmservice.models.manifests.facility import FacilityManifest
+from lsst.cmservice.models.manifests.lsst import LsstManifest
+from lsst.cmservice.models.manifests.wms import WmsManifest
 
 from ...common.errors import CMNoSuchManifestError
 from ...common.flags import Features

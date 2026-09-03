@@ -1,3 +1,5 @@
+# ruff: noqa: UP037
+
 import re
 from typing import TYPE_CHECKING
 

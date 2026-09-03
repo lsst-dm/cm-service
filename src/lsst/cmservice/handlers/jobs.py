@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import os
 import shutil
 import types
@@ -236,36 +234,6 @@ class BpsScriptHandler(ScriptHandler):
             msg = f"Error writing a script to run BPS job {script}; threw {e}"
             raise yaml.YAMLError(msg)
         return StatusEnum.prepared
-
-    async def _check_slurm_job(
-        self,
-        session: AnyAsyncSession,
-        slurm_id: str | None,
-        script: Script,
-        parent: ElementMixin,
-        fake_status: StatusEnum | None = None,
-    ) -> StatusEnum:
-        fake_status = fake_status or config.mock_status
-        slurm_status = await ScriptHandler._check_slurm_job(
-            self,
-            session,
-            slurm_id,
-            script,
-            parent,
-            fake_status,
-        )
-        await script.update_values(session, status=slurm_status)
-        if slurm_status not in [StatusEnum.reviewable, StatusEnum.accepted]:  # pragma: no cover
-            return slurm_status
-        if fake_status is not None:
-            wms_job_id = "fake_job"
-        else:  # pragma: no cover
-            if TYPE_CHECKING:
-                assert script.log_url is not None
-            bps_dict = await parse_bps_stdout(script.log_url)
-            wms_job_id = self.get_job_id(bps_dict)
-        await parent.update_values(session, wms_job_id=wms_job_id)
-        return slurm_status
 
     async def _check_htcondor_job(
         self,

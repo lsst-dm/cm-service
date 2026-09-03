@@ -11,11 +11,8 @@ from lsst.cmservice.common.bash import (
 from lsst.cmservice.common.enums import LevelEnum, TableEnum
 from lsst.cmservice.common.errors import (
     CMHTCondorSubmitError,
-    CMSlurmCheckError,
-    CMSlurmSubmitError,
 )
 from lsst.cmservice.common.htcondor import check_htcondor_job, submit_htcondor_job, write_htcondor_script
-from lsst.cmservice.common.slurm import check_slurm_job, submit_slurm_job
 from lsst.cmservice.models.enums import StatusEnum
 
 
@@ -120,16 +117,3 @@ async def test_common_htcondor() -> None:
     assert status is StatusEnum.failed
 
     await Path("htcondor_temp.sh").unlink()
-
-
-# FIXME this test should patch the htcondor runner to produce an actual result
-#       from a fixture.
-@pytest.mark.asyncio()
-async def test_common_slurm() -> None:
-    """Test common.slurm functions"""
-
-    with pytest.raises(CMSlurmSubmitError):
-        await submit_slurm_job("slurm_temp.sh", "slurm_temp.log")
-
-    with pytest.raises(CMSlurmCheckError):
-        await check_slurm_job("slurm_temp.log")

@@ -126,7 +126,7 @@ def get_panda_token() -> str | None:
             token_data = json.loads((Path(config.panda.config_root) / ".token").read_text())
             config.panda.id_token = token_data["id_token"]
             config.panda.refresh_token = token_data["refresh_token"]
-    except (FileNotFoundError, json.JSONDecodeError):
+    except FileNotFoundError, json.JSONDecodeError:
         logger.exception()
         return None
 
@@ -175,7 +175,7 @@ def get_panda_token() -> str | None:
                 )
 
             _ = refresh_panda_token(token_endpoint, data)
-        except (httpx2.HTTPStatusError, json.JSONDecodeError, KeyError):
+        except httpx2.HTTPStatusError, json.JSONDecodeError, KeyError:
             # Error classes could include http status, malformed responses, or
             # responses with missing keys, either in this function or in the
             # token refresh function.

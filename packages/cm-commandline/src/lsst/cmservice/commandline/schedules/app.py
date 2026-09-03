@@ -143,7 +143,7 @@ def oneshot_schedule(
                     new_c_url = r.headers["Last-Campaign"]
                     if new_c_url == prev_c_url:
                         raise ValueError
-                except (KeyError, ValueError):
+                except KeyError, ValueError:
                     sleep(1.0)
                     elapsed += 1.0
                     continue

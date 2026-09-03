@@ -1,7 +1,5 @@
 """Module implementing a State Machine for a Group."""
 
-from __future__ import annotations
-
 from collections import ChainMap
 from os.path import expandvars
 from types import ModuleType

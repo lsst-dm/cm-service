@@ -1,7 +1,5 @@
 """CM Service yaml constructors"""
 
-from __future__ import annotations
-
 import os
 
 import yaml as yaml
