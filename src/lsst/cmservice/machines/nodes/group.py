@@ -23,7 +23,7 @@ from ...common.flags import Features
 from ...common.logging import LOGGER
 from ...config import config
 from ...handlers.functions import status_from_bps_report
-from ..lib import materialize_activity_log, read_provenance_report_json
+from ..lib import get_artifact, materialize_activity_log, read_provenance_report_json
 from .meta import NodeMachine
 from .mixin import FilesystemActionMixin, HTCondorLaunchMixin
 
@@ -319,6 +319,9 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         if (bps_submit_dir := self.db_model.metadata_.get("bps", {}).get("Submit dir", None)) is not None:
             submit_dir_exists = await Path(bps_submit_dir).exists()
 
+        if TYPE_CHECKING:
+            assert bps_submit_dir is not None
+
         # the group must have a qg file in the submit directory matching the
         # bps run name
         if (bps_name := self.db_model.metadata_.get("bps", {}).get("Run Name", None)) is not None:
@@ -347,7 +350,7 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         # Call a method provided by the ActionMixin to COPY the requested file
         # to a temporary location.
         bps_dict: dict[str, str] = {}
-        async for bps_stdout in self.get_artifact(event, bps_stdout_log):
+        async for bps_stdout in get_artifact(bps_stdout_log):
             # parse the bps stdout file
             bps_dict = await parse_bps_stdout(bps_stdout)
 
@@ -507,16 +510,20 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         Uses a previously discovered bps submit directory as an "id" to
         discover a provenance report.
         """
-        if (bps_submit_dir := self.db_model.metadata_.get("bps", {}).get("Submit dir")) is None:
+        if (bps_submit_dir := self.db_model.metadata_.get("bps", {}).get("Submit dir", None)) is None:
             raise RuntimeError("No BPS Submit dir known to machine")
 
         if (bps_uniq_proc_name := self.configuration_chain["bps"].get("uniq_proc_name")) is None:
             raise RuntimeError("No BPS Uniq Proc Name known to machine")
 
+        if TYPE_CHECKING:
+            assert isinstance(bps_submit_dir, str)
+            assert isinstance(bps_uniq_proc_name, str)
+
         # IF there is a *_prov.json, ingest it
         provenance_report: None | dict = None
-        provenance_report_json_path = Path(bps_submit_dir / f"{bps_uniq_proc_name}_prov.json")
-        async for provenance_report_json in self.get_artifact(event, provenance_report_json_path):
+        provenance_report_json_path = Path(bps_submit_dir) / f"{bps_uniq_proc_name}_prov.json"
+        async for provenance_report_json in get_artifact(provenance_report_json_path):
             provenance_report = await read_provenance_report_json(provenance_report_json)
 
         # TODO is there another way to get the provenance report from Butler?
