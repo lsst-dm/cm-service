@@ -12,6 +12,7 @@ dependencies = [
     "pydantic>=2.12",
     "pydantic-extra-types[cron]>=2.10.6",
     "pydantic-settings>=2.12",
+    "rich>=15.0",
     "structlog>=24.4.0",
     "lsst-cmservice-models",
 ]

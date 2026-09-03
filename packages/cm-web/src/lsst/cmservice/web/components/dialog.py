@@ -1,5 +1,6 @@
 """Module implementing reusable and/or modular Dialogs."""
 
+from collections import deque
 from collections.abc import Awaitable, Callable, Generator, Mapping, MutableMapping
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -23,7 +24,7 @@ from ..lib.enum import MANIFEST_KIND_ICONS
 from ..lib.models import DEFAULT_NOTIFICATION_FILTERS, KIND_TO_SPEC, STEP_MANIFEST_TEMPLATE
 from ..pages.common import CMPage
 from ..settings import settings
-from . import strings
+from . import strings, table
 
 
 class SpecValidationError(RuntimeError): ...
@@ -1140,3 +1141,76 @@ class NewNotificationLabelDialog(ui.dialog):
         result = await edit_notifications
         if result is not None:
             self.model["spec"]["filters"] = [":".join(e) for e in result]
+
+
+class CheckProvenanceReportDialog(ui.dialog):
+    """Dialog for displaying a provenance report table for a group"""
+
+    def __init__(self, *, report: Mapping, dialog_title: str):
+        super().__init__()
+        self.props("maximized")
+        self.dialog_title = dialog_title
+        self.model: Mapping = report
+        self.table_format = deque(["table", "markdown", "markdown_raw", "plaintext"])
+        self.table: Any = None
+        self.dialog_layout()
+
+    # Tell type checkers what is returned when the dialog is awaited
+    if TYPE_CHECKING:
+
+        def __await__(self) -> Generator[None]: ...
+
+    @ui.refreshable_method
+    def dialog_layout(self) -> None:
+        """Core layout method for the dialog."""
+        with (
+            self,
+            ui.card().classes("w-full"),
+        ):
+            # HEADER
+            with ui.row().classes("w-full shrink-0 py-2"):
+                ui.label(self.dialog_title).classes("text-h6")
+
+            # CONTENT
+            ui.separator()
+            self.create_table_row()
+
+            # ACTIONS
+            ui.separator()
+            with ui.card_actions().classes("w-full shrink-0 align-left"):
+                ui.button("Close", color="negative", on_click=lambda: self.submit(None))
+                ui.button("Format", color="accent", on_click=self.toggle_table_format).tooltip(
+                    "Toggle table format"
+                )
+
+    @ui.refreshable_method
+    def create_table_row(self) -> None:
+        with ui.row().classes("w-full flex overflow-y-auto"):
+            if not self.model:
+                ui.label("Provenance Report Not Available for Node")
+            elif self.table_format[0] == "table":
+                self.table = table.provenance_report_table(self.model)
+            elif self.table_format[0] == "plaintext":
+                table.provenance_report_plaintext(self.table)
+            elif self.table_format[0] == "markdown":
+                table.provenance_report_markdown(self.table)
+            elif self.table_format[0] == "markdown_raw":
+                table.provenance_report_markdown(self.table, render_markdown=False)
+
+    async def toggle_table_format(self, e: ClickEventArguments) -> None:
+        """Toggle between a table and a markdown view"""
+        self.table_format.rotate(-1)
+        await self.create_table_row.refresh()
+
+    @classmethod
+    async def click(cls, e: ClickEventArguments, *, id: str, title: str = "Provenance Report") -> None:
+        """Callback method for a click event meant to open the dialog, e.g.,
+        from a button.
+
+        This method implements the async await dialog pattern that returns a
+        result object from a `submit()` method called elsewhere in the dialog
+        logic. This pattern can be used directly in pages that need to use a
+        dialog.
+        """
+        report = await api.node_provenance_report(id)
+        await cls(dialog_title=title, report=report)

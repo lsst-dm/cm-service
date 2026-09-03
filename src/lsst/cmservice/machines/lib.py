@@ -1,17 +1,18 @@
 """Library functions supporting State Machines"""
 
+import json
 import re
 import shlex
 import traceback
-from collections import ChainMap
-from collections.abc import Callable, Generator, Sequence
+from collections import ChainMap, defaultdict
+from collections.abc import AsyncGenerator, Callable, Generator, Sequence
 from functools import partial, reduce
 from shutil import rmtree
 from textwrap import dedent
 from typing import TYPE_CHECKING, Any
 from uuid import uuid5
 
-from anyio import Path, to_thread
+from anyio import Path, TemporaryDirectory, open_file, to_thread
 from sqlalchemy.dialects.postgresql import INTEGER, insert
 from sqlmodel import cast, col, select
 from transitions import EventData
@@ -293,3 +294,49 @@ def event_error_heuristic(event: EventData) -> str | None:
     """)
 
     return error_markdown
+
+
+async def read_provenance_report_json(path: Path) -> dict:
+    """Read and transform Provenance Report from a JSON file"""
+
+    async with await open_file(path, "r") as f:
+        contents = await f.read()
+        provenance = json.loads(contents)
+
+    # Transform the task list into a task-indexed dict.
+    caveats: dict[str, list]
+    caveats = {task["Task"]: task.pop("Caveats") for task in provenance["tasks"]}
+
+    report: dict[str, Any]
+    report = {
+        task["Task"]: {k.lower(): v for k, v in task.items() if k != "Task" and v > 0}
+        for task in provenance["tasks"]
+    }
+
+    exceptions: dict[str, list[dict]] = defaultdict(list)
+    task: dict[str, Any]
+    for task in provenance["exceptions"]:
+        task_name = task.pop("Task")
+        exceptions[task_name].append(task)
+
+    for task_name in report:
+        report[task_name] |= {
+            "caveats": [caveat for caveat in caveats[task_name] if caveat is not None],
+            "exceptions": exceptions[task_name],
+        }
+
+    return {"tasks": report, "legend": provenance.pop("legend")}
+
+
+async def get_artifact(artifact: Path | str) -> AsyncGenerator[Path]:
+    """Copy an artifact from the provided path to a local temporary
+    directory and return the Path to it.
+    """
+    remote_artifact = Path(artifact)
+    if not await remote_artifact.exists():
+        return
+    async with TemporaryDirectory() as temp_dir:
+        remote_bytes = await remote_artifact.read_bytes()
+        local_artifact = Path(temp_dir) / remote_artifact.name
+        await local_artifact.write_bytes(remote_bytes)
+        yield local_artifact

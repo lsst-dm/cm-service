@@ -48,7 +48,14 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
     uration carousel, and transport and/or recovery tools.
     """
 
-    def drawer_contents(self) -> None: ...
+    def drawer_contents(self) -> None:
+        """Right-side hamburger menu contents"""
+        ui.button(
+            "Check Provenance",
+            icon="receipt",
+            color="accent",
+            on_click=self.handle_provenance_button,
+        ).classes("w-full")
 
     async def footer_contents(self) -> None:
         ui.label().classes("text-xs").bind_text_from(self, "node_id", strict=False)
@@ -401,4 +408,12 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
         if result:
             await api.retry_restart_node(n0=self.node_id, **api_kwargs)
             await self.create_content.refresh()
+        self.hide_spinner()
+
+    async def handle_provenance_button(self, e: ClickEventArguments) -> None:
+        """Callback for the provenance sidebar button"""
+        self.show_spinner()
+        await dialog.CheckProvenanceReportDialog.click(
+            e, id=self.node_id, title=f"Provenance Report for {self.model['node']['name']}"
+        )
         self.hide_spinner()

@@ -2,7 +2,8 @@
 targeting Node resources.
 """
 
-from typing import Literal
+from collections.abc import Mapping
+from typing import Literal, cast
 
 from httpx2 import HTTPStatusError, Response, codes
 from nicegui import app, ui
@@ -214,3 +215,11 @@ async def node_activity_logs(id: str) -> list[dict]:
         r = await session.get(f"/logs?node={id}&sort=-finished_at")
         r.raise_for_status()
     return r.json()
+
+
+async def node_provenance_report(id: str) -> Mapping:
+    """Use the CM API to fetch a provenance report for a given node."""
+    async with CLIENT_FACTORY.aclient() as session:
+        r = await session.post(f"/nodes/{id}/provenance")
+        r.raise_for_status()
+    return cast(Mapping, r.json())
