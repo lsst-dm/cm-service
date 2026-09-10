@@ -423,7 +423,7 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
             f"bps_status_{bps_status.name}",
         )
 
-        if bps_status is WmsStates.RUNNING:
+        if bps_status in {WmsStates.RUNNING, WmsStates.UNKNOWN}:
             return False
 
         # BPS Report
@@ -466,7 +466,7 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
                 self.db_model.metadata_["bps_report"][task_name] = wms_dict
 
         # Negative terminal states short-circuit to the machine's error handler
-        if bps_status in {WmsStates.FAILED, WmsStates.DELETED}:
+        if bps_status in {WmsStates.FAILED, WmsStates.DELETED, WmsStates.MISFIT}:
             msg = f"WMS Job is {bps_status.name}"
             raise RuntimeError(msg)
 
