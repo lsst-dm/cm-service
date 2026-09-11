@@ -225,6 +225,11 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
             | self.db_model.configuration.get("site", {}),
             "wms": self.wms.spec.model_dump(exclude_none=True) | self.db_model.configuration.get("wms", {}),
         }
+        # The step applies its own selectors to the group
+        # TODO the step should apply some intelligence to mutate the selectors
+        # for the group in response to some undefined logic.
+        # TODO the "manifests" dictionary should demonstrate why the manifest
+        # has been used, e.g., by default or by selection, etc.
         group_metadata = {
             "crtime": element_time(),
             "step": str(self.db_model.id),
@@ -236,6 +241,7 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
                 "site": self.site.metadata_.version,
                 "wms": self.wms.metadata_.version,
             },
+            "selectors": self.db_model.metadata_.get("selectors", {}),
         }
         group = Node(
             id=group_id,

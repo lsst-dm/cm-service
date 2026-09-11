@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from nicegui import app, ui
+from nicegui import Event, app, ui
 
 from ..lib.enum import Palette
 
@@ -69,6 +69,7 @@ class ToggleButton(ui.button):
         }
         super().__init__(*args, **kwargs)
         self.on("click", self.toggle)
+        self.update()
 
     def toggle(self) -> None:
         """Toggles the button between two states"""
@@ -135,3 +136,52 @@ class TrashButton(ui.button):
         favorites.add(self.object_id)
         app.storage.client["state"].user.ignore_list = favorites
         self.toggle_icon()
+
+
+class DefaultManifestButton(ui.button):
+    """Set the associated manifest as the default for a campaign.
+
+    This button's click callback manages its own state, then emits an event to
+    any subscribers (provided by a page at construction), which should handle
+    the business logic associated with the button's state change.
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self._manifest: str = kwargs.pop("manifest", "")
+        self.completed = Event[str]()
+        self.completed.subscribe(kwargs.pop("on_completed", self.default_subscriber))
+        self._state: bool = kwargs.pop("is_default", False)
+        self._dirty = False
+        self._state_icons = {
+            True: kwargs.pop("on_icon", "check_box"),
+            False: kwargs.pop("off_icon", "check_box_outline_blank"),
+        }
+        super().__init__(*args, icon=self._state_icons[self._state], **kwargs)
+        self.on("click", self.set_default)
+
+    def set_default(self) -> None:
+        """Set the state if not already set"""
+        if self._state:
+            return None
+        self._state = True
+        self._dirty = True
+        self.update()
+
+    def update(self) -> None:
+        """Update button's internal state and emit a completed event to
+        subscribers.
+        """
+        with self.props.suspend_updates():
+            self.set_icon(self._state_icons[self._state])
+            if self._dirty and self._manifest:
+                # TODO might want call instead of emit
+                self.completed.emit(self._manifest)
+                self._dirty = False
+            else:
+                ...
+        super().update()
+
+    @staticmethod
+    def default_subscriber(data: str) -> None:
+        """Subscriber handler if one is not provided"""
+        ui.notify(data)

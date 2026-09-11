@@ -403,3 +403,112 @@ async def test_delete_library_manifest_resource(aclient: AsyncClient, manifest_f
 
     x = await aclient.get(f"/v2/manifests/{manifest_name}")
     assert x.status_code == codes.NOT_FOUND
+
+
+async def test_get_set_default_manifest_for_campaign(aclient: AsyncClient, test_campaign: str) -> None:
+    """Tests the manifest set default operation"""
+    campaign_id = urlparse(url=test_campaign).path.split("/")[-2:][0]
+
+    x = await aclient.post(
+        "/v2/manifests",
+        json=[
+            {
+                "apiversion": "io.lsst.cmservice/v1",
+                "kind": "lsst",
+                "metadata": {
+                    "name": "d_latest",
+                    "namespace": campaign_id,
+                },
+                "spec": {"lsst_version": "d_latest"},
+            },
+        ],
+    )
+    assert x.is_success
+    new_manifest_a = (await aclient.get(x.headers["self"])).json()
+
+    x = await aclient.post(
+        "/v2/manifests",
+        json=[
+            {
+                "apiversion": "io.lsst.cmservice/v1",
+                "kind": "lsst",
+                "metadata": {
+                    "name": "w_latest",
+                    "namespace": campaign_id,
+                },
+                "spec": {"lsst_version": "w_latest"},
+            },
+        ],
+    )
+    assert x.is_success
+    new_manifest_b = (await aclient.get(x.headers["self"])).json()
+
+    x = await aclient.put(
+        f"v2/campaigns/{campaign_id}/manifests/lsst/default", params={"manifest-id": new_manifest_a["id"]}
+    )
+    assert x.is_success
+
+    x = await aclient.get(
+        f"v2/campaigns/{campaign_id}/manifests/lsst/default",
+    )
+    assert x.is_success
+    assert x.json()["id"] == new_manifest_a["id"]
+
+    x = await aclient.put(
+        f"v2/campaigns/{campaign_id}/manifests/lsst/default", params={"manifest-id": new_manifest_b["id"]}
+    )
+    assert x.is_success
+    x = await aclient.get(
+        f"v2/campaigns/{campaign_id}/manifests/lsst/default",
+    )
+    assert x.is_success
+    assert x.json()["id"] == new_manifest_b["id"]
+
+
+async def test_load_multiple_manifests_as_default(aclient: AsyncClient, test_campaign: str) -> None:
+    """Tests the manifest set default operation with multiple manifests"""
+    campaign_id = urlparse(url=test_campaign).path.split("/")[-2:][0]
+
+    # Create multiple manifests in the campaign namespace marked as default
+    x = await aclient.post(
+        "/v2/manifests",
+        json=[
+            {
+                "apiversion": "io.lsst.cmservice/v1",
+                "kind": "other",
+                "metadata": {
+                    "name": uuid4().hex[-8:],
+                    "namespace": campaign_id,
+                    "default": True,
+                },
+                "spec": {
+                    "one": 1,
+                    "two": 2,
+                    "three": 4,
+                },
+            },
+            {
+                "apiversion": "io.lsst.cmservice/v1",
+                "kind": "other",
+                "metadata_": {
+                    "name": uuid4().hex[-8:],
+                    "namespace": campaign_id,
+                    "default": True,
+                },
+                "data": {
+                    "one": 1,
+                    "two": 2,
+                    "three": 4,
+                },
+            },
+        ],
+    )
+    assert x.is_success
+
+    # Only one of the loaded manifests may be the default! We don't really care
+    # or make a contract about which one it is.
+    x = await aclient.get(
+        f"v2/campaigns/{campaign_id}/manifests/other/default",
+    )
+    assert x.is_success
+    assert x.json().get("id") is not None

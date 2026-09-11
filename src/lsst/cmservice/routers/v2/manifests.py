@@ -24,6 +24,7 @@ from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, AuditActionEnum
 from lsst.cmservice.models.lib.jsonpatch import JSONPatch, JSONPatchError, apply_json_patch
 from lsst.cmservice.models.lib.timestamp import element_time
 
+from ... import services
 from ...common.logging import LOGGER
 from ...db.session import db_session_dependency
 
@@ -186,6 +187,13 @@ async def create_one_or_more_manifests(
 
         # Put the node in the database
         session.add(_manifest)
+
+        # If the manifest should be the default, uniquely set the default.
+        # In cases of input error where multiple manifests of the same kind
+        # have the default flag set, the last such manifest in a batch will be
+        # the winner.
+        if manifest.metadata_.default:
+            await services.set_manifest_default_for_campaign(session, manifest=_manifest)
 
     await session.commit()
 
