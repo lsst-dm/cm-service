@@ -1179,6 +1179,7 @@ class CheckProvenanceReportDialog(ui.dialog):
             ui.separator()
             with ui.card_actions().classes("w-full shrink-0 align-left"):
                 ui.button("Close", color="negative", on_click=lambda: self.submit(None))
+                ui.space()
                 ui.button("Format", color="accent", on_click=self.toggle_table_format).tooltip(
                     "Cycle table format"
                 )
