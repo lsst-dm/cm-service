@@ -729,6 +729,8 @@ class CampaignClonePage(CampaignEditPage):
                 data = await api.describe_one_campaign(client=client, id=clone_campaign_model_from)
             elif clone_campaign_schedule_from:
                 return await self.setup_from_schedule(clone_campaign_schedule_from)
+            else:
+                raise RuntimeError("Either a campaign or schedule must be provided")
 
         self.campaign_name = data["campaign"]["name"]
 

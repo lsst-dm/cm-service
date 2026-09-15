@@ -272,7 +272,7 @@ class BpsScriptHandler(ScriptHandler):
 
         if htcondor_status in [StatusEnum.reviewable, StatusEnum.accepted]:
             await script.update_values(session, status=htcondor_status)
-            await parent.update_values(session, wms_job_id=wms_job_id)
+            await parent.update_values(session, wms_job_id=wms_job_id)  # type: ignore[possibly-undefined]
         return htcondor_status
 
     async def launch(

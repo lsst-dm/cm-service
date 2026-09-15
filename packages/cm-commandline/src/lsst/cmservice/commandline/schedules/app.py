@@ -62,8 +62,8 @@ def load_schedule(
     ):
         match manifest["kind"]:
             case "campaign":
+                campaign_name: str = manifest["metadata"]["name"]
                 if not schedule_name:
-                    campaign_name: str = manifest["metadata"]["name"]
                     schedule_name = f"schedule-{campaign_name}-{uuid4().hex[0:8]}"
                 to_load[campaign_name] = manifest
             case "node":

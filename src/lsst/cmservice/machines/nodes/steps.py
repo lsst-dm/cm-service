@@ -1,6 +1,6 @@
 from collections.abc import Generator, Mapping, Sequence
 from itertools import chain
-from typing import Any, cast
+from typing import Any, assert_never, cast
 from uuid import UUID, uuid5
 
 from sqlmodel import select
@@ -111,12 +111,12 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
 
     async def get_splitter(self) -> Splitter:
         """Generates group-predicates according to the Node grouping rules."""
-        # select a splitter based on the Node's configuration
         splitter_config: dict = {**self.db_model.configuration.get("groups", {})}
-        if not splitter_config:
-            return SplitterMapping["null"]()
+        split_by = splitter_config.get("split_by", "null")
 
-        match SplitterEnum(splitter_config["split_by"]):
+        match splitter := SplitterEnum(split_by):
+            case SplitterEnum.NULL:
+                splitter_type = SplitterMapping[SplitterEnum.NULL.value]
             case SplitterEnum.VALUES:
                 splitter_type = SplitterMapping[SplitterEnum.VALUES.value]
             case SplitterEnum.QUERY:
@@ -127,7 +127,8 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
                     splitter_config["collections"] = [self.butler.spec.collections.step_input]
                 else:
                     splitter_config["collections"] = self.butler.spec.collections.campaign_input
-
+            case _:
+                assert_never(splitter)
         return splitter_type(**splitter_config)
 
     async def make_group(self, with_predicates: Sequence[str], with_nonce: Generator | None) -> None:

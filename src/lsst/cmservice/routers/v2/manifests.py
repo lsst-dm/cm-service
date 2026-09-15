@@ -128,6 +128,7 @@ async def create_one_or_more_manifests(
     if not isinstance(manifests, list):
         manifests = [manifests]
 
+    _id: UUID | None = None
     for manifest in manifests:
         _name = manifest.metadata_.name
 
@@ -197,7 +198,11 @@ async def create_one_or_more_manifests(
 
     await session.commit()
 
-    response.headers["Self"] = str(request.url_for("read_single_manifest", manifest_name_or_id=_id))
+    # A quirk of this route is that the Self link in the header would be the
+    # last manifest of a batch, so we only set it if the original Request was
+    # a single manifest
+    if len(manifests) == 1 and _id:
+        response.headers["Self"] = str(request.url_for("read_single_manifest", manifest_name_or_id=_id))
     return None
 
 

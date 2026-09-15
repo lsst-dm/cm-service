@@ -68,20 +68,22 @@ async def replace_node(n0: str, n1: str, namespace: str) -> Response:
             r.raise_for_status()
             ui.notify("Node replaced.")
         except HTTPStatusError as e:
-            match e.response:
+            r = e.response
+            match r:
                 case Response(status_code=codes.CONFLICT):
                     ui.notify("Campaign must be paused before modification", type="negative")
                 case _:
                     raise
-        return r
+    return r
 
 
 async def insert_or_append_node(
     n0: str, n1: str, namespace: str, operation: Literal["append", "insert"]
-) -> Response:
+) -> Response | None:
     """Supports the node PATCH api to insert a new node in an existing campaign
     graph.
     """
+    r = None
     async with CLIENT_FACTORY.aclient() as client:
         try:
             r = await client.patch(
@@ -95,7 +97,7 @@ async def insert_or_append_node(
                     ui.notify("Campaign must be paused before modification", type="negative")
                 case _:
                     raise
-        return r
+    return r
 
 
 async def fast_forward_node(n0: str) -> None:
@@ -110,9 +112,11 @@ async def fast_forward_node(n0: str) -> None:
         except HTTPStatusError as e:
             match e.response:
                 case Response(status_code=codes.UNPROCESSABLE_ENTITY):
-                    ui.notify(r.text, type="negative")
+                    ui.notify(e.response.text, type="negative")
+                    return
                 case Response(status_code=codes.INTERNAL_SERVER_ERROR):
                     ui.notify("Attempt failed with a Server Error", type="negative")
+                    return
                 case _:
                     raise
         status_update_url = r.headers["StatusUpdate"]
@@ -196,7 +200,7 @@ async def retry_restart_node(
             n.timeout = 5.0
             match e.response:
                 case Response(status_code=codes.UNPROCESSABLE_ENTITY):
-                    n.message = r.text
+                    n.message = e.response.text
                 case Response(status_code=codes.INTERNAL_SERVER_ERROR):
                     n.message = "Attempt failed with a Server Error"
                 case _:
