@@ -292,6 +292,9 @@ class FilesystemActionMixin(ActionMixIn):
     async def get_artifact(self, event: EventData, artifact: Path | str) -> AsyncGenerator[Path]:
         """Copy an artifact from the provided path to a local temporary
         directory and return the Path to it.
+
+        .. deprecated:: 1.0.0
+           Use `lsst.cmservice.machines.lib.get_artifact` instead
         """
         remote_artifact = Path(artifact)
         if not await remote_artifact.exists():
