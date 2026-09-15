@@ -1,7 +1,5 @@
 """python for client API for managing StepDependency tables"""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 import httpx2

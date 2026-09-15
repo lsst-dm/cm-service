@@ -159,7 +159,7 @@ def apply_json_patch[T: MutableMapping](op: JSONPatch, o: T) -> T:
             try:
                 from_object = reduce(operator.getitem, from_path, o)
                 value = from_object[from_target]
-            except (KeyError, IndexError):
+            except KeyError, IndexError:
                 msg = f"Path {from_location} not found in object"
                 raise JSONPatchError(msg)
 
@@ -187,7 +187,7 @@ def apply_json_patch[T: MutableMapping](op: JSONPatch, o: T) -> T:
             try:
                 from_object = reduce(operator.getitem, from_path, o)
                 value = from_object[from_target]
-            except (KeyError, IndexError):
+            except KeyError, IndexError:
                 msg = f"Path {from_location} not found in object"
                 raise JSONPatchError(msg)
 

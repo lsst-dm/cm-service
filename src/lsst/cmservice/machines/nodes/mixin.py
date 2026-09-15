@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections import ChainMap
 from collections.abc import AsyncGenerator
 from functools import partial
@@ -17,7 +15,7 @@ from lsst.cmservice.models.db.campaigns import Manifest, Node
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, ManifestKind, StatusEnum
 from lsst.cmservice.models.lib.logging import LOGGER
 from lsst.cmservice.models.lib.timestamp import element_time
-from lsst.cmservice.models.manifest import LibraryManifest
+from lsst.cmservice.models.manifests import LibraryManifest
 from lsst.resources import ResourcePath
 
 from ...common.errors import CMNoSuchManifestError
@@ -145,7 +143,7 @@ class FilesystemActionMixin(ActionMixIn):
         # this case depending on how the Node was initially loaded)
         try:
             campaign_name = self.db_model.campaign.name
-        except (AttributeError, MissingGreenlet):
+        except AttributeError, MissingGreenlet:
             campaign_name = str(self.db_model.namespace)
         campaign_artifact_path = await (Path(lsst_artifact_path) / campaign_name).resolve()
         parent_path = Path(
@@ -481,8 +479,7 @@ class HTCondorLaunchMixin(LaunchMixIn):
         # whether the job can be sent to the local universe for immediate
         # processing on a schedd or if it should go to the vanilla universe
         # for regular scheduling (which may involve needing to allocate nodes)
-        cluster_id = await self.launch_manager.launch(submission_spec=wms_submission_path)
-        self.db_model.metadata_["wms_job"] = cluster_id
+        await self.launch_manager.launch(submission_spec=wms_submission_path)
 
     async def check(self, event: EventData) -> LauncherCheckResponse:
         """Calls the check method of the launch manager."""
@@ -498,8 +495,7 @@ class HTCondorLaunchMixin(LaunchMixIn):
             msg = "No HTCondor event log file known to node."
             raise RuntimeError(msg)
 
-        # TODO reduce duplication & get this from "launcher.job_id" metadata
-        cluster_id = self.db_model.metadata_.get("wms_job", 0)
+        cluster_id = self.db_model.metadata_.get("launcher", {}).get("job_id", 0)
         logger.debug("Checking HTCondor Job", id=str(self.db_model.id), cluster_id=cluster_id)
         return await self.launch_manager.check(cluster_id, wms_event_log_path)
 

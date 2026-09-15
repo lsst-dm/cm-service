@@ -139,7 +139,7 @@ class DictParamType(click.ParamType):
                 "All key-value pairs must be separated by one semicolon. "
                 "Key and value must be separated by one colon. "
                 "List value items must be separated by one comma. "
-                f"Key-value: {pair}.",
+                f"Key-value: {pair}.",  # type: ignore[possibly-undefined]
                 param,
                 ctx,
             )
@@ -148,12 +148,12 @@ class DictParamType(click.ParamType):
 class EnumChoice(click.Choice):
     """A version of click.Choice specialized for enum types."""
 
-    def __init__(self: "EnumChoice", enum: type[Enum], *, case_sensitive: bool = True) -> None:
+    def __init__(self: EnumChoice, enum: type[Enum], *, case_sensitive: bool = True) -> None:
         self._enum = enum
         super().__init__(list(enum.__members__.keys()), case_sensitive=case_sensitive)
 
     def convert(
-        self: "EnumChoice",
+        self: EnumChoice,
         value: Any,
         param: click.Parameter | None,
         ctx: click.Context | None,
@@ -165,10 +165,10 @@ class EnumChoice(click.Choice):
 class PartialOption:
     """Wrap partially specified click.option decorator for convenient reuse."""
 
-    def __init__(self: "PartialOption", *param_decls: str, **attrs: Any) -> None:
+    def __init__(self: PartialOption, *param_decls: str, **attrs: Any) -> None:
         self._partial = partial(click.option, *param_decls, cls=click.Option, **attrs)
 
-    def __call__(self: "PartialOption", *param_decls: str, **attrs: Any) -> Callable[[FC], FC]:
+    def __call__(self: PartialOption, *param_decls: str, **attrs: Any) -> Callable[[FC], FC]:
         return self._partial(*param_decls, **attrs)
 
 

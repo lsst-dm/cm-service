@@ -546,7 +546,7 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
             ui.notify(e, type="negative")
         finally:
             self.hide_spinner()
-            return manifest
+        return manifest
 
     async def handle_node_edit(self, data: ClickEventArguments | GenericEventArguments) -> None:
         """Callback for edit button on Node cards"""
@@ -557,8 +557,8 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
                 target_node = data.args
             case ClickEventArguments():
                 target_node = data.sender.props.get("id", None)
-            case _ as unreachable:
-                assert_never(unreachable)
+            case _:
+                assert_never(data)
         if (
             target_node is None
             or (node_response := await api.get_one_node(target_node, self.campaign_id)) is None
