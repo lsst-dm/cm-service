@@ -139,7 +139,7 @@ class DictParamType(click.ParamType):
                 "All key-value pairs must be separated by one semicolon. "
                 "Key and value must be separated by one colon. "
                 "List value items must be separated by one comma. "
-                f"Key-value: {pair}.",
+                f"Key-value: {pair}.",  # type: ignore[possibly-undefined]
                 param,
                 ctx,
             )

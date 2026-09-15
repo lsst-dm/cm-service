@@ -94,6 +94,8 @@ async def put_schedule_template(
 
     if isinstance(manifest, CreateManifestTemplate):
         template = manifest.model_dump(mode="json", exclude_none=True, exclude_unset=True)
+    else:
+        template = manifest
 
     async with CLIENT_FACTORY.aclient() as client:
         client.headers["X-Auth-Request-User"] = actor

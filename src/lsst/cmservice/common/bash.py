@@ -60,7 +60,7 @@ async def parse_bps_stdout(url: str | Path) -> dict[str, str]:
     out_dict `str`
         a dictionary containing the stdout from BPS submit
     """
-    bps_stdout_parser = re.compile(r"^(?P<token>[\w\s]+):\s*(?P<value>.*)$", re.MULTILINE)
+    bps_stdout_parser = re.compile(r"^(?P<token>[\w \t]+):\s*(?P<value>.*)$", re.MULTILINE)
     out_dict = {}
     stdout = await Path(url).read_text()
     for match in re.finditer(bps_stdout_parser, stdout):
