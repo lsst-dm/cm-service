@@ -10,6 +10,7 @@ from textwrap import dedent
 from uuid import uuid4
 
 import pytest
+import respx
 import yaml
 from apscheduler import events
 from httpx2 import AsyncClient, codes
@@ -43,8 +44,9 @@ def expect_exception(exc: type[Exception] | None) -> AbstractContextManager:
 
 # Test Cases
 def make_schedule_no_manifests(**overrides: dict) -> dict:
+    nonce = uuid4().hex[:8]
     return {
-        "name": f"schedule_with_no_manifests_{uuid4().hex[:8]}",
+        "name": f"schedule_with_no_manifests_{nonce}",
         "cron": "0 0 * * SUN",
     }
 
@@ -391,6 +393,7 @@ async def test_daemon_schedule(
     job_events: list[int] = []
     job_signal = asyncio.Event()
     right_now = datetime.now(tz=UTC)
+    nonce = uuid4().hex[:8]
 
     def listener(e: events.JobEvent) -> None:
         """A simple event listener for the test, collects events into a list"""
@@ -403,7 +406,7 @@ async def test_daemon_schedule(
     assert x.status_code == test_case.expected_code
 
     x = await aclient.patch(
-        x.headers["Self"], json={"is_enabled": True, "configuration": {"name_format": "%Y%m%d"}}
+        x.headers["Self"], json={"is_enabled": True, "configuration": {"name_format": f"{nonce}_%Y%m%d"}}
     )
     assert x.status_code == codes.OK
     x = await aclient.get(x.headers["Self"])
@@ -412,7 +415,7 @@ async def test_daemon_schedule(
     new_schedule = x.json()[0]
     assert new_schedule["is_enabled"]
     assert new_schedule["next_run_at"] is not None
-    assert new_schedule["configuration"]["name_format"] == "%Y%m%d"
+    assert new_schedule["configuration"]["name_format"] == f"{nonce}_%Y%m%d"
 
     scheduler: Scheduler
     async with daemon_context as dc:
@@ -435,9 +438,13 @@ async def test_daemon_schedule(
     assert events.EVENT_JOB_ERROR not in job_events
     assert events.EVENT_JOB_EXECUTED in job_events
 
+    # Delete the schedule
+    x = await aclient.delete(x.headers["Self"])
+    assert x.is_success
+
     # Closing the loop for this test, we check the side effects:
     # - we should have a new campaign
-    expected_campaign_name = f"sample_campaign_{right_now:%Y%m%d}"
+    expected_campaign_name = f"sample_campaign_{nonce}_{right_now:%Y%m%d}"
     x = await aclient.head(f"/v2/campaigns/{expected_campaign_name}")
     assert x.status_code == codes.NO_CONTENT
 
@@ -448,7 +455,6 @@ async def test_daemon_schedule(
     assert len(campaign_manifests) > 0
     butler_manifest = campaign_manifests[0]
     assert f"day_obs>='{right_now:%Y%m%d}'" in butler_manifest["spec"]["predicates"]
-    ...
 
 
 async def test_one_shot_scheduler() -> None:
@@ -520,3 +526,95 @@ async def test_one_shot_api(aclient: AsyncClient, test_case: ScheduleTestCase) -
     x = await aclient.get(x.headers["nodes"])
     assert x.status_code == codes.OK
     assert len(x.json()) == 3
+
+
+@pytest.mark.parametrize(
+    "test_case",
+    [
+        pytest.param(ScheduleTestCase(post_data=make_schedule_no_manifests()), id="external"),
+    ],
+    indirect=["test_case"],
+)
+async def test_schedule_from_uri(
+    httpx2_mock: respx.Router,
+    aclient: AsyncClient,
+    daemon_context: DaemonContext,
+    test_case: ScheduleTestCase,
+) -> None:
+    """Test the creation of a scheduled campaign based on templates stored in
+    an external URI.
+    """
+    job_events: list[int] = []
+    job_signal = asyncio.Event()
+    right_now = datetime.now(tz=UTC)
+    nonce = uuid4().hex[:8]
+
+    def listener(e: events.JobEvent) -> None:
+        """A simple event listener for the test, collects events into a list"""
+        job_events.append(e.code)
+        if e.code == events.EVENT_JOB_EXECUTED or e.code == events.EVENT_JOB_ERROR:
+            job_signal.set()
+
+    uri = "http://example.com/campaign-spec.yaml"
+    content = "\n".join([t["manifest"] for t in make_schedule_with_manifests()["templates"]])
+    httpx2_mock.get(uri).respond(codes.OK, content=content)
+
+    # Create the schedule and configure an external URI
+    x = await aclient.post("/v2/schedules", json=test_case.post_data)
+    assert x.is_success
+    schedule_url = x.headers["Self"]
+
+    x = await aclient.patch(
+        schedule_url,
+        json={
+            "is_enabled": True,
+            "configuration": {
+                "name_format": f"{nonce}_%Y%m%d",
+                "uri": uri,
+                "expressions": {
+                    "today": "datetime.now()",
+                    "tomorrow": "datetime.now() + timedelta(days=1)",
+                },
+            },
+        },
+    )
+    assert x.is_success
+
+    scheduler: Scheduler
+    async with daemon_context as dc:
+        scheduler = dc.app.state.scheduler
+        assert scheduler.scheduler.running
+        assert not len(scheduler.scheduler.get_jobs())
+
+        scheduler.scheduler.add_listener(listener, events.EVENT_ALL)
+        await consider_schedules(dc)
+        assert len(scheduler.scheduler.get_jobs()) == 1
+
+        job = scheduler.scheduler.get_jobs()[0]
+        assert job.next_run_time >= right_now
+        # Reschedule the job in the past; trigger scheduler catch-up
+        job.reschedule(trigger="date", run_date=right_now - timedelta(minutes=1))
+
+    # wait up to 3 seconds for the job completion event.
+    await asyncio.wait_for(job_signal.wait(), timeout=3.0)
+
+    assert events.EVENT_JOB_ERROR not in job_events
+    assert events.EVENT_JOB_EXECUTED in job_events
+
+    # Delete the schedule
+    x = await aclient.delete(x.headers["Self"])
+    assert x.is_success
+
+    # Closing the loop for this test, we check the side effects:
+    # - we should have a new campaign
+    expected_campaign_name = f"sample_campaign_{nonce}_{right_now:%Y%m%d}"
+    x = await aclient.head(f"/v2/campaigns/{expected_campaign_name}")
+    assert x.status_code == codes.NO_CONTENT
+
+    # - Check the rendered template variable in a butler manifest
+    x = await aclient.get(f"{x.headers['Self']}/manifests")
+    assert x.status_code == codes.OK
+    campaign_manifests = x.json()
+    assert len(campaign_manifests) > 0
+    butler_manifest = campaign_manifests[0]
+    assert f"day_obs>='{right_now:%Y%m%d}'" in butler_manifest["spec"]["predicates"]
