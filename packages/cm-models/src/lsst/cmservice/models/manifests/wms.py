@@ -170,5 +170,22 @@ class WmsSpec(ManifestSpec):
         ),
     ] = Field(default=600, examples=[30, 600, 900, 3600])
 
+    auto_release: Annotated[
+        bool,
+        Field(
+            title="Automatic Release",
+            description="Whether jobs held by the WMS should be auto-released, if supported",
+        ),
+    ] = Field(default=True)
+
+    auto_release_expr: Annotated[
+        str,
+        Field(
+            title="Automatic Release Expression",
+            description="A WMS expression string (e.g., an htcondor ClassAd expression) defining which jobs "
+            "are eligible for auto-release, or the string `'True'` if jobs should be always be released.",
+        ),
+    ] = Field(default="HoldReasonCode >= 6", examples=["HoldReasonCode =?= 7", "'True'"])
+
 
 class WmsManifest(LibraryManifest[WmsSpec]): ...

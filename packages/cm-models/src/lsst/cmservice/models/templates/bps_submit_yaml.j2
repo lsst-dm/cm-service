@@ -102,6 +102,9 @@ computeSite: {{ site.facility }}
 {%- if site.literals %}
 {{ site.literals | toyaml -}}
 {%- endif %}
+{%- if wms.auto_release %}
+releaseExpr: "{{ wms.auto_release_expr }}"
+{%- endif %}
 {# BLANK LINE #}
 ########################################
 # PROVISIONING CONFIGURATION
