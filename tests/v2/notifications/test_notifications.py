@@ -1,50 +1,20 @@
 import asyncio
-from collections.abc import AsyncGenerator
 from contextlib import AbstractContextManager, nullcontext
 from urllib.parse import urlparse
 from uuid import UUID, uuid4, uuid5
 
 import pytest
-import pytest_asyncio
 from httpx2 import AsyncClient
 from pytest_mock import MockerFixture
-from sqlalchemy import text
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from lsst.cmservice.config import config
-from lsst.cmservice.db.session import DatabaseManager
-from lsst.cmservice.models.db import Base, raw
 from lsst.cmservice.models.db.campaigns import ActivityLog, Node
 from lsst.cmservice.models.db.notifications import NotificationLabel
 from lsst.cmservice.models.enums import NotificationLabelEnum, StatusEnum
-from lsst.cmservice.notifications.task import Notifier
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""
-
-
-@pytest_asyncio.fixture(scope="module", loop_scope="module")
-async def pubsubdb(testdb: DatabaseManager) -> AsyncGenerator:
-    """Set up notification trigger and function on testdb"""
-    assert testdb.engine is not None
-    async with testdb.engine.begin() as aconn:
-        await aconn.execute(text(raw.NOTIFICATION_FUNCTION.format(schema=Base.metadata.schema)))
-        await aconn.execute(text(raw.NOTIFICATION_TRIGGER.format(schema=Base.metadata.schema)))
-        await aconn.commit()
-    yield testdb
-    async with testdb.engine.begin() as aconn:
-        await aconn.execute(text("DROP TRIGGER IF EXISTS notification_events_trigger ON activity_log_v2;"))
-        await aconn.execute(text("DROP FUNCTION IF EXISTS notify_event_listeners();"))
-        await aconn.commit()
-
-
-@pytest_asyncio.fixture(scope="module", loop_scope="module")
-async def notifications_tg(pubsubdb: DatabaseManager) -> AsyncGenerator:
-    shutdown_signal = asyncio.Event()
-    async with asyncio.TaskGroup() as tg:
-        tg.create_task(Notifier(None, shutdown_signal).task(), name="notifier")
-        yield
-        shutdown_signal.set()
 
 
 async def test_notification_label_routes(test_campaign_groups: str, aclient: AsyncClient) -> None:
