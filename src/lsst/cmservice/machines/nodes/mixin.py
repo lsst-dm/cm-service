@@ -4,13 +4,14 @@ from collections import ChainMap
 from collections.abc import AsyncGenerator
 from functools import partial
 from os.path import expandvars
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import yaml
 from anyio import Path, TemporaryDirectory, to_thread
 from jinja2 import ChoiceLoader, DictLoader, Environment, PackageLoader, Template
-from sqlalchemy.exc import MissingGreenlet, NoResultFound
-from sqlmodel import desc, or_, select
+from sqlalchemy.dialects.postgresql import INTEGER
+from sqlalchemy.exc import MissingGreenlet
+from sqlmodel import cast, col, or_, select
 from transitions import EventData
 
 from lsst.cmservice.models.db.campaigns import Manifest, Node
@@ -38,15 +39,20 @@ class NodeMixIn(MixIn):
     artifact_resources: dict
     artifact_templates: dict
 
-    # TODO if no more functionality is added in this mixin, just promote this
-    # method into the NodeMachine class.
-    async def get_manifest[T: LibraryManifest](
+    async def select_manifest[T: LibraryManifest](
         self, manifest_kind: ManifestKind, manifest_type: type[T]
     ) -> T:
-        """Fetches the appropriate Manifest for the Campaign. The newest
-        manifest of the specified Kind is retrieved from the campaign or
-        the library namespace, and an object of `type[manifest_type]` is
-        created and returned.
+        """Select a manifest based on Node selectors, campaign default, or
+        newest version.
+
+        Parameters
+        ----------
+        manifest_kind: ``ManifestKind``
+            The enum member representing the "kind" of manifest being selected.
+
+        manifest_type: ``type``
+            A type (constrained by ``LibraryManifest``) to which the selected
+            manifest is coerced or cast.
 
         Notes
         -----
@@ -60,26 +66,56 @@ class NodeMixIn(MixIn):
             Raised when the Node attempts to load a Manifest that cannot be
             found in the Campaign or the Library.
         """
-        # Look in the campaign namespace for the most recent manifest,
-        # falling back to the default namespace if one is not found.
-        s = (
-            select(Manifest)
-            .where(Manifest.kind == manifest_kind)
-            .where(
-                or_(Manifest.namespace == self.db_model.namespace, Manifest.namespace == DEFAULT_NAMESPACE)
+        manifest: Manifest | None = None
+        kind = manifest_kind.name
+        my = self.db_model
+        selected_by: Literal["selectors", "default", "version"] = "version"
+
+        if "selectors" in my.metadata_ and kind in my.metadata_["selectors"]:
+            label_containment = {"labels": my.metadata_["selectors"][kind]}
+            s = (
+                select(Manifest)
+                .where(Manifest.namespace == my.namespace)
+                .where(col(Manifest.kind) == kind)
+                .where(col(Manifest.metadata_).contains(label_containment))
+                .order_by(col(Manifest.version).desc())
+                .limit(1)
             )
-            .order_by(desc(Manifest.version))
-            .limit(1)
-        )
-        try:
-            manifest = (await self.session.exec(s)).one()
-            self.session.expunge(manifest)
-        except NoResultFound:
+            manifest = (await self.session.exec(s)).one_or_none()
+
+        if manifest is not None:
+            selected_by = "selectors"
+        else:
+            s = (
+                select(Manifest)
+                .where(Manifest.namespace == my.namespace)
+                .where(col(Manifest.kind) == kind)
+                .where(col(Manifest.default).is_(True))
+                .limit(1)
+            )
+            manifest = (await self.session.exec(s)).one_or_none()
+
+        if manifest is not None:
+            selected_by = "default"
+        else:
+            s = (
+                select(Manifest)
+                .where(col(Manifest.kind) == kind)
+                .where(or_(Manifest.namespace == my.namespace, Manifest.namespace == DEFAULT_NAMESPACE))
+                .order_by(col(Manifest.version).desc())
+                .order_by(cast(Manifest.metadata_["crtime"].as_string(), INTEGER).desc())
+                .limit(1)
+            )
+            manifest = (await self.session.exec(s)).one_or_none()
+
+        if manifest is None:
             msg = f"A required manifest was not found in the database: {manifest_kind}"
             raise CMNoSuchManifestError(msg)
 
+        self.session.expunge(manifest)
         o = manifest_type(**manifest.model_dump())
         o.metadata_.version = manifest.version
+        o.metadata_.selected_by = selected_by
         return o
 
 

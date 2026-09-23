@@ -73,6 +73,7 @@ class VersionedMetadata(BaseModel):
     mtime: int | None = Field(default=None)
     labels: dict[str, str] = Field(default_factory=dict)
     default: bool | None = Field(default=None)
+    selected_by: str | None = Field(default=None)
 
 
 class ManifestMetadata(VersionedMetadata):

@@ -360,7 +360,7 @@ class StartMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunch
 
     async def butler_prepare(self, event: EventData) -> None:
         """Prepares Butler collections for the campaign."""
-        self.butler = await self.get_manifest(ManifestKind.butler, ButlerManifest)
+        self.butler = await self.select_manifest(ManifestKind.butler, ButlerManifest)
 
         # TODO Campaigns should support options about how their collections are
         # organized.
@@ -444,7 +444,7 @@ class EndMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchMi
 
     async def butler_prepare(self, event: EventData) -> None:
         """Prepares Butler collections for the end of the campaign."""
-        self.butler = await self.get_manifest(ManifestKind.butler, ButlerManifest)
+        self.butler = await self.select_manifest(ManifestKind.butler, ButlerManifest)
 
         self.command_templates = [
             (

@@ -34,9 +34,10 @@ async def assemble_config_chain(
 
     The standard configuration chain lookup is
     - The node's direct configuration
-    - (The node's incoming edge configuration)
+    - (The node's incoming edge configuration) (TODO)
     - A "selected" campaign manifest of the specified kind (optional)
     - The "default" campaign manifest of the specified kind (optional)
+    - The newest campaign manifest by version and/or crtime
     - Any extra manifest configuration provided at runtime
     - A library (version 0) manifest of the specified kind (optional)
 
@@ -51,16 +52,11 @@ async def assemble_config_chain(
 
     config_chain: dict[str, ChainMap] = {}
 
-    # TODO if the Node or Campaign has a selector in its spec, use those
-    # instructions in the ORM where clause to match manifest metadata labels
-    # TODO if manifest selection is ambiguous (i.e, more than one matching
-    # manifest is found), this should be an error. IOW, remove the limit(1)
-    # clause and allow the node to fail if <exec>.one_or_none() raises an
-    # exception. The exception to this is ambiguity in the library manifest
-    # namespace: if a campaign-scoped manifest is found, ambiguity in the
-    # default namespace should result in no library manifest used in the config
-    # chain; failure on ambiguous manifest for library manifests should only
-    # result when no namespace-scoped manifest candidate is available.
+    # FIXME use the `select_manifest` method from the NodeMixIn here, so the
+    # selection process only has to be defined once. The complication is that
+    # this config chain potentially considers *all* members of ManifestKind but
+    # there is no global mapping between these members and the LibraryManifest
+    # type that `select_manifest` requires.
     for kind in ManifestKind.__members__:
         # each key in the node configuration is the basis of a configchain
 

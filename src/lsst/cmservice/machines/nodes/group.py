@@ -312,12 +312,14 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
 
         # the group must have a known bps submit directory and this directory
         # must still exist
-        if (bps_submit_dir := self.db_model.metadata_.get("bps", {}).get("Submit dir", None)) is not None:
+        bps_submit_dir: str
+        if bps_submit_dir := self.db_model.metadata_.get("bps", {}).get("Submit dir", ""):
             submit_dir_exists = await Path(bps_submit_dir).exists()
 
         # the group must have a qg file in the submit directory matching the
         # bps run name
-        if (bps_name := self.db_model.metadata_.get("bps", {}).get("Run Name", None)) is not None:
+        bps_name: str
+        if bps_name := self.db_model.metadata_.get("bps", {}).get("Run Name", ""):
             qg_file = (Path(bps_submit_dir) / bps_name).with_suffix(".qg")
             qgraph_exists = await qg_file.exists()
 

@@ -77,5 +77,4 @@ If there is still ambiguity (e.g., multiple manifests with the same version are 
 ## Direct Node Configuration
 Any configuration applied directly to the Node takes precedence over any other manifest in the chain mapping.
 Group nodes in particular will have a direct configuration applied to them by their parent Step during creation, so they are "born" with a fully composed configuration applied to them directly.
-
-Any parameter that can be added to a manifest can be added to a Node's configuration, and like other manifests in the chain,
+Any parameter that can be added to a manifest can be added to a Node's configuration.
