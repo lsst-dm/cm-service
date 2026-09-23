@@ -1,6 +1,7 @@
 from lsst.cmservice.models.enums import NotificationLabelEnum
 
 from .abc import NotificationTransport
+from .kafka import KafkaTransport
 from .slack import SlackNotification
 
 
@@ -22,6 +23,7 @@ class NotificationTransportFactory:
         """
         self._builders[NotificationLabelEnum.default] = SlackNotification
         self._builders[NotificationLabelEnum.slack] = SlackNotification
+        self._builders[NotificationLabelEnum.kafka] = KafkaTransport
 
     def build(self, kind: NotificationLabelEnum, name: str) -> None:
         """Build a notification transport based on the kind and name inputs"""
