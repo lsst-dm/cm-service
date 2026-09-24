@@ -12,8 +12,8 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid5
 
 from anyio import Path, to_thread
-from sqlalchemy.dialects.postgresql import insert
-from sqlmodel import col, select
+from sqlalchemy.dialects.postgresql import INTEGER, insert
+from sqlmodel import cast, col, select
 from transitions import EventData
 
 from lsst.cmservice.models.db.campaigns import ActivityLog, Campaign, Manifest, Node
@@ -34,8 +34,10 @@ async def assemble_config_chain(
 
     The standard configuration chain lookup is
     - The node's direct configuration
-    - (The node's incoming edge configuration)
-    - A campaign manifest of the specified kind (optional)
+    - (The node's incoming edge configuration) (TODO)
+    - A "selected" campaign manifest of the specified kind (optional)
+    - The "default" campaign manifest of the specified kind (optional)
+    - The newest campaign manifest by version and/or crtime
     - Any extra manifest configuration provided at runtime
     - A library (version 0) manifest of the specified kind (optional)
 
@@ -50,32 +52,52 @@ async def assemble_config_chain(
 
     config_chain: dict[str, ChainMap] = {}
 
-    # TODO if the Node or Campaign has a selector in its spec, use those
-    # instructions in the ORM where clause to match manifest metadata labels
-    # TODO if manifest selection is ambiguous (i.e, more than one matching
-    # manifest is found), this should be an error. IOW, remove the limit(1)
-    # clause and allow the node to fail if <exec>.one_or_none() raises an
-    # exception. The exception to this is ambiguity in the library manifest
-    # namespace: if a campaign-scoped manifest is found, ambiguity in the
-    # default namespace should result in no library manifest used in the config
-    # chain; failure on ambiguous manifest for library manifests should only
-    # result when no namespace-scoped manifest candidate is available.
+    # FIXME use the `select_manifest` method from the NodeMixIn here, so the
+    # selection process only has to be defined once. The complication is that
+    # this config chain potentially considers *all* members of ManifestKind but
+    # there is no global mapping between these members and the LibraryManifest
+    # type that `select_manifest` requires.
     for kind in ManifestKind.__members__:
         # each key in the node configuration is the basis of a configchain
-        # find the "latest" manifest of this kind within the campaign
+
+        # Select a manifest from the campaign.
+        # Use ONE of selected, default, or best-effort
         campaign_config: dict[str, Any] = {}
+        if "selectors" in node.metadata_ and kind in node.metadata_["selectors"]:
+            label_containment = {"labels": node.metadata_["selectors"][kind]}
+            s = (
+                select(Manifest)
+                .where(Manifest.namespace == node.namespace)
+                .where(col(Manifest.kind) == kind)
+                .where(col(Manifest.metadata_).contains(label_containment))
+                .order_by(col(Manifest.version).desc())
+                .limit(1)
+            )
+            if (manifest := (await session.exec(s)).one_or_none()) is not None:
+                campaign_config = manifest.spec
+
+        s = (
+            select(Manifest)
+            .where(Manifest.namespace == node.namespace)
+            .where(col(Manifest.kind) == kind)
+            .where(col(Manifest.default).is_(True))
+            .limit(1)
+        )
+        if not campaign_config and (manifest := (await session.exec(s)).one_or_none()) is not None:
+            campaign_config = manifest.spec
 
         s = (
             select(Manifest)
             .where(Manifest.namespace == node.namespace)
             .where(col(Manifest.kind) == kind)
             .order_by(col(Manifest.version).desc())
+            .order_by(cast(Manifest.metadata_["crtime"].as_string(), INTEGER).desc())
             .limit(1)
         )
-        if (manifest := (await session.exec(s)).one_or_none()) is not None:
+        if not campaign_config and (manifest := (await session.exec(s)).one_or_none()) is not None:
             campaign_config = manifest.spec
-        else:
-            campaign_config = {}
+
+        # Library manifest
         s = (
             select(Manifest)
             .where(Manifest.namespace == DEFAULT_NAMESPACE)

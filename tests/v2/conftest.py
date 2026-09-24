@@ -427,18 +427,48 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
     campaign_edge_url = x.headers["Edges"]
     campaign = x.json()
 
-    # Create library manifests for the campaign
+    # Create manifests for the campaign
     x = await aclient.post(
         "/v2/manifests",
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "butler",
-            "metadata": {"name": "muthur", "namespace": campaign["id"]},
+            "metadata": {"name": "muthur-a", "namespace": campaign["id"], "labels": {"vessel": "nostromo"}},
             "spec": {
                 "repo": "MU/TH/UR",
                 "predicates": ["instrument='NOSTROMO'"],
                 "collections": {
                     "campaign_input": ["NOSTROMO/catalog/ZetaReticuli/Calpamos"],
+                },
+            },
+        },
+    )
+    x = await aclient.post(
+        "/v2/manifests",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "butler",
+            "metadata": {"name": "muthur-b", "namespace": campaign["id"], "labels": {"module": "romulus"}},
+            "spec": {
+                "repo": "MU/TH/UR",
+                "predicates": ["instrument='ROMULUS'"],
+                "collections": {
+                    "campaign_input": ["RENAISSANCE/catalog/module/ROMULUS"],
+                },
+            },
+        },
+    )
+    x = await aclient.post(
+        "/v2/manifests",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "butler",
+            "metadata": {"name": "muthur-c", "namespace": campaign["id"], "labels": {"module": "remus"}},
+            "spec": {
+                "repo": "MU/TH/UR",
+                "predicates": ["instrument='REMUS'"],
+                "collections": {
+                    "campaign_input": ["RENAISSANCE/catalog/module/REMUS"],
                 },
             },
         },
@@ -515,9 +545,29 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "site",
-            "metadata": {"name": "usdf-cm-test", "namespace": campaign["id"]},
+            "metadata": {
+                "name": "usdf-cm-test-slac",
+                "namespace": campaign["id"],
+                "labels": {"compute-site": "slac"},
+                "default": True,
+            },
             "spec": {
                 "facility": "SLAC",
+            },
+        },
+    )
+    x = await aclient.post(
+        "/v2/manifests",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "site",
+            "metadata": {
+                "name": "usdf-cm-test-lancs",
+                "namespace": campaign["id"],
+                "labels": {"compute-site": "lancs"},
+            },
+            "spec": {
+                "facility": "LANCS",
             },
         },
     )
@@ -542,7 +592,12 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
         json={
             "apiVersion": "io.lsst.cmservice/v1",
             "kind": "node",
-            "metadata": {"name": "lambert", "namespace": campaign["id"], "kind": "step"},
+            "metadata": {
+                "name": "lambert",
+                "namespace": campaign["id"],
+                "kind": "step",
+                "selectors": {"butler": {"vessel": "nostromo"}},
+            },
             "spec": {
                 "bps": {
                     "pipeline_yaml": "${WEYLAND_YUTANI}/personnel/commissioned.yaml#navigator",
