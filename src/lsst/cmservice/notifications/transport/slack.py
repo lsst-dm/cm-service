@@ -49,10 +49,13 @@ SLACK_HEADER_SECTION = {
 
 
 class SlackNotification(NotificationTransport):
+    secret: str | None
     __kind__ = NotificationLabelEnum.slack
     headers: httpx2.Headers = httpx2.Headers({"Content-type": "application/json"})
 
     def notify(self, message: bytes | dict) -> None:
+        """Sends a Slack notification message synchronously."""
+
         raise NotImplementedError("Only asynchronous notifications are supported")
 
     async def anotify(self, message: bytes | dict) -> None:

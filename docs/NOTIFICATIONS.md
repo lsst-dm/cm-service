@@ -94,3 +94,16 @@ For example, if a transport required both a private URL and a bearer token to op
 
 > [!NOTE]
 > CM does not currently support automatic token rotation for existing secrets. Changing the symmetric encryption key will make existing stored secrets unrecoverable.
+
+# Kafka Notifications
+Notification messages may be sent by a Kafka Producer to a Topic.
+A Kakfa Producer can be configured from the values available in a notification label's **secret** or globally via environment variables.
+
+## Secret Schema
+A notification label using a Kafka transport must provide Kakfa client configuration via the **secret**.
+The **secret** should be a JSON string that can be deserialized to a Python dictionary.
+
+The **secret** object may contain any key-value pair, and any key that is relevant to a Kafka client configuration will be applied to the client (e.g., a producer).
+Any key that is not relevant to a Kafka client is ignored as client configuration.
+Relevant keys are those fields added to Pydantic models in `lsst.cmservice.models.lib.kakfa.settings`.
+These models may be extended over time to include additional fields.

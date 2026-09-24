@@ -494,6 +494,19 @@ wheels = [
 ]
 
 [[package]]
+name = "confluent-kafka"
+version = "2.15.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/44/fd/e8204b211ce0f32d4d03f9c3423b1244c2dc7fae45babbf98979c00a9e11/confluent_kafka-2.15.1.tar.gz", hash = "sha256:99d1223020e27854e75981333983c5120d64762268f8afcc805fbd62e7de49aa", size = 325065, upload-time = "2026-09-10T15:27:59.367Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/97/1d/7ecedad4c2b67efb795071a0baf84e0352f8e1843761912ae11859df3b93/confluent_kafka-2.15.1-cp314-cp314-macosx_13_0_arm64.whl", hash = "sha256:8e872fd5615ed4d074ddfc0f5c6cb54d4687599b2928219c50165e8738a624e5", size = 4355347, upload-time = "2026-09-10T15:27:35.307Z" },
+    { url = "https://files.pythonhosted.org/packages/1f/25/a87e7bd71912435a857a9a3c240290c383f4f8808d50c272afe881907af4/confluent_kafka-2.15.1-cp314-cp314-macosx_13_0_x86_64.whl", hash = "sha256:8c24859213dd3e429ffb24fff8d80d6468068622034f7f32b23c2f8e3d9b728b", size = 4384831, upload-time = "2026-09-10T15:27:37.198Z" },
+    { url = "https://files.pythonhosted.org/packages/ac/fb/51e2d0de3761b0b28031ac0b2d0e537e756fe8b6bdc4a9b8981a23c1c2ff/confluent_kafka-2.15.1-cp314-cp314-manylinux_2_28_aarch64.whl", hash = "sha256:9120aeabde16fb758cd0742baee54b8456712ded20f54e18cd5e910629e2ff31", size = 4994508, upload-time = "2026-09-10T15:27:38.805Z" },
+    { url = "https://files.pythonhosted.org/packages/86/44/97231c660bade51737044eb1a0f63f5ef4c1d98077a7ef77c32c9c91be9c/confluent_kafka-2.15.1-cp314-cp314-manylinux_2_28_x86_64.whl", hash = "sha256:f1f9877521804e79d5a9a9147dc8cf0f804fc3ebced47d6170024b637197d461", size = 4806334, upload-time = "2026-09-10T15:27:40.672Z" },
+    { url = "https://files.pythonhosted.org/packages/b0/fd/db44400d91a0899292a4ea582f44699d41fe90218201b984efd6fb03a3ae/confluent_kafka-2.15.1-cp314-cp314-win_amd64.whl", hash = "sha256:2122c014e61b0a7882632ec39f58f2ee32577e5a069bac28757bf0dc6eaceec0", size = 4759970, upload-time = "2026-09-10T15:27:42.573Z" },
+]
+
+[[package]]
 name = "coverage"
 version = "7.15.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1259,7 +1272,7 @@ requires-dist = [
     { name = "lsst-cmservice-models", editable = "packages/cm-models" },
     { name = "pydantic-settings", specifier = ">=2.9" },
     { name = "pyyaml", specifier = ">=6.0.2" },
-    { name = "rich", specifier = ">=14.0.0" },
+    { name = "rich", specifier = ">=15.0.0" },
     { name = "typer", specifier = ">=0.17.0" },
 ]
 
@@ -1268,6 +1281,7 @@ name = "lsst-cmservice-models"
 source = { editable = "packages/cm-models" }
 dependencies = [
     { name = "asgi-correlation-id" },
+    { name = "confluent-kafka" },
     { name = "jinja2" },
     { name = "networkx" },
     { name = "pydantic" },
@@ -1287,6 +1301,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "asgi-correlation-id", specifier = ">=4.3.4" },
+    { name = "confluent-kafka", specifier = ">=2.15" },
     { name = "jinja2", specifier = "==3.1.*" },
     { name = "networkx", specifier = ">=3.5" },
     { name = "pydantic", specifier = "==2.12.*" },

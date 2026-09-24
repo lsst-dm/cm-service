@@ -177,4 +177,5 @@ class NotificationLabelEnum(enum.Enum):
     """Available label kinds for notification events."""
 
     default = enum.auto()
+    kafka = enum.auto()
     slack = enum.auto()
