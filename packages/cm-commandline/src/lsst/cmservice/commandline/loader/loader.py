@@ -83,8 +83,8 @@ def load_selected_file(
                 r.raise_for_status()
                 if capture_headers:
                     headers = r.headers
-            except HTTPStatusError:
-                typer.echo(f"Failed to create manifests: {r.text}", err=True)
+            except HTTPStatusError as exc:
+                typer.echo(f"Failed to create manifests: {exc.response.text}", err=True)
                 raise typer.Exit(1)
 
     return headers

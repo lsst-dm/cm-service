@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import enum
 from functools import total_ordering
 from uuid import NAMESPACE_DNS, uuid5

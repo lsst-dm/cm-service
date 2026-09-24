@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import os
 import warnings
 from collections import deque
@@ -9,9 +7,9 @@ from uuid import UUID, uuid5
 
 import httpx2
 import yaml
-from pydantic.v1.utils import deep_update
 
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE
+from lsst.cmservice.models.lib.deepupdate import deep_update
 from lsst.cmservice.models.lib.yaml import get_loader
 
 from .. import models_

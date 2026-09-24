@@ -1,5 +1,6 @@
 from asyncio import sleep
 
+from httpx2 import HTTPStatusError, Response
 from nicegui import ui
 
 from ..lib.client_factory import CLIENT_FACTORY
@@ -12,14 +13,22 @@ async def wait_for_activity_to_complete(url: str, n: ui.notification) -> None:
     """
     time_budget = settings.timeout
     inter_request_wait_time = 5.0
+    r: Response | None = None
     async with CLIENT_FACTORY.aclient() as client:
         while time_budget > 0:
-            r = await client.get(url)
-            if not len(r.json()):
+            try:
+                r = await client.get(url)
+                r.raise_for_status()
+                if not len(r.json()):
+                    await sleep(inter_request_wait_time)
+                    time_budget -= inter_request_wait_time
+                else:
+                    break
+            except HTTPStatusError:
                 await sleep(inter_request_wait_time)
                 time_budget -= inter_request_wait_time
-            else:
-                break
+                continue
+    if r is not None:
         activity = r.json()[0]
         if time_budget <= 0:
             n.type = "warning"

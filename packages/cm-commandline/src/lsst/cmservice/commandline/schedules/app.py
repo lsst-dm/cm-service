@@ -62,8 +62,8 @@ def load_schedule(
     ):
         match manifest["kind"]:
             case "campaign":
+                campaign_name: str = manifest["metadata"]["name"]
                 if not schedule_name:
-                    campaign_name: str = manifest["metadata"]["name"]
                     schedule_name = f"schedule-{campaign_name}-{uuid4().hex[0:8]}"
                 to_load[campaign_name] = manifest
             case "node":
@@ -143,7 +143,7 @@ def oneshot_schedule(
                     new_c_url = r.headers["Last-Campaign"]
                     if new_c_url == prev_c_url:
                         raise ValueError
-                except (KeyError, ValueError):
+                except KeyError, ValueError:
                     sleep(1.0)
                     elapsed += 1.0
                     continue

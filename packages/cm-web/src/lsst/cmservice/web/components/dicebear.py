@@ -1,7 +1,5 @@
 """Module implementing functions to obtain avatars from the dicebear API."""
 
-from __future__ import annotations
-
 from nicegui import ui
 
 from ..lib.enum import Palette

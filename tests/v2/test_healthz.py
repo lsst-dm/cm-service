@@ -4,9 +4,9 @@ from httpx2 import AsyncClient
 
 @pytest.mark.asyncio()
 @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
-async def test_get_healthz(client: AsyncClient) -> None:
+async def test_get_healthz(aclient: AsyncClient) -> None:
     """Test ``GET /healthz``."""
-    response = await client.get("/healthz")
+    response = await aclient.get("http://test/healthz")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data["name"], str)

@@ -480,7 +480,7 @@ class EditorDialog(ui.dialog):
                         case _:
                             # Anything else is a broken validator
                             raise RuntimeError
-                except (AttributeError, RuntimeError):
+                except AttributeError, RuntimeError:
                     return f"Invalid validator: {validator}"
             self.context.model["metadata"]["name"] = candidate_name
             self.context.name = candidate_name
