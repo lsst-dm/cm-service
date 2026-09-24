@@ -7,6 +7,7 @@ from lsst.cmservice.models.db.campaigns import Node
 from lsst.cmservice.models.db.notifications import NotificationLabel
 from lsst.cmservice.models.enums import NotificationLabelEnum, StatusEnum
 from lsst.cmservice.models.lib.logging import LOGGER
+from lsst.cmservice.models.lib.resources import Resource
 
 from ...config import config
 from ...db.session import db_session_dependency
@@ -63,7 +64,7 @@ class SlackNotification(NotificationTransport):
 
         data = dict(text=message) if isinstance(message, bytes) else message
 
-        async with self.http_async_client() as asession:
+        async with Resource.http_async_client() as asession:
             try:
                 response = await asession.post(
                     url=self.secret,

@@ -34,6 +34,11 @@ class ScheduleConfiguration(ManifestSpec):
         default="0 0 1-7 * SUN",
         description="A crontab string expressing a scheduling cadence.",
     )
+    uri: str | None = Field(
+        default=None,
+        description="An external URI from which the campaign template should be loaded.",
+        examples=["https://raw.githubusercontent.com/lsst/repo/refs/heads/main/cm_campaign.yaml"],
+    )
 
 
 class ScheduleUpdate(BaseModel):
