@@ -1,13 +1,13 @@
 import asyncio
 import json
-import time
 from collections.abc import Generator, Mapping
 from contextlib import AbstractContextManager, nullcontext
+from typing import Any
 from urllib.parse import urlparse
 from uuid import UUID, uuid4, uuid5
 
 import pytest
-from confluent_kafka import Consumer
+from confluent_kafka import Message
 from confluent_kafka.admin import AdminClient
 from confluent_kafka.cimpl import NewTopic
 from pytest_mock import MockerFixture
@@ -18,9 +18,13 @@ from lsst.cmservice.config import config
 from lsst.cmservice.models.db.campaigns import ActivityLog, Node
 from lsst.cmservice.models.db.notifications import NotificationLabel
 from lsst.cmservice.models.enums import NotificationLabelEnum, StatusEnum
+from lsst.cmservice.models.lib.kafka.consumer import CMConsumer
 from lsst.cmservice.models.lib.kafka.models import KafkaNotification
 from lsst.cmservice.models.lib.kafka.producer import NotificationProducer, get_producer
-from lsst.cmservice.models.lib.kafka.settings import consumer_settings, kafka_settings
+from lsst.cmservice.models.lib.kafka.settings import kafka_settings
+
+WAIT_TIME = 5.0
+"""How long tests should wait for events, in seconds."""
 
 
 @pytest.fixture(scope="module")
@@ -44,45 +48,88 @@ def bootstrap_config(kafka_broker: str) -> Generator[Mapping]:
         "topic": topic_name,
         "topics": [topic_name],
         "group_id": "cmservice",
+        "auto_offset_reset": "earliest",
     }
     _kafka_settings = kafka_settings.model_copy(update=aux)
     with AdminClient(_kafka_settings.model_dump(by_alias=True)) as admin:
-        admin.create_topics([NewTopic(topic_name, 1, 1)])
+        futures = admin.create_topics([NewTopic(topic_name, 1, 1)])
+        # topic creation is eventually consistent
+        for future in futures.values():
+            future.result(timeout=WAIT_TIME)
         yield aux
         admin.delete_topics([topic_name])
 
 
 @pytest.fixture(scope="function")
-def consumer(bootstrap_config: Mapping) -> Generator[Consumer]:
-    """Yield a consumer configured for the test environment."""
+async def produced_message(mocker: MockerFixture, bootstrap_config: Mapping) -> asyncio.Event:
+    """Produce a basic message to the current topic and wait for delivery"""
+    message_delivered = asyncio.Event()
 
-    _consumer_settings = consumer_settings.model_copy(update=bootstrap_config)
-    _kafka_settings = kafka_settings.model_copy(update=bootstrap_config)
-    with Consumer(
-        **_consumer_settings.model_dump(by_alias=True), **_kafka_settings.model_dump(by_alias=True)
-    ) as consumer:
-        consumer.subscribe(_consumer_settings.topics)
-        assignment_deadline = time.monotonic() + 5
-        while not consumer.assignment():
-            if time.monotonic() >= assignment_deadline:
-                raise TimeoutError("Consumer has not been assigned a TopicPartition")
-            consumer.poll(0.1)
-        yield consumer
-        consumer.unsubscribe()
+    def delivery_cb(err: Exception | None, msg: str | bytes) -> None:
+        """set the sentinel event indicating the message has been delivered"""
+        assert err is None
+        message_delivered.set()
 
-
-def test_produce_with_aux_config(bootstrap_config: Mapping, consumer: Consumer) -> None:
-    """Test that a simple message produced by the NotificationProducer is
-    available for a consumer.
-    """
-
+    mocker.patch.object(NotificationProducer, "delivery_cb", new=delivery_cb)
     with get_producer(bootstrap_config) as producer:
         producer.produce(b"Hello World")
 
-    message = consumer.poll(5.0)
-    assert message is not None
-    assert message.error() is None
-    assert message.value() == b"Hello World"
+    return message_delivered
+
+
+@pytest.mark.asyncio(loop_scope="module")
+async def test_produce_with_aux_config(
+    mocker: MockerFixture,
+    bootstrap_config: Mapping,
+    produced_message: asyncio.Event,
+) -> None:
+    """Test that a simple message produced by the NotificationProducer is
+    available for a consumer.
+    """
+    await asyncio.wait_for(produced_message.wait(), timeout=WAIT_TIME)
+
+    message_delivered = asyncio.Event()
+
+    async def message_handler(_: Any, message: Message) -> None:
+        """Mock message handler."""
+        assert message is not None
+        assert message.error() is None
+        assert message.value() == b"Hello World"
+        message_delivered.set()
+
+    mocker.patch.object(CMConsumer, "default_handler", new=message_handler)
+    async with CMConsumer(**bootstrap_config):
+        await asyncio.wait_for(message_delivered.wait(), timeout=WAIT_TIME)
+
+
+@pytest.mark.asyncio(loop_scope="module")
+async def test_consumer_task(
+    mocker: MockerFixture,
+    bootstrap_config: Mapping,
+    produced_message: asyncio.Event,
+) -> None:
+    """Test the task form of the CM Consumer."""
+    await asyncio.wait_for(produced_message.wait(), timeout=WAIT_TIME)
+
+    shutdown_signal = asyncio.Event()
+    message_consumed = asyncio.Event()
+
+    async def message_handler(_: Any, message: Message) -> None:
+        """Mock message handler."""
+        assert message is not None
+        assert message.error() is None
+        assert message.value() == b"Hello World"
+        message_consumed.set()
+
+    mocker.patch.object(CMConsumer, "default_handler", new=message_handler)
+
+    handles = set()
+    async with asyncio.TaskGroup() as tg:
+        consumer = CMConsumer(sentinel=shutdown_signal, **bootstrap_config)
+        consumer_task = tg.create_task(consumer.task(), name="consumer")
+        handles.add(consumer_task)
+        await asyncio.wait_for(message_consumed.wait(), timeout=WAIT_TIME)
+        shutdown_signal.set()
 
 
 @pytest.mark.asyncio(loop_scope="module")
@@ -106,15 +153,16 @@ async def test_kafka_notification(
     test_campaign_groups: str,
     notifications_tg: None,
     bootstrap_config: Mapping,
-    consumer: Consumer,
 ) -> None:
     """Test notifications using a Kafka transport."""
 
     assert config.notifications.fernet is not None
     label_name = str(uuid4())[-8:]
-    message_delivered = asyncio.Event()
     campaign_id = urlparse(url=test_campaign_groups).path.split("/")[-2:][0]
     node_id = uuid5(UUID(campaign_id), "lambert.1")
+
+    message_delivered = asyncio.Event()
+    message_consumed = asyncio.Event()
 
     # Create a mock delivery callback and patch it in
     def delivery_cb(err: Exception | None, msg: str | bytes) -> None:
@@ -122,7 +170,19 @@ async def test_kafka_notification(
         assert err is None
         message_delivered.set()
 
+    # create a mock consumer message handler and patch it in
+    async def message_handler(_: Any, message: Message) -> None:
+        """Mock message handler."""
+        assert message is not None
+        assert message.error() is None
+        payload_bytes = message.value()
+        assert payload_bytes is not None
+        payload: Mapping = json.loads(payload_bytes)
+        assert KafkaNotification.model_fields.keys() <= payload.keys()
+        message_consumed.set()
+
     mocker.patch.object(NotificationProducer, "delivery_cb", new=delivery_cb)
+    mocker.patch.object(CMConsumer, "default_handler", new=message_handler)
 
     node = await session.get_one(Node, node_id)
     # create a new notification label with a secret that applies the bootstrap
@@ -150,14 +210,7 @@ async def test_kafka_notification(
     session.add(activity)
     await session.commit()
 
-    with cm:
-        await asyncio.wait_for(message_delivered.wait(), timeout=5.0)
-
-        # use a consumer to validate the receipt of the notification message
-        message = consumer.poll(5.0)
-        assert message is not None
-        assert message.error() is None
-        payload_bytes = message.value()
-        assert payload_bytes is not None
-        payload: Mapping = json.loads(payload_bytes)
-        assert KafkaNotification.model_fields.keys() <= payload.keys()
+    async with CMConsumer(**bootstrap_config):
+        with cm:
+            await asyncio.wait_for(message_delivered.wait(), timeout=WAIT_TIME)
+            await asyncio.wait_for(message_consumed.wait(), timeout=WAIT_TIME)
