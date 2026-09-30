@@ -49,6 +49,7 @@ class KafkaTransport(NotificationTransport):
                 campaign_url=f"{config.asgi.fqdn}/gui/campaign/{node.namespace}",
                 from_status=activity_log.from_status,
                 to_status=activity_log.to_status,
+                metadata=node.campaign.metadata_,
             )
             .model_dump_json()
             .encode()
