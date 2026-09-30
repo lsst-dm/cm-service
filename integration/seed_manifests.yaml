@@ -1,0 +1,10 @@
+---
+apiversion: io.lsst.cmservice/v1
+kind: notification_label
+metadata:
+  name: kafka-event
+  kind: kafka
+spec:
+  secret_plaintext: '{"topic": "smoketest"}'
+  filters:
+    - "end:running:accepted"

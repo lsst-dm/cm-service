@@ -6,6 +6,8 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
 
+from lsst.cmservice.models.lib.kafka.consumer import CMConsumer
+
 from . import __version__
 from .common.butler import BUTLER_FACTORY  # noqa: F401
 from .common.daemon import daemon_iteration
@@ -55,6 +57,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
             notifier = Notifier(app=app, sentinel=shutdown_signal)
             notifier_task = tg.create_task(notifier.task(), name="notifier")
             app.state.tasks.add(notifier_task)
+
+        # Kafka Consumer
+        if Features.KAFKA_CONSUMER in config.features.enabled:
+            runtime_kafka_config = {
+                "app": app,
+                "sentinel": shutdown_signal,
+                "auto_offset_commit": False,
+                "auto_offset_store": False,
+            }
+            consumer = CMConsumer(**runtime_kafka_config)
+            consumer_task = tg.create_task(consumer.task(), name="kafka")
+            app.state.tasks.add(consumer_task)
 
         yield
         # Set the shutdown signal for all tasks
