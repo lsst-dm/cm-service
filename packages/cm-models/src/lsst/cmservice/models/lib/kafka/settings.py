@@ -27,7 +27,7 @@ class ConsumerSettings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
-        env_prefix="KAFKA_CONSUMER_",
+        env_prefix="KAFKA_CONSUMER__",
         extra="ignore",
         env_nested_delimiter="__",
         nested_model_default_partial_update=True,
@@ -73,7 +73,7 @@ class ProducerSettings(BaseSettings):
     ``serialization_alias``.
     """
 
-    model_config = SettingsConfigDict(env_prefix="KAFKA_PRODUCER_", extra="ignore")
+    model_config = SettingsConfigDict(env_prefix="KAFKA_PRODUCER__", extra="ignore")
 
     acks: Annotated[int, Field(ge=-1, le=1, serialization_alias="acks")] = -1
     batch_num_messages: Annotated[int, Field(ge=1, serialization_alias="batch.num.messages")] = 10_000
@@ -109,7 +109,7 @@ class KafkaSettings(BaseSettings):
     SSL connections to brokers will fail if the broker cert cannot be verified.
     """
 
-    model_config = SettingsConfigDict(env_prefix="KAFKA_", case_sensitive=False, extra="ignore")
+    model_config = SettingsConfigDict(env_prefix="KAFKA__", case_sensitive=False, extra="ignore")
 
     bootstrap_servers: Annotated[
         str | list[str],

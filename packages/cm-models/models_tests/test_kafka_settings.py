@@ -9,22 +9,22 @@ def env_setup(request, monkeypatch):
     # These vars may change between tests
     match request.param:
         case "scenario_env_strings":
-            monkeypatch.setenv("KAFKA_BOOTSTRAP_SERVERS", "mockfka:9092,mockfkb:9092")
-            monkeypatch.setenv("KAFKA_CONSUMER_AUTO_OFFSET_COMMIT", "0")
-            monkeypatch.setenv("KAFKA_CONSUMER_TOPICS__0", "topicA")
-            monkeypatch.setenv("KAFKA_CONSUMER_TOPICS__1", "topicB")
+            monkeypatch.setenv("KAFKA__BOOTSTRAP_SERVERS", "mockfka:9092,mockfkb:9092")
+            monkeypatch.setenv("KAFKA_CONSUMER__AUTO_OFFSET_COMMIT", "0")
+            monkeypatch.setenv("KAFKA_CONSUMER__TOPICS__0", "topicA")
+            monkeypatch.setenv("KAFKA_CONSUMER__TOPICS__1", "topicB")
         case "scenario_env_json":
-            monkeypatch.setenv("KAFKA_BOOTSTRAP_SERVERS", '["mockfka:9092","mockfkb:9092"]')
-            monkeypatch.setenv("KAFKA_CONSUMER_AUTO_OFFSET_COMMIT", "false")
+            monkeypatch.setenv("KAFKA__BOOTSTRAP_SERVERS", '["mockfka:9092","mockfkb:9092"]')
+            monkeypatch.setenv("KAFKA_CONSUMER__AUTO_OFFSET_COMMIT", "false")
             monkeypatch.setenv(
-                "KAFKA_CONSUMER_TOPICS",
+                "KAFKA_CONSUMER__TOPICS",
                 '["topicA", "topicB"]',
             )
         case _:
             ...
 
     # These vars do not change
-    monkeypatch.setenv("KAFKA_CONSUMER_GROUP_ID", "mockers")
+    monkeypatch.setenv("KAFKA_CONSUMER__GROUP_ID", "mockers")
 
 
 @pytest.mark.parametrize("env_setup", ["scenario_env_strings", "scenario_env_json"], indirect=True)

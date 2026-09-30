@@ -4,7 +4,7 @@ services:
     environment:
       LOGGING__LEVEL: ERROR
       DB__ECHO: false
-      NOTIFICATIONS_FERNET_KEY: "t6K0AJCUtu57w8yD9vhDDJmYp-MBRhs4u91K0UT-iiE="
+      NOTIFICATIONS__FERNET_KEY: "t6K0AJCUtu57w8yD9vhDDJmYp-MBRhs4u91K0UT-iiE="
   cmweb:
     environment:
       LOGGING__LEVEL: ERROR
@@ -30,10 +30,10 @@ services:
       LSST_RESOURCES_S3_PROFILE_embargo: http://s3mock:9090
       AWS_CONFIG_FILE: /run/secrets/aws_config
       AWS_SHARED_CREDENTIALS_FILE: /run/secrets/aws_credentials
-      KAFKA_SECURITY_PROTOCOL: PLAINTEXT
-      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
-      KAFKA_CONSUMER_AUTO_OFFSET_RESET: "earliest"
-      NOTIFICATIONS_FERNET_KEY: "t6K0AJCUtu57w8yD9vhDDJmYp-MBRhs4u91K0UT-iiE="
+      KAFKA__SECURITY_PROTOCOL: PLAINTEXT
+      KAFKA__BOOTSTRAP_SERVERS: "kafka:9092"
+      KAFKA_CONSUMER__AUTO_OFFSET_RESET: "earliest"
+      NOTIFICATIONS__FERNET_KEY: "t6K0AJCUtu57w8yD9vhDDJmYp-MBRhs4u91K0UT-iiE="
     env_file:
       - path: integration/shared.env
         required: true
