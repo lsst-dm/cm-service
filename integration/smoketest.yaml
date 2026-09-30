@@ -3,7 +3,9 @@ apiVersion: io.lsst.cmservice/v1
 kind: campaign
 metadata:
   name: smoketest
-spec: {}
+spec:
+  notification_labels:
+    - "kafka-event"
 ---
 apiVersion: io.lsst.cmservice/v1
 kind: node
