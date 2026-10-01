@@ -1,12 +1,13 @@
 import json
 from collections.abc import Mapping
+from copy import deepcopy
 from typing import TYPE_CHECKING
 
 from sqlalchemy.exc import NoResultFound
 
 from lsst.cmservice.models.db.campaigns import Node
 from lsst.cmservice.models.db.notifications import NotificationLabel
-from lsst.cmservice.models.enums import NotificationLabelEnum
+from lsst.cmservice.models.enums import ManifestKind, NotificationLabelEnum
 from lsst.cmservice.models.lib.kafka.models import KafkaNotification
 from lsst.cmservice.models.lib.kafka.producer import get_producer
 from lsst.cmservice.models.lib.logging import LOGGER
@@ -41,19 +42,28 @@ class KafkaTransport(NotificationTransport):
         bytes.
         """
 
-        message_bytes = (
-            KafkaNotification(
-                node_name=node.name,
-                node_url=f"{config.asgi.fqdn}/gui/node/{node.id}",
-                campaign_name=node.campaign.name,
-                campaign_url=f"{config.asgi.fqdn}/gui/campaign/{node.namespace}",
-                from_status=activity_log.from_status,
-                to_status=activity_log.to_status,
-                metadata=node.campaign.metadata_,
-            )
-            .model_dump_json()
-            .encode()
+        message = KafkaNotification(
+            node_name=node.name,
+            node_url=f"{config.asgi.fqdn}/gui/node/{node.id}",
+            campaign_name=node.campaign.name,
+            campaign_url=f"{config.asgi.fqdn}/gui/campaign/{node.namespace}",
+            from_status=activity_log.from_status,
+            to_status=activity_log.to_status,
+            metadata=deepcopy(node.campaign.metadata_),
         )
+
+        # Decorate the message according to node kind
+        match node.kind:
+            case ManifestKind.collect_groups | ManifestKind.group:
+                # Add the run collections known to the collect step
+                message.metadata["run_collections"] = node.metadata_.get("run_collections")
+            case ManifestKind.end:
+                message.metadata["run_collections"] = node.metadata_.get("run_collections")
+                message.metadata["chained_collections"] = node.metadata_.get("chained_collections")
+            case _:
+                pass
+
+        message_bytes = message.model_dump_json().encode("utf-8")
         return message_bytes
 
     async def deliver(self, payload: NotificationPayload) -> None:

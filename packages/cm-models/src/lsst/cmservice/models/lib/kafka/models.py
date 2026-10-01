@@ -20,5 +20,7 @@ class ButlerCollectionKafkaNotification(KafkaNotification):
     of Butler collections and dataset types.
     """
 
-    collections: list[str] = Field(default_factory=list)
+    repo: str | None = Field(default=None)
+    chained_collections: list[str] = Field(default_factory=list)
+    run_collections: list[str] = Field(default_factory=list)
     dataset_types: list[str] = Field(default_factory=list)
