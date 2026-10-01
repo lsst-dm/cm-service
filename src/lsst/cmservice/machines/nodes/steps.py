@@ -670,6 +670,7 @@ class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin
         # Apply the run collection list to the node's metadata
         new_metadata = deepcopy(self.db_model.metadata_)
         new_metadata["run_collections"] = self.collections
+        new_metadata["chained_collections"] = self.configuration_chain["butler"]["collections"]["step_output"]
         self.db_model.metadata_ = new_metadata
 
     async def do_unprepare(self, event: EventData) -> None:
@@ -679,6 +680,7 @@ class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin
         # Remove the run collection list from the node's metadata
         new_metadata = deepcopy(self.db_model.metadata_)
         new_metadata.pop("run_collections", None)
+        new_metadata.pop("chained_collections", None)
         self.db_model.metadata_ = new_metadata
         del self.collections
         del self.command_templates

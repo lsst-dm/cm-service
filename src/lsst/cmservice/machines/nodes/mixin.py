@@ -243,6 +243,7 @@ class FilesystemActionMixin(ActionMixIn):
         self.configuration_chain = await lib.assemble_config_chain(
             self.session, self.db_model, extra=fallback_configuration
         )
+        self.db_model.metadata_["repo"] = self.configuration_chain["butler"]["repo"]
 
     async def fetch_artifact_resources(self, event: EventData) -> None:
         """For any static resources provided by an artifact manifest applied
@@ -353,8 +354,9 @@ class FilesystemActionMixin(ActionMixIn):
             await lib.deltree(self.artifact_path)
             del self.artifact_path
 
-        # Remove the reference to the artifact path from the orm node too
+        # Remove runtime references added to the orm node
         _ = self.db_model.metadata_.pop("artifact_path", None)
+        _ = self.db_model.metadata_.pop("repo", None)
 
         # Remove the group's configuration chain if it has one
         try:
