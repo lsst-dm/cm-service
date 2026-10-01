@@ -4,6 +4,7 @@ nodes, including START/END/BREAKPOINT nodes.
 
 import pickle
 import shutil
+from copy import deepcopy
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
@@ -41,7 +42,7 @@ class NodeMachine(StatefulModel):
     of Nodes are implemented as MixIn classes that extend this implementation.
     """
 
-    __kind__ = [ManifestKind.node]
+    __kind__: list[ManifestKind] = [ManifestKind.node]
 
     def __init__(
         self, *args: Any, o: Node, initial_state: StatusEnum = StatusEnum.waiting, **kwargs: Any
@@ -486,6 +487,17 @@ class EndMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchMi
             collect_step.configuration["butler"]["collections"]["step_output"]
             for collect_step in collect_steps
         ]
+        group_run_collections = []
+        for collect_step in collect_steps:
+            group_run_collections.extend(
+                run_coll for run_coll in collect_step.metadata_.get("run_collections", [])
+            )
+
+        # Apply the campaign collection lists to the node's metadata
+        new_metadata = deepcopy(self.db_model.metadata_)
+        new_metadata["chained_collections"] = self.collections
+        new_metadata["run_collections"] = group_run_collections
+        self.db_model.metadata_ = new_metadata
 
         # perform specific preparations
         await self.action_prepare(event)

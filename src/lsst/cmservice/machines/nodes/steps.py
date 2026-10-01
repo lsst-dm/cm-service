@@ -1,4 +1,5 @@
 from collections.abc import Generator, Mapping, Sequence
+from copy import deepcopy
 from itertools import chain
 from typing import Any, assert_never, cast
 from uuid import UUID, uuid5
@@ -591,7 +592,7 @@ class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin
         }
 
     async def do_prepare(self, event: EventData) -> None:
-        """Determine the set of group output collections to chain together for
+        """Determine the set of group run collections to chain together for
         the step's output collection.
 
         One way to do this is to look at the Group nodes who are immediate
@@ -599,7 +600,7 @@ class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin
         table). This approach may be naive because other Nodes could be
         arbitrarily inserted into the graph between the group and collect nodes
         such as a breakpoint. In this case, the Breakpoint node would cause
-        the simple look-back query to have missing information.
+        the simple look-back query to be incomplete.
 
         The role of the collect step in a graph is to be the definite exit node
         from a step's subgraph of groups. This means that for any given
@@ -666,11 +667,19 @@ class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin
         butler_config["input_collections"] = self.collections
 
         self.configuration_chain["butler"] = self.configuration_chain["butler"].new_child(butler_config)
+        # Apply the run collection list to the node's metadata
+        new_metadata = deepcopy(self.db_model.metadata_)
+        new_metadata["run_collections"] = self.collections
+        self.db_model.metadata_ = new_metadata
 
     async def do_unprepare(self, event: EventData) -> None:
         """Callback rolls the node back to a "waiting" state so the config
         and artifacts may be re-rendered.
         """
+        # Remove the run collection list from the node's metadata
+        new_metadata = deepcopy(self.db_model.metadata_)
+        new_metadata.pop("run_collections", None)
+        self.db_model.metadata_ = new_metadata
         del self.collections
         del self.command_templates
 
