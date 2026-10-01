@@ -26,4 +26,13 @@ repos:
     hooks:
       - id: yamllint
 
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        language: system
+        stages: [pre-push]
+        entry: "uv run mypy"
+        pass_filenames: false
+
 exclude: integration/(tokens|passwords).d/.*
