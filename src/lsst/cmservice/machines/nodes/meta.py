@@ -487,7 +487,7 @@ class EndMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchMi
             collect_step.configuration["butler"]["collections"]["step_output"]
             for collect_step in collect_steps
         ]
-        group_run_collections = []
+        group_run_collections: list[str] = []
         for collect_step in collect_steps:
             group_run_collections.extend(
                 run_coll for run_coll in collect_step.metadata_.get("run_collections", [])
