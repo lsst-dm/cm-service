@@ -54,6 +54,7 @@ class ConsumerSettings(BaseSettings):
         ),
     ] = 65_536
     max_poll_interval_ms: Annotated[int, Field(serialization_alias="max.poll.interval.ms")] = 300_000
+    max_poll_wait_sec: Annotated[float, Field(exclude=True)] = 5.0
     group_id: Annotated[str, Field(serialization_alias="group.id")] = "cmservice"
     topics: Annotated[list[str], BeforeValidator(parse_env_list), Field(exclude=True)] = Field(
         default_factory=list

@@ -33,6 +33,8 @@ services:
       KAFKA__SECURITY_PROTOCOL: PLAINTEXT
       KAFKA__BOOTSTRAP_SERVERS: "kafka:9092"
       KAFKA_CONSUMER__AUTO_OFFSET_RESET: "earliest"
+      KAFKA_CONSUMER__AUTO_OFFSET_COMMIT: "0"
+      KAFKA_CONSUMER__TOPICS__0: smoketest-inbound
       NOTIFICATIONS__FERNET_KEY: "t6K0AJCUtu57w8yD9vhDDJmYp-MBRhs4u91K0UT-iiE="
     env_file:
       - path: integration/shared.env

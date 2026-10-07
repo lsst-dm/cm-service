@@ -36,6 +36,7 @@ from types import TracebackType
 from typing import TYPE_CHECKING, Any, Self
 
 import anyio
+from anyio import to_thread
 from anyio.lowlevel import checkpoint
 from confluent_kafka import Consumer, KafkaError, Message, TopicPartition
 
@@ -93,6 +94,7 @@ class CMConsumer(Consumer):
     assigned: anyio.Event
     sentinel: anyio.Event
     topics: list[str] | None
+    poll_wait: float
     _exit_stack: AsyncExitStack
     _receive_stream: MemoryObjectReceiveStream[Message]
     _send_stream: MemoryObjectSendStream[Message]
@@ -115,7 +117,8 @@ class CMConsumer(Consumer):
             **_kafka_settings.model_dump(by_alias=True),
             **_consumer_settings.model_dump(by_alias=True),
         )
-        self.topics = kwargs.get("topics", None)
+        self.topics = _consumer_settings.topics
+        self.poll_wait = _consumer_settings.max_poll_wait_sec
         self.assigned = anyio.Event()
         self._send_stream, self._receive_stream = anyio.create_memory_object_stream[Message](
             _consumer_settings.max_send_queue_size
@@ -132,7 +135,7 @@ class CMConsumer(Consumer):
 
         self.subscribe(self.topics, on_assign=self.on_assign, on_revoke=self.on_revoke, on_lost=self.on_lost)
         while not self.assigned.is_set():
-            message = self.poll(0)
+            message = await to_thread.run_sync(self.poll, self.poll_wait)
             if message is None:
                 await checkpoint()
                 continue
@@ -174,7 +177,7 @@ class CMConsumer(Consumer):
         """
         self.sentinel.set()
         await self._exit_stack.__aexit__(exc_type, exc_val, exc_tb)
-        self.close()
+        await to_thread.run_sync(self.close)
 
     async def task(self) -> None:
         """A coro that is meant to be used with `asyncio.create_task` to
@@ -192,7 +195,7 @@ class CMConsumer(Consumer):
         """
         async with stream:
             while not self.sentinel.is_set():
-                message = self.poll(0)
+                message = await to_thread.run_sync(self.poll, self.poll_wait)
                 if message is None:
                     await checkpoint()
                 elif kafka_error := message.error():
