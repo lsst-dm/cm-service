@@ -119,7 +119,7 @@ class CMPage[PageModelT: CMPageModel | CMPageData]:
         ).props("flat")
 
         with ui.dropdown_button(app.storage.client["state"].user.username, auto_close=True):
-            ui.link("Security Tokens", target=f"{self.base_url}/auth/tokens", new_tab=True).classes(
+            ui.link("Security Tokens", target=f"{self.base_url}{settings.token_path}", new_tab=True).classes(
                 "p-2 text-base text-primary !no-underline"
             )
         ui.button(icon="menu", on_click=lambda: self.toggle_drawer()).props("flat color=white")

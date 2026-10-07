@@ -31,9 +31,16 @@ class ClientConfiguration(BaseSettings):
 
     # FIXME add a validator to strip any trailing `/` from value
     base_url: str = Field(
-        default="http://localhost:8080/cm-service",
+        default="http://localhost:8080",
         description="Base URL for the CM Service API",
         validation_alias="CM_ENDPOINT",
+    )
+
+    token_path: str = Field(
+        default="/settings/tokens",
+        description="URI path relative to the base url from which user token management is performed",
+        validation_alias="CM_TOKEN_URI",
+        examples=["/settings/tokens", "/auth/tokens"],
     )
 
     root_path: str = Field(
