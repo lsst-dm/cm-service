@@ -87,7 +87,11 @@ class ProducerSettings(BaseSettings):
     ] = 100_000
     queue_buffering_max_ms: Annotated[int, Field(ge=0, serialization_alias="linger.ms")] = 5
     statistics_interval_ms: Annotated[int, Field(ge=0, serialization_alias="statistics.interval.ms")] = 30_000
+    message_timeout_ms: Annotated[int, Field(ge=0, serialization_alias="message.timeout.ms")] = 300_000
     topic: Annotated[str | None, Field(exclude=True)] = None
+    tries: Annotated[int, Field(exclude=True)] = 5
+    delay: Annotated[float, Field(exclude=True)] = 3.0
+    backoff: Annotated[float, Field(exclude=True)] = 1.2
 
 
 class KafkaSettings(BaseSettings):

@@ -12,12 +12,20 @@ from collections.abc import Mapping
 from types import TracebackType
 from typing import Self
 
+from anyio import to_thread
 from confluent_kafka import KafkaError, KafkaException, Message, Producer
+
+from lsst.cmservice.models.lib.retry import exponential_retry
 
 from ..logging import LOGGER
 from .settings import kafka_settings, producer_settings
 
 logger = LOGGER.bind(module=__name__)
+
+
+async def producer_retry_callback(exc: Exception) -> None:
+    """Callback for handling retries in the producer class."""
+    logger.warning("Producer failed to produce a message, retrying...", error=str(exc))
 
 
 class NotificationProducer(Producer):
@@ -27,6 +35,15 @@ class NotificationProducer(Producer):
 
     topic: str | None
     key: str | None
+
+    @exponential_retry(
+        producer_settings,
+        retryables=["BufferError"],
+        callback=producer_retry_callback,
+    )
+    async def aproduce(self, message: bytes) -> None:
+        """Async wrapper around produce method with a retry mechanism."""
+        await to_thread.run_sync(self.produce, message)
 
     def produce(self, message: bytes) -> None:  # type: ignore[override]
         """Produce a message from provided bytes.
@@ -67,21 +84,21 @@ class NotificationProducer(Producer):
         """A callback method for handling statistics reporting."""
         logger.debug(json_str)
 
-    def shutdown(self) -> None:
+    async def shutdown(self) -> None:
         """Called when we are done with the producer."""
-        self.flush()
+        await to_thread.run_sync(self.flush)
 
-    def __enter__(self) -> Self:
+    async def __aenter__(self) -> Self:
         """Allows use of the producer as a context manager."""
         return self
 
-    def __exit__(
+    async def __aexit__(
         self,
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-        return self.shutdown()
+        await self.shutdown()
 
 
 def get_producer(aux: Mapping) -> NotificationProducer:

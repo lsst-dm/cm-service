@@ -21,7 +21,7 @@ from lsst.cmservice.models.enums import NotificationLabelEnum, StatusEnum
 from lsst.cmservice.models.lib.kafka.consumer import CMConsumer
 from lsst.cmservice.models.lib.kafka.models import KafkaNotification
 from lsst.cmservice.models.lib.kafka.producer import NotificationProducer, get_producer
-from lsst.cmservice.models.lib.kafka.settings import kafka_settings
+from lsst.cmservice.models.lib.kafka.settings import kafka_settings, producer_settings
 
 WAIT_TIME = 5.0
 """How long tests should wait for events, in seconds."""
@@ -71,8 +71,8 @@ async def produced_message(mocker: MockerFixture, bootstrap_config: Mapping) -> 
         message_delivered.set()
 
     mocker.patch.object(NotificationProducer, "delivery_cb", new=delivery_cb)
-    with get_producer(bootstrap_config) as producer:
-        producer.produce(b"Hello World")
+    async with get_producer(bootstrap_config) as producer:
+        await producer.aproduce(b"Hello World")
 
     return message_delivered
 
@@ -100,6 +100,37 @@ async def test_produce_with_aux_config(
     mocker.patch.object(CMConsumer, "default_handler", new=message_handler)
     async with CMConsumer(**bootstrap_config):
         await asyncio.wait_for(message_delivered.wait(), timeout=WAIT_TIME)
+
+
+@pytest.mark.asyncio(loop_scope="module")
+async def test_producer_retries(
+    caplog: pytest.LogCaptureFixture, mocker: MockerFixture, bootstrap_config: Mapping
+) -> None:
+    """Test the retry behavior of the producer"""
+
+    bad_producer = {
+        "tries": 2,
+        "delay": 0.1,
+        "backoff": 1.0,
+        "queue_buffering_max_messages": 1,
+        "queue_buffering_max_ms": 900_000,
+        "message_timeout_ms": 1_800_000,
+    }
+    for k, v in bad_producer.items():
+        mocker.patch.object(producer_settings, k, v)
+
+    bad_producer.update(bootstrap_config)
+
+    # Manufacture a BufferError by producing two messages into a local buffer
+    # that only supports one message.
+    with caplog.at_level("WARNING"), pytest.raises(BufferError), get_producer(bad_producer) as producer:
+        await producer.aproduce(b"Hello World")
+        await producer.aproduce(b"Hello World")
+
+    # The log should have one message for each attempt
+    log_messages = ["Queue full" in rec.message for rec in caplog.records]
+    assert len(log_messages) == 2
+    assert all(log_messages)
 
 
 @pytest.mark.asyncio(loop_scope="module")

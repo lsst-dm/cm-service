@@ -27,14 +27,14 @@ class KafkaTransport(NotificationTransport):
     def notify(self, message: bytes | dict) -> None:
         """Sends a notification message."""
 
-        data = message if isinstance(message, bytes) else json.dumps(message).encode()
-        with get_producer(self.secret) as producer:
-            producer.produce(data)
+        raise NotImplementedError("Only asynchronous notifications are supported")
 
     async def anotify(self, message: bytes | dict) -> None:
         """Sends a notification message asynchronously."""
 
-        raise NotImplementedError("Only synchronous notifications are supported")
+        data = message if isinstance(message, bytes) else json.dumps(message).encode()
+        async with get_producer(self.secret) as producer:
+            await producer.aproduce(data)
 
     def build_message(self, node: Node, activity_log: ActivityLog) -> bytes:
         """Build a specific message payload, serialize it, and return it as
@@ -94,4 +94,4 @@ class KafkaTransport(NotificationTransport):
         message = self.build_message(node, activity_log)
 
         # dispatch the notification with notify
-        self.notify(message)
+        await self.anotify(message)
