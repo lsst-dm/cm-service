@@ -86,20 +86,10 @@ async def not_implemented_error_handler(request: Request, exc: NotImplementedErr
 
 
 # Add Features
-if Features.API_V1 in config.features.enabled:
-    from .routers import v1
-
-    app.include_router(v1.router, prefix=config.asgi.route_prefix)
 if Features.API_V2 in config.features.enabled:
     from .routers import v2
 
     app.include_router(v2.router, prefix=config.asgi.route_prefix)
-
-# Start the frontend web application.
-if Features.WEBAPP_V1 in config.features.enabled:
-    from .web_app import web_app
-
-    app.mount(config.asgi.frontend_prefix, web_app)
 
 
 if __name__ == "__main__":

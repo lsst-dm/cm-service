@@ -46,7 +46,8 @@ services:
     environment:
       <<: *cmenv
       BPS__ARTIFACT_PATH: /home/lsstsvc1/output
-      ASGI__ROUTE_PREFIX: /cm-service
+      ASGI__ROUTE_PREFIX: /api
+      ASGI__DOCS_PREFIX: /docs
       FEATURE_API_V2: 1
       FEATURE_API_V1: 0
       FEATURE_DAEMON_V2: 0
@@ -114,7 +115,7 @@ services:
       - path: .env
         required: false
     environment:
-      CM_ENDPOINT: http://cmservice:8080/cm-service
+      CM_ENDPOINT: http://cmservice:8080/api
       CM_API_VERSION: v2
     ports:
       - "18080:18080"

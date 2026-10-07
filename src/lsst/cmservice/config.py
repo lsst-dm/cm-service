@@ -576,23 +576,21 @@ class AsgiConfiguration(BaseModel):
     route_prefix: str = Field(
         description="The URL prefix used for API routers, i.e., a permanent subpath "
         "onto which the API routers are mounted. This should include a leading slash and no trailing slash.",
-        default="",
-        deprecated="`route_prefix` is deprecated. Use `root_path` instead, which will cause uvicorn to "
-        "rewrite any paths for the indicated reverse proxy/ingress path. For direct local access and tests, "
-        "use the API version directly and alone in the URI.",
-        examples=["/cm-service"],
+        default="/api",
+        examples=["/api"],
     )
 
     root_path: str = Field(
-        description="The URL root path used with the ASGI server (i.e., for "
-        "link generation and reverse proxy or ingress deployment.",
+        description="The URL component stripped by an ingress or reverse proxy.",
         default="",
+        examples=["/cm"],
     )
 
     frontend_prefix: str = Field(
         description="The URL prefix for the frontend web app. This path will be relative "
         "to the asgi root path when it is in use.",
         default="/web_app",
+        deprecated="The frontend_prefix was used by the v1 web_app",
     )
 
     docs_prefix: str = Field(
