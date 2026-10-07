@@ -1,13 +1,17 @@
+---
 services:
   cmservice:
     environment:
       LOGGING__LEVEL: ERROR
       DB__ECHO: false
+      NOTIFICATIONS__FERNET_KEY: "t6K0AJCUtu57w8yD9vhDDJmYp-MBRhs4u91K0UT-iiE="
   cmweb:
     environment:
       LOGGING__LEVEL: ERROR
   cmworker:
     environment:
+      FEATURE_NOTIFIER: 1
+      FEATURE_KAFKA_CONSUMER: 0
       DB__ECHO: false
       LOGGING__LEVEL: ERROR
       BPS__MOCK_DISTRIB_DIR: /opt/sw
@@ -26,6 +30,12 @@ services:
       LSST_RESOURCES_S3_PROFILE_embargo: http://s3mock:9090
       AWS_CONFIG_FILE: /run/secrets/aws_config
       AWS_SHARED_CREDENTIALS_FILE: /run/secrets/aws_credentials
+      KAFKA__SECURITY_PROTOCOL: PLAINTEXT
+      KAFKA__BOOTSTRAP_SERVERS: "kafka:9092"
+      KAFKA_CONSUMER__AUTO_OFFSET_RESET: "earliest"
+      KAFKA_CONSUMER__AUTO_OFFSET_COMMIT: "0"
+      KAFKA_CONSUMER__TOPICS__0: smoketest-inbound
+      NOTIFICATIONS__FERNET_KEY: "t6K0AJCUtu57w8yD9vhDDJmYp-MBRhs4u91K0UT-iiE="
     env_file:
       - path: integration/shared.env
         required: true
@@ -45,3 +55,5 @@ services:
         condition: service_completed_successfully
       s3mock-seed:
         condition: service_completed_successfully
+      kafka:
+        condition: service_started

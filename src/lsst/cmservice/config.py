@@ -308,9 +308,27 @@ class HTCondorConfiguration(BaseModel):
     )
 
     launcher_job_architecture: Literal["X86_64", "AARCH64"] | None = Field(
-        description="target architecture to set for launcher job submissions",
+        description="Target architecture to set for launcher job submissions",
         default=None,
         serialization_alias="_CONDOR_ARCH",
+    )
+
+    tries: int = Field(
+        description="Number of attempts the launcher makes to launch a job",
+        default=5,
+        exclude=True,
+    )
+
+    delay: float = Field(
+        description="Time in seconds between launch attempts",
+        default=3.0,
+        exclude=True,
+    )
+
+    backoff: float = Field(
+        description="Backoff factor used to extend delay between launch attempts",
+        default=1.2,
+        exclude=True,
     )
 
 

@@ -72,6 +72,8 @@ def load_selected_file(
                     yaml["metadata"]["namespace"] = (
                         yaml["metadata"]["namespace"] if campaign is None else ctx.obj.campaign_id
                     )
+                case "notification_label":
+                    uri = "/notifications"
                 case _:
                     uri = "/manifests"
                     yaml["metadata"]["namespace"] = (
