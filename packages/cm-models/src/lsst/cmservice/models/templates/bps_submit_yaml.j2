@@ -122,6 +122,6 @@ provisioning:
   provisioningQueue: {{ site.provisioned_queue }}
   provisioningAccountingUser: {{ site.provisioned_account_group }}
   provisioningPlatform: "{{ site.provisioned_platform }}"
-  provisioningExtraOptions: "{{ wms.provisioned_extra_arguments | join(' ') }}"
+  provisioningExtraOptions: "--cpu {{ wms.provisioned_cpu_count }} {{ wms.provisioned_extra_arguments | join(' ') }}"
 {# BLANK LINE #}
 {%- endif %}

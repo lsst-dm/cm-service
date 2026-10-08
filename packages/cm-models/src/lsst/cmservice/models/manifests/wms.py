@@ -131,9 +131,17 @@ class WmsSpec(ManifestSpec):
         int,
         Field(
             title="Provisioned Node Count",
-            description="Node count requested for automatic provisioning, e.g., glidein size",
+            description="Node count requested for automatic provisioning, e.g., number of glideins",
         ),
     ] = Field(default=10, examples=[10, 100])
+
+    provisioned_cpu_count: Annotated[
+        int,
+        Field(
+            title="Provisioned CPU Count",
+            description="CPUs per node requested for automatic provisioning, e.g., glidein size",
+        ),
+    ] = Field(default=16, examples=[10, 100])
 
     provisioned_max_wall_time: Annotated[
         str,
