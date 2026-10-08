@@ -15,6 +15,7 @@ from .common.logging import LOGGER, LoggingMiddleware
 from .config import config
 from .db.session import db_session_dependency
 from .middleware.audit import AuditLogMiddleware
+from .middleware.root_path import RootPathMiddleware
 from .routers import healthz, tags_metadata
 
 logger = LOGGER.bind(module=__name__)
@@ -43,6 +44,9 @@ app = FastAPI(
     openapi_tags=tags_metadata,
     docs_url=config.asgi.docs_prefix,
     redoc_url=None,
+    servers=[{"url": config.asgi.root_path}],
+    root_path="",
+    root_path_in_servers=False,
 )
 
 # Add Middlewares
@@ -57,6 +61,8 @@ app.add_middleware(
 )
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"])
 app.add_middleware(AuditLogMiddleware)
+app.add_middleware(RootPathMiddleware)
+
 
 # Add Routers
 app.include_router(healthz.health_router, prefix="")
@@ -100,6 +106,6 @@ if __name__ == "__main__":
         port=config.asgi.port,
         reload=config.asgi.reload,
         log_config=None,
-        root_path=config.asgi.root_path,
+        root_path="",
         proxy_headers=True,
     )
