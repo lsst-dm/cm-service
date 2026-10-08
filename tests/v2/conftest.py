@@ -51,7 +51,8 @@ def tmp_path_m(tmp_path_factory: pytest.TempPathFactory) -> Generator[Path]:
 @pytest.fixture(scope="module", autouse=True)
 def patched_config(monkeypatch_module: pytest.MonkeyPatch, tmp_path_factory: pytest.TempPathFactory) -> None:
     """Fixture which monkeypatches configuration settings"""
-    monkeypatch_module.setattr(target=config.asgi, name="route_prefix", value="/cm-service")
+    monkeypatch_module.setattr(target=config.asgi, name="route_prefix", value="/api")
+    monkeypatch_module.setattr(target=config.asgi, name="root_path", value="/cm-service")
     monkeypatch_module.setattr(
         target=config.bps, name="artifact_path", value=tmp_path_factory.mktemp("output")
     )
