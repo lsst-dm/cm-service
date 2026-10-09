@@ -32,8 +32,8 @@ def set_node_status(
     data = {"status": desired_state, "force": force}
     status_update_url = None
 
-    with http_client(ctx) as session:
-        r = session.patch(
+    with http_client(ctx) as client:
+        r = client.patch(
             f"/nodes/{node}",
             json=data,
             headers={"Content-Type": "application/merge-patch+json"},
@@ -53,9 +53,9 @@ def set_node_status(
     ) as progress:
         result_text = Text("Node updated")
         progress.add_task(description="Updating Node...", total=None)
-        with http_client(ctx) as session:
+        with http_client(ctx) as client:
             while True:
-                r = session.get(status_update_url)
+                r = client.get(status_update_url)
                 r.raise_for_status()
                 if not len(r.json()):
                     sleep(5.0)

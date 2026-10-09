@@ -194,7 +194,7 @@ def audit_schedule(
 
     with http_client(ctx) as client:
         try:
-            r = client.get("/audit", params={"object_type": "template", "context.schedule": schedule})
+            r = client.get("/audit/", params={"object_type": "template", "context.schedule": schedule})
             r.raise_for_status()
             audit: list[dict] = r.json()
         except HTTPStatusError as e:
