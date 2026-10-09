@@ -15,47 +15,47 @@ from ..lib.models import KIND_TO_SPEC
 from .manifests import get_one_manifest
 
 
-async def get_campaign_summary(client: AsyncClient) -> AsyncGenerator[dict]:
+async def get_campaign_summary(aclient: AsyncClient) -> AsyncGenerator[dict]:
     """Generates a summary dictionary for all campaigns known to the API."""
-    r = await client.get("/campaigns")
+    r = await aclient.get("/campaigns/")
     r.raise_for_status()
     campaigns: Sequence[dict] = r.json()
     for campaign in campaigns:
         campaign_id = campaign.get("id")
-        summary = await client.get(f"/campaigns/{campaign_id}/summary")
+        summary = await aclient.get(f"/campaigns/{campaign_id}/summary")
         summary.raise_for_status()
         if summary.status_code == 204:
             continue
         yield summary.json()
 
 
-async def describe_one_campaign(id: str, client: AsyncClient) -> dict:
+async def describe_one_campaign(id: str, aclient: AsyncClient) -> dict:
     """Builds a detailed campaign dictionary by assembling multiple API calls
     for a single campaign.
     """
-    r = await client.get(f"/campaigns/{id}")
+    r = await aclient.get(f"/campaigns/{id}")
     r.raise_for_status()
     campaign_detail = {"campaign": r.json()}
 
     campaign_detail["nodes"] = []
-    n = await client.get(r.headers["Nodes"])
+    n = await aclient.get(r.headers["Nodes"])
     n.raise_for_status()
     nodes = n.json()
     while nodes:
         campaign_detail["nodes"].extend(nodes)
-        n = await client.get(n.headers["Next"])
+        n = await aclient.get(n.headers["Next"])
         n.raise_for_status()
         nodes = n.json()
 
-    m = await client.get(r.headers["Manifests"])
+    m = await aclient.get(r.headers["Manifests"])
     m.raise_for_status()
     campaign_detail["manifests"] = m.json()
 
-    g = await client.get(f"/campaigns/{id}/graph")
+    g = await aclient.get(f"/campaigns/{id}/graph")
     g.raise_for_status()
     campaign_detail["graph"] = g.json()
 
-    a = await client.get(f"/campaigns/{id}/logs")
+    a = await aclient.get(f"/campaigns/{id}/logs")
     a.raise_for_status()
     campaign_detail["logs"] = a.json()
 

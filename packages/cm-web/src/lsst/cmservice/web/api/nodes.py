@@ -18,8 +18,8 @@ async def get_one_node(id: str, namespace: str | None) -> Response | None:
     url = f"/nodes/{id}"
     if namespace is not None:
         url += f"?campaign-id={namespace}"
-    async with CLIENT_FACTORY.aclient() as client:
-        r = await client.get(url)
+    async with CLIENT_FACTORY.aclient() as aclient:
+        r = await aclient.get(url)
         if r.status_code == codes.NOT_FOUND:
             return None
         r.raise_for_status()
@@ -35,12 +35,12 @@ async def describe_one_node(id: str) -> dict:
     and trigger updates.
     """
     data = {}
-    async with CLIENT_FACTORY.aclient() as client:
+    async with CLIENT_FACTORY.aclient() as aclient:
         try:
-            r = await client.get(f"/nodes/{id}")
+            r = await aclient.get(f"/nodes/{id}")
             r.raise_for_status()
             data["node"] = r.json()
-            r = await client.get(f"/logs?node={id}")
+            r = await aclient.get(f"/logs?node={id}")
             r.raise_for_status()
             data["logs"] = r.json()
         except HTTPStatusError:
@@ -62,9 +62,9 @@ async def replace_node(n0: str, n1: str, namespace: str) -> Response:
     """Supports the node PUT api to replace a node in a graph with a different
     one.
     """
-    async with CLIENT_FACTORY.aclient() as client:
+    async with CLIENT_FACTORY.aclient() as aclient:
         try:
-            r = await client.put(f"/campaigns/{namespace}/graph/nodes/{n0}?with-node={n1}")
+            r = await aclient.put(f"/campaigns/{namespace}/graph/nodes/{n0}?with-node={n1}")
             r.raise_for_status()
             ui.notify("Node replaced.")
         except HTTPStatusError as e:
@@ -105,9 +105,9 @@ async def fast_forward_node(n0: str) -> None:
     using the CM RPC "process" api. A Node in a paused campaign may have trans-
     port controls present (e.g., a forward button).
     """
-    async with CLIENT_FACTORY.aclient() as client:
+    async with CLIENT_FACTORY.aclient() as aclient:
         try:
-            r = await client.post("/rpc/process", json={"node_id": n0})
+            r = await aclient.post("/rpc/process", json={"node_id": n0})
             r.raise_for_status()
         except HTTPStatusError as e:
             match e.response:

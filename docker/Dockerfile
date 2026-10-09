@@ -78,7 +78,7 @@ WORKDIR /workdir
 COPY . .
 
 # Install project production dependency graph in /opt/venv
-RUN --mount=type=cache,target=/root/.cache/uv --mount=from=uv,source=/usr/local/bin/uv,target=/usr/local/bin/uv <<ENDRUN
+RUN --mount=type=cache,target=/root/.cache/uv,id=uv-cache-v2 --mount=from=uv,source=/usr/local/bin/uv,target=/usr/local/bin/uv <<ENDRUN
     set -e
     /usr/local/bin/uv sync --extra wms --no-dev --no-install-project --no-editable
 ENDRUN

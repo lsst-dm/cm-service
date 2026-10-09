@@ -724,9 +724,9 @@ class CampaignClonePage(CampaignEditPage):
         """
         self.namespace = DEFAULT_NAMESPACE
 
-        async with CLIENT_FACTORY.aclient() as client:
+        async with CLIENT_FACTORY.aclient() as aclient:
             if clone_campaign_model_from:
-                data = await api.describe_one_campaign(client=client, id=clone_campaign_model_from)
+                data = await api.describe_one_campaign(aclient=aclient, id=clone_campaign_model_from)
             elif clone_campaign_schedule_from:
                 return await self.setup_from_schedule(clone_campaign_schedule_from)
             else:

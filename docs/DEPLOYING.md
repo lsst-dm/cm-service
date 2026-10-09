@@ -100,3 +100,141 @@ To the degree that launcher job payloads may require secrets usually provided by
 
 > [!CAUTION]
 > CM does not currently manage these secrets files, and out-of-band manipulation of these files may impact CM launcher behavior.
+
+## Adding Resource Instances
+From time to time one may need to add resources to CM-Service, such as a new Butler repo, a new object store profile, etc.
+
+### New Object Store
+Adding a new object store profile requires updating the deployment configuration in Phalanx and updating a Vault secret.
+
+The AWS configuration used by CM-Service is provided by a Kubernetes ConfigMap.
+This ConfigMap is template-based and uses values from the `config.aws.profiles` section of the environment values file.
+This template is used to create an [AWS configuration file](https://docs.aws.amazon.com/sdkref/latest/guide/file-format.html#file-format-config) for the service.
+
+#### Add the new profile to the Phalanx config
+
+Edit the environment-specific `values-*.yaml` file and add the new profile.
+The config section should look like this:
+
+```
+config:
+  aws:
+    defaultS3EndpointUrl: "https://default-endpoint.tld"
+    profiles:
+      profile_a:
+        endpointUrl: "https://s3.profile_a.tld"
+      profile_b:
+        endpointUrl: "https://s3.profile_b.tld"
+```
+
+> [!NOTE]
+> All object store profiles created for CM-Service include `request_checksum_calculation = when_required` and `response_checksum_validation = when_required`. This is not configurable at this time.
+
+#### Add the secrets for the new profile to Vault.
+
+Each profile known to CM-Service needs an associated key name and secret key (the nominal username and password for the object store access).
+These secrets are stored in Vault.
+
+Find the secrets in Vault at `secrets/secret/rubin/<environment>/cm-service`.
+The specific secret to edit in this location is `aws-credentials-file`.
+
+The `aws-credentials-file` secret is formatted as a plaintext file that is written to the application's pod.
+This secret must conform to all the rules associated with an [AWS credentials file](https://docs.aws.amazon.com/sdkref/latest/guide/file-format.html#file-format-creds).
+
+Add the credentials information for the new profile to the secret.
+
+```
+[profile_b]
+aws_access_key_id: AAAABBBBCCCC
+aws_secret_access_key: AAAABBBBCCCC
+```
+
+#### Save the secret and redeploy the application
+
+After saving the secret, a Kubernetes operator will automatically update the relevant secret objects.
+You can check this is ArgoCD by looking at the `status` of the cm-service `vaultsecret` object, specifically the `lastTransitionTime` attribute.
+
+Once the secret is updated, the configuration changes made in Step 1 need to be committed and merged to Phalanx and the ArgoCD application can be synchronized.
+
+Updates to ConfigMaps don't necessarily refresh or restart the deployments using those ConfigMaps.
+Restart the `cm-service-daemon` deployment to finish the update.
+You may optionally restart the `cm-service-server` and `cm-service-web` deployments but these do not use the object store configurations.
+
+1. Update the shared credential file used by launched jobs
+
+CM Service launches jobs in such a way that the `AWS_SHARED_CREDENTIALS_FILE` environment variable points to a specific file on shared storage.
+It is this file that launched jobs will use for object store access.
+
+This file is potentially a superset of credentials stored in the CM Service secret.
+
+Locate and edit the file in shared storage at `<service account home>/.lsst/aws-credentials.<cmservice instance>.ini`.
+Add the same contents as added to the secret.
+
+This config will be used by subsequent job launches.
+No applications need to be restarted.
+
+### New Butler Repo
+Adding a new Butler Repo requires updating the deployment configuration in Phalanx and updating a Vault secret.
+
+CM Service only uses the Butler directly when performing queries to decide on group-splitting characteristics.
+The campaign jobs launched by CM Service may use Butler repos not otherwise known to or configured in CM Service proper.
+
+#### Adding or Updating a Butler Repo for Launched Jobs
+
+CM-Service launches jobs in such a way that the `LSST_DB_AUTH` and `DAF_BUTLER_REPOSITORY_INDEX` environment variables point to a specific file on shared storage.
+It is these files that launched jobs consumes for database authentication details, including Butler repos.
+
+> [!CAUTION]
+> Jobs launched by CM Service do not depend on inherited environments in the same way that interactive users do. The launch environment does not use or set "fallback" values like `PGPASS` or `PGUSER` commonly used to configure PostgreSQL credentials.
+
+> [!NOTE]
+> The `DAF_BUTLER_REPOSITORY_INDEX` environment variable for launched jobs always points to the same file used by regular interactive users. In future this may be changed to a dynamic job-specific file. Changes to this shared file affects CM Service as well as all interactive users.
+
+Locate and edit the file in shared storage at `<service account home>/.lsst/db-auth.<cmservice instance>.yaml`.
+
+Add a list item to this YAML file for the new Butler repo:
+
+```
+- url: postgresql://butler-database-host
+  username: <username>>
+  password: <secret>
+```
+
+This config will be used by subsequent job launches.
+No applications need to be restarted.
+
+#### Adding or Updating a Butler Repo for CM Service
+
+To support a Butler Repo directly in CM Service, update an associated Vault secret and restart the deployments.
+
+Butler configuration is added to CM Service through the `DAF_BUTLER_REPOSITORIES` and `LSST_DB_AUTH_CREDENTIALS` environment variables, which are applied via a ConfigMap.
+The Phalanx value `config.butler.repositories` is a mapping of repository names to repository configuration files.
+This mapping is transformed to JSON and stored in the `DAF_BUTLER_REPOSITORIES` environment variable.
+
+Add the repository mapping to the Phalanx configuration in the environment-specific values file:
+
+```
+new_repo_name: /full/path/to/the/repo.yaml
+```
+
+The database authentication information used by CM Service is stored in a Vault secret.
+Find the secrets in Vault at `secrets/secret/rubin/<environment>/cm-service`.
+The specific secret to edit in this location is `butler-authn`.
+
+The format of this secret is a JSON string that is a list of objects.
+Each object is a Butler authentication item as a standard LSST database authentication item.
+This secret values is stored in the `LSST_DB_AUTH_CREDENTIALS` environment variable.
+
+Edit the secret and add the detail for the new repo to the end of the list.
+These will be same values as added to the DB Auth YAML file used by launched jobs.
+
+```
+[{...}, {...}, {"url": "postgresql://butler-database-host", "username": "username", "password": "secret"}]
+```
+
+> [!CAUTION]
+> Ensure the secret value is correctly formatted as JSON before saving.
+
+Updates to ConfigMaps don't necessarily refresh or restart the deployments using those ConfigMaps.
+Restart the `cm-service-daemon` deployment to finish the update.
+You may optionally restart the `cm-service-server` and `cm-service-web` deployments but these do not use the Butler configurations.

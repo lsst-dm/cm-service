@@ -21,8 +21,8 @@ async def get_one_manifest(
             if version is not None:
                 url += f"/{version}"
 
-    async with CLIENT_FACTORY.aclient() as client:
-        r = await client.get(url)
+    async with CLIENT_FACTORY.aclient() as aclient:
+        r = await aclient.get(url)
         if r.status_code == codes.NOT_FOUND:
             return None
         r.raise_for_status()
@@ -34,8 +34,8 @@ async def put_one_manifest(manifest_id: str, manifest_name: str, to_namespace: s
     """Copies a manifest into the designated target namespace."""
     url = f"/manifests/{manifest_id}"
 
-    async with CLIENT_FACTORY.aclient() as client:
-        r = await client.put(
+    async with CLIENT_FACTORY.aclient() as aclient:
+        r = await aclient.put(
             url,
             headers={
                 "Namespace-Copy-Target": to_namespace,
@@ -54,19 +54,19 @@ async def put_manifest_list(manifests: list[dict]) -> bool:
     """
     # TODO this should probably return a list of IDs for the added manifests
     # TODO sort manifests list by kind, campaigns first.
-    async with CLIENT_FACTORY.aclient() as client:
+    async with CLIENT_FACTORY.aclient() as aclient:
         for manifest in manifests:
             match manifest["kind"]:
                 case "campaign":
-                    uri = "/campaigns"
+                    uri = "/campaigns/"
                 case "node":
-                    uri = "/nodes"
+                    uri = "/nodes/"
                 case "edge":
-                    uri = "/edges"
+                    uri = "/edges/"
                 case _:
-                    uri = "/manifests"
+                    uri = "/manifests/"
             try:
-                r = await client.post(uri, json=manifest)
+                r = await aclient.post(uri, json=manifest)
                 r.raise_for_status()
             except HTTPStatusError as e:
                 if e.response.status_code == codes.CONFLICT:
@@ -82,9 +82,9 @@ async def put_manifest_list(manifests: list[dict]) -> bool:
 async def set_default_manifest_for_campaign(manifest: dict) -> bool:
     """Set the given manifest as the default for that campaign-kind"""
     uri = f"/campaigns/{manifest['namespace']}/manifests/{manifest['kind']}/default"
-    async with CLIENT_FACTORY.aclient() as client:
+    async with CLIENT_FACTORY.aclient() as aclient:
         try:
-            r = await client.put(uri, params={"manifest-id": manifest["id"]})
+            r = await aclient.put(uri, params={"manifest-id": manifest["id"]})
             r.raise_for_status()
         except HTTPStatusError:
             ui.notify(f"Failed to set default manifest: {manifest['metadata']['name']}", type="negative")

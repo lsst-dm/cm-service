@@ -203,18 +203,18 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
     async def footer_contents(self) -> None:
         ui.label().classes("text-xs").bind_text_from(self, "campaign_id", strict=False)
 
-    async def setup(self, client_: AsyncClient | None = None, *, campaign_id: str = "") -> Self:
+    async def setup(self, aclient: AsyncClient | None = None, *, campaign_id: str = "") -> Self:
         """Async method called at page creation. Subpages can override this
         method to perform data loading/prep, etc., before calling render().
         """
-        if client_ is None:
+        if aclient is None:
             raise RuntimeError("Campaign Detail page setup requires an httpx2 client")
 
         self.show_spinner()
         storage.initialize_client_storage()
         # the describe_one_campaign api helper builds a rich model of campaign
         # components, but it does not include library manifests.
-        data = await api.describe_one_campaign(client=client_, id=campaign_id)
+        data = await api.describe_one_campaign(aclient=aclient, id=campaign_id)
 
         self.campaign_id = campaign_id
         if campaign_id not in app.storage.client["state"].campaigns:
@@ -476,16 +476,16 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
         page model first.
         """
         # TODO provide an api wrapper that specifically targets the manifests
-        async with CLIENT_FACTORY.aclient() as client_:
-            data = await api.describe_one_campaign(client=client_, id=self.campaign_id)
+        async with CLIENT_FACTORY.aclient() as aclient:
+            data = await api.describe_one_campaign(aclient=aclient, id=self.campaign_id)
         self.model["manifests"] = {m["id"]: m for m in data["manifests"]}
         await self.manifest_row.refresh()
 
     async def refresh_node_model(self, *args: Any, **kwargs: Any) -> None:
         """Updates the page model with new node, edge, graph information."""
         # TODO provide an api wrapper that specifically targets the nodes
-        async with CLIENT_FACTORY.aclient() as client_:
-            data = await api.describe_one_campaign(client=client_, id=self.campaign_id)
+        async with CLIENT_FACTORY.aclient() as aclient:
+            data = await api.describe_one_campaign(aclient=aclient, id=self.campaign_id)
         self.model["nodes"] = data["nodes"]
         self.model["graph"] = await run.cpu_bound(
             nx.node_link_graph,

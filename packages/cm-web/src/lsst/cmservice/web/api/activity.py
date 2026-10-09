@@ -14,10 +14,10 @@ async def wait_for_activity_to_complete(url: str, n: ui.notification) -> None:
     time_budget = settings.timeout
     inter_request_wait_time = 5.0
     r: Response | None = None
-    async with CLIENT_FACTORY.aclient() as client:
+    async with CLIENT_FACTORY.aclient() as aclient:
         while time_budget > 0:
             try:
-                r = await client.get(url)
+                r = await aclient.get(url)
                 r.raise_for_status()
                 if not len(r.json()):
                     await sleep(inter_request_wait_time)

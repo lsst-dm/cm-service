@@ -33,10 +33,10 @@ ui.add_head_html(
 @ui.page("/", response_timeout=settings.timeout)
 async def campaign_overview_page(
     request: Request,
-    client_: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)],
+    aclient: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)],
 ) -> None:
     await ui.context.client.connected()
-    if page := await CampaignOverviewPage(request, title="Campaign Overview").setup(client_):
+    if page := await CampaignOverviewPage(request, title="Campaign Overview").setup(aclient):
         await page.render()
 
 
@@ -44,20 +44,20 @@ async def campaign_overview_page(
 @ui.page("/help/{_:path}", response_timeout=settings.timeout)
 async def cm_help_page(
     request: Request,
-    client_: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)],
+    aclient: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)],
 ) -> None:
     await ui.context.client.connected()
-    if page := await HelpPage(request, title="CM Service Help").setup(client_):
+    if page := await HelpPage(request, title="CM Service Help").setup(aclient):
         await page.render()
 
 
 @ui.page("/campaign/{campaign_id}", response_timeout=settings.timeout)
 async def campaign_detail_page(
-    request: Request, campaign_id: str, client_: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)]
+    request: Request, campaign_id: str, aclient: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)]
 ) -> None:
     """Builds a campaign detail page"""
     if page := await CampaignDetailPage(request, title="Campaign Detail").setup(
-        client_, campaign_id=campaign_id
+        aclient, campaign_id=campaign_id
     ):
         await ui.context.client.connected()
         await page.render()
@@ -65,10 +65,10 @@ async def campaign_detail_page(
 
 @ui.page("/node/{node_id}", response_timeout=settings.timeout)
 async def node_detail_page(
-    request: Request, node_id: str, client_: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)]
+    request: Request, node_id: str, aclient: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)]
 ) -> None:
     """Builds a node detail page"""
-    if page := await NodeDetailPage(request, title="Node Detail").setup(client_, node_id=node_id):
+    if page := await NodeDetailPage(request, title="Node Detail").setup(aclient, node_id=node_id):
         await ui.context.client.connected()
         await page.render()
 
@@ -99,7 +99,7 @@ async def canvas_scratch_page(request: Request) -> None:
 @ui.page("/notifications", response_timeout=settings.timeout)
 async def notification_overview_page(
     request: Request,
-    client_: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)],
+    aclient: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)],
 ) -> None:
     """Builds a notifications overview page"""
     if page := await NotificationOverviewPage(request, title="Notifications Overview").setup():
@@ -110,7 +110,7 @@ async def notification_overview_page(
 @ui.page("/schedules", response_timeout=settings.timeout)
 async def schedule_overview_page(
     request: Request,
-    client_: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)],
+    aclient: Annotated[AsyncClient, Depends(CLIENT_FACTORY.get_aclient)],
 ) -> None:
     """Builds a schedule overview page"""
     if page := await ScheduleOverviewPage(request, title="Schedule Overview").setup():
