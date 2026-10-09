@@ -32,6 +32,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Login to Docker Hub
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f  # v4.6.0
+        with:
+          username: ${{ vars.DOCKERHUB_SQREREADONLY_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_SQREREADONLY_TOKEN }}
+
       - name: Login to DHI
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f  # v4.6.0
         with:
