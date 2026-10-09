@@ -72,7 +72,7 @@ class CampaignOverviewPage(CMPage[CampaignOverviewPageModel]):
         # FIXME temporary wrapper around None return, expect behavior change
         # in nicegui>=4
         try:
-            campaigns = await run.io_bound(get_campaign_summary, client=client_)
+            campaigns = await run.io_bound(get_campaign_summary, aclient=client_)
             if campaigns is None:
                 raise CancelledError
         except CancelledError:
