@@ -21,7 +21,7 @@ _transport = httpx2.HTTPTransport(
 
 class ClientFactory:
     _atransport: httpx2.AsyncHTTPTransport
-    _client: httpx2.AsyncClient | None
+    _aclient: httpx2.AsyncClient | None
     _headers: dict[str, str]
     _kwargs: dict
     _lock: asyncio.Lock
@@ -30,7 +30,7 @@ class ClientFactory:
         self._atransport = _atransport
         self._transport = _transport
         self._lock = asyncio.Lock()
-        self._client = None
+        self._aclient = None
         self._headers = {}
         if settings.auth_token is not None:
             self._headers["Authorization"] = f"Bearer {settings.auth_token}"
@@ -50,15 +50,15 @@ class ClientFactory:
     async def get_aclient(self) -> httpx2.AsyncClient:
         """Get a shared client"""
         async with self._lock:
-            if self._client is None or self._client.is_closed:
-                self._client = httpx2.AsyncClient(**self._kwargs)
-        return self._client
+            if self._aclient is None or self._aclient.is_closed:
+                self._aclient = httpx2.AsyncClient(**self._kwargs)
+        return self._aclient
 
     @asynccontextmanager
     async def aclient(self) -> AsyncGenerator[httpx2.AsyncClient]:
-        client = await self.get_aclient()
+        aclient_ = await self.get_aclient()
         try:
-            yield client
+            yield aclient_
         except httpx2.HTTPStatusError:
             # Do not reraise status errors from here, let the caller handle it
             pass
@@ -67,9 +67,9 @@ class ClientFactory:
 
     async def close(self) -> None:
         async with self._lock:
-            if self._client and not self._client.is_closed:
-                await self._client.aclose()
-                self._client = None
+            if self._aclient and not self._aclient.is_closed:
+                await self._aclient.aclose()
+                self._aclient = None
 
 
 CLIENT_FACTORY = ClientFactory()
