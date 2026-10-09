@@ -29,9 +29,9 @@ console = Console()
 def list(ctx: TypedContext) -> None:
     """list all campaigns"""
     output_format = formatters.Formatters[ctx.obj.output_format]
-    with http_client(ctx) as session:
+    with http_client(ctx) as client:
         try:
-            r = session.get("/campaigns")
+            r = client.get("/campaigns/")
             r.raise_for_status()
         except Exception as e:
             print(e)
@@ -63,8 +63,8 @@ def new_campaign(
         },
         "spec": {},
     }
-    with http_client(ctx) as session:
-        r = session.post("/campaigns", json=data)
+    with http_client(ctx) as client:
+        r = client.post("/campaigns/", json=data)
         r.raise_for_status()
 
     match output_format:
@@ -84,8 +84,8 @@ def describe_campaign(
     campaign: arguments.CampaignName.Required,
 ) -> None:
     """describe a specific campaign"""
-    with http_client(ctx) as session:
-        r = session.get(f"/campaigns/{ctx.obj.campaign_id}/summary")
+    with http_client(ctx) as client:
+        r = client.get(f"/campaigns/{ctx.obj.campaign_id}/summary")
         r.raise_for_status()
         # edges_url = r.headers["Edges"]
         # nodes_url = r.headers["Nodes"]
@@ -112,8 +112,8 @@ def describe_campaign(
         table.add_row("Nodes in status", node_.status.name, None, str(node_.count), str(node_.mtime))
 
     console.print(table)
-    # with http_client() as session:
-    #     r = session.get(
+    # with http_client() as client:
+    #     r = client.get(
     #         f"{campaign_url}/graph"
     #     )
     #     r.raise_for_status()
@@ -127,10 +127,10 @@ def describe_campaign(
     # table.add_column("Status")
     # table.add_column("Last Updated")
 
-    # with http_client() as session:
+    # with http_client() as client:
     #     for g_node in graph.nodes.values():
     #         node_id = g_node["uuid"]
-    #         r = session.get(
+    #         r = client.get(
     #             f"nodes/{node_id}"
     #         )
     #         r.raise_for_status()
@@ -152,8 +152,8 @@ def start_campaign(ctx: TypedContext, campaign: arguments.CampaignName.Required)
     data = {"status": "running"}
     status_update_url = None
 
-    with http_client(ctx) as session:
-        r = session.patch(
+    with http_client(ctx) as client:
+        r = client.patch(
             f"/campaigns/{ctx.obj.campaign_id}",
             json=data,
             headers={"Content-Type": "application/merge-patch+json"},
@@ -174,9 +174,9 @@ def start_campaign(ctx: TypedContext, campaign: arguments.CampaignName.Required)
         result_text = Text("Campaign started")
         progress.add_task(description="Starting Campaign...", total=None)
         sleep(5.0)
-        with http_client(ctx) as session:
+        with http_client(ctx) as client:
             while True:
-                r = session.get(status_update_url)
+                r = client.get(status_update_url)
                 if not len(r.json()):
                     sleep(1.0)
                 else:
@@ -213,8 +213,8 @@ def set_campaign_status(
     data = {"status": desired_state, "force": force}
     status_update_url = None
 
-    with http_client(ctx) as session:
-        r = session.patch(
+    with http_client(ctx) as client:
+        r = client.patch(
             f"/campaigns/{ctx.obj.campaign_id}",
             json=data,
             headers={"Content-Type": "application/merge-patch+json"},
@@ -234,9 +234,9 @@ def set_campaign_status(
     ) as progress:
         result_text = Text("Campaign updated")
         progress.add_task(description="Updating Campaign...", total=None)
-        with http_client(ctx) as session:
+        with http_client(ctx) as client:
             while True:
-                r = session.get(status_update_url)
+                r = client.get(status_update_url)
                 if not len(r.json()):
                     sleep(5.0)
                 else:
@@ -261,8 +261,8 @@ def advance_campaign(ctx: TypedContext, campaign: arguments.CampaignName.Require
 
     status_update_url = None
 
-    with http_client(ctx) as session:
-        r = session.post(
+    with http_client(ctx) as client:
+        r = client.post(
             "/rpc/process",
             json={"campaign_id": ctx.obj.campaign_id},
             headers={},
@@ -285,9 +285,9 @@ def advance_campaign(ctx: TypedContext, campaign: arguments.CampaignName.Require
     # ) as progress:
     #     result_text = Text("Campaign advanced")
     #     progress.add_task(description="Advancing Campaign...", total=None)
-    #     with http_client(ctx) as session:
+    #     with http_client(ctx) as client:
     #         while True:
-    #             r = session.get(status_update_url)
+    #             r = client.get(status_update_url)
     #             if not len(r.json()):
     #                 sleep(10.0)
     #                 progress.add_task(
@@ -344,8 +344,8 @@ def delete_campaign(
     campaign: arguments.CampaignName.Required,
 ) -> None:
     """Deletes a campaign by ID"""
-    with http_client(ctx) as session:
-        r = session.delete(
+    with http_client(ctx) as client:
+        r = client.delete(
             f"/campaigns/{ctx.obj.campaign_id}",
         )
         r.raise_for_status()

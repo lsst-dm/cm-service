@@ -32,9 +32,9 @@ def http_client(ctx: TypedContext) -> Generator[Client]:
         follow_redirects=True,
         transport=transport,
         headers=headers,
-    ) as session:
+    ) as client:
         try:
-            yield session
+            yield client
         except HTTPStatusError as e:
             logger.error(e)
         except Exception as e:

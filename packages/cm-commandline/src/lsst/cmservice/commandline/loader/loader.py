@@ -54,34 +54,34 @@ def load_selected_file(
     yaml_string = yaml_file.read_text()
     headers: Headers | None = None
 
-    with http_client(ctx) as session:
+    with http_client(ctx) as client:
         for yaml in yaml_to_json(yaml_string, strict=strict):
             capture_headers = False
             match yaml["kind"]:
                 case "campaign":
-                    uri = "/campaigns"
+                    uri = "/campaigns/"
                     yaml["metadata"]["name"] = yaml["metadata"]["name"] if campaign is None else campaign
                     capture_headers = True
                 case "node":
-                    uri = "/nodes"
+                    uri = "/nodes/"
                     yaml["metadata"]["namespace"] = (
                         yaml["metadata"]["namespace"] if campaign is None else ctx.obj.campaign_id
                     )
                 case "edge":
-                    uri = "/edges"
+                    uri = "/edges/"
                     yaml["metadata"]["namespace"] = (
                         yaml["metadata"]["namespace"] if campaign is None else ctx.obj.campaign_id
                     )
                 case "notification_label":
-                    uri = "/notifications"
+                    uri = "/notifications/"
                 case _:
-                    uri = "/manifests"
+                    uri = "/manifests/"
                     yaml["metadata"]["namespace"] = (
                         yaml["metadata"]["namespace"] if campaign is None else ctx.obj.campaign_id
                     )
 
             try:
-                r = session.post(uri, json=yaml)
+                r = client.post(uri, json=yaml)
                 r.raise_for_status()
                 if capture_headers:
                     headers = r.headers
