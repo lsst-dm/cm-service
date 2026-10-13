@@ -7,10 +7,10 @@ from uuid import UUID, uuid5
 
 import yaml
 from anyio import Path
-from pydantic.v1.utils import deep_update
 from sqlalchemy import select
 
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, StatusEnum
+from lsst.cmservice.models.lib.deepupdate import deep_update
 from lsst.cmservice.models.types import AnyAsyncSession
 from lsst.ctrl.bps.bps_reports import compile_job_summary
 from lsst.ctrl.bps.wms_service import WmsRunReport, WmsStates

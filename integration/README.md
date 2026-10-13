@@ -44,6 +44,7 @@ The components of the smoketest are defined in the project's `docker-compose.yam
 - Postgres Database (Butler)
 - HTCondor (all-in-one, or "mini")
 - Object Store (S3 Mock)
+- Kafka (single-broker)
 
 In addition to these services, three init containers provided seed data for the smoketest:
 
@@ -63,6 +64,7 @@ Note: If either of the HTCondor shared secrets need to be regenerated, both must
 
 The workflow for the smoketest campaign is:
 
+1. The `seed_manifests.yaml` manifests file is "loaded" by the cm cli into the api server.
 1. The `smoketest.yaml` campaign file is "loaded" by the cm cli into the api server.
 1. The resulting schedule is "oneshot" triggered by the cm cli.
 1. The resulting campaign is set to "running" by default.
@@ -74,6 +76,7 @@ The steps in the campaign are designed to exercise the following functionality i
 - Step obtaining a 3rd-party resource from an S3 bucket given a resource path URL.
 - Campaign template expression rendering at schedule trigger and execution time.
 - Submission to and job checking from HTCondor services (collector, schedd), using ID token authentication.
+- Notification generation and delivery
 
 The smoketest campaign is designed to and is meant to succeed. This test does not exercise step recovery, error checking, or other tasks associated with failure and recovery.
 

@@ -24,6 +24,7 @@ from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, AuditActionEnum
 from lsst.cmservice.models.lib.jsonpatch import JSONPatch, JSONPatchError, apply_json_patch
 from lsst.cmservice.models.lib.timestamp import element_time
 
+from ... import services
 from ...common.logging import LOGGER
 from ...db.session import db_session_dependency
 
@@ -127,6 +128,7 @@ async def create_one_or_more_manifests(
     if not isinstance(manifests, list):
         manifests = [manifests]
 
+    _id: UUID | None = None
     for manifest in manifests:
         _name = manifest.metadata_.name
 
@@ -187,9 +189,20 @@ async def create_one_or_more_manifests(
         # Put the node in the database
         session.add(_manifest)
 
+        # If the manifest should be the default, uniquely set the default.
+        # In cases of input error where multiple manifests of the same kind
+        # have the default flag set, the last such manifest in a batch will be
+        # the winner.
+        if manifest.metadata_.default:
+            await services.set_manifest_default_for_campaign(session, manifest=_manifest)
+
     await session.commit()
 
-    response.headers["Self"] = str(request.url_for("read_single_manifest", manifest_name_or_id=_id))
+    # A quirk of this route is that the Self link in the header would be the
+    # last manifest of a batch, so we only set it if the original Request was
+    # a single manifest
+    if len(manifests) == 1 and _id:
+        response.headers["Self"] = str(request.url_for("read_single_manifest", manifest_name_or_id=_id))
     return None
 
 

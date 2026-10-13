@@ -55,7 +55,7 @@ class Script(ScriptBase):
     parent_level: LevelEnum
 
     # Method used to process this script
-    method: ScriptMethodEnum = ScriptMethodEnum.slurm
+    method: ScriptMethodEnum = ScriptMethodEnum.bash
     # ForeignKey giving associated Campaign
     c_id: int | None = None
     # ForeignKey giving associated Step
@@ -76,7 +76,7 @@ class ScriptUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     # Method used to process this script
-    method: ScriptMethodEnum = ScriptMethodEnum.slurm
+    method: ScriptMethodEnum = ScriptMethodEnum.bash
     # Override for Callback handler class
     handler: str | None = None
     # Parameter Overrides

@@ -8,6 +8,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Annotated
 from uuid import UUID, uuid5
 
+from anyio import Path
 from asgi_correlation_id import correlation_id
 from asyncpg.exceptions import IntegrityConstraintViolationError
 from deepdiff import Delta
@@ -25,6 +26,7 @@ from lsst.cmservice.models.lib.timestamp import element_time
 
 from ...common.logging import LOGGER
 from ...db.session import db_session_dependency
+from ...machines.lib import get_artifact, read_provenance_report_json
 from ...machines.tasks import change_node_state
 
 # TODO should probably bind a logger to the fastapi app or something
@@ -353,3 +355,41 @@ async def update_node_resource(
     ).__str__()
 
     return new_manifest_db
+
+
+@router.get("/{node_id}/provenance", summary="Get single node provenance report")
+@router.post("/{node_id}/provenance", summary="Get single node provenance report")
+async def read_node_provenance_report_resource(
+    request: Request,
+    response: Response,
+    node_id: UUID5,
+    session: Annotated[AsyncSession, Depends(db_session_dependency)],
+) -> dict:
+    """Fetch or inquire about the provenance report for a node.
+
+    For ``POST``, if the Node does not already have provenance metadata, try
+    to fetch the provenance report from the Node's submit directory.
+    """
+    node = await session.get_one(Node, node_id)
+
+    # FIXME should have an api response model for this report
+    provenance = node.metadata_.get("provenance", {})
+
+    if request.method == "GET":
+        return provenance
+
+    # FIXME not sure I like this pattern, prefer a background task
+    # on POST, try to force the issue
+    if not provenance:
+        node_submit_dir = node.metadata_.get("bps", {}).get("Submit dir")
+        node_run_name = node.metadata_.get("bps", {}).get("Run Name")
+        if node_submit_dir is None or node_run_name is None:
+            return provenance
+        provenance_report_json_path = Path(node_submit_dir) / f"{node_run_name}_prov.json"
+
+        async for provenance_report_json in get_artifact(provenance_report_json_path):
+            provenance = await read_provenance_report_json(provenance_report_json)
+            node.metadata_["provenance"] = provenance
+            await session.commit()
+
+    return provenance

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import AsyncGenerator
 from functools import partial
 from typing import TYPE_CHECKING, Any

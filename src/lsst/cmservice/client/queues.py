@@ -1,7 +1,5 @@
 """python for client API for managing Group tables"""
 
-from __future__ import annotations
-
 from datetime import timedelta
 from time import sleep
 from typing import TYPE_CHECKING

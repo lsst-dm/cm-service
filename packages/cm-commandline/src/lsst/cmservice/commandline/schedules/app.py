@@ -62,8 +62,8 @@ def load_schedule(
     ):
         match manifest["kind"]:
             case "campaign":
+                campaign_name: str = manifest["metadata"]["name"]
                 if not schedule_name:
-                    campaign_name: str = manifest["metadata"]["name"]
                     schedule_name = f"schedule-{campaign_name}-{uuid4().hex[0:8]}"
                 to_load[campaign_name] = manifest
             case "node":
@@ -126,11 +126,18 @@ def oneshot_schedule(
                 s_url = r.headers["Self"]
                 r.raise_for_status()
                 prev_c_url = r.headers["Last-Campaign"]
+            except HTTPStatusError as e:
+                console.print(e)
+                sys.exit(1)
             except KeyError:
                 pass
 
-            r = client.post(f"/schedules/{schedule}/oneshot")
-            r.raise_for_status()
+            try:
+                r = client.post(f"/schedules/{schedule}/oneshot")
+                r.raise_for_status()
+            except HTTPStatusError as e:
+                console.print(e)
+                sys.exit(1)
 
             # Wait until `timeout` for the schedule to provide a new campaign
             # and for that campaign to not be 404
@@ -143,7 +150,7 @@ def oneshot_schedule(
                     new_c_url = r.headers["Last-Campaign"]
                     if new_c_url == prev_c_url:
                         raise ValueError
-                except (KeyError, ValueError):
+                except KeyError, ValueError:
                     sleep(1.0)
                     elapsed += 1.0
                     continue

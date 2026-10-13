@@ -1,6 +1,7 @@
 """Module implementing reusable and/or modular Dialogs."""
 
-from collections.abc import Awaitable, Callable, Generator, MutableMapping
+from collections import deque
+from collections.abc import Awaitable, Callable, Generator, Mapping, MutableMapping
 from copy import deepcopy
 from dataclasses import dataclass, field
 from enum import Enum, IntFlag, auto
@@ -8,22 +9,23 @@ from functools import partial
 from typing import TYPE_CHECKING, Any, Literal, Self
 from uuid import UUID
 
-from nice_dialogs.dialogs import ConfirmationDialog, LabelMakerDialog
-from nicegui import ui
+from nice_dialogs.dialogs import ConfirmationDialog, CronEditorDialog, LabelMakerDialog
+from nicegui import app, ui
 from nicegui.events import ClickEventArguments, GenericEventArguments, ValueChangeEventArguments
 from pydantic_core import PydanticUndefined, ValidationError
 
-from lsst.cmservice.models.db.schedules import CreateManifestTemplate
+from lsst.cmservice.models.db.schedules import CreateManifestTemplate, CreateSchedule
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, NotificationLabelEnum
 from lsst.cmservice.models.lib.parsers import as_snake_case
 from lsst.cmservice.models.lib.yaml import yaml
 
 from .. import api
+from ..components.expression import ExpressionEditorDialog
 from ..lib.enum import MANIFEST_KIND_ICONS
 from ..lib.models import DEFAULT_NOTIFICATION_FILTERS, KIND_TO_SPEC, STEP_MANIFEST_TEMPLATE
 from ..pages.common import CMPage
 from ..settings import settings
-from . import strings
+from . import strings, table
 
 
 class SpecValidationError(RuntimeError): ...
@@ -479,7 +481,7 @@ class EditorDialog(ui.dialog):
                         case _:
                             # Anything else is a broken validator
                             raise RuntimeError
-                except (AttributeError, RuntimeError):
+                except AttributeError, RuntimeError:
                     return f"Invalid validator: {validator}"
             self.context.model["metadata"]["name"] = candidate_name
             self.context.name = candidate_name
@@ -586,11 +588,43 @@ class NewStepEditorDialog(EditorDialog):
                 "bps": {"pipeline_yaml": "${DRP_PIPE_DIR}/path/to/file.yaml#anchor"},
                 "groups": None,
             }
+        ui.button("Edit Selectors", icon="new_label", on_click=self.handle_edit_selectors).props(
+            "fab outline"
+        )
         with ui.dropdown_button("Grouping", auto_close=True) as self.group_option:
             self.group_option.tooltip("Apply a grouping template spec to the Step")
             ui.item("No Grouping", on_click=self.set_group_config).props("id=grouping_none")
             ui.item("Fixed-Value Grouping", on_click=self.set_group_config).props("id=grouping_fixed")
             ui.item("Query Grouping", on_click=self.set_group_config).props("id=grouping_query")
+
+    async def handle_edit_selectors(self) -> None:
+        """Display a label editor dialog and apply results to the model"""
+        base_selectors = [
+            (s, k, v)
+            for s, d in self.context.model["metadata"].get("selectors", {}).items()
+            for k, v in d.items()
+        ]
+        selector_dialog = LabelMakerDialog(
+            "Manifest Selectors",
+            num_inputs=3,
+            input_labels=["Manifest Kind", "Selector Name", "Selector Value"],
+            values=base_selectors,
+            validators=[],
+            allow_sorting=False,
+            value_types=[
+                Literal["bps", "butler", "lsst", "site", "wms"],
+                str,
+                str,
+            ],
+        )
+        result = await selector_dialog
+        if result is not None:
+            selector_keys = {k for k, _, _ in result}
+            head_selectors: Mapping[str, MutableMapping] = {k: {} for k in selector_keys}
+            for s, k, v in result:
+                head_selectors[s][k] = v
+            self.context.model["metadata"]["selectors"] = head_selectors
+        selector_dialog.clear()
 
     async def set_group_config(self, data: ClickEventArguments) -> None:
         """Patches the step's group configuration with a template config based
@@ -669,9 +703,26 @@ class NewManifestEditorDialog(EditorDialog):
         self.kind_selector.set_options(
             [kind for kind in set(self.kind_selector.options).difference({"step"})]
         )
+        ui.button("Edit Labels", icon="new_label", on_click=self.handle_edit_labels).props("fab outline")
         ui.button("Apply Template", icon="settings_suggest", on_click=self.handle_apply_template).props(
             "fab outline"
         )
+
+    async def handle_edit_labels(self) -> None:
+        """Display a label editor dialog and apply results to the model"""
+        base_labels = [(k, v) for k, v in self.context.model["metadata"].get("labels", {}).items()]
+        label_editor_dialog = LabelMakerDialog(
+            "Manifest Labels",
+            num_inputs=2,
+            input_labels=["Label Name", "Label Value"],
+            values=base_labels,
+            validators=[],
+            allow_sorting=False,
+        )
+        result = await label_editor_dialog
+        if result is not None:
+            self.context.model["metadata"]["labels"] = {k: v for (k, v) in result}
+        label_editor_dialog.clear()
 
     def handle_apply_template(self) -> None:
         """Applies a template spec to the editor based on the selected manifest
@@ -1091,3 +1142,219 @@ class NewNotificationLabelDialog(ui.dialog):
         result = await edit_notifications
         if result is not None:
             self.model["spec"]["filters"] = [":".join(e) for e in result]
+
+
+class CheckProvenanceReportDialog(ui.dialog):
+    """Dialog for displaying a provenance report table for a group"""
+
+    def __init__(self, *, report: Mapping, dialog_title: str):
+        super().__init__()
+        self.props("maximized")
+        self.dialog_title = dialog_title
+        self.model: Mapping = report
+        self.table_format = deque(["table", "markdown_raw", "plaintext"])
+        self.table: Any = None
+        self.dialog_layout()
+
+    # Tell type checkers what is returned when the dialog is awaited
+    if TYPE_CHECKING:
+
+        def __await__(self) -> Generator[None]: ...
+
+    @ui.refreshable_method
+    def dialog_layout(self) -> None:
+        """Core layout method for the dialog."""
+        with (
+            self,
+            ui.card().classes("w-full"),
+        ):
+            # HEADER
+            with ui.row().classes("w-full shrink-0 py-2"):
+                ui.label(self.dialog_title).classes("text-h6")
+
+            # CONTENT
+            ui.separator()
+            self.create_table_row()
+
+            # ACTIONS
+            ui.separator()
+            with ui.card_actions().classes("w-full shrink-0 align-left"):
+                ui.button("Close", color="negative", on_click=lambda: self.submit(None))
+                ui.space()
+                ui.button("Format", color="accent", on_click=self.toggle_table_format).tooltip(
+                    "Cycle table format"
+                )
+
+    @ui.refreshable_method
+    def create_table_row(self) -> None:
+        with ui.row().classes("w-full flex overflow-y-auto"):
+            if not self.model:
+                ui.label("Provenance Report Not Available for Node")
+            elif self.table_format[0] == "table":
+                self.table = table.provenance_report_table(self.model)
+            elif self.table_format[0] == "plaintext":
+                table.provenance_report_plaintext(self.table)
+            elif self.table_format[0] == "markdown":
+                table.provenance_report_markdown(self.table)
+            elif self.table_format[0] == "markdown_raw":
+                table.provenance_report_markdown(self.table, render_markdown=False)
+
+    async def toggle_table_format(self, e: ClickEventArguments) -> None:
+        """Toggle between a table and a markdown view"""
+        self.table_format.rotate(-1)
+        await self.create_table_row.refresh()
+
+    @classmethod
+    async def click(cls, e: ClickEventArguments, *, id: str, title: str = "Provenance Report") -> None:
+        """Callback method for a click event meant to open the dialog, e.g.,
+        from a button.
+
+        This method implements the async await dialog pattern that returns a
+        result object from a `submit()` method called elsewhere in the dialog
+        logic. This pattern can be used directly in pages that need to use a
+        dialog.
+        """
+        report = await api.node_provenance_report(id)
+        await cls(dialog_title=title, report=report)
+
+
+class NewScheduleDialog(ui.dialog):
+    """Dialog for creating a new empty Schedule."""
+
+    def __init__(self, *, schedule: CreateSchedule):
+        super().__init__()
+        self.dialog_title = "New Empty Schedule"
+        self.model: MutableMapping = {
+            "schedule": schedule,
+            "uri": "https://example.com/schedule_template.yaml",
+        }
+        self.dialog_layout()
+
+    # Tell type checkers what is returned when the dialog is awaited
+    if TYPE_CHECKING:
+
+        def __await__(self) -> Generator[None]: ...
+
+    @ui.refreshable_method
+    def dialog_layout(self) -> None:
+        """Core layout method for the dialog."""
+        with (
+            self,
+            ui.card().classes("w-full"),
+        ):
+            # HEADER
+            ui.label(self.dialog_title).classes("text-h6")
+            ui.label("Empty Schedules are created in a disabled state and without Templates.").classes(
+                "italic"
+            )
+
+            # CONTENT
+            ui.separator()
+            with ui.row().classes("w-full shrink-0 py-2"):
+                ui.label("Name:").classes("text-h8")
+                with (
+                    ui.label()
+                    .bind_text_from(self, ("model", "schedule", "name"))
+                    .classes("cursor-pointer underline text-h8")
+                ):
+                    with ui.popup() as popup:
+                        ui.input().props("autofocus").bind_value(self, ("model", "schedule", "name")).on(
+                            "keydown.enter", popup.close
+                        )
+
+            self.uri_checkbox = ui.checkbox("Use External Resource")
+            with (
+                ui.row()
+                .classes("w-full shrink-0 py-2 items-center")
+                .bind_visibility_from(self.uri_checkbox, "value")
+            ):
+                ui.icon("dataset_linked")
+                with (
+                    ui.label()
+                    .bind_text_from(self, ("model", "uri"))
+                    .classes("cursor-pointer underline text-h8")
+                ):
+                    with ui.popup() as popup:
+                        ui.input().props("autofocus").bind_value(self, ("model", "uri")).on(
+                            "keydown.enter", popup.close
+                        )
+
+            with ui.row().classes("w-full shrink-0 py-2 items-center"):
+                ui.button(
+                    "Template Expressions",
+                    icon="calculate",
+                    color="accent",
+                    on_click=self.handle_expressions_dialog,
+                ).props("flat").tooltip("Edit Template Expressions")
+
+                ui.button(
+                    "Cron Schedule", icon="schedule", color="accent", on_click=self.handle_cron_dialog
+                ).props("flat").tooltip("Edit cron")
+
+            ui.label(
+                "An external resource may replace schedule configuration if it includes a Schedule manifest."
+            ).classes("italic").bind_visibility_from(self.uri_checkbox, "value")
+
+            # ACTIONS
+            ui.separator()
+            with ui.card_actions().classes("w-full shrink-0 align-left"):
+                ui.button("Save", color="positive", on_click=self.save_schedule)
+                ui.button("Cancel", color="negative", on_click=lambda: self.submit(None))
+
+    async def handle_expressions_dialog(self, e: ClickEventArguments) -> None:
+        """Creates an editor dialog for custom template expressions."""
+        expressions_dialog = ExpressionEditorDialog(
+            with_expressions=self.model["schedule"].configuration["expressions"]
+        )
+        expressions = await expressions_dialog
+        if expressions is not None:
+            self.model["schedule"].configuration["expressions"] = expressions
+        expressions_dialog.clear()
+
+    async def handle_cron_dialog(self, e: ClickEventArguments) -> None:
+        """Creates a cron editor dialog for the current cron string."""
+        cron_dialog = CronEditorDialog()
+        cron_dialog.reset(self.model["schedule"].cron)
+        cron_str = await cron_dialog
+        if cron_str is not None:
+            self.model["schedule"].cron = cron_str
+        cron_dialog.clear()
+
+    async def save_schedule(self) -> None:
+        """Post the new schedule to API"""
+        schedule: CreateSchedule = self.model["schedule"]
+        if self.uri_checkbox.value:
+            schedule.configuration["uri"] = self.model["uri"]
+
+        if not await api.post_new_schedule(schedule):
+            ui.notify(
+                "A problem occurred saving the new schedule.",
+                type="warning",
+            )
+        else:
+            self.submit(None)
+
+    @classmethod
+    async def click(cls, e: ClickEventArguments) -> None:
+        """Callback method for a click event meant to open the dialog, e.g.,
+        from a button.
+
+        This method implements the async await dialog pattern that returns a
+        result object from a `submit()` method called elsewhere in the dialog
+        logic. This pattern can be used directly in pages that need to use a
+        dialog.
+        """
+        schedule = CreateSchedule(
+            name="New Empty Schedule",
+            cron="0 0 1 * *",  # pyright: ignore[reportArgumentType]
+            metadata_={
+                "owner": app.storage.client["state"].user.username,
+            },
+            configuration={
+                "auto_start": False,
+                "expressions": {},
+                "name_format": "%Y%m%d_%s",
+            },
+            is_enabled=False,
+        )
+        await cls(schedule=schedule)

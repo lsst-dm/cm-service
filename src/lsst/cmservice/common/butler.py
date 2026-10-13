@@ -116,7 +116,7 @@ class ButlerFactory:
             if TYPE_CHECKING:
                 assert isinstance(_butler, DirectButler)
             _butler._preload_cache(load_dimension_record_cache=False)
-        except (ClientError, OperationalError, RuntimeError, NoCredentialsError):
+        except ClientError, OperationalError, RuntimeError, NoCredentialsError:
             # Case that configured butler could not be created because of an
             # S3 or database error, or other Runtime error
             logger.exception()

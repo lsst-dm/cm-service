@@ -1,3 +1,4 @@
+---
 include:
   - path:
       - ../docker-compose.yaml
@@ -50,6 +51,27 @@ services:
     networks:
       - cmservice
 
+  kafka:
+    image: "apache/kafka-native:3.9.2"
+    hostname: kafka
+    ports:
+      - "9094:9094"
+    networks:
+      - cmservice
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:9094,CONTROLLER://127.0.0.1:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 1
   butler:
     image: "postgres:16"
     hostname: butler
@@ -79,7 +101,7 @@ services:
       - -c
       - |
         pip3 install --upgrade pip
-        pip3 install lsst-daf-butler psycopg2-binary
+        pip3 install "lsst-daf-butler" "psycopg2-binary" "sqlalchemy>=2.0,<2.1"
         exec python3 -u /opt/butler/bootstrap.py
     environment:
       PGPASSWORD: INSECURE-PASSWORD

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import enum
 from functools import total_ordering
 from uuid import NAMESPACE_DNS, uuid5
@@ -179,4 +177,5 @@ class NotificationLabelEnum(enum.Enum):
     """Available label kinds for notification events."""
 
     default = enum.auto()
+    kafka = enum.auto()
     slack = enum.auto()

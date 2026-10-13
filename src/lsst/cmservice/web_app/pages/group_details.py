@@ -77,7 +77,7 @@ async def get_group_by_id(
                 "wms_report": wms_report,
                 "aggregated_wms_report": aggregated_report_dict,
                 "step_id": s_id,
-                "campaign_id": c_id,
+                "campaign_id": c_id,  # type: ignore[possibly-undefined]
                 "level": group.level.value,
             }
 

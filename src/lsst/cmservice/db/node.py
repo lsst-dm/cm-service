@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import re
 from collections import ChainMap, defaultdict
 from typing import TYPE_CHECKING, Any

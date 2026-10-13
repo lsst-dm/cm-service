@@ -3,8 +3,6 @@ Butler, which aligns a Butler repo with a data query and a set of collections
 for a Campaign.
 """
 
-from __future__ import annotations
-
 from collections.abc import Sequence
 
 from pydantic import AliasChoices, BaseModel, Field

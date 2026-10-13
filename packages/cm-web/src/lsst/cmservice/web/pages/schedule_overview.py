@@ -12,12 +12,12 @@ from lsst.cmservice.models.db.schedules import CreateManifestTemplate, CreateSch
 
 from ..api import schedules
 from ..components import storage
-from ..components.dialog import AuditLogDialog, ScheduleReviewDialog
+from ..components.dialog import AuditLogDialog, NewScheduleDialog, ScheduleReviewDialog
 from .common import CMPage, CMPageModel
 
 
 class ScheduleOverviewPageModel(CMPageModel):
-    """ "Page data model for scheduling overview page.
+    """Page data model for scheduling overview page.
 
     Attributes
     ----------
@@ -43,7 +43,7 @@ class ScheduleOverviewPageModel(CMPageModel):
 
 
 class ScheduleOverviewPage(CMPage[ScheduleOverviewPageModel]):
-    """Displays currently enrolled CM Schedules in a table layout."""
+    """Display currently enrolled CM Schedules in a table layout."""
 
     async def setup(self, client_: AsyncClient | None = None) -> Self:
         """Async method called at page creation. Subpages can override this
@@ -107,6 +107,10 @@ class ScheduleOverviewPage(CMPage[ScheduleOverviewPageModel]):
         )
         await self.new_schedule_controls()
         await self.create_schedule_table()
+
+        with ui.page_sticky(position="bottom-right", x_offset=20, y_offset=20):
+            ui.button(icon="add", on_click=self.handle_new_schedule_button).props("fab color=accent")
+
         self.hide_spinner()
 
     @ui.refreshable_method
@@ -173,7 +177,10 @@ class ScheduleOverviewPage(CMPage[ScheduleOverviewPageModel]):
         ui.button(
             icon="copy_all",
             color="dark",
-        ).props("flat round size=sm").on(
+        ).props("""
+            flat round size=sm
+            :disable="props.row.is_external"
+        """).on(
             "click",
             js_handler="() => emit(props.row.id, 'edit')",
             handler=self.handle_schedule_action,
@@ -189,7 +196,10 @@ class ScheduleOverviewPage(CMPage[ScheduleOverviewPageModel]):
         ui.button(
             icon="change_history",
             color="dark",
-        ).props("flat round size=sm").on(
+        ).props("""
+            flat round size=sm
+            :disable="props.row.is_external"
+        """).on(
             "click",
             js_handler="() => emit(props.row.id, 'audit')",
             handler=self.handle_schedule_action,
@@ -341,6 +351,7 @@ class ScheduleOverviewPage(CMPage[ScheduleOverviewPageModel]):
                 "classes": "",
                 "cron_extra": schedule.metadata_.get("dirty", {}).get("cron", ""),
                 "status_extra": schedule.metadata_.get("dirty", {}).get("status", ""),
+                "is_external": bool(schedule.configuration.get("uri", False)),
             }
             for schedule in sorted(
                 self.model["schedules"].values(),
@@ -409,3 +420,9 @@ class ScheduleOverviewPage(CMPage[ScheduleOverviewPageModel]):
             passes_filter = False
 
         return passes_filter
+
+    async def handle_new_schedule_button(self, e: ClickEventArguments) -> None:
+        """Callback for the add schedule button"""
+        self.show_spinner()
+        await NewScheduleDialog.click(e)
+        self.hide_spinner()

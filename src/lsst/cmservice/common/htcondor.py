@@ -12,10 +12,11 @@ from anyio import Path, open_process
 from anyio.streams.text import TextReceiveStream
 
 from lsst.cmservice.models.enums import StatusEnum
+from lsst.cmservice.models.lib.retry import exponential_retry
 
 from ..config import config
 from .errors import CMHTCondorCheckError, CMHTCondorSubmitError
-from .launchers import LauncherCheckResponse, LaunchManager, exponential_retry
+from .launchers import LauncherCheckResponse, LaunchManager
 from .logging import LOGGER
 from .panda import get_panda_token
 
@@ -394,7 +395,7 @@ class HTCondorManager(LaunchManager):
         self.schedd_ad = random.choice(schedds)
         self.schedd = self._htcondor.Schedd(self.schedd_ad)
 
-    @exponential_retry(delay=3.0, tries=5, backoff=1.2, retryables=["HTCondorIOError"])
+    @exponential_retry(config.htcondor, retryables=["HTCondorIOError"])
     async def submit_ad(self, submission_spec: Path | dict | str) -> Any | None:
         """Submits a job ad to the currently selected schedd and returns the
         job reference which includes the cluster id.

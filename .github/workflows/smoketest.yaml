@@ -27,7 +27,7 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
-          python-version: "3.13"
+          python-version: "3.14"
 
       - name: Install packages for smoketest
         run: uv sync --frozen --package lsst-cmservice-commandline
@@ -37,6 +37,14 @@ jobs:
         run: |
           docker compose build --pull --quiet
           docker compose --env-file shared.env up -d --wait
+
+      - name: Load seed manifests
+        id: load-seed
+        env:
+          LOGGING__STREAM: stderr
+          UV_NO_SYNC: "1"
+        run: |
+          uv run -q cm load yaml integration/seed_manifests.yaml
 
       - name: Load smoketest schedule
         id: load-smoke
@@ -75,6 +83,14 @@ jobs:
             ELAPSED=$((ELAPSED + INTERVAL))
           done
           exit 1
+
+      - name: Validate a Kafka notification is produced
+        run: |
+          NOTIFICATION=$(
+            timeout 10s docker run --rm --network host confluentinc/cp-kafkacat:latest \
+            kafkacat -b localhost:9094 -t smoketest -C -o beginning -c 1
+          )
+          test -n "$NOTIFICATION" && jq -r . <<< "$NOTIFICATION"
 
       - name: Collect artifacts on failure
         if: failure()

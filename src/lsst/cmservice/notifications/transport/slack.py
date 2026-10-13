@@ -7,6 +7,7 @@ from lsst.cmservice.models.db.campaigns import Node
 from lsst.cmservice.models.db.notifications import NotificationLabel
 from lsst.cmservice.models.enums import NotificationLabelEnum, StatusEnum
 from lsst.cmservice.models.lib.logging import LOGGER
+from lsst.cmservice.models.lib.resources import Resource
 
 from ...config import config
 from ...db.session import db_session_dependency
@@ -48,10 +49,13 @@ SLACK_HEADER_SECTION = {
 
 
 class SlackNotification(NotificationTransport):
+    secret: str | None
     __kind__ = NotificationLabelEnum.slack
     headers: httpx2.Headers = httpx2.Headers({"Content-type": "application/json"})
 
     def notify(self, message: bytes | dict) -> None:
+        """Sends a Slack notification message synchronously."""
+
         raise NotImplementedError("Only asynchronous notifications are supported")
 
     async def anotify(self, message: bytes | dict) -> None:
@@ -63,7 +67,7 @@ class SlackNotification(NotificationTransport):
 
         data = dict(text=message) if isinstance(message, bytes) else message
 
-        async with self.http_async_client() as asession:
+        async with Resource.http_async_client() as asession:
             try:
                 response = await asession.post(
                     url=self.secret,

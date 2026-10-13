@@ -8,10 +8,12 @@ from itertools import groupby
 from operator import attrgetter
 from types import TracebackType
 from typing import TYPE_CHECKING, Self, cast
-from uuid import UUID, uuid5
+from uuid import UUID, uuid4, uuid5
 
 import networkx as nx
+import yaml
 from fastapi import FastAPI
+from httpx2 import HTTPStatusError
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.orm import make_transient, selectinload
@@ -23,9 +25,15 @@ from transitions import Event
 from lsst.cmservice.common.scheduler import Scheduler
 from lsst.cmservice.models.api.schedules import ScheduleConfiguration
 from lsst.cmservice.models.db.campaigns import Campaign, Edge, Machine, Node, Task
-from lsst.cmservice.models.db.schedules import Schedule
-from lsst.cmservice.models.enums import StatusEnum
+from lsst.cmservice.models.db.schedules import (
+    CreateManifestTemplate,
+    ManifestTemplate,
+    ManifestTemplateBase,
+    Schedule,
+)
+from lsst.cmservice.models.enums import ManifestKind, StatusEnum
 from lsst.cmservice.models.lib import graph, timestamp
+from lsst.cmservice.models.lib.resources import Resource
 
 from ..common.flags import Features
 from ..common.templates import build_sandbox_and_render_templates
@@ -294,15 +302,44 @@ async def daemon_scheduled_job(
 
         schedule_context = ScheduleConfiguration(**schedule.configuration)
 
-        # TODO signal version picking; for now we just pick the latest version
-        # of each name-kind pair of templates.
-        newest_templates = [
-            next(m)
-            for _, m in groupby(
-                sorted(schedule.templates, key=attrgetter("kind", "name", "version"), reverse=True),
-                key=attrgetter("name", "kind"),
-            )
-        ]
+        newest_templates: list[ManifestTemplate | ManifestTemplateBase]
+        if schedule_context.uri is not None:
+            # Fetch the campaign template manifest from a URI instead of using
+            # templates from the database.
+            # TODO this assumes and only supports YAML files, which would
+            # implicitly support JSON files as well except it'd be parsed
+            # as a single document with a list of dicts `[[{...}, {...}]]`
+            async with Resource.http_async_client() as aclient:
+                try:
+                    resource = await aclient.get(schedule_context.uri)
+                    resource.raise_for_status()
+                    newest_templates = [
+                        CreateManifestTemplate(
+                            name=manifest["metadata"].get("name", uuid4().hex[:8]),
+                            kind=manifest["kind"],
+                            manifest=yaml.safe_dump(manifest, explicit_start=True),
+                        )
+                        for manifest in yaml.safe_load_all(resource.content)
+                    ]
+                    schedule_manifests = [
+                        i for i, t in enumerate(newest_templates) if t.kind is ManifestKind.schedule
+                    ]
+                    if schedule_manifests:
+                        newest_schedule_manifest = newest_templates.pop(schedule_manifests[0])
+                        newest_schedule = yaml.safe_load(newest_schedule_manifest.manifest)
+                        schedule_context = schedule_context.model_copy(update=newest_schedule["spec"])
+                except HTTPStatusError, yaml.YAMLError:
+                    return JobEventReturnCode.CAMPAIGN_NOT_FOUND
+        else:
+            # TODO signal version picking; for now we pick the latest version
+            # of each name-kind pair of templates.
+            newest_templates = [
+                next(m)
+                for _, m in groupby(
+                    sorted(schedule.templates, key=attrgetter("kind", "name", "version"), reverse=True),
+                    key=attrgetter("name", "kind"),
+                )
+            ]
 
         orms = await build_sandbox_and_render_templates(
             context=schedule_context,

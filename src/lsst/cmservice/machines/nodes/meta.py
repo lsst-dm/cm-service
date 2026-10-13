@@ -2,8 +2,6 @@
 nodes, including START/END/BREAKPOINT nodes.
 """
 
-from __future__ import annotations
-
 import pickle
 import shutil
 from typing import TYPE_CHECKING, Any
@@ -20,7 +18,7 @@ from lsst.cmservice.models.db.campaigns import ActivityLog, Campaign, Edge, Mach
 from lsst.cmservice.models.enums import ManifestKind, StatusEnum
 from lsst.cmservice.models.lib import timestamp
 from lsst.cmservice.models.lib.graph import graph_from_edge_list_v2
-from lsst.cmservice.models.manifest import ButlerManifest
+from lsst.cmservice.models.manifests.butler import ButlerManifest
 
 from ...common.flags import Features
 from ...common.launchers import LauncherCheckResponse
@@ -360,7 +358,7 @@ class StartMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunch
 
     async def butler_prepare(self, event: EventData) -> None:
         """Prepares Butler collections for the campaign."""
-        self.butler = await self.get_manifest(ManifestKind.butler, ButlerManifest)
+        self.butler = await self.select_manifest(ManifestKind.butler, ButlerManifest)
 
         # TODO Campaigns should support options about how their collections are
         # organized.
@@ -444,7 +442,7 @@ class EndMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchMi
 
     async def butler_prepare(self, event: EventData) -> None:
         """Prepares Butler collections for the end of the campaign."""
-        self.butler = await self.get_manifest(ManifestKind.butler, ButlerManifest)
+        self.butler = await self.select_manifest(ManifestKind.butler, ButlerManifest)
 
         self.command_templates = [
             (

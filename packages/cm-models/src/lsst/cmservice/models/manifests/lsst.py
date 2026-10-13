@@ -3,8 +3,6 @@ LSST Stack, which aligns a nominal stack version with additional stack setup
 instructions for a Campaign.
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import Annotated
 

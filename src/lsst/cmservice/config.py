@@ -308,9 +308,27 @@ class HTCondorConfiguration(BaseModel):
     )
 
     launcher_job_architecture: Literal["X86_64", "AARCH64"] | None = Field(
-        description="target architecture to set for launcher job submissions",
+        description="Target architecture to set for launcher job submissions",
         default=None,
         serialization_alias="_CONDOR_ARCH",
+    )
+
+    tries: int = Field(
+        description="Number of attempts the launcher makes to launch a job",
+        default=5,
+        exclude=True,
+    )
+
+    delay: float = Field(
+        description="Time in seconds between launch attempts",
+        default=3.0,
+        exclude=True,
+    )
+
+    backoff: float = Field(
+        description="Backoff factor used to extend delay between launch attempts",
+        default=1.2,
+        exclude=True,
     )
 
 
@@ -454,6 +472,8 @@ class PandaConfiguration(BaseModel, validate_assignment=True):
 
 # TODO deprecate and remove "slurm"-specific logic from cm-service; it is
 #      unlikely that interfacing with slurm directly from k8s will be possible.
+# TODO rename this configuration model to reflect its role in controlling
+#      resource allocation, not direct slurm interaction
 class SlurmConfiguration(BaseModel):
     """Configuration settings for slurm client operations.
 
@@ -621,8 +641,7 @@ class NotificationConfiguration(BaseModel):
     )
     slack_webhook_url: str | None = Field(
         default=None,
-        description="URL of a Slack Application webhook",
-        deprecated="This should be part of the `default` notification label",
+        description="URL of a Slack Application webhook for the `default` notification label",
     )
 
     @cached_property

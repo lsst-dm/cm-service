@@ -1,23 +1,22 @@
-from __future__ import annotations
-
 from collections import ChainMap
 from collections.abc import AsyncGenerator
 from functools import partial
 from os.path import expandvars
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import yaml
 from anyio import Path, TemporaryDirectory, to_thread
 from jinja2 import ChoiceLoader, DictLoader, Environment, PackageLoader, Template
-from sqlalchemy.exc import MissingGreenlet, NoResultFound
-from sqlmodel import desc, or_, select
+from sqlalchemy.dialects.postgresql import INTEGER
+from sqlalchemy.exc import MissingGreenlet
+from sqlmodel import cast, col, or_, select
 from transitions import EventData
 
 from lsst.cmservice.models.db.campaigns import Manifest, Node
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, ManifestKind, StatusEnum
 from lsst.cmservice.models.lib.logging import LOGGER
 from lsst.cmservice.models.lib.timestamp import element_time
-from lsst.cmservice.models.manifest import LibraryManifest
+from lsst.cmservice.models.manifests import LibraryManifest
 from lsst.resources import ResourcePath
 
 from ...common.errors import CMNoSuchManifestError
@@ -38,15 +37,20 @@ class NodeMixIn(MixIn):
     artifact_resources: dict
     artifact_templates: dict
 
-    # TODO if no more functionality is added in this mixin, just promote this
-    # method into the NodeMachine class.
-    async def get_manifest[T: LibraryManifest](
+    async def select_manifest[T: LibraryManifest](
         self, manifest_kind: ManifestKind, manifest_type: type[T]
     ) -> T:
-        """Fetches the appropriate Manifest for the Campaign. The newest
-        manifest of the specified Kind is retrieved from the campaign or
-        the library namespace, and an object of `type[manifest_type]` is
-        created and returned.
+        """Select a manifest based on Node selectors, campaign default, or
+        newest version.
+
+        Parameters
+        ----------
+        manifest_kind: ``ManifestKind``
+            The enum member representing the "kind" of manifest being selected.
+
+        manifest_type: ``type``
+            A type (constrained by ``LibraryManifest``) to which the selected
+            manifest is coerced or cast.
 
         Notes
         -----
@@ -60,26 +64,56 @@ class NodeMixIn(MixIn):
             Raised when the Node attempts to load a Manifest that cannot be
             found in the Campaign or the Library.
         """
-        # Look in the campaign namespace for the most recent manifest,
-        # falling back to the default namespace if one is not found.
-        s = (
-            select(Manifest)
-            .where(Manifest.kind == manifest_kind)
-            .where(
-                or_(Manifest.namespace == self.db_model.namespace, Manifest.namespace == DEFAULT_NAMESPACE)
+        manifest: Manifest | None = None
+        kind = manifest_kind.name
+        my = self.db_model
+        selected_by: Literal["selectors", "default", "version"] = "version"
+
+        if "selectors" in my.metadata_ and kind in my.metadata_["selectors"]:
+            label_containment = {"labels": my.metadata_["selectors"][kind]}
+            s = (
+                select(Manifest)
+                .where(Manifest.namespace == my.namespace)
+                .where(col(Manifest.kind) == kind)
+                .where(col(Manifest.metadata_).contains(label_containment))
+                .order_by(col(Manifest.version).desc())
+                .limit(1)
             )
-            .order_by(desc(Manifest.version))
-            .limit(1)
-        )
-        try:
-            manifest = (await self.session.exec(s)).one()
-            self.session.expunge(manifest)
-        except NoResultFound:
+            manifest = (await self.session.exec(s)).one_or_none()
+
+        if manifest is not None:
+            selected_by = "selectors"
+        else:
+            s = (
+                select(Manifest)
+                .where(Manifest.namespace == my.namespace)
+                .where(col(Manifest.kind) == kind)
+                .where(col(Manifest.default).is_(True))
+                .limit(1)
+            )
+            manifest = (await self.session.exec(s)).one_or_none()
+
+        if manifest is not None:
+            selected_by = "default"
+        else:
+            s = (
+                select(Manifest)
+                .where(col(Manifest.kind) == kind)
+                .where(or_(Manifest.namespace == my.namespace, Manifest.namespace == DEFAULT_NAMESPACE))
+                .order_by(col(Manifest.version).desc())
+                .order_by(cast(Manifest.metadata_["crtime"].as_string(), INTEGER).desc())
+                .limit(1)
+            )
+            manifest = (await self.session.exec(s)).one_or_none()
+
+        if manifest is None:
             msg = f"A required manifest was not found in the database: {manifest_kind}"
             raise CMNoSuchManifestError(msg)
 
+        self.session.expunge(manifest)
         o = manifest_type(**manifest.model_dump())
         o.metadata_.version = manifest.version
+        o.metadata_.selected_by = selected_by
         return o
 
 
@@ -145,7 +179,7 @@ class FilesystemActionMixin(ActionMixIn):
         # this case depending on how the Node was initially loaded)
         try:
             campaign_name = self.db_model.campaign.name
-        except (AttributeError, MissingGreenlet):
+        except AttributeError, MissingGreenlet:
             campaign_name = str(self.db_model.namespace)
         campaign_artifact_path = await (Path(lsst_artifact_path) / campaign_name).resolve()
         parent_path = Path(
@@ -292,6 +326,9 @@ class FilesystemActionMixin(ActionMixIn):
     async def get_artifact(self, event: EventData, artifact: Path | str) -> AsyncGenerator[Path]:
         """Copy an artifact from the provided path to a local temporary
         directory and return the Path to it.
+
+        .. deprecated:: 1.0.0
+           Use `lsst.cmservice.machines.lib.get_artifact` instead
         """
         remote_artifact = Path(artifact)
         if not await remote_artifact.exists():
@@ -478,8 +515,7 @@ class HTCondorLaunchMixin(LaunchMixIn):
         # whether the job can be sent to the local universe for immediate
         # processing on a schedd or if it should go to the vanilla universe
         # for regular scheduling (which may involve needing to allocate nodes)
-        cluster_id = await self.launch_manager.launch(submission_spec=wms_submission_path)
-        self.db_model.metadata_["wms_job"] = cluster_id
+        await self.launch_manager.launch(submission_spec=wms_submission_path)
 
     async def check(self, event: EventData) -> LauncherCheckResponse:
         """Calls the check method of the launch manager."""
@@ -495,8 +531,7 @@ class HTCondorLaunchMixin(LaunchMixIn):
             msg = "No HTCondor event log file known to node."
             raise RuntimeError(msg)
 
-        # TODO reduce duplication & get this from "launcher.job_id" metadata
-        cluster_id = self.db_model.metadata_.get("wms_job", 0)
+        cluster_id = self.db_model.metadata_.get("launcher", {}).get("job_id", 0)
         logger.debug("Checking HTCondor Job", id=str(self.db_model.id), cluster_id=cluster_id)
         return await self.launch_manager.check(cluster_id, wms_event_log_path)
 

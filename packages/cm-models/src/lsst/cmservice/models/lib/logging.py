@@ -183,7 +183,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 },
             )
 
-            return response
+        return response
 
 
 # Module level actions

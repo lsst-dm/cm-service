@@ -1,8 +1,6 @@
-from __future__ import annotations
-
 from collections.abc import Generator, Mapping, Sequence
 from itertools import chain
-from typing import Any, cast
+from typing import Any, assert_never, cast
 from uuid import UUID, uuid5
 
 from sqlmodel import select
@@ -20,14 +18,12 @@ from lsst.cmservice.models.lib.graph import (
     topographical_sorted_collections,
 )
 from lsst.cmservice.models.lib.timestamp import element_time
-from lsst.cmservice.models.manifest import (
-    ArtifactManifest,
-    BpsManifest,
-    ButlerManifest,
-    FacilityManifest,
-    LsstManifest,
-    WmsManifest,
-)
+from lsst.cmservice.models.manifests.artifact import ArtifactManifest
+from lsst.cmservice.models.manifests.bps import BpsManifest
+from lsst.cmservice.models.manifests.butler import ButlerManifest
+from lsst.cmservice.models.manifests.facility import FacilityManifest
+from lsst.cmservice.models.manifests.lsst import LsstManifest
+from lsst.cmservice.models.manifests.wms import WmsManifest
 
 from ...common.errors import CMNoSuchManifestError
 from ...common.flags import Features
@@ -115,12 +111,12 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
 
     async def get_splitter(self) -> Splitter:
         """Generates group-predicates according to the Node grouping rules."""
-        # select a splitter based on the Node's configuration
         splitter_config: dict = {**self.db_model.configuration.get("groups", {})}
-        if not splitter_config:
-            return SplitterMapping["null"]()
+        split_by = splitter_config.get("split_by", "null")
 
-        match SplitterEnum(splitter_config["split_by"]):
+        match splitter := SplitterEnum(split_by):
+            case SplitterEnum.NULL:
+                splitter_type = SplitterMapping[SplitterEnum.NULL.value]
             case SplitterEnum.VALUES:
                 splitter_type = SplitterMapping[SplitterEnum.VALUES.value]
             case SplitterEnum.QUERY:
@@ -131,15 +127,21 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
                     splitter_config["collections"] = [self.butler.spec.collections.step_input]
                 else:
                     splitter_config["collections"] = self.butler.spec.collections.campaign_input
-
+            case _:
+                assert_never(splitter)
         return splitter_type(**splitter_config)
 
     async def make_group(self, with_predicates: Sequence[str], with_nonce: Generator | None) -> None:
-        """Creates a Step-Group Node in the campaign graph adjacent to self.
+        """Creates a Group Node in the campaign graph adjacent to self.
 
         Parameters
         ----------
-        with_predicates : Sequence[str]
+        with_nonce : ``Generator`` | ``None``
+            An optional ``Generator`` that may provide a unique one-time value
+            to use while naming the new group. Defaults to a portion of the
+            group's id.
+
+        with_predicates : ``Sequence`` [``str``]
             An immutable sequence, e.g., a tuple, of string predicates to
             assign to this group's predicate attribute, all of which will be
             "AND"ed together to construct the group's data query.
@@ -164,9 +166,6 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
         #       not assume version 1
         # TODO define "tries" for this transition.
         group_version = 1
-
-        # TODO intial status for a group could be "paused" if campaign is set
-        #      to auto-pause on group
         group_status = StatusEnum.waiting
 
         group_butler = self.butler.spec.model_copy(
@@ -225,6 +224,13 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
             | self.db_model.configuration.get("site", {}),
             "wms": self.wms.spec.model_dump(exclude_none=True) | self.db_model.configuration.get("wms", {}),
         }
+        # The step applies its own selectors to the group
+        # TODO the step should apply some intelligence to mutate the selectors
+        # for the group in response to some undefined logic.
+        ...
+
+        # TODO the "manifests" dictionary should demonstrate why the manifest
+        # has been used, e.g., by default or by selection, etc.
         group_metadata = {
             "crtime": element_time(),
             "step": str(self.db_model.id),
@@ -236,6 +242,7 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
                 "site": self.site.metadata_.version,
                 "wms": self.wms.metadata_.version,
             },
+            "selectors": self.db_model.metadata_.get("selectors", {}),
         }
         group = Node(
             id=group_id,
@@ -391,7 +398,7 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
         self.configuration_chain["butler"] = self.configuration_chain["butler"].new_child(butler_config)
 
     async def do_prepare(self, event: EventData) -> None:
-        """Prepare should create new nodes for each of the step groups.
+        """Create new nodes for each of the step groups.
 
         Definition of group loadout is determined by a "groups" key in the
         node's configuration. If the "groups" key is ``null`` then no group-
@@ -418,18 +425,16 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
         # Assemble the core configuration manifests from the campaign or
         # library namespaces, which will be "baked into" the group's
         # configuration.
-        # FIXME this ignores that there could be multiple manifests of a single
-        # kind in a campaign that differ by name -- example, multiple Site
-        # manifests for different facilities, or multiple Wms manifests for
-        # different batch systems.
-        self.butler = await self.get_manifest(ManifestKind.butler, ButlerManifest)
-        self.lsst = await self.get_manifest(ManifestKind.lsst, LsstManifest)
-        self.bps = await self.get_manifest(ManifestKind.bps, BpsManifest)
-        self.wms = await self.get_manifest(ManifestKind.wms, WmsManifest)
-        self.site = await self.get_manifest(ManifestKind.site, FacilityManifest)
+        # TODO manifest selection may differ per-group, so we need to be able
+        # to manipulate the selectors as we build the group.
+        self.butler = await self.select_manifest(ManifestKind.butler, ButlerManifest)
+        self.lsst = await self.select_manifest(ManifestKind.lsst, LsstManifest)
+        self.bps = await self.select_manifest(ManifestKind.bps, BpsManifest)
+        self.wms = await self.select_manifest(ManifestKind.wms, WmsManifest)
+        self.site = await self.select_manifest(ManifestKind.site, FacilityManifest)
 
         try:
-            artifact_manifest = await self.get_manifest(ManifestKind.artifact, ArtifactManifest)
+            artifact_manifest = await self.select_manifest(ManifestKind.artifact, ArtifactManifest)
             self.artifact_templates |= artifact_manifest.spec.artifacts
             self.artifact_resources |= artifact_manifest.spec.resources
         except CMNoSuchManifestError:

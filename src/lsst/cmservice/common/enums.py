@@ -1,5 +1,5 @@
 # pylint: disable=invalid-name
-from __future__ import annotations
+
 
 import enum
 
@@ -137,9 +137,6 @@ class ScriptMethodEnum(enum.Enum):
     bash = 1
         Bash script, just run the script using a system call
 
-    slurm = 2
-        Use slurm to submit the script
-
     htcondor = 3
         Use htcondor to submit the script
 
@@ -149,7 +146,6 @@ class ScriptMethodEnum(enum.Enum):
     default = -1
     no_script = 0
     bash = 1
-    slurm = 2
     htcondor = 3
 
 

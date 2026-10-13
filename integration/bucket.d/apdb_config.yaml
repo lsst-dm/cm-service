@@ -5,10 +5,10 @@ connection_config:
     idle_heartbeat_timeout: 30
     connect_timeout: 60
   username: cm-service
-contact_points: !!python/tuple
-- host1
-- host2
-- host3
+contact_points:
+  - host1
+  - host2
+  - host3
 enable_replica: true
 implementation_type: cassandra
 keyspace: cm_mock_keyspace

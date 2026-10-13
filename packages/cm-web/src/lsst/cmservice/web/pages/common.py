@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Any, Self, TypedDict, cast
 
@@ -98,6 +96,10 @@ class CMPage[PageModelT: CMPageModel | CMPageData]:
             # Custom Colors for Statuses
             **{status.name: status.hex for status in StatusDecorators},
         )
+        # HACK: revert quasar's generic font-family specification to restore
+        # the base (tailwind) declaration. This affects the font used to render
+        # ui.code/markdown components, for instance.
+        ui.add_css("@layer quasar { code, kbd, pre, samp { font-family: revert-layer; } }")
 
     @ui.refreshable_method
     def create_header(self) -> None:

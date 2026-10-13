@@ -1,8 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
-
-import httpx2
+from collections.abc import Mapping
 
 from lsst.cmservice.models.db.campaigns import ActivityLog as ActivityLog
 from lsst.cmservice.models.enums import ManifestKind, NotificationLabelEnum, StatusEnum
@@ -13,7 +10,7 @@ from ..models import NotificationPayload as NotificationPayload
 class NotificationTransport(ABC):
     __kind__ = NotificationLabelEnum.default
     default_filters: list[str] = ["start:*:running", "end:running:*", "*:*:failed", "breakpoint:*:running"]
-    secret: str | None = None
+    secret: str | Mapping | None = None
 
     @abstractmethod
     def notify(self, message: bytes | dict) -> None:
@@ -24,16 +21,6 @@ class NotificationTransport(ABC):
     async def anotify(self, message: bytes | dict) -> None:
         """Sends a notification message asynchronously."""
         ...
-
-    @asynccontextmanager
-    async def http_async_client(self, *, verify_host: bool = True) -> AsyncGenerator[httpx2.AsyncClient]:
-        """Generate a client session for http API operations."""
-        transport = httpx2.AsyncHTTPTransport(
-            verify=verify_host,
-            retries=3,
-        )
-        async with httpx2.AsyncClient(transport=transport) as session:
-            yield session
 
     @abstractmethod
     async def deliver(self, payload: NotificationPayload) -> None:
