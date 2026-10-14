@@ -127,6 +127,9 @@ class KafkaSettings(BaseSettings):
         default=True, serialization_alias="enable.ssl.certificate.verification"
     )
     security_protocol: str = Field(default="SSL", serialization_alias="security.protocol")
+    sasl_mechanism: str | None = Field(default=None, serialization_alias="sasl.mechanism")
+    sasl_password: str | None = Field(default=None, serialization_alias="sasl.password")
+    sasl_username: str | None = Field(default=None, serialization_alias="sasl.username")
     ssl_ca_location: str | None = Field(default=None, serialization_alias="ssl.ca.location")
     ssl_certificate_location: str | None = Field(default=None, serialization_alias="ssl.certificate.location")
     ssl_key_location: str | None = Field(default=None, serialization_alias="ssl.key.location")
