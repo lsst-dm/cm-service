@@ -107,7 +107,7 @@ def get_producer(aux: Mapping) -> NotificationProducer:
     _producer_settings = producer_settings.model_copy(update=aux)
     p = NotificationProducer(
         **_producer_settings.model_dump(by_alias=True),
-        **_kafka_settings.model_dump(by_alias=True),
+        **_kafka_settings.model_dump(by_alias=True, exclude_none=True),
         stats_cb=NotificationProducer.stats_cb,
     )
     p.topic = _producer_settings.topic
