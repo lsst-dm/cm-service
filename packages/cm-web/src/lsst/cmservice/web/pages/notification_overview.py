@@ -126,7 +126,7 @@ class NotificationOverviewPage(CMPage[NotificationOverviewPageModel]):
             "click",
             js_handler="() => emit(props.row.name, 'delete')",
             handler=self.handle_row_action,
-        ).tooltip("Delete").disable()
+        ).tooltip("Delete")
 
     async def handle_row_action(self, data: GenericEventArguments) -> None:
         """Callback for action buttons on schedule rows"""
