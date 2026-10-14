@@ -92,9 +92,13 @@ class KafkaTransport(NotificationTransport):
         if notification_label is None or payload.label == "default":
             notification_filters = self.default_filters
         else:
-            raw_secret = config.notifications.fernet.decrypt(notification_label.secret)
-            self.secret = json.loads(raw_secret)
-            notification_filters = notification_label.configuration.get("filters", self.default_filters)
+            try:
+                raw_secret = config.notifications.fernet.decrypt(notification_label.secret)
+                self.secret = json.loads(raw_secret)
+                notification_filters = notification_label.configuration.get("filters", self.default_filters)
+            except json.JSONDecodeError as e:
+                logger.error("Could not decode Kafka notification secret", reason=str(e))
+                return None
 
         if not await self.check_notification_filter(notification_filters, activity_log):
             return None
