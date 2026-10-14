@@ -697,6 +697,45 @@ class SchedulerConfiguration(BaseModel):
     )
 
 
+class AWSConfiguration(BaseModel):
+    """Configuration for AWS/botocore defaults.
+
+    Set according to AWS__FIELD environment variables if a validation alias is
+    not provided.
+    """
+
+    s3_endpoint_url: str | None = Field(
+        description="An endpoint url to use with S3 APIs for the default profile",
+        default=None,
+        validation_alias=AliasChoices("AWS_ENDPOINT_URL_S3", "AWS_ENDPOINT_URL", "S3_ENDPOINT_URL"),
+        serialization_alias="AWS_ENDPOINT_URL_S3",
+    )
+
+    request_checksum_calculation: str = Field(
+        default="WHEN_REQUIRED",
+        description="value for the `AWS_REQUEST_CHECKSUM_CALCULATION` param",
+        serialization_alias="AWS_REQUEST_CHECKSUM_CALCULATION",
+    )
+
+    response_checksum_validation: str = Field(
+        default="WHEN_REQUIRED",
+        description="value for the `AWS_RESPONSE_CHECKSUM_VALIDATION` param",
+        serialization_alias="AWS_RESPONSE_CHECKSUM_VALIDATION",
+    )
+
+    shared_config_file: str | None = Field(
+        default=None,
+        serialization_alias="AWS_CONFIG_FILE",
+        validation_alias="AWS_CONFIG_FILE",
+    )
+
+    shared_credentials_file: str | None = Field(
+        default=None,
+        serialization_alias="AWS_SHARED_CREDENTIALS_FILE",
+        validation_alias="AWS_SHARED_CREDENTIALS_FILE",
+    )
+
+
 class Configuration(BaseSettings):
     """Configuration for cm-service.
 
@@ -724,6 +763,7 @@ class Configuration(BaseSettings):
     notifications: NotificationConfiguration = NotificationConfiguration()
     features: EnabledFeatures = EnabledFeatures()
     scheduler: SchedulerConfiguration = SchedulerConfiguration()
+    aws: AWSConfiguration = AWSConfiguration()
 
     # Root fields
     service_id: str = Field(
@@ -743,13 +783,6 @@ class Configuration(BaseSettings):
     mock_status: StatusEnum | None = Field(
         description="A fake status to return from all operations",
         default=None,
-    )
-
-    aws_s3_endpoint_url: str | None = Field(
-        description="An endpoint url to use with S3 APIs for the default profile",
-        default=None,
-        validation_alias=AliasChoices("AWS_ENDPOINT_URL_S3", "AWS_ENDPOINT_URL", "S3_ENDPOINT_URL"),
-        serialization_alias="AWS_ENDPOINT_URL_S3",
     )
 
     @property
