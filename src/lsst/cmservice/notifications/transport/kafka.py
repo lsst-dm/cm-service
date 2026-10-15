@@ -44,9 +44,9 @@ class KafkaTransport(NotificationTransport):
 
         message = KafkaNotification(
             node_name=node.name,
-            node_url=f"{config.asgi.fqdn}/gui/node/{node.id}",
+            node_url=f"{config.asgi.fqdn}{config.notifications.gui_root_path}/node/{node.id}",
             campaign_name=node.campaign.name,
-            campaign_url=f"{config.asgi.fqdn}/gui/campaign/{node.namespace}",
+            campaign_url=f"{config.asgi.fqdn}{config.notifications.gui_root_path}/campaign/{node.namespace}",
             from_status=activity_log.from_status,
             to_status=activity_log.to_status,
             metadata=deepcopy(node.campaign.metadata_),
