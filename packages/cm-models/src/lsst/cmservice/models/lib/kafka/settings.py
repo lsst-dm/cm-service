@@ -79,7 +79,7 @@ class ProducerSettings(BaseSettings):
     acks: Annotated[int, Field(ge=-1, le=1, serialization_alias="acks")] = -1
     batch_num_messages: Annotated[int, Field(ge=1, serialization_alias="batch.num.messages")] = 10_000
     batch_size: Annotated[int, Field(ge=1, serialization_alias="batch.size")] = 1_000_000
-    message_key: Annotated[str | None, Field(exclude=True)] = None
+    message_key: Annotated[bytes | str | None, Field(exclude=True)] = None
     queue_buffering_max_kbytes: Annotated[
         int, Field(ge=1, serialization_alias="queue.buffering.max.kbytes")
     ] = 1_048_576
