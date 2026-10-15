@@ -11,12 +11,13 @@ from ..lib.client_factory import CLIENT_FACTORY
 
 async def get_schedule_summary(schedule_id: str | None = None) -> AsyncGenerator[dict]:
     """Gets a list of schedules or a single schedule known to the API."""
-    url = "/schedules"
-    if schedule_id is not None:
-        url += f"/{schedule_id}"
 
-    async with CLIENT_FACTORY.aclient() as client:
-        r = await client.get(url)
+    url = "/schedules/"
+    if schedule_id is not None:
+        url += f"{schedule_id}"
+
+    async with CLIENT_FACTORY.aclient() as aclient:
+        r = await aclient.get(url)
         r.raise_for_status()
 
     for schedule in r.json():
@@ -25,6 +26,7 @@ async def get_schedule_summary(schedule_id: str | None = None) -> AsyncGenerator
 
 async def patch_schedule(schedule_id: str | UUID, patch_data: ScheduleUpdate) -> None:
     """PATCH a schedule to toggle its enabled status."""
+
     actor = app.storage.client["state"].user.username
     async with CLIENT_FACTORY.aclient() as client:
         client.headers["X-Auth-Request-User"] = actor
@@ -36,8 +38,9 @@ async def get_schedule_templates(schedule_id: str | UUID) -> AsyncGenerator[Crea
     """Read a collection of manifest template objects for a given schedule from
     the API.
     """
-    async with CLIENT_FACTORY.aclient() as client:
-        r = await client.get(f"/schedules/{schedule_id}/templates")
+
+    async with CLIENT_FACTORY.aclient() as aclient:
+        r = await aclient.get(f"/schedules/{schedule_id}/templates")
         r.raise_for_status()
 
         for template in r.json():
@@ -49,6 +52,7 @@ async def post_new_schedule(schedule: CreateSchedule) -> bool:
     conform to the API model for schedule creation with 0 or more manifest
     templates.
     """
+
     # Templates are excluded by default when serializing a `CreateSchedule`,
     # and the API reorganizes the post data as a table-based ORM object, so
     # we just need to make sure we send the templates with the post_data
@@ -57,8 +61,8 @@ async def post_new_schedule(schedule: CreateSchedule) -> bool:
         template.model_dump(exclude_none=True, exclude_unset=True) for template in schedule.templates
     ]
 
-    async with CLIENT_FACTORY.aclient() as client:
-        r = await client.post("/schedules", json=post_data)
+    async with CLIENT_FACTORY.aclient() as aclient:
+        r = await aclient.post("/schedules/", json=post_data)
         r.raise_for_status()
 
     return True
@@ -69,18 +73,20 @@ async def delete_schedule(schedule_id: str | UUID) -> None:
     that will remove all the schedule's template manifests but will not affect
     any campaigns created from this schedule in the past.
     """
+
     actor = app.storage.client["state"].user.username
 
-    async with CLIENT_FACTORY.aclient() as client:
-        client.headers["X-Auth-Request-User"] = actor
-        r = await client.delete(f"/schedules/{schedule_id}")
+    async with CLIENT_FACTORY.aclient() as aclient:
+        aclient.headers["X-Auth-Request-User"] = actor
+        r = await aclient.delete(f"/schedules/{schedule_id}")
         r.raise_for_status()
 
 
 async def oneshot_schedule(schedule_id: str | UUID) -> None:
     """Creates a one-shot execution of a schedule using the REST API."""
-    async with CLIENT_FACTORY.aclient() as client:
-        r = await client.post(f"/schedules/{schedule_id}/oneshot")
+
+    async with CLIENT_FACTORY.aclient() as aclient:
+        r = await aclient.post(f"/schedules/{schedule_id}/oneshot")
         r.raise_for_status()
 
 
@@ -90,6 +96,7 @@ async def put_schedule_template(
     """PUTs a new manifest to the API for a given template. This will replace
     the content of the template.
     """
+
     actor = app.storage.client["state"].user.username
 
     if isinstance(manifest, CreateManifestTemplate):
@@ -97,9 +104,9 @@ async def put_schedule_template(
     else:
         template = manifest
 
-    async with CLIENT_FACTORY.aclient() as client:
-        client.headers["X-Auth-Request-User"] = actor
-        r = await client.put(
+    async with CLIENT_FACTORY.aclient() as aclient:
+        aclient.headers["X-Auth-Request-User"] = actor
+        r = await aclient.put(
             f"/schedules/{schedule_id}/templates/{template_id}",
             json=template,
         )
@@ -108,9 +115,10 @@ async def put_schedule_template(
 
 async def get_schedule_change_history(schedule_id: UUID) -> list:
     """Get the template manifest audit log entries for a schedule."""
-    async with CLIENT_FACTORY.aclient() as client:
-        r = await client.get(
-            "/audit", params={"object_type": "template", "context.schedule": str(schedule_id)}
+
+    async with CLIENT_FACTORY.aclient() as aclient:
+        r = await aclient.get(
+            "/audit/", params={"object_type": "template", "context.schedule": str(schedule_id)}
         )
         r.raise_for_status()
         return r.json()

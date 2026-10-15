@@ -263,13 +263,16 @@ def build_htcondor_submit_environment() -> Mapping[str, str]:
         _CONDOR_SEC_FS_ENFORCE_CHANNEL_BINDING=config.htcondor.enforce_channel_binding,
         _CONDOR_DAGMAN_MANAGER_JOB_APPEND_GETENV="True",
         FS_REMOTE_DIR=config.htcondor.fs_remote_dir,
-        # FIXME: populate the DAF_BUTLER_REPOSITORIES env var with the JSON
-        #        string repr of the repository index as known to the service
-        DAF_BUTLER_REPOSITORY_INDEX=config.butler.repository_index,
         HOME=config.htcondor.remote_user_home,
         LSST_VERSION=config.bps.lsst_version,
         LSST_DISTRIB_DIR=config.bps.lsst_distrib_dir,
-        LSST_DB_AUTH=f"{config.htcondor.remote_user_home}/.lsst/db-auth.{config.service_id}.yaml",
+        # FIXME: write a per-job file using the db auth info known to the
+        #        service and populate the LSST_DB_AUTH env var with its
+        #        location.
+        LSST_DB_AUTH=config.butler.authentication_file,
+        # FIXME: populate the DAF_BUTLER_REPOSITORIES env var with the JSON
+        #        string repr of the repository index as known to the service
+        DAF_BUTLER_REPOSITORY_INDEX=config.butler.repository_index,
         # FIXME: because the aws credentials file is assumed to be in place;
         #        the s3 resource supports a custom but nonstandard environment
         #        variable LSST_RESOURCES_S3_PROFILE_<profile> that can contain

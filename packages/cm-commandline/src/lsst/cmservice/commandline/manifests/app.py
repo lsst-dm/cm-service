@@ -19,9 +19,9 @@ console = Console()
 def list(ctx: TypedContext) -> None:
     """list all manifests"""
     output_format = formatters.Formatters[ctx.obj.output_format]
-    with http_client(ctx) as session:
+    with http_client(ctx) as client:
         try:
-            r = session.get("/manifests")
+            r = client.get("/manifests/")
             r.raise_for_status()
         except Exception as e:
             print(e)
@@ -41,9 +41,9 @@ def list(ctx: TypedContext) -> None:
 @app.command(name="describe")
 def describe_manifest(ctx: TypedContext, manifest_id: Annotated[str, typer.Argument(parser=UUID)]) -> None:
     """Describes a manifest by listing its versions"""
-    with http_client(ctx) as session:
+    with http_client(ctx) as client:
         try:
-            r = session.get(f"/manifests/{manifest_id}")
+            r = client.get(f"/manifests/{manifest_id}")
             r.raise_for_status()
         except Exception as e:
             print(e)

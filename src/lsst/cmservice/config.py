@@ -8,6 +8,7 @@ from warnings import warn
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 from pydantic import (
+    AfterValidator,
     AliasChoices,
     BaseModel,
     BeforeValidator,
@@ -31,6 +32,16 @@ from .common.flags import EnabledFeatures
 __all__ = ["Configuration", "config"]
 
 load_dotenv()
+
+
+def check_prefix(value: str) -> str:
+    """Ensure that a string used as a path component in a URI has a leading
+    but no trailing slash.
+    """
+    if value:
+        stripped_value = value.strip("/")
+        value = f"/{stripped_value}"
+    return value
 
 
 class BpsConfiguration(BaseModel):
@@ -573,29 +584,27 @@ class AsgiConfiguration(BaseModel):
         default=8080,
     )
 
-    route_prefix: str = Field(
+    route_prefix: Annotated[str, AfterValidator(check_prefix)] = Field(
         description="The URL prefix used for API routers, i.e., a permanent subpath "
         "onto which the API routers are mounted. This should include a leading slash and no trailing slash.",
-        default="",
-        deprecated="`route_prefix` is deprecated. Use `root_path` instead, which will cause uvicorn to "
-        "rewrite any paths for the indicated reverse proxy/ingress path. For direct local access and tests, "
-        "use the API version directly and alone in the URI.",
-        examples=["/cm-service"],
+        default="/api",
+        examples=["/api"],
     )
 
-    root_path: str = Field(
-        description="The URL root path used with the ASGI server (i.e., for "
-        "link generation and reverse proxy or ingress deployment.",
+    root_path: Annotated[str, AfterValidator(check_prefix)] = Field(
+        description="The URL component stripped by an ingress or reverse proxy.",
         default="",
+        examples=["/cm"],
     )
 
-    frontend_prefix: str = Field(
+    frontend_prefix: Annotated[str, AfterValidator(check_prefix)] = Field(
         description="The URL prefix for the frontend web app. This path will be relative "
         "to the asgi root path when it is in use.",
         default="/web_app",
+        deprecated="The frontend_prefix was used by the v1 web_app",
     )
 
-    docs_prefix: str = Field(
+    docs_prefix: Annotated[str, AfterValidator(check_prefix)] = Field(
         description="The URL prefix for the Swagger API docs. If not set, the docs "
         "will be mounted at a subpath relative to the asgi root_path in the usual way.",
         default="",
@@ -608,7 +617,7 @@ class AsgiConfiguration(BaseModel):
     )
 
     fqdn: str = Field(
-        description="DNS FQDN for hosted application",
+        description="DNS FQDN for hosted application, without trailing slash",
         default="https://usdf-cm-dev.slac.stanford.edu",
     )
 
