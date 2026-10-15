@@ -310,10 +310,11 @@ async def read_provenance_report_json(path: Path) -> dict:
     }
 
     exceptions: dict[str, list[dict]] = defaultdict(list)
-    task: dict[str, Any]
-    for task in provenance["exceptions"]:
-        task_name = task.pop("Task")
-        exceptions[task_name].append(task)
+    if (task_exceptions := provenance["exceptions"]) is not None:
+        task_exception: dict[str, Any]
+        for task_exception in task_exceptions:
+            task_name = task_exception.pop("Task")
+            exceptions[task_name].append(task_exception)
 
     for task_name in report:
         report[task_name] |= {
