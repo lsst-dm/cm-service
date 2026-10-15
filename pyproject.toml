@@ -127,6 +127,10 @@ Source = "https://github.com/lsst-dm/cm-service"
 [tool.uv]
 default-groups = "all"
 
+override-dependencies = [
+    { package = { name = "lsst-pipe-base"}, dependencies = ["zstandard>=0.25.0,<1.0"] },
+]
+
 [tool.uv.sources]
 lsst-cm-service = { workspace = true }
 lsst-cmservice-models = { workspace = true }
