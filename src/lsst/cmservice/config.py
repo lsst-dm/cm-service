@@ -652,6 +652,10 @@ class NotificationConfiguration(BaseModel):
         default=None,
         description="URL of a Slack Application webhook for the `default` notification label",
     )
+    gui_root_path: str = Field(
+        default="/cm/gui",
+        description="The root path on which the CM web gui is mounted for external clients",
+    )
 
     @cached_property
     def fernet(self) -> Fernet | None:

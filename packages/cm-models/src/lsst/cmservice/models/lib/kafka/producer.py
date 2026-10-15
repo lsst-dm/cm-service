@@ -34,7 +34,7 @@ class NotificationProducer(Producer):
     """
 
     topic: str | None
-    key: str | None
+    key: bytes | str | None
 
     @exponential_retry(
         producer_settings,
