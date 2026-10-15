@@ -7,6 +7,7 @@
 #     "lsst-cmservice-models",
 #     "lsst-utils",
 #     "pydantic==2.12.*",
+#     "sqlalchemy[asyncio]==2.0.*",
 # ]
 #
 # [tool.uv.sources]
