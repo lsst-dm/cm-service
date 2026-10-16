@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 
 from lsst.cmservice.models.db.campaigns import ActivityLog as ActivityLog
 from lsst.cmservice.models.enums import ManifestKind, NotificationLabelEnum, StatusEnum
@@ -10,7 +10,7 @@ from ..models import NotificationPayload as NotificationPayload
 class NotificationTransport(ABC):
     __kind__ = NotificationLabelEnum.default
     default_filters: list[str] = ["start:*:running", "end:running:*", "*:*:failed", "breakpoint:*:running"]
-    secret: str | Mapping | None = None
+    secret: str | Mapping | MutableMapping | None = None
 
     @abstractmethod
     def notify(self, message: bytes | dict) -> None:
