@@ -5,17 +5,21 @@ from ..lib.client_factory import CLIENT_FACTORY
 
 
 async def get_one_manifest(
+    *,
     namespace: str,
     id: str | None = None,
     kind: str | None = None,
     name: str | None = None,
     version: int | None = None,
+    default: bool = False,
 ) -> Response | None:
     # Default URL when manifest id is used
     url = f"/manifests/{id}"
 
     if kind is not None:
         url = f"/campaigns/{namespace}/manifest/{kind}"
+        if default:
+            url += "/default"
         if name is not None:
             url += f"/{name}"
             if version is not None:

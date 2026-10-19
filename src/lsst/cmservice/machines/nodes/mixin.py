@@ -67,13 +67,15 @@ class NodeMixIn(MixIn):
         manifest: Manifest | None = None
         kind = manifest_kind.name
         my = self.db_model
-        selected_by: Literal["selectors", "default", "version"] = "version"
+        selected_by: Literal["selectors", "default", "version"] | None = None
 
+        # Match a manifest in the current CAMPAIGN or LIBRARY by label select
         if "selectors" in my.metadata_ and kind in my.metadata_["selectors"]:
+            selected_by = "selectors"
             label_containment = {"labels": my.metadata_["selectors"][kind]}
             s = (
                 select(Manifest)
-                .where(Manifest.namespace == my.namespace)
+                .where(or_(Manifest.namespace == my.namespace, Manifest.namespace == DEFAULT_NAMESPACE))
                 .where(col(Manifest.kind) == kind)
                 .where(col(Manifest.metadata_).contains(label_containment))
                 .order_by(col(Manifest.version).desc())
@@ -81,9 +83,9 @@ class NodeMixIn(MixIn):
             )
             manifest = (await self.session.exec(s)).one_or_none()
 
-        if manifest is not None:
-            selected_by = "selectors"
-        else:
+        # Match a manifest in the current CAMPAIGN by default status
+        if manifest is None:
+            selected_by = "default"
             s = (
                 select(Manifest)
                 .where(Manifest.namespace == my.namespace)
@@ -93,9 +95,9 @@ class NodeMixIn(MixIn):
             )
             manifest = (await self.session.exec(s)).one_or_none()
 
-        if manifest is not None:
-            selected_by = "default"
-        else:
+        # Match a manifest in the CAMPAIGN or LIBRARY by newest
+        if manifest is None:
+            selected_by = "version"
             s = (
                 select(Manifest)
                 .where(col(Manifest.kind) == kind)
@@ -107,6 +109,7 @@ class NodeMixIn(MixIn):
             manifest = (await self.session.exec(s)).one_or_none()
 
         if manifest is None:
+            selected_by = None
             msg = f"A required manifest was not found in the database: {manifest_kind}"
             raise CMNoSuchManifestError(msg)
 
