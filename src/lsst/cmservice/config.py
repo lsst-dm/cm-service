@@ -55,11 +55,13 @@ class BpsConfiguration(BaseModel):
     lsst_version: str = Field(
         description="Default LSST version",
         default="w_latest",
+        deprecated="Only used for fallback configuration in launch jobs.",
     )
 
     lsst_distrib_dir: str = Field(
         description="Default distribution directory from which to setup lsst",
         default="/sdf/group/rubin/sw/w_latest",
+        deprecated="Only used for fallback configuration in launch jobs.",
     )
 
     mock_distrib_dir: str | None = Field(
@@ -85,11 +87,13 @@ class BpsConfiguration(BaseModel):
     n_jobs: int = Field(
         description="Parallelization factor for jobs (-j N)",
         default=16,
+        deprecated="Only used in legacy job operations",
     )
 
     artifact_path: str = Field(
         description="Filesystem path location for writing artifacts (`prod_area`)",
         default="/prod_area",
+        deprecated="Only used in fallback config and legacy job pathing operations",
     )
 
     log_level: Annotated[
@@ -114,19 +118,13 @@ class ButlerConfiguration(BaseModel):
     repository_index: str = Field(
         description="Fully qualified path to a butler repository index.",
         default="/sdf/group/rubin/shared/data-repos.yaml",
+        deprecated="Only used in fallback configuration",
     )
 
     authentication_file: str = Field(
         description="Path and name of a db-auth.yaml to use with Butler",
         default="~/.lsst/db-auth.yaml",
-    )
-
-    # FIXME this username is probably not necessary to track on its own, as it
-    #       should be part of any db authentication scheme associated with
-    #       butler use.
-    default_username: str = Field(
-        description="Default username to use for Butler registry authentication",
-        default="rubin",
+        deprecated="Only used in fallback configuration",
     )
 
     eager: bool = Field(
@@ -703,6 +701,11 @@ class SchedulerConfiguration(BaseModel):
 
 class AWSConfiguration(BaseModel):
     """Configuration for AWS/botocore defaults.
+
+    This configuration model is mostly used to hydrate WMS job submission
+    environments with application defaults. It is not used during first-party
+    botocore operations, but can be populated by well-known first-party env
+    vars.
 
     Set according to AWS__FIELD environment variables if a validation alias is
     not provided.
