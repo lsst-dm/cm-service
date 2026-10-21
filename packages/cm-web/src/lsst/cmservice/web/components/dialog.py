@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Literal, Self
 from uuid import UUID
 
 from nice_dialogs.dialogs import ConfirmationDialog, CronEditorDialog, LabelMakerDialog
-from nicegui import app, ui
+from nicegui import app, binding, ui
 from nicegui.events import ClickEventArguments, GenericEventArguments, ValueChangeEventArguments
 from pydantic_core import PydanticUndefined, ValidationError
 
@@ -904,6 +904,7 @@ class ScheduleReviewDialog(ui.dialog):
         self.manifests: dict[str, CreateManifestTemplate] = {str(t.id): t for t in templates}
         self.active_manifest: str = ""
         self.allow_editing: bool = False
+        self.uses_external_resource: bool = "uri" in schedule["configuration"]
         self.dialog_layout()
 
     # Tell type checkers what is returned when the dialog is awaited
@@ -918,9 +919,14 @@ class ScheduleReviewDialog(ui.dialog):
             ui.card().classes("w-[96vw] h-[85vh] max-w-[96vm] max-h-[85vh] flex flex-col overflow-hidden"),
         ):
             # HEADER
-            with ui.row().classes("w-full shrink-0 py-2"):
+            with ui.row().classes("w-full shrink-0 py-2 items-center"):
                 ui.label("Previewing:").classes()
                 ui.label(self.dialog_title).classes()
+                with ui.link().bind_visibility_from(self, "uses_external_resource") as external_link:
+                    binding.bind_to(
+                        self.schedule, ("configuration", "uri"), external_link.props, "href", forward=str
+                    )
+                    ui.chip("External Resource", icon="open_in_browser", color="white")
 
             # CONTENT
             ui.separator()
@@ -975,7 +981,7 @@ class ScheduleReviewDialog(ui.dialog):
                     self, target_name="allow_editing", backward=lambda v: "Done" if v else "Edit"
                 ).bind_background_color_from(
                     self, target_name="allow_editing", backward=lambda v: "negative" if v else "accent"
-                )
+                ).bind_enabled_from(self, "uses_external_resource", backward=lambda v: not v)
 
     def set_active_manifest(self, e: GenericEventArguments, manifest_id: str) -> None:
         """Update the manifest id used to display the code preview content."""
