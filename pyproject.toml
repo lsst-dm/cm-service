@@ -24,7 +24,7 @@ dynamic = ["version"]
 # with dependencies declared by all packages in `package/`.
 dependencies = [
     "alembic==1.16.*",
-    "anyio==4.10.*",
+    "anyio==4.14.*",
     "apscheduler>=3.11.2,<4",
     "asgi-correlation-id>=4.3.4",
     "asyncpg==0.31.*",
