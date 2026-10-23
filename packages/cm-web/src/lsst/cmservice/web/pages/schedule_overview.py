@@ -281,6 +281,26 @@ class ScheduleOverviewPage(CMPage[ScheduleOverviewPageModel]):
                     ui.notify("Schedule deleted", color="warning")
 
             case "one_shot":
+                if schedule.is_enabled:
+                    disable_or_cancel = ConfirmationDialog(
+                        icon="update_disabled",
+                        icon_color="warning",
+                        message="""\
+                            The schedule must be in a disabled state before a
+                            one-shot may be triggered. Disable the schedule and try again.
+                        """,
+                        yes_button_label="Disable Now",
+                        no_button_label="Cancel",
+                        show_remember_checkbox=False,
+                    )
+                    disable_now, _ = await disable_or_cancel
+                    disable_or_cancel.clear()
+                    if disable_now is True:
+                        data.args = [target, "toggle"]
+                        await self.handle_schedule_action(data)
+                    else:
+                        self.hide_spinner()
+                        return
                 await schedules.oneshot_schedule(schedule.id)
                 confirm = ConfirmationDialog(
                     icon="done",

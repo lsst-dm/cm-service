@@ -2,9 +2,10 @@
 processing site or facility.
 """
 
+from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
+from pydantic import MISSING, Field, field_serializer
 
 from . import SPEC_CONFIG, LibraryManifest, ManifestSpec
 
@@ -43,13 +44,57 @@ class FacilitySpec(ManifestSpec):
         description="Name of the provisioning queue or partition for provisioned glidein",
         examples=["milano", "roma"],
     )
-
     provisioned_account_group: str = Field(
         default="rubin:developers",
         title="Accounting User",
         description="Name of the accounting user or group associated with the provisioned glidein",
         examples=["rubin:developers", "rubin:production"],
     )
+    botocore_config_file: Path | MISSING = Field(
+        default=MISSING,
+        title="Botocore Config File",
+        description="Path to the site-specific botocore configuration file, "
+        "as an absolute path known to the launcher context.",
+        examples=["/path/to/a/specific/botocore/config.ini"],
+    )
+    botocore_credentials_file: Path | MISSING = Field(
+        default=MISSING,
+        title="Botocore Credentials File",
+        description="Path to the site-specific botocore shared credentials file, "
+        "as an absolute path known to the launcher context.",
+        examples=["/path/to/a/specific/botocore/credentials.ini"],
+    )
+    lsst_db_auth_file: Path | MISSING = Field(
+        default=MISSING,
+        title="LSST DB Authentication File",
+        description="Path to the site-specific LSST database authentication file, "
+        "as an absolute path known to the launcher context.",
+        examples=["/path/to/a/specific/lsst/db-auth.yaml"],
+    )
+    lsst_data_repos_file: Path | MISSING = Field(
+        default=MISSING,
+        title="LSST Butler Index File",
+        description="Path to the site-specific LSST butler data repo index file, "
+        "as an absolute path known to the launcher context.",
+        examples=["/path/to/a/specific/lsst/db-auth.yaml"],
+    )
+    remote_user_home: Path | MISSING = Field(
+        default=MISSING,
+        title="Launcher Home Directory",
+        description="Path to the launcher runtime user's home directory, "
+        "as an absolute path known to the launcher context.",
+        examples=["/mnt/home/u/user"],
+    )
+
+    @field_serializer(
+        "botocore_config_file",
+        "botocore_credentials_file",
+        "lsst_db_auth_file",
+        "lsst_data_repos_file",
+        "remote_user_home",
+    )
+    def as_string(self, value: Path) -> str:
+        return str(value)
 
 
 class FacilityManifest(LibraryManifest[FacilitySpec]): ...
