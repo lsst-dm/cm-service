@@ -106,6 +106,9 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
             if not isinstance(v, str):
                 continue
             self.db_model.configuration["butler"]["collections"][k] = j_env.from_string(v).render()
+        self.db_model.metadata_["run_collections"] = [
+            self.db_model.configuration["butler"]["collections"].get("run", None)
+        ]
 
     async def do_prepare(self, event: EventData) -> None:
         """Callback invoked when executing the "prepare" transition."""
@@ -627,8 +630,9 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         work again.
         """
 
-        # remove the BPS runtime metadata
+        # remove the Butler and BPS runtime metadata
         self.db_model.metadata_.pop("bps", None)
+        self.db_model.metadata_.pop("run_collections", None)
 
         # Additionally, any artifacts created by the node should be removed,
         # and because this is not a new version of the Node, the previous
