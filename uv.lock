@@ -1252,12 +1252,12 @@ dev = [
 ]
 lsst = [
     { name = "lsst-cmservice-models", editable = "packages/cm-models" },
-    { name = "lsst-ctrl-bps", specifier = ">=29.2025.4700" },
-    { name = "lsst-ctrl-bps-htcondor", marker = "sys_platform == 'linux'", specifier = ">=29.2025.4700" },
-    { name = "lsst-ctrl-bps-panda", specifier = ">=29.2025.4700" },
-    { name = "lsst-daf-butler", specifier = ">=29.2025.4700" },
-    { name = "lsst-pipe-base", specifier = ">=29.2025.4700" },
-    { name = "lsst-utils", specifier = ">=29.2025.4700" },
+    { name = "lsst-ctrl-bps", specifier = ">=30.2026.4300" },
+    { name = "lsst-ctrl-bps-htcondor", marker = "sys_platform == 'linux'", specifier = ">=30.2026.4300" },
+    { name = "lsst-ctrl-bps-panda", specifier = ">=30.2026.4300" },
+    { name = "lsst-daf-butler", specifier = ">=30.2026.4300" },
+    { name = "lsst-pipe-base", specifier = ">=30.2026.4300" },
+    { name = "lsst-utils", specifier = ">=30.2026.4300" },
 ]
 
 [[package]]
@@ -1372,7 +1372,7 @@ dev = [{ name = "json-schema-for-humans" }]
 
 [[package]]
 name = "lsst-ctrl-bps"
-version = "30.2026.3200"
+version = "30.2026.4300"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -1385,14 +1385,14 @@ dependencies = [
     { name = "networkx" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3e/fb/fc8ae9d65632423651226e9136a781fbf582f28d610b4a03b38d6785081c/lsst_ctrl_bps-30.2026.3200.tar.gz", hash = "sha256:6613e80cb624e36a3ebfb1001ccfbfefb9cbaf5e40a46199f025701e4f7b2c31", size = 149206, upload-time = "2026-08-06T08:39:03.806Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/59/d0/eee27f89a2eac2513535c637dcfcc75bad32c0871155f609f75cc7f6b387/lsst_ctrl_bps-30.2026.4300.tar.gz", hash = "sha256:a561c0385811cd1c39976a3f4bed5d8ce5058913e3addb0639cfd59cabf77d64", size = 165231, upload-time = "2026-10-22T08:40:27.983Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c8/cc/cb72c3b1327fe4817e4cd40a0a549142834d17963f242ef483966d235dbe/lsst_ctrl_bps-30.2026.3200-py3-none-any.whl", hash = "sha256:d7de55ee6cce8cd4c9c0855f1838151b6800f423c4509446a977017abb9fb075", size = 119944, upload-time = "2026-08-06T08:39:02.731Z" },
+    { url = "https://files.pythonhosted.org/packages/6a/97/6a3681b80938ef5bf199200bc0067d1c12c9728ee42eb8a44d44b04308fd/lsst_ctrl_bps-30.2026.4300-py3-none-any.whl", hash = "sha256:69cc6dce7285e14b1b5edf87ee26968144a7b3345182eb0b4b469ff8ebfb307c", size = 127675, upload-time = "2026-10-22T08:40:26.965Z" },
 ]
 
 [[package]]
 name = "lsst-ctrl-bps-htcondor"
-version = "30.2026.3200"
+version = "30.2026.4300"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "htcondor" },
@@ -1403,14 +1403,14 @@ dependencies = [
     { name = "packaging" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/96/b5/a0fb4124662a8b911af1c203ba8c5a009130c80e63402b4c687b0bb96907/lsst_ctrl_bps_htcondor-30.2026.3200.tar.gz", hash = "sha256:e627cdbe26aa2b14941f276aa48dc6b033b46d4399252c21bece552603ecef09", size = 111038, upload-time = "2026-08-06T08:38:44.025Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ff/71/24bac4490749638c1020bb314914c473c51dc95be4f3d45a73d3549864c8/lsst_ctrl_bps_htcondor-30.2026.4300.tar.gz", hash = "sha256:f68001febff2421d677a6bf5a4d48ae17df76fddf67c6923d6707426ca5b9fc9", size = 123217, upload-time = "2026-10-22T08:39:04.992Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c2/44/08115b5de9e9fc50d38d9c8e6a277f1efab9749a9629d3dcd1cd72c4f563/lsst_ctrl_bps_htcondor-30.2026.3200-py3-none-any.whl", hash = "sha256:9c433310fd59206f4576246b4fd7312c7beea6409f3f2bdce4a23e4f46651f71", size = 79689, upload-time = "2026-08-06T08:38:42.791Z" },
+    { url = "https://files.pythonhosted.org/packages/d0/b6/6eb273c3d39961ee16a5372be4e936033bd818784d6dad0fedf174868412/lsst_ctrl_bps_htcondor-30.2026.4300-py3-none-any.whl", hash = "sha256:4d53ae9f5612eeb617b6a7f30f514e2cc8851f2f737d1c812ee40e222f6b701f", size = 85471, upload-time = "2026-10-22T08:39:03.775Z" },
 ]
 
 [[package]]
 name = "lsst-ctrl-bps-panda"
-version = "30.2026.3200"
+version = "30.2026.4300"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -1425,9 +1425,9 @@ dependencies = [
     { name = "panda-client" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/72/19/56931b2caeb8c7553ad4861e35f452151bf877e7828e7e6ba4b0919e262b/lsst_ctrl_bps_panda-30.2026.3200.tar.gz", hash = "sha256:73fd225137e32e07711fd84ed876dcae7e330b75b37a0806a613ea46e527c19f", size = 51848, upload-time = "2026-08-06T08:38:46.742Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b1/9e/da273ca049eb83e2f2e9ba97130cc3ccd7f38234e65cbd34b2e6906e5f4e/lsst_ctrl_bps_panda-30.2026.4300.tar.gz", hash = "sha256:b1b4c1e3ae7762f5c537c095fbb0ac81cc06f641327dc9c0859bb955ef913347", size = 51959, upload-time = "2026-10-22T08:40:32.782Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e8/d3/5115c1fdcf7277c5a89b627b9f560e5b75a1a341854f7b4d4a66363c7bf7/lsst_ctrl_bps_panda-30.2026.3200-py3-none-any.whl", hash = "sha256:c99288a3b1f4856c1050c3de589dab4bcd7ce1ab710f270e1c408523c0ef90b8", size = 59281, upload-time = "2026-08-06T08:38:45.568Z" },
+    { url = "https://files.pythonhosted.org/packages/61/84/2148c150fd322f64175306190fa4f30f8224d8e17748df4bf584da3600a9/lsst_ctrl_bps_panda-30.2026.4300-py3-none-any.whl", hash = "sha256:2cbbf2d7a498230b45454a67cee8e7edbf00c6bb48a8870c6a9b0e1da8ac225a", size = 59274, upload-time = "2026-10-22T08:40:31.643Z" },
 ]
 
 [[package]]
@@ -1452,7 +1452,7 @@ wheels = [
 
 [[package]]
 name = "lsst-daf-butler"
-version = "30.2026.3200"
+version = "30.2026.4300"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -1467,9 +1467,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "sqlalchemy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f7/f3/3fc793fd624d5698c352c33f635971377fa26afa3700e95db1dc0a612c88/lsst_daf_butler-30.2026.3200.tar.gz", hash = "sha256:0ceaa44476683a947aeb5ec45ffbbdef67007c33fdfedcc4befeb2789e70afe7", size = 1322202, upload-time = "2026-08-06T08:52:07.277Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ed/81/dcc809f11369a9d8efb8ad5ba16634d0b1525d60e7d4c6635068751f14c3/lsst_daf_butler-30.2026.4300.tar.gz", hash = "sha256:2a44f7903b4625afcc3fe6f3d86b55e0044008fc961e372b7e167c8f1df17d37", size = 1343091, upload-time = "2026-10-22T08:44:47.91Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8e/c5/141b0b73e2dddd95d4927aa6ae4663302f03088aa58b08b2f9d4195ccd91/lsst_daf_butler-30.2026.3200-py3-none-any.whl", hash = "sha256:8a5570148c4da68c0d67c0c8064f85e7fd3175a77f39e0539c0a88ee1e5591a8", size = 1406012, upload-time = "2026-08-06T08:52:05.472Z" },
+    { url = "https://files.pythonhosted.org/packages/99/cd/7b0bafd36059eef5cda1edc3792e55ecaf05f2eccc7c4b1eaa4ef72f18a4/lsst_daf_butler-30.2026.4300-py3-none-any.whl", hash = "sha256:8b7d829927545892a22b883768953003797cbc59e6119732d5d94b8164f7f619", size = 1419880, upload-time = "2026-10-22T08:44:46.189Z" },
 ]
 
 [[package]]
@@ -1488,7 +1488,7 @@ wheels = [
 
 [[package]]
 name = "lsst-pipe-base"
-version = "30.2026.3200"
+version = "30.2026.4300"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -1504,9 +1504,9 @@ dependencies = [
     { name = "wcwidth" },
     { name = "zstandard" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8f/22/1d0251c949ff89c48ae557b7d9af91f8340f5ef90c067bf3041cf1cfaaba/lsst_pipe_base-30.2026.3200.tar.gz", hash = "sha256:5c93ba631916dfde53b550a5a5cab49205eb80d9f6eb9196f5a832bfa72d66aa", size = 609336, upload-time = "2026-08-06T08:43:52.936Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/db/38/091955d55174e31ba823887c1c5c0fb79a3efcb0f85e0e3a70fe60243481/lsst_pipe_base-30.2026.4300.tar.gz", hash = "sha256:e78b742f9035c871b024a5cf2bb0585822ff912b4be48b6be3a9c5e5a098a071", size = 613297, upload-time = "2026-10-22T08:46:24.094Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b6/ed/f587dd39c7a4ed735be15923bcf5a76c2df2605fadcebaf568187f6100aa/lsst_pipe_base-30.2026.3200-py3-none-any.whl", hash = "sha256:1e7d32b4bb97cbbe9d019f1fbf8eaf081796b8449188cdac30c9885e33ca586d", size = 569786, upload-time = "2026-08-06T08:43:51.458Z" },
+    { url = "https://files.pythonhosted.org/packages/27/b7/5b8d1a75cb3a82188ab925cec07ce1cbb250b3ee175fa81a07ec40ca3a7e/lsst_pipe_base-30.2026.4300-py3-none-any.whl", hash = "sha256:38b7c16f5d927352e0e818df7459df44170d4e74477ecc693f75c51de34c5907", size = 571923, upload-time = "2026-10-22T08:46:22.67Z" },
 ]
 
 [[package]]
@@ -1545,7 +1545,7 @@ wheels = [
 
 [[package]]
 name = "lsst-utils"
-version = "30.2026.2900"
+version = "30.2026.4300"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -1556,9 +1556,9 @@ dependencies = [
     { name = "structlog" },
     { name = "threadpoolctl" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/08/b6/3198405f2110508a76d918b75de8a82a5ffa858ce4813f49d877b6d122a7/lsst_utils-30.2026.2900.tar.gz", hash = "sha256:7ee345e1df58030e061c78a3ae5a0f018b6a5c330a4a3f2bcac5449388c137b8", size = 94768, upload-time = "2026-07-16T08:28:50.632Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/61/ce/d74285955c9719186a38efd790bf6a933da6feb5d77a264cbced8eb8ee55/lsst_utils-30.2026.4300.tar.gz", hash = "sha256:5f93b253d4871d5ae2c8db70e64461e36fe4eed5971bd8c89fffffe388711a33", size = 96612, upload-time = "2026-10-22T08:45:19.534Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bb/e1/31ad285a8e92a1d246672e110f79d513114d30aab06a0ef826b09574fa65/lsst_utils-30.2026.2900-py3-none-any.whl", hash = "sha256:df6ebc7c65121547b239ea8734e8585465da21389cbd2fdff87cd65e673f90ff", size = 76024, upload-time = "2026-07-16T08:28:49.375Z" },
+    { url = "https://files.pythonhosted.org/packages/32/82/e48e74f0375cd054350031790fe4c2dd478d64cf6943e9dfea4bb09f2165/lsst_utils-30.2026.4300-py3-none-any.whl", hash = "sha256:67e9891af2968a0ae8505517fc821ba65323b1015ea4674bb7d88429b056ab5b", size = 76830, upload-time = "2026-10-22T08:45:18.37Z" },
 ]
 
 [[package]]
