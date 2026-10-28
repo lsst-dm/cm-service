@@ -1,155 +1,55 @@
-# pylint: disable=invalid-name
+from enum import Enum, IntEnum, auto
 
 
-import enum
-
-
-class TableEnum(enum.Enum):
-    """Keep track of the various tables"""
-
-    campaign = 1
-    step = 2
-    group = 3
-    job = 4
-    script = 5
-    step_dependency = 6
-    script_dependency = 7
-    pipetask_error_type = 8
-    pipetask_error = 9
-    script_error = 10
-    task_set = 11
-    product_set = 12
-    specification = 13
-    spec_block = 14
-    n_tables = 16
-
-    def is_node(self) -> bool:
-        """Is this a subclass of NodeMixin"""
-        return self.value in [1, 2, 3, 4, 5]
-
-    def is_element(self) -> bool:
-        """Is this a subclass of ElementMixin"""
-        return self.value in [1, 2, 3, 4]
-
-
-class NodeTypeEnum(enum.Enum):
-    """What kind of node: element or script"""
-
-    element = 1
-    script = 5
-    other = 9
-
-
-class LevelEnum(enum.Enum):
-    """Keep track of processing hierarchy
-
-    The levels are:
-
-    campaign = 1
-        A full data processing campaign
-
-    step = 2
-        Part of a campaign that is finished before moving on
-
-    group = 3
-        A subset of data that can be processed in paralllel as part of a step
-
-    job = 4
-        A single bps workflow
-
-    script = 5
-        A script that does a particular action.  May occur off any other level
-    """
-
-    campaign = 1
-    step = 2
-    group = 3
-    job = 4
-    script = 5
-    n_levels = 6
-
-    @staticmethod
-    def get_level_from_fullname(fullname: str) -> LevelEnum:
-        """Parse fullname to determine Level"""
-        if fullname.find("script:") == 0:
-            return LevelEnum.script
-        n_slash = fullname.count("/")
-        return LevelEnum(n_slash + 1)
-
-
-class TaskStatusEnum(enum.Enum):
+class TaskStatusEnum(IntEnum):
     """Defines possible outcomes for Pipetask tasks"""
 
-    processing = 0
-    done = 1
-    failed = 2
-    failed_upstream = 3
-    missing = 4
+    processing = auto()
+    done = auto()
+    failed = auto()
+    failed_upstream = auto()
+    missing = auto()
 
 
-class ProductStatusEnum(enum.Enum):
+class ProductStatusEnum(IntEnum):
     """Defines possible outcomes for Pipetask Products"""
 
-    processing = 0
-    done = 1
-    failed = 2
-    failed_upstream = 3
-    missing = 4
+    processing = auto()
+    done = auto()
+    failed = auto()
+    failed_upstream = auto()
+    missing = auto()
 
 
-class ErrorSourceEnum(enum.Enum):
+class ErrorSourceEnum(IntEnum):
     """Who first reported the error"""
 
-    cmservice = 0
-    local_script = 1
-    htc_workflow = 1
-    manifest = 2
+    cmservice = auto()
+    local_script = auto()
+    htc_workflow = auto()
+    manifest = auto()
 
 
-class ErrorFlavorEnum(enum.Enum):
+class ErrorFlavorEnum(IntEnum):
     """What sort of error are we talking about"""
 
-    infrastructure = 0
-    configuration = 1
-    pipelines = 2
+    infrastructure = auto()
+    configuration = auto()
+    pipelines = auto()
 
 
-class ErrorActionEnum(enum.Enum):
+class ErrorActionEnum(IntEnum):
     """What should we do about it?"""
 
-    fail = -4
-    requeue_and_pause = -2
-    rescue = -1
-    auto_retry = 0
-    review = 4
-    accept = 5
+    fail = auto()
+    requeue_and_pause = auto()
+    rescue = auto()
+    auto_retry = auto()
+    review = auto()
+    accept = auto()
 
 
-class ScriptMethodEnum(enum.Enum):
-    """Defines how to run a script
-
-    default = -1
-        Use the default method for the handler in question
-
-    no_script = 0
-        No actual script, just uses a function
-
-    bash = 1
-        Bash script, just run the script using a system call
-
-    htcondor = 3
-        Use htcondor to submit the script
-
-    More methods to come...
-    """
-
-    default = -1
-    no_script = 0
-    bash = 1
-    htcondor = 3
-
-
-class WmsMethodEnum(enum.Enum):
+class WmsMethodEnum(IntEnum):
     """Defines which workflow manager to use
 
     default = -1
@@ -167,23 +67,23 @@ class WmsMethodEnum(enum.Enum):
     More methods to come...
     """
 
-    default = -1
-    bash = 0
-    panda = 1
-    htcondor = 2
+    default = auto()
+    bash = auto()
+    panda = auto()
+    htcondor = auto()
 
 
-class WmsComputeSite(enum.Enum):
+class WmsComputeSite(IntEnum):
     """Define a potential compute site"""
 
-    default = -1
-    slac = 1
-    lancs = 2
-    ral = 3
-    in2p3 = 4
+    default = auto()
+    slac = auto()
+    lancs = auto()
+    ral = auto()
+    in2p3 = auto()
 
 
-class SplitterEnum(enum.Enum):
+class SplitterEnum(Enum):
     """An enumeration of supported splitter kinds where the value is the string
     constant used in the Node configuration.
     """

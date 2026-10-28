@@ -6,7 +6,6 @@
 !uv.lock
 !alembic.ini
 !src/lsst/
-!examples/
 !alembic/
 !/packages/cm-models/
 !/packages/cm-web/

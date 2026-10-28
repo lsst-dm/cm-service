@@ -5,7 +5,7 @@ from logging.config import fileConfig
 from sqlalchemy import create_engine, pool, text
 
 from alembic import context
-from lsst.cmservice.db.legacy_base import Base
+from lsst.cmservice.models.db.base import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
