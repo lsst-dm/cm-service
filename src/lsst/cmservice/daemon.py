@@ -10,7 +10,6 @@ from lsst.cmservice.models.lib.kafka.consumer import CMConsumer
 
 from . import __version__
 from .common.butler import BUTLER_FACTORY  # noqa: F401
-from .common.daemon import daemon_iteration
 from .common.daemon_v2 import DaemonContext
 from .common.daemon_v2 import daemon_iteration as daemon_iteration_v2
 from .common.flags import Features
@@ -97,8 +96,6 @@ async def main_loop(app: FastAPI, sentinel: asyncio.Event) -> None:
         _iteration_count += 1
         logger.info("Daemon starting iteration %s", _iteration_count)
         async with DaemonContext(app=app) as context:
-            if Features.DAEMON_V1 in config.features.enabled:
-                await daemon_iteration(context.session)
             if Features.DAEMON_V2 in config.features.enabled:
                 await daemon_iteration_v2(context)
 

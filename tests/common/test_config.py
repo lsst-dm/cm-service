@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from lsst.cmservice.common.enums import ScriptMethodEnum
+from lsst.cmservice.common.enums import WmsComputeSite
 from lsst.cmservice.config import Configuration
 
 
@@ -38,22 +38,22 @@ def test_config_enum_validation(monkeypatch: Any) -> None:
     """
     config = Configuration()
     # The default setting value is an enum
-    assert config.script_handler is ScriptMethodEnum.htcondor
+    assert config.compute_site is WmsComputeSite.slac
     del config
 
     # Update the configuration with a string (enum name)
-    monkeypatch.setenv("SCRIPT_HANDLER", "bash")
+    monkeypatch.setenv("COMPUTE_SITE", "in2p3")
 
     config = Configuration()
-    assert config.script_handler is ScriptMethodEnum.bash
+    assert config.compute_site is WmsComputeSite.in2p3
 
     # Use an unsupported value for the enum, expecting the default value
-    monkeypatch.setenv("SCRIPT_HANDLER", "zsh")
+    monkeypatch.setenv("COMPUTE_SITE", "point_nemo")
 
     with pytest.warns():
         config = Configuration()
 
-    assert config.script_handler is ScriptMethodEnum.htcondor
+    assert config.compute_site is WmsComputeSite.slac
 
 
 def test_config_boolean_serialization(monkeypatch: Any) -> None:

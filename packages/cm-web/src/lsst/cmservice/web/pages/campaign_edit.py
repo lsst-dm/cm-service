@@ -450,7 +450,7 @@ class CampaignEditPage(CMPage[CampaignPageModel]):
         # Create a Schedule object
         schedule = CreateSchedule(
             name=f"schedule-{self.campaign_name}-{uuid4().hex[0:8]}",
-            cron=self.model.schedule_info.cron,  # pyright: ignore[reportArgumentType]
+            cron=self.model.schedule_info.cron,  # type: ignore[arg-type]
             metadata_={
                 "owner": app.storage.client["state"].user.username,
             },

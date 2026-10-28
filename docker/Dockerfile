@@ -128,9 +128,7 @@ USER lsstsvc1
 
 WORKDIR /home/lsstsvc1
 
-# Copy the application and examples
-ENV CM_CONFIGS=/home/lsstsvc1/examples
-COPY examples ./examples
+# Copy the application
 COPY src/lsst ./lsst
 COPY alembic ./alembic
 COPY alembic.ini .

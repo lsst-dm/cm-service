@@ -6,7 +6,7 @@ from lsst.cmservice.common.flags import EnabledFeatures, Features
 def test_feature_flags(monkeypatch: pytest.MonkeyPatch) -> None:
     # Empty features have nothing set
     features = EnabledFeatures()
-    assert Features.DAEMON_V1 not in features.enabled
+    assert Features.DAEMON_V2 not in features.enabled
     assert features.enabled.value == 0
 
     # Setting features by env var should result in their being set in the
@@ -20,6 +20,6 @@ def test_feature_flags(monkeypatch: pytest.MonkeyPatch) -> None:
 
     # Disabling a feature by env var should result in their not being set in
     # the flags enum, overriding the default or initial value
-    monkeypatch.setenv("FEATURE_WEBAPP_V1", "0")
-    features = EnabledFeatures(enabled=Features.WEBAPP_V1)
-    assert Features.WEBAPP_V1 not in features.enabled
+    monkeypatch.setenv("FEATURE_NOTIFIER", "0")
+    features = EnabledFeatures(enabled=Features.NOTIFIER)
+    assert Features.NOTIFIER not in features.enabled
