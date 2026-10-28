@@ -1352,7 +1352,7 @@ class NewScheduleDialog(ui.dialog):
         """
         schedule = CreateSchedule(
             name="New Empty Schedule",
-            cron="0 0 1 * *",  # pyright: ignore[reportArgumentType]
+            cron="0 0 1 * *",  # type: ignore[arg-type]
             metadata_={
                 "owner": app.storage.client["state"].user.username,
             },
