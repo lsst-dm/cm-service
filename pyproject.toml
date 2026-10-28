@@ -306,7 +306,7 @@ add-ignore = [
 commit_author = {env = "GIT_COMMIT_AUTHOR"}
 commit_parser = "conventional"
 tag_format = "{version}"
-allow_zero_version = true
+allow_zero_version = false
 major_on_zero = false
 
 [tool.semantic_release.branches.main]

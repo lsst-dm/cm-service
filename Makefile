@@ -69,7 +69,7 @@ release-dry-run:
 	uv run psr --noop version
 
 .PHONY: release
-release: export GIT_COMMIT_AUTHOR="$(shell git config user.name) <$(shell git config user.email)>"
+release: export GIT_COMMIT_AUTHOR=$(shell git config user.name) <$(shell git config user.email)>
 release:
 	@branch=$$(git branch --show-current); \
 	next=$$(uv run psr --noop version --no-commit --no-changelog --print 2>/dev/null | tail -n 1); \
