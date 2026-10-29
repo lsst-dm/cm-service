@@ -23,9 +23,7 @@ async def nx_to_flow(g: nx.DiGraph, *, contract: bool = True) -> dict[str, list]
         Contracting the graph in this way is useful when the graph is being
         cloned or copied such that only first-tier nodes are kept.
     """
-    # make sure the graph is in simple view
-    # TODO contract dynamic nodes from the graph
-    contracted_graph = await contract_simple_step_nodes(g)
+    contracted_graph = contract_simple_step_nodes(g)
 
     # Every node is placed at (0, 0) but the canvas component calls auto-layout
     # in its onMount lifecycle callback so this isn't a problem.
