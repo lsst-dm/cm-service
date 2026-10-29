@@ -11,15 +11,6 @@ from lsst.cmservice.models.manifests.manifests import (
     WmsSpec,
 )
 
-STEP_SPEC_TEMPLATE: dict[str, Any] = {
-    "bps": {
-        "pipeline_yaml": "${DRP_PIPE_DIR}/path/to/pipeline.yaml#anchor",
-    },
-    "groups": None,
-    "predicates": [],
-}
-
-
 STEP_MANIFEST_TEMPLATE: dict[str, Any] = {
     "apiVersion": "io.lsst.cmservice/v1",
     "kind": "node",

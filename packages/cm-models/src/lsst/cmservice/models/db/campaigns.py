@@ -212,11 +212,6 @@ class EdgeBase(BaseSQLModel):
         return data
 
 
-class EdgeResponseModel(EdgeBase):
-    source: Any
-    target: Any
-
-
 class Edge(EdgeBase, table=True):
     __tablename__: str = "edges_v2"  # type: ignore[misc]
 
