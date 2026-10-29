@@ -20,11 +20,6 @@ class ManifestKind(enum.Enum):
     collect_groups = enum.auto()
     breakpoint = enum.auto()
     end = enum.auto()
-    # Legacy kinds
-    specification = enum.auto()
-    spec_block = enum.auto()
-    job = enum.auto()
-    script = enum.auto()
     # Library Kinds
     lsst = enum.auto()
     bps = enum.auto()
@@ -35,6 +30,7 @@ class ManifestKind(enum.Enum):
     # Fallback kind
     other = enum.auto()
     dummy = enum.auto()
+    # Misc Task kinds
     schedule = enum.auto()
     template = enum.auto()
     notification_label = enum.auto()
@@ -54,43 +50,29 @@ class ManifestKind(enum.Enum):
 
 
 class StatusEnum(enum.Enum):
-    """Keeps track of the status of a particular script or entry
+    """Keep track of the status of a campaign or node
 
     Typically these should move from `waiting` to `accepted`
     one step at a time.
 
     Bad States, requires intervention:
-    blocked = -5  # The job is held or unready in the WMS
-    failed = -4  # Processing failed
-    rejected = -3  # Marked as rejected
-    paused = -2 # processing is paused for some reason
-    rescuable = -1  # Failed, but in a way where a rescue is possible
+    - `overdue`: The job has been running past its deadline
+    - `blocked`: The job is held or unready in the WMS
+    - `failed`: Processing failed
+    - `rejected`: Marked as rejected
+    - `paused`: processing is paused for some reason
 
     Processing states and the transitions between them:
 
-    waiting = 0  # Prerequisites not ready
+    - `waiting`: Prerequisites not ready
        If all the prerequisites are `accepted` can move to `ready`
 
-    ready = 1  # Ready to run
-       Prerequistes are done, script is not written or children are
-       not created.
+    - `ready`: Ready to run; prerequistes are done and artifacts are written
 
-    prepared = 2  # Inputs are being prepared
-       Script or function is ready, children are created,
-       processing can be launched
+    - `running` : Job is running, or a breakpoint is waiting for clearance
 
-    running = 3  # Element is running
-       Script or function is running or children are processing
-
-    reviewable = 4  # Output is ready to review
-       Many scripts and functions will skip this step
-
-    accepted = 5  # Completed, reviewed and accepted
-
-    rescued = 6 # Rescueable and rescued
-
-    Note that the 'rescuable' and 'rescued' states do
-    not apply to scripts, only Elements
+    - `accepted`: Completed, reviewed and successful
+    - `failed`: Completed, but has failed
     """
 
     # note that ordering of these Enums matters within the code matters.
@@ -99,56 +81,32 @@ class StatusEnum(enum.Enum):
     rejected = -4
     blocked = -3
     paused = -2
-    rescuable = -1  # Scripts are not rescuable
     waiting = 0
     ready = 1
-    prepared = 2
     running = 3
-    # For scripts, status with value greater or equal to reviewable should be
-    # considered a terminal state
     reviewable = 4
-    # For elements states with value greater or equal to accepted should be
-    # considered a terminal state
     accepted = 5
-    rescued = 6  # Scripts can not be rescued
 
-    def is_successful_element(self) -> bool:
-        """Is this successful state for Elements"""
-        return self.value >= StatusEnum.accepted.value
-
-    def is_successful_script(self) -> bool:
-        """Is this successful state for Script"""
+    def is_successful(self) -> bool:
+        """Check if the status is a terminal positive result"""
         return self.value >= StatusEnum.accepted.value
 
     def is_bad(self) -> bool:
-        """Is this a failed state"""
+        """Check if the status is a terminal negative result"""
         return self.value <= StatusEnum.rejected.value
 
-    def is_terminal_element(self) -> bool:
-        """Is this element in any terminal state"""
+    def is_terminal(self) -> bool:
+        """Check if the status is a terminal state"""
         return any(
             [
-                self.is_successful_element(),
-                self.is_bad(),
-            ]
-        )
-
-    def is_terminal_script(self) -> bool:
-        """Is this script in any terminal state"""
-        return any(
-            [
-                self.is_successful_script(),
+                self.is_successful(),
                 self.is_bad(),
                 self is StatusEnum.reviewable,
             ]
         )
 
-    def is_processable_element(self) -> bool:
-        """Is this a processable state for an element"""
-        return self.value >= StatusEnum.waiting.value and self.value <= StatusEnum.reviewable.value
-
-    def is_processable_script(self) -> bool:
-        """Is this a processable state for a script"""
+    def is_processable(self) -> bool:
+        """Check whether the state allows transitions behavior"""
         return self.value >= StatusEnum.waiting.value and self.value <= StatusEnum.running.value
 
     def next_status(self) -> StatusEnum:

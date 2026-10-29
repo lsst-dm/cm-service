@@ -16,14 +16,6 @@ from lsst.cmservice.models.types import AnyAsyncSession
 class InvalidCampaignGraphError(Exception): ...
 
 
-class NodeData(TypedDict):
-    """A type describing the dictionary representation of a digraph's Node data
-    when a 'model' view is employed (default).
-    """
-
-    model: Node
-
-
 class SimpleNode(TypedDict):
     """A type describing the dictionary representation of a digraph's Node data
     when a 'simple' view is employed.
@@ -284,9 +276,8 @@ def processable_graph_nodes(g: nx.DiGraph) -> Iterable[Node]:
     for path in nx.all_simple_paths(g, source, sink):
         for n in path:
             node: Node = g.nodes[n]["model"]
-            # A "script" considers "reviewable" a terminal status; nodes share
-            # this opinion.
-            if node.status.is_processable_script():
+            # A Node considers "reviewable" a terminal status
+            if node.status.is_processable():
                 processable_nodes.add(node)
                 # We found a processable node in this path, stop traversal
                 break
@@ -598,38 +589,7 @@ async def delete_node_from_graph(
         await session.commit()
 
 
-async def contract_step_nodes(graph: nx.DiGraph) -> nx.DiGraph:
-    """Manipulates a graph with prepared steps by contracting the dynamic
-    second-tier elements into the parent step. The contracted elements are not
-    preserved in the graph.
-
-    Parameters
-    ----------
-    graph : networkx.DiGraph
-        A graph object where each node is a full Node Model.
-    """
-    node: UUID
-    # contract any group nodes in the graph into their step
-    g2 = graph.copy()
-    for node in graph:
-        model = cast(Node, graph.nodes(data="model")[node])
-        if model.kind is not ManifestKind.group:
-            continue
-        step = list(graph.predecessors(node)).pop()
-        g2 = nx.contracted_nodes(g2, step, node, self_loops=False, store_contraction_as=None)
-
-    # repeat for the collect steps
-    g3 = g2.copy()
-    for node in g2:
-        model = cast(Node, graph.nodes(data="model")[node])
-        if model.kind is not ManifestKind.collect_groups:
-            continue
-        step = list(g2.predecessors(node)).pop()
-        g3 = nx.contracted_nodes(g3, step, node, self_loops=False, store_contraction_as=None)
-    return g3
-
-
-async def contract_simple_step_nodes(graph: nx.DiGraph) -> nx.DiGraph:
+def contract_simple_step_nodes(graph: nx.DiGraph) -> nx.DiGraph:
     """Manipulates a graph with prepared steps by contracting the dynamic
     second-tier elements into the parent step. The contracted elements are not
     preserved in the graph.
