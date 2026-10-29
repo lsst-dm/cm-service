@@ -20,6 +20,7 @@ from lsst.cmservice.models.api.schedules import ScheduleConfiguration, ScheduleM
 from lsst.cmservice.models.db.schedules import CreateManifestTemplate, CreateSchedule
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, ManifestKind
 from lsst.cmservice.models.lib.parsers import as_snake_case
+from lsst.cmservice.models.lib.timestamp import element_time
 from lsst.cmservice.models.lib.yaml import yaml
 
 from .. import api
@@ -768,7 +769,8 @@ class CampaignClonePage(CampaignEditPage):
                 deepcopy(STEP_MANIFEST_TEMPLATE)
                 | {
                     "kind": "campaign",
-                    "metadata": data["campaign"]["metadata"] | {"name": "", "mtime": None, "crtime": None},
+                    "metadata": data["campaign"]["metadata"]
+                    | {"name": "", "mtime": element_time(), "crtime": element_time()},
                     "spec": data["campaign"]["configuration"],
                 }
             ),

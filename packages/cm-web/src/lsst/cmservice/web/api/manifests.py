@@ -2,6 +2,7 @@ from httpx2 import HTTPStatusError, Response, codes
 from nicegui import ui
 
 from ..lib.client_factory import CLIENT_FACTORY
+from ..lib.sort import manifest_sort
 
 
 async def get_one_manifest(
@@ -57,9 +58,8 @@ async def put_manifest_list(manifests: list[dict]) -> bool:
     order to prepare any target namespaces for subsequent manifests.
     """
     # TODO this should probably return a list of IDs for the added manifests
-    # TODO sort manifests list by kind, campaigns first.
     async with CLIENT_FACTORY.aclient() as aclient:
-        for manifest in manifests:
+        for manifest in sorted(manifests, key=manifest_sort):
             match manifest["kind"]:
                 case "campaign":
                     uri = "/campaigns/"
