@@ -24,10 +24,11 @@ dynamic = ["version"]
 # with dependencies declared by all packages in `package/`.
 dependencies = [
     "alembic==1.16.*",
-    "anyio==4.10.*",
+    "anyio==4.14.*",
     "apscheduler>=3.11.2,<4",
     "asgi-correlation-id>=4.3.4",
     "asyncpg==0.31.*",
+    "certifi>=2026.10.23",
     "click==8.1.*",
     "cryptography>=49",
     "deepdiff>=8.6.1,<9",
@@ -38,7 +39,7 @@ dependencies = [
     "networkx>=3.5",
     "numpy==2.4.*",
     "psycopg2-binary==2.9.*",
-    "pydantic==2.12.*",
+    "pydantic==2.14.*",
     "pydantic-extra-types[cron,uuid_utils]>=2.10.6",
     "pydantic-settings==2.14.*",
     "pytransitions==0.9.*",
@@ -126,6 +127,10 @@ Source = "https://github.com/lsst-dm/cm-service"
 
 [tool.uv]
 default-groups = "all"
+
+override-dependencies = [
+    { package = { name = "lsst-pipe-base"}, dependencies = ["zstandard>=0.25.0,<1.0"] },
+]
 
 [tool.uv.sources]
 lsst-cm-service = { workspace = true }

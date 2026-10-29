@@ -51,7 +51,7 @@ def bootstrap_config(kafka_broker: str) -> Generator[Mapping]:
         "auto_offset_reset": "earliest",
     }
     _kafka_settings = kafka_settings.model_copy(update=aux)
-    with AdminClient(_kafka_settings.model_dump(by_alias=True)) as admin:
+    with AdminClient(_kafka_settings.model_dump(by_alias=True, exclude_none=True)) as admin:
         futures = admin.create_topics([NewTopic(topic_name, 1, 1)])
         # topic creation is eventually consistent
         for future in futures.values():

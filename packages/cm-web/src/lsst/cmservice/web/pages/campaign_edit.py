@@ -20,6 +20,7 @@ from lsst.cmservice.models.api.schedules import ScheduleConfiguration, ScheduleM
 from lsst.cmservice.models.db.schedules import CreateManifestTemplate, CreateSchedule
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, ManifestKind
 from lsst.cmservice.models.lib.parsers import as_snake_case
+from lsst.cmservice.models.lib.timestamp import element_time
 from lsst.cmservice.models.lib.yaml import yaml
 
 from .. import api
@@ -764,7 +765,15 @@ class CampaignClonePage(CampaignEditPage):
                 )
                 for node in data["nodes"]
             },
-            campaign=(deepcopy(STEP_MANIFEST_TEMPLATE) | {"kind": "campaign", "metadata": {"name": ""}}),
+            campaign=(
+                deepcopy(STEP_MANIFEST_TEMPLATE)
+                | {
+                    "kind": "campaign",
+                    "metadata": data["campaign"]["metadata"]
+                    | {"name": "", "mtime": element_time(), "crtime": element_time()},
+                    "spec": data["campaign"]["configuration"],
+                }
+            ),
         )
 
         mandatory_manifests = {"bps", "lsst", "butler", "wms", "site"}
@@ -781,7 +790,8 @@ class CampaignClonePage(CampaignEditPage):
                 continue
             self.model.manifests[manifest["id"]] = deepcopy(STEP_MANIFEST_TEMPLATE) | {
                 "kind": manifest["kind"],
-                "metadata": {
+                "metadata": manifest["metadata"]
+                | {
                     "name": manifest["name"],
                     "uuid": manifest["id"],
                     "version": 0,  # The api always increments the version
@@ -792,6 +802,9 @@ class CampaignClonePage(CampaignEditPage):
         # TODO Any "missing" manifests could be fetched from the library
         for kind in mandatory_manifests:
             ...
+
+        # fetch the available notification labels
+        self.model.available_notification_labels = [label["name"] async for label in api.get_notifications()]
 
         return self
 

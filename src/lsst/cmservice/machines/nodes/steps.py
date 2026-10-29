@@ -174,15 +174,7 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
                 "predicates": with_predicates,
                 "collections": self.butler.spec.collections.model_copy(
                     update={
-                        "step_input": (
-                            f"{self.butler.spec.collections.campaign_public_output}/{self.db_model.name}/input"
-                        ),
-                        "step_output": (
-                            f"{self.butler.spec.collections.campaign_public_output}/{self.db_model.name}_output"
-                        ),
-                        "step_public_output": (
-                            f"{self.butler.spec.collections.campaign_public_output}/{self.db_model.name}"
-                        ),
+                        **self.derived_step_collections(),
                         "group_output": (
                             f"{self.butler.spec.collections.campaign_public_output}/{self.db_model.name}/{group_nonce}"
                         ),
@@ -288,15 +280,7 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
             update={
                 "collections": self.butler.spec.collections.model_copy(
                     update={
-                        "step_input": (
-                            f"{self.butler.spec.collections.campaign_public_output}/{self.db_model.name}/input"
-                        ),
-                        "step_output": (
-                            f"{self.butler.spec.collections.campaign_public_output}/{self.db_model.name}_output"
-                        ),
-                        "step_public_output": (
-                            f"{self.butler.spec.collections.campaign_public_output}/{self.db_model.name}"
-                        ),
+                        **self.derived_step_collections(),
                     },
                 ),
             },
@@ -376,8 +360,8 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
         self.command_templates = [
             (
                 "{{butler.exe_bin}} collection-chain {{butler.repo}} {{butler.collections.step_input}}"
-                "{% for collection in butler.collections.intermediates %} {{collection}}{% endfor %}"
-                "{% for collection in butler.collections.campaign_input %} {{collection}}{% endfor %}"
+                "{% for collection in butler.collections.intermediates %} {{collection}}{% endfor %} "
+                "{{ butler.collections.chained_input }}"
             )
         ]
         # Prepare a Butler runtime config to add to the Node's config chain,
@@ -389,10 +373,9 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
         )
         butler_config["collections"] = self.butler.spec.collections.model_copy(
             update={
+                **self.derived_campaign_collections(),
                 "intermediates": intermediate_collections,
-                "step_input": (
-                    f"{self.butler.spec.collections.campaign_public_output}/{self.db_model.name}/input"
-                ),
+                "step_input": self.derived_step_collections()["step_input"],
             }
         )
 
@@ -644,15 +627,17 @@ class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin
         for Butler operations.
         """
         self.command_templates = [
+            # The "private" chain of step-group run collections
             (
                 "{{butler.exe_bin}} collection-chain {{butler.repo}} --mode={{butler.mode}} "
                 "{{butler.collections.step_output}}"
-                "{% for collection in butler.input_collections %} {{collection}}{% endfor %} "
+                "{% for collection in butler.group_run_collections %} {{collection}}{% endfor %} "
             ),
+            # The "public" chain of step-group run collections along with input
             (
                 "{{butler.exe_bin}} collection-chain {{butler.repo}} --mode={{butler.mode}} "
-                "{{butler.collections.step_public_output}} {{butler.collections.step_output}} "
-                "{{butler.collections.step_input}}"
+                "{{butler.collections.step_public_output}} "
+                "{{butler.collections.step_output}} {{butler.collections.step_input}}"
             ),
         ]
         # Prepare a Butler runtime config to add to the Node's config chain
@@ -664,7 +649,7 @@ class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin
         # FIXME this should follow the same grammar as other butler runtime
         # configs used in other nodes, but it doesn't really matter as long
         # as the variable is found at render time.
-        butler_config["input_collections"] = self.collections
+        butler_config["group_run_collections"] = self.collections
 
         self.configuration_chain["butler"] = self.configuration_chain["butler"].new_child(butler_config)
         # Apply the run collection list to the node's metadata
