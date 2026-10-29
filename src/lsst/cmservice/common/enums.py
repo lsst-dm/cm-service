@@ -1,6 +1,8 @@
 from enum import Enum, IntEnum, auto
+from warnings import deprecated
 
 
+@deprecated("Enum is unused in v2")
 class TaskStatusEnum(IntEnum):
     """Defines possible outcomes for Pipetask tasks"""
 
@@ -11,6 +13,7 @@ class TaskStatusEnum(IntEnum):
     missing = auto()
 
 
+@deprecated("Enum is unused in v2")
 class ProductStatusEnum(IntEnum):
     """Defines possible outcomes for Pipetask Products"""
 
@@ -21,6 +24,7 @@ class ProductStatusEnum(IntEnum):
     missing = auto()
 
 
+@deprecated("Enum is unused in v2")
 class ErrorSourceEnum(IntEnum):
     """Who first reported the error"""
 
@@ -30,6 +34,7 @@ class ErrorSourceEnum(IntEnum):
     manifest = auto()
 
 
+@deprecated("Enum is unused in v2")
 class ErrorFlavorEnum(IntEnum):
     """What sort of error are we talking about"""
 
@@ -38,6 +43,7 @@ class ErrorFlavorEnum(IntEnum):
     pipelines = auto()
 
 
+@deprecated("Enum is unused in v2")
 class ErrorActionEnum(IntEnum):
     """What should we do about it?"""
 
@@ -47,30 +53,6 @@ class ErrorActionEnum(IntEnum):
     auto_retry = auto()
     review = auto()
     accept = auto()
-
-
-class WmsMethodEnum(IntEnum):
-    """Defines which workflow manager to use
-
-    default = -1
-        Use the default method for the handler in question
-
-    bash = 0
-        Runs under bash (i.e., plain Pipetask)
-
-    panda = 1
-        Runs under PanDA
-
-    htcondor = 2
-        Runs under HTCondor
-
-    More methods to come...
-    """
-
-    default = auto()
-    bash = auto()
-    panda = auto()
-    htcondor = auto()
 
 
 class WmsComputeSite(IntEnum):

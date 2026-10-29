@@ -203,15 +203,6 @@ class StatefulModel(ABC):
     async def may_to_paused(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
-    def is_rescuable(self) -> bool:
-        raise NotImplementedError("This should be overridden")
-
-    async def to_rescuable(self) -> bool:
-        raise NotImplementedError("This should be overridden")
-
-    async def may_to_rescuable(self) -> bool:
-        raise NotImplementedError("This should be overridden")
-
     def is_waiting(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
@@ -228,15 +219,6 @@ class StatefulModel(ABC):
         raise NotImplementedError("This should be overridden")
 
     async def may_to_ready(self) -> bool:
-        raise NotImplementedError("This should be overridden")
-
-    def is_prepared(self) -> bool:
-        raise NotImplementedError("This should be overridden")
-
-    async def to_prepared(self) -> bool:
-        raise NotImplementedError("This should be overridden")
-
-    async def may_to_prepared(self) -> bool:
         raise NotImplementedError("This should be overridden")
 
     def is_running(self) -> bool:
@@ -264,13 +246,4 @@ class StatefulModel(ABC):
         raise NotImplementedError("This should be overridden")
 
     async def may_to_accepted(self) -> bool:
-        raise NotImplementedError("This should be overridden")
-
-    def is_rescued(self) -> bool:
-        raise NotImplementedError("This should be overridden")
-
-    async def to_rescued(self) -> bool:
-        raise NotImplementedError("This should be overridden")
-
-    async def may_to_rescued(self) -> bool:
         raise NotImplementedError("This should be overridden")

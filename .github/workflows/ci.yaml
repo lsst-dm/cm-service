@@ -111,7 +111,6 @@ jobs:
 
       - name: Run tests
         run: |
-          uv run playwright install
           uv run make test
 
   test:

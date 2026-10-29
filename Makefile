@@ -39,7 +39,6 @@ update-deps:
 
 .PHONY: init
 init: $(PY_VENV)
-	uv run playwright install
 	uv run prek install -f
 	uv run prek install --prepare-hooks --hook-type pre-push
 
@@ -52,6 +51,7 @@ build: export COMPOSE_BAKE=true
 build:
 	docker compose build cmservice
 	docker compose build cmworker
+	docker compose build cmweb
 
 .PHONY: uv
 uv:
@@ -135,7 +135,6 @@ run: export DB__URL=postgresql://cm-service@localhost:${PGPORT}/cm-service
 run: export DB__PASSWORD=INSECURE-PASSWORD
 run: export DB__ECHO=true
 run: export FEATURE_API_V2=1
-run: export FEATURE_API_V1=0
 run: export FEATURE_DAEMON_V2=0
 run: export FEATURE_STORE_FSM=1
 run: run-compose
@@ -148,7 +147,6 @@ run-worker: export DB__URL=postgresql://cm-service@localhost:${PGPORT}/cm-servic
 run-worker: export DB__PASSWORD=INSECURE-PASSWORD
 run-worker: export DB__ECHO=true
 run-worker: export FEATURE_API_V2=0
-run-worker: export FEATURE_API_V1=0
 run-worker: export FEATURE_DAEMON_V2=1
 run-worker: export FEATURE_DAEMON_CAMPAIGNS=1
 run-worker: export FEATURE_DAEMON_NODES=1
