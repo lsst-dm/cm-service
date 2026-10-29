@@ -17,6 +17,7 @@ from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, ManifestKind, StatusE
 from lsst.cmservice.models.lib.logging import LOGGER
 from lsst.cmservice.models.lib.timestamp import element_time
 from lsst.cmservice.models.manifests import LibraryManifest
+from lsst.cmservice.models.manifests.butler import ButlerManifest
 from lsst.resources import ResourcePath
 
 from ...common.errors import CMNoSuchManifestError
@@ -36,6 +37,29 @@ class NodeMixIn(MixIn):
 
     artifact_resources: dict
     artifact_templates: dict
+    butler: ButlerManifest
+
+    def derived_campaign_collections(self) -> dict[str, str]:
+        """Internal campaign-level collection names derived from the node's
+        Butler manifest. These are not part of the manifest API.
+        """
+        prefix = self.butler.spec.collections.campaign_public_output
+        return {
+            "tagged_input": f"{prefix}/tagged",
+            "chained_input": f"{prefix}/chained",
+        }
+
+    def derived_step_collections(self) -> dict[str, str]:
+        """Internal step-level collection names derived from the node's Butler
+        manifest and the node's name, which is assumed to be a Step. These are
+        not part of the manifest API.
+        """
+        prefix = self.butler.spec.collections.campaign_public_output
+        return {
+            "step_input": f"{prefix}/{self.db_model.name}/input",
+            "step_output": f"{prefix}/{self.db_model.name}_output",
+            "step_public_output": f"{prefix}/{self.db_model.name}",
+        }
 
     async def select_manifest[T: LibraryManifest](
         self, manifest_kind: ManifestKind, manifest_type: type[T]
