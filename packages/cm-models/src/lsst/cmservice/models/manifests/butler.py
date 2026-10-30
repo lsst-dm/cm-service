@@ -32,14 +32,15 @@ class ButlerCollectionsSpec(BaseModel):
     )
     campaign_public_output: str = Field(
         default="u/{{bps.operator}}/{{lsst.campaign}}",
-        description="The final 'public' campaign *chained* collection; includes the `campaign_output` "
-        "collection, the Campaign 'input' collection, and any other incidental collections created during "
-        "the campaign (e.g., resource usage)",
+        description="The final 'public' campaign *chained* collection; includes each step's collected "
+        "chained collection, the Campaign 'input' collection, and any other incidental collections created "
+        "during the campaign (e.g., resource usage)",
         validation_alias=AliasChoices("campaign_public_output", "out"),
         examples=["u/{operator}/{campaign}"],
     )
     campaign_output: str = Field(
         default="u/{{bps.operator}}/{{lsst.campaign}}/out",
+        deprecated=True,
         description="The 'private' output collection for a campaign; a *chained* collection of "
         "each step-specific *output* collection, which itself is a *chained* collection of each step-group's "
         "`run` collection.",
@@ -96,7 +97,7 @@ class ButlerSpec(ManifestSpec):
     collections: ButlerCollectionsSpec = Field(
         description="A butler configuration used to specify collections for "
         "various campaign operations. Of particular interest for a Butler "
-        "manifest are `campaign_input` and `campaign_output`",
+        "manifest are `campaign_input` and `campaign_public_output`",
         examples=[
             {
                 "campaign_input": ["LSSTCam/defaults"],

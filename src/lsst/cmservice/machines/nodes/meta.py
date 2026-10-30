@@ -443,7 +443,8 @@ class EndMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchMi
 
         self.command_templates = [
             (
-                "{{butler.exe_bin}} collection-chain {{butler.repo}} {{butler.collections.campaign_output}} "
+                "{{butler.exe_bin}} collection-chain {{butler.repo}} "
+                "{{butler.collections.campaign_public_output}} "
                 "{% for collection in butler.collections.step_collections %} {{collection}}{% endfor %} "
                 "{{ butler.collections.chained_input }}"
             ),
