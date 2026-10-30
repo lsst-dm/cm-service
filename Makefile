@@ -64,10 +64,22 @@ uv:
 # the "main" trunk; else a prerelease version is created and no tag is created.
 #------------------------------------------------------------------------------
 
+.PHONY: release-dry-run
+release-dry-run:
+	uv run psr --noop version
+
 .PHONY: release
 release: export GIT_COMMIT_AUTHOR="$(shell git config user.name) <$(shell git config user.email)>"
 release:
-	psr version --no-push --no-vcs-release --skip-build --no-changelog --no-tag
+	@branch=$$(git branch --show-current); \
+	next=$$(uv run psr --noop version --no-commit --no-changelog --print 2>/dev/null | tail -n 1); \
+	case "$$branch" in \
+	  release/*) series=$${branch#release/}; series=$${series%.x}; \
+	    case "$$next" in "$$series".*) ;; \
+	      *) echo "Next version $$next is outside the $$series series of $$branch; cherry-pick only fixes."; exit 1;; \
+	    esac;; \
+	esac; \
+	uv run psr version --no-commit --no-changelog --no-push --no-vcs-release --skip-build
 
 
 .PHONY: signed-release
