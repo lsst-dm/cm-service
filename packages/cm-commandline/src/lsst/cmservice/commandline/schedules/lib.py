@@ -69,7 +69,7 @@ def post_new_schedule(ctx: TypedContext, schedule: CreateSchedule) -> Response |
     r = None
     with http_client(ctx) as client:
         try:
-            r = client.post("/schedules", json=post_data)
+            r = client.post("/schedules/", json=post_data)
             r.raise_for_status()
         except HTTPStatusError as e:
             console.print(e.response.reason_phrase)

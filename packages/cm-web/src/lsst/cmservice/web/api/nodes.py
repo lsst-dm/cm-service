@@ -40,7 +40,7 @@ async def describe_one_node(id: str) -> dict:
             r = await aclient.get(f"/nodes/{id}")
             r.raise_for_status()
             data["node"] = r.json()
-            r = await aclient.get(f"/logs?node={id}")
+            r = await aclient.get(f"/logs/?node={id}")
             r.raise_for_status()
             data["logs"] = r.json()
         except HTTPStatusError:
@@ -216,7 +216,7 @@ async def node_activity_logs(id: str) -> list[dict]:
     sorted by time (descending).
     """
     async with CLIENT_FACTORY.aclient() as session:
-        r = await session.get(f"/logs?node={id}&sort=-finished_at")
+        r = await session.get(f"/logs/?node={id}&sort=-finished_at")
         r.raise_for_status()
     return r.json()
 
