@@ -20,7 +20,6 @@ from lsst.cmservice.models.api.schedules import ScheduleConfiguration, ScheduleM
 from lsst.cmservice.models.db.schedules import CreateManifestTemplate, CreateSchedule
 from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, ManifestKind
 from lsst.cmservice.models.lib.parsers import as_snake_case
-from lsst.cmservice.models.lib.timestamp import element_time
 from lsst.cmservice.models.lib.yaml import yaml
 
 from .. import api
@@ -753,15 +752,21 @@ class CampaignClonePage(CampaignEditPage):
         # export, so we initialize them to empty lists. The spec lookup is key-
         # ed by the node's flow id which for the simple node view used to init-
         # ialize the flow canvas is the node's `name.version`.
-        # FIXME the metadata of prepared steps should not be allowed to leak
+        node_keys_to_remove = {"artifact_path", "launcher", "parent_path", "repo", "mtime", "crtime"}
         self.model = CampaignPageModel(
             spec={
                 f"{node['name']}.{node['version']}": (
                     deepcopy(STEP_MANIFEST_TEMPLATE)
                     | {
-                        "metadata": node["metadata"] | {"name": node["name"], "kind": node["kind"]},
-                        "spec": node["configuration"],
+                        "metadata": {
+                            k: v
+                            for k, v in (
+                                node["metadata"] | {"name": node["name"], "kind": node["kind"]}
+                            ).items()
+                            if k not in node_keys_to_remove
+                        }
                     }
+                    | {"spec": node["configuration"]}
                 )
                 for node in data["nodes"]
             },
@@ -769,8 +774,11 @@ class CampaignClonePage(CampaignEditPage):
                 deepcopy(STEP_MANIFEST_TEMPLATE)
                 | {
                     "kind": "campaign",
-                    "metadata": data["campaign"]["metadata"]
-                    | {"name": "", "mtime": element_time(), "crtime": element_time()},
+                    "metadata": {
+                        k: v
+                        for k, v in (data["campaign"]["metadata"] | {"name": ""}).items()
+                        if k not in node_keys_to_remove
+                    },
                     "spec": data["campaign"]["configuration"],
                 }
             ),

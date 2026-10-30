@@ -3,6 +3,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import httpx2
+from nicegui import app
 
 from ..settings import settings
 
@@ -26,6 +27,17 @@ class ClientFactory:
     _kwargs: dict
     _lock: asyncio.Lock
 
+    @classmethod
+    async def set_actor_header(cls, request: httpx2.Request) -> None:
+        """Set the actor header for every API request made by the app."""
+        if "X-Auth-Request-User" in request.headers:
+            return
+        try:
+            actor = app.storage.client["state"].user.username
+        except RuntimeError, KeyError, AttributeError:
+            return
+        request.headers["X-Auth-Request-User"] = actor
+
     def __init__(self) -> None:
         self._atransport = _atransport
         self._transport = _transport
@@ -39,6 +51,7 @@ class ClientFactory:
             "follow_redirects": True,
             "transport": self._atransport,
             "headers": self._headers,
+            "event_hooks": {"request": [self.set_actor_header]},
             "limits": {
                 "max_connections": 100,
                 "max_keepalive_connections": 20,
