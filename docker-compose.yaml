@@ -128,7 +128,7 @@ services:
       retries: 3
 
   postgresql:
-    image: "postgres:16"
+    image: "postgres:17"
     hostname: "postgresql"
     environment:
       POSTGRES_PASSWORD: "INSECURE-PASSWORD"
