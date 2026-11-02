@@ -4,10 +4,12 @@ nodes, including START/END/BREAKPOINT nodes.
 
 import pickle
 import shutil
+from collections import ChainMap
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
+from anyio import Path
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy import inspect
 from sqlalchemy.orm import make_transient_to_detached
@@ -351,6 +353,7 @@ class StartMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunch
         self.machine.before_unprepare("do_unprepare")
         self.machine.before_start("do_start")
         self.machine.before_reset("do_reset")
+        self.machine.before_retry("do_retry")
 
     def post_init(self) -> None:
         self.templates = {
@@ -416,6 +419,21 @@ class StartMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunch
 
     async def do_reset(self, event: EventData) -> None:
         logger.error("Resetting node")
+
+    async def do_retry(self, event: EventData) -> None:
+        """Reverts the running status of a Start node from Failed to Ready."""
+        logger.info("Retrying START node", id=str(self.db_model.id))
+        if (
+            wms_event_log := self.configuration_chain.get("wms", ChainMap()).get("wms_event_log_path")
+        ) is not None:
+            await Path(wms_event_log).unlink(missing_ok=True)
+
+        if (
+            wms_output_log := self.configuration_chain.get("wms", ChainMap()).get("wms_output_log_path")
+        ) is not None:
+            await Path(wms_output_log).unlink(missing_ok=True)
+
+        self.db_model.metadata_.pop("launcher", None)
 
 
 class EndMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchMixin):
