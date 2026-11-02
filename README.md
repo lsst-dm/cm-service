@@ -55,10 +55,9 @@ Additional developer conveniences:
 * Browse the integrated online ReST API documentation while the service is running at
   http://localhost:8080/docs.
 
-* Run the pytest test suite at any point with `make test`.  This will launch subsidiary containers if
-  necessary via Docker Compose, or will make use of any that may already be running.  Tests are performed in
-  their own Postgres schema, so as not interfere with debugging state in a running debug service instance.
-  (You may run `docker compose down -v` to clean up completely between runs.)
+* Run the pytest test suite at any point with `make test`.  The tests do not use the Docker Compose database;
+  instead, an ephemeral Postgres container is started for the test session via testcontainers (so Docker must
+  be available), and each test is performed in its own freshly created Postgres schema.
 
 * To run the playwright tests, add `--run-playwright` to the pytest arguments
 

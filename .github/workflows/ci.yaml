@@ -31,7 +31,6 @@ concurrency:
 env:
   UV_VERSION: "0.12.x"
   UV_FROZEN: "1"
-  TEST__LOCAL_DB: "1"  # signals test fixtures to not use testcontainers
 
 jobs:
   commitlint:
