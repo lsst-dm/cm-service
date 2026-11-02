@@ -423,13 +423,14 @@ class StartMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunch
     async def do_retry(self, event: EventData) -> None:
         """Reverts the running status of a Start node from Failed to Ready."""
         logger.info("Retrying START node", id=str(self.db_model.id))
+        _configuration_chain: ChainMap = getattr(self, "configuration_chain", ChainMap())
         if (
-            wms_event_log := self.configuration_chain.get("wms", ChainMap()).get("wms_event_log_path")
+            wms_event_log := _configuration_chain.get("wms", ChainMap()).get("wms_event_log_path")
         ) is not None:
             await Path(wms_event_log).unlink(missing_ok=True)
 
         if (
-            wms_output_log := self.configuration_chain.get("wms", ChainMap()).get("wms_output_log_path")
+            wms_output_log := _configuration_chain.get("wms", ChainMap()).get("wms_output_log_path")
         ) is not None:
             await Path(wms_output_log).unlink(missing_ok=True)
 
