@@ -63,7 +63,8 @@ async def describe_one_campaign(id: str, aclient: AsyncClient) -> dict:
 
 
 async def get_campaign_manifests(id: str | None = None, manifests: list[dict] = []) -> list[dict]:
-    """API helper for fetching a collection of campaign or library manifests.
+    """Fetch a collection of campaign or library manifests.
+
     Parameters
     ----------
     id : str | None
