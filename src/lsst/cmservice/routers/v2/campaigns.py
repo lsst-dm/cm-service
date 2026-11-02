@@ -850,7 +850,13 @@ async def read_default_manifest_resource(
     """Get the default manifest for specified kind within the campaign"""
     # NOTE: since the table has a unique index applied, it should be impossible
     # to ever set more than one default for a campaign-kind manifest.
-    manifest = await session.exec(select(Manifest).where(col(Manifest.default).is_(True)))
+    s = (
+        select(Manifest)
+        .where(Manifest.namespace == campaign_id)
+        .where(Manifest.kind == kind)
+        .where(col(Manifest.default).is_(True))
+    )
+    manifest = await session.exec(s)
     return manifest.first()
 
 
