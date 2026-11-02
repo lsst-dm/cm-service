@@ -14,6 +14,7 @@ async def get_one_manifest(
     version: int | None = None,
     default: bool = False,
 ) -> Response | None:
+    """Fetch a single manifest."""
     # Default URL when manifest id is used
     url = f"/manifests/{id}"
 
