@@ -441,6 +441,7 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
                 "predicates": ["instrument='NOSTROMO'"],
                 "collections": {
                     "campaign_input": ["NOSTROMO/catalog/ZetaReticuli/Calpamos"],
+                    "prepend_runs_to": "u/burke/AuditCollection",
                 },
             },
         },

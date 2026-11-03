@@ -640,6 +640,16 @@ class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin
                 "{{butler.collections.step_output}} {{butler.collections.step_input}}"
             ),
         ]
+
+        # DM-56889 Arbitrary collection chain prepend
+        # FIXME should this optional operation be allowed to Fail the node?
+        if self.configuration_chain["butler"]["collections"].get("prepend_runs_to") is not None:
+            self.command_templates.append(
+                "{{butler.exe_bin}} collection-chain {{butler.repo}} --mode=prepend "
+                "{{butler.collections.prepend_runs_to}} "
+                "{% for collection in butler.group_run_collections %} {{collection}}{% endfor %} "
+            )
+
         # Prepare a Butler runtime config to add to the Node's config chain
         butler_config: dict[str, Any] = {}
         butler_config["exe_bin"] = (
