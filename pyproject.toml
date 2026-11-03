@@ -260,6 +260,7 @@ files = [
     "tests",
     "packages/cm-commandline/src/lsst/cmservice/commandline",
     "packages/cm-web/src/lsst/cmservice/web",
+    "packages/cm-web/web_tests",
     "packages/cm-models/src/lsst/cmservice/models",
 ]
 mypy_path = [
