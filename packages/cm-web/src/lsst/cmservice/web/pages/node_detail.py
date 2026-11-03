@@ -200,7 +200,7 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
         """Renders a table of BPS report data."""
         status_names = set()
         rows = []
-        columns = [{"name": "task", "label": "Task", "field": "task", "sortOrder": "ad"}]
+        columns = [{"name": "task", "label": "Cluster", "field": "task", "sortOrder": "ad"}]
 
         # each task is a table row, each status is a column
         task: str
