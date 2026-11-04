@@ -7,6 +7,7 @@ from uuid import uuid4
 
 import typer
 from httpx2 import HTTPStatusError, codes
+from pydantic_extra_types.cron import CronStr
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
@@ -73,7 +74,16 @@ def load_schedule(
                 node_id = f"{manifest['metadata']['name']}.1"
                 to_load[node_id] = manifest
             case "schedule":
-                schedule.configuration = manifest["spec"]
+                # The schedule's cron is a field of the schedule itself and not
+                # part of its configuration.
+                spec = dict(manifest["spec"])
+                if (cron := spec.pop("cron", None)) is not None:
+                    try:
+                        schedule.cron = CronStr(cron)
+                    except ValueError as e:
+                        console.print(f"Invalid schedule cron {cron!r}: {e}")
+                        raise typer.Exit(1) from e
+                schedule.configuration = spec
             case _:
                 manifest["metadata"].pop("namespace", None)
                 manifest["metadata"].pop("kind", None)
@@ -200,6 +210,46 @@ def oneshot_schedule(
             table.add_column("URL")
             for k, v in result_dict.items():
                 table.add_row(k, v)
+            console.print(table)
+        case formatters.Formatters.json:
+            formatters.as_json(result_dict)
+
+
+@app.command(name="refresh")
+def refresh_schedule(
+    ctx: TypedContext,
+    schedule: arguments.schedule_id,
+) -> None:
+    """Refresh a schedule from its external resource without creating a
+    campaign.
+
+    If the resource has a schedule manifest, the manifest replaces the
+    schedule's configuration and cron. Nothing changes for a schedule without
+    an external resource, or one whose resource has no schedule manifest.
+    """
+    with http_client(ctx) as client:
+        try:
+            r = client.post(f"/schedules/{schedule}/refresh")
+            r.raise_for_status()
+        except HTTPStatusError as e:
+            console.print(e)
+            console.print(e.response.text)
+            sys.exit(1)
+
+    changes: dict[str, dict] = r.json()["changes"] if r.status_code == codes.OK else {}
+    result_dict = {"schedule": r.headers.get("Self"), "changes": changes}
+
+    match formatters.Formatters[ctx.obj.output_format]:
+        case formatters.Formatters.table:
+            if not changes:
+                console.print(Text("The schedule is unchanged"))
+                return None
+            table = Table(title="CM Schedule Refresh")
+            table.add_column("Field")
+            table.add_column("From")
+            table.add_column("To")
+            for name, change in changes.items():
+                table.add_row(name, repr(change["from"]), repr(change["to"]))
             console.print(table)
         case formatters.Formatters.json:
             formatters.as_json(result_dict)

@@ -6,7 +6,7 @@ from enum import EnumType
 from functools import partial
 from typing import Any
 
-from pydantic import PlainSerializer, PlainValidator
+from pydantic import AfterValidator, PlainSerializer, PlainValidator
 
 from .enums import AuditActionEnum, ManifestKind, NotificationLabelEnum, StatusEnum
 
@@ -26,6 +26,23 @@ def EnumValidator[T: EnumType](value: Any, enum_: T) -> T:
         msg = f"Value must be a member of {enum_.__qualname__}"
         raise ValueError(msg)
     return new_enum
+
+
+def check_template_expressions(value: dict[str, str]) -> dict[str, str]:
+    """Validates a mapping of template variable names to expressions, i.e.,
+    that each name is usable as a template variable and that each expression
+    is not empty.
+
+    Used as a Validator for a pydantic field.
+    """
+    for name, expression in value.items():
+        if not name.isidentifier():
+            msg = f"Expression name {name!r} is not a valid variable name"
+            raise ValueError(msg)
+        if not expression.strip():
+            msg = f"Expression {name!r} is empty"
+            raise ValueError(msg)
+    return value
 
 
 EnumSerializer = PlainSerializer(
@@ -58,3 +75,7 @@ NotificationLabelEnumValidator = PlainValidator(partial(EnumValidator, enum_=Not
 """A validator for a NotificationLabelEnum that can parse the enum from a name
 or a value.
 """
+
+
+TemplateExpressionsValidator = AfterValidator(check_template_expressions)
+"""A validator for a mapping of template variable names to expressions."""

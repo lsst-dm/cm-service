@@ -27,7 +27,8 @@ from fastapi import (
     Response,
     status,
 )
-from pydantic import UUID4, UUID5
+from fastapi.responses import JSONResponse
+from pydantic import UUID4, UUID5, ValidationError
 from pydantic_extra_types.cron import CronStr
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import InstrumentedAttribute, noload
@@ -46,12 +47,14 @@ from lsst.cmservice.models.db.schedules import (
     CreateSchedule,
     ManifestTemplate,
     Schedule,
+    check_schedule_configuration,
 )
 from lsst.cmservice.models.enums import AuditActionEnum, ManifestKind
 from lsst.cmservice.models.lib.timestamp import element_time
 
 from ...common.daemon_v2 import daemon_scheduled_job, find_triggered_campaign
 from ...common.logging import LOGGER
+from ...common.schedule_resources import ScheduleResourceError, refresh_audit_log, refresh_schedule
 from ...common.templates import compile_user_expressions
 from ...db.session import db_session_dependency
 
@@ -237,7 +240,17 @@ async def create_schedule_resource(
       does not successfully pass the model validator. This includes the
       presence of any invalid string values in a manifest template as found by
       a regex search.
+    - A schedule with an external resource (a ``uri`` in its configuration)
+      is refreshed from that resource when it is created, so any schedule
+      manifest in the resource replaces the submitted configuration and cron.
+      This route returns a 502 if the resource cannot be used.
+    - This route returns a 422 if the configuration includes any of the
+      schedule's own fields, e.g., ``cron``, which belong at the top level.
     """
+    try:
+        check_schedule_configuration(schedule_manifest.configuration)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e)) from e
 
     # If the submitting user is not known via header, use any provided value
     # from the incoming metadata, with default "root"
@@ -257,6 +270,11 @@ async def create_schedule_resource(
             for template in schedule_manifest.templates
         ],
     )
+
+    try:
+        await refresh_schedule(schedule)
+    except ScheduleResourceError as e:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e)) from e
 
     if schedule.is_enabled:
         schedule.next_run_at = schedule.cron.next_run  # type: ignore[assignment]
@@ -284,24 +302,63 @@ async def update_schedule_resource(
 ) -> None:
     """Completely or partially update an existing schedule resource and/or its
     attached manifest templates.
+
+    Notes
+    -----
+    - An update to a schedule with an external resource is applied as
+      requested, but if the resource has a schedule manifest, the update may
+      be replaced when the schedule is next refreshed from its resource.
+    - An update that gives the schedule a new external resource (``uri``)
+      refreshes the schedule from it, so any schedule manifest in the resource
+      replaces the updated configuration and cron. This route returns a 502 if
+      the resource cannot be used, and the update is not applied.
+    - This route returns a 422 if the configuration update includes any of the
+      schedule's own fields, e.g., ``cron``, which belong at the top level.
     """
+    try:
+        check_schedule_configuration(schedule_update.configuration)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e)) from e
 
     # FIXME this patch route doesn't successfully account for partial updates
     # to deeply nested models, e.g., adding or removing specific expressions.
 
     schedule = await session.get_one(Schedule, schedule_id)
+    previous_uri = schedule.configuration.get("uri")
 
     match request.method:
         case "PATCH":
-            schedule_update.configuration = (
-                ScheduleConfiguration(**schedule.configuration)
-                .model_copy(update=schedule_update.configuration)
-                .model_dump()
-            )
+            # Shallow update of the configuration, if one is requested, which
+            # is validated as a whole and stored with only the fields that are
+            # set, i.e., without any defaults that were not requested
+            if "configuration" in schedule_update.model_fields_set:
+                try:
+                    schedule.configuration = ScheduleConfiguration.model_validate(
+                        schedule.configuration | schedule_update.configuration
+                    ).model_dump(exclude_unset=True)
+                except ValidationError as e:
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                        detail=e.errors(include_url=False, include_context=False),
+                    ) from e
             # Shallow update
-            schedule.sqlmodel_update(schedule_update.model_dump(exclude_unset=True))
+            schedule.sqlmodel_update(
+                schedule_update.model_dump(exclude_unset=True, exclude={"configuration"})
+            )
         case _:
             raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    if schedule.configuration.get("uri") not in (None, previous_uri):
+        try:
+            _, changes = await refresh_schedule(schedule)
+        except ScheduleResourceError as e:
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e)) from e
+        if changes:
+            request.state.audit.add(
+                refresh_audit_log(
+                    schedule, changes, actor=schedule_owner, request_id=UUID(correlation_id.get())
+                )
+            )
 
     if session.dirty:
         schedule.metadata_["mtime"] = element_time()
@@ -489,3 +546,50 @@ async def create_schedule_oneshot_resource(
         daemon_scheduled_job, schedule_id=schedule_id, suppress_exceptions=True, oneshot=True, trigger=trigger
     )
     background_tasks.add_task(job)
+
+
+@router.post(
+    "/{schedule_id}/refresh",
+    summary="Refresh a schedule from its external resource",
+    status_code=status.HTTP_200_OK,
+    response_model=None,
+)
+async def create_schedule_refresh_resource(
+    *,
+    request: Request,
+    session: Annotated[AsyncSession, Depends(db_session_dependency)],
+    schedule_id: Annotated[UUID4, Path()],
+    actor: Annotated[str, Header(alias="X-Auth-Request-User", min_length=1)],
+) -> Response:
+    """Refreshes a schedule from its external resource without creating a
+    campaign.
+
+    If the schedule's external resource (the ``uri`` in its configuration) has
+    a schedule manifest, the manifest replaces the schedule's configuration
+    and cron, and this API returns the changes made to the schedule. This API
+    returns a 204 if nothing was changed, including when the schedule has no
+    external resource or the resource has no schedule manifest.
+
+    This API returns a 502 if the resource cannot be used, or a 422 if the
+    request does not identify its actor with a non-empty
+    ``X-Auth-Request-User`` header.
+    """
+    # Application-level handler takes care of 404s
+    schedule = await session.get_one(Schedule, schedule_id)
+
+    try:
+        _, changes = await refresh_schedule(schedule)
+    except ScheduleResourceError as e:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e)) from e
+
+    headers = {"Self": str(request.url_for("read_schedule_resource", schedule_name_or_id=str(schedule.id)))}
+    if not changes:
+        return Response(status_code=status.HTTP_204_NO_CONTENT, headers=headers)
+
+    schedule.metadata_["mtime"] = element_time()
+    schedule.metadata_["updated_by"] = actor
+    request.state.audit.add(
+        refresh_audit_log(schedule, changes, actor=actor, request_id=UUID(correlation_id.get()))
+    )
+    await session.commit()
+    return JSONResponse({"changes": changes}, headers=headers)

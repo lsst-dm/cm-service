@@ -8,7 +8,27 @@ from typing import Annotated
 
 from pydantic import UUID4, BaseModel, Field, StrictBool
 
+from ..types import TemplateExpressions
 from .manifests import Manifest, ManifestSpec
+
+
+class ScheduleTriggerBinding(BaseModel):
+    """Model representing an event source that triggers a oneshot of a
+    Schedule, and the expressions that override the Schedule's own expressions
+    when it does.
+    """
+
+    source: str = Field(description="The kind of event source, e.g., `kafka`.", examples=["kafka"])
+    channel: str = Field(
+        description="The channel of the event source on which the trigger events are delivered, e.g., a "
+        "Kafka topic.",
+        examples=["ap-inbound"],
+    )
+    expressions: TemplateExpressions = Field(
+        default_factory=dict,
+        description="Expressions that override or extend the schedule's own expressions for the triggered "
+        "oneshot.",
+    )
 
 
 class ScheduleConfiguration(ManifestSpec):
@@ -18,7 +38,7 @@ class ScheduleConfiguration(ManifestSpec):
     # fields, e.g.) must either always use a backward-compatible default and/or
     # be matched with an alembic migration to backfill a backward-compatible
     # default for all extant records.
-    expressions: dict[str, str] = Field(
+    expressions: TemplateExpressions = Field(
         default_factory=dict,
         description="A mapping of a variable name to a string representation of a valid Python expression.",
         examples=[{"today": "datetime.now()"}],
@@ -33,6 +53,10 @@ class ScheduleConfiguration(ManifestSpec):
     cron: str = Field(
         default="0 0 1-7 * SUN",
         description="A crontab string expressing a scheduling cadence.",
+    )
+    triggers: list[ScheduleTriggerBinding] | None = Field(
+        default=None,
+        description="A list of trigger event sources for the schedule (not counting `cron` or `oneshot`)",
     )
     uri: str | None = Field(
         default=None,
@@ -56,7 +80,7 @@ class ScheduleOneshot(BaseModel):
     a Schedule.
     """
 
-    expressions: dict[str, str] = Field(
+    expressions: TemplateExpressions = Field(
         default_factory=dict,
         description=(
             "A mapping of a variable name to a string representation of a valid Python expression. "
@@ -79,7 +103,7 @@ class ScheduleTrigger(BaseModel):
     actor: str = Field(default="root", description="The user or service responsible for the trigger.")
     schedule: UUID4 = Field(description="The id of the triggered schedule.")
     key: str | None = Field(default=None, description="An idempotency key for the trigger.")
-    expressions: dict[str, str] = Field(
+    expressions: TemplateExpressions = Field(
         default_factory=dict, description="The expression overrides applied by the trigger."
     )
 
