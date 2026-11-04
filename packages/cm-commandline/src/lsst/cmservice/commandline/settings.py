@@ -1,7 +1,16 @@
+from getpass import getuser
 from uuid import UUID
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def default_user() -> str | None:
+    """Returns the local username, if one can be determined."""
+    try:
+        return getuser()
+    except OSError:
+        return None
 
 
 class Settings(BaseSettings):
@@ -31,6 +40,14 @@ class Settings(BaseSettings):
     token: str | None = Field(
         default=None,
         description="Gafaelfawr auth token to use with API",
+    )
+
+    user: str | None = Field(
+        default_factory=default_user,
+        description=(
+            "Username sent to the API as the request actor, defaulting to the local user. In a deployment "
+            "behind Gafaelfawr, the authenticated user replaces it."
+        ),
     )
 
 

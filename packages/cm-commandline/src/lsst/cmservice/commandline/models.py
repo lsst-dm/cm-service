@@ -6,6 +6,7 @@ from .settings import settings
 
 class AppContext(BaseModel):
     auth_token: str | None = settings.token
+    user: str | None = settings.user
     campaign_name: str | None = None
     campaign_id: str | None = None
     endpoint_url: str = settings.endpoint
