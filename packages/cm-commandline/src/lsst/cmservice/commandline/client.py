@@ -4,7 +4,9 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from uuid import uuid4
 
-from httpx2 import Client, HTTPStatusError, HTTPTransport
+import typer
+from httpx2 import Client, HTTPTransport
+from typer.exceptions import TyperException
 
 from .logging import LOGGER
 from .models import TypedContext
@@ -14,7 +16,11 @@ logger = LOGGER.bind(module=__name__)
 
 @contextmanager
 def http_client(ctx: TypedContext) -> Generator[Client]:
-    """Generate a client session for cmclient API operations."""
+    """Generate a client session for cmclient API operations.
+
+    Any error raised in the client context, other than a command's own exit,
+    abort, or usage error, is logged and ends the command with exit code 1.
+    """
     transport = HTTPTransport(
         verify=False,
         retries=3,
@@ -38,7 +44,11 @@ def http_client(ctx: TypedContext) -> Generator[Client]:
     ) as client:
         try:
             yield client
-        except HTTPStatusError as e:
-            logger.error(e)
+        except typer.Exit, typer.Abort, TyperException:
+            # A command's own exit, abort, or usage error passes through as is
+            raise
         except Exception as e:
+            # Any other error ends the command with a failure exit code instead
+            # of letting the command continue after the client context
             logger.error(e)
+            raise typer.Exit(1) from e
