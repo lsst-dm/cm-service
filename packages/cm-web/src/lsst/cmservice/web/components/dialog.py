@@ -941,7 +941,8 @@ class ScheduleReviewDialog(ui.dialog):
                             "sticky top-0 z-10 bg-white text-bold"
                         )
                         ui.separator()
-                        for k, v in self.schedule["configuration"]["expressions"].items():
+                        # A stored configuration has only the fields set
+                        for k, v in self.schedule["configuration"].get("expressions", {}).items():
                             ui.item(f"{k} = {v}").classes("font-mono")
 
                 with ui.column().classes("h-full flex-[0.3] m-0 min-h-0 overflow-y-auto"):

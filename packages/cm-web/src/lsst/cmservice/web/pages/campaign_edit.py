@@ -835,11 +835,13 @@ class CampaignClonePage(CampaignEditPage):
         templates = api.get_schedule_templates(schedule_id=schedule_id)
 
         # Create an "export" collection YAML documents.
+        # The schedule's cron is the real one; any cron in its configuration
+        # may be missing or stale, so the exported spec uses the former.
         yaml_import: str = "".join([template.manifest async for template in templates])
         yaml_import += yaml.safe_dump(
             ScheduleManifest(
                 kind=ManifestKind.schedule,
-                spec=schedule.configuration,
+                spec=schedule.configuration | {"cron": str(schedule.cron)},
                 metadata={},  # pyright: ignore[reportCallIssue]
             ).model_dump(by_alias=True),
             explicit_start=True,

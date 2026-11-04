@@ -11,6 +11,7 @@ from .serde import (
     ManifestKindEnumValidator,
     NotificationLabelEnumValidator,
     StatusEnumValidator,
+    TemplateExpressionsValidator,
 )
 
 type AnyAsyncSession = AsyncSession | AsyncSessionSA | async_scoped_session
@@ -40,4 +41,14 @@ type NotificationLabelKindField = Annotated[
 ]
 """A type for fields representing a Notification Label with a custom validator
 tuned for enums operations.
+"""
+
+
+type TemplateExpressions = Annotated[dict[str, str], TemplateExpressionsValidator]
+"""A type for fields representing a mapping of template variable names to
+string representations of valid Python expressions.
+
+Each expression is evaluated in a sandbox when a Schedule creates a new
+campaign, and its result is available to the campaign's templates as a variable
+of the same name.
 """

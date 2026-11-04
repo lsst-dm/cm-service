@@ -2,6 +2,8 @@ import os
 import re
 from typing import assert_never
 
+from pydantic import AliasChoices, BaseModel
+
 
 def as_snake_case(s: str) -> str:
     """Preprocess a string by sanitizing it and producing snake case."""
@@ -58,3 +60,19 @@ def csv_validator(value: str | list) -> list:
             return value
         case _:
             assert_never(value)
+
+
+def model_field_names(model: type[BaseModel]) -> set[str]:
+    """Returns the names of a model's fields, together with any string aliases
+    by which those fields may be validated or serialized.
+    """
+    names = set()
+    for name, field in model.model_fields.items():
+        names.add(name)
+        for alias in (field.alias, field.serialization_alias, field.validation_alias):
+            match alias:
+                case str():
+                    names.add(alias)
+                case AliasChoices():
+                    names.update(choice for choice in alias.choices if isinstance(choice, str))
+    return names
