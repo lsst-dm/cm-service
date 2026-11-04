@@ -50,14 +50,11 @@ class StatusDecorators(StatusDecorator, enum.Enum):
     rejected = ("thumb_down", Palette.RED.dark)
     blocked = ("block", Palette.VIOLET.dark)
     paused = ("pause_circle", Palette.YELLOW.light)
-    rescuable = ("support", Palette.ORANGE.light)
     waiting = ("watch_later", Palette.BLUE.dark)
     ready = ("pending_actions", Palette.BLUE.light)
-    prepared = ("pending", Palette.INDIGO.dark)
     running = ("run_circle", Palette.ORANGE.light)
     reviewable = ("running_with_errors", Palette.RED.light)
     accepted = ("verified", Palette.GREEN.dark)
-    rescued = ("check_circle", Palette.GREEN.dark)
 
 
 MANIFEST_KIND_ICONS: dict[str, str] = {

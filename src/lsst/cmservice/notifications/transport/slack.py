@@ -25,10 +25,6 @@ SLACK_HEADER_SECTION = {
         "emoji": "dumpster-fire",
         "text": "One or more Campaign Nodes have FAILED",
     },
-    StatusEnum.reviewable: {
-        "emoji": "interrobang",
-        "text": "One or more Campaign Nodes may require REVIEW",
-    },
     StatusEnum.accepted: {
         "emoji": "100",
         "text": "A Campaign or Node is SUCCESSFUL",

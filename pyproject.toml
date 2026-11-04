@@ -29,7 +29,6 @@ dependencies = [
     "asgi-correlation-id>=4.3.4",
     "asyncpg==0.31.*",
     "certifi>=2026.10.23",
-    "click==8.1.*",
     "cryptography>=49",
     "deepdiff>=8.6.1,<9",
     "fastapi==0.140.*",
@@ -43,12 +42,10 @@ dependencies = [
     "pydantic-extra-types[cron,uuid_utils]>=2.10.6",
     "pydantic-settings==2.14.*",
     "pytransitions==0.9.*",
-    "python-multipart==0.0.*",
     "sqlalchemy[asyncio]==2.0.*",
     "sqlmodel>=0.0.24",
     "starlette>=1.1.0",
     "structlog==25.*",
-    "tabulate==0.9.*",
     "uvicorn[standard]==0.34.*",
 ]
 
@@ -72,8 +69,7 @@ lsst = [
 # Use `--no-dev` with uv to explictly exclude these dependencies when installing
 # the project environment.
 dev = [
-    "aiosqlite>=0.20.0",
-    "asgi-lifespan>=2.1.0",
+    "click==8.1.*",
     "coverage[toml]>=7.6.7",
     "json-schema-for-humans",
     "mypy>=1.17.0",
@@ -83,7 +79,6 @@ dev = [
     "pytest-cov>=6.0.0",
     "pytest-httpx2>=1.0.0",
     "pytest-mock",
-    "pytest-playwright>=0.5.2",
     "pytest-timeout>=2.3.1",
     "python-semantic-release==10.6.*",
     "respx>=0.22.0",
@@ -91,7 +86,6 @@ dev = [
     "sqlalchemy[mypy]>=2.0.36",
     "testcontainers[postgres]==4.10.*",
     "types-pyyaml>=6.0.12.20240917",
-    "types-tabulate>=0.9.0.20240106",
     "types-networkx==3.6.1.20260624",
 ]
 
@@ -266,6 +260,7 @@ files = [
     "tests",
     "packages/cm-commandline/src/lsst/cmservice/commandline",
     "packages/cm-web/src/lsst/cmservice/web",
+    "packages/cm-web/web_tests",
     "packages/cm-models/src/lsst/cmservice/models",
 ]
 mypy_path = [

@@ -451,11 +451,11 @@ async def read_campaign_manifest_resource(
                 .limit(1)
             )
             if name is not None:
-                s.where(Manifest.name == name)
+                s = s.where(Manifest.name == name)
             if version == "default":
-                s.where(Manifest.default)
+                s = s.where(Manifest.default)
             elif version is not None:
-                s.where(Manifest.version == version)
+                s = s.where(Manifest.version == version)
             r = (await session.exec(s)).one_or_none()
         case _:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
@@ -850,7 +850,13 @@ async def read_default_manifest_resource(
     """Get the default manifest for specified kind within the campaign"""
     # NOTE: since the table has a unique index applied, it should be impossible
     # to ever set more than one default for a campaign-kind manifest.
-    manifest = await session.exec(select(Manifest).where(col(Manifest.default).is_(True)))
+    s = (
+        select(Manifest)
+        .where(Manifest.namespace == campaign_id)
+        .where(Manifest.kind == kind)
+        .where(col(Manifest.default).is_(True))
+    )
+    manifest = await session.exec(s)
     return manifest.first()
 
 

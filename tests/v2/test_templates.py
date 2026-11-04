@@ -118,7 +118,7 @@ def template_generator() -> Generator[CreateManifestTemplate]:
     return (
         CreateManifestTemplate(
             name=t["name"],
-            kind=t["kind"],  # pyright: ignore[reportArgumentType]
+            kind=t["kind"],  # type: ignore[arg-type]
             manifest=t["manifest"],
             schedule_id=schedule_id,
         )
