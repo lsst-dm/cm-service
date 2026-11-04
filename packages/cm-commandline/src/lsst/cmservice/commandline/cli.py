@@ -25,8 +25,9 @@ def build_context(
     output: options.output = "table",
     endpoint: options.endpoint = settings.endpoint,
     token: options.token | None = settings.token,
+    user: options.user = settings.user,
 ) -> None:
-    ctx.obj = AppContext(output_format=output, endpoint_url=endpoint, auth_token=token)
+    ctx.obj = AppContext(output_format=output, endpoint_url=endpoint, auth_token=token, user=user)
 
 
 if __name__ == "__main__":
