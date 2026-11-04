@@ -10,14 +10,13 @@ may use configuration elements from the `../alembic.ini` file. This execution
 environment includes the creation of a SQLAlchemy connection engine which is subsequently
 used by the migration scripts.
 
-The default database connection URL used by Alembic to create a SQLAlchemy engine is
-a `:memory:` instance of SQLite, which is effectively a no-op. In descending order
-of preference, the database connection URL can be specified by:
+Only PostgreSQL databases are supported, and there is no default database connection
+URL; Alembic exits with an error if none is provided. In descending order of
+preference, the database connection URL can be specified by:
 
 - any `-x cm_database_url=...` argument passed to `alembic`.
-- the `CM_DATABASE_URL` environment variable.
-- the value of the `sqlalchemy.url` configuration value in `alembic.ini` (which should
-  be a path to a sqlite database file).
+- the `DB__URL` environment variable.
+- the value of the `sqlalchemy.url` configuration value in `alembic.ini`.
 
 With the project's virtual environment installed and activated (`source .venv/bin/activate`),
 `alembic` is available to invoke at the command line.

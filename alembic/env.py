@@ -2,7 +2,8 @@ import os
 from logging import getLogger
 from logging.config import fileConfig
 
-from sqlalchemy import create_engine, pool, text
+from alembic.runtime.environment import NameFilterParentNames, NameFilterType
+from sqlalchemy import create_engine, make_url, pool, text
 
 from alembic import context
 from lsst.cmservice.models.db.base import BaseSQLModel
@@ -18,12 +19,42 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-target_metadata = BaseSQLModel.metadata
+TARGET_METADATA = BaseSQLModel.metadata
+
+# Build the migration in the schema given on the command line or default to
+# the schema built into the metadata. This should be the app config value
+# derived from env:CM_DATABASE_SCHEMA.
+TARGET_SCHEMA: str = (
+    context.get_x_argument(as_dictionary=True).get("schema") or TARGET_METADATA.schema or "public"
+)
+
+ALEMBIC_SCHEMA: str = context.get_x_argument(as_dictionary=True).get("alembic_schema") or TARGET_SCHEMA
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired using `config.get_main_option("...")`
 
 logger = getLogger("alembic")
+
+
+def schema_name_filter(name: str | None, type_: NameFilterType, parent_names: NameFilterParentNames) -> bool:
+    """Limit autogenerate reflection to the target schema."""
+    if type_ == "schema":
+        return name == TARGET_SCHEMA
+    return True
+
+
+def get_database_url(candidates: list[str | None]) -> str:
+    """Returns the first database URL from the candidates, which must be a
+    PostgreSQL database; no other database backend is supported.
+    """
+    url = next((u for u in candidates if u is not None), None)
+    if url is None:
+        msg = "No database URL: set DB__URL or pass `-x cm_database_url=...`"
+        raise RuntimeError(msg)
+    if (backend := make_url(url).get_backend_name()) != "postgresql":
+        msg = f"Unsupported database backend {backend!r}; only PostgreSQL is supported"
+        raise RuntimeError(msg)
+    return url
 
 
 def run_migrations_offline() -> None:
@@ -38,21 +69,16 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = next(
-        (
-            u
-            for u in [
-                os.getenv("DB__URL"),
-                context.get_x_argument(as_dictionary=True).get("cm_database_url"),
-                config.get_main_option("sqlalchemy.url", default=None),
-                "sqlite://",
-            ]
-            if u is not None
-        ),
+    url = get_database_url(
+        [
+            os.getenv("DB__URL"),
+            context.get_x_argument(as_dictionary=True).get("cm_database_url"),
+            config.get_main_option("sqlalchemy.url", default=None),
+        ]
     )
     context.configure(
         url=url,
-        target_metadata=target_metadata,
+        target_metadata=TARGET_METADATA,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
@@ -71,19 +97,13 @@ def run_migrations_online() -> None:
     - An `-x cm_database_url=...` CLI argument
     - A `DB__URL` environment variable
     - The value of `sqlalchemy.url` specified in the alembic.ini
-    - A sqlite :memory: database
     """
-    url = next(
-        (
-            u
-            for u in [
-                context.get_x_argument(as_dictionary=True).get("cm_database_url"),
-                os.getenv("DB__URL"),
-                config.get_main_option("sqlalchemy.url", default=None),
-                "sqlite://",
-            ]
-            if u is not None
-        ),
+    url = get_database_url(
+        [
+            context.get_x_argument(as_dictionary=True).get("cm_database_url"),
+            os.getenv("DB__URL"),
+            config.get_main_option("sqlalchemy.url", default=None),
+        ]
     )
 
     # Set PG* environment variables from DB__* environment variables to capture
@@ -93,39 +113,26 @@ def run_migrations_online() -> None:
 
     connectable = create_engine(url, poolclass=pool.NullPool)
 
-    # Build the migration in the schema given on the command line or default to
-    # the schema built into the metadata. This should be the app config value
-    # derived from env:CM_DATABASE_SCHEMA.
-    target_schema = (
-        context.get_x_argument(as_dictionary=True).get("schema") or target_metadata.schema or "public"
-    )
-    alembic_schema = context.get_x_argument(as_dictionary=True).get("alembic_schema") or target_schema
-
-    logger.info("Using schema %s for alembic revision table", alembic_schema)
-    logger.info("Using schema %s for database revisions", target_schema)
+    logger.info("Using schema %s for alembic revision table", ALEMBIC_SCHEMA)
+    logger.info("Using schema %s for database revisions", TARGET_SCHEMA)
 
     with connectable.connect() as connection:
-        if connection.dialect.name == "postgresql":
-            # Explicit pre-migration schema creation, needed for the schema
-            # in which the alembic version_table is being created, if different
-            # the target schema.
-            connection.execute(text(f"CREATE SCHEMA IF NOT EXISTS {alembic_schema}"))
-            connection.execute(text(f"CREATE SCHEMA IF NOT EXISTS {target_schema}"))
-            connection.commit()
-            # Operations are performed in the first schema on the search_path
-            connection.execute(text(f"set search_path to {target_schema}"))
-            connection.commit()
-
-        elif connection.dialect.name == "sqlite":
-            # SQLite does not care about schema
-            alembic_schema = None
-            target_schema = None
+        # Explicit pre-migration schema creation, needed for the schema
+        # in which the alembic version_table is being created, if different
+        # the target schema.
+        connection.execute(text(f"CREATE SCHEMA IF NOT EXISTS {ALEMBIC_SCHEMA}"))
+        connection.execute(text(f"CREATE SCHEMA IF NOT EXISTS {TARGET_SCHEMA}"))
+        connection.commit()
+        # Operations are performed in the first schema on the search_path
+        connection.execute(text(f"set search_path to {TARGET_SCHEMA}"))
+        connection.commit()
 
         context.configure(
             connection=connection,
-            target_metadata=target_metadata,
-            version_table_schema=alembic_schema,
-            include_schemas=False,
+            target_metadata=TARGET_METADATA,
+            version_table_schema=ALEMBIC_SCHEMA,
+            include_schemas=True,
+            include_name=schema_name_filter,
         )
 
         with context.begin_transaction():
