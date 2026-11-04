@@ -152,6 +152,34 @@ uv run pytest packages/cm-web/web_tests --runxfail -k <test name>
 - **Fixture:** a new butler manifest on the New Campaign page, with its
   template's `repo` field indented differently.
 
+## Schedule overview page
+
+### A failed toggle leaves the page showing the wrong enabled state
+
+- **Test:** [`test_schedule_overview.py::test_failed_toggle_keeps_enabled_state`](test_schedule_overview.py)
+- **Where:** [`pages/schedule_overview.py:240`](../src/lsst/cmservice/web/pages/schedule_overview.py#L240)
+  (`ScheduleOverviewPage.handle_schedule_action`, the `toggle` action)
+- **What happens:** the toggle action changes the page model's
+  `is_enabled` before it sends the `PATCH`. When the `PATCH` fails,
+  `raise_for_status()` raises, but the page model keeps the change, so the
+  page no longer matches the schedule. The next toggle then sends the
+  opposite of what the user asked for: after a failed attempt to enable a
+  disabled schedule, clicking the toggle again sends `is_enabled: false`.
+- **Fixture:** a disabled schedule whose first `PATCH` fails with a 500.
+
+### A failed cron change leaves the page showing the unsaved cron
+
+- **Test:** [`test_schedule_overview.py::test_failed_cron_change_keeps_cron`](test_schedule_overview.py)
+- **Where:** [`pages/schedule_overview.py:232`](../src/lsst/cmservice/web/pages/schedule_overview.py#L232)
+  (`ScheduleOverviewPage.handle_schedule_action`, the `cron` action)
+- **What happens:** the cron action changes the page model's `cron` before
+  it sends the `PATCH` that sets the new cron and disables the schedule.
+  When the `PATCH` fails, the page model keeps the new cron, so the next
+  refresh of the schedule table, e.g., after any other action, shows a cron
+  the schedule does not have, and the cron editor opens with it.
+- **Fixture:** a schedule with cron `0 0 1 * *` whose first `PATCH` fails
+  with a 500, followed by a successful toggle.
+
 ## Unfinished work
 
 These are incomplete features rather than defects. They have no `xfail` tests
