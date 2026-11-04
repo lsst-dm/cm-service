@@ -8,7 +8,7 @@ on:
 
 env:
   BUILDKIT_PROGRESS: plain
-  CM_ENDPOINT: "http://localhost:8080/cm-service"
+  CM_ENDPOINT: "http://localhost:8080/api"
   COMPOSE_PROFILES: full
   LOGGING__LEVEL: "ERROR"
   NO_COLOR: "1"
@@ -61,14 +61,29 @@ jobs:
           SCHEDID=$(uv run -q cm --output json schedules load integration/smoketest.yaml | jq -r '.self | split("/") | .[-1]')
           echo "id=$SCHEDID" >> $GITHUB_OUTPUT
 
+      # The schedule's `day_obs` expression is yesterday. The butler is seeded
+      # for both today and yesterday, so overriding `day_obs` with today
+      # exercises the oneshot override with data that exists.
       - name: Oneshot smoketest schedule
         id: oneshot-smoke
         env:
           LOGGING__STREAM: stderr
           UV_NO_SYNC: "1"
         run: |
-          URL=$(uv run -q cm --output json schedules oneshot ${{ steps.load-smoke.outputs.id }} | jq -r '.new_campaign_url')
+          DAY_OBS=$(date -u +%Y%m%d)
+          URL=$(
+            uv run -q cm --output json schedules oneshot ${{ steps.load-smoke.outputs.id }} -e "day_obs=${DAY_OBS}" \
+            | jq -r '.new_campaign_url'
+          )
           echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "day_obs=$DAY_OBS" >> $GITHUB_OUTPUT
+
+      - name: Validate the oneshot override is applied
+        run: |
+          campaign=$(curl -s "${{ steps.oneshot-smoke.outputs.url }}")
+          jq -e --argjson day_obs "${{ steps.oneshot-smoke.outputs.day_obs }}" \
+            '.metadata.day_obs == $day_obs and .metadata.trigger.expressions == {"day_obs": ($day_obs | tostring)}' \
+            <<< "$campaign"
 
       - name: Wait for campaign to complete
         run: |
@@ -76,7 +91,7 @@ jobs:
           ELAPSED=0
           INTERVAL=10
           while [ $ELAPSED -lt $TIMEOUT ]; do
-            status=$(curl -s get "${{ steps.oneshot-smoke.outputs.url }}" | jq -r '.status')
+            status=$(curl -s "${{ steps.oneshot-smoke.outputs.url }}" | jq -r '.status')
             echo "Campaign status is $status..."
             if [ "$status" = "accepted" ]; then
               exit 0
@@ -107,7 +122,7 @@ jobs:
 
       - name: Upload artifacts on failure
         if: failure()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  #v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: debug-logs
           path: ${{ runner.temp }}/service-*.txt
