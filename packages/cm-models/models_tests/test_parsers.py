@@ -1,4 +1,5 @@
 import pytest
+from pydantic import AliasChoices, AliasPath, BaseModel, Field
 
 from lsst.cmservice.models.lib import parsers
 
@@ -40,3 +41,23 @@ def test_as_templated_snake_case(in_: str, out_: str):
 def test_strip_trailing_slash(in_: str, out_: str):
     """Test trailing slash parsing of strings"""
     assert parsers.strip_trailing_slash(in_) == out_
+
+
+def test_model_field_names():
+    """Test that a model's field names include its string aliases"""
+
+    class Model(BaseModel):
+        plain: int
+        aliased: int = Field(alias="alias")
+        serialized: int = Field(serialization_alias="out")
+        choices: int = Field(validation_alias=AliasChoices("first", AliasPath("nested", 0)))
+
+    assert parsers.model_field_names(Model) == {
+        "plain",
+        "aliased",
+        "alias",
+        "serialized",
+        "out",
+        "choices",
+        "first",
+    }
