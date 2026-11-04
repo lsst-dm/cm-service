@@ -8,7 +8,8 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Literal, overload
 
-from jinja2.exceptions import TemplateError, TemplateSyntaxError
+from jinja2 import Undefined
+from jinja2.exceptions import TemplateError, TemplateSyntaxError, UndefinedError
 from jinja2.sandbox import ImmutableSandboxedEnvironment
 from yaml import YAMLError, safe_load
 
@@ -28,14 +29,29 @@ if TYPE_CHECKING:
 class ManifestRenderingError(Exception): ...
 
 
-def compile_user_expressions(expressions: MutableMapping[str, str]) -> dict[str, Any]:
+def compile_user_expressions(
+    expressions: MutableMapping[str, str], *, strict: bool = False
+) -> dict[str, Any]:
     """Compiles user template expressions in a dedicated sandbox environment
     with a whitelisted set of Python modules available as globals.
+
+    Parameters
+    ----------
+    strict: bool
+        Defaults to False, in which case an expression that evaluates to an
+        undefined value, e.g., an unquoted string like ``value``, compiles to
+        ``None``. If True, such an expression raises an error instead.
 
     Returns
     -------
     dict[str, Any]
         A mapping of each expression name to its compiled value.
+
+    Raises
+    ------
+    ManifestRenderingError
+        If an expression has a syntax error, refers to an undefined name in an
+        operation, or (if strict) evaluates to an undefined value.
     """
     whitelist_modules: Mapping[str, type | ModuleType] = {
         "datetime": datetime,
@@ -50,12 +66,21 @@ def compile_user_expressions(expressions: MutableMapping[str, str]) -> dict[str,
     # NOTE this is built assuming the expressions are always str-str mappings
     # and that python scalar objects are never present, although this case is
     # supported by the compiler.
-    try:
-        compiled_expressions = {
-            name: sandbox.compile_expression(expression.strip())() for name, expression in expressions.items()
-        }
-    except TemplateSyntaxError:
-        raise ManifestRenderingError("Syntax error in user expression.")
+    compiled_expressions = {}
+    for name, expression in expressions.items():
+        try:
+            value = sandbox.compile_expression(expression.strip(), undefined_to_none=not strict)()
+        except TemplateSyntaxError:
+            msg = f"Syntax error in user expression {name!r}."
+            raise ManifestRenderingError(msg)
+        except UndefinedError as e:
+            msg = f"Undefined name in user expression {name!r}: {e}"
+            raise ManifestRenderingError(msg) from e
+        # Only possible when strict, otherwise an undefined value is None
+        if isinstance(value, Undefined):
+            msg = f"User expression {name!r} is undefined; quote string literals, e.g., {name}='{expression}'"
+            raise ManifestRenderingError(msg)
+        compiled_expressions[name] = value
     return compiled_expressions
 
 

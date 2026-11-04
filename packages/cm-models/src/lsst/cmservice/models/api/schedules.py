@@ -6,7 +6,7 @@ part of the ORM database model hierarchy.
 
 from typing import Annotated
 
-from pydantic import BaseModel, Field, StrictBool
+from pydantic import UUID4, BaseModel, Field, StrictBool
 
 from .manifests import Manifest, ManifestSpec
 
@@ -49,6 +49,46 @@ class ScheduleUpdate(BaseModel):
     is_enabled: StrictBool | None = None
     configuration: Annotated[dict, Field(default_factory=dict)]
     next_run_at: str | None = None
+
+
+class ScheduleOneshot(BaseModel):
+    """Model representing the optional request body of a oneshot operation on
+    a Schedule.
+    """
+
+    expressions: dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "A mapping of a variable name to a string representation of a valid Python expression. "
+            "These expressions override or extend the schedule's own expressions for this oneshot only."
+        ),
+        examples=[{"yesterday": "datetime(2026, 11, 1, tzinfo=timezone.utc)"}],
+    )
+
+
+class ScheduleTrigger(BaseModel):
+    """Model describing the provenance of a campaign created by a oneshot
+    operation on a Schedule.
+
+    A serialized trigger is stored in the new campaign's metadata under the
+    ``trigger`` key. When a ``key`` is present, it is used to detect duplicate
+    triggers of the same schedule, i.e., an idempotency key.
+    """
+
+    source: str = Field(description="The mechanism that triggered the oneshot, e.g., `api`.")
+    actor: str = Field(default="root", description="The user or service responsible for the trigger.")
+    schedule: UUID4 = Field(description="The id of the triggered schedule.")
+    key: str | None = Field(default=None, description="An idempotency key for the trigger.")
+    expressions: dict[str, str] = Field(
+        default_factory=dict, description="The expression overrides applied by the trigger."
+    )
+
+    def containment(self) -> dict:
+        """Returns a mapping suitable for a JSONB containment query against a
+        campaign's metadata, matching any campaign created by an equivalent
+        trigger.
+        """
+        return {"trigger": {"schedule": str(self.schedule), "key": self.key}}
 
 
 class ScheduleMetadata(BaseModel):

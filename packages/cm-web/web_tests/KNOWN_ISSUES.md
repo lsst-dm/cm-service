@@ -194,6 +194,24 @@ Behavior that may or may not be intended, to be settled before it is tested.
 - **Resuming afterwards:** the rescue pauses the campaign and leaves it paused,
   so the user must resume it for the rescue group to be processed.
 
+### Requests without a known user are sent as `anonymous`
+
+- **Where:** [`pages/common.py:54`](../src/lsst/cmservice/web/pages/common.py#L54)
+  (`CMPage.__init__`), [`lib/client_factory.py:31`](../src/lsst/cmservice/web/lib/client_factory.py#L31)
+  (`set_actor_header`)
+- **What happens:** when a page request has no `X-Auth-Request-User` header,
+  the session's user is set to `settings.default_username` (`anonymous`), and
+  every API request the app makes for that session sends
+  `X-Auth-Request-User: anonymous`. API routes that require a known actor,
+  such as the schedule oneshot API, which rejects a missing or empty actor
+  with a `422`, accept these requests as made by a user named `anonymous`.
+  A request made outside a client context sends no actor header at all, and
+  is rejected.
+- **Question:** the ingress always sets the header, so this only affects local
+  and dev deployments without one, such as the integration smoketest. Should
+  the app refuse to act without a known user there, as the API does, rather
+  than act as `anonymous`?
+
 ### The graph insert notification says "Node replaced."
 
 - **Where:** [`api/nodes.py:93`](../src/lsst/cmservice/web/api/nodes.py#L93)

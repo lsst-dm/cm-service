@@ -22,10 +22,13 @@ def http_client(ctx: TypedContext) -> Generator[Client]:
     endpoint_url = ctx.obj.endpoint_url
     api_version = ctx.obj.api_version
     auth_token = ctx.obj.auth_token
+    user = ctx.obj.user
 
     headers = {"X-Request-Id": f"{uuid4()}"}
     if auth_token:
         headers["Authorization"] = f"Bearer {auth_token}"
+    if user:
+        headers["X-Auth-Request-User"] = user
 
     with Client(
         base_url=f"{endpoint_url}/{api_version}",

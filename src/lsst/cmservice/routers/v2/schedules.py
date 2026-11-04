@@ -34,7 +34,12 @@ from sqlalchemy.orm import InstrumentedAttribute, noload
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from lsst.cmservice.models.api.schedules import ScheduleConfiguration, ScheduleUpdate
+from lsst.cmservice.models.api.schedules import (
+    ScheduleConfiguration,
+    ScheduleOneshot,
+    ScheduleTrigger,
+    ScheduleUpdate,
+)
 from lsst.cmservice.models.db.audit import AuditLog
 from lsst.cmservice.models.db.schedules import (
     CreateManifestTemplate,
@@ -45,8 +50,9 @@ from lsst.cmservice.models.db.schedules import (
 from lsst.cmservice.models.enums import AuditActionEnum, ManifestKind
 from lsst.cmservice.models.lib.timestamp import element_time
 
-from ...common.daemon_v2 import daemon_scheduled_job
+from ...common.daemon_v2 import daemon_scheduled_job, find_triggered_campaign
 from ...common.logging import LOGGER
+from ...common.templates import compile_user_expressions
 from ...db.session import db_session_dependency
 
 logger = LOGGER.bind(module=__name__)
@@ -423,11 +429,25 @@ async def create_schedule_oneshot_resource(
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     schedule_id: Annotated[UUID4, Path()],
     background_tasks: BackgroundTasks,
+    oneshot: ScheduleOneshot | None = None,
+    actor: Annotated[str, Header(alias="X-Auth-Request-User", min_length=1)],
+    idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
 ) -> None:
     """Schedules the campaign schedule for immediate one-shot (non-recurring)
     execution.
 
-    This API returns a 409 if the schedule is not allowed to run at this time.
+    An optional request body may provide template expressions that override
+    or extend the schedule's own expressions for this execution only.
+
+    An optional ``Idempotency-Key`` header identifies the request; if a
+    campaign has already been created for the schedule with the same key, no
+    new campaign is created.
+
+    This API returns a 409 if the schedule is not allowed to run at this time,
+    or if the idempotency key has already been used, in which case the
+    ``Location`` header refers to the existing campaign. A 422 is returned if
+    any override expression cannot be evaluated, or if the request does not
+    identify its actor with a non-empty ``X-Auth-Request-User`` header.
     """
 
     # Application-level handler takes care of 404s
@@ -440,5 +460,32 @@ async def create_schedule_oneshot_resource(
     # run time, or allow the job to figure it out -- e.g., by conflicting the
     # temporal name of the new campaign?
 
-    job = partial(daemon_scheduled_job, schedule_id=schedule_id, suppress_exceptions=True, oneshot=True)
+    trigger = ScheduleTrigger(
+        source="api",
+        actor=actor,
+        schedule=schedule_id,
+        key=idempotency_key,
+        expressions=oneshot.expressions if oneshot is not None else {},
+    )
+
+    # Fail early for expressions that would otherwise fail in the background
+    try:
+        compile_user_expressions(trigger.expressions, strict=True)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=f"Invalid override expression: {e}"
+        ) from e
+
+    if (campaign := await find_triggered_campaign(session, trigger)) is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Idempotency key has already been used for this schedule",
+            headers={
+                "Location": str(request.url_for("read_campaign_resource", campaign_name_or_id=campaign.id))
+            },
+        )
+
+    job = partial(
+        daemon_scheduled_job, schedule_id=schedule_id, suppress_exceptions=True, oneshot=True, trigger=trigger
+    )
     background_tasks.add_task(job)
