@@ -23,7 +23,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from transitions import Event
 
 from lsst.cmservice.common.scheduler import Scheduler
-from lsst.cmservice.models.api.schedules import ScheduleConfiguration
+from lsst.cmservice.models.api.schedules import ScheduleConfiguration, ScheduleTrigger
 from lsst.cmservice.models.db.campaigns import Campaign, Edge, Machine, Node, Task
 from lsst.cmservice.models.db.schedules import (
     CreateManifestTemplate,
@@ -253,8 +253,22 @@ async def consider_nodes(context: DaemonContext) -> None:
             await session.commit()
 
 
+async def find_triggered_campaign(session: AsyncSession, trigger: ScheduleTrigger) -> Campaign | None:
+    """Returns a campaign previously created by an equivalent trigger, if
+    any. A trigger without an idempotency key never matches a campaign.
+    """
+    if trigger.key is None:
+        return None
+    statement = select(Campaign).where(col(Campaign.metadata_).contains(trigger.containment())).limit(1)
+    return (await session.exec(statement)).one_or_none()
+
+
 async def daemon_scheduled_job(
-    *, schedule_id: UUID, suppress_exceptions: bool = False, oneshot: bool = False
+    *,
+    schedule_id: UUID,
+    suppress_exceptions: bool = False,
+    oneshot: bool = False,
+    trigger: ScheduleTrigger | None = None,
 ) -> JobEventReturnCode:
     """Daemon work function for performing the work of a scheduled campaign.
 
@@ -278,6 +292,12 @@ async def daemon_scheduled_job(
         Defaults to False. If True, the entire function will be evaluated ir-
         respective of the schedule's enabled status.
 
+    trigger: ScheduleTrigger | None
+        Defaults to None. If provided, the trigger's expressions override the
+        schedule's expressions for this job only, the trigger is recorded in
+        the new campaign's metadata, and the job returns early if a campaign
+        was already created by an equivalent trigger.
+
     Returns
     -------
     JobEventReturnCode
@@ -299,6 +319,10 @@ async def daemon_scheduled_job(
 
         if not schedule.is_enabled and not oneshot:
             return JobEventReturnCode.REMOVE_SELF
+
+        if trigger is not None and await find_triggered_campaign(session, trigger) is not None:
+            logger.warning("Duplicate schedule trigger", schedule=str(schedule_id), key=trigger.key)
+            return JobEventReturnCode.DUPLICATE_TRIGGER
 
         schedule_context = ScheduleConfiguration(**schedule.configuration)
 
@@ -354,6 +378,11 @@ async def daemon_scheduled_job(
                 )
             ]
 
+        # Trigger expressions are applied last, after any schedule patch from
+        # an external URI. The schedule's own configuration is not modified.
+        if trigger is not None:
+            schedule_context.expressions.update(trigger.expressions)
+
         orms = await build_sandbox_and_render_templates(
             context=schedule_context,
             templates=newest_templates,
@@ -367,6 +396,8 @@ async def daemon_scheduled_job(
 
         campaign.owner = schedule.metadata_.get("owner")
         campaign.status = StatusEnum.running if schedule_context.auto_start else StatusEnum.paused
+        if trigger is not None:
+            campaign.metadata_["trigger"] = trigger.model_dump(mode="json")
 
         # We want to split the ORMs so the edges are added only after the nodes
         # FIXME consider a more reusable partitioning function for this

@@ -12,3 +12,5 @@ limit = Annotated[
     int,
     typer.Option(min=1, max=100, help="Maximum number of elements to fetch per request"),
 ]
+
+user = Annotated[str | None, typer.Option(help="Username of the request actor", envvar="CM_USER")]

@@ -104,8 +104,21 @@ def load_schedule(
 def oneshot_schedule(
     ctx: TypedContext,
     schedule: arguments.schedule_id,
+    expressions: schedule_arguments.expressions = None,
+    idempotency_key: schedule_arguments.idempotency_key = None,
 ) -> None:
-    """One-shot a schedule that is not presently enabled."""
+    """One-shot a schedule that is not presently enabled.
+
+    Template expressions may be overridden or added for this oneshot only. If
+    the idempotency key has already been used for the schedule, the campaign
+    previously created with the key is reported instead of a new campaign.
+    """
+    request_kwargs: dict = {}
+    if expressions:
+        request_kwargs["json"] = {"expressions": schedule_arguments.parse_expressions(expressions)}
+    if idempotency_key is not None:
+        request_kwargs["headers"] = {"Idempotency-Key": idempotency_key}
+
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
@@ -117,6 +130,7 @@ def oneshot_schedule(
         prev_c_url: str | None = None
         new_c_url: str | None = None
         s_url: str | None = None
+        duplicate = False
 
         with http_client(ctx) as client:
             # Get the last campaign url for the schedule or leave it as none
@@ -133,17 +147,23 @@ def oneshot_schedule(
                 pass
 
             try:
-                r = client.post(f"/schedules/{schedule}/oneshot")
+                r = client.post(f"/schedules/{schedule}/oneshot", **request_kwargs)
                 r.raise_for_status()
             except HTTPStatusError as e:
-                console.print(e)
-                sys.exit(1)
+                # A conflict with a location refers to the campaign previously
+                # created with the same idempotency key
+                if e.response.status_code == codes.CONFLICT and "Location" in e.response.headers:
+                    new_c_url = e.response.headers["Location"]
+                    duplicate = True
+                else:
+                    console.print(e)
+                    sys.exit(1)
 
             # Wait until `timeout` for the schedule to provide a new campaign
             # and for that campaign to not be 404
             timeout = 10.0
             elapsed = 0.0
-            while elapsed < timeout:
+            while not duplicate and elapsed < timeout:
                 try:
                     r = client.head(f"/schedules/{schedule}")
                     r.raise_for_status()
