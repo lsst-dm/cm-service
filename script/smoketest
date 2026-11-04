@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+
+# script/smoketest: Run the integration smoketest locally, following the steps
+#                   of the `.github/workflows/smoketest.yaml` workflow.
+#
+# Usage: script/smoketest [--keep] [--no-build]
+#
+#   --keep      Leave the integration stack running after the test, e.g., for
+#               debugging; tear it down with `docker compose down -v` from the
+#               `integration/` directory.
+#   --no-build  Do not rebuild the service images before starting the stack.
+#
+# On failure, service logs and status are written to `output/smoketest/`.
+
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+KEEP=0
+BUILD=1
+for arg in "$@"; do
+    case "$arg" in
+        --keep) KEEP=1 ;;
+        --no-build) BUILD=0 ;;
+        *) echo "Unknown argument: $arg" >&2; exit 2 ;;
+    esac
+done
+
+export BUILDKIT_PROGRESS=plain
+export CM_ENDPOINT="http://localhost:8080/api"
+export COMPOSE_PROFILES=full
+export LOGGING__LEVEL=ERROR
+export LOGGING__STREAM=stderr
+export NO_COLOR=1
+
+OUTPUT_DIR="$(pwd)/output/smoketest"
+TIMEOUT=300
+INTERVAL=10
+
+compose() {
+    (cd integration && docker compose --env-file shared.env "$@")
+}
+
+cm() {
+    uv run -q --frozen --package lsst-cmservice-commandline cm "$@"
+}
+
+cleanup() {
+    local status=$?
+    if [ "$status" -ne 0 ]; then
+        echo "==> Smoketest failed; writing service logs to ${OUTPUT_DIR}"
+        mkdir -p "$OUTPUT_DIR"
+        compose logs > "${OUTPUT_DIR}/service-logs.txt" 2>&1 || true
+        compose ps > "${OUTPUT_DIR}/service-status.txt" 2>&1 || true
+    fi
+    if [ "$KEEP" -eq 1 ]; then
+        echo "==> Leaving the integration stack running"
+    else
+        echo "==> Cleaning up"
+        compose down -v --remove-orphans > /dev/null 2>&1 || true
+    fi
+    exit "$status"
+}
+trap cleanup EXIT
+
+# Remove the logs of any previous failed run
+rm -rf "$OUTPUT_DIR"
+
+if [ "$BUILD" -eq 1 ]; then
+    echo "==> Building services"
+    compose build --pull --quiet
+fi
+
+echo "==> Starting services"
+compose up -d --wait
+
+echo "==> Loading seed manifests"
+cm load yaml integration/seed_manifests.yaml
+
+echo "==> Loading smoketest schedule"
+SCHEDULE_ID=$(cm --output json schedules load integration/smoketest.yaml | jq -r '.self | split("/") | .[-1]')
+echo "    schedule: ${SCHEDULE_ID}"
+
+# The schedule's `day_obs` expression is yesterday. The butler is seeded for
+# both today and yesterday, so overriding `day_obs` with today exercises the
+# oneshot override with data that exists.
+DAY_OBS=$(date -u +%Y%m%d)
+echo "==> Oneshot smoketest schedule with day_obs=${DAY_OBS}"
+CAMPAIGN_URL=$(cm --output json schedules oneshot "$SCHEDULE_ID" -e "day_obs=${DAY_OBS}" | jq -r '.new_campaign_url')
+echo "    campaign: ${CAMPAIGN_URL}"
+
+echo "==> Validating the oneshot override is applied"
+curl -s "$CAMPAIGN_URL" | jq -e --argjson day_obs "$DAY_OBS" \
+    '.metadata.day_obs == $day_obs and .metadata.trigger.expressions == {"day_obs": ($day_obs | tostring)}' \
+    > /dev/null
+
+echo "==> Waiting for campaign to complete"
+ELAPSED=0
+while true; do
+    status=$(curl -s "$CAMPAIGN_URL" | jq -r '.status')
+    echo "    campaign status is ${status}..."
+    case "$status" in
+        accepted) break ;;
+        failed) compose logs cmworker; exit 1 ;;
+    esac
+    if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
+        echo "Timed out waiting for campaign to complete" >&2
+        exit 1
+    fi
+    sleep "$INTERVAL"
+    ELAPSED=$((ELAPSED + INTERVAL))
+done
+
+# The broker's external listener advertises localhost, so the client shares
+# the broker's network namespace instead of the host network, which is not
+# available to containers on every platform (e.g., Docker Desktop on macOS).
+# The consumer exits at the end of the topic (-e) if there is no message.
+echo "==> Validating a Kafka notification is produced"
+NOTIFICATION=$(
+    docker run --rm --network "container:$(compose ps -q kafka)" confluentinc/cp-kafkacat:latest \
+        kafkacat -b localhost:9094 -t smoketest -C -o beginning -c 1 -e -q
+)
+if [ -z "$NOTIFICATION" ]; then
+    echo "No Kafka notification was produced" >&2
+    exit 1
+fi
+jq -r . <<< "$NOTIFICATION"
+
+echo "==> Smoketest passed"
