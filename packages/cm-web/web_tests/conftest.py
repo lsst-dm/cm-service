@@ -33,7 +33,8 @@ from nicegui.testing.user import User
 from nicegui.testing.user_simulation import user_simulation
 
 from lsst.cmservice.models.db.campaigns import ActivityLog, Campaign, CampaignSummary, Manifest, Node
-from lsst.cmservice.models.enums import DEFAULT_NAMESPACE
+from lsst.cmservice.models.db.schedules import CreateManifestTemplate, Schedule
+from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, ManifestKind
 from lsst.cmservice.models.lib.graph import graph_to_dict
 from lsst.cmservice.web.api import activity
 from lsst.cmservice.web.lib.client_factory import CLIENT_FACTORY, ClientFactory
@@ -388,6 +389,44 @@ class FakeCMService:
         self.manifests[manifest["id"]] = manifest
         return manifest
 
+    def add_schedule(
+        self,
+        name: str,
+        *,
+        cron: str = "0 0 1 * *",
+        configuration: dict | None = None,
+        campaign_name: str = "scheduled",
+    ) -> dict:
+        """Add a schedule whose templates are a single campaign manifest."""
+        schedule = _dump(
+            Schedule.model_validate(
+                {
+                    "name": name,
+                    "cron": cron,
+                    "metadata": {"owner": "testuser"},
+                    "configuration": configuration or {},
+                }
+            )
+        )
+        schedule["templates"] = [
+            _dump(
+                CreateManifestTemplate(
+                    name=campaign_name,
+                    kind=ManifestKind.campaign,
+                    manifest=dedent(f"""\
+                        ---
+                        apiVersion: io.lsst.cmservice/v1
+                        kind: campaign
+                        metadata:
+                          name: {campaign_name}
+                        spec: {{}}
+                    """),
+                )
+            )
+        ]
+        self.schedules.append(schedule)
+        return schedule
+
     # -- route handlers --------------------------------------------------- #
 
     def _register_routes(self) -> None:
@@ -419,6 +458,11 @@ class FakeCMService:
         r.get("/schedules/", name="schedules").mock(
             side_effect=lambda request: Response(codes.OK, json=self.schedules)
         )
+        schedule = r"/schedules/(?P<schedule_id>[^/]+)"
+        r.get(path__regex=rf"{schedule}$", name="schedule").mock(side_effect=self._schedule)
+        r.get(path__regex=rf"{schedule}/templates$", name="schedule_templates").mock(
+            side_effect=self._schedule_templates
+        )
 
     @staticmethod
     def _not_found() -> Response:
@@ -432,6 +476,21 @@ class FakeCMService:
 
     def _campaign_nodes_list(self, campaign_id: str) -> list[dict]:
         return [n for n in self.nodes.values() if n["namespace"] == campaign_id]
+
+    def _find_schedule(self, schedule_id: str) -> dict | None:
+        """Find a schedule by its id or name, like the API does."""
+        return next((s for s in self.schedules if schedule_id in (s["id"], s["name"])), None)
+
+    def _schedule(self, request: Request, schedule_id: str) -> Response:
+        if (schedule := self._find_schedule(schedule_id)) is None:
+            return self._not_found()
+        # The schedule resource API returns a list of one schedule
+        return Response(codes.OK, json=[{k: v for k, v in schedule.items() if k != "templates"}])
+
+    def _schedule_templates(self, request: Request, schedule_id: str) -> Response:
+        if (schedule := self._find_schedule(schedule_id)) is None:
+            return self._not_found()
+        return Response(codes.OK, json=schedule["templates"])
 
     def _campaign_collection(self, request: Request) -> Response:
         return Response(codes.OK, json=list(self.campaigns.values()))

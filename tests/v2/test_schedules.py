@@ -31,7 +31,12 @@ from lsst.cmservice.models.api.manifests import (
     ManifestModel,
     NodeManifest,
 )
-from lsst.cmservice.models.api.schedules import ScheduleConfiguration, ScheduleTrigger
+from lsst.cmservice.models.api.schedules import (
+    ScheduleConfiguration,
+    ScheduleOneshot,
+    ScheduleTrigger,
+    ScheduleTriggerBinding,
+)
 from lsst.cmservice.models.db.schedules import CreateManifestTemplate
 from lsst.cmservice.models.enums import ManifestKind
 from lsst.cmservice.models.lib.timestamp import now_utc
@@ -256,6 +261,72 @@ async def test_post_new_schedule(
 
 
 @pytest.mark.parametrize(
+    "configuration,fields",
+    [
+        ({"cron": "0 12 * * *"}, "cron"),
+        ({"name_format": "%s", "is_enabled": True, "metadata": {}}, "is_enabled, metadata"),
+    ],
+    ids=["cron", "fields and aliases"],
+)
+async def test_schedule_configuration_fields(aclient: AsyncClient, configuration: dict, fields: str) -> None:
+    """Tests that a schedule's own fields are rejected in its configuration,
+    where they would have no effect.
+    """
+    post_data = make_schedule_no_manifests() | {"configuration": configuration}
+    x = await aclient.post("/v2/schedules", json=post_data)
+    assert x.status_code == codes.UNPROCESSABLE_ENTITY
+    assert x.json()["detail"].endswith(fields)
+
+    x = await aclient.post(
+        "/v2/schedules", json=make_schedule_no_manifests() | {"configuration": {"name_format": "%s"}}
+    )
+    assert x.status_code == codes.CREATED
+    schedule_url = x.headers["Self"]
+    x = await aclient.patch(schedule_url, json={"configuration": configuration})
+    assert x.status_code == codes.UNPROCESSABLE_ENTITY
+    assert x.json()["detail"].endswith(fields)
+
+    # The schedule is unchanged
+    x = await aclient.get(schedule_url)
+    assert x.json()[0]["configuration"] == {"name_format": "%s"}
+
+
+async def test_patch_schedule_configuration(aclient: AsyncClient) -> None:
+    """Tests that a PATCH updates only the configuration fields it sets,
+    without adding defaults, and that the updated configuration is validated.
+    """
+    # Explicit values that equal their defaults are kept as set
+    configuration = {"auto_start": True, "name_format": "%Y%m%d", "expressions": {"day_obs": "'20261101'"}}
+    x = await aclient.post(
+        "/v2/schedules", json=make_schedule_no_manifests() | {"configuration": configuration}
+    )
+    assert x.status_code == codes.CREATED
+    schedule_url = x.headers["Self"]
+
+    async def stored_configuration() -> dict:
+        x = await aclient.get(schedule_url)
+        assert x.status_code == codes.OK
+        return x.json()[0]["configuration"]
+
+    # A PATCH without a configuration does not change it
+    x = await aclient.patch(schedule_url, json={"is_enabled": True})
+    assert x.status_code == codes.OK
+    assert await stored_configuration() == configuration
+
+    # A configuration PATCH changes only the fields it sets
+    x = await aclient.patch(schedule_url, json={"configuration": {"name_format": "%s"}})
+    assert x.status_code == codes.OK
+    configuration["name_format"] = "%s"
+    assert await stored_configuration() == configuration
+
+    # An invalid configuration PATCH is rejected without changing the schedule
+    for update in [{"expressions": {"my-var": ""}}, {"auto_start": "maybe"}]:
+        x = await aclient.patch(schedule_url, json={"configuration": update})
+        assert x.status_code == codes.UNPROCESSABLE_ENTITY
+        assert await stored_configuration() == configuration
+
+
+@pytest.mark.parametrize(
     "test_case",
     [
         pytest.param(ScheduleTestCase(), id="empty"),
@@ -416,6 +487,42 @@ async def test_compile_lenient_undefined_expression() -> None:
     undefined value as None.
     """
     assert compile_user_expressions({"value": "slac"}) == {"value": None}
+
+
+async def test_template_expressions() -> None:
+    """Tests that valid template expressions, including those of a trigger
+    binding, are plain mappings.
+    """
+    expressions = {"today": "datetime.now()", "day_obs": "20261101"}
+    assert ScheduleOneshot(expressions=expressions).expressions == expressions
+
+    configuration = ScheduleConfiguration(
+        expressions={"today": "datetime.now()"},
+        triggers=[
+            ScheduleTriggerBinding(
+                source="kafka", channel="inbound", expressions={"day_obs": "message.day_obs"}
+            )
+        ],
+    )
+    assert configuration.expressions == {"today": "datetime.now()"}
+    assert configuration.model_dump()["triggers"] == [
+        {"source": "kafka", "channel": "inbound", "expressions": {"day_obs": "message.day_obs"}}
+    ]
+
+
+@pytest.mark.parametrize(
+    "expressions",
+    [{"my-var": "1"}, {"1st": "1"}, {"": "1"}, {"x": ""}, {"x": "  "}, {"x": 1}],
+    ids=["dash", "leading digit", "empty name", "empty", "blank", "not a string"],
+)
+async def test_invalid_template_expressions(expressions: dict) -> None:
+    """Tests that unusable expression names and empty expressions are
+    rejected.
+    """
+    with pytest.raises(ValidationError):
+        ScheduleOneshot(expressions=expressions)
+    with pytest.raises(ValidationError):
+        ScheduleTriggerBinding(source="kafka", channel="inbound", expressions=expressions)
 
 
 async def test_template_render_literals() -> None:
@@ -644,11 +751,17 @@ async def test_one_shot_api_overrides(aclient: AsyncClient, test_case: ScheduleT
     assert x.status_code == codes.UNPROCESSABLE_ENTITY
 
     # An override expression that cannot be evaluated is rejected
+    # - a syntax error in the expression
     x = await aclient.post(f"{schedule_url}/oneshot", json={"expressions": {"today": "datetime.now("}})
     assert x.status_code == codes.UNPROCESSABLE_ENTITY
+    # - an unquoted string, which is an undefined name rather than a literal
     x = await aclient.post(f"{schedule_url}/oneshot", json={"expressions": {"site": "slac"}})
     assert x.status_code == codes.UNPROCESSABLE_ENTITY
     assert "quote string literals" in x.json()["detail"]
+    # - a name that is not an identifier, which a template would parse as an
+    #   expression (`my - var`) rather than as a variable
+    x = await aclient.post(f"{schedule_url}/oneshot", json={"expressions": {"my-var": "1"}})
+    assert x.status_code == codes.UNPROCESSABLE_ENTITY
 
     x = await aclient.post(
         f"{schedule_url}/oneshot",
