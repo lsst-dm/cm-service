@@ -4,7 +4,7 @@ This module includes API request and response models that are not otherwise
 part of the ORM database model hierarchy.
 """
 
-from typing import Annotated
+from typing import Annotated, Any
 
 from pydantic import UUID4, BaseModel, Field, StrictBool
 
@@ -14,20 +14,22 @@ from .manifests import Manifest, ManifestSpec
 
 class ScheduleTriggerBinding(BaseModel):
     """Model representing an event source that triggers a oneshot of a
-    Schedule, and the expressions that override the Schedule's own expressions
-    when it does.
+    Schedule, and the protocol a message from the source must satisfy to do
+    so.
     """
 
     source: str = Field(description="The kind of event source, e.g., `kafka`.", examples=["kafka"])
     channel: str = Field(
         description="The channel of the event source on which the trigger events are delivered, e.g., a "
         "Kafka topic.",
-        examples=["ap-inbound"],
+        examples=["cm-topic"],
     )
-    expressions: TemplateExpressions = Field(
-        default_factory=dict,
-        description="Expressions that override or extend the schedule's own expressions for the triggered "
-        "oneshot.",
+    protocol: str = Field(
+        min_length=1,
+        description="A JMESPath query applied to the JSON message, which evaluates to `null` for a message "
+        "that does not trigger the schedule, or otherwise to an object of the scalar values that override "
+        "the values of the schedule's expressions for the triggered oneshot.",
+        examples=["(type=='prompt_processing' && state=='complete') && detail.{day_obs: day_obs} || `null`"],
     )
 
 
@@ -94,17 +96,19 @@ class ScheduleTrigger(BaseModel):
     """Model describing the provenance of a campaign created by a oneshot
     operation on a Schedule.
 
-    A serialized trigger is stored in the new campaign's metadata under the
-    ``trigger`` key. When a ``key`` is present, it is used to detect duplicate
-    triggers of the same schedule, i.e., an idempotency key.
+    A serialized trigger, without its overrides, is stored in the new
+    campaign's metadata under the ``trigger`` key. When a ``key`` is present,
+    it is used to detect duplicate triggers of the same schedule, i.e., an
+    idempotency key.
     """
 
     source: str = Field(description="The mechanism that triggered the oneshot, e.g., `api`.")
     actor: str = Field(default="root", description="The user or service responsible for the trigger.")
     schedule: UUID4 = Field(description="The id of the triggered schedule.")
     key: str | None = Field(default=None, description="An idempotency key for the trigger.")
-    expressions: TemplateExpressions = Field(
-        default_factory=dict, description="The expression overrides applied by the trigger."
+    overrides: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Values that override or extend the values of the schedule's own expressions.",
     )
 
     def containment(self) -> dict:

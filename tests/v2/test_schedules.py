@@ -490,23 +490,18 @@ async def test_compile_lenient_undefined_expression() -> None:
 
 
 async def test_template_expressions() -> None:
-    """Tests that valid template expressions, including those of a trigger
-    binding, are plain mappings.
-    """
+    """Tests that valid template expressions are plain mappings."""
     expressions = {"today": "datetime.now()", "day_obs": "20261101"}
     assert ScheduleOneshot(expressions=expressions).expressions == expressions
 
+    protocol = "type=='complete' && {day_obs: day_obs} || `null`"
     configuration = ScheduleConfiguration(
         expressions={"today": "datetime.now()"},
-        triggers=[
-            ScheduleTriggerBinding(
-                source="kafka", channel="inbound", expressions={"day_obs": "message.day_obs"}
-            )
-        ],
+        triggers=[ScheduleTriggerBinding(source="kafka", channel="inbound", protocol=protocol)],
     )
     assert configuration.expressions == {"today": "datetime.now()"}
     assert configuration.model_dump()["triggers"] == [
-        {"source": "kafka", "channel": "inbound", "expressions": {"day_obs": "message.day_obs"}}
+        {"source": "kafka", "channel": "inbound", "protocol": protocol}
     ]
 
 
@@ -521,8 +516,6 @@ async def test_invalid_template_expressions(expressions: dict) -> None:
     """
     with pytest.raises(ValidationError):
         ScheduleOneshot(expressions=expressions)
-    with pytest.raises(ValidationError):
-        ScheduleTriggerBinding(source="kafka", channel="inbound", expressions=expressions)
 
 
 async def test_template_render_literals() -> None:
@@ -554,6 +547,37 @@ async def test_template_render_literals() -> None:
     assert spec["x"] == [1, 2, 3, 4]
     assert spec["y"] == ["a", "b", "c"]
     assert spec["predicates"] == ["day_obs=20261101", "detector IN (1,2,3,4)", "band NOT IN ('a','b','c')"]
+
+
+async def test_template_render_overrides() -> None:
+    """Tests that override values are merged over the values of the compiled
+    expressions, and that the campaign records the values used to render.
+    """
+    context = ScheduleConfiguration(expressions={"today": "datetime(2026, 11, 1)", "x": "1"})
+    templates = [
+        CreateManifestTemplate(
+            name=uuid4().hex[0:8],
+            kind=ManifestKind.campaign,
+            manifest=dedent("""\
+                apiVersion: io.lsst.cmservice/v1
+                kind: campaign
+                metadata:
+                    name: values_campaign
+                spec:
+                    day_obs: ${{ today | as_day_obs }}
+                    x: ${{ x }}
+                    y: ${{ y }}
+            """),
+        )
+    ]
+    (campaign, *_) = await build_sandbox_and_render_templates(context, templates, as_orm=False)
+    assert campaign["metadata"]["values"] == {"today": "2026-11-01T00:00:00", "x": 1}
+
+    (campaign, *_) = await build_sandbox_and_render_templates(
+        context, templates, overrides={"x": 2, "y": "v30"}, as_orm=False
+    )
+    assert campaign["spec"].items() >= {"day_obs": 20261101, "x": 2, "y": "v30"}.items()
+    assert campaign["metadata"]["values"] == {"today": "2026-11-01T00:00:00", "x": 2, "y": "v30"}
 
 
 @pytest.mark.parametrize(
@@ -779,7 +803,11 @@ async def test_one_shot_api_overrides(aclient: AsyncClient, test_case: ScheduleT
         "actor": "testuser",
         "schedule": schedule_url.split("/")[-1],
         "key": idempotency_key,
-        "expressions": overrides,
+    }
+    # The values used to render the templates are recorded with the campaign
+    assert x.json()["metadata"]["values"] == {
+        "today": "2020-01-01T00:00:00",
+        "tomorrow": "2020-01-02T00:00:00",
     }
 
     # The overrides are used to render the templates
