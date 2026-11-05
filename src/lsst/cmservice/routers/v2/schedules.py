@@ -517,21 +517,22 @@ async def create_schedule_oneshot_resource(
     # run time, or allow the job to figure it out -- e.g., by conflicting the
     # temporal name of the new campaign?
 
+    # The override expressions are compiled to the values the trigger
+    # overrides
+    try:
+        overrides = compile_user_expressions(oneshot.expressions if oneshot is not None else {}, strict=True)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=f"Invalid override expression: {e}"
+        ) from e
+
     trigger = ScheduleTrigger(
         source="api",
         actor=actor,
         schedule=schedule_id,
         key=idempotency_key,
-        expressions=oneshot.expressions if oneshot is not None else {},
+        overrides=overrides,
     )
-
-    # Fail early for expressions that would otherwise fail in the background
-    try:
-        compile_user_expressions(trigger.expressions, strict=True)
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=f"Invalid override expression: {e}"
-        ) from e
 
     if (campaign := await find_triggered_campaign(session, trigger)) is not None:
         raise HTTPException(

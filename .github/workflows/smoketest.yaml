@@ -82,7 +82,7 @@ jobs:
         run: |
           campaign=$(curl -s "${{ steps.oneshot-smoke.outputs.url }}")
           jq -e --argjson day_obs "${{ steps.oneshot-smoke.outputs.day_obs }}" \
-            '.metadata.day_obs == $day_obs and .metadata.trigger.expressions == {"day_obs": ($day_obs | tostring)}' \
+            '.metadata.day_obs == $day_obs and .metadata.values.day_obs == $day_obs' \
             <<< "$campaign"
 
       - name: Wait for campaign to complete
