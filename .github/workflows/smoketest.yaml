@@ -61,9 +61,6 @@ jobs:
           SCHEDID=$(uv run -q cm --output json schedules load integration/smoketest.yaml | jq -r '.self | split("/") | .[-1]')
           echo "id=$SCHEDID" >> $GITHUB_OUTPUT
 
-      # The schedule's `day_obs` expression is yesterday. The butler is seeded
-      # for both today and yesterday, so overriding `day_obs` with today
-      # exercises the oneshot override with data that exists.
       - name: Oneshot smoketest schedule
         id: oneshot-smoke
         env:
