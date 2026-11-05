@@ -83,7 +83,7 @@ In the Kafka dispatcher, each consumed message is checked against the available 
 If any schedules include a `ScheduleTriggerBinding` that matches `{"source": "kafka", "channel": topic}`, the message and the schedule are dispatched to a Kafka handler.
 
 The Kafka Handler tests whether the message payload satisfies the schedule's requirements by applying the `protocol` defined in the schedule's `ScheduleTriggerBinding`.
-The `protocol` is a JMESPath query that builds a JSON object of override values for the schedule's templates.
+The `protocol` is a JMESPath query string that both filters the message payload and builds a JSON object of override values for the schedule's templates.
 
 For example, the Kafka consumer receives a message with the following payload and sends it to a handler.
 
@@ -104,7 +104,7 @@ The handler uses the `ScheduleTriggerBinding.protocol` field to determine whethe
 The JMESPath query for the message is
 
 ```
-(type=='prompt_processing' && state=='complete') && detail.{day_obs: day_obs} || `null`
+(type=='prompt_processing' && state=='complete') && {day_obs: detail.day_obs} || `null`
 ```
 
 This query will produce the JSON object `{"day_obs": 20260214}` when the filter expressions are true, and `null` when they are not.

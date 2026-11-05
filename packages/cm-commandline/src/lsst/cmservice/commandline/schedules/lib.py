@@ -22,8 +22,6 @@ def create_schedule(spec: dict | None) -> CreateSchedule:
     """Create a new schedule object and apply the provided configuration spec
     to it.
     """
-    # A schedule's cron defaults to that of the schedule configuration model,
-    # until a schedule manifest provides one
     schedule = CreateSchedule(
         name="",
         cron=CronStr(ScheduleConfiguration.model_fields["cron"].default),
