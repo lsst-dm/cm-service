@@ -74,8 +74,6 @@ def load_schedule(
                 node_id = f"{manifest['metadata']['name']}.1"
                 to_load[node_id] = manifest
             case "schedule":
-                # The schedule's cron is a field of the schedule itself and not
-                # part of its configuration.
                 spec = dict(manifest["spec"])
                 if (cron := spec.pop("cron", None)) is not None:
                     try:
@@ -119,7 +117,7 @@ def oneshot_schedule(
 ) -> None:
     """One-shot a schedule that is not presently enabled.
 
-    Template expressions may be overridden or added for this oneshot only. If
+    Template values may be overridden or added for this oneshot only. If
     the idempotency key has already been used for the schedule, the campaign
     previously created with the key is reported instead of a new campaign.
     """
