@@ -1,0 +1,487 @@
+---
+apiVersion: io.lsst.cmservice/v1
+kind: campaign
+metadata:
+  name: lsstcam_drp_${{ weekly }}_dev
+spec:
+  notification_labels:
+    - default
+---
+apiVersion: io.lsst.cmservice/v1
+kind: node
+metadata:
+  kind: step
+  name: STEP_1A_1B
+spec:
+  bps:
+    pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam/DRP.yaml#step1a-single-visit-detectors,step1b-single-visit-visits"
+    extra_qgraph_options:
+      - "--dataset-query-constraint raw"
+      - "-c parameters:sasquatch_dataset_identifier=LSSTCam/DRP"
+      - "-c parameters:sasquatch_timestamp_version=explicit_timestamp:${{ sasquatch_timestamp }}"
+  groups: null
+---
+apiVersion: io.lsst.cmservice/v1
+kind: node
+metadata:
+  kind: step
+  name: STEP_1C_1D
+spec:
+  bps:
+    pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam/DRP.yaml#step1c-single-visit-tracts,step1d-single-visit-global"
+    extra_qgraph_options:
+      # FIXME: https://rubin-obs.slack.com/archives/C08CANY4B6H/p1793969886030989
+      # - "--dataset-query-constraint single_visit_star,preliminary_visit_summary"
+      - "-c parameters:sasquatch_dataset_identifier=LSSTCam/DRP"
+      - "-c parameters:sasquatch_timestamp_version=explicit_timestamp:${{ sasquatch_timestamp }}"
+  groups: null
+---
+apiVersion: io.lsst.cmservice/v1
+kind: node
+metadata:
+  kind: step
+  name: STEP_2A
+spec:
+  bps:
+    pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam/DRP.yaml#step2a-recalibrate-global"
+    extra_qgraph_options:
+      - "--dataset-query-constraint preliminary_visit_summary,isolated_star"
+      - "-c parameters:sasquatch_dataset_identifier=LSSTCam/DRP"
+      - "-c parameters:sasquatch_timestamp_version=explicit_timestamp:${{ sasquatch_timestamp }}"
+  groups: null
+---
+apiVersion: io.lsst.cmservice/v1
+kind: node
+metadata:
+  kind: step
+  name: STEP_2C
+spec:
+  bps:
+    pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam/DRP.yaml#step2c-recalibrate-healpix"
+    extra_qgraph_options:
+      - "--dataset-query-constraint preliminary_visit_summary,isolated_star"
+      - "-c parameters:sasquatch_dataset_identifier=LSSTCam/DRP"
+      - "-c parameters:sasquatch_timestamp_version=explicit_timestamp:${{ sasquatch_timestamp }}"
+  groups: null
+---
+apiVersion: io.lsst.cmservice/v1
+kind: node
+metadata:
+  kind: step
+  name: STEP_2D
+spec:
+  bps:
+    pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam/DRP.yaml#step2d-recalibrate-visits"
+    extra_qgraph_options:
+      - "--dataset-query-constraint preliminary_visit_image,isolated_star"
+      - "-c parameters:sasquatch_dataset_identifier=LSSTCam/DRP"
+      - "-c parameters:sasquatch_timestamp_version=explicit_timestamp:${{ sasquatch_timestamp }}"
+  groups: null
+---
+apiVersion: io.lsst.cmservice/v1
+kind: node
+metadata:
+  kind: step
+  name: STEP_2E_2F
+spec:
+  bps:
+    pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam/DRP.yaml#step2e-recalibrate-tracts,step2f-recalibrate-global"
+    extra_qgraph_options:
+      - "--dataset-query-constraint preliminary_visit_summary,visit_summary,recalibrated_star_ref_match_astrom_metrics"
+      - "-c parameters:sasquatch_dataset_identifier=LSSTCam/DRP"
+      - "-c parameters:sasquatch_timestamp_version=explicit_timestamp:${{ sasquatch_timestamp }}"
+  groups: null
+---
+apiVersion: io.lsst.cmservice/v1
+kind: node
+metadata:
+  kind: step
+  name: STEP_3A_COADDS
+spec:
+  bps:
+    pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam/DRP.yaml#step3a-coadd-tracts"
+    extra_qgraph_options:
+      - "--select-tasks '~makeDirectWarp & ~makePsfMatchedWarp'"
+      - "--dataset-query-constraint visit_summary"
+      - "-c parameters:sasquatch_dataset_identifier=LSSTCam/DRP"
+      - "-c parameters:sasquatch_timestamp_version=explicit_timestamp:${{ sasquatch_timestamp }}"
+  groups: null
+---
+apiVersion: io.lsst.cmservice/v1
+kind: node
+metadata:
+  kind: step
+  name: STEP_3A_WARPS
+spec:
+  bps:
+    pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam/DRP.yaml#makeDirectWarp,makePsfMatchedWarp"
+    extra_qgraph_options:
+      - "--dataset-query-constraint visit_summary"
+      - "-c parameters:sasquatch_dataset_identifier=LSSTCam/DRP"
+      - "-c parameters:sasquatch_timestamp_version=explicit_timestamp:${{ sasquatch_timestamp }}"
+  groups: null
+---
+apiVersion: io.lsst.cmservice/v1
+kind: node
+metadata:
+  kind: step
+  name: STEP_3B_3C
+spec:
+  bps:
+    pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam/DRP.yaml#step3b-coadd-global,step3c-coadd-gray-images"
+    extra_qgraph_options:
+      - "-c parameters:base_uri=/sdf/data/rubin/shared/hips_views/LSSTCam/runs/DRP/${{ ticket }}"
+      - "-c parameters:sasquatch_dataset_identifier=LSSTCam/DRP"
+      - "-c parameters:sasquatch_timestamp_version=explicit_timestamp:${{ sasquatch_timestamp }}"
+  groups: null
+---
+apiVersion: io.lsst.cmservice/v1
+kind: node
+metadata:
+  kind: step
+  name: STEP_3D
+spec:
+  bps:
+    pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam/DRP.yaml#step3d-coadd-hips"
+    extra_qgraph_options:
+      - "-c parameters:base_uri=/sdf/data/rubin/shared/hips_views/LSSTCam/runs/DRP/${{ ticket }}"
+      - "-c parameters:sasquatch_dataset_identifier=LSSTCam/DRP"
+      - "-c parameters:sasquatch_timestamp_version=explicit_timestamp:${{ sasquatch_timestamp }}"
+  groups: null
+---
+apiVersion: io.lsst.cmservice/v1
+kind: node
+metadata:
+  kind: step
+  name: STEP_4A
+spec:
+  bps:
+    pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam/DRP.yaml#step4a-measure-variability-visits"
+    extra_qgraph_options:
+      - "--dataset-query-constraint visit_summary,preliminary_visit_image,recalibrated_star"
+      - "-c parameters:sasquatch_dataset_identifier=LSSTCam/DRP"
+      - "-c parameters:sasquatch_timestamp_version=explicit_timestamp:${{ sasquatch_timestamp }}"
+  groups: null
+---
+apiVersion: io.lsst.cmservice/v1
+kind: node
+metadata:
+  kind: step
+  name: STEP_4B
+spec:
+  bps:
+    pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam/DRP.yaml#step4b-generate-ephemerides-global"
+    extra_qgraph_options:
+      - "--dataset-query-constraint visit_summary"
+      - "-c parameters:sasquatch_dataset_identifier=LSSTCam/DRP"
+      - "-c parameters:sasquatch_timestamp_version=explicit_timestamp:${{ sasquatch_timestamp }}"
+  groups: null
+---
+apiVersion: io.lsst.cmservice/v1
+kind: node
+metadata:
+  kind: step
+  name: STEP_4C
+spec:
+  bps:
+    pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam/DRP.yaml#step4c-measure-variability-tracts"
+    extra_qgraph_options:
+      - "--dataset-query-constraint visit_summary,object_patch,source_all"
+      - "-c parameters:sasquatch_dataset_identifier=LSSTCam/DRP"
+      - "-c parameters:sasquatch_timestamp_version=explicit_timestamp:${{ sasquatch_timestamp }}"
+  groups: null
+---
+apiVersion: io.lsst.cmservice/v1
+kind: node
+metadata:
+  kind: step
+  name: STEP_4D_4E
+spec:
+  bps:
+    pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam/DRP.yaml#step4d-measure-variability-global,step4e-measure-variability-rgb"
+    extra_qgraph_options:
+      - "-c parameters:base_uri=/sdf/data/rubin/shared/hips_views/LSSTCam/runs/DRP/${{ ticket }}"
+      - "-c parameters:sasquatch_dataset_identifier=LSSTCam/DRP"
+      - "-c parameters:sasquatch_timestamp_version=explicit_timestamp:${{ sasquatch_timestamp }}"
+  groups: null
+---
+apiVersion: io.lsst.cmservice/v1
+kind: node
+metadata:
+  kind: step
+  name: STEP_4F
+spec:
+  bps:
+    pipeline_yaml: "${DRP_PIPE_DIR}/pipelines/LSSTCam/DRP.yaml#step4f-make-hips-from-rgb"
+    extra_qgraph_options:
+      - "-c parameters:base_uri=/sdf/data/rubin/shared/hips_views/LSSTCam/runs/DRP/${{ ticket }}"
+      - "-c parameters:sasquatch_dataset_identifier=LSSTCam/DRP"
+      - "-c parameters:sasquatch_timestamp_version=explicit_timestamp:${{ sasquatch_timestamp }}"
+  groups: null
+---
+apiVersion: io.lsst.cmservice/v1
+kind: lsst
+metadata:
+  name: slac_drp_weekly
+  default: true
+spec:
+  campaign: DRP Reprocessing
+  description: LSSTCam Intermittent DRP
+  environment:
+    OMP_NUM_THREADS: "1"
+    # NUMEXPR_MAX_THREADS: "1"
+    OMP_PROC_BIND: "false"
+    LSST_S3_USE_THREADS: "False"
+  lsst_distrib_dir: /cvmfs/sw.lsst.eu/almalinux-x86_64/lsst_distrib/${{ weekly }}
+  lsst_version: ${{ weekly }}
+  project: DRP Reprocessing
+  ticket: ${{ ticket }}
+---
+apiVersion: io.lsst.cmservice/v1
+kind: bps
+metadata:
+  name: bps_drp_reprocessing
+  default: true
+spec:
+  extra_qgraph_options:
+    - "-c parameters:sasquatch_dataset_identifier=LSSTCam/DRP"
+    - "-c parameters:sasquatch_timestamp_version=explicit_timestamp:${{ sasquatch_timestamp }}"
+  extra_run_quantum_options:
+    - "--no-raise-on-partial-outputs"
+  extra_aggregate_options:
+    - "--worker-log-dir {submitPath}/jobs/finalJob"
+    - "--output {submitPath}/{uniqProcName}_prov.qg"
+  include_files:
+    - ${DRP_PIPE_DIR}/bps/clustering/LSSTCam/DRP-clustering.yaml
+    - ${DRP_PIPE_DIR}/bps/resources/LSSTCam/DRP.yaml
+    - ${DRP_PIPE_DIR}/bps/compression/LSSTCam/DRP-compression.yaml
+  literals:
+    priority: 900
+    numberOfRetries: 4
+    memoryMultiplier: 2
+    retryUnlessExit:
+      - 2
+    finalJob:
+      command2: >
+        ${DAF_BUTLER_DIR}/bin/butler provenance-report --format json
+        '{submitPath}/{uniqProcName}_prov.qg' > '{submitPath}/{uniqProcName}_prov.json'
+---
+apiVersion: io.lsst.cmservice/v1
+kind: butler
+metadata:
+  name: dp2_prep
+  default: true
+spec:
+  collections:
+    campaign_input:
+      - LSSTCam/raw/20250604-20250921/SV_320_15/DM-57008/7040
+      - LSSTCam/calib
+      - refcats
+      - skymaps
+      - pretrained_models
+      - LSSTCam/calib/fgcmcal
+      - mpcorb
+      - sorcha_cache
+    campaign_public_output: "u/lsstsvc1/runs/DRP/${{ weekly }}/${{ ticket }}"
+    campaign_output: "u/lsstsvc1/runs/DRP/${{ weekly }}/${{ ticket }}"
+  include_files: []
+  predicates:
+    - instrument='LSSTCam'
+    - skymap='lsst_cells_v2'
+  repo: dp2_prep
+---
+apiVersion: io.lsst.cmservice/v1
+kind: wms
+metadata:
+  name: htcondor_auto
+  default: true
+spec:
+  auto_provision: true
+  batch_system: htcondor
+  service_class: lsst.ctrl.bps.htcondor.HTCondorService
+  # These are WMS-specific provisioning options BPS uses for allocateNodes
+  provisioned_idle_time: 240
+  provisioned_max_wall_time: '1-0:0:0'
+  provisioned_node_count: 330
+  provisioned_extra_arguments:
+    - "--cpus 110"
+    - "--exclusive"
+---
+apiVersion: io.lsst.cmservice/v1
+kind: site
+metadata:
+  name: slac_s3df
+  default: true
+  labels:
+    compute-site: slac
+spec:
+  facility: SLAC
+  # These are Site-specific provisioning options BPS uses for allocateNodes
+  provisioned_account_group: rubin:production
+  provisioned_platform: s3df
+  provisioned_queue: torino
+  # provisioned_queue: torino
+  # These temporary settings set up site-specific botocore/butler env vars
+  # and will be moved to a "library" so they are not user-managed
+  botocore_config_file: "${HOME}/.lsst/aws-config.cmservice-dev.ini"
+  botocore_credentials_file: "${HOME}/.lsst/aws-credentials.cmservice-dev.ini"
+  lsst_db_auth_file: "${HOME}/.lsst/db-auth.cmservice-dev.yaml"
+  lsst_data_repos_file: "${HOME}/.lsst/data-repos.cmservice-dev.yaml"
+---
+apiVersion: io.lsst.cmservice/v1
+kind: edge
+metadata:
+  name: START.1--STEP_1A_1B.1
+spec:
+  source: START
+  target: STEP_1A_1B
+---
+apiVersion: io.lsst.cmservice/v1
+kind: edge
+metadata:
+  name: STEP_1A_1B.1--STEP_1C_1D.1
+spec:
+  source: STEP_1A_1B
+  target: STEP_1C_1D
+---
+apiVersion: io.lsst.cmservice/v1
+kind: edge
+metadata:
+  name: STEP_1C_1D.1--STEP_2A.1
+spec:
+  source: STEP_1C_1D
+  target: STEP_2A
+---
+apiVersion: io.lsst.cmservice/v1
+kind: edge
+metadata:
+  name: STEP_2A.1--STEP_2C.1
+spec:
+  source: STEP_2A
+  target: STEP_2C
+---
+apiVersion: io.lsst.cmservice/v1
+kind: edge
+metadata:
+  name: STEP_3D.1--STEP_4A.1
+spec:
+  source: STEP_3D
+  target: STEP_4A
+---
+apiVersion: io.lsst.cmservice/v1
+kind: edge
+metadata:
+  name: xy-edge__STEP_3A_WARPS.1right-STEP_3A_COADDS.1left
+spec:
+  source: STEP_3A_WARPS
+  target: STEP_3A_COADDS
+---
+apiVersion: io.lsst.cmservice/v1
+kind: edge
+metadata:
+  name: xy-edge__STEP_2C.1right-STEP_2D.1left
+spec:
+  source: STEP_2C
+  target: STEP_2D
+---
+apiVersion: io.lsst.cmservice/v1
+kind: edge
+metadata:
+  name: xy-edge__STEP_2D.1right-STEP_2E_2F.1left
+spec:
+  source: STEP_2D
+  target: STEP_2E_2F
+---
+apiVersion: io.lsst.cmservice/v1
+kind: edge
+metadata:
+  name: xy-edge__STEP_2E_2F.1right-STEP_3A_WARPS.1left
+spec:
+  source: STEP_2E_2F
+  target: STEP_3A_WARPS
+---
+apiVersion: io.lsst.cmservice/v1
+kind: edge
+metadata:
+  name: xy-edge__STEP_3A_COADDS.1right-STEP_3B_3C.1left
+spec:
+  source: STEP_3A_COADDS
+  target: STEP_3B_3C
+---
+apiVersion: io.lsst.cmservice/v1
+kind: edge
+metadata:
+  name: xy-edge__STEP_3B_3C.1right-STEP_3D.1left
+spec:
+  source: STEP_3B_3C
+  target: STEP_3D
+---
+apiVersion: io.lsst.cmservice/v1
+kind: edge
+metadata:
+  name: xy-edge__STEP_4D_4E_4F.1right-END.1left
+spec:
+  source: STEP_4D_4E
+  target: END
+---
+apiVersion: io.lsst.cmservice/v1
+kind: edge
+metadata:
+  name: xy-edge__STEP_4C.1right-STEP_4D_4E_4F.1left
+spec:
+  source: STEP_4C
+  target: STEP_4D_4E
+---
+apiVersion: io.lsst.cmservice/v1
+kind: edge
+metadata:
+  name: xy-edge__STEP_2D.1right-STEP_4B.1left
+spec:
+  source: STEP_2D
+  target: STEP_4B
+---
+apiVersion: io.lsst.cmservice/v1
+kind: edge
+metadata:
+  name: xy-edge__STEP_4B.1right-STEP_4C.1left
+spec:
+  source: STEP_4B
+  target: STEP_4C
+---
+apiVersion: io.lsst.cmservice/v1
+kind: edge
+metadata:
+  name: xy-edge__STEP_4A.1right-STEP_4C.1left
+spec:
+  source: STEP_4A
+  target: STEP_4C
+---
+apiVersion: io.lsst.cmservice/v1
+kind: edge
+metadata:
+  name: xy-edge__STEP_4C.1right-17left
+spec:
+  source: STEP_4C
+  target: STEP_4F
+---
+apiVersion: io.lsst.cmservice/v1
+kind: edge
+metadata:
+  name: xy-edge__17right-END.1left
+spec:
+  source: STEP_4F
+  target: END
+---
+apiVersion: io.lsst.cmservice/v1
+kind: schedule
+metadata:
+  owner: root
+spec:
+  auto_start: false
+  cron: "0 0 * * 4"  # Thursdays at 0000Z
+  expressions:
+    today: "datetime.now(timezone.utc)"
+    sasquatch_timestamp: "datetime.now(timezone.utc).strftime('%Y%m%dT000000Z')"
+    weekly: "'w_2026_45'"
+    ticket: "'DM-56970'"
+  name_format: "%s"
