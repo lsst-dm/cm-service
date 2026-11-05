@@ -152,6 +152,34 @@ uv run pytest packages/cm-web/web_tests --runxfail -k <test name>
 - **Fixture:** a new butler manifest on the New Campaign page, with its
   template's `repo` field indented differently.
 
+## Schedule overview page
+
+### A failed toggle leaves the page showing the wrong enabled state
+
+- **Test:** [`test_schedule_overview.py::test_failed_toggle_keeps_enabled_state`](test_schedule_overview.py)
+- **Where:** [`pages/schedule_overview.py:240`](../src/lsst/cmservice/web/pages/schedule_overview.py#L240)
+  (`ScheduleOverviewPage.handle_schedule_action`, the `toggle` action)
+- **What happens:** the toggle action changes the page model's
+  `is_enabled` before it sends the `PATCH`. When the `PATCH` fails,
+  `raise_for_status()` raises, but the page model keeps the change, so the
+  page no longer matches the schedule. The next toggle then sends the
+  opposite of what the user asked for: after a failed attempt to enable a
+  disabled schedule, clicking the toggle again sends `is_enabled: false`.
+- **Fixture:** a disabled schedule whose first `PATCH` fails with a 500.
+
+### A failed cron change leaves the page showing the unsaved cron
+
+- **Test:** [`test_schedule_overview.py::test_failed_cron_change_keeps_cron`](test_schedule_overview.py)
+- **Where:** [`pages/schedule_overview.py:232`](../src/lsst/cmservice/web/pages/schedule_overview.py#L232)
+  (`ScheduleOverviewPage.handle_schedule_action`, the `cron` action)
+- **What happens:** the cron action changes the page model's `cron` before
+  it sends the `PATCH` that sets the new cron and disables the schedule.
+  When the `PATCH` fails, the page model keeps the new cron, so the next
+  refresh of the schedule table, e.g., after any other action, shows a cron
+  the schedule does not have, and the cron editor opens with it.
+- **Fixture:** a schedule with cron `0 0 1 * *` whose first `PATCH` fails
+  with a 500, followed by a successful toggle.
+
 ## Unfinished work
 
 These are incomplete features rather than defects. They have no `xfail` tests
@@ -193,6 +221,24 @@ Behavior that may or may not be intended, to be settled before it is tested.
   the workflow as it does now, or only on accepted groups.
 - **Resuming afterwards:** the rescue pauses the campaign and leaves it paused,
   so the user must resume it for the rescue group to be processed.
+
+### Requests without a known user are sent as `anonymous`
+
+- **Where:** [`pages/common.py:54`](../src/lsst/cmservice/web/pages/common.py#L54)
+  (`CMPage.__init__`), [`lib/client_factory.py:31`](../src/lsst/cmservice/web/lib/client_factory.py#L31)
+  (`set_actor_header`)
+- **What happens:** when a page request has no `X-Auth-Request-User` header,
+  the session's user is set to `settings.default_username` (`anonymous`), and
+  every API request the app makes for that session sends
+  `X-Auth-Request-User: anonymous`. API routes that require a known actor,
+  such as the schedule oneshot API, which rejects a missing or empty actor
+  with a `422`, accept these requests as made by a user named `anonymous`.
+  A request made outside a client context sends no actor header at all, and
+  is rejected.
+- **Question:** the ingress always sets the header, so this only affects local
+  and dev deployments without one, such as the integration smoketest. Should
+  the app refuse to act without a known user there, as the API does, rather
+  than act as `anonymous`?
 
 ### The graph insert notification says "Node replaced."
 

@@ -109,6 +109,13 @@ test: export BPS__ARTIFACT_PATH=$(PWD)/output
 test:
 	pytest -vvv --asyncio-mode=auto --cov=lsst.cmservice --cov-branch --cov-report=term --cov-report=html ${PYTEST_ARGS}
 
+# Runs the integration smoketest against the docker compose stack in
+# `integration/`, as the smoketest github workflow does. Pass options to the
+# script with SMOKETEST_ARGS, e.g., `make smoketest SMOKETEST_ARGS=--keep`.
+.PHONY: smoketest
+smoketest:
+	script/smoketest ${SMOKETEST_ARGS}
+
 
 #------------------------------------------------------------------------------
 # Targets for develpers to debug against a local Postgres run under docker
