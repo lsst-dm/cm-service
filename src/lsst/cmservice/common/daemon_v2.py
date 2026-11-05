@@ -292,8 +292,9 @@ async def daemon_scheduled_job(
         respective of the schedule's enabled status.
 
     trigger: ScheduleTrigger | None
-        Defaults to None. If provided, the trigger's expressions override the
-        schedule's expressions for this job only, the trigger is recorded in
+        Defaults to None. If provided, the trigger's overrides are merged over
+        the values of the schedule's expressions for this job only, the
+        trigger is recorded in
         the new campaign's metadata, and the job returns early if a campaign
         was already created by an equivalent trigger.
 
@@ -357,15 +358,13 @@ async def daemon_scheduled_job(
                 )
             ]
 
-        # Trigger expressions are applied last, after any refresh from an
+        # Trigger overrides are applied last, after any refresh from an
         # external resource. The schedule's own configuration is not modified.
         schedule_context = ScheduleConfiguration(**schedule.configuration)
-        if trigger is not None:
-            schedule_context.expressions.update(trigger.expressions)
-
         orms = await build_sandbox_and_render_templates(
             context=schedule_context,
             templates=newest_templates,
+            overrides=trigger.overrides if trigger is not None else None,
         )
 
         # the first ORM object on the list of manifests is the campaign
@@ -377,7 +376,7 @@ async def daemon_scheduled_job(
         campaign.owner = schedule.metadata_.get("owner")
         campaign.status = StatusEnum.running if schedule_context.auto_start else StatusEnum.paused
         if trigger is not None:
-            campaign.metadata_["trigger"] = trigger.model_dump(mode="json")
+            campaign.metadata_["trigger"] = trigger.model_dump(mode="json", exclude={"overrides"})
 
         # We want to split the ORMs so the edges are added only after the nodes
         # FIXME consider a more reusable partitioning function for this

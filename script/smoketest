@@ -91,7 +91,7 @@ echo "    campaign: ${CAMPAIGN_URL}"
 
 echo "==> Validating the oneshot override is applied"
 curl -s "$CAMPAIGN_URL" | jq -e --argjson day_obs "$DAY_OBS" \
-    '.metadata.day_obs == $day_obs and .metadata.trigger.expressions == {"day_obs": ($day_obs | tostring)}' \
+    '.metadata.day_obs == $day_obs and .metadata.values.day_obs == $day_obs' \
     > /dev/null
 
 echo "==> Waiting for campaign to complete"

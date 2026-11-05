@@ -95,7 +95,7 @@ async def test_apply_schedule_spec() -> None:
         cron=CronStr("* * * * *"),
         configuration={"uri": uri, "expressions": {"a": "1"}, "name_format": "%s", "extra": 1},
     )
-    triggers = [ScheduleTriggerBinding(source="kafka", channel="a_topic")]
+    triggers = [ScheduleTriggerBinding(source="kafka", channel="a_topic", protocol="@")]
     changes = apply_schedule_spec(
         schedule,
         {
@@ -109,7 +109,7 @@ async def test_apply_schedule_spec() -> None:
     # Only the fields the spec sets are stored, and the cron is not
     assert schedule.configuration == {
         "expressions": {"b": "2"},
-        "triggers": [{"source": "kafka", "channel": "a_topic"}],
+        "triggers": [{"source": "kafka", "channel": "a_topic", "protocol": "@"}],
         "uri": uri,
     }
     assert str(schedule.cron) == "0 12 * * *"
