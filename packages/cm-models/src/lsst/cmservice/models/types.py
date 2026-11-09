@@ -1,7 +1,8 @@
-from typing import Annotated
+from collections.abc import AsyncGenerator
+from typing import Annotated, Protocol
 
 from sqlalchemy.ext.asyncio import AsyncSession as AsyncSessionSA
-from sqlalchemy.ext.asyncio import async_scoped_session
+from sqlalchemy.ext.asyncio import async_scoped_session, async_sessionmaker
 from sqlmodel.ext.asyncio.session import AsyncSession as AsyncSession
 
 from .enums import AuditActionEnum, ManifestKind, NotificationLabelEnum, StatusEnum
@@ -13,6 +14,25 @@ from .serde import (
     StatusEnumValidator,
     TemplateExpressionsValidator,
 )
+
+
+class DatabaseManagerProtocol(Protocol):
+    """A protocol describing the interface of a DatabaseManager used by CM"""
+
+    sessionmaker: async_sessionmaker[AsyncSession] | None
+
+    def __call__(self) -> AsyncGenerator[AsyncSession]: ...
+    async def aclose(self) -> None: ...
+
+
+class ScheduleTriggerSubjectProtocol(Protocol):
+    """A protocol describing the interface of a subject message recived or
+    consumed by a schedule trigger, e.g., a Kafka ``Message``.
+    """
+
+    def value(self) -> bytes | None: ...
+    def topic(self) -> str | None: ...
+
 
 type AnyAsyncSession = AsyncSession | AsyncSessionSA | async_scoped_session
 """A type union of async database sessions the application may use"""
