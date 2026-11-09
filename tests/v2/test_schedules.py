@@ -497,12 +497,14 @@ async def test_template_expressions() -> None:
     protocol = "type=='complete' && {day_obs: day_obs} || `null`"
     configuration = ScheduleConfiguration(
         expressions={"today": "datetime.now()"},
-        triggers=[ScheduleTriggerBinding(source="kafka", channel="inbound", protocol=protocol)],
+        trigger=ScheduleTriggerBinding(source="kafka", channel="inbound", protocol=protocol),
     )
     assert configuration.expressions == {"today": "datetime.now()"}
-    assert configuration.model_dump()["triggers"] == [
-        {"source": "kafka", "channel": "inbound", "protocol": protocol}
-    ]
+    assert configuration.model_dump()["trigger"] == {
+        "source": "kafka",
+        "channel": "inbound",
+        "protocol": protocol,
+    }
 
 
 @pytest.mark.parametrize(

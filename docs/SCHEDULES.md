@@ -68,8 +68,8 @@ The architecture for supporting external triggers includes:
 - A consumer, webhook, or other actor task in the CM deployment receives a *message* on a *channel* for some *source*.
   CM defines a *dispatcher* for this *source* and sends the *message* to it.
 - The *dispatcher* matches the message with any available schedule resources present in the CM deployment.
-  A schedule may have in its `configuration` field a `triggers` object which is a list of `ScheduleTriggerBinding` objects.
-  Each `ScheduleTriggerBinding` object identifies the *source* and *channel* for which the binding is effective, and a *protocol* field, a JMESPath query that defines which messages for this *source*/*channel* trigger the schedule and how they are interpreted.
+  A schedule may have in its `configuration` field a `triggers` object which is a `ScheduleTriggerBinding` object.
+  This `ScheduleTriggerBinding` object identifies the *source* and *channel* for which the binding is effective, and a *protocol* field, a JMESPath query that defines which messages for this *source*/*channel* trigger the schedule and how they are interpreted.
 - If the *dispatcher* matches a message with a schedule, the *message* and the *schedule* are sent to a *handler* specific to the *source* of the message.
 - The *handler* applies the binding's *protocol* to the message, to both filter and shape the message payload into a set of override values to merge over the values of the schedule's template expressions.
 

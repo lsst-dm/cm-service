@@ -95,33 +95,33 @@ async def test_apply_schedule_spec() -> None:
         cron=CronStr("* * * * *"),
         configuration={"uri": uri, "expressions": {"a": "1"}, "name_format": "%s", "extra": 1},
     )
-    triggers = [ScheduleTriggerBinding(source="kafka", channel="a_topic", protocol="@")]
+    trigger = ScheduleTriggerBinding(source="kafka", channel="a_topic", protocol="@")
     changes = apply_schedule_spec(
         schedule,
         {
             "cron": "0 12 * * *",
             "expressions": {"b": "2"},
             "uri": "http://example.com/other",
-            "triggers": triggers,
+            "trigger": trigger,
         },
     )
 
     # Only the fields the spec sets are stored, and the cron is not
     assert schedule.configuration == {
         "expressions": {"b": "2"},
-        "triggers": [{"source": "kafka", "channel": "a_topic", "protocol": "@"}],
+        "trigger": {"source": "kafka", "channel": "a_topic", "protocol": "@"},
         "uri": uri,
     }
     assert str(schedule.cron) == "0 12 * * *"
     # Fields missing from the old or new configuration change from or to None
-    assert changes.keys() == {"cron", "expressions", "name_format", "extra", "triggers"}
+    assert changes.keys() == {"cron", "expressions", "name_format", "extra", "trigger"}
     assert changes["extra"] == {"from": 1, "to": None}
     assert changes["name_format"] == {"from": "%s", "to": None}
     assert changes["cron"] == {"from": "* * * * *", "to": "0 12 * * *"}
 
     # Applying the same spec again changes nothing
     assert (
-        apply_schedule_spec(schedule, {"cron": "0 12 * * *", "expressions": {"b": "2"}, "triggers": triggers})
+        apply_schedule_spec(schedule, {"cron": "0 12 * * *", "expressions": {"b": "2"}, "trigger": trigger})
         == {}
     )
 
