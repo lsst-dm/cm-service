@@ -64,6 +64,44 @@ If CM Service failed to run a script but you managed to correct the failure out-
 cm-client job action accept --force --row_id XXX --run-collection XXX
 ```
 
+## Not Needed (Skipping Part of a Graph)
+Sometimes a campaign graph contains work that should not run.
+For example, a step may create more groups than should actually run, or a whole step in the campaign graph should be skipped.
+In CM Service, the way to skip a node is to **reject** it.
+
+A `rejected` node is treated by the CM Daemon as a finished node that can be passed over: nodes downstream of it continue to be processed.
+When a step's `collect_groups` node prepares, it only chains together the run collections of groups that are `accepted`, so the output of a rejected group is left out of the step's output collection.
+This is different from a `failed` node, which blocks every path through it until a pilot intervenes.
+
+> [!IMPORTANT]
+> Only an `accepted` node can be rejected.
+> A `waiting` or `failed` node cannot be rejected directly; the request is ignored and the node's status does not change.
+> To skip such a node, force it into the `accepted` state first, then reject it.
+
+*Rejecting a Node*
+Pause the campaign first.
+While the node is briefly `accepted`, the CM Daemon treats it as a success, so a running campaign could move downstream work forward before the rejection lands.
+A `waiting` group has never run, so its run collection probably does not exist; if the step's collect node prepares during that window, it will try to chain a collection that is not there.
+
+```
+cm campaigns set <campaign> paused
+cm nodes set <node-uuid> accepted --force
+cm nodes set <node-uuid> rejected
+cm campaigns start <campaign>
+```
+
+*Skipping Some of a Step's Groups*
+After a step has prepared and created its groups, reject each group that should not run, using the commands above.
+The step's collect node still runs once the remaining groups are `accepted`, and its output collection includes only those accepted groups.
+
+*Skipping a Whole Step*
+Reject the step node while it is still `waiting`, before it prepares.
+A step creates its groups and its collect node when it prepares, so a step rejected before then never adds them to the graph, and later steps do not include any output from it in their input collections.
+
+> [!WARNING]
+> Rejecting a step *after* it has prepared does not skip its groups or its collect node; they are already in the graph and will still be processed.
+> Later steps chain in the output collection of every earlier collect node, whatever its status, so rejecting a collect node does not remove its output from later steps either.
+
 # My Database Is ...
 
 ## Working fine but I want to back it up
