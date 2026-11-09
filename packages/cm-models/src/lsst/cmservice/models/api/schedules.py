@@ -56,9 +56,9 @@ class ScheduleConfiguration(ManifestSpec):
         default="0 0 1-7 * SUN",
         description="A crontab string expressing a scheduling cadence.",
     )
-    triggers: list[ScheduleTriggerBinding] | None = Field(
+    trigger: ScheduleTriggerBinding | None = Field(
         default=None,
-        description="A list of trigger event sources for the schedule (not counting `cron` or `oneshot`)",
+        description="A trigger event sources for the schedule (not counting `cron` or `oneshot`)",
     )
     uri: str | None = Field(
         default=None,
