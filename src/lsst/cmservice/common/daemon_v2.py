@@ -368,7 +368,11 @@ async def daemon_scheduled_job(
         )
 
         # the first ORM object on the list of manifests is the campaign
-        campaign = orms[0] if isinstance(orms[0], Campaign) else None
+        campaign: Campaign | None
+        try:
+            campaign = orms[0] if isinstance(orms[0], Campaign) else None
+        except IndexError:
+            campaign = None
         if campaign is None:
             logger.error("Campaign object not created", schedule=str(schedule_id))
             return JobEventReturnCode.CAMPAIGN_NOT_FOUND
