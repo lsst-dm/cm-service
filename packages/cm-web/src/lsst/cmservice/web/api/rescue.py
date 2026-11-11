@@ -117,6 +117,8 @@ async def rescue_group(n0: str) -> str:
     collections["group_output"] = f"{group_output}/rescue_{rescue_count:03d}"
     # change butler.collections.run to `*/rescue_NNN_version_Y`
     collections["run"] = f"{group_run}/rescue_{rescue_count:03d}"
+    # apply the trailing RUN collection to the input
+    collections["step_input"] += f",{group_run}"
     node.configuration["butler"]["collections"] = collections
 
     # NOTE unlike group nodes created during step preparation, the ID generated
