@@ -4,7 +4,7 @@ These manifests are generally used in APIs, especially when creating resources.
 They do not necessarily represent the object's database or ORM model.
 """
 
-from typing import Self
+from typing import Literal, Self
 from uuid import UUID, uuid4
 
 from pydantic import UUID5, AliasChoices, BaseModel, ConfigDict, Field, ValidationInfo, model_validator
@@ -21,7 +21,9 @@ class ManifestRequest(BaseModel):
     id: UUID5 | None = Field(None, description="A manifest ID")
     kind: KindField | UUID5 | None = Field(..., description="The kind of manifest")
     name: str | None = Field(None, description="The name of a manifest")
-    version: int | None = Field(None, description="The version of the manifest")
+    version: int | Literal["default"] | None = Field(
+        None, description="The version of the manifest or the default manifest"
+    )
 
     @model_validator(mode="after")
     def custom_model_validator(self, info: ValidationInfo) -> Self:

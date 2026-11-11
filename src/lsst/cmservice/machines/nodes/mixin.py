@@ -17,6 +17,7 @@ from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, ManifestKind, StatusE
 from lsst.cmservice.models.lib.logging import LOGGER
 from lsst.cmservice.models.lib.timestamp import element_time
 from lsst.cmservice.models.manifests import LibraryManifest
+from lsst.cmservice.models.manifests.butler import ButlerManifest
 from lsst.resources import ResourcePath
 
 from ...common.errors import CMNoSuchManifestError
@@ -36,6 +37,29 @@ class NodeMixIn(MixIn):
 
     artifact_resources: dict
     artifact_templates: dict
+    butler: ButlerManifest
+
+    def derived_campaign_collections(self) -> dict[str, str]:
+        """Internal campaign-level collection names derived from the node's
+        Butler manifest. These are not part of the manifest API.
+        """
+        prefix = self.butler.spec.collections.campaign_public_output
+        return {
+            "tagged_input": f"{prefix}/tagged",
+            "chained_input": f"{prefix}/chained",
+        }
+
+    def derived_step_collections(self) -> dict[str, str]:
+        """Internal step-level collection names derived from the node's Butler
+        manifest and the node's name, which is assumed to be a Step. These are
+        not part of the manifest API.
+        """
+        prefix = self.butler.spec.collections.campaign_public_output
+        return {
+            "step_input": f"{prefix}/{self.db_model.name}/input",
+            "step_output": f"{prefix}/{self.db_model.name}_output",
+            "step_public_output": f"{prefix}/{self.db_model.name}",
+        }
 
     async def select_manifest[T: LibraryManifest](
         self, manifest_kind: ManifestKind, manifest_type: type[T]
@@ -67,13 +91,15 @@ class NodeMixIn(MixIn):
         manifest: Manifest | None = None
         kind = manifest_kind.name
         my = self.db_model
-        selected_by: Literal["selectors", "default", "version"] = "version"
+        selected_by: Literal["selectors", "default", "version"] | None = None
 
+        # Match a manifest in the current CAMPAIGN or LIBRARY by label select
         if "selectors" in my.metadata_ and kind in my.metadata_["selectors"]:
+            selected_by = "selectors"
             label_containment = {"labels": my.metadata_["selectors"][kind]}
             s = (
                 select(Manifest)
-                .where(Manifest.namespace == my.namespace)
+                .where(or_(Manifest.namespace == my.namespace, Manifest.namespace == DEFAULT_NAMESPACE))
                 .where(col(Manifest.kind) == kind)
                 .where(col(Manifest.metadata_).contains(label_containment))
                 .order_by(col(Manifest.version).desc())
@@ -81,9 +107,9 @@ class NodeMixIn(MixIn):
             )
             manifest = (await self.session.exec(s)).one_or_none()
 
-        if manifest is not None:
-            selected_by = "selectors"
-        else:
+        # Match a manifest in the current CAMPAIGN by default status
+        if manifest is None:
+            selected_by = "default"
             s = (
                 select(Manifest)
                 .where(Manifest.namespace == my.namespace)
@@ -93,9 +119,9 @@ class NodeMixIn(MixIn):
             )
             manifest = (await self.session.exec(s)).one_or_none()
 
-        if manifest is not None:
-            selected_by = "default"
-        else:
+        # Match a manifest in the CAMPAIGN or LIBRARY by newest
+        if manifest is None:
+            selected_by = "version"
             s = (
                 select(Manifest)
                 .where(col(Manifest.kind) == kind)
@@ -107,6 +133,7 @@ class NodeMixIn(MixIn):
             manifest = (await self.session.exec(s)).one_or_none()
 
         if manifest is None:
+            selected_by = None
             msg = f"A required manifest was not found in the database: {manifest_kind}"
             raise CMNoSuchManifestError(msg)
 

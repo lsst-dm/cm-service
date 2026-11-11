@@ -102,6 +102,7 @@ metadata:
   labels:
     site: slac
     instrument: lsstcam
+    deployment: development
 spec:
   facility: "SLAC"
   include_files:
@@ -109,6 +110,11 @@ spec:
   provisioned_platform: "s3df"
   provisioned_queue: "milano"
   provisioned_account_group: "rubin:developers"
+  botocore_config_file: "/sdf/home/l/lsstsvc1/.lsst/aws-config.cmservice-dev.ini"
+  botocore_credentials_file: "/sdf/home/l/lsstsvc1/.lsst/aws-credentials.cmservice-dev.ini"
+  lsst_db_auth_file: "/sdf/home/l/lsstsvc1/.lsst/db-auth.cmservice-dev.yaml"
+  lsst_data_repos_file: "/sdf/home/l/lsstsvc1/.lsst/data-repos.cmservice-dev.yaml"
+  remote_user_home: "/sdf/home/l/lsstsvc1"
 ---
 apiVersion: io.lsst.cmservice/v1
 kind: bps

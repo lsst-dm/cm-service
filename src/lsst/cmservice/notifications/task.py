@@ -83,5 +83,9 @@ class Notifier:
         payload = NotificationPayload.model_validate_json(payload_)
         label = "default" if channel == "default" else payload.label
         factory.build(NotificationLabelEnum[channel], payload.label)
-        dispatch = asyncio.wait_for(factory.get(label).deliver(payload), timeout=30.0)
-        await dispatch
+        try:
+            dispatch = asyncio.wait_for(factory.get(label).deliver(payload), timeout=30.0)
+            await dispatch
+        except TimeoutError:
+            logger.error("Notification dispatch timed out")
+            raise

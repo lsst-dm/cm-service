@@ -36,9 +36,14 @@ async def assemble_config_chain(
     The standard configuration chain lookup is
     - The node's direct configuration
     - (The node's incoming edge configuration) (TODO)
-    - A "selected" campaign manifest of the specified kind (optional)
-    - The "default" campaign manifest of the specified kind (optional)
-    - The newest campaign manifest by version and/or crtime
+    - one of:
+        - A "selected" campaign manifest of the specified kind
+        - The "default" campaign manifest of the specified kind
+        - The newest campaign manifest by version and/or crtime
+    - one of:
+        - A "selected" library manifest of the specified kind
+        - The "default" library manifest of the specified kind
+        - The newest library manifest by version and/or crtime
     - Any extra manifest configuration provided at runtime
     - A library (version 0) manifest of the specified kind (optional)
 
@@ -61,11 +66,14 @@ async def assemble_config_chain(
     for kind in ManifestKind.__members__:
         # each key in the node configuration is the basis of a configchain
 
+        label_containment: dict | None = None
+        if "selectors" in node.metadata_ and kind in node.metadata_["selectors"]:
+            label_containment = {"labels": node.metadata_["selectors"][kind]}
+
         # Select a manifest from the campaign.
         # Use ONE of selected, default, or best-effort
         campaign_config: dict[str, Any] = {}
-        if "selectors" in node.metadata_ and kind in node.metadata_["selectors"]:
-            label_containment = {"labels": node.metadata_["selectors"][kind]}
+        if label_containment:
             s = (
                 select(Manifest)
                 .where(Manifest.namespace == node.namespace)
@@ -104,9 +112,22 @@ async def assemble_config_chain(
             .where(Manifest.namespace == DEFAULT_NAMESPACE)
             .where(col(Manifest.kind) == kind)
             .where(col(Manifest.version) == 0)
+            .order_by(Manifest.default.desc())  # type: ignore
             .limit(1)
         )
-        if (manifest := (await session.exec(s)).one_or_none()) is not None:
+        # Test for selection
+        if (
+            label_containment
+            and (
+                manifest := (
+                    await session.exec(s.where(col(Manifest.metadata_).contains(label_containment)))
+                ).one_or_none()
+            )
+            is not None
+        ):
+            library_config = manifest.spec
+        # Or fall back to the default
+        elif (manifest := (await session.exec(s)).one_or_none()) is not None:
             library_config = manifest.spec
         else:
             library_config = {}
@@ -310,10 +331,11 @@ async def read_provenance_report_json(path: Path) -> dict:
     }
 
     exceptions: dict[str, list[dict]] = defaultdict(list)
-    task: dict[str, Any]
-    for task in provenance["exceptions"]:
-        task_name = task.pop("Task")
-        exceptions[task_name].append(task)
+    if (task_exceptions := provenance["exceptions"]) is not None:
+        task_exception: dict[str, Any]
+        for task_exception in task_exceptions:
+            task_name = task_exception.pop("Task")
+            exceptions[task_name].append(task_exception)
 
     for task_name in report:
         report[task_name] |= {

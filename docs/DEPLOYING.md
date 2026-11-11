@@ -173,6 +173,9 @@ Add the same contents as added to the secret.
 This config will be used by subsequent job launches.
 No applications need to be restarted.
 
+> [!NOTE]
+> Job-specific object store configuration can also be applied using the `site` configuration manifest, in which case each campaign step may refer to a different set of AWS config/credentials files as needed.
+
 ### New Butler Repo
 Adding a new Butler Repo requires updating the deployment configuration in Phalanx and updating a Vault secret.
 
@@ -185,14 +188,16 @@ CM-Service launches jobs in such a way that the `LSST_DB_AUTH` and `DAF_BUTLER_R
 It is these files that launched jobs consumes for database authentication details, including Butler repos.
 
 > [!CAUTION]
-> Jobs launched by CM Service do not depend on inherited environments in the same way that interactive users do. The launch environment does not use or set "fallback" values like `PGPASS` or `PGUSER` commonly used to configure PostgreSQL credentials.
+> Jobs launched by CM Service do not depend on inherited environments in the same way that interactive users do. The launch environment does not use or set "fallback" values like `PGPASSFILE` or `PGUSER` commonly used to configure PostgreSQL credentials.
 
-> [!NOTE]
-> The `DAF_BUTLER_REPOSITORY_INDEX` environment variable for launched jobs always points to the same file used by regular interactive users. In future this may be changed to a dynamic job-specific file. Changes to this shared file affects CM Service as well as all interactive users.
+Each campaign or step may be configured with a specific Butler repository index and database authentication file.
+The deployed CM Service application provides a last-resort fallback value for these environment variables which may or may not reflect the specific requirements of a campaign step.
+In either case, the configuration will refer to a file on a shared filesystem that is accessible from the context of the launched job.
 
-Locate and edit the file in shared storage at `<service account home>/.lsst/db-auth.<cmservice instance>.yaml`.
+To manage the application default files,
+locate and edit the file in shared storage at `<service account home>/.lsst/db-auth.<cmservice instance>.yaml` (and/or `./data-repos.<cmservice instance>.yaml`).
 
-Add a list item to this YAML file for the new Butler repo:
+Add a list item to the database auth YAML file for the new Butler repo:
 
 ```
 - url: postgresql://butler-database-host

@@ -9,6 +9,11 @@ export {{ key }}="{{ value }}"
 {%- endfor %}
 {# BLANK LINE #}
 {%- endif %}
+{% if site.botocore_config_file %}export AWS_CONFIG_FILE="{{site.botocore_config_file}}"{% endif %}
+{% if site.botocore_credentials_file %}export AWS_SHARED_CREDENTIALS_FILE="{{site.botocore_credentials_file}}"{% endif %}
+{% if site.lsst_db_auth_file %}export LSST_DB_AUTH="{{site.lsst_db_auth_file}}"{% endif %}
+{% if site.lsst_data_repos_file %}export DAF_BUTLER_REPOSITORY_INDEX="{{site.lsst_data_repos_file}}"{% endif %}
+{# BLANK LINE #}
 {%- if lsst.prepend %}
 {%- for line in lsst.prepend %}
 {{ line | shlex }}

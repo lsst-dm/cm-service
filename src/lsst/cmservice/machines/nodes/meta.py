@@ -363,8 +363,8 @@ class StartMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunch
 
         # TODO Campaigns should support options about how their collections are
         # organized.
-        # - CHAIN_ONLY: all input and ancillary collections are chained into a
-        #               single collection used by each step.
+        # - CHAIN_ONLY: all input collections are chained into a single
+        #               collection used by each step (default).
         # - TAGGED_CHAIN: the first input collection is used with the campaign
         #                 predicates to create a tagged collection, which is
         #                 then chained to any addition input and/or ancillary
@@ -374,9 +374,8 @@ class StartMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunch
         #         inputs.
         self.command_templates = [
             (
-                "{{butler.exe_bin}} collection-chain {{butler.repo}} {{butler.collections.campaign_output}}"
+                "{{butler.exe_bin}} collection-chain {{butler.repo}} {{butler.collections.chained_input}}"
                 "{% for collection in butler.collections.campaign_input %} {{collection}}{% endfor %}"
-                "{% for collection in butler.collections.ancillary %} {{collection}}{% endfor %}"
             )
         ]
         # Prepare a Butler runtime config to add to the Node's config chain,
@@ -387,10 +386,7 @@ class StartMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunch
             "true" if Features.MOCK_BUTLER in config.features.enabled else config.butler.butler_bin
         )
         butler_config["collections"] = self.butler.spec.collections.model_copy(
-            update={
-                "tagged_input": f"{self.butler.spec.collections.campaign_public_output}/tagged",
-                "chained_input": f"{self.butler.spec.collections.campaign_public_output}/chained",
-            },
+            update=self.derived_campaign_collections(),
         )
 
         self.configuration_chain["butler"] = self.configuration_chain["butler"].new_child(butler_config)
@@ -447,14 +443,15 @@ class EndMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchMi
 
         self.command_templates = [
             (
-                "{{butler.exe_bin}} collection-chain {{butler.repo}} {{butler.collections.campaign_output}}"
+                "{{butler.exe_bin}} collection-chain {{butler.repo}} {{butler.collections.campaign_output}} "
                 "{% for collection in butler.collections.step_collections %} {{collection}}{% endfor %} "
-            ),
-            (
-                "{{butler.exe_bin}} collection-chain {{butler.repo}} "
-                "{{butler.collections.campaign_public_output}} {{butler.collections.campaign_output}}"
+                "{{ butler.collections.chained_input }}"
             ),
         ]
+
+        # TODO campaign-specific collection setup, e.g., chain our output to
+        # another arbitrary collection
+        ...
 
         butler_config: dict[str, Any] = {}
         butler_config["exe_bin"] = (
@@ -462,6 +459,7 @@ class EndMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchMi
         )
         butler_config["collections"] = self.butler.spec.collections.model_copy(
             update={
+                **self.derived_campaign_collections(),
                 "step_collections": self.collections,
             },
         )
@@ -478,6 +476,12 @@ class EndMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchMi
         edges = (await self.session.exec(s)).all()
         graph = await graph_from_edge_list_v2(edges, self.session)
 
+        # FIXME the step outputs are chained in graph insertion order, not
+        # topological order. Chain lookups are first-match, so if two steps
+        # write the same dataset type and data ID, which one is found in the
+        # campaign output depends on this incidental order. Overlapping step
+        # outputs are considered an operator error, but a reverse topological
+        # sort here would make the chain order deterministic.
         collect_steps = [
             node[1]["model"]
             for node in graph.nodes.data()

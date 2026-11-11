@@ -557,6 +557,16 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         if (stdout_log := self.configuration_chain.get("bps", ChainMap()).get("stdout_log")) is not None:
             await Path(stdout_log).unlink(missing_ok=True)
 
+        if (
+            wms_event_log := self.configuration_chain.get("wms", ChainMap()).get("wms_event_log_path")
+        ) is not None:
+            await Path(wms_event_log).unlink(missing_ok=True)
+
+        if (
+            wms_output_log := self.configuration_chain.get("wms", ChainMap()).get("wms_output_log_path")
+        ) is not None:
+            await Path(wms_output_log).unlink(missing_ok=True)
+
         # remove the BPS runtime metadata
         self.db_model.metadata_.pop("bps", None)
 

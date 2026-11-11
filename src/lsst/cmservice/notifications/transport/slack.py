@@ -158,8 +158,8 @@ class SlackNotification(NotificationTransport):
         if activity_log.to_status not in SLACK_HEADER_SECTION:
             return None
 
-        node_link = f"{config.asgi.fqdn}/gui/node/{node.id}"
-        campaign_link = f"{config.asgi.fqdn}/gui/campaign/{node.namespace}"
+        node_link = f"{config.asgi.fqdn}{config.notifications.gui_root_path}/node/{node.id}"
+        campaign_link = f"{config.asgi.fqdn}{config.notifications.gui_root_path}/campaign/{node.namespace}"
         detail_md = (
             f"{node.kind.name.title()} <{node_link}|*{node.name}*> (v{node.version}) "
             f"in <{campaign_link}|*{node.campaign.name}*> "

@@ -6,7 +6,8 @@
 #     "json-schema-for-humans>=1.5.1",
 #     "lsst-cmservice-models",
 #     "lsst-utils",
-#     "pydantic==2.12.*",
+#     "pydantic>=2.14",
+#     "sqlalchemy[asyncio]==2.0.*",
 # ]
 #
 # [tool.uv.sources]

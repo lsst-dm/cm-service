@@ -114,7 +114,7 @@ class CMConsumer(Consumer):
         _kafka_settings = kafka_settings.model_copy(update=kwargs)
         super().__init__(
             *args,
-            **_kafka_settings.model_dump(by_alias=True),
+            **_kafka_settings.model_dump(by_alias=True, exclude_none=True),
             **_consumer_settings.model_dump(by_alias=True),
         )
         self.topics = _consumer_settings.topics

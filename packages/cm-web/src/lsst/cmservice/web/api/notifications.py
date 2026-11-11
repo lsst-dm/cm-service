@@ -2,7 +2,7 @@ import json
 from collections.abc import AsyncGenerator
 
 from httpx2 import HTTPStatusError, codes
-from nicegui import ui
+from nicegui import app, ui
 
 from lsst.cmservice.models.api.notifications import NotificationLabelManifest
 
@@ -48,8 +48,10 @@ async def new_notification_label(manifest: NotificationLabelManifest) -> None:
 async def delete_notification_label(name: str) -> None:
     """Delete a new notification label with name and type."""
     url = f"/notifications/{name}"
+    actor = app.storage.client["state"].user.username
 
     async with CLIENT_FACTORY.aclient() as aclient:
+        aclient.headers["X-Auth-Request-User"] = actor
         try:
             r = await aclient.delete(url)
             r.raise_for_status()

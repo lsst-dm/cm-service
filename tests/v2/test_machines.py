@@ -355,6 +355,8 @@ async def test_group_config_chain(test_campaign_groups: str, session: AsyncSessi
     # Check group's configuration
     # campaign-default configuration
     assert group.configuration["site"]["facility"] == "SLAC"
+    # library-selection configuration
+    assert "mock" in group.configuration["site"]["botocore_config_file"]
 
     predicates = group.configuration.get("butler", {}).get("predicates", [])
 

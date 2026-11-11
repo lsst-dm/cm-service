@@ -41,7 +41,7 @@ update-deps:
 init: $(PY_VENV)
 	uv run playwright install
 	uv run prek install -f
-	uv run prek install --prepare-hooks
+	uv run prek install --prepare-hooks --hook-type pre-push
 
 .PHONY: update
 update: update-deps init

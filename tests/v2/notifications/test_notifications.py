@@ -38,6 +38,9 @@ async def test_notification_label_routes(test_campaign_groups: str, aclient: Asy
     label = r.json()
     assert label["secret"] != plaintext
 
+    r = await aclient.delete("/v2/notifications/slack-test")
+    assert r.is_success
+
 
 @pytest.mark.parametrize(
     ("filter_value", "cm"),

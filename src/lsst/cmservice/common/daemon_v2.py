@@ -324,10 +324,23 @@ async def daemon_scheduled_job(
                     schedule_manifests = [
                         i for i, t in enumerate(newest_templates) if t.kind is ManifestKind.schedule
                     ]
+                    # If there is a schedule manifest in the loaded resource,
+                    # we treat it as a PATCH operation and not a complete
+                    # replacement. This might not be a great idea.
                     if schedule_manifests:
                         newest_schedule_manifest = newest_templates.pop(schedule_manifests[0])
                         newest_schedule = yaml.safe_load(newest_schedule_manifest.manifest)
+
                         schedule_context = schedule_context.model_copy(update=newest_schedule["spec"])
+                        if (new_cron := newest_schedule.get("cron")) is not None:
+                            schedule_context.cron = new_cron
+                        if (new_auto_start := newest_schedule.get("auto_start")) is not None:
+                            schedule_context.auto_start = new_auto_start
+                        if (new_expressions := newest_schedule.get("expressions")) is not None:
+                            schedule_context.expressions.update(new_expressions)
+                        if (new_name_format := newest_schedule.get("name_format")) is not None:
+                            schedule_context.name_format = new_name_format
+
                 except HTTPStatusError, yaml.YAMLError:
                     return JobEventReturnCode.CAMPAIGN_NOT_FOUND
         else:

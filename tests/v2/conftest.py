@@ -542,6 +542,7 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
             },
         },
     )
+
     x = await aclient.post(
         "/v2/manifests",
         json={
@@ -549,12 +550,35 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
             "kind": "site",
             "metadata": {
                 "name": "usdf-cm-test-slac",
-                "namespace": campaign["id"],
+                "namespace": str(DEFAULT_NAMESPACE),
                 "labels": {"compute-site": "slac"},
+            },
+            "spec": {
+                "facility": "SLAC",
+                "botocore_config_file": "/tmp/slac/config.ini",
+                "botocore_credentials_file": "/tmp/slac/credentials.ini",
+                "lsst_db_auth_file": "/tmp/slac/db-auth.yaml",
+                "lsst_data_repos_file": "/tmp/slac/data-repos.yaml",
+            },
+        },
+    )
+    x = await aclient.post(
+        "/v2/manifests",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "site",
+            "metadata": {
+                "name": "usdf-cm-test-mock",
+                "namespace": str(DEFAULT_NAMESPACE),
+                "labels": {"compute-site": "mock"},
                 "default": True,
             },
             "spec": {
                 "facility": "SLAC",
+                "botocore_config_file": "/tmp/mock/config.ini",
+                "botocore_credentials_file": "/tmp/mock/credentials.ini",
+                "lsst_db_auth_file": "/tmp/mock/db-auth.yaml",
+                "lsst_data_repos_file": "/tmp/mock/data-repos.yaml",
             },
         },
     )
@@ -565,7 +589,7 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
             "kind": "site",
             "metadata": {
                 "name": "usdf-cm-test-lancs",
-                "namespace": campaign["id"],
+                "namespace": str(DEFAULT_NAMESPACE),
                 "labels": {"compute-site": "lancs"},
             },
             "spec": {
@@ -598,7 +622,7 @@ async def test_campaign_groups(aclient: AsyncClient) -> AsyncGenerator[str]:
                 "name": "lambert",
                 "namespace": campaign["id"],
                 "kind": "step",
-                "selectors": {"butler": {"vessel": "nostromo"}},
+                "selectors": {"butler": {"vessel": "nostromo"}, "site": {"compute-site": "mock"}},
             },
             "spec": {
                 "bps": {

@@ -49,3 +49,5 @@ campaign_status = Annotated[
 node_id = Annotated[str, typer.Argument(help="An id for a node, as a UUID value.")]
 
 schedule_id = Annotated[str, typer.Argument(help="An id for a schedule, as a UUID value.")]
+
+label_name = Annotated[str, typer.Argument(help="A notification label name")]

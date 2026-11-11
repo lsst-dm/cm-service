@@ -77,7 +77,11 @@ async def get_campaign_manifests(id: str | None = None, manifests: list[dict] = 
     for kind in mandatory_kinds:
         if not list(filter(lambda m: m["kind"] == kind, manifests)):
             manifest_ = await get_one_manifest(
-                namespace=str(DEFAULT_NAMESPACE), kind=kind, name=None, version=None
+                namespace=str(DEFAULT_NAMESPACE),
+                kind=kind,
+                name=None,
+                version=None,
+                default=True,
             )
             if manifest_ is not None:
                 # Round trip through the pydantic model

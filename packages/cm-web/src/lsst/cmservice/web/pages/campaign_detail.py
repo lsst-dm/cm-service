@@ -636,7 +636,7 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
 
         node_manifest = deepcopy(STEP_MANIFEST_TEMPLATE) | {
             "kind": node["kind"],
-            "metadata": {"name": node["name"], "namespace": node["namespace"]},
+            "metadata": node["metadata"] | {"name": node["name"], "namespace": node["namespace"]},
             "spec": deepcopy(node["spec"]),
         }
         ctx = EditorContext(

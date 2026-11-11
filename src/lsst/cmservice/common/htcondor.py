@@ -254,47 +254,33 @@ def build_htcondor_submit_environment() -> Mapping[str, str]:
     # AWS_SECRET_ACCESS_KEY=creds.secret_key  # noqa: ERA001
     # construct url -> "scheme://access-key:secret-key@endpoint"
 
-    return config.panda.model_dump(by_alias=True, exclude_none=True) | dict(
-        CONDOR_CONFIG=config.htcondor.config_source,
-        _CONDOR_CONDOR_HOST=config.htcondor.collector_host,
-        _CONDOR_COLLECTOR_HOST=config.htcondor.collector_host,
-        _CONDOR_SCHEDD_HOST=config.htcondor.schedd_host,
-        _CONDOR_SEC_CLIENT_AUTHENTICATION_METHODS=config.htcondor.authn_methods,
-        _CONDOR_SEC_FS_ENFORCE_CHANNEL_BINDING=config.htcondor.enforce_channel_binding,
-        _CONDOR_DAGMAN_MANAGER_JOB_APPEND_GETENV="True",
-        FS_REMOTE_DIR=config.htcondor.fs_remote_dir,
-        HOME=config.htcondor.remote_user_home,
-        LSST_VERSION=config.bps.lsst_version,
-        LSST_DISTRIB_DIR=config.bps.lsst_distrib_dir,
-        # FIXME: write a per-job file using the db auth info known to the
-        #        service and populate the LSST_DB_AUTH env var with its
-        #        location.
-        LSST_DB_AUTH=config.butler.authentication_file,
-        # FIXME: populate the DAF_BUTLER_REPOSITORIES env var with the JSON
-        #        string repr of the repository index as known to the service
-        DAF_BUTLER_REPOSITORY_INDEX=config.butler.repository_index,
-        # FIXME: because the aws credentials file is assumed to be in place;
-        #        the s3 resource supports a custom but nonstandard environment
-        #        variable LSST_RESOURCES_S3_PROFILE_<profile> that can contain
-        #        a https://<access key ID>:<secretkey>@<s3 endpoint hostname>;
-        #        if this is a string we can build dynamically then we could use
-        #        it instead of the following assertion
-        AWS_SHARED_CREDENTIALS_FILE=f"{config.htcondor.remote_user_home}/.lsst/aws-credentials.{config.service_id}.ini",
-        # FIXME: if we're going to go by AWS profiles, then we should maintain
-        #        a config file with properly configured endpoint URLs -or-
-        #        at least use the standard one(s)!
-        # FIXME: make aws config values a separate parameters object
-        # FIXME: the AWS endpoint should be based on the target profile of the
-        #        butler, else a global endpoint value must satisfy all daemon
-        #        instance butlers
-        # FIXME: need to exclude None for the following!
-        AWS_ENDPOINT_URL_S3=config.aws_s3_endpoint_url or "",
-        AWS_REQUEST_CHECKSUM_CALCULATION="WHEN_REQUIRED",
-        AWS_RESPONSE_CHECKSUM_VALIDATION="WHEN_REQUIRED",
-        PATH=(
-            f"{config.htcondor.remote_user_home}/.local/bin:{config.htcondor.remote_user_home}/bin:{config.slurm.home}:"
-            f"/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin"
-        ),
+    return (
+        config.panda.model_dump(by_alias=True, exclude_none=True)
+        | config.aws.model_dump(by_alias=True, exclude_none=True)
+        | dict(
+            CONDOR_CONFIG=config.htcondor.config_source,
+            _CONDOR_CONDOR_HOST=config.htcondor.collector_host,
+            _CONDOR_COLLECTOR_HOST=config.htcondor.collector_host,
+            _CONDOR_SCHEDD_HOST=config.htcondor.schedd_host,
+            _CONDOR_SEC_CLIENT_AUTHENTICATION_METHODS=config.htcondor.authn_methods,
+            _CONDOR_SEC_FS_ENFORCE_CHANNEL_BINDING=config.htcondor.enforce_channel_binding,
+            _CONDOR_DAGMAN_MANAGER_JOB_APPEND_GETENV="True",
+            FS_REMOTE_DIR=config.htcondor.fs_remote_dir,
+            HOME=config.htcondor.remote_user_home,
+            LSST_VERSION=config.bps.lsst_version,
+            LSST_DISTRIB_DIR=config.bps.lsst_distrib_dir,
+            # FIXME: write a per-job file using the db auth info known to the
+            #        service and populate the LSST_DB_AUTH env var with its
+            #        location.
+            LSST_DB_AUTH=config.butler.authentication_file,
+            # FIXME: populate the DAF_BUTLER_REPOSITORIES env var with the JSON
+            #        string repr of the repo index as known to the service
+            DAF_BUTLER_REPOSITORY_INDEX=config.butler.repository_index,
+            PATH=(
+                f"{config.htcondor.remote_user_home}/.local/bin:{config.htcondor.remote_user_home}/bin:{config.slurm.home}:"
+                f"/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin"
+            ),
+        )
     )
 
 

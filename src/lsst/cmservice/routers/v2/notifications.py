@@ -10,10 +10,13 @@ custom behavior is needed.
 
 from collections.abc import Sequence
 from typing import Annotated
+from uuid import UUID
 
+from asgi_correlation_id import correlation_id
 from fastapi import (
     APIRouter,
     Depends,
+    Header,
     HTTPException,
     Query,
     Request,
@@ -24,8 +27,9 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from lsst.cmservice.models.api.notifications import NotificationLabelManifest
+from lsst.cmservice.models.db.audit import AuditLog
 from lsst.cmservice.models.db.notifications import NotificationLabel
-from lsst.cmservice.models.enums import ManifestKind
+from lsst.cmservice.models.enums import AuditActionEnum, ManifestKind
 
 from ...common.logging import LOGGER
 from ...config import config
@@ -121,3 +125,36 @@ async def create_notification_label_resource(
     await session.commit()
 
     response.headers["Self"] = str(request.url_for("read_notification_label_resource", label_name=label.name))
+
+
+@router.delete(
+    "/{label_name}",
+    summary="Delete notification label",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_notification_resource(
+    request: Request,
+    response: Response,
+    session: Annotated[AsyncSession, Depends(db_session_dependency)],
+    label_name: str,
+    actor: Annotated[str, Header(alias="X-Auth-Request-User")],
+) -> None:
+    """Delete a notification label resource."""
+    notification_label = await session.get_one(NotificationLabel, label_name)
+    await session.delete(notification_label)
+    await session.commit()
+
+    corr_id = UUID(correlation_id.get())
+    # notification labels do not have uuid ids, so we repeat the request_id
+    # in the auditlog entry
+    audit = AuditLog(
+        actor=actor,
+        action=AuditActionEnum.delete,
+        request_id=corr_id,
+        object_id=corr_id,
+        object_type=ManifestKind.notification_label,
+        object_name=notification_label.name,
+        context={},
+    )
+    request.state.audit.add(audit)
+    return None

@@ -34,7 +34,7 @@ class NotificationProducer(Producer):
     """
 
     topic: str | None
-    key: str | None
+    key: bytes | str | None
 
     @exponential_retry(
         producer_settings,
@@ -78,6 +78,10 @@ class NotificationProducer(Producer):
             # silently or leave it in a log that no one will see (barring
             # instrumentation).
             logger.error("Failed to deliver message", err=err)
+        else:
+            logger.info(
+                "Kafka message delivered", topic=msg.topic, partition=msg.partition, offset=msg.offset
+            )
 
     @classmethod
     def stats_cb(cls, json_str: str) -> None:
@@ -86,7 +90,8 @@ class NotificationProducer(Producer):
 
     async def shutdown(self) -> None:
         """Called when we are done with the producer."""
-        await to_thread.run_sync(self.flush)
+        logger.info("Shutting down producer", waiting=len(self))
+        await to_thread.run_sync(self.flush, 5)
 
     async def __aenter__(self) -> Self:
         """Allows use of the producer as a context manager."""
@@ -107,7 +112,7 @@ def get_producer(aux: Mapping) -> NotificationProducer:
     _producer_settings = producer_settings.model_copy(update=aux)
     p = NotificationProducer(
         **_producer_settings.model_dump(by_alias=True),
-        **_kafka_settings.model_dump(by_alias=True),
+        **_kafka_settings.model_dump(by_alias=True, exclude_none=True),
         stats_cb=NotificationProducer.stats_cb,
     )
     p.topic = _producer_settings.topic

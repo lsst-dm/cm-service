@@ -418,6 +418,9 @@ async def read_campaign_manifest_collection(
 
 
 @router.get("/{campaign_id}/manifest/{kind}", summary="Get campaign Manifest by kind/name/version")
+@router.get(
+    "/{campaign_id}/manifest/{kind}/{version}", summary="Get campaign Manifest by kind/version/default"
+)
 @router.get("/{campaign_id}/manifest/{kind}/{name}", summary="Get campaign Manifest by kind/name/version")
 @router.get(
     "/{campaign_id}/manifest/{kind}/{name}/{version}", summary="Get campaign Manifest by kind/name/version"
@@ -449,7 +452,9 @@ async def read_campaign_manifest_resource(
             )
             if name is not None:
                 s.where(Manifest.name == name)
-            if version is not None:
+            if version == "default":
+                s.where(Manifest.default)
+            elif version is not None:
                 s.where(Manifest.version == version)
             r = (await session.exec(s)).one_or_none()
         case _:
