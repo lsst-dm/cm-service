@@ -172,9 +172,18 @@ class CampaignOverviewPage(CMPage[CampaignOverviewPageModel]):
         _username = app.storage.client["state"].user.username
         favorites_active = "favorites" in app.storage.client["state"].user.active_filters
         ignored_active = "ignored" not in app.storage.client["state"].user.active_filters
-        owners_active = list(app.storage.client["state"].user.filtered_owners) or (
-            [_username] if _username != "anonymous" else []
-        )
+        # A None owner filter means the user has never set it, so default to
+        # the current user; an empty set means the user explicitly cleared it.
+        saved_owners: set[str] | None = app.storage.client["state"].user.owner_filter
+        if saved_owners is None:
+            owners_active = [_username] if _username != "anonymous" else []
+        else:
+            owners_active = sorted(saved_owners)
+
+        # The options are only suggestions (the current user and the robot
+        # users); any saved owners must also be present as options or the
+        # select will not render them as chips.
+        owner_options = sorted({_username, "daemon", "root", *owners_active} - {"anonymous"})
 
         self.favorites_switch = ui.switch(
             "Favorites", value=favorites_active, on_change=self.toggle_favorites_filter
@@ -182,7 +191,7 @@ class CampaignOverviewPage(CMPage[CampaignOverviewPageModel]):
 
         self.owner_filter = (
             ui.select(
-                options=[_username, "daemon", "root"],
+                options=owner_options,
                 new_value_mode="add-unique",
                 value=owners_active,
                 multiple=True,
@@ -249,7 +258,7 @@ class CampaignOverviewPage(CMPage[CampaignOverviewPageModel]):
 
     async def update_user_filter(self, e: ValueChangeEventArguments) -> None:
         """Callback when user filter selection is updated."""
-        app.storage.client["state"].user.filtered_owners = e.value
+        app.storage.client["state"].user.owner_filter = set(e.value or [])
         await self.create_campaign_grid.refresh()
 
     async def update_status_filter(self, e: ValueChangeEventArguments) -> None:
