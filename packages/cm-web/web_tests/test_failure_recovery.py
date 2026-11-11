@@ -502,14 +502,6 @@ async def test_no_step_forward_for_running_campaign(
 
 
 @pytest.mark.usefixtures("fast_activity_polling")
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "wait_for_activity_to_complete reads the first activity log entry before checking whether "
-        "it ran out of time, so when no entry appears it raises IndexError instead of warning "
-        "that it timed out."
-    ),
-)
 async def test_recovery_action_times_out(
     create_user: Callable[[str | None], User], cm_api: FakeCMService, hudson: dict
 ) -> None:

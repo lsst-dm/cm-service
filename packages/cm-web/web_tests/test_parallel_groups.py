@@ -359,7 +359,7 @@ async def test_rescue_failed_group(
     )
     assert rescue["metadata"]["rescues"] == 1
     assert rescue["configuration"]["butler"]["collections"] == {
-        "step_input": group_config["butler"]["collections"]["step_input"],
+        "step_input": f"{group_run},{group_config['butler']['collections']['step_input']}",
         "group_output": f"{group_output}/rescue_001",
         "run": f"{group_run}/rescue_001",
     }

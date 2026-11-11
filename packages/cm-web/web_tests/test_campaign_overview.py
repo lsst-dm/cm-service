@@ -9,7 +9,7 @@ from nicegui.testing.user import User
 from lsst.cmservice.web.components.button import FavoriteButton, TrashButton
 
 from .conftest import FakeCMService
-from .interactions import acting_as, campaign_card, choose, click_card_button, open_drawer, toggle
+from .interactions import campaign_card, choose, click_card_button, open_drawer, toggle, trigger
 
 WEYLAND = {"nostromo", "narcissus", "covenant"}
 """Fixture campaigns owned by weyland."""
@@ -27,6 +27,12 @@ async def should_see_campaigns(user: User, visible: set[str]) -> None:
             await user.should_see(name)
         else:
             await user.should_not_see(name)
+
+
+def owner_select(user: User) -> ui.select:
+    """The drawer's owner filter select."""
+    with user.scope(kind=ui.right_drawer):
+        return user.find(kind=ui.select, content="Filter by Owner").elements.pop()
 
 
 async def test_overview_shows_fixture_campaigns(
@@ -98,20 +104,60 @@ async def test_owner_filter_defaults_to_user(
 async def test_owner_filter_is_remembered(
     create_user: Callable[[str | None], User], fixture_campaigns: list[dict]
 ) -> None:
-    """An owner added to the filter is remembered across page loads."""
+    """An owner who is not one of the filter's suggestions can be added to it,
+    which shows that owner's campaigns, and the addition is remembered across
+    page loads.
+    """
     weyland = create_user("weyland")
     await weyland.open("/")
+    await should_see_campaigns(weyland, WEYLAND)
+
     await open_drawer(weyland)
-    # "yutani" is not one of the select's options; a user adds it by typing a
-    # new value, which the simulated user cannot do, so the value is set.
-    with acting_as(weyland), weyland.scope(kind=ui.right_drawer):
-        weyland.find(kind=ui.select, content="Filter by Owner").elements.pop().set_value(
-            ["weyland", "yutani"]
-        )
+    owner_filter = owner_select(weyland)
+    assert isinstance(owner_filter.options, list)
+    assert "yutani" not in owner_filter.options
+
+    # "yutani" is added by typing it as a new value, which the simulated user
+    # cannot do. The browser then reports the selection as the chosen options,
+    # by index, followed by the typed value.
+    trigger(
+        weyland,
+        owner_filter,
+        "update:modelValue",
+        [{"value": owner_filter.options.index("weyland"), "label": "weyland"}, "yutani"],
+    )
+    assert owner_filter.value == ["weyland", "yutani"]
+    await should_see_campaigns(weyland, EVERYONE)
+    for name in YUTANI:
+        card = campaign_card(weyland, name)
+        assert "yutani" in {e.text for e in card.descendants() if isinstance(e, ui.label)}
+
+    await weyland.open("/")
+    await should_see_campaigns(weyland, EVERYONE)
+    owner_filter = owner_select(weyland)
+    assert sorted(owner_filter.value) == ["weyland", "yutani"]
+    # the remembered owner is an option, so the select shows it as a chip
+    assert "yutani" in owner_filter.options
+
+
+async def test_cleared_owner_filter_is_remembered(
+    create_user: Callable[[str | None], User], fixture_campaigns: list[dict]
+) -> None:
+    """A user who clears every owner from the filter keeps seeing every owner's
+    campaigns across page loads, rather than the filter reverting to the
+    current user.
+    """
+    weyland = create_user("weyland")
+    await weyland.open("/")
+    await should_see_campaigns(weyland, WEYLAND)
+
+    await open_drawer(weyland)
+    choose(weyland, "Filter by Owner", "weyland")
     await should_see_campaigns(weyland, EVERYONE)
 
     await weyland.open("/")
     await should_see_campaigns(weyland, EVERYONE)
+    assert owner_select(weyland).value == []
 
 
 @pytest.mark.parametrize(

@@ -122,20 +122,6 @@ uv run pytest packages/cm-web/web_tests --runxfail -k <test name>
   so the notification reads "Pausing campaign " and then " is now paused".
 - **Fixture:** sulaco's hudson_group_002.
 
-### Waiting for a recovery action's result fails when it times out
-
-- **Test:** [`test_failure_recovery.py::test_recovery_action_times_out`](test_failure_recovery.py)
-- **Where:** [`api/activity.py:32`](../src/lsst/cmservice/web/api/activity.py#L32)
-  (`wait_for_activity_to_complete`)
-- **What happens:** when no activity log entry appears for a request within
-  the time budget, the function reads `r.json()[0]` from the empty result
-  before it checks whether it ran out of time, and raises `IndexError`. The
-  notification keeps its spinner and "Retrying node..." (or similar) message
-  instead of warning "Timed out waiting for result". This affects every
-  recovery action and the rescue's force-accept.
-- **Fixture:** sulaco's hudson step, retried without the daemon applying the
-  status change.
-
 ## Manifest editor
 
 ### Validating non-canonical YAML needs a second click
