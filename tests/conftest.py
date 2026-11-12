@@ -1,6 +1,7 @@
 """Shared conftest module for all tests, providing database fixtures."""
 
 from collections.abc import AsyncGenerator, Callable, Generator
+from pathlib import Path
 from uuid import NAMESPACE_DNS, uuid4
 
 import pytest
@@ -19,6 +20,19 @@ from lsst.cmservice.models.db import Base
 from lsst.cmservice.models.types import AnyAsyncSession
 
 POSTGRES_CONTAINER_IMAGE = "postgres:17"
+
+
+@pytest.fixture(scope="module")
+def monkeypatch_module() -> Generator[pytest.MonkeyPatch]:
+    """A module-scoped monkeypatch fixture"""
+    with pytest.MonkeyPatch.context() as mp:
+        yield mp
+
+
+@pytest.fixture(scope="module")
+def tmp_path_m(tmp_path_factory: pytest.TempPathFactory) -> Generator[Path]:
+    """A module-scoped tmp_path fixture"""
+    yield tmp_path_factory.mktemp("cm", numbered=True)
 
 
 @pytest.fixture(scope="session")

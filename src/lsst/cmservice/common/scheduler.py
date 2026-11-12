@@ -40,7 +40,7 @@ JOB_EVENTS = (
 class JobEventReturnCode(Enum):
     """Possible return codes from the execution of a scheduled job."""
 
-    SUCCESS = auto()
+    SUCCESS = 0
     REMOVE_SELF = auto()
     SCHEDULE_NOT_FOUND = auto()
     CAMPAIGN_NOT_FOUND = auto()

@@ -1,9 +1,8 @@
 """Shared conftest module for v2 unit and functional tests."""
 
 import importlib
-from collections.abc import AsyncGenerator, Callable, Generator
+from collections.abc import AsyncGenerator, Callable
 from contextlib import ExitStack, asynccontextmanager
-from pathlib import Path
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
@@ -25,19 +24,6 @@ from lsst.cmservice.models.types import AnyAsyncSession
 
 if TYPE_CHECKING:
     from fastapi import FastAPI
-
-
-@pytest.fixture(scope="module")
-def monkeypatch_module() -> Generator[pytest.MonkeyPatch]:
-    """A module-scoped monkeypatch fixture"""
-    with pytest.MonkeyPatch.context() as mp:
-        yield mp
-
-
-@pytest.fixture(scope="module")
-def tmp_path_m(tmp_path_factory: pytest.TempPathFactory) -> Generator[Path]:
-    """A module-scoped tmp_path fixture"""
-    yield tmp_path_factory.mktemp("cm", numbered=True)
 
 
 @pytest.fixture(scope="module", autouse=True)

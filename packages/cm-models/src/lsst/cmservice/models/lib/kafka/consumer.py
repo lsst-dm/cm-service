@@ -40,6 +40,7 @@ from anyio import to_thread
 from anyio.lowlevel import checkpoint
 from confluent_kafka import Consumer, KafkaError, Message, TopicPartition
 
+from ...triggers.dispatchers.kafka import KafkaDispatcher
 from ..logging import LOGGER
 from .settings import consumer_settings, kafka_settings
 
@@ -92,6 +93,7 @@ class CMConsumer(Consumer):
 
     app: FastAPI | None
     assigned: anyio.Event
+    dispatcher: KafkaDispatcher | None
     sentinel: anyio.Event
     topics: list[str] | None
     poll_wait: float
@@ -107,6 +109,7 @@ class CMConsumer(Consumer):
             self.sentinel = kwargs.pop("sentinel")
         else:
             self.sentinel = anyio.Event()
+        self.dispatcher = kwargs.pop("dispatcher", None)
         self.app: FastAPI | None = kwargs.pop("app", None)
         self._exit_stack = AsyncExitStack()
         self._task_group = None
@@ -177,8 +180,10 @@ class CMConsumer(Consumer):
         not set and close the consumer.
         """
         self.sentinel.set()
-        await self._exit_stack.__aexit__(exc_type, exc_val, exc_tb)
-        await to_thread.run_sync(self.close)
+        try:
+            await self._exit_stack.__aexit__(exc_type, exc_val, exc_tb)
+        finally:
+            await to_thread.run_sync(self.close)
 
     async def task(self) -> None:
         """A coro that is meant to be used with `asyncio.create_task` to
@@ -216,9 +221,16 @@ class CMConsumer(Consumer):
         """
         async with stream:
             async for message in stream:
-                match message.topic():
-                    case _:
-                        await self.default_handler(message)
+                if self.dispatcher is None:
+                    await self.default_handler(message)
+                    continue
+                message_context = await self.dispatcher.dispatch(message=message)
+                if message_context.error is not None:
+                    # A mishandled message can be retried or redelivered to a
+                    # DLQ
+                    ...
+                else:
+                    self.commit(message=message, asynchronous=True)
 
     async def default_handler(self, message: Message) -> None:
         """Default message handler commits message without any particular
