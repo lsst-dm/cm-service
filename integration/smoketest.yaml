@@ -140,11 +140,21 @@ metadata:
 spec:
   auto_start: true
   cron: 0 12 * * *
-  name_format: '%s'
+  # A static name format makes the campaign name, and so its UUID5 id,
+  # deterministic, e.g., `smoketest_trigger`. A second trigger of this schedule
+  # collides with the first campaign by design.
+  name_format: 'trigger'
+  # A message on this topic matching the protocol triggers the (disabled)
+  # schedule, overriding `day_obs` with the message's value, e.g.,
+  # {"type": "smoketest", "detail": {"day_obs": 20261112}}
+  trigger:
+    source: kafka
+    channel: smoketest-inbound
+    protocol: "type=='smoketest' && detail.{day_obs: day_obs} || `null`"
   expressions:
     today: "datetime.now(timezone.utc)"
     yesterday: "datetime.now(timezone.utc) - timedelta(days=1)"
-    # The day_obs used by the templates, yesterday unless a oneshot overrides it
+    # The day_obs used by the templates, yesterday unless a trigger overrides it
     day_obs: "(datetime.now(timezone.utc) - timedelta(days=1)).strftime('%Y%m%d')"
     bad_detectors: >-
         [120, 122, 0, 20, 27, 65, 123, 161, 168, 188, 1, 19, 30, 68, 158, 169, 187, 189, 190, 191, 192, 193, 194, 195,
