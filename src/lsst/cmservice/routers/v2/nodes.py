@@ -332,14 +332,32 @@ async def update_node_resource(
     elif use_deepdiff:
         if TYPE_CHECKING:
             assert isinstance(patch_data, bytes)
+        # FIXME this code path does not support metadata updates although the
+        # docstring indicates that it should.
         new_manifest["configuration"] += Delta(patch_data)
 
     # create Manifest from new_manifest, add to session, and commit
     new_manifest["metadata"]["crtime"] = element_time()
-    new_manifest["metadata"].pop("mtime", None)
+
+    # We need to pop runtime metadata from the new_manifest
+    # FIXME there should be a model that defines what "runtime metadata" is
+    for metadata_field in ["provenance", "bps", "mtime", "repo", "run_collections", "replaces_path"]:
+        new_manifest["metadata"].pop(metadata_field, None)
+
+    if "parent_path" in new_manifest["metadata"]:
+        new_manifest["metadata"]["artifact_path"] = new_manifest["metadata"]["parent_path"]
+
+    # FIXME this only needs to apply to group nodes, probably
+    # Update the nominal run collection name based on the incremented version
+    if (butler := new_manifest["configuration"].get("butler")) is not None:
+        if (node_collections := butler.get("collections")) and "run" in node_collections:
+            new = new_manifest["version"]
+            old = old_manifest.version
+            # FIXME this won't work with versions >9
+            node_collections["run"] = node_collections["run"].replace(f"version_{old}", f"version_{new}")
+
     new_manifest_db = Node.model_validate(new_manifest)
     new_manifest_db.status = StatusEnum.waiting
-
     try:
         session.add(new_manifest_db)
         await session.commit()
