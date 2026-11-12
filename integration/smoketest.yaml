@@ -3,7 +3,7 @@ apiVersion: io.lsst.cmservice/v1
 kind: campaign
 metadata:
   name: smoketest
-  day_obs: ${{ yesterday | as_day_obs }}
+  day_obs: ${{ day_obs }}
 spec:
   notification_labels:
     - "kafka-event"
@@ -61,14 +61,14 @@ spec:
     campaign_input:
       - LSSTCam/defaults
       - LSSTCam/templates
-      - LSSTCam/runs/prompt-${{ yesterday | as_day_obs }}
-    campaign_output: u/lsstsvc1/runs/daytimeAP/${{ yesterday | as_day_obs }}/output
-    campaign_public_output: u/lsstsvc1/runs/daytimeAP/${{ yesterday | as_day_obs }}
+      - LSSTCam/runs/prompt-${{ day_obs }}
+    campaign_output: u/lsstsvc1/runs/daytimeAP/${{ day_obs }}/output
+    campaign_public_output: u/lsstsvc1/runs/daytimeAP/${{ day_obs }}
   include_files: []
   predicates:
     - instrument='LSSTCam'
     - skymap='lsst_cells_v2'
-    - day_obs=${{ yesterday | as_day_obs }}
+    - day_obs=${{ day_obs }}
     - ${{ bad_detectors | sql_not_in(field="detector") }}
   repo: embargo
 ---
@@ -79,7 +79,7 @@ metadata:
   namespace: b7047eb6-5e22-5b5e-86a7-41b3e216e898
 spec:
   extra_qgraph_options:
-    - --skip-existing-in LSSTCam/runs/prompt-${{ yesterday | as_day_obs }}
+    - --skip-existing-in LSSTCam/runs/prompt-${{ day_obs }}
     - -c parameters:release_id=1
     - -c parameters:apdb_config={{ metadata.parent_path }}/apdb_config.yaml
     - -c associateApdb:doRunForcedMeasurement=False
@@ -144,6 +144,8 @@ spec:
   expressions:
     today: "datetime.now(timezone.utc)"
     yesterday: "datetime.now(timezone.utc) - timedelta(days=1)"
+    # The day_obs used by the templates, yesterday unless a oneshot overrides it
+    day_obs: "(datetime.now(timezone.utc) - timedelta(days=1)).strftime('%Y%m%d')"
     bad_detectors: >-
         [120, 122, 0, 20, 27, 65, 123, 161, 168, 188, 1, 19, 30, 68, 158, 169, 187, 189, 190, 191, 192, 193, 194, 195,
         196, 197, 198, 199, 200, 201, 202, 203, 204]

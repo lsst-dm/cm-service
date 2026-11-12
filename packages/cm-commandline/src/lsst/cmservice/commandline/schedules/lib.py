@@ -9,6 +9,7 @@ from httpx2 import HTTPStatusError, Response
 from pydantic_extra_types.cron import CronStr
 from rich.console import Console
 
+from lsst.cmservice.models.api.schedules import ScheduleConfiguration
 from lsst.cmservice.models.db.schedules import CreateManifestTemplate, CreateSchedule
 
 from ..client import http_client
@@ -23,7 +24,7 @@ def create_schedule(spec: dict | None) -> CreateSchedule:
     """
     schedule = CreateSchedule(
         name="",
-        cron=CronStr("* * * * *"),
+        cron=CronStr(ScheduleConfiguration.model_fields["cron"].default),
         metadata_={
             "owner": "nobody",
         },

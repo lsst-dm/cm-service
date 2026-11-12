@@ -11,9 +11,8 @@ from typing import TYPE_CHECKING, Self, cast
 from uuid import UUID, uuid4, uuid5
 
 import networkx as nx
-import yaml
 from fastapi import FastAPI
-from httpx2 import HTTPStatusError
+from pydantic_extra_types.cron import CronStr
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.orm import make_transient, selectinload
@@ -23,17 +22,15 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from transitions import Event
 
 from lsst.cmservice.common.scheduler import Scheduler
-from lsst.cmservice.models.api.schedules import ScheduleConfiguration
+from lsst.cmservice.models.api.schedules import ScheduleConfiguration, ScheduleTrigger
 from lsst.cmservice.models.db.campaigns import Campaign, Edge, Machine, Node, Task
 from lsst.cmservice.models.db.schedules import (
-    CreateManifestTemplate,
     ManifestTemplate,
     ManifestTemplateBase,
     Schedule,
 )
-from lsst.cmservice.models.enums import ManifestKind, StatusEnum
+from lsst.cmservice.models.enums import StatusEnum
 from lsst.cmservice.models.lib import graph, timestamp
-from lsst.cmservice.models.lib.resources import Resource
 
 from ..common.flags import Features
 from ..common.templates import build_sandbox_and_render_templates
@@ -41,6 +38,7 @@ from ..config import config
 from ..db.session import db_session_dependency
 from ..machines.node import NodeMachine, node_machine_factory
 from .logging import LOGGER
+from .schedule_resources import ScheduleResourceError, refresh_audit_log, refresh_schedule
 from .scheduler import JobEventReturnCode
 
 logger = LOGGER.bind(module=__name__)
@@ -253,8 +251,22 @@ async def consider_nodes(context: DaemonContext) -> None:
             await session.commit()
 
 
+async def find_triggered_campaign(session: AsyncSession, trigger: ScheduleTrigger) -> Campaign | None:
+    """Returns a campaign previously created by an equivalent trigger, if
+    any. A trigger without an idempotency key never matches a campaign.
+    """
+    if trigger.key is None:
+        return None
+    statement = select(Campaign).where(col(Campaign.metadata_).contains(trigger.containment())).limit(1)
+    return (await session.exec(statement)).one_or_none()
+
+
 async def daemon_scheduled_job(
-    *, schedule_id: UUID, suppress_exceptions: bool = False, oneshot: bool = False
+    *,
+    schedule_id: UUID,
+    suppress_exceptions: bool = False,
+    oneshot: bool = False,
+    trigger: ScheduleTrigger | None = None,
 ) -> JobEventReturnCode:
     """Daemon work function for performing the work of a scheduled campaign.
 
@@ -265,7 +277,8 @@ async def daemon_scheduled_job(
     This function fetches the identified `Schedule` from the database and
     passes its `templates` collection through a renderer. The renderer returns
     an ORM object for each `template`, which are then added to the session and
-    committed.
+    committed. A `Schedule` with an external resource is first refreshed from
+    that resource, which provides the templates instead of the database.
 
     Parameters
     ----------
@@ -277,6 +290,13 @@ async def daemon_scheduled_job(
     oneshot: bool
         Defaults to False. If True, the entire function will be evaluated ir-
         respective of the schedule's enabled status.
+
+    trigger: ScheduleTrigger | None
+        Defaults to None. If provided, the trigger's overrides are merged over
+        the values of the schedule's expressions for this job only, the
+        trigger is recorded in
+        the new campaign's metadata, and the job returns early if a campaign
+        was already created by an equivalent trigger.
 
     Returns
     -------
@@ -292,57 +312,41 @@ async def daemon_scheduled_job(
     async with db_session_dependency.sessionmaker() as session:
         try:
             schedule = await session.get_one(Schedule, schedule_id)
-            # FIXME this is a type coercion hack
-            base_schedule = Schedule.model_validate(schedule.model_dump())
         except NoResultFound:
             return JobEventReturnCode.SCHEDULE_NOT_FOUND
 
         if not schedule.is_enabled and not oneshot:
             return JobEventReturnCode.REMOVE_SELF
 
-        schedule_context = ScheduleConfiguration(**schedule.configuration)
+        if trigger is not None and await find_triggered_campaign(session, trigger) is not None:
+            logger.warning("Duplicate schedule trigger", schedule=str(schedule_id), key=trigger.key)
+            return JobEventReturnCode.DUPLICATE_TRIGGER
 
         newest_templates: list[ManifestTemplate | ManifestTemplateBase]
-        if schedule_context.uri is not None:
-            # Fetch the campaign template manifest from a URI instead of using
-            # templates from the database.
-            # TODO this assumes and only supports YAML files, which would
-            # implicitly support JSON files as well except it'd be parsed
-            # as a single document with a list of dicts `[[{...}, {...}]]`
-            async with Resource.http_async_client() as aclient:
-                try:
-                    resource = await aclient.get(schedule_context.uri)
-                    resource.raise_for_status()
-                    newest_templates = [
-                        CreateManifestTemplate(
-                            name=manifest["metadata"].get("name", uuid4().hex[:8]),
-                            kind=manifest["kind"],
-                            manifest=yaml.safe_dump(manifest, explicit_start=True),
-                        )
-                        for manifest in yaml.safe_load_all(resource.content)
-                    ]
-                    schedule_manifests = [
-                        i for i, t in enumerate(newest_templates) if t.kind is ManifestKind.schedule
-                    ]
-                    # If there is a schedule manifest in the loaded resource,
-                    # we treat it as a PATCH operation and not a complete
-                    # replacement. This might not be a great idea.
-                    if schedule_manifests:
-                        newest_schedule_manifest = newest_templates.pop(schedule_manifests[0])
-                        newest_schedule = yaml.safe_load(newest_schedule_manifest.manifest)
-
-                        schedule_context = schedule_context.model_copy(update=newest_schedule["spec"])
-                        if (new_cron := newest_schedule.get("cron")) is not None:
-                            schedule_context.cron = new_cron
-                        if (new_auto_start := newest_schedule.get("auto_start")) is not None:
-                            schedule_context.auto_start = new_auto_start
-                        if (new_expressions := newest_schedule.get("expressions")) is not None:
-                            schedule_context.expressions.update(new_expressions)
-                        if (new_name_format := newest_schedule.get("name_format")) is not None:
-                            schedule_context.name_format = new_name_format
-
-                except HTTPStatusError, yaml.YAMLError:
-                    return JobEventReturnCode.CAMPAIGN_NOT_FOUND
+        if schedule.configuration.get("uri") is not None:
+            # Refresh the schedule from its external resource, which provides
+            # the campaign templates instead of the database. Any change to the
+            # schedule is committed now, so it is kept even if the campaign
+            # cannot be created.
+            try:
+                resource, changes = await refresh_schedule(schedule)
+            except ScheduleResourceError as e:
+                logger.error(
+                    "Could not refresh schedule from its resource", schedule=str(schedule_id), error=e
+                )
+                return JobEventReturnCode.CAMPAIGN_NOT_FOUND
+            if TYPE_CHECKING:
+                assert resource is not None
+            if changes:
+                actor = trigger.actor if trigger is not None else "scheduler"
+                schedule.metadata_["mtime"] = timestamp.element_time()
+                schedule.metadata_["updated_by"] = actor
+                session.add(refresh_audit_log(schedule, changes, actor=actor, request_id=uuid4()))
+                await session.commit()
+                logger.info(
+                    "Refreshed schedule from its resource", schedule=str(schedule_id), changes=changes
+                )
+            newest_templates = list(resource.templates)
         else:
             # TODO signal version picking; for now we pick the latest version
             # of each name-kind pair of templates.
@@ -354,9 +358,13 @@ async def daemon_scheduled_job(
                 )
             ]
 
+        # Trigger overrides are applied last, after any refresh from an
+        # external resource. The schedule's own configuration is not modified.
+        schedule_context = ScheduleConfiguration(**schedule.configuration)
         orms = await build_sandbox_and_render_templates(
             context=schedule_context,
             templates=newest_templates,
+            overrides=trigger.overrides if trigger is not None else None,
         )
 
         # the first ORM object on the list of manifests is the campaign
@@ -367,6 +375,8 @@ async def daemon_scheduled_job(
 
         campaign.owner = schedule.metadata_.get("owner")
         campaign.status = StatusEnum.running if schedule_context.auto_start else StatusEnum.paused
+        if trigger is not None:
+            campaign.metadata_["trigger"] = trigger.model_dump(mode="json", exclude={"overrides"})
 
         # We want to split the ORMs so the edges are added only after the nodes
         # FIXME consider a more reusable partitioning function for this
@@ -392,7 +402,8 @@ async def daemon_scheduled_job(
         schedule.last_run_at = timestamp.now_utc()
         schedule.metadata_["last_campaign_id"] = str(campaign.id)
         if schedule.is_enabled:
-            schedule.next_run_at = base_schedule.cron.next_run  # type: ignore[assignment]
+            # The cron is just a string when it comes back out of the db
+            schedule.next_run_at = CronStr(schedule.cron).next_run  # type: ignore[assignment]
 
         await session.commit()
         return JobEventReturnCode.SUCCESS

@@ -8,8 +8,10 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Literal, overload
 
-from jinja2.exceptions import TemplateError, TemplateSyntaxError
+from jinja2 import Undefined
+from jinja2.exceptions import TemplateError, TemplateSyntaxError, UndefinedError
 from jinja2.sandbox import ImmutableSandboxedEnvironment
+from pydantic_core import to_jsonable_python
 from yaml import YAMLError, safe_load
 
 from lsst.cmservice.models.api.primitives import STEP_MANIFEST_TEMPLATE
@@ -28,14 +30,29 @@ if TYPE_CHECKING:
 class ManifestRenderingError(Exception): ...
 
 
-def compile_user_expressions(expressions: MutableMapping[str, str]) -> dict[str, Any]:
+def compile_user_expressions(
+    expressions: MutableMapping[str, str], *, strict: bool = False
+) -> dict[str, Any]:
     """Compiles user template expressions in a dedicated sandbox environment
     with a whitelisted set of Python modules available as globals.
+
+    Parameters
+    ----------
+    strict: bool
+        Defaults to False, in which case an expression that evaluates to an
+        undefined value, e.g., an unquoted string like ``value``, compiles to
+        ``None``. If True, such an expression raises an error instead.
 
     Returns
     -------
     dict[str, Any]
         A mapping of each expression name to its compiled value.
+
+    Raises
+    ------
+    ManifestRenderingError
+        If an expression has a syntax error, refers to an undefined name in an
+        operation, or (if strict) evaluates to an undefined value.
     """
     whitelist_modules: Mapping[str, type | ModuleType] = {
         "datetime": datetime,
@@ -50,12 +67,21 @@ def compile_user_expressions(expressions: MutableMapping[str, str]) -> dict[str,
     # NOTE this is built assuming the expressions are always str-str mappings
     # and that python scalar objects are never present, although this case is
     # supported by the compiler.
-    try:
-        compiled_expressions = {
-            name: sandbox.compile_expression(expression.strip())() for name, expression in expressions.items()
-        }
-    except TemplateSyntaxError:
-        raise ManifestRenderingError("Syntax error in user expression.")
+    compiled_expressions = {}
+    for name, expression in expressions.items():
+        try:
+            value = sandbox.compile_expression(expression.strip(), undefined_to_none=not strict)()
+        except TemplateSyntaxError:
+            msg = f"Syntax error in user expression {name!r}."
+            raise ManifestRenderingError(msg)
+        except UndefinedError as e:
+            msg = f"Undefined name in user expression {name!r}: {e}"
+            raise ManifestRenderingError(msg) from e
+        # Only possible when strict, otherwise an undefined value is None
+        if isinstance(value, Undefined):
+            msg = f"User expression {name!r} is undefined; quote string literals, e.g., {name}='{expression}'"
+            raise ManifestRenderingError(msg)
+        compiled_expressions[name] = value
     return compiled_expressions
 
 
@@ -64,6 +90,7 @@ async def build_sandbox_and_render_templates[T: ManifestTemplateBase](
     context: ScheduleConfiguration,
     templates: Sequence[T],
     *,
+    overrides: Mapping[str, Any] | None = None,
     as_orm: Literal[True],
 ) -> Sequence[CampaignElement]: ...
 
@@ -73,6 +100,7 @@ async def build_sandbox_and_render_templates[T: ManifestTemplateBase](
     context: ScheduleConfiguration,
     templates: Sequence[T],
     *,
+    overrides: Mapping[str, Any] | None = None,
     as_orm: Literal[False],
 ) -> Sequence[dict]: ...
 
@@ -81,6 +109,8 @@ async def build_sandbox_and_render_templates[T: ManifestTemplateBase](
 async def build_sandbox_and_render_templates[T: ManifestTemplateBase](
     context: ScheduleConfiguration,
     templates: Sequence[T],
+    *,
+    overrides: Mapping[str, Any] | None = None,
 ) -> Sequence[CampaignElement]: ...
 
 
@@ -88,6 +118,7 @@ async def build_sandbox_and_render_templates[T: ManifestTemplateBase](
     context: ScheduleConfiguration,
     templates: Sequence[T],
     *,
+    overrides: Mapping[str, Any] | None = None,
     as_orm: bool = True,
 ) -> Sequence[Any]:
     """Given a set of expressions for the sandbox environment, create an
@@ -101,12 +132,15 @@ async def build_sandbox_and_render_templates[T: ManifestTemplateBase](
 
     Parameters
     ----------
+    overrides: Mapping[str, Any] | None
+        Defaults to None. If provided, these values are merged over the values
+        of the context's compiled expressions, overriding or extending them.
     as_orm: bool
         If True (default), the return value is a sequence of ORM objects
         created from the rendered manifest templates; if False, the raw
         rendered strings are returned instead.
     """
-    compiled_expressions = compile_user_expressions(context.expressions)
+    values = compile_user_expressions(context.expressions) | dict(overrides or {})
 
     sandbox = ImmutableSandboxedEnvironment(
         variable_start_string="${{",
@@ -115,7 +149,7 @@ async def build_sandbox_and_render_templates[T: ManifestTemplateBase](
         keep_trailing_newline=True,
         cache_size=0,
     )
-    sandbox.globals = compiled_expressions
+    sandbox.globals = values
     sandbox.filters |= FILTERS
 
     # put the manifest templates in loose order in the result deque
@@ -140,6 +174,8 @@ async def build_sandbox_and_render_templates[T: ManifestTemplateBase](
                 campaign_name_nonce = now_utc().strftime(context.name_format)
                 campaign_name = f"{template_dict['metadata']['name']}_{campaign_name_nonce}"
                 template_dict["metadata"]["name"] = campaign_name
+                # Record the values used to render the templates as provenance
+                template_dict["metadata"]["values"] = to_jsonable_python(values, fallback=str)
                 rendered_manifests.appendleft(template_dict)
 
                 # Start/End Nodes
