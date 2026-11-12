@@ -52,9 +52,15 @@ class UserStorageModel(StorageModel):
         default_factory=set,
         description="A set of IDs that have been marked as ignored/hidden/trashed by the user",
     )
-    filtered_owners: Annotated[set, PlainSerializer(lambda x: list(x), return_type=list)] = Field(
-        default_factory=set,
-        description="A set of owner names that have been selected by the user in the campaign filter",
+    owner_filter: Annotated[
+        set[str] | None, PlainSerializer(lambda x: None if x is None else list(x), return_type=list | None)
+    ] = Field(
+        default=None,
+        description=(
+            "A set of owner names that have been selected by the user in the campaign filter. "
+            "None indicates the user has never set the filter (default to the current user); "
+            "an empty set indicates the user has explicitly cleared the filter."
+        ),
     )
 
 

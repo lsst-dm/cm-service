@@ -549,21 +549,22 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         # from the node. Without a change to the version of the Node, there is
         # no expectation that differences in artifacts require them to be re-
         # rendered.
+        _configuration_chain: ChainMap = getattr(self, "configuration_chain", ChainMap())
 
         # remove the BPS runtime logs
-        if (exe_log := self.configuration_chain.get("bps", ChainMap()).get("exe_log")) is not None:
+        if (exe_log := _configuration_chain.get("bps", ChainMap()).get("exe_log")) is not None:
             await Path(exe_log).unlink(missing_ok=True)
 
-        if (stdout_log := self.configuration_chain.get("bps", ChainMap()).get("stdout_log")) is not None:
+        if (stdout_log := _configuration_chain.get("bps", ChainMap()).get("stdout_log")) is not None:
             await Path(stdout_log).unlink(missing_ok=True)
 
         if (
-            wms_event_log := self.configuration_chain.get("wms", ChainMap()).get("wms_event_log_path")
+            wms_event_log := _configuration_chain.get("wms", ChainMap()).get("wms_event_log_path")
         ) is not None:
             await Path(wms_event_log).unlink(missing_ok=True)
 
         if (
-            wms_output_log := self.configuration_chain.get("wms", ChainMap()).get("wms_output_log_path")
+            wms_output_log := _configuration_chain.get("wms", ChainMap()).get("wms_output_log_path")
         ) is not None:
             await Path(wms_output_log).unlink(missing_ok=True)
 
