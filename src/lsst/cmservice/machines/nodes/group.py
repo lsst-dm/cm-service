@@ -571,6 +571,10 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
         # remove the BPS runtime metadata
         self.db_model.metadata_.pop("bps", None)
 
+        # remove the launcher metadata, whose job id refers to the previous
+        # attempt and would be used to filter the next attempt's WMS events
+        self.db_model.metadata_.pop("launcher", None)
+
         # increment the number of retries tracked by the node
         attempt_num = self.db_model.metadata_.get("retries", 0)
         self.db_model.metadata_["retries"] = attempt_num + 1
