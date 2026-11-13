@@ -341,13 +341,13 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
         source, _ = find_endpoints_in_directed_graph(graph)
         step_subgraph = subgraph_between_nodes(graph, source, self.db_model.id)
 
-        # find all output collections for "collect" steps in the subgraph and
-        # add them to the set of intermediate collections to be used in the
-        # step_input collection used by each group.
+        # find all output collections for accepted "collect" steps in the
+        # subgraph and add them to the set of intermediate collections to be
+        # used in the step_input collection used by each group.
         intermediate_collections: list[str] = []
         for _, data in cast(Mapping[Any, Node], step_subgraph.nodes.data(data="model")):
             data = cast(Node, data)
-            if data.kind is ManifestKind.collect_groups:
+            if data.kind is ManifestKind.collect_groups and data.status is StatusEnum.accepted:
                 step_config = data.configuration
                 step_output = step_config.get("butler", {}).get("collections", {}).get("step_output")
                 if step_output is None:
