@@ -1,9 +1,11 @@
+from collections import ChainMap
 from collections.abc import Generator, Mapping, Sequence
 from copy import deepcopy
 from itertools import chain
 from typing import Any, assert_never, cast
 from uuid import UUID, uuid5
 
+from anyio import Path
 from sqlmodel import select
 from transitions import EventData
 
@@ -530,7 +532,24 @@ class StepMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchM
 
     async def do_retry(self, event: EventData) -> None:
         """Transition method between "failed" and "ready"."""
-        ...
+        # Remove the WMS logs and launcher metadata of the previous attempt;
+        # the HTCondor event log is appended to by each submission, and the
+        # previous attempt's termination event would otherwise be read as the
+        # result of the next attempt.
+        _configuration_chain: ChainMap = getattr(self, "configuration_chain", ChainMap())
+        if (
+            wms_event_log := _configuration_chain.get("wms", ChainMap()).get("wms_event_log_path")
+        ) is not None:
+            await Path(wms_event_log).unlink(missing_ok=True)
+
+        if (
+            wms_output_log := _configuration_chain.get("wms", ChainMap()).get("wms_output_log_path")
+        ) is not None:
+            await Path(wms_output_log).unlink(missing_ok=True)
+
+        new_metadata = deepcopy(self.db_model.metadata_)
+        new_metadata.pop("launcher", None)
+        self.db_model.metadata_ = new_metadata
 
 
 class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
@@ -702,8 +721,26 @@ class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin
             case _:
                 ...
 
+        # Remove the WMS logs and launcher metadata of the previous attempt;
+        # the HTCondor event log is appended to by each submission, and the
+        # previous attempt's termination event would otherwise be read as the
+        # result of the next attempt.
+        _configuration_chain: ChainMap = getattr(self, "configuration_chain", ChainMap())
+        if (
+            wms_event_log := _configuration_chain.get("wms", ChainMap()).get("wms_event_log_path")
+        ) is not None:
+            await Path(wms_event_log).unlink(missing_ok=True)
+
+        if (
+            wms_output_log := _configuration_chain.get("wms", ChainMap()).get("wms_output_log_path")
+        ) is not None:
+            await Path(wms_output_log).unlink(missing_ok=True)
+
+        new_metadata = deepcopy(self.db_model.metadata_)
+        new_metadata.pop("launcher", None)
         # increment the number of retries tracked by the node
-        self.db_model.metadata_["retries"] = self.db_model.metadata_.get("retries", 0) + 1
+        new_metadata["retries"] = new_metadata.get("retries", 0) + 1
+        self.db_model.metadata_ = new_metadata
 
     async def do_reset(self, event: EventData) -> None:
         """Callback rolls the node back to a "waiting" state."""
