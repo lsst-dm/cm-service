@@ -502,10 +502,13 @@ class EndMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchMi
         # campaign output depends on this incidental order. Overlapping step
         # outputs are considered an operator error, but a reverse topological
         # sort here would make the chain order deterministic.
+        # Only accepted collect steps contribute to the campaign output; this
+        # mirrors the treatment of group run collections by collect steps.
         collect_steps = [
             node[1]["model"]
             for node in graph.nodes.data()
             if node[1]["model"].kind is ManifestKind.collect_groups
+            and node[1]["model"].status is StatusEnum.accepted
         ]
         self.collections = [
             collect_step.configuration["butler"]["collections"]["step_output"]
