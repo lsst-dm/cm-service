@@ -560,7 +560,8 @@ class BreakPointMachine(NodeMachine):
     advance the node, and subsequently the campaign.
 
     Unlike most nodes, a Breakpoint Node may be put into the accepted state
-    from any state using the "force" trigger.
+    from any state using the "force" trigger, or into the rejected state from
+    any state using the "reject" trigger.
     """
 
     __kind__ = [ManifestKind.breakpoint]
@@ -571,7 +572,7 @@ class BreakPointMachine(NodeMachine):
         # the breakpoint node does have a special transition that allows the
         # `force` or `reject` trigger from *any* state.
         self.machine.add_transition("force", "*", "accepted")
-        self.machine.add_transition("reject", "*", "failed")
+        self.machine.add_transition("reject", "*", "rejected")
 
     async def is_done_running(self, event: EventData) -> bool:
         """A Breakpoint Node always returns a False signal to the done-running

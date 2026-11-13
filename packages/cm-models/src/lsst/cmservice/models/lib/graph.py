@@ -257,8 +257,9 @@ def processable_graph_nodes(g: nx.DiGraph) -> Iterable[Node]:
     one of their direct predecessors is in a non-blocking terminal state.
 
     Only ``accepted`` is a successful terminal state. A ``rejected`` node is
-    neutral and does not block its successors. Any other predecessor status,
-    including ``failed`` or any non-terminal status, blocks its successors.
+    neutral and does not block its successors, except for a ``rejected``
+    breakpoint, which does. Any other predecessor status, including ``failed``
+    or any non-terminal status, blocks its successors.
 
     Yields
     ------
@@ -280,12 +281,21 @@ def processable_graph_nodes(g: nx.DiGraph) -> Iterable[Node]:
     # The processable set is determined in full before any node is yielded, so
     # that a consumer changing the status of a yielded node cannot influence
     # the candidacy of other nodes in the same pass.
-    processable_nodes: list[Node] = [
-        g.nodes[n]["model"]
-        for n in g.nodes
-        if g.nodes[n]["model"].status.is_processable_script()
-        and not any(g.nodes[p]["model"].status.is_blocking() for p in g.predecessors(n))
-    ]
+    processable_nodes: list[Node] = []
+    for n in g.nodes:
+        node: Node = g.nodes[n]["model"]
+        if not node.status.is_processable_script():
+            continue
+        predecessors: list[Node] = [g.nodes[p]["model"] for p in g.predecessors(n)]
+        if any(
+            p.status.is_blocking()
+            # The purpose of a breakpoint is to block, so unlike other nodes a
+            # rejected breakpoint blocks its successors
+            or (p.kind is ManifestKind.breakpoint and p.status is StatusEnum.rejected)
+            for p in predecessors
+        ):
+            continue
+        processable_nodes.append(node)
     yield from processable_nodes
 
 

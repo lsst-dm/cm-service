@@ -6,14 +6,42 @@ import pickle
 
 from transitions.core import MachineError
 
-from lsst.cmservice.models.db.campaigns import Campaign, Node
-from lsst.cmservice.models.enums import StatusEnum
+from lsst.cmservice.models.db.campaigns import ActivityLog, Campaign, Node
+from lsst.cmservice.models.enums import ManifestKind, StatusEnum
+from lsst.cmservice.models.lib import timestamp
 
 from ..common.logging import LOGGER
+from ..db.session import db_session_dependency
 from .campaign import CampaignMachine
 from .node import NodeMachine, node_machine_factory
 
 logger = LOGGER.bind(module=__name__)
+
+
+async def record_refused_transition(node: Node, request_id: str, reason: str) -> None:
+    """Record a completed activity log entry for a user-requested node state
+    change that was refused, so that the requester, who is waiting for
+    activity matching its request id, is informed of the refusal instead of
+    waiting for an activity that never arrives.
+    """
+    if db_session_dependency.sessionmaker is None:
+        logger.error("Cannot record refused transition without a database session", id=str(node.id))
+        return
+    async with db_session_dependency.sessionmaker() as session:
+        session.add(
+            ActivityLog(
+                namespace=node.namespace,
+                node=node.id,
+                operator="daemon",
+                from_status=node.status,
+                to_status=node.status,
+                detail={"error": reason},
+                metadata_={"request_id": request_id},
+                finished_at=timestamp.now_utc(),
+                notification_labels=[],
+            )
+        )
+        await session.commit()
 
 
 async def change_campaign_state(
@@ -91,7 +119,11 @@ async def change_node_state(
         # create a new machine for the node
         node_machine = node_machine_factory(node.kind)(o=node, initial_state=node.status)
     else:
-        raise RuntimeError("Cannot change node state without a pickled machine except from waiting")
+        logger.warning("Cannot change node state without a pickled machine", id=str(node.id))
+        await record_refused_transition(
+            node, request_id, "Cannot change node state without a state machine except from waiting"
+        )
+        return None
 
     trigger: str
     match (node.status, desired_state):
@@ -107,6 +139,12 @@ async def change_node_state(
             trigger = "resume"
         case (StatusEnum.accepted, StatusEnum.rejected):
             trigger = "reject"
+        case (current, StatusEnum.rejected) if (
+            node.kind is ManifestKind.breakpoint and current.is_processable_script()
+        ):
+            # A breakpoint may be rejected before it is reached by the campaign
+            # (waiting) or while it is holding the campaign (running)
+            trigger = "reject"
         case (_, StatusEnum.accepted):
             trigger = "force" if force else "finish"
         case (_, StatusEnum.failed):
@@ -118,6 +156,11 @@ async def change_node_state(
                 source=node.status,
                 dest=desired_state,
             )
+            await record_refused_transition(
+                node,
+                request_id,
+                f"A node cannot be changed from {node.status.name} to {desired_state.name}",
+            )
             return None
 
     # NOTE we include the request_id for every callback we may invoke
@@ -125,3 +168,8 @@ async def change_node_state(
         await node_machine.trigger(trigger, request_id=request_id, force=force)
     except MachineError:
         logger.warning("Node cannot perform requested transition", request_id=request_id)
+        await record_refused_transition(
+            node,
+            request_id,
+            f"A {node.kind.name} node cannot perform the '{trigger}' transition from {node.status.name}",
+        )
