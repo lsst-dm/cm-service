@@ -47,7 +47,7 @@ class StatusDecorators(StatusDecorator, enum.Enum):
 
     overdue = ("alarm", Palette.BLACK.dark)
     failed = ("error_outline", Palette.RED.dark)
-    rejected = ("thumb_down", Palette.RED.dark)
+    rejected = ("thumb_down", Palette.GREY.dark)
     blocked = ("block", Palette.VIOLET.dark)
     paused = ("pause_circle", Palette.YELLOW.light)
     rescuable = ("support", Palette.ORANGE.light)
