@@ -10,7 +10,7 @@ from httpx2 import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from lsst.cmservice.models.db.campaigns import Edge
-from lsst.cmservice.models.enums import StatusEnum
+from lsst.cmservice.models.enums import ManifestKind, StatusEnum
 from lsst.cmservice.models.lib.graph import (
     delete_node_from_graph,
     find_endpoints_in_directed_graph,
@@ -156,17 +156,22 @@ async def test_validate_graph() -> None:
 
 
 @pytest.mark.parametrize(
-    ("c_status", "expected"),
+    ("c_kind", "c_status", "expected"),
     [
-        (StatusEnum.waiting, {"C"}),
-        (StatusEnum.running, {"C"}),
-        (StatusEnum.failed, set()),
-        (StatusEnum.blocked, set()),
-        (StatusEnum.rejected, {"D"}),
-        (StatusEnum.accepted, {"D"}),
+        (ManifestKind.node, StatusEnum.waiting, {"C"}),
+        (ManifestKind.node, StatusEnum.running, {"C"}),
+        (ManifestKind.node, StatusEnum.failed, set()),
+        (ManifestKind.node, StatusEnum.blocked, set()),
+        (ManifestKind.node, StatusEnum.rejected, {"D"}),
+        (ManifestKind.node, StatusEnum.accepted, {"D"}),
+        (ManifestKind.breakpoint, StatusEnum.running, {"C"}),
+        (ManifestKind.breakpoint, StatusEnum.rejected, set()),
+        (ManifestKind.breakpoint, StatusEnum.accepted, {"D"}),
     ],
 )
-async def test_processable_nodes_at_join(c_status: StatusEnum, expected: set[str]) -> None:
+async def test_processable_nodes_at_join(
+    c_kind: ManifestKind, c_status: StatusEnum, expected: set[str]
+) -> None:
     """Test that a node joining multiple branches is processable only when
     every one of its predecessors is nonblocking.
 
@@ -176,13 +181,15 @@ async def test_processable_nodes_at_join(c_status: StatusEnum, expected: set[str
     ```
 
     With ``B`` accepted, the join node ``D`` must not be processable while the
-    other branch ``C`` is blocking.
+    other branch ``C`` is blocking. A rejected ``C`` does not block unless it
+    is a breakpoint.
     """
 
     class FakeNode:
-        def __init__(self, name: str, status: StatusEnum):
+        def __init__(self, name: str, kind: ManifestKind, status: StatusEnum):
             self.id = uuid4()
             self.name = name
+            self.kind = kind
             self.status = status
 
     statuses = {
@@ -195,7 +202,7 @@ async def test_processable_nodes_at_join(c_status: StatusEnum, expected: set[str
     g: nx.DiGraph = nx.DiGraph()
     n = {}
     for name, node_status in statuses.items():
-        node = FakeNode(name, node_status)
+        node = FakeNode(name, c_kind if name == "C" else ManifestKind.node, node_status)
         n[name] = node.id
         g.add_node(node.id, model=node)
     g.add_edges_from(

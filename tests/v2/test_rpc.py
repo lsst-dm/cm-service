@@ -196,3 +196,132 @@ async def test_rpc_with_breakpoint_node(
     x = await process_once()
     assert x.is_success
     await consider_nodes(daemon_context)
+
+
+@pytest.mark.parametrize("reject_from", ["waiting", "running", "accepted"])
+@patch("lsst.cmservice.machines.nodes.mixin.HTCondorLaunchMixin.launch", return_value=None)
+@patch(
+    "lsst.cmservice.machines.nodes.mixin.HTCondorLaunchMixin.check",
+    return_value=LauncherCheckResponse(success=True),
+)
+async def test_rpc_reject_breakpoint_node(
+    mock_check: Mock,
+    mock_launch: Mock,
+    *,
+    reject_from: str,
+    test_campaign: str,
+    aclient: AsyncClient,
+    daemon_context: DaemonContext,
+) -> None:
+    """Tests that rejecting a Breakpoint node, whether before the campaign
+    reaches it, while it holds the campaign, or after it is accepted, puts it
+    in the rejected state and produces the activity log entry for which a
+    requester waits. A second rejection is refused and the refusal recorded.
+    """
+    campaign_id = urlparse(url=test_campaign).path.split("/")[-2:][0]
+    start_id = uuid5(UUID(campaign_id), "START.1")
+
+    async def process_once() -> None:
+        r = await aclient.post("/v2/rpc/process", json={"campaign_id": campaign_id})
+        assert r.is_success
+        await consider_nodes(daemon_context)
+
+    async def patch_status(url: str, status: str) -> list[dict]:
+        """PATCH a node status and return the activity log entries for the
+        request.
+        """
+        r = await aclient.patch(
+            url,
+            json={"status": status, "force": True},
+            headers={"Content-Type": "application/merge-patch+json"},
+        )
+        assert r.is_success
+        activity = await aclient.get(r.headers["StatusUpdate"])
+        assert activity.is_success
+        return activity.json()
+
+    async def get_status(url: str) -> str:
+        return (await aclient.get(url)).json()["status"]
+
+    # Insert a breakpoint node downstream of START
+    r = await aclient.post(
+        "/v2/nodes",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "node",
+            "metadata": {"name": "holdup", "namespace": campaign_id, "kind": "breakpoint"},
+            "spec": {},
+        },
+    )
+    assert r.is_success
+    breakpoint_id = r.json()["id"]
+    breakpoint_url = r.headers["self"]
+
+    r = await aclient.patch(
+        f"/v2/campaigns/{campaign_id}/graph/nodes/{start_id}?add-node={breakpoint_id}&operation=insert",
+    )
+    assert r.is_success
+
+    if reject_from != "waiting":
+        # Process the campaign until the breakpoint node is running
+        for _ in range(5):
+            await process_once()
+        assert await get_status(breakpoint_url) == "running"
+
+    if reject_from == "accepted":
+        await patch_status(breakpoint_url, "accepted")
+
+    assert await get_status(breakpoint_url) == reject_from
+
+    # Reject the breakpoint
+    activity = await patch_status(breakpoint_url, "rejected")
+    assert await get_status(breakpoint_url) == "rejected"
+    assert activity
+    assert activity[0]["to_status"] == "rejected"
+    assert "error" not in activity[0]["detail"]
+
+    # A rejected breakpoint cannot be rejected again
+    activity = await patch_status(breakpoint_url, "rejected")
+    assert await get_status(breakpoint_url) == "rejected"
+    assert len(activity) == 1
+    assert "error" in activity[0]["detail"]
+
+    # The campaign does not proceed past the rejected breakpoint
+    edges = (await aclient.get(test_campaign)).json()
+    successor_urls = [f"/v2/nodes/{e['target']}" for e in edges if e["source"] == breakpoint_id]
+    assert successor_urls
+    for _ in range(3):
+        await process_once()
+    for url in successor_urls:
+        assert await get_status(url) == "waiting"
+
+    # Until the pilot accepts the breakpoint
+    await patch_status(breakpoint_url, "accepted")
+    assert await get_status(breakpoint_url) == "accepted"
+    await process_once()
+    for url in successor_urls:
+        assert await get_status(url) != "waiting"
+
+
+async def test_refused_node_transition_is_recorded(test_campaign: str, aclient: AsyncClient) -> None:
+    """Tests that a requested node state change that cannot be performed
+    produces an activity log entry describing the refusal, rather than failing
+    silently.
+    """
+    campaign_id = urlparse(url=test_campaign).path.split("/")[-2:][0]
+    start_id = uuid5(UUID(campaign_id), "START.1")
+
+    # There is no transition from waiting to rejected for an ordinary node
+    r = await aclient.patch(
+        f"/v2/nodes/{start_id}",
+        json={"status": "rejected", "force": True},
+        headers={"Content-Type": "application/merge-patch+json"},
+    )
+    assert r.is_success
+    activity = (await aclient.get(r.headers["StatusUpdate"])).json()
+    assert len(activity) == 1
+    assert activity[0]["to_status"] == "waiting"
+    assert "cannot be changed from waiting to rejected" in activity[0]["detail"]["error"]
+
+    r = await aclient.get(f"/v2/nodes/{start_id}")
+    assert r.json()["status"] == "waiting"

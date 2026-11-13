@@ -364,12 +364,14 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
     async def breakpoint_reject_chip(self) -> None:
         """Adds a chip as an Reject button for a Breakpoint Node.
 
-        This control is only visible if the Node is a breakpoint kind.
+        This control is only visible if the Node is a breakpoint kind that has
+        not yet been resolved, i.e., it is waiting to be reached or is holding
+        the campaign.
         """
         if all(
             [
                 self.model["node"]["kind"] == "breakpoint",
-                self.model["node"]["status"] != "accepted",
+                self.model["node"]["status"] in ("waiting", "ready", "prepared", "running"),
             ]
         ):
             force_method = partial(api.retry_restart_node, n0=self.node_id, force=True, reject=True)
