@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Mapping, MutableSet, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from typing import TYPE_CHECKING, Literal, TypedDict, cast
 from uuid import UUID, uuid4, uuid5
 
@@ -252,10 +252,13 @@ def validate_graph(g: nx.DiGraph, source_name: str = "START", sink_name: str = "
 
 
 def processable_graph_nodes(g: nx.DiGraph) -> Iterable[Node]:
-    """Traverse the graph G and produce an iterator of any nodes that are
-    candidates for processing, i.e., their status is waiting/prepared/running
-    and their ancestors are complete/successful. Graph nodes in a failed state
-    will block the graph and prevent candidacy for subsequent nodes.
+    """Produce an iterator of any nodes in the graph G that are candidates for
+    processing, i.e., their status is waiting/ready/prepared/running and every
+    one of their direct predecessors is in a non-blocking terminal state.
+
+    Only ``accepted`` is a successful terminal state. A ``rejected`` node is
+    neutral and does not block its successors. Any other predecessor status,
+    including ``failed`` or any non-terminal status, blocks its successors.
 
     Yields
     ------
@@ -269,35 +272,20 @@ def processable_graph_nodes(g: nx.DiGraph) -> Iterable[Node]:
     graph-node is decorated with a "model" attribute referring to an expunged
     instance of ``Node``. This ``Node`` can be ``add``ed back to a ``Session``
     and manipulated in the usual way.
+
+    Because every predecessor must be non-blocking, a node joining multiple
+    branches of the graph is not processable until all of those branches are
+    complete.
     """
-    processable_nodes: MutableSet[Node] = set()
-
-    # A valid campaign graph will have only one source (START) with in_degree 0
-    # and only one sink (END) with out_degree 0
-    source = next(v for v, d in g.in_degree() if d == 0)
-    sink = next(v for v, d in g.out_degree() if d == 0)
-
-    # For each path through the graph, evaluate the state of nodes to determine
-    # which nodes are up for processing. When there are multiple paths, we have
-    # parallelization and common ancestors may be evaluated more than once,
-    # which is an exercise in optimization left as a TODO
-    for path in nx.all_simple_paths(g, source, sink):
-        for n in path:
-            node: Node = g.nodes[n]["model"]
-            # A "script" considers "reviewable" a terminal status; nodes share
-            # this opinion.
-            if node.status.is_processable_script():
-                processable_nodes.add(node)
-                # We found a processable node in this path, stop traversal
-                break
-            elif node.status is StatusEnum.failed:
-                # We reached a failed node in this path, it is blocked
-                break
-            else:
-                # This node must be in a "successful" terminal state
-                continue
-
-    # the inspection should stop when there are no more nodes to check
+    # The processable set is determined in full before any node is yielded, so
+    # that a consumer changing the status of a yielded node cannot influence
+    # the candidacy of other nodes in the same pass.
+    processable_nodes: list[Node] = [
+        g.nodes[n]["model"]
+        for n in g.nodes
+        if g.nodes[n]["model"].status.is_processable_script()
+        and not any(g.nodes[p]["model"].status.is_blocking() for p in g.predecessors(n))
+    ]
     yield from processable_nodes
 
 

@@ -9,12 +9,13 @@ import networkx as nx
 import numpy as np
 import pytest
 from httpx2 import AsyncClient
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from lsst.cmservice.machines.node import GroupMachine, StepMachine
-from lsst.cmservice.models.db.campaigns import Node
-from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, ManifestKind
-from lsst.cmservice.models.lib.graph import validate_graph
+from lsst.cmservice.models.db.campaigns import Edge, Node
+from lsst.cmservice.models.enums import DEFAULT_NAMESPACE, ManifestKind, StatusEnum
+from lsst.cmservice.models.lib.graph import graph_from_edge_list_v2, processable_graph_nodes, validate_graph
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""
@@ -109,6 +110,55 @@ async def test_append_node_to_prepared_step(
 
     # And that "node_1" and "ash" have exactly the same upstream
     assert set(graph.predecessors("node_1.1")) == set(graph.predecessors("ash.1"))
+
+
+async def test_collect_waits_for_all_groups(session: AsyncSession, test_campaign_groups: str) -> None:
+    """Tests that a step's collect node, which joins every one of the step's
+    groups, is not processable while any of those groups is incomplete, even
+    when other groups of the same step are already accepted.
+    """
+    campaign_id = UUID(urlparse(url=test_campaign_groups).path.split("/")[-2:][0])
+
+    # Prepare a step with values-based grouping, creating its groups and its
+    # collect node in the campaign graph
+    node = await session.get_one(Node, uuid5(campaign_id, "ash.1"))
+    await session.commit()
+    node_machine = StepMachine(o=node)
+    await node_machine.trigger("prepare")
+
+    async def set_statuses(statuses: dict[str, StatusEnum]) -> None:
+        nodes = (await session.exec(select(Node).where(Node.namespace == campaign_id))).all()
+        for n in nodes:
+            if n.name in statuses:
+                n.status = statuses[n.name]
+        await session.commit()
+
+    async def processable_names() -> set[str]:
+        edges = (await session.exec(select(Edge).where(Edge.namespace == campaign_id))).all()
+        graph = await graph_from_edge_list_v2(edges, session)
+        return {n.name for n in processable_graph_nodes(graph)}
+
+    nodes = (await session.exec(select(Node).where(Node.namespace == campaign_id))).all()
+    group_names = sorted(n.name for n in nodes if n.kind is ManifestKind.group)
+    assert len(group_names) > 1
+    collect_name = "ash_collect_groups"
+
+    # Everything up to and including the step is accepted; one of the step's
+    # groups is accepted and the remainder are running.
+    await set_statuses(
+        {
+            "START": StatusEnum.accepted,
+            "lambert": StatusEnum.accepted,
+            "ash": StatusEnum.accepted,
+            group_names[0]: StatusEnum.accepted,
+            **{name: StatusEnum.running for name in group_names[1:]},
+        }
+    )
+    assert await processable_names() == set(group_names[1:])
+
+    # Once every group is accepted, the collect node becomes processable.
+    await set_statuses({name: StatusEnum.accepted for name in group_names})
+    assert await processable_names() == {collect_name}
 
 
 async def test_array_splitting() -> None:
