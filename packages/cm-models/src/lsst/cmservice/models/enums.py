@@ -151,6 +151,15 @@ class StatusEnum(enum.Enum):
         """Is this a processable state for a script"""
         return self.value >= StatusEnum.waiting.value and self.value <= StatusEnum.running.value
 
+    def is_blocking(self) -> bool:
+        """Does a node in this state block the processing of its successors.
+
+        Only ``accepted`` is a successful terminal state. A ``rejected`` node
+        is neutral and does not block its successors. Every other state is
+        blocking.
+        """
+        return self not in (StatusEnum.accepted, StatusEnum.rejected)
+
     def next_status(self) -> StatusEnum:
         """If the status is on the "happy" path, return the next status along
         that path, otherwise return the failed status.
