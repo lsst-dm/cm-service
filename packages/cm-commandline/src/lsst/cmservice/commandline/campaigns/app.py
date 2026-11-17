@@ -16,7 +16,7 @@ from rich.text import Text
 from lsst.cmservice.models.db.campaigns import CampaignSummary
 from lsst.cmservice.models.lib.timestamp import iso_timestamp
 
-from .. import arguments, formatters
+from .. import arguments, formatters, options
 from ..client import http_client
 from ..loader.app import load_from_yaml
 from ..models import TypedContext
@@ -26,12 +26,12 @@ console = Console()
 
 
 @app.command()
-def list(ctx: TypedContext) -> None:
-    """list all campaigns"""
+def list(ctx: TypedContext, *, limit: options.limit = 10) -> None:
+    """list campaigns"""
     output_format = formatters.Formatters[ctx.obj.output_format]
     with http_client(ctx) as client:
         try:
-            r = client.get("/campaigns/")
+            r = client.get("/campaigns/", params={"limit": limit})
             r.raise_for_status()
         except Exception as e:
             print(e)
@@ -91,14 +91,15 @@ def describe_campaign(
         # nodes_url = r.headers["Nodes"]
         # campaign_url = r.headers["Self"]
 
-    table = Table(title="CM Campaign")
+    campaign_summary = CampaignSummary(**r.json())
+
+    table = Table(title="CM Campaign", caption=str(campaign_summary.id))
     table.add_column("Name")
     table.add_column("Status")
     table.add_column("Owner")
     table.add_column("Count")
     table.add_column("Last Updated")
 
-    campaign_summary = CampaignSummary(**r.json())
     table.add_row(
         campaign_summary.name,
         campaign_summary.status.name,
