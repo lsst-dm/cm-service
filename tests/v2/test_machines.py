@@ -738,12 +738,29 @@ async def test_group_force_accept(
     x = await aclient.patch(
         f"/v2/nodes/{group.id}",
         json={"status": "accepted", "force": acceptable},
-        headers={"Content-Type": "application/merge-patch+json"},
+        headers={"Content-Type": "application/merge-patch+json", "X-Auth-Request-User": "tester"},
     )
     assert x.is_success
     await session.refresh(group, ["status", "metadata_", "machine"])
     group_status = group.status
     assert group_status is expected_status
+
+    # a forced status change is audited, discoverable by a containment query
+    # on the campaign namespace in the audit context
+    x = await aclient.get("/v2/audit", params={"context.namespace": campaign_id})
+    assert x.is_success
+    audit_logs = x.json()
+    if acceptable:
+        assert len(audit_logs) == 1
+        assert audit_logs[0]["actor"] == "tester"
+        assert audit_logs[0]["object_id"] == str(group.id)
+        assert audit_logs[0]["object_type"] == "group"
+        assert audit_logs[0]["context"]["namespace"] == campaign_id
+        assert audit_logs[0]["context"]["force"] is True
+        assert audit_logs[0]["context"]["from_status"] == "failed"
+        assert audit_logs[0]["context"]["to_status"] == "accepted"
+    else:
+        assert not audit_logs
 
 
 async def test_step_fail_reset(

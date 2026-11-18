@@ -12,15 +12,27 @@ from anyio import Path
 from asgi_correlation_id import correlation_id
 from asyncpg.exceptions import IntegrityConstraintViolationError
 from deepdiff import Delta
-from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query, Request, Response, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Body,
+    Depends,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    status,
+)
 from pydantic import UUID5
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from lsst.cmservice.models.api.manifests import NodeManifest
+from lsst.cmservice.models.db.audit import AuditLog
 from lsst.cmservice.models.db.campaigns import Campaign, CampaignUpdate, Node
-from lsst.cmservice.models.enums import StatusEnum
+from lsst.cmservice.models.enums import AuditActionEnum, StatusEnum
 from lsst.cmservice.models.lib.jsonpatch import JSONPatch, JSONPatchError, apply_json_patch
 from lsst.cmservice.models.lib.timestamp import element_time
 
@@ -237,6 +249,7 @@ async def update_node_resource(
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     node_id: UUID5,
     patch_data: Annotated[bytes, Body()] | Sequence[JSONPatch] | CampaignUpdate,
+    actor: Annotated[str, Header(alias="X-Auth-Request-User")] = "root",
 ) -> Node:
     """Partial update method for nodes.
 
@@ -300,6 +313,26 @@ async def update_node_resource(
         # Lazy-load the Node's Machine pickle
         if (await old_manifest.awaitable_attrs.fsm) is None:
             logger.warning("No state machine found for node", node_id=node_id)
+
+        # A forced state change bypasses the state machine's conditions, so
+        # it is recorded in the audit log.
+        if patch_data.force:
+            request.state.audit.add(
+                AuditLog(
+                    actor=actor,
+                    action=AuditActionEnum.update,
+                    request_id=UUID(request_id),
+                    object_id=old_manifest.id,
+                    object_type=old_manifest.kind,
+                    object_name=old_manifest.name,
+                    context={
+                        "namespace": str(old_manifest.namespace),
+                        "force": True,
+                        "from_status": old_manifest.status.name,
+                        "to_status": patch_data.status.name,
+                    },
+                )
+            )
 
         # Eagerly clear any transaction/locks on the objects before spawning a
         # background task
