@@ -253,18 +253,29 @@ def validate_graph(g: nx.DiGraph, source_name: str = "START", sink_name: str = "
 
 def processable_graph_nodes(g: nx.DiGraph) -> Iterable[Node]:
     """Produce an iterator of any nodes in the graph G that are candidates for
-    processing, i.e., their status is waiting/ready/prepared/running and every
-    one of their direct predecessors is in a non-blocking terminal state.
+    processing.
 
-    Only ``accepted`` is a successful terminal state. A ``rejected`` node is
-    neutral and does not block its successors, except for a ``rejected``
-    breakpoint, which does. Any other predecessor status, including ``failed``
-    or any non-terminal status, blocks its successors.
+    A node is processable when its status is waiting/ready/prepared/running
+    and every simple path from START to it is complete, i.e., every node on
+    each of those paths before it is non-blocking.
+
+    Only ``accepted`` and ``rejected`` are non-blocking, except for a
+    ``rejected`` breakpoint, which blocks.
+
+    A node's own ``accepted`` or ``rejected`` status says nothing about its
+    ancestors, since either can be forced on a node before the campaign has
+    reached it. Such a node does not release its successors until all of its
+    own ancestors have, too.
 
     Yields
     ------
     `lsst.cmservice.cm_models.db.campaigns.Node`
         A Node ORM object that has been ``expunge``d from its ``Session``.
+
+    Raises
+    ------
+    networkx.NetworkXUnfeasible
+        If G contains a cycle.
 
     Notes
     -----
@@ -274,28 +285,34 @@ def processable_graph_nodes(g: nx.DiGraph) -> Iterable[Node]:
     instance of ``Node``. This ``Node`` can be ``add``ed back to a ``Session``
     and manipulated in the usual way.
 
-    Because every predecessor must be non-blocking, a node joining multiple
-    branches of the graph is not processable until all of those branches are
-    complete.
+    In a DAG every ancestor of a node lies on some simple path from the
+    source to that node, so "every path is complete" is the same as "every
+    ancestor is non-blocking". Rather than enumerate the paths, whose
+    number grows exponentially with fan-out and fan-in, this is evaluated in a
+    single pass in topological order, carrying forward whether everything
+    upstream of each node is complete.
     """
+    # Whether a node and everything upstream of it is non-blocking.
+    complete: dict[UUID, bool] = {}
+
     # The processable set is determined in full before any node is yielded, so
     # that a consumer changing the status of a yielded node cannot influence
     # the candidacy of other nodes in the same pass.
     processable_nodes: list[Node] = []
-    for n in g.nodes:
+
+    for n in nx.topological_sort(g):
         node: Node = g.nodes[n]["model"]
-        if not node.status.is_processable_script():
-            continue
-        predecessors: list[Node] = [g.nodes[p]["model"] for p in g.predecessors(n)]
-        if any(
-            p.status.is_blocking()
+        upstream_complete = all(complete[p] for p in g.predecessors(n))
+        complete[n] = (
+            upstream_complete
+            and not node.status.is_blocking()
             # The purpose of a breakpoint is to block, so unlike other nodes a
             # rejected breakpoint blocks its successors
-            or (p.kind is ManifestKind.breakpoint and p.status is StatusEnum.rejected)
-            for p in predecessors
-        ):
-            continue
-        processable_nodes.append(node)
+            and not (node.kind is ManifestKind.breakpoint and node.status is StatusEnum.rejected)
+        )
+        if upstream_complete and node.status.is_processable_script():
+            processable_nodes.append(node)
+
     yield from processable_nodes
 
 

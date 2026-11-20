@@ -212,6 +212,186 @@ async def test_processable_nodes_at_join(
     assert {node.name for node in processable_graph_nodes(g)} == expected
 
 
+class _FakeNode:
+    def __init__(self, name: str, status: StatusEnum, kind: ManifestKind = ManifestKind.node):
+        self.id = uuid4()
+        self.name = name
+        self.kind = kind
+        self.status = status
+
+
+def _fake_graph(nodes: list[_FakeNode], edges: list[tuple[str, str]]) -> nx.DiGraph:
+    g: nx.DiGraph = nx.DiGraph()
+    ids = {}
+    for node in nodes:
+        ids[node.name] = node.id
+        g.add_node(node.id, model=node)
+    g.add_edges_from((ids[a], ids[b]) for a, b in edges)
+    return g
+
+
+@pytest.mark.parametrize(
+    ("b_kind", "b_status"),
+    [
+        (ManifestKind.node, StatusEnum.rejected),
+        (ManifestKind.node, StatusEnum.accepted),
+        (ManifestKind.breakpoint, StatusEnum.accepted),
+    ],
+)
+async def test_resolved_node_ahead_of_campaign_does_not_release_successors(
+    b_kind: ManifestKind, b_status: StatusEnum
+) -> None:
+    """Test that a node accepted or rejected before the campaign reaches it
+    does not let its successors start while its own ancestors are unfinished.
+
+    ```
+    START --> A --> B --> C --> END
+    ```
+
+    With ``A`` waiting, only ``A`` is processable, whatever ``B``'s status.
+    """
+    g = _fake_graph(
+        [
+            _FakeNode("START", StatusEnum.accepted),
+            _FakeNode("A", StatusEnum.waiting),
+            _FakeNode("B", b_status, b_kind),
+            _FakeNode("C", StatusEnum.waiting),
+            _FakeNode("END", StatusEnum.waiting),
+        ],
+        [("START", "A"), ("A", "B"), ("B", "C"), ("C", "END")],
+    )
+    assert {node.name for node in processable_graph_nodes(g)} == {"A"}
+
+
+async def test_join_requires_every_path_complete() -> None:
+    """Test that a join node is not processable while any path into it is
+    incomplete, even when the unfinished node is not a direct predecessor and
+    another path into the join is complete.
+
+    ```
+    START --> A --> B --> D --> END
+          `-> C ------'
+    ```
+
+    ``A`` is waiting and ``B`` was force-accepted ahead of it, while ``C`` is
+    accepted, so ``D`` must wait for ``A``.
+    """
+    statuses = {
+        "START": StatusEnum.accepted,
+        "A": StatusEnum.waiting,
+        "B": StatusEnum.accepted,
+        "C": StatusEnum.accepted,
+        "D": StatusEnum.waiting,
+        "END": StatusEnum.waiting,
+    }
+    edges = [("START", "A"), ("A", "B"), ("B", "D"), ("START", "C"), ("C", "D"), ("D", "END")]
+    g = _fake_graph([_FakeNode(name, s) for name, s in statuses.items()], edges)
+    assert {node.name for node in processable_graph_nodes(g)} == {"A"}
+
+    # Once A is resolved every path into D is complete
+    statuses["A"] = StatusEnum.accepted
+    g = _fake_graph([_FakeNode(name, s) for name, s in statuses.items()], edges)
+    assert {node.name for node in processable_graph_nodes(g)} == {"D"}
+
+
+@pytest.mark.parametrize(
+    ("a_kind", "a_status"),
+    [
+        (ManifestKind.node, StatusEnum.rejected),
+        (ManifestKind.breakpoint, StatusEnum.accepted),
+    ],
+)
+async def test_nonblocking_node_upstream_of_join_releases_join(
+    a_kind: ManifestKind, a_status: StatusEnum
+) -> None:
+    """Test that a non-blocking node that is not a direct predecessor of a join
+    node does not keep the join from being released once every path into the
+    join is complete.
+
+    ```
+    START --> A --> B --> D --> END
+          `-> C ------'
+    ```
+
+    ``A`` is a rejected node or an accepted breakpoint; ``B`` and ``C`` are
+    accepted, so ``D`` is processable.
+    """
+    g = _fake_graph(
+        [
+            _FakeNode("START", StatusEnum.accepted),
+            _FakeNode("A", a_status, a_kind),
+            _FakeNode("B", StatusEnum.accepted),
+            _FakeNode("C", StatusEnum.accepted),
+            _FakeNode("D", StatusEnum.waiting),
+            _FakeNode("END", StatusEnum.waiting),
+        ],
+        [("START", "A"), ("A", "B"), ("B", "D"), ("START", "C"), ("C", "D"), ("D", "END")],
+    )
+    assert {node.name for node in processable_graph_nodes(g)} == {"D"}
+
+
+async def test_upstream_failure_blocks_join() -> None:
+    """Test that a failure anywhere on one path into a join node keeps the
+    join from being released, while the other path continues independently.
+
+    ```
+    START --> A --> B --> D --> END
+          `-> C ------'
+    ```
+
+    ``A`` has failed and ``B`` was force-accepted after it, so the failure is
+    not a direct predecessor of ``D``. ``C`` is still waiting on the other
+    path and remains processable.
+    """
+    g = _fake_graph(
+        [
+            _FakeNode("START", StatusEnum.accepted),
+            _FakeNode("A", StatusEnum.failed),
+            _FakeNode("B", StatusEnum.accepted),
+            _FakeNode("C", StatusEnum.waiting),
+            _FakeNode("D", StatusEnum.waiting),
+            _FakeNode("END", StatusEnum.waiting),
+        ],
+        [("START", "A"), ("A", "B"), ("B", "D"), ("START", "C"), ("C", "D"), ("D", "END")],
+    )
+    assert {node.name for node in processable_graph_nodes(g)} == {"C"}
+
+    # Completing the other path does not release the join either
+    g = _fake_graph(
+        [
+            _FakeNode("START", StatusEnum.accepted),
+            _FakeNode("A", StatusEnum.failed),
+            _FakeNode("B", StatusEnum.accepted),
+            _FakeNode("C", StatusEnum.accepted),
+            _FakeNode("D", StatusEnum.waiting),
+            _FakeNode("END", StatusEnum.waiting),
+        ],
+        [("START", "A"), ("A", "B"), ("B", "D"), ("START", "C"), ("C", "D"), ("D", "END")],
+    )
+    assert set(processable_graph_nodes(g)) == set()
+
+
+async def test_rejected_breakpoint_blocks_all_descendants() -> None:
+    """Test that a rejected breakpoint blocks every node downstream of it, not
+    only its direct successors.
+
+    ```
+    START --> BP --> B --> C --> END
+    ```
+    """
+    g = _fake_graph(
+        [
+            _FakeNode("START", StatusEnum.accepted),
+            _FakeNode("BP", StatusEnum.rejected, ManifestKind.breakpoint),
+            _FakeNode("B", StatusEnum.accepted),
+            _FakeNode("C", StatusEnum.waiting),
+            _FakeNode("END", StatusEnum.waiting),
+        ],
+        [("START", "BP"), ("BP", "B"), ("B", "C"), ("C", "END")],
+    )
+    assert set(processable_graph_nodes(g)) == set()
+
+
 @pytest.mark.skip("fixed in DM-52178")
 async def test_campaign_graph_route(aclient: AsyncClient, test_campaign: str) -> None:
     """Tests the acquisition of a serialized graph from a REST endpoint and
