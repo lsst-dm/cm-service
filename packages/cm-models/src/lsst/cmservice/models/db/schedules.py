@@ -8,12 +8,21 @@ import re
 from typing import Annotated
 from uuid import uuid4, uuid5
 
-from pydantic import UUID4, UUID5, AwareDatetime, BeforeValidator, StrictBool, ValidationInfo, model_validator
+from pydantic import (
+    UUID4,
+    UUID5,
+    AwareDatetime,
+    BeforeValidator,
+    StrictBool,
+    ValidationInfo,
+    model_validator,
+)
 from pydantic_extra_types.cron import CronStr
 from sqlalchemy import UniqueConstraint
 from sqlmodel import Column, DateTime, Enum, Field, Relationship
 
 from ..enums import ManifestKind
+from ..lib.parsers import model_field_names
 from ..types import KindField
 from .base import BaseSQLModel
 from .campaigns import jsonb_column
@@ -33,6 +42,25 @@ def check_manifest_template_string(value: str) -> str:
     if re.search(r"kind:\s*(start|end)", value.lower()):
         raise ValueError("Start or End node kinds are not allowed in a template manifest.")
     return value
+
+
+def check_schedule_configuration(configuration: dict) -> dict:
+    """Validates that a schedule configuration does not include any of the
+    schedule's own fields, e.g., its ``cron``.
+
+    A schedule's own fields are not read from its configuration, so such a
+    field in the configuration would have no effect. This check applies to
+    API requests only, because stored schedules may predate it.
+
+    Raises
+    ------
+    ValueError
+        If the configuration includes any of the schedule's fields.
+    """
+    if fields := sorted(model_field_names(CreateSchedule) & configuration.keys()):
+        msg = f"Schedule configuration may not include the schedule's own fields: {', '.join(fields)}"
+        raise ValueError(msg)
+    return configuration
 
 
 class ScheduleBase(BaseSQLModel):

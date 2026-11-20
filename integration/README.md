@@ -66,7 +66,8 @@ The workflow for the smoketest campaign is:
 
 1. The `seed_manifests.yaml` manifests file is "loaded" by the cm cli into the api server.
 1. The `smoketest.yaml` campaign file is "loaded" by the cm cli into the api server.
-1. The resulting schedule is "oneshot" triggered by the cm cli.
+1. The resulting schedule is "oneshot" triggered by the cm cli, with a `day_obs` expression override set to the current (UTC) date.
+1. The new campaign's metadata is checked for the override, which replaces the schedule's own `day_obs` expression (yesterday).
 1. The resulting campaign is set to "running" by default.
 1. The campaign status is read from the api until the status is "accepted", "failed", or a timeout elapses.
 
@@ -75,6 +76,7 @@ The steps in the campaign are designed to exercise the following functionality i
 - Step-group partitioning by Butler Query
 - Step obtaining a 3rd-party resource from an S3 bucket given a resource path URL.
 - Campaign template expression rendering at schedule trigger and execution time.
+- Oneshot expression overrides, which take the place of the schedule's own expressions.
 - Submission to and job checking from HTCondor services (collector, schedd), using ID token authentication.
 - Notification generation and delivery
 
@@ -88,6 +90,13 @@ The smoketest can be triggered with the `gh` cli tool, e.g., for the checked-out
 ```
 gh workflow run .github/workflows/smoketest.yaml --ref $(git branch --show-current)
 ```
+
+The smoketest can also be run locally with `make smoketest` (or `script/smoketest`), which follows the same steps as the workflow. A working docker environment, `uv`, `jq`, and `curl` are required, and the stack's published ports (e.g., `8080`, `65432`, `9094`) must be free. Options are passed with `SMOKETEST_ARGS`:
+
+- `--keep` leaves the stack running after the test, e.g., for debugging; tear it down with `docker compose down -v` from the `integration/` directory.
+- `--no-build` starts the stack without rebuilding the service images.
+
+On failure, the service logs and status are written to `output/smoketest/`.
 
 #### Runtime
 The smoketest should run in around 7-10 minutes, most of which is spent building, starting, and waiting for healthy service disposition from docker compose (5 minutes). Because the daemon is configured for a short iteration timer, the campaign will finish relatively quickly once started (2 minutes).
