@@ -4,6 +4,11 @@ from uuid import NAMESPACE_DNS, UUID, uuid4, uuid5
 
 import pytest
 from httpx2 import AsyncClient, codes
+from sqlmodel.ext.asyncio.session import AsyncSession
+
+from lsst.cmservice.models.db.campaigns import Node
+from lsst.cmservice.models.enums import ManifestKind, StatusEnum
+from lsst.cmservice.models.lib.timestamp import element_time
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 """All tests in this module will run in the same event loop."""
@@ -253,3 +258,63 @@ async def test_patch_campaign(aclient: AsyncClient, caplog: pytest.LogCaptureFix
     # Delete the campaign
     y = await aclient.delete(campaign_url)
     assert y.is_success
+
+
+async def test_campaign_node_pagination_with_tied_sort_keys(
+    aclient: AsyncClient, session: AsyncSession
+) -> None:
+    """Test that paging through a campaign's nodes returns every node exactly
+    once.
+    """
+    campaign_name = uuid4().hex[-8:]
+    x = await aclient.post(
+        "/v2/campaigns",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "campaign",
+            "metadata": {"name": campaign_name},
+            "spec": {},
+        },
+    )
+    assert x.is_success
+    campaign_id = UUID(x.json()["id"])
+
+    crtime = element_time()
+    node_count = 60
+    for i in range(node_count):
+        name = f"STEP_{i:03d}"
+        session.add(
+            Node(
+                id=uuid5(campaign_id, f"{name}.1"),
+                name=name,
+                namespace=campaign_id,
+                kind=ManifestKind.step,
+                status=StatusEnum.waiting,
+                version=1,
+                configuration={},
+                metadata_={"crtime": crtime},
+            )
+        )
+    await session.commit()
+
+    # All nodes in the campaign, including START and END
+    x = await aclient.get(f"/v2/campaigns/{campaign_id}/nodes", params={"limit": 100})
+    assert x.is_success
+    expected = {node["id"] for node in x.json()}
+    assert len(expected) == node_count + 2
+
+    # Page through following the Next header
+    seen: list[str] = []
+    next_url: str | None = f"/v2/campaigns/{campaign_id}/nodes?limit=5&offset=0"
+    while next_url is not None:
+        x = await aclient.get(next_url)
+        assert x.is_success
+        page = x.json()
+        if not page:
+            break
+        seen.extend(node["id"] for node in page)
+        next_url = x.headers.get("Next")
+
+    duplicates = {node_id for node_id in seen if seen.count(node_id) > 1}
+    assert not duplicates, f"{len(duplicates)} nodes returned more than once"
+    assert set(seen) == expected, f"{len(expected - set(seen))} nodes never returned"
