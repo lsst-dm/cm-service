@@ -605,6 +605,9 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
         if result is None or ctx.readonly:
             return None
 
+        # FIXME this patch needs to ensure that runtime metadata does not leak
+        # between versions, and that collections that indicate the node version
+        # are updated appropriately.
         patched_node = await patch_resource(node_url, node["configuration"], result["spec"])
         if patched_node is not None:
             await api.nodes.replace_node(

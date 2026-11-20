@@ -12,15 +12,27 @@ from anyio import Path
 from asgi_correlation_id import correlation_id
 from asyncpg.exceptions import IntegrityConstraintViolationError
 from deepdiff import Delta
-from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query, Request, Response, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Body,
+    Depends,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    status,
+)
 from pydantic import UUID5
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from lsst.cmservice.models.api.manifests import NodeManifest
+from lsst.cmservice.models.db.audit import AuditLog
 from lsst.cmservice.models.db.campaigns import Campaign, CampaignUpdate, Node
-from lsst.cmservice.models.enums import StatusEnum
+from lsst.cmservice.models.enums import AuditActionEnum, StatusEnum
 from lsst.cmservice.models.lib.jsonpatch import JSONPatch, JSONPatchError, apply_json_patch
 from lsst.cmservice.models.lib.timestamp import element_time
 
@@ -59,7 +71,11 @@ async def read_nodes_collection(
     request can be further scoped with additional `node-name=` parameter.
     """
     statement = (
-        select(Node).order_by(Node.metadata_["crtime"].desc().nulls_last()).offset(offset).limit(limit)
+        select(Node)
+        .order_by(Node.metadata_["crtime"].desc().nulls_last())
+        .order_by(col(Node.id))
+        .offset(offset)
+        .limit(limit)
     )
     if namespace is not None:
         statement = statement.where(Node.namespace == namespace)
@@ -237,6 +253,7 @@ async def update_node_resource(
     session: Annotated[AsyncSession, Depends(db_session_dependency)],
     node_id: UUID5,
     patch_data: Annotated[bytes, Body()] | Sequence[JSONPatch] | CampaignUpdate,
+    actor: Annotated[str, Header(alias="X-Auth-Request-User")] = "root",
 ) -> Node:
     """Partial update method for nodes.
 
@@ -301,6 +318,26 @@ async def update_node_resource(
         if (await old_manifest.awaitable_attrs.fsm) is None:
             logger.warning("No state machine found for node", node_id=node_id)
 
+        # A forced state change bypasses the state machine's conditions, so
+        # it is recorded in the audit log.
+        if patch_data.force:
+            request.state.audit.add(
+                AuditLog(
+                    actor=actor,
+                    action=AuditActionEnum.update,
+                    request_id=UUID(request_id),
+                    object_id=old_manifest.id,
+                    object_type=old_manifest.kind,
+                    object_name=old_manifest.name,
+                    context={
+                        "namespace": str(old_manifest.namespace),
+                        "force": True,
+                        "from_status": old_manifest.status.name,
+                        "to_status": patch_data.status.name,
+                    },
+                )
+            )
+
         # Eagerly clear any transaction/locks on the objects before spawning a
         # background task
         await session.commit()
@@ -332,14 +369,32 @@ async def update_node_resource(
     elif use_deepdiff:
         if TYPE_CHECKING:
             assert isinstance(patch_data, bytes)
+        # FIXME this code path does not support metadata updates although the
+        # docstring indicates that it should.
         new_manifest["configuration"] += Delta(patch_data)
 
     # create Manifest from new_manifest, add to session, and commit
     new_manifest["metadata"]["crtime"] = element_time()
-    new_manifest["metadata"].pop("mtime", None)
+
+    # We need to pop runtime metadata from the new_manifest
+    # FIXME there should be a model that defines what "runtime metadata" is
+    for metadata_field in ["provenance", "bps", "mtime", "repo", "run_collections", "replaces_path"]:
+        new_manifest["metadata"].pop(metadata_field, None)
+
+    if "parent_path" in new_manifest["metadata"]:
+        new_manifest["metadata"]["artifact_path"] = new_manifest["metadata"]["parent_path"]
+
+    # FIXME this only needs to apply to group nodes, probably
+    # Update the nominal run collection name based on the incremented version
+    if (butler := new_manifest["configuration"].get("butler")) is not None:
+        if (node_collections := butler.get("collections")) and "run" in node_collections:
+            new = new_manifest["version"]
+            old = old_manifest.version
+            # FIXME this won't work with versions >9
+            node_collections["run"] = node_collections["run"].replace(f"version_{old}", f"version_{new}")
+
     new_manifest_db = Node.model_validate(new_manifest)
     new_manifest_db.status = StatusEnum.waiting
-
     try:
         session.add(new_manifest_db)
         await session.commit()

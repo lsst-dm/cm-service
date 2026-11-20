@@ -385,6 +385,9 @@ class FilesystemActionMixin(ActionMixIn):
         _ = self.db_model.metadata_.pop("artifact_path", None)
         _ = self.db_model.metadata_.pop("repo", None)
 
+        if "parent_path" in self.db_model.metadata_:
+            self.db_model.metadata_["artifact_path"] = self.db_model.metadata_["parent_path"]
+
         # Remove the group's configuration chain if it has one
         try:
             del self.configuration_chain

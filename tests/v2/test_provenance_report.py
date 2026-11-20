@@ -3,7 +3,6 @@
 import shutil
 from pathlib import Path as pyPath
 from urllib.parse import urlparse
-from uuid import UUID, uuid5
 
 from anyio import Path
 from httpx2 import AsyncClient
@@ -31,34 +30,38 @@ async def test_group_provenance_report(
     """
 
     campaign_id = urlparse(url=test_campaign_groups).path.split("/")[-2:][0]
-    node_id = uuid5(UUID(campaign_id), "ash.1")
+    node_name = "vasquez"
+    run_name = f"{campaign_id}_{node_name}"
 
     # create a temp artifact and submit directory for the provenance report
-    artifact_path = tmp_path / f"{node_id}"
+    artifact_path = tmp_path / node_name
     submit_path = artifact_path / "submit"
     submit_path.mkdir(parents=True)
     prov_fixture = Path(__file__).parent.parent / "fixtures/bps/provenance_report_dirty.json"
-    prov_report = Path(submit_path) / f"{node_id}_prov.json"
+    prov_report = Path(submit_path) / f"{run_name}_prov.json"
     shutil.copy(prov_fixture, prov_report)
 
-    # patch an artifact path to the node's metadata
-    r = await aclient.patch(
-        f"/v2/nodes/{node_id}",
-        headers={"Content-Type": "application/json-patch+json"},
-        json=[
-            {"op": "add", "path": "/metadata/artifact_path", "value": str(artifact_path)},
-            {
-                "op": "add",
-                "path": "/metadata/bps",
-                "value": {"Run Name": f"{node_id}", "Submit dir": str(submit_path)},
+    r = await aclient.post(
+        "/v2/nodes",
+        json={
+            "apiVersion": "io.lsst.cmservice/v1",
+            "kind": "node",
+            "metadata": {
+                "name": node_name,
+                "namespace": campaign_id,
+                "kind": "group",
+                "artifact_path": str(artifact_path),
+                "bps": {"Run Name": run_name, "Submit dir": str(submit_path)},
             },
-        ],
+            "spec": {},
+        },
     )
     assert r.is_success
 
     new_node = r.headers["self"]
     r = await aclient.get(new_node)
     assert r.is_success
+    assert r.json()["metadata"]["bps"]["Submit dir"] == str(submit_path)
 
     # Soft GET doesn't have a report
     r = await aclient.get(f"{new_node}/provenance")

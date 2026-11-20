@@ -23,7 +23,7 @@ from fastapi import (
     Response,
     status,
 )
-from sqlmodel import select
+from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from lsst.cmservice.models.api.notifications import NotificationLabelManifest
@@ -56,7 +56,7 @@ async def read_notification_label_collection(
     """A paginated API returning a list of all Notification Labels known to the
     application.
     """
-    statement = select(NotificationLabel)
+    statement = select(NotificationLabel).order_by(col(NotificationLabel.name))
     statement = statement.offset(offset).limit(limit)
     notification_labels = await session.exec(statement)
 

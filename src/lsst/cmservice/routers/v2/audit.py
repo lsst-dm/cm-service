@@ -83,6 +83,7 @@ async def read_audit_collection(
         else:
             statement = statement.order_by(column.asc())
 
-    statement = statement.offset(offset).limit(limit)
+    statement = statement.order_by(col(AuditLog.id)).offset(offset).limit(limit)
     audit_logs = (await session.exec(statement)).all()
+    # TODO add header links for pagination
     return audit_logs

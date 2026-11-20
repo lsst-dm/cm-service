@@ -5,6 +5,7 @@ from time import sleep
 from typing import Annotated
 
 import typer
+from httpx2 import HTTPError, codes
 from rich import print
 from rich.console import Console
 from rich.highlighter import JSONHighlighter
@@ -16,22 +17,23 @@ from rich.text import Text
 from lsst.cmservice.models.db.campaigns import CampaignSummary
 from lsst.cmservice.models.lib.timestamp import iso_timestamp
 
-from .. import arguments, formatters
+from .. import arguments, formatters, options
 from ..client import http_client
 from ..loader.app import load_from_yaml
 from ..models import TypedContext
+from .formatters import as_audit_table
 
 app = typer.Typer()
 console = Console()
 
 
 @app.command()
-def list(ctx: TypedContext) -> None:
-    """list all campaigns"""
+def list(ctx: TypedContext, *, limit: options.limit = 10) -> None:
+    """list campaigns"""
     output_format = formatters.Formatters[ctx.obj.output_format]
     with http_client(ctx) as client:
         try:
-            r = client.get("/campaigns/")
+            r = client.get("/campaigns/", params={"limit": limit})
             r.raise_for_status()
         except Exception as e:
             print(e)
@@ -91,14 +93,15 @@ def describe_campaign(
         # nodes_url = r.headers["Nodes"]
         # campaign_url = r.headers["Self"]
 
-    table = Table(title="CM Campaign")
+    campaign_summary = CampaignSummary(**r.json())
+
+    table = Table(title="CM Campaign", caption=str(campaign_summary.id))
     table.add_column("Name")
     table.add_column("Status")
     table.add_column("Owner")
     table.add_column("Count")
     table.add_column("Last Updated")
 
-    campaign_summary = CampaignSummary(**r.json())
     table.add_row(
         campaign_summary.name,
         campaign_summary.status.name,
@@ -336,6 +339,61 @@ def load_campaign(
     if auto_run:
         typer.echo(f"Starting campaign {ctx.obj.campaign_name}")
         ctx.invoke(start_campaign, ctx=ctx, campaign=campaign)
+
+
+@app.command(name="audit")
+def audit_campaign(
+    ctx: TypedContext,
+    campaign: arguments.CampaignName.Required,
+    *,
+    limit: options.limit = 10,
+    actor: Annotated[str | None, typer.Option(help="Only show entries for this actor")] = None,
+    since: Annotated[
+        str | None,
+        typer.Option(help="Only show entries at or after this ISO8601 datetime"),
+    ] = None,
+) -> None:
+    """Show audit log entries for a campaign, newest first."""
+    output_format = formatters.Formatters[ctx.obj.output_format]
+    params: dict[str, str | int] = {
+        "context.namespace": str(ctx.obj.campaign_id),
+        "limit": limit,
+        "sort": "-created_at",
+    }
+    if actor is not None:
+        params["actor"] = actor
+    if since is not None:
+        params["since"] = since
+
+    with http_client(ctx) as client:
+        try:
+            # An unknown campaign would produce an empty audit log, so check
+            # that the campaign exists before querying the audit log.
+            r = client.head(f"/campaigns/{ctx.obj.campaign_id}")
+            if r.status_code == codes.NOT_FOUND:
+                console.print(f"No such campaign: {ctx.obj.campaign_name}", style="red")
+                raise typer.Exit(1)
+            r.raise_for_status()
+
+            r = client.get("/audit/", params=params)
+            r.raise_for_status()
+        except HTTPError as e:
+            print(e)
+            raise typer.Exit(1)
+
+    match output_format:
+        case formatters.Formatters.table if not r.json():
+            console.print(f"No audit log entries for campaign {ctx.obj.campaign_name}")
+        case formatters.Formatters.table:
+            t = as_audit_table(
+                r.json(), title=f"Audit Log: {ctx.obj.campaign_name}", caption=str(ctx.obj.campaign_id)
+            )
+            console.print(t)
+        case formatters.Formatters.json:
+            pretty = JSONHighlighter()
+            Console().print(pretty(r.text))
+        case formatters.Formatters.yaml:
+            print(r.text)
 
 
 @app.command(name="delete")
