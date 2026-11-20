@@ -47,7 +47,7 @@ async def read_edges_collection(
     For campaign-scoped edges, one should use the /campaigns/{}/edges route.
     """
     try:
-        statement = select(Edge).order_by(col(Edge.name).desc()).offset(offset).limit(limit)
+        statement = select(Edge).order_by(col(Edge.id)).offset(offset).limit(limit)
         edges = await session.exec(statement)
         response.headers["Next"] = (
             request.url_for("read_edges_collection")

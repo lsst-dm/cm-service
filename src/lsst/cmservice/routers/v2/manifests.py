@@ -64,6 +64,7 @@ async def read_manifest_collection(
         statement = (
             select(Manifest)
             .order_by(Manifest.metadata_["crtime"].desc().nulls_last())
+            .order_by(col(Manifest.id))
             .offset(offset)
             .limit(limit)
         )

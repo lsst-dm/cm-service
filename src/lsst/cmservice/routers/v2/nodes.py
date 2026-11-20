@@ -71,7 +71,11 @@ async def read_nodes_collection(
     request can be further scoped with additional `node-name=` parameter.
     """
     statement = (
-        select(Node).order_by(Node.metadata_["crtime"].desc().nulls_last()).offset(offset).limit(limit)
+        select(Node)
+        .order_by(Node.metadata_["crtime"].desc().nulls_last())
+        .order_by(col(Node.id))
+        .offset(offset)
+        .limit(limit)
     )
     if namespace is not None:
         statement = statement.where(Node.namespace == namespace)
