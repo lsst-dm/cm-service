@@ -428,7 +428,10 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
             f"bps_status_{bps_status.name}",
         )
 
-        if bps_status in {WmsStates.RUNNING, WmsStates.UNKNOWN}:
+        # FIXME a MISFIT status is a catch-all status that loses some nuance
+        # in the DAGMAN->Condor BPS machinery, so our handling of it should
+        # be more thoughtful.
+        if bps_status in {WmsStates.MISFIT, WmsStates.RUNNING, WmsStates.UNKNOWN, WmsStates.PENDING}:
             return False
 
         # BPS Report
