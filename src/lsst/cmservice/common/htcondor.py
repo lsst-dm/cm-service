@@ -1,21 +1,18 @@
 """Utility functions for working with htcondor jobs"""
 
 import importlib.util
-import json
 import random
 import sys
 from collections.abc import Mapping
 from types import ModuleType
 from typing import TYPE_CHECKING, Any
 
-from anyio import Path, open_process
-from anyio.streams.text import TextReceiveStream
+from anyio import Path
 
 from lsst.cmservice.models.enums import StatusEnum
 from lsst.cmservice.models.lib.retry import exponential_retry
 
 from ..config import config
-from .errors import CMHTCondorCheckError, CMHTCondorSubmitError
 from .launchers import LauncherCheckResponse, LaunchManager
 from .logging import LOGGER
 from .panda import get_panda_token
@@ -40,167 +37,6 @@ held (5), transferring_output (6), or suspended (7).
 A terminal status is mapped to reviewable here because the job's exit code
 will ultimately determine whether the job is accepted or failed.
 """
-
-
-async def write_htcondor_script(
-    htcondor_script_path: Path,
-    htcondor_log: Path,
-    script_url: Path,
-    log_url: Path,
-    **kwargs: Any,
-) -> Path:
-    """Write a submit wrapper script for htcondor
-
-    Parameters
-    ----------
-    htcondor_script_path: anyio.Path
-        Path for the wrapper file written by this function
-
-    htcondor_log: anyio.Path
-        Path for the wrapper log
-
-    script_url: anyio.Path
-        Script to submit
-
-    log_url: anyio.Path
-        Location of job log file to write
-
-    Returns
-    -------
-    htcondor_log: str
-        Path to the log wrapper log
-    """
-    options = dict(
-        initialdir=config.htcondor.working_directory,
-        batch_name=config.htcondor.batch_name,
-        should_transfer_files="Yes",
-        when_to_transfer_output="ON_EXIT",
-        get_env=True,
-        request_cpus=config.htcondor.request_cpus,
-        request_memory=config.htcondor.request_mem,
-        request_disk=config.htcondor.request_disk,
-    )
-    options.update(**kwargs)
-
-    htcondor_script_contents = [
-        f"executable = {script_url}",
-        f"log = {htcondor_log}",
-        f"output = {log_url}",
-        f"error = {log_url}",
-    ]
-    for key, val in options.items():
-        htcondor_script_contents.append(f"{key} = {val}")
-    htcondor_script_contents.append("queue\n")
-
-    await Path(htcondor_script_path).write_text("\n".join(htcondor_script_contents))
-    return Path(htcondor_log)
-
-
-async def submit_htcondor_job(
-    htcondor_script_path: str | Path,
-    fake_status: StatusEnum | None = None,
-) -> None:
-    """Submit a  `Script` to htcondor
-
-    Parameters
-    ----------
-    htcondor_script_path: str | anyio.Path
-        Path to the script to submit
-
-    fake_status: StatusEnum | None,
-        If set, don't actually submit the job
-
-    """
-    fake_status = fake_status or config.mock_status
-    if fake_status is not None:
-        return
-
-    try:
-        async with await open_process(
-            [config.htcondor.condor_submit_bin, "-file", htcondor_script_path],
-            env=build_htcondor_submit_environment(),
-        ) as condor_submit:
-            if await condor_submit.wait() != 0:  # pragma: no cover
-                assert condor_submit.stderr
-                stderr_msg = ""
-                async for text in TextReceiveStream(condor_submit.stderr):
-                    stderr_msg += text
-                msg = f"Bad htcondor submit: f{stderr_msg}"
-                raise CMHTCondorSubmitError(msg)
-
-    except Exception as e:
-        msg = f"Bad htcondor submit: {e}"
-        raise CMHTCondorSubmitError(msg) from e
-
-
-async def check_htcondor_job(
-    htcondor_id: str | None,
-    fake_status: StatusEnum | None = None,
-) -> StatusEnum:
-    """Check the status of a `HTCondor` job
-
-    Parameters
-    ----------
-    htcondor_id : str | None
-        htcondor job id, in this case the log file from the wrapper script
-
-    fake_status: StatusEnum | None,
-        If set, don't actually check the job and just return fake_status
-
-    Returns
-    -------
-    status: StatusEnum
-        HTCondor job status
-    """
-    fake_status = fake_status or config.mock_status
-    if fake_status is not None:
-        return StatusEnum.reviewable if fake_status.value >= StatusEnum.reviewable.value else fake_status
-    try:
-        if htcondor_id is None:  # pragma: no cover
-            raise CMHTCondorCheckError("Bad htcondor check input: No htcondor_id")
-        async with await open_process(
-            [
-                config.htcondor.condor_q_bin,
-                "-userlog",
-                htcondor_id,
-                "-json",
-                "-attributes",
-                "JobStatus,ExitCode",
-            ],
-            env=build_htcondor_submit_environment(),
-        ) as condor_q:  # pragma: no cover
-            if await condor_q.wait() != 0:
-                assert condor_q.stderr
-                stderr_msg = ""
-                async for text in TextReceiveStream(condor_q.stderr):
-                    stderr_msg += text
-                logger.error("Bad htcondor check", stderr=stderr_msg)
-                msg = f"Bad htcondor check: {stderr_msg}"
-                raise CMHTCondorCheckError(msg)
-            try:
-                assert condor_q.stdout
-                lines = ""
-                async for text in TextReceiveStream(condor_q.stdout):
-                    lines += text
-                htcondor_stdout: list[dict[str, Any]] = json.loads(lines)
-                htcondor_status = htcondor_stdout[-1]["JobStatus"]
-                exit_code = htcondor_stdout[-1].get("ExitCode")
-            except (AssertionError, json.JSONDecodeError, IndexError, KeyError) as e:
-                msg = f"Badly formatted htcondor check: {e}"
-                raise CMHTCondorCheckError(msg) from e
-    # FIXME the bare exception here is not great but the list of possible
-    #       conditions is long.
-    except Exception:
-        logger.exception()
-        return StatusEnum.failed
-
-    status = htcondor_status_map[htcondor_status]  # pragma: no cover
-    if status is StatusEnum.reviewable:  # pragma: no cover
-        if (exit_code is not None) and (int(exit_code) == 0):
-            status = StatusEnum.accepted
-        else:
-            status = StatusEnum.failed
-    return status  # pragma: no cover
 
 
 def build_htcondor_submit_environment() -> Mapping[str, str]:

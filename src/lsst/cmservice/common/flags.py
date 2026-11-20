@@ -13,11 +13,9 @@ class Features(IntFlag):
     """
 
     ALLOW_TASK_UPSERT = auto()
-    API_V1 = auto()
     API_V2 = auto()
     DAEMON_CAMPAIGNS = auto()
     DAEMON_NODES = auto()
-    DAEMON_V1 = auto()
     DAEMON_V2 = auto()
     KAFKA_CONSUMER = auto()
     NOTIFIER = auto()
@@ -25,7 +23,6 @@ class Features(IntFlag):
     MOCK_BUTLER = auto()
     SCHEDULER = auto()
     STORE_FSM = auto()
-    WEBAPP_V1 = auto()
 
 
 class EnabledFeatures(BaseSettings):
