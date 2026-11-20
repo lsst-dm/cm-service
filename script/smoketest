@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
 # script/smoketest: Run the integration smoketest locally, following the steps
-#                   of the `.github/workflows/smoketest.yaml` workflow.
+#                   of the `.github/workflows/smoketest.yaml` workflow, except
+#                   that the schedule is triggered by a Kafka message instead
+#                   of a oneshot API call.
 #
 # Usage: script/smoketest [--keep] [--no-build]
 #
@@ -81,15 +83,42 @@ echo "==> Loading smoketest schedule"
 SCHEDULE_ID=$(cm --output json schedules load integration/smoketest.yaml | jq -r '.self | split("/") | .[-1]')
 echo "    schedule: ${SCHEDULE_ID}"
 
+# The schedule's static `name_format` makes the campaign name deterministic, so
+# its id is known before the campaign exists: a UUID5 of the campaign name in
+# the default namespace.
+CAMPAIGN_ID=$(
+    uv run -q --frozen python -I -c \
+        'from uuid import uuid5; from lsst.cmservice.models.enums import DEFAULT_NAMESPACE; print(uuid5(DEFAULT_NAMESPACE, "smoketest_trigger"))'
+)
+CAMPAIGN_URL="${CM_ENDPOINT}/v2/campaigns/${CAMPAIGN_ID}"
+
 # The schedule's `day_obs` expression is yesterday. The butler is seeded for
 # both today and yesterday, so overriding `day_obs` with today exercises the
-# oneshot override with data that exists.
+# trigger override with data that exists. The value is a JSON number, because
+# a trigger's overrides are used as values, not compiled as expressions.
 DAY_OBS=$(date -u +%Y%m%d)
-echo "==> Oneshot smoketest schedule with day_obs=${DAY_OBS}"
-CAMPAIGN_URL=$(cm --output json schedules oneshot "$SCHEDULE_ID" -e "day_obs=${DAY_OBS}" | jq -r '.new_campaign_url')
+TRIGGER_MESSAGE=$(jq -cn --argjson day_obs "$DAY_OBS" '{type: "smoketest", detail: {day_obs: $day_obs}}')
+
+# The `smoketest-inbound` topic is created by the `kafka-init` service, so the
+# CM consumer is subscribed to it before this message is produced. See the
+# notification check below for why the client shares the broker's network.
+echo "==> Triggering smoketest schedule with a Kafka message with day_obs=${DAY_OBS}"
+docker run --rm -i --network "container:$(compose ps -q kafka)" confluentinc/cp-kafkacat:latest \
+    kafkacat -b localhost:9094 -t smoketest-inbound -P <<< "$TRIGGER_MESSAGE"
 echo "    campaign: ${CAMPAIGN_URL}"
 
-echo "==> Validating the oneshot override is applied"
+echo "==> Waiting for the triggered campaign to be created"
+ELAPSED=0
+until [ "$(curl -s -o /dev/null -w '%{http_code}' "$CAMPAIGN_URL")" = "200" ]; do
+    if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
+        echo "Timed out waiting for the triggered campaign to be created" >&2
+        exit 1
+    fi
+    sleep "$INTERVAL"
+    ELAPSED=$((ELAPSED + INTERVAL))
+done
+
+echo "==> Validating the trigger override is applied"
 curl -s "$CAMPAIGN_URL" | jq -e --argjson day_obs "$DAY_OBS" \
     '.metadata.day_obs == $day_obs and .metadata.values.day_obs == $day_obs' \
     > /dev/null

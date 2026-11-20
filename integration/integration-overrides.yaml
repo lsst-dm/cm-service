@@ -11,7 +11,7 @@ services:
   cmworker:
     environment:
       FEATURE_NOTIFIER: 1
-      FEATURE_KAFKA_CONSUMER: 0
+      FEATURE_KAFKA_CONSUMER: 1
       DB__ECHO: false
       LOGGING__LEVEL: ERROR
       BPS__MOCK_DISTRIB_DIR: /opt/sw
@@ -55,5 +55,5 @@ services:
         condition: service_completed_successfully
       s3mock-seed:
         condition: service_completed_successfully
-      kafka:
-        condition: service_started
+      kafka-init:
+        condition: service_completed_successfully

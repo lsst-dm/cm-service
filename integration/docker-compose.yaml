@@ -72,6 +72,34 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_NUM_PARTITIONS: 1
+
+  # Create the topics the CM consumer subscribes to before it starts, so it is
+  # assigned partitions as soon as it subscribes. No messages are produced.
+  # The `kafka-native` image has no CLI tools, so this uses the JVM image of
+  # the same version.
+  kafka-init:
+    profiles:
+      - full
+    image: "apache/kafka:3.9.2"
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        set -euo pipefail
+        # The broker has no healthcheck, so wait for it to accept requests
+        for _ in $$(seq 30); do
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list > /dev/null 2>&1 && break
+          sleep 2
+        done
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 \
+          --create --if-not-exists --topic smoketest-inbound --partitions 1 --replication-factor 1
+    networks:
+      - cmservice
+    restart: "no"
+    depends_on:
+      kafka:
+        condition: service_started
+
   butler:
     image: "postgres:16"
     hostname: butler
