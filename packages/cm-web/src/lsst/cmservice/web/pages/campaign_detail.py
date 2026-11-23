@@ -360,6 +360,10 @@ class CampaignDetailPage(CMPage[CampaignDetailPageModel]):
         with self.node_content:
             node_table = ui.table(columns=node_columns, rows=node_rows).classes("w-full h-full overflow-auto")
 
+        with node_table.add_slot("body-cell-name"):
+            with node_table.cell("name"):
+                _node_link = ''':href="'/node/' + props.row.id" :innerText="props.row.name"'''
+                ui.link().props(_node_link).classes("text-inherit decoration-dotted underline-offset-4")
         with node_table.add_slot("body-cell-edit"):
             with node_table.cell("edit"):
                 await self.get_node_edit_button()
