@@ -67,8 +67,9 @@ async def read_activity_collection(
         else:
             statement = statement.order_by(column.asc())
 
-    statement = statement.offset(offset).limit(limit)
+    statement = statement.order_by(col(ActivityLog.id)).offset(offset).limit(limit)
     activity_logs = (await session.exec(statement)).all()
+    # TODO add header links for pagination
     return activity_logs
 
 

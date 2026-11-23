@@ -28,17 +28,16 @@ async def wait_for_activity_to_complete(url: str, n: ui.notification) -> None:
                 await sleep(inter_request_wait_time)
                 time_budget -= inter_request_wait_time
                 continue
-    if r is not None:
-        activity = r.json()[0]
-        if time_budget <= 0:
-            n.type = "warning"
-            n.message = "Timed out waiting for result"
-        elif (error := activity.get("detail", {}).get("error")) is not None:
-            n.type = "negative"
-            n.message = error
-        else:
-            n.type = "positive"
-            n.message = "Node Recovered"
-        n.spinner = False
-        n.timeout = 5.0
+    activities = r.json() if r is not None and r.is_success else []
+    if time_budget <= 0 or not activities:
+        n.type = "warning"
+        n.message = "Timed out waiting for result"
+    elif (error := activities[0].get("detail", {}).get("error")) is not None:
+        n.type = "negative"
+        n.message = error
+    else:
+        n.type = "positive"
+        n.message = "Node Recovered"
+    n.spinner = False
+    n.timeout = 5.0
     return None

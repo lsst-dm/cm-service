@@ -62,8 +62,9 @@ async def describe_one_campaign(id: str, aclient: AsyncClient) -> dict:
     return campaign_detail
 
 
-async def get_campaign_manifests(id: str | None = None, manifests: list[dict] = []) -> list[dict]:
-    """API helper for fetching a collection of campaign or library manifests.
+async def get_campaign_manifests(id: str | None = None, manifests: list[dict] | None = None) -> list[dict]:
+    """Fetch a collection of campaign or library manifests.
+
     Parameters
     ----------
     id : str | None
@@ -73,6 +74,9 @@ async def get_campaign_manifests(id: str | None = None, manifests: list[dict] = 
     # -- if the campaign does not have these kinds, then we will pull the
     #    version 0 of that kind from the library (default namespace)
     mandatory_kinds = ["lsst", "bps", "butler", "wms", "site", "artifact"]
+
+    # copy the input so neither a caller's list nor a shared default is mutated
+    manifests = list(manifests or [])
 
     for kind in mandatory_kinds:
         if not list(filter(lambda m: m["kind"] == kind, manifests)):
@@ -95,7 +99,9 @@ async def get_campaign_manifests(id: str | None = None, manifests: list[dict] = 
     return manifests
 
 
-async def compile_campaign_manifests(campaign_id: str | None = None, manifests: list[dict] = []) -> None:
+async def compile_campaign_manifests(
+    campaign_id: str | None = None, manifests: list[dict] | None = None
+) -> None:
     """Renders a row or table of campaign manifest cards, substituting library
     manifests for any mandatory manifests not present in the campaign.
 

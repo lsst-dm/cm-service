@@ -428,7 +428,10 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
             f"bps_status_{bps_status.name}",
         )
 
-        if bps_status in {WmsStates.RUNNING, WmsStates.UNKNOWN}:
+        # FIXME a MISFIT status is a catch-all status that loses some nuance
+        # in the DAGMAN->Condor BPS machinery, so our handling of it should
+        # be more thoughtful.
+        if bps_status in {WmsStates.MISFIT, WmsStates.RUNNING, WmsStates.UNKNOWN, WmsStates.PENDING}:
             return False
 
         # BPS Report
@@ -570,6 +573,10 @@ class GroupMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin):
 
         # remove the BPS runtime metadata
         self.db_model.metadata_.pop("bps", None)
+
+        # remove the launcher metadata, whose job id refers to the previous
+        # attempt and would be used to filter the next attempt's WMS events
+        self.db_model.metadata_.pop("launcher", None)
 
         # increment the number of retries tracked by the node
         attempt_num = self.db_model.metadata_.get("retries", 0)

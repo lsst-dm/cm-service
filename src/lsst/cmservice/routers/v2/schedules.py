@@ -31,7 +31,7 @@ from pydantic import UUID4, UUID5
 from pydantic_extra_types.cron import CronStr
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import InstrumentedAttribute, noload
-from sqlmodel import select
+from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from lsst.cmservice.models.api.schedules import ScheduleConfiguration, ScheduleUpdate
@@ -81,7 +81,7 @@ async def read_schedule_collection(
     if owner is not None:
         statement = statement.where(Schedule.metadata_["owner"].astext == owner)
 
-    statement = statement.offset(offset).limit(limit)
+    statement = statement.order_by(col(Schedule.id)).offset(offset).limit(limit)
 
     schedules = await session.exec(statement)
 

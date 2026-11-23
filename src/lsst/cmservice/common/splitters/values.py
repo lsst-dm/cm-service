@@ -64,7 +64,7 @@ class ValuesSplitter(Splitter):
                     )
                 case Sequence():
                     value_list = ",".join([str(x) for x in value])
-                    yield f"({self.dimension} IN ({value_list})"
+                    yield f"({self.dimension} IN ({value_list}))"
                 case _ as never:
                     assert_never(never)
                     raise CMInvalidGroupingError

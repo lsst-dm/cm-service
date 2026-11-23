@@ -87,6 +87,7 @@ async def read_campaign_collection(
         statement = (
             select(Campaign)
             .order_by(Campaign.metadata_["crtime"].desc().nulls_last())
+            .order_by(col(Campaign.id))
             .offset(offset)
             .limit(limit)
         )
@@ -363,6 +364,7 @@ async def read_campaign_node_collection(
         .where(Node.namespace == campaign_id)
         .order_by(col(Node.version).desc())
         .order_by(Node.metadata_["crtime"].asc().nulls_last())
+        .order_by(col(Node.id))
         .offset(offset)
         .limit(limit)
     )
@@ -402,6 +404,7 @@ async def read_campaign_manifest_collection(
         .where(Manifest.namespace == campaign_id)
         .order_by(col(Manifest.version).desc())
         .order_by(Manifest.metadata_["crtime"].asc().nulls_last())
+        .order_by(col(Manifest.id))
         .offset(offset)
         .limit(limit)
     )
@@ -451,11 +454,11 @@ async def read_campaign_manifest_resource(
                 .limit(1)
             )
             if name is not None:
-                s.where(Manifest.name == name)
+                s = s.where(Manifest.name == name)
             if version == "default":
-                s.where(Manifest.default)
+                s = s.where(Manifest.default)
             elif version is not None:
-                s.where(Manifest.version == version)
+                s = s.where(Manifest.version == version)
             r = (await session.exec(s)).one_or_none()
         case _:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
@@ -467,6 +470,7 @@ async def read_campaign_manifest_resource(
     return r
 
 
+# TODO add limit/offset to this API
 @router.get(
     "/{campaign_id}/edges",
     summary="Get campaign Edges",
@@ -675,8 +679,10 @@ async def read_campaign_activity_log(
     statement = select(ActivityLog).where(ActivityLog.namespace == campaign_id)
     if request_id is not None:
         statement = statement.filter(ActivityLog.metadata_["request_id"].astext == request_id)
+    statement = statement.order_by(col(ActivityLog.created_at).desc()).order_by(col(ActivityLog.id))
     logs = (await session.exec(statement)).all()
 
+    # TODO add pagination to this route
     return logs
 
 
@@ -850,7 +856,13 @@ async def read_default_manifest_resource(
     """Get the default manifest for specified kind within the campaign"""
     # NOTE: since the table has a unique index applied, it should be impossible
     # to ever set more than one default for a campaign-kind manifest.
-    manifest = await session.exec(select(Manifest).where(col(Manifest.default).is_(True)))
+    s = (
+        select(Manifest)
+        .where(Manifest.namespace == campaign_id)
+        .where(Manifest.kind == kind)
+        .where(col(Manifest.default).is_(True))
+    )
+    manifest = await session.exec(s)
     return manifest.first()
 
 

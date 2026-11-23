@@ -299,15 +299,19 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
         configuration versions.
         """
         id = self.model["node"]["id"]
+        _node_history = await configuration_history(id)
+        latest = f"version_{len(_node_history)}" if _node_history else None
         with (
-            ui.carousel(animated=True, arrows=True, navigation=False)
+            ui.carousel(value=latest, animated=False, arrows=True, navigation=False)
             .classes("w-full h-full")
             .props("control-color=black")
         ):
-            for i, config in enumerate(await configuration_history(id)):
-                with ui.carousel_slide().classes("w-full h-full flex items-center justify-center"):
+            for i, config in enumerate(_node_history, start=1):
+                with ui.carousel_slide(name=f"version_{i}").classes(
+                    "w-full h-full flex items-center justify-center"
+                ):
                     with ui.card().classes("max-h-full justify-center"):
-                        ui.label(f"Configuration Version {i + 1}").classes("text-subtitle1")
+                        ui.label(f"Configuration Version {i}").classes("text-subtitle1")
                         code = ui.code(safe_dump(config), language="yaml").classes("overflow-auto")
                         code.copy_button.delete()
 
@@ -364,12 +368,14 @@ class NodeDetailPage(CMPage[NodeDetailPageModel]):
     async def breakpoint_reject_chip(self) -> None:
         """Adds a chip as an Reject button for a Breakpoint Node.
 
-        This control is only visible if the Node is a breakpoint kind.
+        This control is only visible if the Node is a breakpoint kind that has
+        not yet been resolved, i.e., it is waiting to be reached or is holding
+        the campaign.
         """
         if all(
             [
                 self.model["node"]["kind"] == "breakpoint",
-                self.model["node"]["status"] != "accepted",
+                self.model["node"]["status"] in ("waiting", "ready", "prepared", "running"),
             ]
         ):
             force_method = partial(api.retry_restart_node, n0=self.node_id, force=True, reject=True)

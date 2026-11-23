@@ -3,6 +3,7 @@
 import pickle
 import random
 from asyncio import sleep
+from collections import ChainMap
 from textwrap import dedent
 from typing import cast
 from unittest.mock import Mock, patch
@@ -738,12 +739,29 @@ async def test_group_force_accept(
     x = await aclient.patch(
         f"/v2/nodes/{group.id}",
         json={"status": "accepted", "force": acceptable},
-        headers={"Content-Type": "application/merge-patch+json"},
+        headers={"Content-Type": "application/merge-patch+json", "X-Auth-Request-User": "tester"},
     )
     assert x.is_success
     await session.refresh(group, ["status", "metadata_", "machine"])
     group_status = group.status
     assert group_status is expected_status
+
+    # a forced status change is audited, discoverable by a containment query
+    # on the campaign namespace in the audit context
+    x = await aclient.get("/v2/audit", params={"context.namespace": campaign_id})
+    assert x.is_success
+    audit_logs = x.json()
+    if acceptable:
+        assert len(audit_logs) == 1
+        assert audit_logs[0]["actor"] == "tester"
+        assert audit_logs[0]["object_id"] == str(group.id)
+        assert audit_logs[0]["object_type"] == "group"
+        assert audit_logs[0]["context"]["namespace"] == campaign_id
+        assert audit_logs[0]["context"]["force"] is True
+        assert audit_logs[0]["context"]["from_status"] == "failed"
+        assert audit_logs[0]["context"]["to_status"] == "accepted"
+    else:
+        assert not audit_logs
 
 
 async def test_step_fail_reset(
@@ -917,3 +935,49 @@ async def test_group_fail_rescue(
             assert group.configuration["butler"]["collections"]["run"] in option
             found_skip_option = True
     assert found_skip_option
+
+
+@pytest.mark.parametrize(
+    ("machine_class", "kind"),
+    [
+        (StepMachine, ManifestKind.step),
+        (StepCollectMachine, ManifestKind.collect_groups),
+        (GroupMachine, ManifestKind.group),
+    ],
+)
+async def test_retry_removes_wms_logs(
+    machine_class: type[StepMachine | StepCollectMachine | GroupMachine], kind: ManifestKind, tmp_path: Path
+) -> None:
+    """Tests that retrying a Step, Collect, or Group node removes the WMS logs
+    and the launcher metadata of the previous attempt, so that the previous
+    attempt's HTCondor termination event is not read as the result of the next
+    attempt.
+    """
+    node = Node(
+        id=uuid4(),
+        name="retry_me",
+        namespace=uuid4(),
+        kind=kind,
+        status=StatusEnum.failed,
+        version=1,
+        configuration={},
+        metadata_={"launcher": {"job_id": 1234, "timestamp": 0}, "retries": 0},
+    )
+    machine = machine_class(o=node, initial_state=node.status)
+
+    wms_event_log = Path(tmp_path) / "retry_me.log"
+    wms_output_log = Path(tmp_path) / "retry_me.out"
+    await wms_event_log.write_text("005 (1234.000.000) Job terminated.\n")
+    await wms_output_log.write_text("previous attempt output\n")
+    machine.configuration_chain = {
+        "wms": ChainMap(
+            {"wms_event_log_path": str(wms_event_log), "wms_output_log_path": str(wms_output_log)}
+        ),
+        "butler": ChainMap({"mode": "redefine"}),
+    }
+
+    await machine.do_retry(Mock())
+
+    assert not await wms_event_log.exists()
+    assert not await wms_output_log.exists()
+    assert "launcher" not in node.metadata_

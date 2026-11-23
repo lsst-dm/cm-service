@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Mapping, MutableSet, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from typing import TYPE_CHECKING, Literal, TypedDict, cast
 from uuid import UUID, uuid4, uuid5
 
@@ -252,15 +252,30 @@ def validate_graph(g: nx.DiGraph, source_name: str = "START", sink_name: str = "
 
 
 def processable_graph_nodes(g: nx.DiGraph) -> Iterable[Node]:
-    """Traverse the graph G and produce an iterator of any nodes that are
-    candidates for processing, i.e., their status is waiting/prepared/running
-    and their ancestors are complete/successful. Graph nodes in a failed state
-    will block the graph and prevent candidacy for subsequent nodes.
+    """Produce an iterator of any nodes in the graph G that are candidates for
+    processing.
+
+    A node is processable when its status is waiting/ready/prepared/running
+    and every simple path from START to it is complete, i.e., every node on
+    each of those paths before it is non-blocking.
+
+    Only ``accepted`` and ``rejected`` are non-blocking, except for a
+    ``rejected`` breakpoint, which blocks.
+
+    A node's own ``accepted`` or ``rejected`` status says nothing about its
+    ancestors, since either can be forced on a node before the campaign has
+    reached it. Such a node does not release its successors until all of its
+    own ancestors have, too.
 
     Yields
     ------
     `lsst.cmservice.cm_models.db.campaigns.Node`
         A Node ORM object that has been ``expunge``d from its ``Session``.
+
+    Raises
+    ------
+    networkx.NetworkXUnfeasible
+        If G contains a cycle.
 
     Notes
     -----
@@ -269,35 +284,35 @@ def processable_graph_nodes(g: nx.DiGraph) -> Iterable[Node]:
     graph-node is decorated with a "model" attribute referring to an expunged
     instance of ``Node``. This ``Node`` can be ``add``ed back to a ``Session``
     and manipulated in the usual way.
+
+    In a DAG every ancestor of a node lies on some simple path from the
+    source to that node, so "every path is complete" is the same as "every
+    ancestor is non-blocking". Rather than enumerate the paths, whose
+    number grows exponentially with fan-out and fan-in, this is evaluated in a
+    single pass in topological order, carrying forward whether everything
+    upstream of each node is complete.
     """
-    processable_nodes: MutableSet[Node] = set()
+    # Whether a node and everything upstream of it is non-blocking.
+    complete: dict[UUID, bool] = {}
 
-    # A valid campaign graph will have only one source (START) with in_degree 0
-    # and only one sink (END) with out_degree 0
-    source = next(v for v, d in g.in_degree() if d == 0)
-    sink = next(v for v, d in g.out_degree() if d == 0)
+    # The processable set is determined in full before any node is yielded, so
+    # that a consumer changing the status of a yielded node cannot influence
+    # the candidacy of other nodes in the same pass.
+    processable_nodes: list[Node] = []
 
-    # For each path through the graph, evaluate the state of nodes to determine
-    # which nodes are up for processing. When there are multiple paths, we have
-    # parallelization and common ancestors may be evaluated more than once,
-    # which is an exercise in optimization left as a TODO
-    for path in nx.all_simple_paths(g, source, sink):
-        for n in path:
-            node: Node = g.nodes[n]["model"]
-            # A "script" considers "reviewable" a terminal status; nodes share
-            # this opinion.
-            if node.status.is_processable_script():
-                processable_nodes.add(node)
-                # We found a processable node in this path, stop traversal
-                break
-            elif node.status is StatusEnum.failed:
-                # We reached a failed node in this path, it is blocked
-                break
-            else:
-                # This node must be in a "successful" terminal state
-                continue
+    for n in nx.topological_sort(g):
+        node: Node = g.nodes[n]["model"]
+        upstream_complete = all(complete[p] for p in g.predecessors(n))
+        complete[n] = (
+            upstream_complete
+            and not node.status.is_blocking()
+            # The purpose of a breakpoint is to block, so unlike other nodes a
+            # rejected breakpoint blocks its successors
+            and not (node.kind is ManifestKind.breakpoint and node.status is StatusEnum.rejected)
+        )
+        if upstream_complete and node.status.is_processable_script():
+            processable_nodes.append(node)
 
-    # the inspection should stop when there are no more nodes to check
     yield from processable_nodes
 
 

@@ -502,10 +502,13 @@ class EndMachine(NodeMachine, NodeMixIn, FilesystemActionMixin, HTCondorLaunchMi
         # campaign output depends on this incidental order. Overlapping step
         # outputs are considered an operator error, but a reverse topological
         # sort here would make the chain order deterministic.
+        # Only accepted collect steps contribute to the campaign output; this
+        # mirrors the treatment of group run collections by collect steps.
         collect_steps = [
             node[1]["model"]
             for node in graph.nodes.data()
             if node[1]["model"].kind is ManifestKind.collect_groups
+            and node[1]["model"].status is StatusEnum.accepted
         ]
         self.collections = [
             collect_step.configuration["butler"]["collections"]["step_output"]
@@ -557,7 +560,8 @@ class BreakPointMachine(NodeMachine):
     advance the node, and subsequently the campaign.
 
     Unlike most nodes, a Breakpoint Node may be put into the accepted state
-    from any state using the "force" trigger.
+    from any state using the "force" trigger, or into the rejected state from
+    any state using the "reject" trigger.
     """
 
     __kind__ = [ManifestKind.breakpoint]
@@ -568,7 +572,7 @@ class BreakPointMachine(NodeMachine):
         # the breakpoint node does have a special transition that allows the
         # `force` or `reject` trigger from *any* state.
         self.machine.add_transition("force", "*", "accepted")
-        self.machine.add_transition("reject", "*", "failed")
+        self.machine.add_transition("reject", "*", "rejected")
 
     async def is_done_running(self, event: EventData) -> bool:
         """A Breakpoint Node always returns a False signal to the done-running

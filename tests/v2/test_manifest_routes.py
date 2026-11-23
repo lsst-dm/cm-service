@@ -286,7 +286,7 @@ async def test_get_manifest_resource(
     x = await aclient.get(f"/v2/campaigns/{default_namespace}/manifest/lsst")
     assert x.is_success
 
-    x = await aclient.get(f"/v2/campaigns/{default_namespace}/manifest/butler/main")
+    x = await aclient.get(f"/v2/campaigns/{default_namespace}/manifest/butler/muthur")
     assert x.is_success
 
     x = await aclient.get(f"/v2/campaigns/{default_namespace}/manifest/site/mars/0")
