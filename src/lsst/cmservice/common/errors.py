@@ -129,6 +129,12 @@ class CMNoSuchManifestError(RuntimeError):
     """Raised when a Manifest cannot be found in the database."""
 
 
+class CMRejectionError(RuntimeError):
+    """Raised when a node cannot proceed but should result in rejection instead
+    of failure.
+    """
+
+
 def test_type_and_raise[T](object: Any, expected_type: type[T], var_name: str) -> T:
     if not isinstance(object, expected_type):
         msg = f"{var_name} expected type {expected_type} got {type(object)}"
