@@ -15,7 +15,7 @@ from anyio import Path
 from httpx2 import AsyncClient
 from sqlalchemy.orm import make_transient, selectinload
 from sqlalchemy.orm.attributes import InstrumentedAttribute
-from sqlmodel import select
+from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from lsst.cmservice.common.launchers import LauncherCheckResponse
@@ -310,12 +310,13 @@ async def test_action_node_htcondor(test_campaign_groups: str, session: AsyncSes
     group = (await session.exec(s)).one_or_none()
     assert group is not None
 
-    # Obtain the collect step
+    # Obtain the collect step belonging to the same step as the group
+    step_name = group.name.rsplit("_group_", 1)[0]
     s = (
         select(Node)
         .where(Node.kind == ManifestKind.collect_groups)
         .where(Node.namespace == campaign_id)
-        .limit(1)
+        .where(Node.name == f"{step_name}_collect_groups")
     )
     collect = (await session.exec(s)).one_or_none()
     assert collect is not None
@@ -323,6 +324,12 @@ async def test_action_node_htcondor(test_campaign_groups: str, session: AsyncSes
     group_machine = GroupMachine(o=group)
     await group_machine.trigger("prepare")
     assert len(await get_activity_log_errors(session, campaign_id)) == 0
+
+    # Accept the group so the collect step has a run collection to collect
+    await session.refresh(group, ["status"])
+    group.status = StatusEnum.accepted
+    session.add(group)
+    await session.commit()
 
     collect_machine = StepCollectMachine(o=collect)
     await collect_machine.trigger("prepare")
@@ -964,3 +971,61 @@ async def test_retry_removes_wms_logs(
     assert not await wms_event_log.exists()
     assert not await wms_output_log.exists()
     assert "launcher" not in node.metadata_
+
+
+async def test_collect_fails_without_run_collections(
+    test_campaign_groups: str, session: AsyncSession
+) -> None:
+    """Test that a Collect node fails to prepare without run collections.
+
+    Reject every group of a prepared step, then prepare the step's Collect
+    node. With no accepted groups there are no group run collections to chain
+    into the step output collection, so the Collect node should fail before
+    rendering anything.
+    """
+    campaign_id = urlparse(url=test_campaign_groups).path.split("/")[-2:][0]
+
+    # Prepare the start step
+    node = await session.get_one(Node, uuid5(UUID(campaign_id), "START.1"))
+    await session.commit()
+    make_transient(node)
+    start_machine = StartMachine(o=node)
+    del node
+    await start_machine.trigger("prepare")
+
+    # Prepare a step with values-based grouping, which creates its groups and
+    # its collect node
+    step = await session.get_one(Node, uuid5(UUID(campaign_id), "ash.1"))
+    step_machine = StepMachine(o=step)
+    await session.commit()
+    await step_machine.trigger("prepare")
+
+    # Reject every group the step created
+    s = (
+        select(Node)
+        .where(Node.kind == ManifestKind.group)
+        .where(Node.namespace == UUID(campaign_id))
+        .where(col(Node.name).startswith(f"{step.name}_group_"))
+    )
+    groups = (await session.exec(s)).all()
+    assert len(groups) >= 1
+    for group in groups:
+        group.status = StatusEnum.rejected
+        session.add(group)
+    await session.commit()
+
+    # Obtain the step's collect node
+    collect_name = f"{step.name}_collect_groups"
+    collect = await session.get_one(Node, uuid5(step.id, f"{collect_name}.1"))
+    await session.commit()
+    initial_status = collect.status
+    assert initial_status is StatusEnum.waiting
+
+    # The collect node has no run collections to chain, so it cannot prepare
+    collect_machine = StepCollectMachine(o=collect)
+    await collect_machine.trigger("prepare")
+
+    await session.refresh(collect, ["status", "metadata_"])
+    assert collect.status is StatusEnum.failed
+    assert "run_collections" not in collect.metadata_
+    assert len(await get_activity_log_errors(session, campaign_id)) == 1

@@ -633,6 +633,12 @@ class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin
         # to the collect first.
         self.collections = topographical_sorted_collections(subgraph, reverse=True)
 
+        # If no collections are available, the collect step cannot continue and
+        # must fail. This may because every group in the subgraph has been
+        # "rejected"
+        if not self.collections:
+            raise RuntimeError("No RUN collections available to collect")
+
         # perform specific preparations
         await self.action_prepare(event)
         await self.launch_prepare(event)
