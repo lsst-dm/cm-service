@@ -28,7 +28,7 @@ from lsst.cmservice.machines.node import (
     StepMachine,
 )
 from lsst.cmservice.machines.tasks import change_campaign_state
-from lsst.cmservice.models.db.campaigns import Campaign, Machine, Node
+from lsst.cmservice.models.db.campaigns import ActivityLog, Campaign, Machine, Node
 from lsst.cmservice.models.enums import ManifestKind, StatusEnum
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
@@ -990,15 +990,16 @@ async def test_retry_removes_wms_logs(
     assert "launcher" not in node.metadata_
 
 
-async def test_collect_fails_without_run_collections(
+async def test_collect_rejects_without_run_collections(
     test_campaign_groups: str, session: AsyncSession
 ) -> None:
-    """Test that a Collect node fails to prepare without run collections.
+    """Test that a Collect node rejects itself without run collections.
 
     Reject every group of a prepared step, then prepare the step's Collect
     node. With no accepted groups there are no group run collections to chain
-    into the step output collection, so the Collect node should fail before
-    rendering anything.
+    into the step output collection. A Collect node that runs anyway can only
+    do so because its groups were rejected on purpose, so it should reject
+    itself before rendering anything instead of failing.
     """
     campaign_id = urlparse(url=test_campaign_groups).path.split("/")[-2:][0]
 
@@ -1038,11 +1039,21 @@ async def test_collect_fails_without_run_collections(
     initial_status = collect.status
     assert initial_status is StatusEnum.waiting
 
-    # The collect node has no run collections to chain, so it cannot prepare
+    # The collect node has no run collections to chain, so it rejects itself
     collect_machine = StepCollectMachine(o=collect)
     await collect_machine.trigger("prepare")
 
     await session.refresh(collect, ["status", "metadata_"])
-    assert collect.status is StatusEnum.failed
+    assert collect.status is StatusEnum.rejected
     assert "run_collections" not in collect.metadata_
-    assert len(await get_activity_log_errors(session, campaign_id)) == 1
+
+    # A self-rejection is not an error: the activity log records a reason
+    assert len(await get_activity_log_errors(session, campaign_id)) == 0
+    log_query = select(ActivityLog).where(ActivityLog.node == collect.id)
+    entries = (await session.exec(log_query)).all()
+    assert len(entries) == 1
+    entry = entries[0]
+    assert entry.from_status is StatusEnum.waiting
+    assert entry.to_status is StatusEnum.rejected
+    assert isinstance(entry.detail.get("reason"), str)
+    assert "error" not in entry.detail
