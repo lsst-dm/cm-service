@@ -13,7 +13,6 @@ kind: node
 metadata:
   kind: step
   name: SMOKETEST
-  namespace: b7047eb6-5e22-5b5e-86a7-41b3e216e898
 spec:
   artifact:
     resources:
@@ -37,7 +36,6 @@ apiVersion: io.lsst.cmservice/v1
 kind: edge
 metadata:
   name: START.1--3
-  namespace: b7047eb6-5e22-5b5e-86a7-41b3e216e898
 spec:
   source: START
   target: SMOKETEST
@@ -46,7 +44,6 @@ apiVersion: io.lsst.cmservice/v1
 kind: edge
 metadata:
   name: xy-edge__3right-END.1left
-  namespace: b7047eb6-5e22-5b5e-86a7-41b3e216e898
 spec:
   source: SMOKETEST
   target: END
@@ -55,7 +52,6 @@ apiVersion: io.lsst.cmservice/v1
 kind: butler
 metadata:
   name: embargo
-  namespace: b7047eb6-5e22-5b5e-86a7-41b3e216e898
 spec:
   collections:
     campaign_input:
@@ -76,7 +72,6 @@ apiVersion: io.lsst.cmservice/v1
 kind: bps
 metadata:
   name: ap_catchup
-  namespace: b7047eb6-5e22-5b5e-86a7-41b3e216e898
 spec:
   extra_qgraph_options:
     - --skip-existing-in LSSTCam/runs/prompt-${{ day_obs }}
@@ -98,7 +93,6 @@ apiVersion: io.lsst.cmservice/v1
 kind: lsst
 metadata:
   name: ap_daily
-  namespace: b7047eb6-5e22-5b5e-86a7-41b3e216e898
 spec:
   campaign: AP-daytime
   prepend:
@@ -117,7 +111,6 @@ apiVersion: io.lsst.cmservice/v1
 kind: wms
 metadata:
   name: htcondor
-  namespace: b7047eb6-5e22-5b5e-86a7-41b3e216e898
 spec:
   batch_name: cmservice-usdf-prod
   batch_system: htcondor
@@ -129,7 +122,6 @@ apiVersion: io.lsst.cmservice/v1
 kind: site
 metadata:
   name: slac
-  namespace: b7047eb6-5e22-5b5e-86a7-41b3e216e898
 spec:
   facility: SLAC
 ---
@@ -150,7 +142,7 @@ spec:
   trigger:
     source: kafka
     channel: smoketest-inbound
-    protocol: "type=='smoketest' && detail.{day_obs: day_obs} || `null`"
+    protocol: "type=='smoketest' && {day_obs: detail.day_obs} || `null`"
   expressions:
     today: "datetime.now(timezone.utc)"
     yesterday: "datetime.now(timezone.utc) - timedelta(days=1)"
