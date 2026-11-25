@@ -2,6 +2,7 @@ import asyncio
 import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from functools import partial
 
 import uvicorn
 from fastapi import FastAPI
@@ -10,7 +11,7 @@ from lsst.cmservice.models.lib.kafka.consumer import CMConsumer
 
 from . import __version__
 from .common.butler import BUTLER_FACTORY  # noqa: F401
-from .common.daemon_v2 import DaemonContext
+from .common.daemon_v2 import DaemonContext, daemon_scheduled_job
 from .common.daemon_v2 import daemon_iteration as daemon_iteration_v2
 from .common.flags import Features
 from .common.logging import LOGGER, LoggingMiddleware
@@ -59,11 +60,22 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
 
         # Kafka Consumer
         if Features.KAFKA_CONSUMER in config.features.enabled:
+            # TODO py315 lazy import
+            from lsst.cmservice.models.api.schedules import DispatchHandlerCallableProtocol
+            from lsst.cmservice.models.triggers.dispatchers import kafka
+
+            handler: DispatchHandlerCallableProtocol = partial(
+                daemon_scheduled_job,
+                suppress_exceptions=False,
+                oneshot=True,
+            )
+
             runtime_kafka_config = {
                 "app": app,
                 "sentinel": shutdown_signal,
                 "auto_offset_commit": False,
                 "auto_offset_store": False,
+                "dispatcher": kafka.KafkaDispatcher(db_manager=db_session_dependency, handler=handler),
             }
             consumer = CMConsumer(**runtime_kafka_config)
             consumer_task = tg.create_task(consumer.task(), name="kafka")

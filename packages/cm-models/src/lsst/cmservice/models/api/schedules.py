@@ -4,7 +4,7 @@ This module includes API request and response models that are not otherwise
 part of the ORM database model hierarchy.
 """
 
-from typing import Annotated, Any
+from typing import Annotated, Any, Protocol
 
 from pydantic import UUID4, BaseModel, Field, StrictBool
 
@@ -131,3 +131,20 @@ class ScheduleManifest(Manifest[ScheduleMetadata, ScheduleConfiguration]):
     """
 
     ...
+
+
+class DispatchHandlerCallableProtocol(Protocol):
+    """A protocol describing the interface of a callable handler used by a
+    dispatcher.
+    """
+
+    async def __call__(self, *, schedule_id: UUID4, trigger: ScheduleTrigger) -> int:
+        """Method entry point for a class used as a Dispatch Handler.
+
+        Returns
+        -------
+        ``int`` | ``IntEnum``
+            An integer or value that can be used as an integer where
+            0 == SUCCESS. Other values are not defined in this protocol.
+        """
+        ...

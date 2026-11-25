@@ -2,7 +2,7 @@ import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import UTC
-from enum import Enum, auto
+from enum import IntEnum, auto
 from typing import assert_never
 
 import apscheduler.events
@@ -37,10 +37,10 @@ JOB_EVENTS = (
 """Collection of job-related events for observation."""
 
 
-class JobEventReturnCode(Enum):
+class JobEventReturnCode(IntEnum):
     """Possible return codes from the execution of a scheduled job."""
 
-    SUCCESS = auto()
+    SUCCESS = 0
     REMOVE_SELF = auto()
     SCHEDULE_NOT_FOUND = auto()
     CAMPAIGN_NOT_FOUND = auto()

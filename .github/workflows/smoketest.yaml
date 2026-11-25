@@ -61,34 +61,61 @@ jobs:
           SCHEDID=$(uv run -q cm --output json schedules load integration/smoketest.yaml | jq -r '.self | split("/") | .[-1]')
           echo "id=$SCHEDID" >> $GITHUB_OUTPUT
 
-      - name: Oneshot smoketest schedule
-        id: oneshot-smoke
+      # The schedule's static `name_format` makes the campaign name, and so its
+      # UUID5 id in the default namespace, known before the campaign exists.
+      # The `smoketest-inbound` topic is created by the `kafka-init` service,
+      # so the CM consumer is subscribed to it before this message is produced.
+      # The override is a JSON number, because a trigger's overrides are used
+      # as values, not compiled as expressions.
+      - name: Trigger smoketest schedule with a Kafka message
+        id: trigger-smoke
         env:
-          LOGGING__STREAM: stderr
           UV_NO_SYNC: "1"
         run: |
-          DAY_OBS=$(date -u +%Y%m%d)
-          URL=$(
-            uv run -q cm --output json schedules oneshot ${{ steps.load-smoke.outputs.id }} -e "day_obs=${DAY_OBS}" \
-            | jq -r '.new_campaign_url'
+          CAMPAIGN_ID=$(
+            uv run -q python -I -c '
+          from uuid import uuid5
+          from lsst.cmservice.models.enums import DEFAULT_NAMESPACE
+          print(uuid5(DEFAULT_NAMESPACE, "smoketest_trigger"))'
           )
-          echo "url=$URL" >> $GITHUB_OUTPUT
+          DAY_OBS=$(date -u +%Y%m%d)
+          TRIGGER_MESSAGE=$(jq -cn --argjson day_obs "$DAY_OBS" '{type: "smoketest", detail: {day_obs: $day_obs}}')
+          docker run --rm -i --network host confluentinc/cp-kafkacat:latest \
+            kafkacat -b localhost:9094 -t smoketest-inbound -P <<< "$TRIGGER_MESSAGE"
+          echo "url=${CM_ENDPOINT}/v2/campaigns/${CAMPAIGN_ID}" >> $GITHUB_OUTPUT
           echo "day_obs=$DAY_OBS" >> $GITHUB_OUTPUT
 
-      - name: Validate the oneshot override is applied
+      - name: Wait for the triggered campaign to be created
+        working-directory: ./integration
         run: |
-          campaign=$(curl -s "${{ steps.oneshot-smoke.outputs.url }}")
-          jq -e --argjson day_obs "${{ steps.oneshot-smoke.outputs.day_obs }}" \
+          TIMEOUT=300
+          ELAPSED=0
+          INTERVAL=10
+          until [ "$(curl -s -o /dev/null -w '%{http_code}' "${{ steps.trigger-smoke.outputs.url }}")" = "200" ]; do
+            if [ $ELAPSED -ge $TIMEOUT ]; then
+              echo "Timed out waiting for the triggered campaign to be created" >&2
+              docker compose logs cmworker
+              exit 1
+            fi
+            sleep $INTERVAL
+            ELAPSED=$((ELAPSED + INTERVAL))
+          done
+
+      - name: Validate the trigger override is applied
+        run: |
+          campaign=$(curl -s "${{ steps.trigger-smoke.outputs.url }}")
+          jq -e --argjson day_obs "${{ steps.trigger-smoke.outputs.day_obs }}" \
             '.metadata.day_obs == $day_obs and .metadata.values.day_obs == $day_obs' \
             <<< "$campaign"
 
       - name: Wait for campaign to complete
+        working-directory: ./integration
         run: |
           TIMEOUT=300
           ELAPSED=0
           INTERVAL=10
           while [ $ELAPSED -lt $TIMEOUT ]; do
-            status=$(curl -s "${{ steps.oneshot-smoke.outputs.url }}" | jq -r '.status')
+            status=$(curl -s "${{ steps.trigger-smoke.outputs.url }}" | jq -r '.status')
             echo "Campaign status is $status..."
             if [ "$status" = "accepted" ]; then
               exit 0
