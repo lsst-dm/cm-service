@@ -49,9 +49,7 @@ services:
       ASGI__ROUTE_PREFIX: /api
       ASGI__DOCS_PREFIX: /docs
       FEATURE_API_V2: 1
-      FEATURE_API_V1: 0
       FEATURE_DAEMON_V2: 0
-      FEATURE_WEBAPP_V1: 0
     ports:
       - "8080:8080"
     networks:
@@ -80,8 +78,6 @@ services:
       BPS__ARTIFACT_PATH: /opt/shared/artifacts
       SCHEDULER__JOBSTORE_TYPE: "sqlalchemy"
       FEATURE_API_V2: 0
-      FEATURE_API_V1: 0
-      FEATURE_WEBAPP_V1: 0
       FEATURE_DAEMON_V2: 1
       FEATURE_DAEMON_CAMPAIGNS: 1
       FEATURE_DAEMON_NODES: 1
@@ -132,7 +128,7 @@ services:
       retries: 3
 
   postgresql:
-    image: "postgres:16"
+    image: "postgres:17"
     hostname: "postgresql"
     environment:
       POSTGRES_PASSWORD: "INSECURE-PASSWORD"

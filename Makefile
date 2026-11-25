@@ -39,7 +39,6 @@ update-deps:
 
 .PHONY: init
 init: $(PY_VENV)
-	uv run playwright install
 	uv run prek install -f
 	uv run prek install --prepare-hooks --hook-type pre-push
 
@@ -52,6 +51,7 @@ build: export COMPOSE_BAKE=true
 build:
 	docker compose build cmservice
 	docker compose build cmworker
+	docker compose build cmweb
 
 .PHONY: uv
 uv:
@@ -69,7 +69,7 @@ release-dry-run:
 	uv run psr --noop version
 
 .PHONY: release
-release: export GIT_COMMIT_AUTHOR="$(shell git config user.name) <$(shell git config user.email)>"
+release: export GIT_COMMIT_AUTHOR=$(shell git config user.name) <$(shell git config user.email)>
 release:
 	@branch=$$(git branch --show-current); \
 	next=$$(uv run psr --noop version --no-commit --no-changelog --print 2>/dev/null | tail -n 1); \
@@ -102,6 +102,13 @@ lint:
 typing:
 	mypy
 
+# Tests create their own ephemeral postgres container via testcontainers, so a
+# working docker environment is required.
+.PHONY: test
+test: export BPS__ARTIFACT_PATH=$(PWD)/output
+test:
+	pytest -vvv --asyncio-mode=auto --cov=lsst.cmservice --cov-branch --cov-report=term --cov-report=html ${PYTEST_ARGS}
+
 
 #------------------------------------------------------------------------------
 # Targets for develpers to debug against a local Postgres run under docker
@@ -119,23 +126,12 @@ psql: export DB__PASSWORD=INSECURE-PASSWORD
 psql: run-compose
 	psql postgresql://cm-service:${DB__PASSWORD}@localhost:${PGPORT}/cm-service
 
-.PHONY: test
-test: PGPORT=$(shell docker compose port postgresql 5432 | cut -d: -f2)
-test: export DB__URL=postgresql://cm-service@localhost:${PGPORT}/cm-service
-test: export DB__PASSWORD=INSECURE-PASSWORD
-test: export DB__TABLE_SCHEMA=cm_service_test
-test: export BPS__ARTIFACT_PATH=$(PWD)/output
-test: run-compose
-	alembic upgrade head
-	pytest -vvv --asyncio-mode=auto --cov=lsst.cmservice --cov-branch --cov-report=term --cov-report=html ${PYTEST_ARGS}
-
 .PHONY: run
 run: PGPORT=$(shell docker compose port postgresql 5432 | cut -d: -f2)
 run: export DB__URL=postgresql://cm-service@localhost:${PGPORT}/cm-service
 run: export DB__PASSWORD=INSECURE-PASSWORD
 run: export DB__ECHO=true
 run: export FEATURE_API_V2=1
-run: export FEATURE_API_V1=0
 run: export FEATURE_DAEMON_V2=0
 run: export FEATURE_STORE_FSM=1
 run: run-compose
@@ -148,7 +144,6 @@ run-worker: export DB__URL=postgresql://cm-service@localhost:${PGPORT}/cm-servic
 run-worker: export DB__PASSWORD=INSECURE-PASSWORD
 run-worker: export DB__ECHO=true
 run-worker: export FEATURE_API_V2=0
-run-worker: export FEATURE_API_V1=0
 run-worker: export FEATURE_DAEMON_V2=1
 run-worker: export FEATURE_DAEMON_CAMPAIGNS=1
 run-worker: export FEATURE_DAEMON_NODES=1

@@ -26,7 +26,7 @@ from lsst.cmservice.models.db.settings import settings as DATABASE_SETTINGS
 from lsst.cmservice.models.enums import StatusEnum
 from lsst.cmservice.models.lib.logging import LOGGER_SETTINGS, LoggingConfiguration
 
-from .common.enums import ScriptMethodEnum, WmsComputeSite
+from .common.enums import WmsComputeSite
 from .common.flags import EnabledFeatures
 
 __all__ = ["Configuration", "config"]
@@ -777,10 +777,6 @@ class Configuration(BaseSettings):
         description="An identification string for the overall application",
         default="cmservice-dev",
     )
-    script_handler: ScriptMethodEnum = Field(
-        description="The default external script handler",
-        default=ScriptMethodEnum.htcondor,
-    )
 
     compute_site: WmsComputeSite = Field(
         description="The default WMS compute site",
@@ -815,20 +811,6 @@ class Configuration(BaseSettings):
             return None
 
     # TODO refactor these identical field validators with type generics
-    @field_validator("script_handler", mode="before")
-    @classmethod
-    def validate_script_method_by_name(cls, value: str | ScriptMethodEnum) -> ScriptMethodEnum:
-        """Use a string value to resolve an enum by its name, falling back to
-        the default value if an invalid input is provided.
-        """
-        if isinstance(value, ScriptMethodEnum):
-            return value
-        try:
-            return ScriptMethodEnum[value]
-        except KeyError:
-            warn(f"Invalid script handler ({value}) provided to config, using default.")
-            return ScriptMethodEnum.htcondor
-
     @field_validator("compute_site", mode="before")
     @classmethod
     def validate_compute_site_by_name(cls, value: str | WmsComputeSite) -> WmsComputeSite:

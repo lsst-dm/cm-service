@@ -93,7 +93,7 @@ async def rpc_process_campaign_or_node(
         case ProcessTarget() if target.node_id is not None:
             node = await fetch_by_id(session, Node, target.node_id)
             campaign_id = node.namespace
-            if node.status.is_terminal_script():
+            if node.status.is_terminal():
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail="Node in a terminal state may not be processed.",

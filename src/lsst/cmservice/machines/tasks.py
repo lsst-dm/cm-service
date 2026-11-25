@@ -140,7 +140,7 @@ async def change_node_state(
         case (StatusEnum.accepted, StatusEnum.rejected):
             trigger = "reject"
         case (current, StatusEnum.rejected) if (
-            node.kind is ManifestKind.breakpoint and current.is_processable_script()
+            node.kind is ManifestKind.breakpoint and current.is_processable()
         ):
             # A breakpoint may be rejected before it is reached by the campaign
             # (waiting) or while it is holding the campaign (running)

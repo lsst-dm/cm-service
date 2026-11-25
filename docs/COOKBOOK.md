@@ -1,78 +1,51 @@
 # My Campaign Is ...
 
 ## Running and I Want the Status
-Campaigns are made up of multiple scripts that execute various steps and perform actions for a Campaign.
-Once a Campaign is running, you can check the current set of scripts for that Campaign using the Campaign's "fullname" property.
-A `jq` filter is provided to help assemble a useful display of Campaign script statuses using the CM Client CLI.
-The `CM_CAMPAIGN` shell variable must be set to the Campaign's fullname.
-The output of this command displays the script ID, status, and name.
-
-```
-export CM_CAMPAIGN=...
-cm-client script list -o json | jq -rf ../script/step_status.jq
-```
+...
 
 ## Running and I Want to Change Something
-CM Service won't allow changes to a Campaign once it is in a running state, so before any changes can be made, this status must be changed.
+...
 
-We recommend that you first delete an active queue for your campaign, then you can "reject" the campaign. These commands use the `row_id` of the elements in question, which you may discover by issuing `cm-client ... list` and noting the id in the response.
-
-```
-export CM_CAMPAIGN=...
-cm-client queue delete --row_id XXX
-cm-client campaign action reject --row_id 16
-```
-
-Now you can change the Campaign's `data` manifest, after which you can ...
-
-# My Script Is ...
+# My Node Is ...
 
 ## Still Running After A Long Time
-Scripts that are in a `running` state should eventually enter one terminal state or another.
-Especially long-running scripts, like those that report on BPS Workflows, can run for several hours until the workflow completes.
+Nodes that are in a `running` state should eventually enter one terminal state or another.
+Especially long-running nodes, like those that execute large BPS Workflows, can run for several hours until the workflow completes.
 Behind the scenes, CM Service periodically checks on these with the equivalent of a `bps report`.
 
-If you would like to check on a long-running script yourself, CM Service can help locate the BPS submit directory you should inspect.
+If you would like to check on a long-running node yourself, CM Service can help locate the BPS submit directory you should inspect.
 
-```
-cm-client script get all -o json --row_id XXX -o json | jq '.stamp_url'
-```
-
-If the long-running script is understood by CM Service to be `running` when it is not, this is an error and should be raised with CM Ops.
+...
 
 ## Blocked
-Scripts enter the blocked state when the WMS jobs they depend upon are HELD.
+NOdes enter the blocked state when the WMS jobs they depend upon are HELD.
 CM Service considers these states terminal in that they are unlikely to progress without intervention.
 After the jobs are unblocked, the blocked state persists in CM Service until the intervention has been acknowledged.
-A pilot may either mark the script as accepted if the intervention has resulted in a successful outcome or ask CM Service to re-check the script and make its own determination.
+A pilot may either mark the node as accepted if the intervention has resulted in a successful outcome or ask CM Service to re-check the node and make its own determination.
 
-*Marking a Blocked Script as Accepted*
-```
-cm-client script action accept --row_id XXX
-```
+*Marking a Blocked Node as Accepted*
+...
 
-*Requesting Re-Check of a Blocked Script*
-```
-cm-client script action run_check --row_id XXX
-```
+*Requesting Re-Check of a Blocked Node*
+...
 
 ## Failed
-Scripts become failed when CM Service determines that the WMS jobs they depend upon have entered an unsuccessful terminal state.
-Usually, if a BPS workflow has failed jobs but otherwise has successfully run its `finalJob`, CM Service considers this script `accepted` and defers other qualitative analysis to a subsequent `pipetask report` output.
-A script that is actually marked as failed can be inspected for its failure reason and/or reset (in order to try again).
+Nodes become failed when CM Service determines that the WMS jobs they depend upon have entered an unsuccessful terminal state.
+Usually, if a BPS workflow has failed jobs but otherwise has successfully run its `finalJob`, CM Service considers this node `accepted` and defers other qualitative analysis to a subsequent `pipetask report` output.
+A node that is actually marked as failed can be inspected for its failure reason and/or reset (in order to try again).
 
-*Checking the Diagnostic Message of a Failed Script*
-CM Service tries to capture a diagnostic message for failed scripts.
-This will produce any diagnostic messages found with that script; there may be more than one if the script was run multiple times with an error result.
-
-```
-cm-client script get script-errors -o json --row_id XXX
-```
-
-Or, use the failed script's ID as a variable with a provided `jq` filter.
+*Checking the Diagnostic Message of a Failed Node*
+CM Service tries to capture a diagnostic message for failed nodes.
+This will produce any diagnostic messages found with that node; there may be more than one if the node was run multiple times with an error result.
 
 ```
-cm-client script_error list -o json | jq -f ./script/script_error.jq --arg script_id XXX
+...
+```
+
+Or, use the failed node's ID as a variable with a provided `jq` filter.
+
+```
+...
 ```
 
 *Resetting a Failed Script to Retry*
