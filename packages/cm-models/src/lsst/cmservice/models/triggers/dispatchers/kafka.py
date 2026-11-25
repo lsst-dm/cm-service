@@ -142,9 +142,7 @@ class KafkaDispatcher:
             assert context.trigger is not None
         try:
             result = await self.handler(schedule_id=context.trigger.schedule, trigger=context.trigger)
-            # FIXME result is an enum we may not have access to, but we can
-            # establish the contract that 0 = success
-            if result.value > 0:
+            if result != 0:
                 raise RuntimeError(result)
         except Exception as e:
             context.error = e
