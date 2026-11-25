@@ -23,6 +23,7 @@ from lsst.cmservice.models.lib import timestamp
 from lsst.cmservice.models.lib.graph import graph_from_edge_list_v2
 from lsst.cmservice.models.manifests.butler import ButlerManifest
 
+from ...common.errors import CMRejectionError
 from ...common.flags import Features
 from ...common.launchers import LauncherCheckResponse
 from ...common.logging import LOGGER
@@ -126,28 +127,38 @@ class NodeMachine(StatefulModel):
         """Error handler function for the Stateful Model, called by the Machine
         if any exception is raised in a callback function.
         """
-        if event.error is None:
-            return
+        match event.error:
+            case None:
+                return
+            case CMRejectionError():
+                logger.info(event.error, id=str(self.db_model.id), exc=event.error.__class__.__qualname__)
+            case _:
+                logger.error(event.error, id=str(self.db_model.id), exc=event.error.__class__.__qualname__)
 
-        logger.error(event.error, id=str(self.db_model.id), exc=event.error.__class__.__qualname__)
         if self.activity_log_entry is not None:
-            error_cause = event_error_heuristic(event)
             self.activity_log_entry.detail["trigger"] = event.event.name
-            self.activity_log_entry.detail["error"] = error_cause
             self.activity_log_entry.detail["exception"] = event.error.__class__.__qualname__
             self.activity_log_entry.finished_at = timestamp.now_utc()
+            match event.error:
+                case CMRejectionError():
+                    self.activity_log_entry.detail["reason"] = str(event.error)
+                case _:
+                    error_cause = event_error_heuristic(event)
+                    self.activity_log_entry.detail["error"] = error_cause
 
         # Auto-transition on error
-        match event.event:
-            case AsyncEvent(name="prepare"):
+        match (event.event, event.error):
+            case (_, CMRejectionError()):
+                await self.trigger("reject")
+            case (AsyncEvent(name="prepare"), _):
                 await self.trigger("fail")
-            case AsyncEvent(name="start"):
+            case (AsyncEvent(name="start"), _):
                 await self.trigger("fail")
-            case AsyncEvent(name="finish"):
+            case (AsyncEvent(name="finish"), _):
                 # TODO if we need to distinguish between types of failures,
                 #      e.g., fail vs block, we'd have to inspect the error here
                 await self.trigger("fail")
-            case _:
+            case (_, _):
                 # If this is a user-initiated trigger or check, the event will
                 # have a request_id attached, and in this case we make sure we
                 # commit the activity log entry even if we are not otherwise
@@ -559,9 +570,8 @@ class BreakPointMachine(NodeMachine):
     intentional manual action (e.g., by using a force-accept action) will
     advance the node, and subsequently the campaign.
 
-    Unlike most nodes, a Breakpoint Node may be put into the accepted state
-    from any state using the "force" trigger, or into the rejected state from
-    any state using the "reject" trigger.
+    A Breakpoint Node may be put into an ``accepted`` or ``rejected`` state
+    from any state using the "force" or "reject" trigger, respectively.
     """
 
     __kind__ = [ManifestKind.breakpoint]
@@ -569,10 +579,7 @@ class BreakPointMachine(NodeMachine):
     def register_callbacks(self) -> None:
         # The breakpoint node does not have any specific callback triggers, as
         # it does not prepare artifacts or interact with additional systems.
-        # the breakpoint node does have a special transition that allows the
-        # `force` or `reject` trigger from *any* state.
-        self.machine.add_transition("force", "*", "accepted")
-        self.machine.add_transition("reject", "*", "rejected")
+        ...
 
     async def is_done_running(self, event: EventData) -> bool:
         """A Breakpoint Node always returns a False signal to the done-running

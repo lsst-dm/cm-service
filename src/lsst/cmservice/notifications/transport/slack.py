@@ -39,11 +39,11 @@ SLACK_HEADER_SECTION = {
     },
     StatusEnum.rejected: {
         "emoji": "thumbsdown",
-        "text": "A Campaign has been REJECTED",
+        "text": "A Campaign or Node has been REJECTED",
     },
     StatusEnum.overdue: {
-        "emjoji": "calendar",
-        "text": "A Campaign is taking TOO LONG",
+        "emoji": "calendar",
+        "text": "A Campaign or Node is taking TOO LONG",
     },
 }
 
@@ -171,6 +171,8 @@ class SlackNotification(NotificationTransport):
                 # basic translation to Slack's special "mrkdown"
                 detail_md += error_md.replace("**", "_").replace("##", "").strip()
                 detail_md += "\n"
+            elif rejection_reason := activity_log.detail.get("reason"):
+                detail_md += f"Rejected because: {rejection_reason}\n"
 
         message = self.build_message(activity_log.to_status, detail_md)
         if message is None:

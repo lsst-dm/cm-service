@@ -28,7 +28,7 @@ from lsst.cmservice.models.manifests.facility import FacilityManifest
 from lsst.cmservice.models.manifests.lsst import LsstManifest
 from lsst.cmservice.models.manifests.wms import WmsManifest
 
-from ...common.errors import CMNoSuchManifestError
+from ...common.errors import CMNoSuchManifestError, CMRejectionError
 from ...common.flags import Features
 from ...common.logging import LOGGER
 from ...common.splitter import Splitter, SplitterEnum, SplitterMapping
@@ -632,6 +632,12 @@ class StepCollectMachine(NodeMachine, FilesystemActionMixin, HTCondorLaunchMixin
         # collection in "reverse" order, putting the run collections "closest"
         # to the collect first.
         self.collections = topographical_sorted_collections(subgraph, reverse=True)
+
+        # If no collections are available, the collect step cannot continue and
+        # will reject itself. This may be because every group in the subgraph
+        # has been rejected.
+        if not self.collections:
+            raise CMRejectionError("No RUN collections available to collect")
 
         # perform specific preparations
         await self.action_prepare(event)
