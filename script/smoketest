@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 
 # script/smoketest: Run the integration smoketest locally, following the steps
-#                   of the `.github/workflows/smoketest.yaml` workflow, except
-#                   that the schedule is triggered by a Kafka message instead
-#                   of a oneshot API call.
+#                   of the `.github/workflows/smoketest.yaml` workflow.
 #
 # Usage: script/smoketest [--keep] [--no-build]
 #
