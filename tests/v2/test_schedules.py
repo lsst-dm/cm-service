@@ -7,7 +7,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from textwrap import dedent
-from uuid import uuid4
+from typing import Any
+from uuid import UUID, uuid4
 
 import pytest
 import respx
@@ -16,9 +17,13 @@ from apscheduler import events
 from httpx2 import AsyncClient, codes
 from pydantic import ValidationError
 
-from lsst.cmservice.common.daemon_v2 import DaemonContext, consider_schedules
-from lsst.cmservice.common.scheduler import Scheduler
-from lsst.cmservice.common.templates import build_sandbox_and_render_templates
+from lsst.cmservice.common.daemon_v2 import DaemonContext, consider_schedules, daemon_scheduled_job
+from lsst.cmservice.common.scheduler import JobEventReturnCode, Scheduler
+from lsst.cmservice.common.templates import (
+    ManifestRenderingError,
+    build_sandbox_and_render_templates,
+    compile_user_expressions,
+)
 from lsst.cmservice.models.api.manifests import (
     CampaignManifest,
     EdgeManifest,
@@ -26,8 +31,14 @@ from lsst.cmservice.models.api.manifests import (
     ManifestModel,
     NodeManifest,
 )
-from lsst.cmservice.models.api.schedules import ScheduleConfiguration
+from lsst.cmservice.models.api.schedules import (
+    ScheduleConfiguration,
+    ScheduleOneshot,
+    ScheduleTrigger,
+    ScheduleTriggerBinding,
+)
 from lsst.cmservice.models.db.schedules import CreateManifestTemplate
+from lsst.cmservice.models.enums import ManifestKind
 from lsst.cmservice.models.lib.timestamp import now_utc
 from lsst.cmservice.models.lib.transformer import manifest_to_orm, prepare_orm_from_manifest
 
@@ -250,6 +261,72 @@ async def test_post_new_schedule(
 
 
 @pytest.mark.parametrize(
+    "configuration,fields",
+    [
+        ({"cron": "0 12 * * *"}, "cron"),
+        ({"name_format": "%s", "is_enabled": True, "metadata": {}}, "is_enabled, metadata"),
+    ],
+    ids=["cron", "fields and aliases"],
+)
+async def test_schedule_configuration_fields(aclient: AsyncClient, configuration: dict, fields: str) -> None:
+    """Tests that a schedule's own fields are rejected in its configuration,
+    where they would have no effect.
+    """
+    post_data = make_schedule_no_manifests() | {"configuration": configuration}
+    x = await aclient.post("/v2/schedules", json=post_data)
+    assert x.status_code == codes.UNPROCESSABLE_ENTITY
+    assert x.json()["detail"].endswith(fields)
+
+    x = await aclient.post(
+        "/v2/schedules", json=make_schedule_no_manifests() | {"configuration": {"name_format": "%s"}}
+    )
+    assert x.status_code == codes.CREATED
+    schedule_url = x.headers["Self"]
+    x = await aclient.patch(schedule_url, json={"configuration": configuration})
+    assert x.status_code == codes.UNPROCESSABLE_ENTITY
+    assert x.json()["detail"].endswith(fields)
+
+    # The schedule is unchanged
+    x = await aclient.get(schedule_url)
+    assert x.json()[0]["configuration"] == {"name_format": "%s"}
+
+
+async def test_patch_schedule_configuration(aclient: AsyncClient) -> None:
+    """Tests that a PATCH updates only the configuration fields it sets,
+    without adding defaults, and that the updated configuration is validated.
+    """
+    # Explicit values that equal their defaults are kept as set
+    configuration = {"auto_start": True, "name_format": "%Y%m%d", "expressions": {"day_obs": "'20261101'"}}
+    x = await aclient.post(
+        "/v2/schedules", json=make_schedule_no_manifests() | {"configuration": configuration}
+    )
+    assert x.status_code == codes.CREATED
+    schedule_url = x.headers["Self"]
+
+    async def stored_configuration() -> dict:
+        x = await aclient.get(schedule_url)
+        assert x.status_code == codes.OK
+        return x.json()[0]["configuration"]
+
+    # A PATCH without a configuration does not change it
+    x = await aclient.patch(schedule_url, json={"is_enabled": True})
+    assert x.status_code == codes.OK
+    assert await stored_configuration() == configuration
+
+    # A configuration PATCH changes only the fields it sets
+    x = await aclient.patch(schedule_url, json={"configuration": {"name_format": "%s"}})
+    assert x.status_code == codes.OK
+    configuration["name_format"] = "%s"
+    assert await stored_configuration() == configuration
+
+    # An invalid configuration PATCH is rejected without changing the schedule
+    for update in [{"expressions": {"my-var": ""}}, {"auto_start": "maybe"}]:
+        x = await aclient.patch(schedule_url, json={"configuration": update})
+        assert x.status_code == codes.UNPROCESSABLE_ENTITY
+        assert await stored_configuration() == configuration
+
+
+@pytest.mark.parametrize(
     "test_case",
     [
         pytest.param(ScheduleTestCase(), id="empty"),
@@ -375,6 +452,134 @@ async def test_template_render(
         assert "${{" not in manifest
         assert "{{" not in manifest
         assert "}}" not in manifest
+
+
+@pytest.mark.parametrize(
+    "expression,expected",
+    [
+        ("20261101", 20261101),
+        ("'20261101'", "20261101"),
+        ("[1, 2, 3, 4]", [1, 2, 3, 4]),
+        ('["a", "b", "c"]', ["a", "b", "c"]),
+        ('{"a": 1}', {"a": 1}),
+        ("True", True),
+        ("None", None),
+        ("datetime(2026, 11, 1, tzinfo=timezone.utc)", datetime(2026, 11, 1, tzinfo=UTC)),
+    ],
+)
+@pytest.mark.parametrize("strict", [True, False], ids=["strict", "lenient"])
+async def test_compile_literal_expressions(expression: str, expected: Any, *, strict: bool) -> None:
+    """Tests that expressions may be simple literal assignments."""
+    assert compile_user_expressions({"value": expression}, strict=strict) == {"value": expected}
+
+
+@pytest.mark.parametrize("expression", ["slac", "datetime.nope", "0101", "datetime.now(", "nope.attr"])
+async def test_compile_strict_expressions(expression: str) -> None:
+    """Tests that strict compilation rejects expressions that would otherwise
+    silently evaluate to None or fail later.
+    """
+    with pytest.raises(ManifestRenderingError, match="'value'"):
+        compile_user_expressions({"value": expression}, strict=True)
+
+
+async def test_compile_lenient_undefined_expression() -> None:
+    """Tests that lenient compilation preserves the behavior of evaluating an
+    undefined value as None.
+    """
+    assert compile_user_expressions({"value": "slac"}) == {"value": None}
+
+
+async def test_template_expressions() -> None:
+    """Tests that valid template expressions are plain mappings."""
+    expressions = {"today": "datetime.now()", "day_obs": "20261101"}
+    assert ScheduleOneshot(expressions=expressions).expressions == expressions
+
+    protocol = "type=='complete' && {day_obs: day_obs} || `null`"
+    configuration = ScheduleConfiguration(
+        expressions={"today": "datetime.now()"},
+        trigger=ScheduleTriggerBinding(source="kafka", channel="inbound", protocol=protocol),
+    )
+    assert configuration.expressions == {"today": "datetime.now()"}
+    assert configuration.model_dump()["trigger"] == {
+        "source": "kafka",
+        "channel": "inbound",
+        "protocol": protocol,
+    }
+
+
+@pytest.mark.parametrize(
+    "expressions",
+    [{"my-var": "1"}, {"1st": "1"}, {"": "1"}, {"x": ""}, {"x": "  "}, {"x": 1}],
+    ids=["dash", "leading digit", "empty name", "empty", "blank", "not a string"],
+)
+async def test_invalid_template_expressions(expressions: dict) -> None:
+    """Tests that unusable expression names and empty expressions are
+    rejected.
+    """
+    with pytest.raises(ValidationError):
+        ScheduleOneshot(expressions=expressions)
+
+
+async def test_template_render_literals() -> None:
+    """Tests rendering templates with literal expressions."""
+    context = ScheduleConfiguration(
+        expressions={"day_obs": "20261101", "x": "[1, 2, 3, 4]", "y": '["a", "b", "c"]'}
+    )
+    templates = [
+        CreateManifestTemplate(
+            name=uuid4().hex[0:8],
+            kind=ManifestKind.butler,
+            manifest=dedent("""\
+                apiVersion: io.lsst.cmservice/v1
+                kind: butler
+                metadata:
+                    name: literal_butler
+                spec:
+                    x: ${{ x }}
+                    y: ${{ y }}
+                    predicates:
+                        - day_obs=${{ day_obs }}
+                        - ${{ x | sql_in(field="detector") }}
+                        - ${{ y | sql_not_in(field="band") }}
+            """),
+        )
+    ]
+    manifests = await build_sandbox_and_render_templates(context, templates, as_orm=False)
+    spec = manifests[0]["spec"]
+    assert spec["x"] == [1, 2, 3, 4]
+    assert spec["y"] == ["a", "b", "c"]
+    assert spec["predicates"] == ["day_obs=20261101", "detector IN (1,2,3,4)", "band NOT IN ('a','b','c')"]
+
+
+async def test_template_render_overrides() -> None:
+    """Tests that override values are merged over the values of the compiled
+    expressions, and that the campaign records the values used to render.
+    """
+    context = ScheduleConfiguration(expressions={"today": "datetime(2026, 11, 1)", "x": "1"})
+    templates = [
+        CreateManifestTemplate(
+            name=uuid4().hex[0:8],
+            kind=ManifestKind.campaign,
+            manifest=dedent("""\
+                apiVersion: io.lsst.cmservice/v1
+                kind: campaign
+                metadata:
+                    name: values_campaign
+                spec:
+                    day_obs: ${{ today | as_day_obs }}
+                    x: ${{ x }}
+                    y: ${{ y }}
+            """),
+        )
+    ]
+    (campaign, *_) = await build_sandbox_and_render_templates(context, templates, as_orm=False)
+    assert campaign["metadata"]["values"] == {"today": "2026-11-01T00:00:00", "x": 1}
+
+    (campaign, *_) = await build_sandbox_and_render_templates(
+        context, templates, overrides={"x": 2, "y": "v30"}, as_orm=False
+    )
+    assert campaign["spec"].items() >= {"day_obs": 20261101, "x": 2, "y": "v30"}.items()
+    assert campaign["metadata"]["values"] == {"today": "2026-11-01T00:00:00", "x": 2, "y": "v30"}
 
 
 @pytest.mark.parametrize(
@@ -526,6 +731,138 @@ async def test_one_shot_api(aclient: AsyncClient, test_case: ScheduleTestCase) -
     x = await aclient.get(x.headers["nodes"])
     assert x.status_code == codes.OK
     assert len(x.json()) == 3
+
+
+@pytest.mark.parametrize(
+    "test_case",
+    [
+        pytest.param(ScheduleTestCase(post_data=make_schedule_with_manifests()), id="full"),
+    ],
+    indirect=["test_case"],
+)
+async def test_one_shot_api_overrides(aclient: AsyncClient, test_case: ScheduleTestCase) -> None:
+    """Runs a schedule using the oneshot API with expression overrides and an
+    idempotency key.
+    """
+    today = now_utc()
+    nonce = uuid4().hex[:8]
+    idempotency_key = uuid4().hex
+    campaign_name = f"sample_campaign_{nonce}_{today:%Y%m%d}"
+    overrides = {"today": "datetime(2020, 1, 1)", "tomorrow": "datetime(2020, 1, 2)"}
+
+    async def check_oneshot_complete() -> bool:
+        """checks for the existence of the expected new campaign"""
+        while True:
+            y = await aclient.head(f"/v2/campaigns/{campaign_name}")
+            if y.status_code == codes.NO_CONTENT:
+                return True
+            else:
+                await asyncio.sleep(1.0)
+
+    x = await aclient.post("/v2/schedules", json=test_case.post_data)
+    assert x.status_code == test_case.expected_code
+    schedule_url = x.headers["Self"]
+
+    x = await aclient.patch(
+        schedule_url, json={"is_enabled": False, "configuration": {"name_format": f"{nonce}_%Y%m%d"}}
+    )
+    assert x.status_code == codes.OK
+
+    # A request without an identifiable actor is rejected
+    request = aclient.build_request("POST", f"{schedule_url}/oneshot")
+    del request.headers["X-Auth-Request-User"]
+    x = await aclient.send(request)
+    assert x.status_code == codes.UNPROCESSABLE_ENTITY
+    x = await aclient.post(f"{schedule_url}/oneshot", headers={"X-Auth-Request-User": ""})
+    assert x.status_code == codes.UNPROCESSABLE_ENTITY
+
+    # An override expression that cannot be evaluated is rejected
+    # - a syntax error in the expression
+    x = await aclient.post(f"{schedule_url}/oneshot", json={"expressions": {"today": "datetime.now("}})
+    assert x.status_code == codes.UNPROCESSABLE_ENTITY
+    # - an unquoted string, which is an undefined name rather than a literal
+    x = await aclient.post(f"{schedule_url}/oneshot", json={"expressions": {"site": "slac"}})
+    assert x.status_code == codes.UNPROCESSABLE_ENTITY
+    assert "quote string literals" in x.json()["detail"]
+    # - a name that is not an identifier, which a template would parse as an
+    #   expression (`my - var`) rather than as a variable
+    x = await aclient.post(f"{schedule_url}/oneshot", json={"expressions": {"my-var": "1"}})
+    assert x.status_code == codes.UNPROCESSABLE_ENTITY
+
+    x = await aclient.post(
+        f"{schedule_url}/oneshot",
+        json={"expressions": overrides},
+        headers={"Idempotency-Key": idempotency_key},
+    )
+    assert x.status_code == codes.ACCEPTED
+
+    await asyncio.wait_for(check_oneshot_complete(), timeout=10.0)
+    x = await aclient.get(f"/v2/campaigns/{campaign_name}")
+    assert x.status_code == codes.OK
+    campaign_url = x.headers["Self"]
+    assert x.json()["metadata"]["trigger"] == {
+        "source": "api",
+        "actor": "testuser",
+        "schedule": schedule_url.split("/")[-1],
+        "key": idempotency_key,
+    }
+    # The values used to render the templates are recorded with the campaign
+    assert x.json()["metadata"]["values"] == {
+        "today": "2020-01-01T00:00:00",
+        "tomorrow": "2020-01-02T00:00:00",
+    }
+
+    # The overrides are used to render the templates
+    x = await aclient.get(f"{campaign_url}/manifests")
+    assert x.status_code == codes.OK
+    butler_manifest = x.json()[0]
+    assert "day_obs>='20200101'" in butler_manifest["spec"]["predicates"]
+    assert "day_obs<'20200102'" in butler_manifest["spec"]["predicates"]
+
+    # The overrides are not persisted to the schedule
+    x = await aclient.get(schedule_url)
+    assert x.status_code == codes.OK
+    assert x.json()[0]["configuration"]["expressions"] == test_case.post_data["configuration"]["expressions"]
+
+    # Reusing the idempotency key does not create a new campaign
+    x = await aclient.post(
+        f"{schedule_url}/oneshot",
+        json={"expressions": overrides},
+        headers={"Idempotency-Key": idempotency_key},
+    )
+    assert x.status_code == codes.CONFLICT
+    assert x.headers["Location"] == campaign_url
+
+
+@pytest.mark.parametrize(
+    "test_case",
+    [
+        pytest.param(ScheduleTestCase(post_data=make_schedule_with_manifests()), id="full"),
+    ],
+    indirect=["test_case"],
+)
+async def test_scheduled_job_duplicate_trigger(aclient: AsyncClient, test_case: ScheduleTestCase) -> None:
+    """Tests that a scheduled job does not create a second campaign for an
+    equivalent trigger, e.g., when two oneshot requests race.
+    """
+    nonce = uuid4().hex[:8]
+    x = await aclient.post("/v2/schedules", json=test_case.post_data)
+    assert x.status_code == test_case.expected_code
+    schedule_url = x.headers["Self"]
+    x = await aclient.patch(schedule_url, json={"configuration": {"name_format": f"{nonce}_%Y%m%d%H%M%S%f"}})
+    assert x.status_code == codes.OK
+
+    schedule_id = UUID(schedule_url.split("/")[-1])
+    trigger = ScheduleTrigger(source="test", schedule=schedule_id, key=uuid4().hex)
+    result = await daemon_scheduled_job(schedule_id=schedule_id, oneshot=True, trigger=trigger)
+    assert result is JobEventReturnCode.SUCCESS
+    result = await daemon_scheduled_job(schedule_id=schedule_id, oneshot=True, trigger=trigger)
+    assert result is JobEventReturnCode.DUPLICATE_TRIGGER
+
+    # A trigger without a key is never a duplicate
+    trigger = ScheduleTrigger(source="test", schedule=schedule_id)
+    result = await daemon_scheduled_job(schedule_id=schedule_id, oneshot=True, trigger=trigger)
+    assert result is JobEventReturnCode.SUCCESS
 
 
 @pytest.mark.parametrize(

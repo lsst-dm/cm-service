@@ -7,6 +7,7 @@ from uuid import uuid4
 
 import typer
 from httpx2 import HTTPStatusError, codes
+from pydantic_extra_types.cron import CronStr
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
@@ -73,7 +74,14 @@ def load_schedule(
                 node_id = f"{manifest['metadata']['name']}.1"
                 to_load[node_id] = manifest
             case "schedule":
-                schedule.configuration = manifest["spec"]
+                spec = dict(manifest["spec"])
+                if (cron := spec.pop("cron", None)) is not None:
+                    try:
+                        schedule.cron = CronStr(cron)
+                    except ValueError as e:
+                        console.print(f"Invalid schedule cron {cron!r}: {e}")
+                        raise typer.Exit(1) from e
+                schedule.configuration = spec
             case _:
                 manifest["metadata"].pop("namespace", None)
                 manifest["metadata"].pop("kind", None)
@@ -104,8 +112,21 @@ def load_schedule(
 def oneshot_schedule(
     ctx: TypedContext,
     schedule: arguments.schedule_id,
+    expressions: schedule_arguments.expressions = None,
+    idempotency_key: schedule_arguments.idempotency_key = None,
 ) -> None:
-    """One-shot a schedule that is not presently enabled."""
+    """One-shot a schedule that is not presently enabled.
+
+    Template values may be overridden or added for this oneshot only. If
+    the idempotency key has already been used for the schedule, the campaign
+    previously created with the key is reported instead of a new campaign.
+    """
+    request_kwargs: dict = {}
+    if expressions:
+        request_kwargs["json"] = {"expressions": schedule_arguments.parse_expressions(expressions)}
+    if idempotency_key is not None:
+        request_kwargs["headers"] = {"Idempotency-Key": idempotency_key}
+
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
@@ -117,6 +138,7 @@ def oneshot_schedule(
         prev_c_url: str | None = None
         new_c_url: str | None = None
         s_url: str | None = None
+        duplicate = False
 
         with http_client(ctx) as client:
             # Get the last campaign url for the schedule or leave it as none
@@ -133,17 +155,23 @@ def oneshot_schedule(
                 pass
 
             try:
-                r = client.post(f"/schedules/{schedule}/oneshot")
+                r = client.post(f"/schedules/{schedule}/oneshot", **request_kwargs)
                 r.raise_for_status()
             except HTTPStatusError as e:
-                console.print(e)
-                sys.exit(1)
+                # A conflict with a location refers to the campaign previously
+                # created with the same idempotency key
+                if e.response.status_code == codes.CONFLICT and "Location" in e.response.headers:
+                    new_c_url = e.response.headers["Location"]
+                    duplicate = True
+                else:
+                    console.print(e)
+                    sys.exit(1)
 
             # Wait until `timeout` for the schedule to provide a new campaign
             # and for that campaign to not be 404
             timeout = 10.0
             elapsed = 0.0
-            while elapsed < timeout:
+            while not duplicate and elapsed < timeout:
                 try:
                     r = client.head(f"/schedules/{schedule}")
                     r.raise_for_status()
@@ -180,6 +208,46 @@ def oneshot_schedule(
             table.add_column("URL")
             for k, v in result_dict.items():
                 table.add_row(k, v)
+            console.print(table)
+        case formatters.Formatters.json:
+            formatters.as_json(result_dict)
+
+
+@app.command(name="refresh")
+def refresh_schedule(
+    ctx: TypedContext,
+    schedule: arguments.schedule_id,
+) -> None:
+    """Refresh a schedule from its external resource without creating a
+    campaign.
+
+    If the resource has a schedule manifest, the manifest replaces the
+    schedule's configuration and cron. Nothing changes for a schedule without
+    an external resource, or one whose resource has no schedule manifest.
+    """
+    with http_client(ctx) as client:
+        try:
+            r = client.post(f"/schedules/{schedule}/refresh")
+            r.raise_for_status()
+        except HTTPStatusError as e:
+            console.print(e)
+            console.print(e.response.text)
+            sys.exit(1)
+
+    changes: dict[str, dict] = r.json()["changes"] if r.status_code == codes.OK else {}
+    result_dict = {"schedule": r.headers.get("Self"), "changes": changes}
+
+    match formatters.Formatters[ctx.obj.output_format]:
+        case formatters.Formatters.table:
+            if not changes:
+                console.print(Text("The schedule is unchanged"))
+                return None
+            table = Table(title="CM Schedule Refresh")
+            table.add_column("Field")
+            table.add_column("From")
+            table.add_column("To")
+            for name, change in changes.items():
+                table.add_row(name, repr(change["from"]), repr(change["to"]))
             console.print(table)
         case formatters.Formatters.json:
             formatters.as_json(result_dict)

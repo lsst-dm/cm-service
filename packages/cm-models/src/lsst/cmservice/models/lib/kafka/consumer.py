@@ -151,7 +151,8 @@ class CMConsumer(Consumer):
                         await checkpoint()
                         continue
                     case _ as e:
-                        raise RuntimeError("Kafka consumer failed to subscribe: %s", e)
+                        msg = f"Kafka consumer failed to subscribe: {e}"
+                        raise RuntimeError(msg)
             else:
                 await self._send_stream.send(message)
 
@@ -215,7 +216,7 @@ class CMConsumer(Consumer):
         """
         async with stream:
             async for message in stream:
-                match message.topic:
+                match message.topic():
                     case _:
                         await self.default_handler(message)
 
@@ -245,7 +246,7 @@ class CMConsumer(Consumer):
     async def on_eof(self, message: Message) -> None:
         """Callback for partition EOF events. This is a no-op."""
         logger.info(
-            "Consumer reached EOF on a topic-partition", topic=message.topic, partition=message.partition
+            "Consumer reached EOF on a topic-partition", topic=message.topic(), partition=message.partition()
         )
         await checkpoint()
 
