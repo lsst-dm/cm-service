@@ -576,7 +576,7 @@ spec:
   cron: "0 0 * * 4"  # Thursdays at 0000Z
   expressions:
     today: "datetime.now(timezone.utc)"
-    sasquatch_timestamp: "datetime.now(timezone.utc).strftime('%Y%m%dT000000Z')"
-    weekly: "'w_2026_47'"
-    ticket: "'DM-56970'"
+    sasquatch_timestamp: "'20261126T000000Z'"
+    weekly: "'w_2026_48'"
+    ticket: "'DM-57263'"
   name_format: "%s"
